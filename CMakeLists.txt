@@ -1,0 +1,7 @@
+cmake_minimum_required (VERSION 3.10)
+ADD_COMPILE_OPTIONS(-Wall)
+project (N64)
+set(N64_TARGET n64)
+set(CMAKE_BUILD_TYPE Debug)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
+add_subdirectory(src)
