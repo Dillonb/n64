@@ -2,6 +2,7 @@
 #include <cflags.h>
 #include "common/log.h"
 #include "n64system.h"
+#include "pif_rom.h"
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
