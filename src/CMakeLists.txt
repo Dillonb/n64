@@ -12,5 +12,7 @@ add_library(core
         n64bus.c n64bus.h
         pif_rom.c pif_rom.h)
 
+target_link_libraries(core r4300i)
+
 add_executable(${N64_TARGET} cli_frontend.c)
-target_link_libraries(${N64_TARGET} r4300i common core)
+target_link_libraries(${N64_TARGET} common core)

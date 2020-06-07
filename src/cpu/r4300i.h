@@ -17,4 +17,6 @@ typedef struct r4300i {
     cp0_t cp0;
 } r4300i_t;
 
+void r4300i_step(r4300i_t* cpu, word instruction);
+
 #endif //N64_R4300I_H

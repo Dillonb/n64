@@ -38,7 +38,7 @@ void pif_rom_execute(n64_system_t* system) {
 
     // TODO set CP0 registers
 
-    n64_write_word(0x04300004, 0x01010101);
+    n64_write_word(system, 0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
 
@@ -46,8 +46,13 @@ void pif_rom_execute(n64_system_t* system) {
     word dest_ptr = 0xA4000000;
 
     for (int i = 0; i < 0x1000; i++) {
-        n64_write_byte(dest_ptr + i, n64_read_byte(src_ptr + i));
+        word src_address = src_ptr + i;
+        word dest_address = dest_ptr + i;
+        byte src = n64_read_byte(system, src_address);
+        n64_write_byte(system, dest_address, src);
+
+        logtrace("PIF: Copied 0x%02X from 0x%08X ==> 0x%08X", src, src_address, dest_address)
     }
 
-    // TODO set pc to 0xA4000040
+    system->cpu.pc = 0xA4000040;
 }
