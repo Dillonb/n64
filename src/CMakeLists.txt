@@ -3,6 +3,7 @@ find_package(SDL2 REQUIRED)
 INCLUDE_DIRECTORIES(SYSTEM "contrib" ${SDL2_INCLUDE_DIR})
 
 add_subdirectory(common)
+add_subdirectory(cpu)
 
 add_library(core
         n64system.c n64system.h
@@ -12,4 +13,4 @@ add_library(core
         pif_rom.c pif_rom.h)
 
 add_executable(${N64_TARGET} cli_frontend.c)
-target_link_libraries(${N64_TARGET} common core)
+target_link_libraries(${N64_TARGET} r4300i common core)

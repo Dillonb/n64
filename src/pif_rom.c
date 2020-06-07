@@ -3,7 +3,39 @@
 #include "n64bus.h"
 
 void pif_rom_execute(n64_system_t* system) {
-    // TODO set registers
+    system->cpu.gpr[0] = 0;
+    system->cpu.gpr[1] = 0;
+    system->cpu.gpr[2] = 0;
+    system->cpu.gpr[3] = 0;
+    system->cpu.gpr[4] = 0;
+    system->cpu.gpr[5] = 0;
+    system->cpu.gpr[6] = 0;
+    system->cpu.gpr[7] = 0;
+    system->cpu.gpr[8] = 0;
+    system->cpu.gpr[9] = 0;
+    system->cpu.gpr[10] = 0;
+    system->cpu.gpr[11] = 0;
+    system->cpu.gpr[12] = 0;
+    system->cpu.gpr[13] = 0;
+    system->cpu.gpr[14] = 0;
+    system->cpu.gpr[15] = 0;
+    system->cpu.gpr[16] = 0;
+    system->cpu.gpr[17] = 0;
+    system->cpu.gpr[18] = 0;
+    system->cpu.gpr[19] = 0;
+    system->cpu.gpr[20] = 0x1;
+    system->cpu.gpr[21] = 0;
+    system->cpu.gpr[22] = 0x3F;
+    system->cpu.gpr[23] = 0;
+    system->cpu.gpr[24] = 0;
+    system->cpu.gpr[25] = 0;
+    system->cpu.gpr[26] = 0;
+    system->cpu.gpr[27] = 0;
+    system->cpu.gpr[28] = 0;
+    system->cpu.gpr[29] = 0xA4001FF0;
+    system->cpu.gpr[30] = 0;
+    system->cpu.gpr[31] = 0;
+
     // TODO set CP0 registers
 
     n64_write_word(0x04300004, 0x01010101);

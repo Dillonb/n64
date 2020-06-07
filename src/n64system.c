@@ -8,6 +8,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     unimplemented(!enable_frontend, "Disabling the frontend is not yet supported")
     init_mem(&system->mem);
     load_n64rom(&system->mem.rom, rom_path);
+    return system;
 }
 
 void n64_system_loop(n64_system_t* system) {
