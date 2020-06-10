@@ -81,6 +81,14 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define VREGION_KSSEG SVREGION_KSSEG ... 0xDFFFFFFF
 #define VREGION_KSEG3 SVREGION_KSEG3 ... 0xFFFFFFFF
 
+#define ADDR_RI_MODE_REG    0x04700000
+#define ADDR_RI_CONFIG_REG  0x04700004
+#define ADDR_RI_SELECT_REG  0x0470000C
+#define ADDR_RI_REFRESH_REG 0x04700010
+#define ADDR_RI_LATENCY_REG 0x04700014
+#define ADDR_RI_RERROR_REG  0x04700018
+#define ADDR_RI_WERROR_REG  0x0470001C
+
 word vatopa(word address) {
     word physical;
     switch (address) {
@@ -102,6 +110,15 @@ word vatopa(word address) {
             logfatal("Address 0x%08X doesn't really look like a virtual address", address)
     }
     return physical;
+}
+
+word read_word_rireg(n64_system_t* system, word address) {
+    switch (address) {
+        case ADDR_RI_SELECT_REG:
+            return system->mem.ri_reg[RI_SELECT_REG];
+        default:
+            logfatal("Unknown reg: 0x%X", address)
+    }
 }
 
 void n64_write_word(n64_system_t* system, word address, word value) {
@@ -180,6 +197,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_PI_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_PI_REGS", address)
         case REGION_RI_REGS:
+            return read_word_rireg(system, address);
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RI_REGS", address)
         case REGION_SI_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_SI_REGS", address)

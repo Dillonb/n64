@@ -50,6 +50,7 @@ void r4300i_step(r4300i_t* cpu, word instruction) {
             break;
         case LW:
             lw(cpu, parsed);
+            break;
         default:
             logfatal("Unknown instruction type!")
     }
