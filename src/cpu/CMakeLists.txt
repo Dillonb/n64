@@ -1,5 +1,5 @@
 add_library(r4300i
-        r4300i.c r4300i.h disassemble.c disassemble.h)
+        r4300i.c r4300i.h disassemble.c disassemble.h mips32.c mips32.h sign_extension.c sign_extension.h)
 
 find_package(Capstone)
 

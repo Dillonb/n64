@@ -4,11 +4,19 @@
 #include "n64rom.h"
 #include "n64bus.h"
 
+n64_system_t* global_system;
+
+word read_word_wrapper(word address) {
+    return n64_read_word(global_system, address);
+}
+
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
     unimplemented(!enable_frontend, "Disabling the frontend is not yet supported")
     init_mem(&system->mem);
     load_n64rom(&system->mem.rom, rom_path);
+    system->cpu.read_word = &read_word_wrapper;
+    global_system = system;
     return system;
 }
 

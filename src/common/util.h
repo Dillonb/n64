@@ -7,6 +7,11 @@
 #define word uint32_t
 #define dword uint64_t
 
+#define sbyte int8_t
+#define shalf int16_t
+#define sword int32_t
+#define sdword int64_t
+
 #define PRINTF_BYTE "0x%02X"
 #define PRINTF_HALF "0x%04X"
 #define PRINTF_WORD "0x%08X"
