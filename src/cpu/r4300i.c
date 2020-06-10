@@ -7,6 +7,8 @@
 #define MIPS32_LUI   0b001111
 #define MIPS32_ADDIU 0b001001
 #define MIPS32_LW    0b100011
+#define MIPS32_BNE   0b000101
+#define MIPS32_NOP   0b000000
 
 #define MTC0_MASK  0b11111111111000000000011111111111
 #define MTC0_VALUE 0b01000000100000000000000000000000
@@ -28,6 +30,10 @@ mips32_instruction_type_t decode(r4300i_t* cpu, mips32_instruction_t instr) {
             return ADDIU;
         case MIPS32_LW:
             return LW;
+        case MIPS32_BNE:
+            return BNE;
+        case MIPS32_NOP:
+            return NOP;
         default:
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)
@@ -50,6 +56,11 @@ void r4300i_step(r4300i_t* cpu, word instruction) {
             break;
         case LW:
             lw(cpu, parsed);
+            break;
+        case BNE:
+            bne(cpu, parsed);
+            break;
+        case NOP:
             break;
         default:
             logfatal("Unknown instruction type!")

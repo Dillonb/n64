@@ -69,7 +69,9 @@ typedef enum mips32_instruction_type {
     MTC0,
     LUI,
     ADDIU,
-    LW
+    LW,
+    BNE,
+    NOP
 } mips32_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu, word instruction);
