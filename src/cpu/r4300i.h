@@ -23,6 +23,8 @@ typedef struct r4300i {
     cp0_t cp0;
 
     word (*read_word)(word);
+
+    void (*write_word)(uint32_t, uint32_t);
 } r4300i_t;
 
 typedef union mips32_instruction {
@@ -71,9 +73,24 @@ typedef enum mips32_instruction_type {
     ADDIU,
     LW,
     BNE,
-    NOP
+    NOP,
+    SW,
+    ORI
 } mips32_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu, word instruction);
+
+INLINE void set_register(r4300i_t* cpu, int r, dword value) {
+    if (cpu->width_mode == M32) {
+        value &= 0xFFFFFFFF;
+    }
+
+    cpu->gpr[r] = value;
+}
+
+INLINE void set_cp0_register(r4300i_t* cpu, int r, dword value) {
+    // TODO do these need to be forced to 32 bits as well?
+    cpu->cp0.r[r] = value;
+}
 
 #endif //N64_R4300I_H

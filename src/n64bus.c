@@ -113,12 +113,27 @@ word vatopa(word address) {
 }
 
 word read_word_rireg(n64_system_t* system, word address) {
-    switch (address) {
-        case ADDR_RI_SELECT_REG:
-            return system->mem.ri_reg[RI_SELECT_REG];
-        default:
-            logfatal("Unknown reg: 0x%X", address)
+    if (address % 4 != 0) {
+        logfatal("Reading from RI register at non-word-aligned address 0x%08X", address)
     }
+
+    if (address < ADDR_RI_MODE_REG || address > ADDR_RI_WERROR_REG) {
+        logfatal("In RI write handler with out of bounds address 0x%08X", address)
+    }
+
+    return system->mem.ri_reg[(address - SREGION_RI_REGS) / 4];
+}
+
+void write_word_rireg(n64_system_t* system, word address, word value) {
+    if (address % 4 != 0) {
+        logfatal("Writing to RI register at non-word-aligned address 0x%08X", address)
+    }
+
+    if (address < ADDR_RI_MODE_REG || address > ADDR_RI_WERROR_REG) {
+        logfatal("In RI write handler with out of bounds address 0x%08X", address)
+    }
+
+    system->mem.ri_reg[(address - SREGION_RI_REGS) / 4] = value;
 }
 
 void n64_write_word(n64_system_t* system, word address, word value) {
@@ -127,6 +142,13 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RDRAM", value, address)
         case REGION_RDRAM_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address)
+        case REGION_SP_DMEM:
+            word_to_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM, value);
+            break;
+        case REGION_SP_IMEM:
+            word_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
+            break;
+            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address)
         case REGION_SP_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
         case REGION_DP_COMMAND_REGS:
@@ -143,6 +165,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_PI_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PI_REGS", value, address)
         case REGION_RI_REGS:
+            write_word_rireg(system, address, value);
+            break;
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address)
         case REGION_SI_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address)
@@ -166,7 +190,7 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
         case REGION_SYSAD_DEVICE:
             n64_write_word(system, vatopa(address), value);
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SYSAD_DEVICE", value, address)
+            break;
         default:
             logfatal("Writing word 0x%08X to unknown address: 0x%08X", value, address)
     }

@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.10)
-ADD_COMPILE_OPTIONS(-Wall)
+ADD_COMPILE_OPTIONS(-Wall -fsanitize=address)
+ADD_LINK_OPTIONS(-fsanitize=address)
 project (N64)
 set(N64_TARGET n64)
 set(CMAKE_BUILD_TYPE Debug)
