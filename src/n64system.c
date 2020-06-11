@@ -26,9 +26,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 }
 
 INLINE void n64_system_step(n64_system_t* system) {
-    // TODO pipelining
-    word instruction = n64_read_word(system, system->cpu.pc);
-    r4300i_step(&system->cpu, instruction);
+    r4300i_step(&system->cpu);
 }
 
 _Noreturn void n64_system_loop(n64_system_t* system) {

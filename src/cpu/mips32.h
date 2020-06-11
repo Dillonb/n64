@@ -13,6 +13,8 @@ void andi(r4300i_t* cpu, mips32_instruction_t instruction);
 void beq(r4300i_t* cpu, mips32_instruction_t instruction);
 void bne(r4300i_t* cpu, mips32_instruction_t instruction);
 
+void jal(r4300i_t* cpu, mips32_instruction_t instruction);
+
 void mtc0(r4300i_t* cpu, mips32_instruction_t instruction);
 void lui(r4300i_t* cpu, mips32_instruction_t instruction);
 void lw(r4300i_t* cpu, mips32_instruction_t instruction);

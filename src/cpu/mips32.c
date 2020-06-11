@@ -84,6 +84,17 @@ void bne(r4300i_t* cpu, mips32_instruction_t instruction) {
     conditional_branch(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
 }
 
+void jal(r4300i_t* cpu, mips32_instruction_t instruction) {
+    unimplemented(cpu->width_mode == M64, "JAL in 64 bit mode")
+    set_register(cpu, R4300I_REG_LR, cpu->pc + 4); // Skips the next instruction for some reason
+
+    word target = instruction.j.target;
+    target <<= 2;
+    target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
+
+    cpu->pc = target;
+}
+
 void mtc0(r4300i_t* cpu, mips32_instruction_t instruction) {
     // TODO: throw a "coprocessor unusuable exception" if CP0 disabled - see manual
     cpu->cp0.r[instruction.r.rd] = cpu->gpr[instruction.r.rt];

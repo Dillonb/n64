@@ -4,6 +4,8 @@
 
 #include "../common/util.h"
 
+#define R4300I_REG_LR 31
+
 typedef enum width_mode {
     M32,
     M64
@@ -77,10 +79,11 @@ typedef enum mips32_instruction_type {
     BEQ,
     NOP,
     SW,
-    ORI
+    ORI,
+    JAL
 } mips32_instruction_type_t;
 
-void r4300i_step(r4300i_t* cpu, word instruction);
+void r4300i_step(r4300i_t* cpu);
 
 INLINE void set_register(r4300i_t* cpu, int r, dword value) {
     if (cpu->width_mode == M32) {
