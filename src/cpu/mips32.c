@@ -95,6 +95,16 @@ void jal(r4300i_t* cpu, mips32_instruction_t instruction) {
     cpu->pc = target;
 }
 
+void slti(r4300i_t* cpu, mips32_instruction_t instruction) {
+    unimplemented(cpu->width_mode == M64, "SLTI in 64 bit mode")
+    sword immediate = sign_extend_word(instruction.i.immediate, 16, 32);
+    if (cpu->gpr[instruction.i.rs] < immediate) {
+        cpu->gpr[instruction.i.rt] = 1;
+    } else {
+        cpu->gpr[instruction.i.rt] = 0;
+    }
+}
+
 void mtc0(r4300i_t* cpu, mips32_instruction_t instruction) {
     // TODO: throw a "coprocessor unusuable exception" if CP0 disabled - see manual
     cpu->cp0.r[instruction.r.rd] = cpu->gpr[instruction.r.rt];

@@ -80,7 +80,8 @@ typedef enum mips32_instruction_type {
     NOP,
     SW,
     ORI,
-    JAL
+    JAL,
+    SLTI
 } mips32_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu);
