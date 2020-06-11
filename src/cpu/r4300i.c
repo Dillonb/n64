@@ -5,9 +5,11 @@
 
 #define MIPS32_CP    0b010000
 #define MIPS32_LUI   0b001111
+#define MIPS32_ADDI  0b001000
 #define MIPS32_ADDIU 0b001001
 #define MIPS32_LW    0b100011
 #define MIPS32_BNE   0b000101
+#define MIPS32_BEQ   0b000100
 #define MIPS32_NOP   0b000000
 #define MIPS32_SW    0b101011
 #define MIPS32_ORI   0b001101
@@ -30,10 +32,14 @@ mips32_instruction_type_t decode(r4300i_t* cpu, mips32_instruction_t instr) {
             return LUI;
         case MIPS32_ADDIU:
             return ADDIU;
+        case MIPS32_ADDI:
+            return ADDI;
         case MIPS32_LW:
             return LW;
         case MIPS32_BNE:
             return BNE;
+        case MIPS32_BEQ:
+            return BEQ;
         case MIPS32_NOP:
             return NOP;
         case MIPS32_SW:
@@ -57,6 +63,9 @@ void r4300i_step(r4300i_t* cpu, word instruction) {
         case LUI:
             lui(cpu, parsed);
             break;
+        case ADDI:
+            addi(cpu, parsed);
+            break;
         case ADDIU:
             addiu(cpu, parsed);
             break;
@@ -66,6 +75,8 @@ void r4300i_step(r4300i_t* cpu, word instruction) {
         case BNE:
             bne(cpu, parsed);
             break;
+        case BEQ:
+            beq(cpu, parsed);
         case NOP:
             break;
         case SW:

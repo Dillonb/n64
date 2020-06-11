@@ -70,9 +70,11 @@ typedef union mips32_instruction {
 typedef enum mips32_instruction_type {
     MTC0,
     LUI,
+    ADDI,
     ADDIU,
     LW,
     BNE,
+    BEQ,
     NOP,
     SW,
     ORI

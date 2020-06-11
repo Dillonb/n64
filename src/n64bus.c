@@ -81,6 +81,21 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define VREGION_KSSEG SVREGION_KSSEG ... 0xDFFFFFFF
 #define VREGION_KSEG3 SVREGION_KSEG3 ... 0xFFFFFFFF
 
+
+#define ADDR_RDRAM_CONFIG_REG       0x03F00000
+#define ADDR_RDRAM_DEVICE_ID_REG    0x03F00004
+#define ADDR_RDRAM_DELAY_REG        0x03F00008
+#define ADDR_RDRAM_MODE_REG         0x03F0000C
+#define ADDR_RDRAM_REF_INTERVAL_REG 0x03F00010
+#define ADDR_RDRAM_REF_ROW_REG      0x03F00014
+#define ADDR_RDRAM_RAS_INTERVAL_REG 0x03F00018
+#define ADDR_RDRAM_MIN_INTERVAL_REG 0x03F0001C
+#define ADDR_RDRAM_ADDR_SELECT_REG  0x03F00020
+#define ADDR_RDRAM_DEVICE_MANUF_REG 0x03F00024
+
+#define ADDR_RDRAM_REG_FIRST ADDR_RDRAM_CONFIG_REG
+#define ADDR_RDRAM_REG_LAST  ADDR_RDRAM_DEVICE_MANUF_REG
+
 #define ADDR_RI_MODE_REG    0x04700000
 #define ADDR_RI_CONFIG_REG  0x04700004
 #define ADDR_RI_SELECT_REG  0x0470000C
@@ -88,6 +103,17 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define ADDR_RI_LATENCY_REG 0x04700014
 #define ADDR_RI_RERROR_REG  0x04700018
 #define ADDR_RI_WERROR_REG  0x0470001C
+
+#define ADDR_RI_FIRST ADDR_RI_MODE_REG
+#define ADDR_RI_LAST  ADDR_RI_WERROR_REG
+
+#define ADDR_MI_MODE_REG      0x04300000
+#define ADDR_MI_VERSION_REG   0x04300004
+#define ADDR_MI_INTR_REG      0x04300008
+#define ADDR_MI_INTR_MASK_REG 0x0430000C
+
+#define ADDR_MI_FIRST ADDR_MI_MODE_REG
+#define ADDR_MI_LAST  ADDR_MI_INTR_MASK_REG
 
 word vatopa(word address) {
     word physical;
@@ -112,6 +138,18 @@ word vatopa(word address) {
     return physical;
 }
 
+void write_word_rdramreg(n64_system_t* system, word address, word value) {
+    if (address % 4 != 0) {
+        logfatal("Writing to RDRAM register at non-word-aligned address 0x%08X", address)
+    }
+
+    if (address < ADDR_RDRAM_REG_FIRST || address > ADDR_RDRAM_REG_LAST) {
+        logwarn("In RDRAM register write handler with out of bounds address 0x%08X", address)
+    } else {
+        system->mem.rdram_reg[(address - SREGION_RDRAM_REGS) / 4] = value;
+    }
+}
+
 word read_word_rireg(n64_system_t* system, word address) {
     if (address % 4 != 0) {
         logfatal("Reading from RI register at non-word-aligned address 0x%08X", address)
@@ -129,11 +167,35 @@ void write_word_rireg(n64_system_t* system, word address, word value) {
         logfatal("Writing to RI register at non-word-aligned address 0x%08X", address)
     }
 
-    if (address < ADDR_RI_MODE_REG || address > ADDR_RI_WERROR_REG) {
+    if (address < ADDR_RI_FIRST || address > ADDR_RI_LAST) {
         logfatal("In RI write handler with out of bounds address 0x%08X", address)
     }
 
     system->mem.ri_reg[(address - SREGION_RI_REGS) / 4] = value;
+}
+
+void write_word_mireg(n64_system_t* system, word address, word value) {
+    if (address % 4 != 0) {
+        logfatal("Writing to MI register at non-word-aligned address 0x%08X", address)
+    }
+
+    if (address < ADDR_MI_FIRST || address > ADDR_MI_LAST) {
+        logfatal("In MI write handler with out of bounds address 0x%08X", address)
+    }
+
+    system->mem.mi_reg[(address - SREGION_MI_REGS) / 4] = value;
+}
+
+word read_word_mireg(n64_system_t* system, word address) {
+    if (address % 4 != 0) {
+        logfatal("Writing to MI register at non-word-aligned address 0x%08X", address)
+    }
+
+    if (address < ADDR_MI_FIRST || address > ADDR_MI_LAST) {
+        logfatal("In MI write handler with out of bounds address 0x%08X", address)
+    }
+
+    return system->mem.mi_reg[(address - SREGION_MI_REGS) / 4];
 }
 
 void n64_write_word(n64_system_t* system, word address, word value) {
@@ -141,7 +203,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_RDRAM:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RDRAM", value, address)
         case REGION_RDRAM_REGS:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address)
+            write_word_rdramreg(system, address, value);
+            break;
         case REGION_SP_DMEM:
             word_to_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM, value);
             break;
@@ -156,7 +219,7 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_DP_SPAN_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address)
         case REGION_MI_REGS:
-            logwarn("Ignoring write of word 0x%08X to address 0x%08X in unsupported region: REGION_MI_REGS", value, address)
+            write_word_mireg(system, address, value);
             break;
         case REGION_VI_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_VI_REGS", value, address)
@@ -213,7 +276,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_DP_SPAN_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", address)
         case REGION_MI_REGS:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_MI_REGS", address)
+            return read_word_mireg(system, address);
         case REGION_VI_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_VI_REGS", address)
         case REGION_AI_REGS:
