@@ -126,7 +126,7 @@ word vatopa(word address) {
         case VREGION_KSEG1:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             physical = address - SVREGION_KSEG1;
-            logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, physical)
+            // logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, physical)
             break;
         case VREGION_KSSEG:
             logfatal("Unimplemented: translating virtual address in VREGION_KSSEG")
@@ -136,6 +136,18 @@ word vatopa(word address) {
             logfatal("Address 0x%08X doesn't really look like a virtual address", address)
     }
     return physical;
+}
+
+word read_word_rdramreg(n64_system_t* system, word address) {
+    if (address % 4 != 0) {
+        logfatal("Reading from RDRAM register at non-word-aligned address 0x%08X", address)
+    }
+
+    if (address < ADDR_RDRAM_REG_FIRST || address > ADDR_RDRAM_REG_LAST) {
+        logfatal("In RDRAM register write handler with out of bounds address 0x%08X", address)
+    } else {
+        return system->mem.rdram_reg[(address - SREGION_RDRAM_REGS) / 4];
+    }
 }
 
 void write_word_rdramreg(n64_system_t* system, word address, word value) {
@@ -264,11 +276,11 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_RDRAM:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RDRAM", address)
         case REGION_RDRAM_REGS:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address)
+            return read_word_rdramreg(system, address);
         case REGION_SP_DMEM:
             return word_from_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM);
         case REGION_SP_IMEM:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_SP_IMEM", address)
+            return word_from_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM);
         case REGION_SP_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_SP_REGS", address)
         case REGION_DP_COMMAND_REGS:

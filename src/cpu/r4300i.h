@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #include "../common/util.h"
+#include "../common/log.h"
 
 #define R4300I_REG_LR 31
 
@@ -23,6 +24,11 @@ typedef struct r4300i {
     dword mult_lo;
     bool llb;
     cp0_t cp0;
+
+    // Branch delay
+    bool branch;
+    int branch_delay;
+    word branch_pc;
 
     word (*read_word)(word);
 
@@ -74,14 +80,17 @@ typedef enum mips32_instruction_type {
     LUI,
     ADDI,
     ADDIU,
+    ANDI,
     LW,
     BNE,
     BEQ,
+    BEQL,
     NOP,
     SW,
     ORI,
     JAL,
-    SLTI
+    SLTI,
+    XORI
 } mips32_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu);
@@ -89,8 +98,10 @@ void r4300i_step(r4300i_t* cpu);
 INLINE void set_register(r4300i_t* cpu, int r, dword value) {
     if (cpu->width_mode == M32) {
         value &= 0xFFFFFFFF;
+        logtrace("Setting r%d to [0x%08lX]", r, value)
+    } else {
+        logtrace("Setting r%d to [0x%016lX]", r, value)
     }
-
     cpu->gpr[r] = value;
 }
 
