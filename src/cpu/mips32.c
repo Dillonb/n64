@@ -183,6 +183,7 @@ MIPS32_INSTR(sb) {
     NO64
     shalf offset = instruction.i.immediate;
     word address = cpu->gpr[instruction.i.rs];
+    address += offset;
     byte value = cpu->gpr[instruction.i.rt] & 0xFF;
     cpu->write_byte(address, value);
 }
