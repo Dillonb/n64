@@ -13,6 +13,7 @@
 #define MIPS32_BEQL  0b010100
 #define MIPS32_BNE   0b000101
 #define MIPS32_NOP   0b000000
+#define MIPS32_SB    0b101000
 #define MIPS32_SW    0b101011
 #define MIPS32_ORI   0b001101
 #define MIPS32_JAL   0b000011
@@ -45,6 +46,7 @@ mips32_instruction_type_t decode(r4300i_t* cpu, mips32_instruction_t instr) {
         case MIPS32_BEQL:  return BEQL;
         case MIPS32_BNE:   return BNE;
         case MIPS32_NOP:   return NOP;
+        case MIPS32_SB:    return SB;
         case MIPS32_SW:    return SW;
         case MIPS32_ORI:   return ORI;
         case MIPS32_JAL:   return JAL;
@@ -83,6 +85,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(LW,    lw)
         exec_instr(BNE,   bne)
         exec_instr(BEQ,   beq)
+        exec_instr(SB,    sb)
         exec_instr(SW,    sw)
         exec_instr(ORI,   ori)
         exec_instr(JAL,   jal)

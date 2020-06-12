@@ -14,6 +14,14 @@ void write_word_wrapper(word address, word value) {
     n64_write_word(global_system, address, value);
 }
 
+byte read_byte_wrapper(word address) {
+    return n64_read_byte(global_system, address);
+}
+
+void write_byte_wrapper(word address, byte value) {
+    n64_write_byte(global_system, address, value);
+}
+
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
     unimplemented(!enable_frontend, "Disabling the frontend is not yet supported")
@@ -21,6 +29,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     load_n64rom(&system->mem.rom, rom_path);
     system->cpu.read_word = &read_word_wrapper;
     system->cpu.write_word = &write_word_wrapper;
+
+    system->cpu.read_byte = &read_byte_wrapper;
+    system->cpu.write_byte = &write_byte_wrapper;
     global_system = system;
     return system;
 }

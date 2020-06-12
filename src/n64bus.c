@@ -24,6 +24,7 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 }
 
 #define SREGION_RDRAM           0x00000000
+#define SREGION_RDRAM_UNUSED    0x00400000
 #define SREGION_RDRAM_REGS      0x03F00000
 #define SREGION_SP_DMEM         0x04000000
 #define SREGION_SP_IMEM         0x04001000
@@ -47,7 +48,8 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define SREGION_CART_1_3        0x1FD00000
 #define SREGION_SYSAD_DEVICE    0x80000000
 
-#define REGION_RDRAM           SREGION_RDRAM           ... 0x03EFFFFF
+#define REGION_RDRAM           SREGION_RDRAM           ... 0x003FFFFF
+#define REGION_RDRAM_UNUSED    SREGION_RDRAM_UNUSED    ... 0x03EFFFFF
 #define REGION_RDRAM_REGS      SREGION_RDRAM_REGS      ... 0x03FFFFFF
 #define REGION_SP_DMEM         SREGION_SP_DMEM         ... 0x04000FFF
 #define REGION_SP_IMEM         SREGION_SP_IMEM         ... 0x04001FFF
@@ -126,7 +128,7 @@ word vatopa(word address) {
         case VREGION_KSEG1:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             physical = address - SVREGION_KSEG1;
-            // logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, physical)
+            logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, physical)
             break;
         case VREGION_KSSEG:
             logfatal("Unimplemented: translating virtual address in VREGION_KSSEG")
@@ -328,7 +330,8 @@ word n64_read_word(n64_system_t* system, word address) {
 void n64_write_byte(n64_system_t* system, word address, byte value) {
     switch (address) {
         case REGION_RDRAM:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM", value, address)
+            system->mem.rdram[address] = value;
+            break;
         case REGION_RDRAM_REGS:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address)
         case REGION_SP_DMEM: {

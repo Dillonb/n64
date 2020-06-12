@@ -30,9 +30,21 @@ typedef struct r4300i {
     int branch_delay;
     word branch_pc;
 
-    word (*read_word)(word);
+    byte (*read_byte)(word);
+    void (*write_byte)(word, byte);
 
-    void (*write_word)(uint32_t, uint32_t);
+    /*
+    half (*read_half)(word);
+    void (*write_half)(word, half);
+     */
+
+    word (*read_word)(word);
+    void (*write_word)(word, word);
+
+    /*
+    dword (*read_dword)(word);
+    void (*write_dword)(word, dword);
+     */
 } r4300i_t;
 
 typedef union mips32_instruction {
@@ -86,6 +98,7 @@ typedef enum mips32_instruction_type {
     BEQ,
     BEQL,
     NOP,
+    SB,
     SW,
     ORI,
     JAL,

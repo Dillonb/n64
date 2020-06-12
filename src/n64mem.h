@@ -4,6 +4,7 @@
 #include "n64rom.h"
 #include "common/util.h"
 
+#define RDRAM_SIZE   0x400000
 #define SP_DMEM_SIZE 0x1000
 #define SP_IMEM_SIZE 0x1000
 
@@ -20,6 +21,7 @@ typedef enum ri_reg {
 
 typedef struct n64_mem {
     n64_rom_t rom;
+    byte rdram[RDRAM_SIZE];
     byte sp_dmem[SP_DMEM_SIZE];
     byte sp_imem[SP_IMEM_SIZE];
     word rdram_reg[10];

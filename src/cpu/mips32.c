@@ -2,6 +2,8 @@
 #include "../common/log.h"
 #include "sign_extension.h"
 
+#define NO64 unimplemented(cpu->width_mode == M64, "64 bit mode unimplemented for this instruction!")
+
 void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
         if (result < 0) {
@@ -175,6 +177,14 @@ MIPS32_INSTR(lw) {
     }
 
     set_register(cpu, instruction.i.rt, value);
+}
+
+MIPS32_INSTR(sb) {
+    NO64
+    shalf offset = instruction.i.immediate;
+    word address = cpu->gpr[instruction.i.rs];
+    byte value = cpu->gpr[instruction.i.rt] & 0xFF;
+    cpu->write_byte(address, value);
 }
 
 MIPS32_INSTR(sw) {
