@@ -105,6 +105,15 @@ void branch_offset(r4300i_t* cpu, word offset) {
     branch_abs(cpu, cpu->pc + soffset);
 }
 
+void conditional_branch_likely(r4300i_t* cpu, word offset, bool condition) {
+    NO64
+    if (condition) {
+        branch_offset(cpu, offset);
+    } else {
+        cpu->pc += 4; // Skip instruction in delay slot
+    }
+}
+
 void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
     unimplemented(cpu->width_mode == M64, "Branch in 64bit mode")
     if (condition) {
@@ -118,11 +127,16 @@ MIPS32_INSTR(beq) {
 
 void beql(r4300i_t* cpu, mips32_instruction_t instruction) {
     unimplemented(cpu->width_mode == M64, "BEQL in 64bit mode")
-    if (cpu->gpr[instruction.i.rs] == cpu->gpr[instruction.i.rt]) {
-        branch_offset(cpu, instruction.i.immediate);
-    } else {
-        cpu->pc += 4; // Skip instruction in delay slot
-    }
+    conditional_branch_likely(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] == cpu->gpr[instruction.i.rt]);
+}
+
+MIPS32_INSTR(ble) {
+    conditional_branch(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
+}
+
+MIPS32_INSTR(blezl) {
+    sword reg = cpu->gpr[instruction.i.rs];
+    conditional_branch_likely(cpu, instruction.i.immediate, reg <= 0);
 }
 
 MIPS32_INSTR(bne) {
@@ -130,9 +144,14 @@ MIPS32_INSTR(bne) {
     conditional_branch(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
 }
 
+MIPS32_INSTR(bnel) {
+    logtrace("Branch if: 0x%08lX != 0x%08lX", cpu->gpr[instruction.i.rs], cpu->gpr[instruction.i.rt])
+    conditional_branch_likely(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
+}
+
 MIPS32_INSTR(jal) {
     unimplemented(cpu->width_mode == M64, "JAL in 64 bit mode")
-    set_register(cpu, R4300I_REG_LR, cpu->pc + 4); // Skips the next instruction for some reason
+    set_register(cpu, R4300I_REG_LR, cpu->pc + 4); // Skips the instruction in the delay slot on return
 
     word target = instruction.j.target;
     target <<= 2;
@@ -172,6 +191,13 @@ MIPS32_INSTR(lui) {
     }
 }
 
+MIPS32_INSTR(lbu) {
+    shalf offset = instruction.i.immediate;
+    word address = cpu->gpr[instruction.i.rs] + offset;
+    byte value   = cpu->read_byte(address);
+
+    set_register(cpu, instruction.i.rt, value);
+}
 
 MIPS32_INSTR(lw) {
     shalf offset = instruction.i.immediate;
@@ -223,6 +249,50 @@ MIPS32_INSTR(spc_srl) {
 
 MIPS32_INSTR(spc_jr) {
     branch_abs(cpu, cpu->gpr[instruction.r.rs]);
+}
+
+MIPS32_INSTR(spc_mfhi) {
+    logfatal("mfhi")
+}
+
+MIPS32_INSTR(spc_mflo) {
+    set_register(cpu, instruction.r.rd, cpu->mult_lo);
+}
+
+MIPS32_INSTR(spc_multu) {
+    NO64
+
+    word multiplicand_1 = cpu->gpr[instruction.r.rs];
+    word multiplicand_2 = cpu->gpr[instruction.r.rt];
+
+    dword result = multiplicand_1 * multiplicand_2;
+
+    word result_lower = result         & 0xFFFFFFFF;
+    word result_upper = (result >> 32) & 0xFFFFFFFF;
+
+    cpu->mult_lo = result_lower;
+    cpu->mult_hi = result_upper;
+}
+
+MIPS32_INSTR(spc_addu) {
+    NO64
+
+    word result = cpu->gpr[instruction.r.rs] + cpu->gpr[instruction.r.rt];
+    set_register(cpu, instruction.r.rd, result);
+}
+
+MIPS32_INSTR(spc_and) {
+    NO64
+
+    word result = cpu->gpr[instruction.r.rs] & cpu->gpr[instruction.r.rt];
+    set_register(cpu, instruction.r.rd, result);
+}
+
+MIPS32_INSTR(spc_subu) {
+    NO64
+
+    word result = cpu->gpr[instruction.r.rs] - cpu->gpr[instruction.r.rt];
+    set_register(cpu, instruction.r.rd, result);
 }
 
 MIPS32_INSTR(spc_or) {

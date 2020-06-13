@@ -393,6 +393,10 @@ byte n64_read_byte(n64_system_t* system, word address) {
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RDRAM", address)
         case REGION_RDRAM_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address)
+        case REGION_SP_DMEM:
+            return system->mem.sp_dmem[address - SREGION_SP_DMEM];
+        case REGION_SP_IMEM:
+            return system->mem.sp_imem[address - SREGION_SP_IMEM];
         case REGION_SP_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_SP_REGS", address)
         case REGION_DP_COMMAND_REGS:

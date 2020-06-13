@@ -103,8 +103,11 @@ typedef enum mips32_instruction_type {
     ADDI,
     ADDIU,
     ANDI,
+    LBU,
     LW,
+    BLEZL,
     BNE,
+    BNEL,
     BEQ,
     BEQL,
     NOP,
@@ -121,6 +124,12 @@ typedef enum mips32_instruction_type {
     // Special
     SPC_SRL,
     SPC_JR,
+    SPC_MFHI,
+    SPC_MFLO,
+    SPC_MULTU,
+    SPC_ADDU,
+    SPC_AND,
+    SPC_SUBU,
     SPC_OR
 } mips32_instruction_type_t;
 

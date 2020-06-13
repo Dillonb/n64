@@ -8,10 +8,13 @@
 #define MIPS32_ADDI  0b001000
 #define MIPS32_ADDIU 0b001001
 #define MIPS32_ANDI  0b001100
+#define MIPS32_LBU   0b100100
 #define MIPS32_LW    0b100011
 #define MIPS32_BEQ   0b000100
 #define MIPS32_BEQL  0b010100
+#define MIPS32_BLEZL 0b010110
 #define MIPS32_BNE   0b000101
+#define MIPS32_BNEL  0b010101
 #define MIPS32_SPCL  0b000000
 #define MIPS32_SB    0b101000
 #define MIPS32_SW    0b101011
@@ -25,10 +28,16 @@
 #define MTC0_VALUE 0b01000000100000000000000000000000
 
 // Special
-#define FUNCT_NOP 0b000000
-#define FUNCT_SRL 0b000010
-#define FUNCT_JR  0b001000
-#define FUNCT_OR  0b100101
+#define FUNCT_NOP   0b000000
+#define FUNCT_SRL   0b000010
+#define FUNCT_JR    0b001000
+#define FUNCT_MFHI  0b010000
+#define FUNCT_MFLO  0b010010
+#define FUNCT_MULTU 0b011001
+#define FUNCT_ADDU  0b100001
+#define FUNCT_AND   0b100100
+#define FUNCT_SUBU  0b100011
+#define FUNCT_OR    0b100101
 
 mips32_instruction_type_t decode_cp(r4300i_t* cpu, mips32_instruction_t instr) {
     if ((instr.raw & MTC0_MASK) == MTC0_VALUE) {
@@ -40,10 +49,16 @@ mips32_instruction_type_t decode_cp(r4300i_t* cpu, mips32_instruction_t instr) {
 
 mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t instr) {
     switch (instr.r.funct) {
-        case FUNCT_NOP: return NOP;
-        case FUNCT_SRL: return SPC_SRL;
-        case FUNCT_JR:  return SPC_JR;
-        case FUNCT_OR:  return SPC_OR;
+        case FUNCT_NOP:   return NOP;
+        case FUNCT_SRL:   return SPC_SRL;
+        case FUNCT_JR:    return SPC_JR;
+        case FUNCT_MFHI:  return SPC_MFHI;
+        case FUNCT_MFLO:  return SPC_MFLO;
+        case FUNCT_MULTU: return SPC_MULTU;
+        case FUNCT_ADDU:  return SPC_ADDU;
+        case FUNCT_AND:   return SPC_AND;
+        case FUNCT_SUBU:  return SPC_SUBU;
+        case FUNCT_OR:    return SPC_OR;
         default: logfatal("other/unknown MIPS32 Special 0x%08X with FUNCT: %d%d%d%d%d%d", instr.raw,
                 instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5)
     }
@@ -61,10 +76,13 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
         case MIPS32_ADDIU: return ADDIU;
         case MIPS32_ADDI:  return ADDI;
         case MIPS32_ANDI:  return ANDI;
+        case MIPS32_LBU:   return LBU;
         case MIPS32_LW:    return LW;
         case MIPS32_BEQ:   return BEQ;
         case MIPS32_BEQL:  return BEQL;
+        case MIPS32_BLEZL: return BLEZL;
         case MIPS32_BNE:   return BNE;
+        case MIPS32_BNEL:  return BNEL;
         case MIPS32_SB:    return SB;
         case MIPS32_SW:    return SW;
         case MIPS32_ORI:   return ORI;
@@ -86,7 +104,7 @@ void r4300i_step(r4300i_t* cpu) {
             cpu->pc = cpu->branch_pc;
             cpu->branch = false;
         } else {
-            logdebug("[BRANCH DELAY] Need to execute %d more instructions.", cpu->branch_delay)
+            logdebug("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay)
             cpu->branch_delay--;
         }
     }
@@ -104,9 +122,12 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(ADDI,  addi)
         exec_instr(ADDIU, addiu)
         exec_instr(ANDI,  andi)
+        exec_instr(LBU,   lbu)
         exec_instr(LW,    lw)
-        exec_instr(BNE,   bne)
         exec_instr(BEQ,   beq)
+        exec_instr(BLEZL, blezl)
+        exec_instr(BNE,   bne)
+        exec_instr(BNEL,  bnel)
         exec_instr(SB,    sb)
         exec_instr(SW,    sw)
         exec_instr(ORI,   ori)
@@ -119,9 +140,15 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(CP_MTC0, mtc0)
 
         // Special
-        exec_instr(SPC_SRL, spc_srl)
-        exec_instr(SPC_JR, spc_jr)
-        exec_instr(SPC_OR, spc_or)
+        exec_instr(SPC_SRL,   spc_srl)
+        exec_instr(SPC_JR,    spc_jr)
+        exec_instr(SPC_MFHI,  spc_mfhi)
+        exec_instr(SPC_MFLO,  spc_mflo)
+        exec_instr(SPC_MULTU, spc_multu)
+        exec_instr(SPC_ADDU,  spc_addu)
+        exec_instr(SPC_AND,   spc_and)
+        exec_instr(SPC_SUBU,  spc_subu)
+        exec_instr(SPC_OR,    spc_or)
         default: logfatal("Unknown instruction type!")
     }
 }
