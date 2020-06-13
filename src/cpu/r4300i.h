@@ -137,10 +137,12 @@ typedef enum mips32_instruction_type {
     SPC_MFHI,
     SPC_MFLO,
     SPC_MULTU,
+    SPC_ADD,
     SPC_ADDU,
     SPC_AND,
     SPC_SUBU,
     SPC_OR,
+    SPC_SLT,
 
     // REGIMM
     RI_BGEZL

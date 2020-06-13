@@ -28,6 +28,7 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define SREGION_RDRAM_REGS      0x03F00000
 #define SREGION_SP_DMEM         0x04000000
 #define SREGION_SP_IMEM         0x04001000
+#define SREGION_SP_UNUSED       0x04002000
 #define SREGION_SP_REGS         0x04040000
 #define SREGION_DP_COMMAND_REGS 0x04100000
 #define SREGION_DP_SPAN_REGS    0x04200000
@@ -53,6 +54,7 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define REGION_RDRAM_REGS      SREGION_RDRAM_REGS      ... 0x03FFFFFF
 #define REGION_SP_DMEM         SREGION_SP_DMEM         ... 0x04000FFF
 #define REGION_SP_IMEM         SREGION_SP_IMEM         ... 0x04001FFF
+#define REGION_SP_UNUSED       SREGION_SP_UNUSED       ... 0x0403FFFF
 #define REGION_SP_REGS         SREGION_SP_REGS         ... 0x040FFFFF
 #define REGION_DP_COMMAND_REGS SREGION_DP_COMMAND_REGS ... 0x041FFFFF
 #define REGION_DP_SPAN_REGS    SREGION_DP_SPAN_REGS    ... 0x042FFFFF
@@ -220,6 +222,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_RDRAM_REGS:
             write_word_rdramreg(system, address, value);
             break;
+        case REGION_RDRAM_UNUSED:
+            return;
         case REGION_SP_DMEM:
             word_to_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM, value);
             break;
@@ -227,6 +231,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             word_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
             break;
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address)
+        case REGION_SP_UNUSED:
+            return;
         case REGION_SP_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
         case REGION_DP_COMMAND_REGS:
@@ -274,16 +280,25 @@ void n64_write_word(n64_system_t* system, word address, word value) {
     }
 }
 
+word read_unused(word address) {
+    logwarn("Reading unused value at 0x%08X!", address)
+    return 0;
+}
+
 word n64_read_word(n64_system_t* system, word address) {
     switch (address) {
         case REGION_RDRAM:
             return word_from_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM);
+        case REGION_RDRAM_UNUSED:
+            return read_unused(address);
         case REGION_RDRAM_REGS:
             return read_word_rdramreg(system, address);
         case REGION_SP_DMEM:
             return word_from_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM);
         case REGION_SP_IMEM:
             return word_from_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM);
+        case REGION_SP_UNUSED:
+            return read_unused(address);
         case REGION_SP_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_SP_REGS", address)
         case REGION_DP_COMMAND_REGS:

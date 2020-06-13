@@ -41,6 +41,7 @@ MIPS32_INSTR(spc_addu);
 MIPS32_INSTR(spc_and);
 MIPS32_INSTR(spc_subu);
 MIPS32_INSTR(spc_or);
+MIPS32_INSTR(spc_slt);
 
 
 MIPS32_INSTR(ri_bgezl);

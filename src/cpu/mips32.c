@@ -274,6 +274,18 @@ MIPS32_INSTR(spc_multu) {
     cpu->mult_hi = result_upper;
 }
 
+MIPS32_INSTR(spc_add) {
+    NO64
+
+    sword addend1 = cpu->gpr[instruction.r.rs];
+    sword addend2 = cpu->gpr[instruction.r.rt];
+
+    sword result = addend1 + addend2;
+    check_sword_add_overflow(addend1, addend2, result);
+
+    set_register(cpu, instruction.r.rd, result);
+}
+
 MIPS32_INSTR(spc_addu) {
     NO64
 
@@ -297,6 +309,25 @@ MIPS32_INSTR(spc_subu) {
 
 MIPS32_INSTR(spc_or) {
     set_register(cpu, instruction.r.rd, cpu->gpr[instruction.r.rs] | cpu->gpr[instruction.r.rt]);
+}
+
+MIPS32_INSTR(spc_slt) {
+    NO64
+
+    sword op1 = cpu->gpr[instruction.r.rs];
+    sword op2 = cpu->gpr[instruction.r.rt];
+
+    // RS - RT
+    sword result = op1 - op2;
+    // if RS is LESS than RT
+    // aka, if result is negative
+
+    logtrace("Set if %d < %d", op1, op2)
+    if (result < 0) {
+        cpu->gpr[instruction.i.rt] = 1;
+    } else {
+        cpu->gpr[instruction.i.rt] = 0;
+    }
 }
 
 MIPS32_INSTR(ri_bgezl) {

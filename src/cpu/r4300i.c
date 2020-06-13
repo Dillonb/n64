@@ -35,10 +35,12 @@
 #define FUNCT_MFHI  0b010000
 #define FUNCT_MFLO  0b010010
 #define FUNCT_MULTU 0b011001
+#define FUNCT_ADD   0b100000
 #define FUNCT_ADDU  0b100001
 #define FUNCT_AND   0b100100
 #define FUNCT_SUBU  0b100011
 #define FUNCT_OR    0b100101
+#define FUNCT_SLT   0b101010
 
 // REGIMM
 #define RT_BGEZL 0b00011
@@ -59,10 +61,12 @@ mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t ins
         case FUNCT_MFHI:  return SPC_MFHI;
         case FUNCT_MFLO:  return SPC_MFLO;
         case FUNCT_MULTU: return SPC_MULTU;
+        case FUNCT_ADD:   return SPC_ADD;
         case FUNCT_ADDU:  return SPC_ADDU;
         case FUNCT_AND:   return SPC_AND;
         case FUNCT_SUBU:  return SPC_SUBU;
         case FUNCT_OR:    return SPC_OR;
+        case FUNCT_SLT:   return SPC_SLT;
         default: logfatal("other/unknown MIPS32 Special 0x%08X with FUNCT: %d%d%d%d%d%d", instr.raw,
                 instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5)
     }
@@ -158,13 +162,15 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(SPC_MFHI,  spc_mfhi)
         exec_instr(SPC_MFLO,  spc_mflo)
         exec_instr(SPC_MULTU, spc_multu)
+        exec_instr(SPC_ADD,   spc_add)
         exec_instr(SPC_ADDU,  spc_addu)
         exec_instr(SPC_AND,   spc_and)
         exec_instr(SPC_SUBU,  spc_subu)
         exec_instr(SPC_OR,    spc_or)
+        exec_instr(SPC_SLT,   spc_slt)
 
         // REGIMM
-        exec_instr(RI_BGEZL, ri_bgezl);
+        exec_instr(RI_BGEZL, ri_bgezl)
         default: logfatal("Unknown instruction type!")
     }
 }
