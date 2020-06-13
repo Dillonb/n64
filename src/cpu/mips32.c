@@ -86,22 +86,29 @@ MIPS32_INSTR(andi) {
     }
 }
 
-void branch(r4300i_t* cpu, word offset) {
+void branch_abs(r4300i_t* cpu, word address) {
+    cpu->branch_pc = address;
+
+    // Execute one instruction before taking the branch_offset
+    cpu->branch = true;
+    cpu->branch_delay = 1;
+
+    logtrace("Setting up a branch_offset (delayed by 1 instruction) to 0x%08X", cpu->branch_pc)
+}
+
+void branch_offset(r4300i_t* cpu, word offset) {
     sword soffset = sign_extend_word(offset, 16, 32);
     soffset <<= 2;
     // This is taking advantage of the fact that we add 4 to the PC after each instruction.
     // Due to the compiler expecting pipelining, the address we get here will be 4 _too early_
-    cpu->branch_pc = cpu->pc + soffset;
 
-    // Execute one instruction before taking the branch
-    cpu->branch = true;
-    cpu->branch_delay = 1;
+    branch_abs(cpu, cpu->pc + soffset);
 }
 
 void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
     unimplemented(cpu->width_mode == M64, "Branch in 64bit mode")
     if (condition) {
-        branch(cpu, offset);
+        branch_offset(cpu, offset);
     }
 }
 
@@ -112,13 +119,14 @@ MIPS32_INSTR(beq) {
 void beql(r4300i_t* cpu, mips32_instruction_t instruction) {
     unimplemented(cpu->width_mode == M64, "BEQL in 64bit mode")
     if (cpu->gpr[instruction.i.rs] == cpu->gpr[instruction.i.rt]) {
-        branch(cpu, instruction.i.immediate);
+        branch_offset(cpu, instruction.i.immediate);
     } else {
         cpu->pc += 4; // Skip instruction in delay slot
     }
 }
 
 MIPS32_INSTR(bne) {
+    logtrace("Branch if: 0x%08lX != 0x%08lX", cpu->gpr[instruction.i.rs], cpu->gpr[instruction.i.rt])
     conditional_branch(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
 }
 
@@ -136,6 +144,7 @@ MIPS32_INSTR(jal) {
 MIPS32_INSTR(slti) {
     unimplemented(cpu->width_mode == M64, "SLTI in 64 bit mode")
     sword immediate = sign_extend_word(instruction.i.immediate, 16, 32);
+    logtrace("Set if %ld < %d", cpu->gpr[instruction.i.rs], immediate)
     if (cpu->gpr[instruction.i.rs] < immediate) {
         cpu->gpr[instruction.i.rt] = 1;
     } else {
@@ -205,4 +214,17 @@ MIPS32_INSTR(ori) {
 
 MIPS32_INSTR(xori) {
     set_register(cpu, instruction.i.rt, instruction.i.immediate ^ cpu->gpr[instruction.i.rs]);
+}
+
+MIPS32_INSTR(spc_srl) {
+    NO64
+    set_register(cpu, instruction.r.rd, cpu->gpr[instruction.r.rt] >> instruction.r.sa);
+}
+
+MIPS32_INSTR(spc_jr) {
+    branch_abs(cpu, cpu->gpr[instruction.r.rs]);
+}
+
+MIPS32_INSTR(spc_or) {
+    set_register(cpu, instruction.r.rd, cpu->gpr[instruction.r.rs] | cpu->gpr[instruction.r.rt]);
 }

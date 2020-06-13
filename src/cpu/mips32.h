@@ -29,4 +29,8 @@ MIPS32_INSTR(ori);
 
 MIPS32_INSTR(xori);
 
+MIPS32_INSTR(spc_srl);
+MIPS32_INSTR(spc_jr);
+MIPS32_INSTR(spc_or);
+
 #endif //N64_MIPS32_H

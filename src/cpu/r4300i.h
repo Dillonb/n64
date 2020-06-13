@@ -85,10 +85,20 @@ typedef union mips32_instruction {
         unsigned rs:5;
         unsigned op:6;
     } r;
+
+    struct {
+        unsigned funct5:1;
+        unsigned funct4:1;
+        unsigned funct3:1;
+        unsigned funct2:1;
+        unsigned funct1:1;
+        unsigned funct0:1;
+        unsigned:26;
+    };
+
 } mips32_instruction_t;
 
 typedef enum mips32_instruction_type {
-    MTC0,
     LUI,
     ADDI,
     ADDIU,
@@ -103,19 +113,33 @@ typedef enum mips32_instruction_type {
     ORI,
     JAL,
     SLTI,
-    XORI
+    XORI,
+
+    // Coprocessor
+    CP_MTC0,
+
+    // Special
+    SPC_SRL,
+    SPC_JR,
+    SPC_OR
 } mips32_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu);
 
-INLINE void set_register(r4300i_t* cpu, int r, dword value) {
+INLINE void set_register(r4300i_t* cpu, word r, dword value) {
     if (cpu->width_mode == M32) {
         value &= 0xFFFFFFFF;
         logtrace("Setting r%d to [0x%08lX]", r, value)
     } else {
         logtrace("Setting r%d to [0x%016lX]", r, value)
     }
-    cpu->gpr[r] = value;
+    if (r != 0) {
+        if (r < 64) {
+            cpu->gpr[r] = value;
+        } else {
+            logfatal("Write to invalid register: %d", r)
+        }
+    }
 }
 
 INLINE void set_cp0_register(r4300i_t* cpu, int r, dword value) {

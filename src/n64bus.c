@@ -215,7 +215,8 @@ word read_word_mireg(n64_system_t* system, word address) {
 void n64_write_word(n64_system_t* system, word address, word value) {
     switch (address) {
         case REGION_RDRAM:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RDRAM", value, address)
+            word_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
+            break;
         case REGION_RDRAM_REGS:
             write_word_rdramreg(system, address, value);
             break;
@@ -276,7 +277,7 @@ void n64_write_word(n64_system_t* system, word address, word value) {
 word n64_read_word(n64_system_t* system, word address) {
     switch (address) {
         case REGION_RDRAM:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_RDRAM", address)
+            return word_from_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM);
         case REGION_RDRAM_REGS:
             return read_word_rdramreg(system, address);
         case REGION_SP_DMEM:
