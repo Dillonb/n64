@@ -3,25 +3,26 @@
 #include "disassemble.h"
 #include "mips32.h"
 
-#define MIPS32_CP    0b010000
-#define MIPS32_LUI   0b001111
-#define MIPS32_ADDI  0b001000
-#define MIPS32_ADDIU 0b001001
-#define MIPS32_ANDI  0b001100
-#define MIPS32_LBU   0b100100
-#define MIPS32_LW    0b100011
-#define MIPS32_BEQ   0b000100
-#define MIPS32_BEQL  0b010100
-#define MIPS32_BLEZL 0b010110
-#define MIPS32_BNE   0b000101
-#define MIPS32_BNEL  0b010101
-#define MIPS32_SPCL  0b000000
-#define MIPS32_SB    0b101000
-#define MIPS32_SW    0b101011
-#define MIPS32_ORI   0b001101
-#define MIPS32_JAL   0b000011
-#define MIPS32_SLTI  0b001010
-#define MIPS32_XORI  0b001110
+#define MIPS32_CP     0b010000
+#define MIPS32_LUI    0b001111
+#define MIPS32_ADDI   0b001000
+#define MIPS32_ADDIU  0b001001
+#define MIPS32_ANDI   0b001100
+#define MIPS32_LBU    0b100100
+#define MIPS32_LW     0b100011
+#define MIPS32_BEQ    0b000100
+#define MIPS32_BEQL   0b010100
+#define MIPS32_BLEZL  0b010110
+#define MIPS32_BNE    0b000101
+#define MIPS32_BNEL   0b010101
+#define MIPS32_REGIMM 0b000001
+#define MIPS32_SPCL   0b000000
+#define MIPS32_SB     0b101000
+#define MIPS32_SW     0b101011
+#define MIPS32_ORI    0b001101
+#define MIPS32_JAL    0b000011
+#define MIPS32_SLTI   0b001010
+#define MIPS32_XORI   0b001110
 
 // Coprocessor
 #define MTC0_MASK  0b11111111111000000000011111111111
@@ -64,13 +65,21 @@ mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t ins
     }
 }
 
+mips32_instruction_type_t decode_regimm(r4300i_t* cpu, mips32_instruction_t instr) {
+    switch (instr.i.rt) {
+        default: logfatal("other/unknown MIPS32 REGIMM 0x%08X with RT: %d%d%d%d%d", instr.raw,
+                          instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4)
+    }
+}
+
 mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t instr) {
     char buf[50];
     disassemble32(pc, instr.raw, buf, 50);
     logdebug("[0x%08lX] %s", pc, buf)
     switch (instr.op) {
-        case MIPS32_CP:    return decode_cp(cpu, instr);
-        case MIPS32_SPCL:  return decode_special(cpu, instr);
+        case MIPS32_CP:     return decode_cp(cpu, instr);
+        case MIPS32_SPCL:   return decode_special(cpu, instr);
+        case MIPS32_REGIMM: return decode_regimm(cpu, instr);
 
         case MIPS32_LUI:   return LUI;
         case MIPS32_ADDIU: return ADDIU;
@@ -90,7 +99,7 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
         case MIPS32_SLTI:  return SLTI;
         case MIPS32_XORI:  return XORI;
         default:
-            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)
     }
 }

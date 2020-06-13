@@ -96,6 +96,16 @@ typedef union mips32_instruction {
         unsigned:26;
     };
 
+    struct {
+        unsigned:16;
+        unsigned rt4:1;
+        unsigned rt3:1;
+        unsigned rt2:1;
+        unsigned rt1:1;
+        unsigned rt0:1;
+        unsigned:11;
+    };
+
 } mips32_instruction_t;
 
 typedef enum mips32_instruction_type {
