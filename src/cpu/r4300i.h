@@ -140,7 +140,10 @@ typedef enum mips32_instruction_type {
     SPC_ADDU,
     SPC_AND,
     SPC_SUBU,
-    SPC_OR
+    SPC_OR,
+
+    // REGIMM
+    RI_BGEZL
 } mips32_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu);

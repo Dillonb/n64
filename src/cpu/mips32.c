@@ -298,3 +298,8 @@ MIPS32_INSTR(spc_subu) {
 MIPS32_INSTR(spc_or) {
     set_register(cpu, instruction.r.rd, cpu->gpr[instruction.r.rs] | cpu->gpr[instruction.r.rt]);
 }
+
+MIPS32_INSTR(ri_bgezl) {
+    sword reg = cpu->gpr[instruction.i.rs];
+    conditional_branch_likely(cpu, instruction.i.immediate, reg >= 0);
+}

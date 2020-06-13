@@ -40,6 +40,9 @@
 #define FUNCT_SUBU  0b100011
 #define FUNCT_OR    0b100101
 
+// REGIMM
+#define RT_BGEZL 0b00011
+
 mips32_instruction_type_t decode_cp(r4300i_t* cpu, mips32_instruction_t instr) {
     if ((instr.raw & MTC0_MASK) == MTC0_VALUE) {
         return CP_MTC0;
@@ -67,6 +70,7 @@ mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t ins
 
 mips32_instruction_type_t decode_regimm(r4300i_t* cpu, mips32_instruction_t instr) {
     switch (instr.i.rt) {
+        case RT_BGEZL: return RI_BGEZL;
         default: logfatal("other/unknown MIPS32 REGIMM 0x%08X with RT: %d%d%d%d%d", instr.raw,
                           instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4)
     }
@@ -158,6 +162,9 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(SPC_AND,   spc_and)
         exec_instr(SPC_SUBU,  spc_subu)
         exec_instr(SPC_OR,    spc_or)
+
+        // REGIMM
+        exec_instr(RI_BGEZL, ri_bgezl);
         default: logfatal("Unknown instruction type!")
     }
 }
