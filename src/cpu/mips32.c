@@ -33,7 +33,7 @@ MIPS32_INSTR(add) {
 }
 
 MIPS32_INSTR(addi) {
-    dword reg_addend = cpu->gpr[instruction.i.rs];
+    dword reg_addend = get_register(cpu, instruction.i.rs);
 
     if (cpu->width_mode == M32) {
         sword addend1 = sign_extend_word(instruction.i.immediate, 16, 32);
@@ -44,7 +44,7 @@ MIPS32_INSTR(addi) {
 
         set_register(cpu, instruction.i.rt, result);
         logtrace("Setting r%d to r%d (0x%016lX) + %d (0x%08X) = 0x%016lX",
-                 instruction.i.rt, instruction.i.rs, reg_addend, addend1, addend1, cpu->gpr[instruction.i.rt])
+                 instruction.i.rt, instruction.i.rs, reg_addend, addend1, addend1, get_register(cpu, instruction.i.rt ))
     } else if (cpu->width_mode == M64) {
         sdword addend1 = sign_extend_dword(instruction.i.immediate, 16, 64);
         sdword addend2 = reg_addend;
@@ -54,34 +54,34 @@ MIPS32_INSTR(addi) {
 
         set_register(cpu, instruction.i.rt, result);
         logtrace("Setting r%d to r%d (0x%016lX) + %ld (0x%016lX) = 0x%016lX",
-                 instruction.i.rt, instruction.i.rs, reg_addend, addend1, addend1, cpu->gpr[instruction.i.rt])
+                 instruction.i.rt, instruction.i.rs, reg_addend, addend1, addend1, get_register(cpu, instruction.i.rt))
     }
 }
 
 MIPS32_INSTR(addiu) {
-    dword reg_addend = cpu->gpr[instruction.i.rs];
+    dword reg_addend = get_register(cpu, instruction.i.rs);
 
     if (cpu->width_mode == M32) {
         word addend = sign_extend_word(instruction.i.immediate, 16, 32);
         set_register(cpu, instruction.i.rt, reg_addend + addend);
         logtrace("Setting r%d to r%d (0x%016lX) + %d (0x%08X) = 0x%016lX",
-                 instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, cpu->gpr[instruction.i.rt])
+                 instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, get_register(cpu, instruction.i.rt))
     } else if (cpu->width_mode == M64) {
         dword addend = sign_extend_dword(instruction.i.immediate, 16, 64);
         set_register(cpu, instruction.i.rt, reg_addend + addend);
         logtrace("Setting r%d to r%d (0x%016lX) + %ld (0x%016lX) = 0x%016lX",
-                 instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, cpu->gpr[instruction.i.rt])
+                 instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, get_register(cpu, instruction.i.rt))
     }
 }
 
 MIPS32_INSTR(andi) {
     if (cpu->width_mode == M32) {
         word immediate = instruction.i.immediate;
-        word result = immediate & cpu->gpr[instruction.i.rs];
+        word result = immediate & get_register(cpu, instruction.i.rs);
         set_register(cpu, instruction.i.rt, result);
     } else {
         dword immediate = instruction.i.immediate;
-        dword result = immediate & cpu->gpr[instruction.i.rs];
+        dword result = immediate & get_register(cpu, instruction.i.rs);
         set_register(cpu, instruction.i.rt, result);
     }
 }
@@ -122,31 +122,31 @@ void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
 }
 
 MIPS32_INSTR(beq) {
-    conditional_branch(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] == cpu->gpr[instruction.i.rt]);
+    conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) == get_register(cpu, instruction.i.rt));
 }
 
 void beql(r4300i_t* cpu, mips32_instruction_t instruction) {
     unimplemented(cpu->width_mode == M64, "BEQL in 64bit mode")
-    conditional_branch_likely(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] == cpu->gpr[instruction.i.rt]);
+    conditional_branch_likely(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) == get_register(cpu, instruction.i.rt));
 }
 
 MIPS32_INSTR(ble) {
-    conditional_branch(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
+    conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
 }
 
 MIPS32_INSTR(blezl) {
-    sword reg = cpu->gpr[instruction.i.rs];
+    sword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg <= 0);
 }
 
 MIPS32_INSTR(bne) {
-    logtrace("Branch if: 0x%08lX != 0x%08lX", cpu->gpr[instruction.i.rs], cpu->gpr[instruction.i.rt])
-    conditional_branch(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
+    logtrace("Branch if: 0x%08lX != 0x%08lX", get_register(cpu, instruction.i.rs), get_register(cpu, instruction.i.rt))
+    conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
 }
 
 MIPS32_INSTR(bnel) {
-    logtrace("Branch if: 0x%08lX != 0x%08lX", cpu->gpr[instruction.i.rs], cpu->gpr[instruction.i.rt])
-    conditional_branch_likely(cpu, instruction.i.immediate, cpu->gpr[instruction.i.rs] != cpu->gpr[instruction.i.rt]);
+    logtrace("Branch if: 0x%08lX != 0x%08lX", get_register(cpu, instruction.i.rs), get_register(cpu, instruction.i.rt))
+    conditional_branch_likely(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
 }
 
 MIPS32_INSTR(jal) {
@@ -163,19 +163,19 @@ MIPS32_INSTR(jal) {
 MIPS32_INSTR(slti) {
     unimplemented(cpu->width_mode == M64, "SLTI in 64 bit mode")
     sword immediate = sign_extend_word(instruction.i.immediate, 16, 32);
-    logtrace("Set if %ld < %d", cpu->gpr[instruction.i.rs], immediate)
-    if (cpu->gpr[instruction.i.rs] < immediate) {
-        cpu->gpr[instruction.i.rt] = 1;
+    logtrace("Set if %ld < %d", get_register(cpu, instruction.i.rs), immediate)
+    if (get_register(cpu, instruction.i.rs) < immediate) {
+        set_register(cpu, instruction.i.rt, 1);
     } else {
-        cpu->gpr[instruction.i.rt] = 0;
+        set_register(cpu, instruction.i.rt, 0);
     }
 }
 
 MIPS32_INSTR(mtc0) {
     // TODO: throw a "coprocessor unusuable exception" if CP0 disabled - see manual
-    cpu->cp0.r[instruction.r.rd] = cpu->gpr[instruction.r.rt];
-    set_cp0_register(cpu, instruction.r.rd, cpu->gpr[instruction.r.rt]);
-    logtrace("Setting CP0 r%d to the value of CPU r%d, which is 0x%016lX", instruction.r.rd, instruction.r.rt, cpu->gpr[instruction.r.rt]);
+    cpu->cp0.r[instruction.r.rd] = get_register(cpu, instruction.r.rt);
+    set_cp0_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt));
+    logtrace("Setting CP0 r%d to the value of CPU r%d, which is 0x%016lX", instruction.r.rd, instruction.r.rt, get_register(cpu, instruction.r.rt));
 }
 
 MIPS32_INSTR(lui) {
@@ -193,7 +193,7 @@ MIPS32_INSTR(lui) {
 
 MIPS32_INSTR(lbu) {
     shalf offset = instruction.i.immediate;
-    word address = cpu->gpr[instruction.i.rs] + offset;
+    word address = get_register(cpu, instruction.i.rs) + offset;
     byte value   = cpu->read_byte(address);
 
     set_register(cpu, instruction.i.rt, value);
@@ -201,7 +201,7 @@ MIPS32_INSTR(lbu) {
 
 MIPS32_INSTR(lw) {
     shalf offset = instruction.i.immediate;
-    word address = cpu->gpr[instruction.i.rs] + offset;
+    word address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
         logfatal("TODO: throw an 'address error' exception!")
     }
@@ -217,38 +217,38 @@ MIPS32_INSTR(lw) {
 MIPS32_INSTR(sb) {
     NO64
     shalf offset = instruction.i.immediate;
-    word address = cpu->gpr[instruction.i.rs];
+    word address = get_register(cpu, instruction.i.rs);
     address += offset;
-    byte value = cpu->gpr[instruction.i.rt] & 0xFF;
+    byte value = get_register(cpu, instruction.i.rt) & 0xFF;
     cpu->write_byte(address, value);
 }
 
 MIPS32_INSTR(sw) {
     shalf offset = instruction.i.immediate;
     if (cpu->width_mode == M32) {
-        word address = cpu->gpr[instruction.i.rs];
+        word address = get_register(cpu, instruction.i.rs);
         address += offset;
-        cpu->write_word(address, cpu->gpr[instruction.i.rt]);
+        cpu->write_word(address, get_register(cpu, instruction.i.rt));
     } else {
         logfatal("Store word in 64 bit mode")
     }
 }
 
 MIPS32_INSTR(ori) {
-    set_register(cpu, instruction.i.rt, instruction.i.immediate | cpu->gpr[instruction.i.rs]);
+    set_register(cpu, instruction.i.rt, instruction.i.immediate | get_register(cpu, instruction.i.rs));
 }
 
 MIPS32_INSTR(xori) {
-    set_register(cpu, instruction.i.rt, instruction.i.immediate ^ cpu->gpr[instruction.i.rs]);
+    set_register(cpu, instruction.i.rt, instruction.i.immediate ^ get_register(cpu, instruction.i.rs));
 }
 
 MIPS32_INSTR(spc_srl) {
     NO64
-    set_register(cpu, instruction.r.rd, cpu->gpr[instruction.r.rt] >> instruction.r.sa);
+    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) >> instruction.r.sa);
 }
 
 MIPS32_INSTR(spc_jr) {
-    branch_abs(cpu, cpu->gpr[instruction.r.rs]);
+    branch_abs(cpu, get_register(cpu, instruction.r.rs));
 }
 
 MIPS32_INSTR(spc_mfhi) {
@@ -262,8 +262,8 @@ MIPS32_INSTR(spc_mflo) {
 MIPS32_INSTR(spc_multu) {
     NO64
 
-    word multiplicand_1 = cpu->gpr[instruction.r.rs];
-    word multiplicand_2 = cpu->gpr[instruction.r.rt];
+    word multiplicand_1 = get_register(cpu, instruction.r.rs);
+    word multiplicand_2 = get_register(cpu, instruction.r.rt);
 
     dword result = multiplicand_1 * multiplicand_2;
 
@@ -277,8 +277,8 @@ MIPS32_INSTR(spc_multu) {
 MIPS32_INSTR(spc_add) {
     NO64
 
-    sword addend1 = cpu->gpr[instruction.r.rs];
-    sword addend2 = cpu->gpr[instruction.r.rt];
+    sword addend1 = get_register(cpu, instruction.r.rs);
+    sword addend2 = get_register(cpu, instruction.r.rt);
 
     sword result = addend1 + addend2;
     check_sword_add_overflow(addend1, addend2, result);
@@ -289,33 +289,33 @@ MIPS32_INSTR(spc_add) {
 MIPS32_INSTR(spc_addu) {
     NO64
 
-    word result = cpu->gpr[instruction.r.rs] + cpu->gpr[instruction.r.rt];
+    word result = get_register(cpu, instruction.r.rs) + get_register(cpu, instruction.r.rt);
     set_register(cpu, instruction.r.rd, result);
 }
 
 MIPS32_INSTR(spc_and) {
     NO64
 
-    word result = cpu->gpr[instruction.r.rs] & cpu->gpr[instruction.r.rt];
+    word result = get_register(cpu, instruction.r.rs) & get_register(cpu, instruction.r.rt);
     set_register(cpu, instruction.r.rd, result);
 }
 
 MIPS32_INSTR(spc_subu) {
     NO64
 
-    word result = cpu->gpr[instruction.r.rs] - cpu->gpr[instruction.r.rt];
+    word result = get_register(cpu, instruction.r.rs) - get_register(cpu, instruction.r.rt);
     set_register(cpu, instruction.r.rd, result);
 }
 
 MIPS32_INSTR(spc_or) {
-    set_register(cpu, instruction.r.rd, cpu->gpr[instruction.r.rs] | cpu->gpr[instruction.r.rt]);
+    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rs) | get_register(cpu, instruction.r.rt));
 }
 
 MIPS32_INSTR(spc_slt) {
     NO64
 
-    sword op1 = cpu->gpr[instruction.r.rs];
-    sword op2 = cpu->gpr[instruction.r.rt];
+    sword op1 = get_register(cpu, instruction.r.rs);
+    sword op2 = get_register(cpu, instruction.r.rt);
 
     // RS - RT
     sword result = op1 - op2;
@@ -324,13 +324,13 @@ MIPS32_INSTR(spc_slt) {
 
     logtrace("Set if %d < %d", op1, op2)
     if (result < 0) {
-        cpu->gpr[instruction.i.rt] = 1;
+        set_register(cpu, instruction.i.rt, 1);
     } else {
-        cpu->gpr[instruction.i.rt] = 0;
+        set_register(cpu, instruction.i.rt, 0);
     }
 }
 
 MIPS32_INSTR(ri_bgezl) {
-    sword reg = cpu->gpr[instruction.i.rs];
+    sword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg >= 0);
 }

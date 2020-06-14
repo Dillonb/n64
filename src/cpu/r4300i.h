@@ -150,7 +150,7 @@ typedef enum mips32_instruction_type {
 
 void r4300i_step(r4300i_t* cpu);
 
-INLINE void set_register(r4300i_t* cpu, word r, dword value) {
+INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
     if (cpu->width_mode == M32) {
         value &= 0xFFFFFFFF;
         logtrace("Setting r%d to [0x%08lX]", r, value)
@@ -163,6 +163,17 @@ INLINE void set_register(r4300i_t* cpu, word r, dword value) {
         } else {
             logfatal("Write to invalid register: %d", r)
         }
+    }
+}
+
+INLINE dword get_register(r4300i_t* cpu, word r) {
+    dword mask = cpu->width_mode == M32 ? 0xFFFFFFFF : 0xFFFFFFFFFFFFFFFF;
+    if (r < 64) {
+        dword value = cpu->gpr[r] & mask;
+        logtrace("Reading r%d: 0x%08lX", r, value)
+        return value;
+    } else {
+        logfatal("Attempted to read invalid register: %d", r)
     }
 }
 
