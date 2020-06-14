@@ -50,6 +50,7 @@ const char* register_names[] = {
 #define MIPS32_BLEZL  0b010110
 #define MIPS32_BNE    0b000101
 #define MIPS32_BNEL   0b010101
+#define MIPS32_CACHE  0b101111
 #define MIPS32_REGIMM 0b000001
 #define MIPS32_SPCL   0b000000
 #define MIPS32_SB     0b101000
@@ -135,6 +136,7 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
         case MIPS32_BLEZL: return BLEZL;
         case MIPS32_BNE:   return BNE;
         case MIPS32_BNEL:  return BNEL;
+        case MIPS32_CACHE: return CACHE;
         case MIPS32_SB:    return SB;
         case MIPS32_SW:    return SW;
         case MIPS32_ORI:   return ORI;
@@ -169,6 +171,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(BLEZL, blezl)
         exec_instr(BNE,   bne)
         exec_instr(BNEL,  bnel)
+        exec_instr(CACHE, cache)
         exec_instr(SB,    sb)
         exec_instr(SW,    sw)
         exec_instr(ORI,   ori)

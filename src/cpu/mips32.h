@@ -17,6 +17,8 @@ MIPS32_INSTR(beql);
 MIPS32_INSTR(bne);
 MIPS32_INSTR(bnel);
 
+MIPS32_INSTR(cache);
+
 MIPS32_INSTR(jal);
 
 MIPS32_INSTR(slti);

@@ -118,6 +118,7 @@ typedef enum mips32_instruction_type {
     BLEZL,
     BNE,
     BNEL,
+    CACHE,
     BEQ,
     BEQL,
     NOP,

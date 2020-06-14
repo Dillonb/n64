@@ -1,6 +1,7 @@
 #include "mips32.h"
 #include "../common/log.h"
 #include "sign_extension.h"
+#include "../n64bus.h"
 
 #define NO64 unimplemented(cpu->width_mode == M64, "64 bit mode unimplemented for this instruction!")
 
@@ -143,6 +144,19 @@ MIPS32_INSTR(bne) {
 MIPS32_INSTR(bnel) {
     logtrace("Branch if: 0x%08lX != 0x%08lX", get_register(cpu, instruction.i.rs), get_register(cpu, instruction.i.rt))
     conditional_branch_likely(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
+}
+
+
+MIPS32_INSTR(cache) {
+    NO64
+    shalf offset = instruction.i.immediate;
+    word virtual_address = get_register(cpu, instruction.i.rs) + offset;
+    word physical_address = vatopa(virtual_address);
+    byte opcode = instruction.i.rt;
+    switch (opcode) {
+        default:
+            logfatal("Unknown CACHE opcode: 0x%02X VA: 0x%08X PA: 0x%08X", opcode, virtual_address, physical_address)
+    }
 }
 
 MIPS32_INSTR(jal) {
