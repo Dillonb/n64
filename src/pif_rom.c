@@ -38,7 +38,7 @@ void pif_rom_execute(n64_system_t* system) {
 
     // TODO set CP0 registers
 
-    n64_write_word(system, 0x04300004, 0x01010101);
+    //n64_write_word(system, 0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
 
