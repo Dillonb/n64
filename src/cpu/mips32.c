@@ -153,7 +153,7 @@ MIPS32_INSTR(jal) {
     target <<= 2;
     target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
 
-    cpu->pc = target;
+    branch_abs(cpu, target);
 }
 
 MIPS32_INSTR(slti) {
