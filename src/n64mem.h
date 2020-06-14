@@ -19,12 +19,17 @@ typedef enum ri_reg {
     RI_WERROR_REG
 } ri_reg_t;
 
+typedef enum pi_reg {
+    PI_DRAM_ADDR_REG
+} pi_reg_t;
+
 typedef struct n64_mem {
     n64_rom_t rom;
     byte rdram[RDRAM_SIZE];
     byte sp_dmem[SP_DMEM_SIZE];
     byte sp_imem[SP_IMEM_SIZE];
     word rdram_reg[10];
+    word pi_reg[13];
     word ri_reg[8];
     word mi_reg[4];
 } n64_mem_t;

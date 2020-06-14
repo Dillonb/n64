@@ -100,6 +100,8 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define ADDR_RDRAM_REG_FIRST ADDR_RDRAM_CONFIG_REG
 #define ADDR_RDRAM_REG_LAST  ADDR_RDRAM_DEVICE_MANUF_REG
 
+#define ADDR_PI_DRAM_ADDR_REG 0x04600000
+
 #define ADDR_RI_MODE_REG    0x04700000
 #define ADDR_RI_CONFIG_REG  0x04700004
 #define ADDR_RI_SELECT_REG  0x0470000C
@@ -163,6 +165,25 @@ void write_word_rdramreg(n64_system_t* system, word address, word value) {
         logwarn("In RDRAM register write handler with out of bounds address 0x%08X", address)
     } else {
         system->mem.rdram_reg[(address - SREGION_RDRAM_REGS) / 4] = value;
+    }
+}
+
+word read_word_pireg(n64_system_t* system, word address) {
+    switch (address) {
+        case ADDR_PI_DRAM_ADDR_REG:
+            return system->mem.pi_reg[PI_DRAM_ADDR_REG];
+        default:
+            logfatal("Reading word from unknown PI register 0x%08X", address)
+    }
+}
+
+void write_word_pireg(n64_system_t* system, word address, word value) {
+    switch (address) {
+        case ADDR_PI_DRAM_ADDR_REG:
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] = value;
+            break;
+        default:
+            logfatal("Writing word 0x%08X to unknown PI register 0x%08X", value, address)
     }
 }
 
@@ -247,7 +268,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_AI_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
         case REGION_PI_REGS:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PI_REGS", value, address)
+            write_word_pireg(system, address, value);
+            break;
         case REGION_RI_REGS:
             write_word_rireg(system, address, value);
             break;
@@ -312,7 +334,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_AI_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_AI_REGS", address)
         case REGION_PI_REGS:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_PI_REGS", address)
+            return read_word_pireg(system, address);
         case REGION_RI_REGS:
             return read_word_rireg(system, address);
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RI_REGS", address)
