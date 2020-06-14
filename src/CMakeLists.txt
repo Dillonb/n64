@@ -16,3 +16,6 @@ target_link_libraries(core r4300i)
 
 add_executable(${N64_TARGET} cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)
+
+add_executable(logtester logtester.c)
+target_link_libraries(logtester common core)

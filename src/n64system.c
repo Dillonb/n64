@@ -36,13 +36,17 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     return system;
 }
 
-INLINE void n64_system_step(n64_system_t* system) {
+INLINE void _n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
+}
+
+void n64_system_step(n64_system_t* system) {
+    _n64_system_step(system);
 }
 
 _Noreturn void n64_system_loop(n64_system_t* system) {
     while (true) {
-        n64_system_step(system);
+        _n64_system_step(system);
     }
 }
 
