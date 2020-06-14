@@ -150,12 +150,14 @@ typedef enum mips32_instruction_type {
 
 void r4300i_step(r4300i_t* cpu);
 
+extern const char* register_names[];
+
 INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
     if (cpu->width_mode == M32) {
         value &= 0xFFFFFFFF;
-        logtrace("Setting r%d to [0x%08lX]", r, value)
+        logtrace("Setting $%s (r%d) to [0x%08lX]", register_names[r], r, value)
     } else {
-        logtrace("Setting r%d to [0x%016lX]", r, value)
+        logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value)
     }
     if (r != 0) {
         if (r < 64) {
@@ -170,7 +172,7 @@ INLINE dword get_register(r4300i_t* cpu, word r) {
     dword mask = cpu->width_mode == M32 ? 0xFFFFFFFF : 0xFFFFFFFFFFFFFFFF;
     if (r < 64) {
         dword value = cpu->gpr[r] & mask;
-        logtrace("Reading r%d: 0x%08lX", r, value)
+        logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value)
         return value;
     } else {
         logfatal("Attempted to read invalid register: %d", r)
