@@ -28,10 +28,6 @@ void check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
     }
 }
 
-MIPS32_INSTR(add) {
-    logfatal("ADD unimplemented")
-}
-
 MIPS32_INSTR(addi) {
     dword reg_addend = get_register(cpu, instruction.i.rs);
 

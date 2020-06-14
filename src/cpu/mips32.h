@@ -4,7 +4,6 @@
 
 #define MIPS32_INSTR(NAME) void NAME(r4300i_t* cpu, mips32_instruction_t instruction)
 
-MIPS32_INSTR(add);
 MIPS32_INSTR(addi);
 MIPS32_INSTR(addiu);
 MIPS32_INSTR(addu);
@@ -37,6 +36,7 @@ MIPS32_INSTR(spc_jr);
 MIPS32_INSTR(spc_mfhi);
 MIPS32_INSTR(spc_mflo);
 MIPS32_INSTR(spc_multu);
+MIPS32_INSTR(spc_add);
 MIPS32_INSTR(spc_addu);
 MIPS32_INSTR(spc_and);
 MIPS32_INSTR(spc_subu);

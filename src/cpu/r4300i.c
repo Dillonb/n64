@@ -115,17 +115,6 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
 #define exec_instr(key, fn) case key: fn(cpu, instruction); break;
 
 void r4300i_step(r4300i_t* cpu) {
-    if (cpu->branch) {
-        if (cpu->branch_delay == 0) {
-            logdebug("[BRANCH DELAY] Branching to 0x%08X", cpu->branch_pc)
-            cpu->pc = cpu->branch_pc;
-            cpu->branch = false;
-        } else {
-            logdebug("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay)
-            cpu->branch_delay--;
-        }
-    }
-
     dword pc = cpu->pc;
 
     mips32_instruction_t instruction;
@@ -173,4 +162,16 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(RI_BGEZL, ri_bgezl)
         default: logfatal("Unknown instruction type!")
     }
+
+    if (cpu->branch) {
+        if (cpu->branch_delay == 0) {
+            logdebug("[BRANCH DELAY] Branching to 0x%08X", cpu->branch_pc)
+            cpu->pc = cpu->branch_pc;
+            cpu->branch = false;
+        } else {
+            logdebug("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay)
+            cpu->branch_delay--;
+        }
+    }
+
 }

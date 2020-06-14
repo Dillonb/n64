@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
         }
         char* tok = strtok(strline, " ");
         dword pc = strtol(tok, NULL, 16);
+        loginfo("Checking log line %d", line + 1)
         if (pc != system->cpu.pc) {
             logfatal("Line %d: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, system->cpu.pc)
         }
