@@ -320,9 +320,9 @@ MIPS32_INSTR(spc_slt) {
 
     logtrace("Set if %d < %d", op1, op2)
     if (result < 0) {
-        set_register(cpu, instruction.i.rt, 1);
+        set_register(cpu, instruction.r.rd, 1);
     } else {
-        set_register(cpu, instruction.i.rt, 0);
+        set_register(cpu, instruction.r.rd, 0);
     }
 }
 
