@@ -1,7 +1,6 @@
 #include "mips32.h"
 #include "../common/log.h"
 #include "sign_extension.h"
-#include "../n64bus.h"
 
 #define NO64 unimplemented(cpu->width_mode == M64, "64 bit mode unimplemented for this instruction!")
 
@@ -148,15 +147,7 @@ MIPS32_INSTR(bnel) {
 
 
 MIPS32_INSTR(cache) {
-    NO64
-    shalf offset = instruction.i.immediate;
-    word virtual_address = get_register(cpu, instruction.i.rs) + offset;
-    word physical_address = vatopa(virtual_address);
-    byte opcode = instruction.i.rt;
-    switch (opcode) {
-        default:
-            logfatal("Unknown CACHE opcode: 0x%02X VA: 0x%08X PA: 0x%08X", opcode, virtual_address, physical_address)
-    }
+    return; // No need to emulate the cache. Might be fun to do someday for accuracy.
 }
 
 MIPS32_INSTR(jal) {
@@ -183,7 +174,6 @@ MIPS32_INSTR(slti) {
 
 MIPS32_INSTR(mtc0) {
     // TODO: throw a "coprocessor unusuable exception" if CP0 disabled - see manual
-    cpu->cp0.r[instruction.r.rd] = get_register(cpu, instruction.r.rt);
     set_cp0_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt));
     logtrace("Setting CP0 r%d to the value of CPU r%d, which is 0x%016lX", instruction.r.rd, instruction.r.rt, get_register(cpu, instruction.r.rt));
 }
@@ -334,6 +324,20 @@ MIPS32_INSTR(spc_slt) {
 
     logtrace("Set if %d < %d", op1, op2)
     if (result < 0) {
+        set_register(cpu, instruction.r.rd, 1);
+    } else {
+        set_register(cpu, instruction.r.rd, 0);
+    }
+}
+
+MIPS32_INSTR(spc_sltu) {
+    NO64
+
+    word op1 = get_register(cpu, instruction.r.rs);
+    word op2 = get_register(cpu, instruction.r.rt);
+
+    logtrace("Set if %u < %u", op1, op2)
+    if (op1 < op2) {
         set_register(cpu, instruction.r.rd, 1);
     } else {
         set_register(cpu, instruction.r.rd, 0);

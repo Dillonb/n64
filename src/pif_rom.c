@@ -36,7 +36,38 @@ void pif_rom_execute(n64_system_t* system) {
     system->cpu.gpr[30] = 0;
     system->cpu.gpr[31] = 0;
 
-    // TODO set CP0 registers
+    system->cpu.cp0.r[0] = 0;
+    system->cpu.cp0.r[1] = 0x0000001F;
+    system->cpu.cp0.r[2] = 0;
+    system->cpu.cp0.r[3] = 0;
+    system->cpu.cp0.r[4] = 0;
+    system->cpu.cp0.r[5] = 0;
+    system->cpu.cp0.r[6] = 0;
+    system->cpu.cp0.r[7] = 0;
+    system->cpu.cp0.r[8] = 0;
+    system->cpu.cp0.r[9] = 0;
+    system->cpu.cp0.r[10] = 0;
+    system->cpu.cp0.r[11] = 0;
+    system->cpu.cp0.r[12] = 0x70400004;
+    system->cpu.cp0.r[13] = 0;
+    system->cpu.cp0.r[14] = 0;
+    system->cpu.cp0.r[15] = 0x00000B00;
+    system->cpu.cp0.r[16] = 0x0006E463;
+    system->cpu.cp0.r[17] = 0;
+    system->cpu.cp0.r[18] = 0;
+    system->cpu.cp0.r[19] = 0;
+    system->cpu.cp0.r[20] = 0;
+    system->cpu.cp0.r[21] = 0;
+    system->cpu.cp0.r[22] = 0;
+    system->cpu.cp0.r[23] = 0;
+    system->cpu.cp0.r[24] = 0;
+    system->cpu.cp0.r[25] = 0;
+    system->cpu.cp0.r[26] = 0;
+    system->cpu.cp0.r[27] = 0;
+    system->cpu.cp0.r[28] = 0;
+    system->cpu.cp0.r[29] = 0;
+    system->cpu.cp0.r[30] = 0;
+    system->cpu.cp0.r[31] = 0;
 
     //n64_write_word(system, 0x04300004, 0x01010101);
 

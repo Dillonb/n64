@@ -144,6 +144,7 @@ typedef enum mips32_instruction_type {
     SPC_SUBU,
     SPC_OR,
     SPC_SLT,
+    SPC_SLTU,
 
     // REGIMM
     RI_BGEZL
@@ -152,6 +153,7 @@ typedef enum mips32_instruction_type {
 void r4300i_step(r4300i_t* cpu);
 
 extern const char* register_names[];
+extern const char* cp0_register_names[];
 
 INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
     if (cpu->width_mode == M32) {
@@ -169,7 +171,7 @@ INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
     }
 }
 
-INLINE dword get_register(r4300i_t* cpu, word r) {
+INLINE dword get_register(r4300i_t* cpu, byte r) {
     dword mask = cpu->width_mode == M32 ? 0xFFFFFFFF : 0xFFFFFFFFFFFFFFFF;
     if (r < 64) {
         dword value = cpu->gpr[r] & mask;
@@ -180,9 +182,14 @@ INLINE dword get_register(r4300i_t* cpu, word r) {
     }
 }
 
-INLINE void set_cp0_register(r4300i_t* cpu, int r, dword value) {
+INLINE void set_cp0_register(r4300i_t* cpu, byte r, dword value) {
     // TODO do these need to be forced to 32 bits as well?
-    cpu->cp0.r[r] = value;
+    if (r < 64) {
+        logtrace("Setting CP0 $%s (CP0r%d) to [0x%08lX]", cp0_register_names[r], r, value);
+        cpu->cp0.r[r] = value;
+    } else {
+        logfatal("Write to unknown CP0 register: CP0r%d", r)
+    }
 }
 
 #endif //N64_R4300I_H

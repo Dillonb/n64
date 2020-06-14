@@ -4,38 +4,14 @@
 #include "mips32.h"
 
 const char* register_names[] = {
-        "zero",
-        "at",
-        "v0",
-        "v1",
-        "a0",
-        "a1",
-        "a2",
-        "a3",
-        "t0",
-        "t1",
-        "t2",
-        "t3",
-        "t4",
-        "t5",
-        "t6",
-        "t7",
-        "s0",
-        "s1",
-        "s2",
-        "s3",
-        "s4",
-        "s5",
-        "s6",
-        "s7",
-        "t8",
-        "t9",
-        "k0",
-        "k1",
-        "gp",
-        "sp",
-        "s8",
-        "ra"
+        "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+        "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"
+};
+
+const char* cp0_register_names[] = {
+        "Index", "Random", "EntryLo0", "EntryLo1", "Context", "PageMask", "Wired", "7", "BadVAddr", "Count", "EntryHi",
+        "Compare", "Status", "Cause", "EPC", "PRId", "Config", "LLAddr", "WatchLo", "WatchHi", "XContext", "21", "22",
+        "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
 };
 
 #define MIPS32_CP     0b010000
@@ -77,6 +53,7 @@ const char* register_names[] = {
 #define FUNCT_SUBU  0b100011
 #define FUNCT_OR    0b100101
 #define FUNCT_SLT   0b101010
+#define FUNCT_SLTU  0b101011
 
 // REGIMM
 #define RT_BGEZL 0b00011
@@ -103,6 +80,7 @@ mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t ins
         case FUNCT_SUBU:  return SPC_SUBU;
         case FUNCT_OR:    return SPC_OR;
         case FUNCT_SLT:   return SPC_SLT;
+        case FUNCT_SLTU:  return SPC_SLTU;
         default: logfatal("other/unknown MIPS32 Special 0x%08X with FUNCT: %d%d%d%d%d%d", instr.raw,
                 instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5)
     }
@@ -195,6 +173,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(SPC_SUBU,  spc_subu)
         exec_instr(SPC_OR,    spc_or)
         exec_instr(SPC_SLT,   spc_slt)
+        exec_instr(SPC_SLTU,  spc_sltu)
 
         // REGIMM
         exec_instr(RI_BGEZL, ri_bgezl)

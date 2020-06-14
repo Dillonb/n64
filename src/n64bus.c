@@ -326,8 +326,13 @@ word n64_read_word(n64_system_t* system, word address) {
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1", address)
         case REGION_CART_2_2:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_2_2", address)
-        case REGION_CART_1_2:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_1_2", address)
+        case REGION_CART_1_2: {
+            word index = address - SREGION_CART_1_2;
+            if (index > system->mem.rom.size - 3) { // -3 because we're reading an entire word
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index)
+            }
+            return word_from_byte_array(system->mem.rom.rom, index);
+        }
         case REGION_PIF_BOOT:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_PIF_BOOT", address)
         case REGION_PIF_RAM:
