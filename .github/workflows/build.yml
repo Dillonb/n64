@@ -17,7 +17,7 @@ jobs:
           sudo apt-get update -y -qq
           sudo apt-get install libsdl2-dev
 
-      - name: Build GBA
+      - name: Build N64
         run: |
           mkdir -p build
           cd build
@@ -47,7 +47,7 @@ jobs:
       - name: Setup SDL2
         run: brew install sdl2
 
-      - name: Build GBA
+      - name: Build N64
         run: |
           mkdir -p build
           cd build
