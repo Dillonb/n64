@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "n64rom.h"
-#include "common/util.h"
-#include "common/log.h"
+#include "../common/util.h"
+#include "../common/log.h"
 
 void load_n64rom(n64_rom_t* rom, const char* path) {
     FILE *fp = fopen(path, "rb");

@@ -6,11 +6,12 @@ add_subdirectory(common)
 add_subdirectory(cpu)
 
 add_library(core
-        n64system.c n64system.h
-        n64rom.c n64rom.h
-        n64mem.c n64mem.h
-        n64bus.c n64bus.h
-        pif_rom.c pif_rom.h)
+        system/n64system.c system/n64system.h
+        mem/n64rom.c mem/n64rom.h
+        mem/n64mem.c mem/n64mem.h
+        mem/n64bus.c mem/n64bus.h
+        mem/pif_rom.c mem/pif_rom.h
+        mem/dma.c mem/dma.h)
 
 target_link_libraries(core r4300i)
 

@@ -2,7 +2,7 @@
 #define N64_N64MEM_H
 
 #include "n64rom.h"
-#include "common/util.h"
+#include "../common/util.h"
 
 #define RDRAM_SIZE   0x400000
 #define SP_DMEM_SIZE 0x1000
@@ -20,7 +20,8 @@ typedef enum ri_reg {
 } ri_reg_t;
 
 typedef enum pi_reg {
-    PI_DRAM_ADDR_REG
+    PI_DRAM_ADDR_REG,
+    PI_CART_ADDR_REG
 } pi_reg_t;
 
 typedef struct n64_mem {

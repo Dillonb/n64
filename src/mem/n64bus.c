@@ -1,5 +1,6 @@
 #include "n64bus.h"
-#include "common/log.h"
+#include "../common/log.h"
+#include "dma.h"
 
 #include <endian.h>
 
@@ -102,6 +103,20 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 
 #define ADDR_PI_DRAM_ADDR_REG 0x04600000
 
+#define ADDR_PI_DRAM_ADDR_REG    0x04600000
+#define ADDR_PI_CART_ADDR_REG    0x04600004
+#define ADDR_PI_RD_LEN_REG       0x04600008
+#define ADDR_PI_WR_LEN_REG       0x0460000C
+#define ADDR_PI_STATUS_REG       0x04600010
+#define ADDR_PI_DOMAIN1_REG      0x04600014
+#define ADDR_PI_BSD_DOM1_PWD_REG 0x04600018
+#define ADDR_PI_BSD_DOM1_PGS_REG 0x0460001C
+#define ADDR_PI_BSD_DOM1_RLS_REG 0x04600020
+#define ADDR_PI_DOMAIN2_REG      0x04600024
+#define ADDR_PI_BSD_DOM2_PWD_REG 0x04600028
+#define ADDR_PI_BSD_DOM2_PGS_REG 0x0460002C
+#define ADDR_PI_BSD_DOM2_RLS_REG 0x04600030
+
 #define ADDR_RI_MODE_REG    0x04700000
 #define ADDR_RI_CONFIG_REG  0x04700004
 #define ADDR_RI_SELECT_REG  0x0470000C
@@ -172,6 +187,30 @@ word read_word_pireg(n64_system_t* system, word address) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
             return system->mem.pi_reg[PI_DRAM_ADDR_REG];
+        case ADDR_PI_CART_ADDR_REG:
+            logfatal("Reading word from unsupported PI register: PI_CART_ADDR_REG")
+        case ADDR_PI_RD_LEN_REG:
+            logfatal("Reading word from unsupported PI register: PI_RD_LEN_REG")
+        case ADDR_PI_WR_LEN_REG:
+            logfatal("Reading word from unsupported PI register: PI_WR_LEN_REG")
+        case ADDR_PI_STATUS_REG:
+            return is_dma_active();
+        case ADDR_PI_DOMAIN1_REG:
+            logfatal("Reading word from unsupported PI register: PI_DOMAIN1_REG")
+        case ADDR_PI_BSD_DOM1_PWD_REG:
+            logfatal("Reading word from unsupported PI register: PI_BSD_DOM1_PWD_REG")
+        case ADDR_PI_BSD_DOM1_PGS_REG:
+            logfatal("Reading word from unsupported PI register: PI_BSD_DOM1_PGS_REG")
+        case ADDR_PI_BSD_DOM1_RLS_REG:
+            logfatal("Reading word from unsupported PI register: PI_BSD_DOM1_RLS_REG")
+        case ADDR_PI_DOMAIN2_REG:
+            logfatal("Reading word from unsupported PI register: PI_DOMAIN2_REG")
+        case ADDR_PI_BSD_DOM2_PWD_REG:
+            logfatal("Reading word from unsupported PI register: PI_BSD_DOM2_PWD_REG")
+        case ADDR_PI_BSD_DOM2_PGS_REG:
+            logfatal("Reading word from unsupported PI register: PI_BSD_DOM2_PGS_REG")
+        case ADDR_PI_BSD_DOM2_RLS_REG:
+            logfatal("Reading word from unsupported PI register: PI_BSD_DOM2_RLS_REG")
         default:
             logfatal("Reading word from unknown PI register 0x%08X", address)
     }
@@ -182,6 +221,34 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
         case ADDR_PI_DRAM_ADDR_REG:
             system->mem.pi_reg[PI_DRAM_ADDR_REG] = value;
             break;
+        case ADDR_PI_CART_ADDR_REG:
+            system->mem.pi_reg[PI_CART_ADDR_REG] = value;
+            break;
+            logfatal("Writing word to unsupported PI register: ADDR_PI_CART_ADDR_REG")
+        case ADDR_PI_RD_LEN_REG:
+            run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], value, "DRAM to CART");
+            break; // TODO: do we need to persist the `length` value anywhere?
+        case ADDR_PI_WR_LEN_REG:
+            run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], value, "CART to DRAM");
+            break; // TODO: do we need to persist the `length` value anywhere?
+        case ADDR_PI_STATUS_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_STATUS_REG")
+        case ADDR_PI_DOMAIN1_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_DOMAIN1_REG")
+        case ADDR_PI_BSD_DOM1_PWD_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_BSD_DOM1_PWD_REG")
+        case ADDR_PI_BSD_DOM1_PGS_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_BSD_DOM1_PGS_REG")
+        case ADDR_PI_BSD_DOM1_RLS_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_BSD_DOM1_RLS_REG")
+        case ADDR_PI_DOMAIN2_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_DOMAIN2_REG")
+        case ADDR_PI_BSD_DOM2_PWD_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_BSD_DOM2_PWD_REG")
+        case ADDR_PI_BSD_DOM2_PGS_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_BSD_DOM2_PGS_REG")
+        case ADDR_PI_BSD_DOM2_RLS_REG:
+            logfatal("Writing word to unsupported PI register: ADDR_PI_BSD_DOM2_RLS_REG")
         default:
             logfatal("Writing word 0x%08X to unknown PI register 0x%08X", value, address)
     }

@@ -1,8 +1,8 @@
 #include "n64system.h"
-#include "common/log.h"
-#include "n64mem.h"
-#include "n64rom.h"
-#include "n64bus.h"
+#include "../common/log.h"
+#include "../mem/n64mem.h"
+#include "../mem/n64rom.h"
+#include "../mem/n64bus.h"
 
 n64_system_t* global_system;
 

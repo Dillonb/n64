@@ -1,7 +1,7 @@
 #ifndef N64_N64ROM_H
 #define N64_N64ROM_H
 #include <stdio.h>
-#include "common/util.h"
+#include "../common/util.h"
 
 typedef struct n64_header {
     byte initial_values[4];

@@ -1,5 +1,5 @@
 #include "pif_rom.h"
-#include "common/log.h"
+#include "../common/log.h"
 #include "n64bus.h"
 
 void pif_rom_execute(n64_system_t* system) {

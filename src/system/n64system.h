@@ -1,8 +1,8 @@
 #ifndef N64_N64SYSTEM_H
 #define N64_N64SYSTEM_H
 #include <stdbool.h>
-#include "n64mem.h"
-#include "cpu/r4300i.h"
+#include "../mem/n64mem.h"
+#include "../cpu/r4300i.h"
 
 typedef struct n64_system {
     n64_mem_t mem;
