@@ -1,0 +1,67 @@
+name: Build
+
+on: push
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Setup submodules
+        run: git submodule update --init
+
+      - name: Setup SDL2
+        run: |
+          sudo apt-get update -y -qq
+          sudo apt-get install libsdl2-dev
+
+      - name: Build GBA
+        run: |
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make
+
+      - name: Collect files
+        run: |
+          mkdir upload
+          mv build/n64 upload
+
+      - name: Upload files
+        uses: actions/upload-artifact@master
+        with:
+          name: n64-linux
+          path: upload
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Setup submodules
+        run: git submodule update --init
+
+      - name: Setup SDL2
+        run: brew install sdl2
+
+      - name: Build GBA
+        run: |
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make
+
+      - name: Collect files
+        run: |
+          mkdir upload
+          mv build/n64 upload
+
+
+      - name: Upload files
+        uses: actions/upload-artifact@master
+        with:
+          name: n64-macos
+          path: upload
