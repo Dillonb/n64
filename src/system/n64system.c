@@ -32,12 +32,16 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
     system->cpu.read_byte = &read_byte_wrapper;
     system->cpu.write_byte = &write_byte_wrapper;
+
+    system->rsp_status.halt = true; // RSP starts halted
+
     global_system = system;
     return system;
 }
 
 INLINE void _n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
+    unimplemented(!system->rsp_status.halt, "RSP running!")
 }
 
 void n64_system_step(n64_system_t* system) {

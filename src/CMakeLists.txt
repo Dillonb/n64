@@ -13,7 +13,7 @@ add_library(core
         mem/pif_rom.c mem/pif_rom.h
         mem/dma.c mem/dma.h)
 
-target_link_libraries(core r4300i)
+target_link_libraries(core r4300i rsp)
 
 add_executable(${N64_TARGET} cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)

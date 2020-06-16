@@ -1,6 +1,7 @@
 #include "n64bus.h"
 #include "../common/log.h"
 #include "dma.h"
+#include "../cpu/rsp.h"
 
 #include <endian.h>
 
@@ -322,7 +323,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_SP_UNUSED:
             return;
         case REGION_SP_REGS:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
+            write_word_spreg(system, address, value);
+            break;
         case REGION_DP_COMMAND_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address)
         case REGION_DP_SPAN_REGS:
@@ -389,7 +391,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_SP_UNUSED:
             return read_unused(address);
         case REGION_SP_REGS:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_SP_REGS", address)
+            return read_word_spreg(system, address);
         case REGION_DP_COMMAND_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address)
         case REGION_DP_SPAN_REGS:
