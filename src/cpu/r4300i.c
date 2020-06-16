@@ -43,6 +43,8 @@ const char* cp0_register_names[] = {
 // Special
 #define FUNCT_NOP   0b000000
 #define FUNCT_SRL   0b000010
+#define FUNCT_SLLV  0b000100
+#define FUNCT_SRLV  0b000110
 #define FUNCT_JR    0b001000
 #define FUNCT_MFHI  0b010000
 #define FUNCT_MFLO  0b010010
@@ -52,6 +54,7 @@ const char* cp0_register_names[] = {
 #define FUNCT_AND   0b100100
 #define FUNCT_SUBU  0b100011
 #define FUNCT_OR    0b100101
+#define FUNCT_XOR   0b100110
 #define FUNCT_SLT   0b101010
 #define FUNCT_SLTU  0b101011
 
@@ -70,6 +73,8 @@ mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t ins
     switch (instr.r.funct) {
         case FUNCT_NOP:   return NOP;
         case FUNCT_SRL:   return SPC_SRL;
+        case FUNCT_SLLV:  return SPC_SLLV;
+        case FUNCT_SRLV:  return SPC_SRLV;
         case FUNCT_JR:    return SPC_JR;
         case FUNCT_MFHI:  return SPC_MFHI;
         case FUNCT_MFLO:  return SPC_MFLO;
@@ -79,6 +84,7 @@ mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t ins
         case FUNCT_AND:   return SPC_AND;
         case FUNCT_SUBU:  return SPC_SUBU;
         case FUNCT_OR:    return SPC_OR;
+        case FUNCT_XOR:   return SPC_XOR;
         case FUNCT_SLT:   return SPC_SLT;
         case FUNCT_SLTU:  return SPC_SLTU;
         default: logfatal("other/unknown MIPS32 Special 0x%08X with FUNCT: %d%d%d%d%d%d", instr.raw,
@@ -163,6 +169,8 @@ void r4300i_step(r4300i_t* cpu) {
 
         // Special
         exec_instr(SPC_SRL,   spc_srl)
+        exec_instr(SPC_SLLV,  spc_sllv)
+        exec_instr(SPC_SRLV,  spc_srlv)
         exec_instr(SPC_JR,    spc_jr)
         exec_instr(SPC_MFHI,  spc_mfhi)
         exec_instr(SPC_MFLO,  spc_mflo)
@@ -172,6 +180,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(SPC_AND,   spc_and)
         exec_instr(SPC_SUBU,  spc_subu)
         exec_instr(SPC_OR,    spc_or)
+        exec_instr(SPC_XOR,   spc_xor)
         exec_instr(SPC_SLT,   spc_slt)
         exec_instr(SPC_SLTU,  spc_sltu)
 

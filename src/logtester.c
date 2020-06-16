@@ -49,9 +49,9 @@ int main(int argc, char** argv) {
         if (getline(&strline, &len, fp) == -1) {
             break;
         }
+        loginfo_nonewline("Checking log line %d | %s", line + 1, strline)
         char* tok = strtok(strline, " ");
         dword pc = strtol(tok, NULL, 16);
-        loginfo("Checking log line %d", line + 1)
         if (pc != system->cpu.pc) {
             logfatal("Line %d: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, system->cpu.pc)
         }

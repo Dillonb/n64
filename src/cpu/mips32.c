@@ -247,6 +247,16 @@ MIPS32_INSTR(spc_srl) {
     set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) >> instruction.r.sa);
 }
 
+MIPS32_INSTR(spc_sllv) {
+    NO64
+    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) << (get_register(cpu, instruction.r.rs) & 0b11111));
+}
+
+MIPS32_INSTR(spc_srlv) {
+    NO64
+    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) >> (get_register(cpu, instruction.r.rs) & 0b11111));
+}
+
 MIPS32_INSTR(spc_jr) {
     branch_abs(cpu, get_register(cpu, instruction.r.rs));
 }
@@ -309,6 +319,10 @@ MIPS32_INSTR(spc_subu) {
 
 MIPS32_INSTR(spc_or) {
     set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rs) | get_register(cpu, instruction.r.rt));
+}
+
+MIPS32_INSTR(spc_xor) {
+    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rs) ^ get_register(cpu, instruction.r.rt));
 }
 
 MIPS32_INSTR(spc_slt) {

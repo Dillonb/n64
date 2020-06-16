@@ -134,6 +134,8 @@ typedef enum mips32_instruction_type {
 
     // Special
     SPC_SRL,
+    SPC_SLLV,
+    SPC_SRLV,
     SPC_JR,
     SPC_MFHI,
     SPC_MFLO,
@@ -143,6 +145,7 @@ typedef enum mips32_instruction_type {
     SPC_AND,
     SPC_SUBU,
     SPC_OR,
+    SPC_XOR,
     SPC_SLT,
     SPC_SLTU,
 
