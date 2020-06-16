@@ -1,8 +1,23 @@
 #include "n64system.h"
-#include "../common/log.h"
-#include "../mem/n64mem.h"
-#include "../mem/n64rom.h"
 #include "../mem/n64bus.h"
+#include "../render.h"
+
+#define CPU_HERTZ 93750000
+#define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
+
+// The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
+// There are 1562500 cycles per frame.
+// Because this doesn't divide nicely by 262, we have to run some lines for 1 more cycle than others.
+// We call these the "long" lines, and the others the "short" lines.
+
+// 5963*68+5964*194 == 1562500
+
+#define NUM_SHORTLINES 68
+#define NUM_LONGLINES  194
+
+#define SHORTLINE_CYCLES 5963
+#define LONGLINE_CYCLES  5964
+
 
 n64_system_t* global_system;
 
@@ -36,6 +51,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->rsp_status.halt = true; // RSP starts halted
 
     global_system = system;
+    render_init();
     return system;
 }
 
@@ -50,7 +66,18 @@ void n64_system_step(n64_system_t* system) {
 
 _Noreturn void n64_system_loop(n64_system_t* system) {
     while (true) {
-        _n64_system_step(system);
+        system->vi.v_current = 0;
+        for (; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
+            for (int i = 0; i < SHORTLINE_CYCLES; i++) {
+                _n64_system_step(system);
+            }
+        }
+        for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
+            for (int i = 0; i < LONGLINE_CYCLES; i++) {
+                _n64_system_step(system);
+            }
+        }
+        render_screen(system);
     }
 }
 

@@ -25,6 +25,7 @@ typedef struct n64_system {
         word vburst;
         word xscale;
         word yscale;
+        word v_current;
     } vi;
 } n64_system_t;
 
