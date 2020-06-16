@@ -539,7 +539,7 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
 byte n64_read_byte(n64_system_t* system, word address) {
     switch (address) {
         case REGION_RDRAM:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RDRAM", address)
+            return system->mem.rdram[address];
         case REGION_RDRAM_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address)
         case REGION_SP_DMEM:

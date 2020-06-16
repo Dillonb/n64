@@ -35,6 +35,7 @@ const char* cp0_register_names[] = {
 #define OPC_JAL    0b000011
 #define OPC_SLTI   0b001010
 #define OPC_XORI   0b001110
+#define OPC_LB     0b100000
 
 // Coprocessor
 #define MTC0_MASK  0b11111111111000000000011111111111
@@ -129,6 +130,7 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
         case OPC_JAL:   return MIPS32_JAL;
         case OPC_SLTI:  return MIPS32_SLTI;
         case OPC_XORI:  return MIPS32_XORI;
+        case OPC_LB:    return MIPS32_LB;
         default:
                 logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)
@@ -165,6 +167,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS32_SLTI,  mips32_slti)
         exec_instr(MIPS32_BEQL,  mips32_beql)
         exec_instr(MIPS32_XORI,  mips32_xori)
+        exec_instr(MIPS32_LB,    mips32_lb)
 
         // Coprocessor
         exec_instr(MIPS32_CP_MTC0, mips32_mtc0)

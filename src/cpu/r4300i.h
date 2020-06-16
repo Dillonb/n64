@@ -128,6 +128,7 @@ typedef enum mips32_instruction_type {
     MIPS32_JAL,
     MIPS32_SLTI,
     MIPS32_XORI,
+    MIPS32_LB,
 
     // Coprocessor
     MIPS32_CP_MTC0,

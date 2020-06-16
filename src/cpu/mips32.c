@@ -209,7 +209,7 @@ MIPS32_INSTR(mips32_lw) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception!")
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address)
     }
 
     dword value = cpu->read_word(address);
@@ -246,6 +246,17 @@ MIPS32_INSTR(mips32_ori) {
 
 MIPS32_INSTR(mips32_xori) {
     set_register(cpu, instruction.i.rt, instruction.i.immediate ^ get_register(cpu, instruction.i.rs));
+}
+
+MIPS32_INSTR(mips32_lb) {
+    NO64
+
+    shalf offset    = instruction.i.immediate;
+    word address    = get_register(cpu, instruction.i.rs) + offset;
+    byte value      = cpu->read_byte(address);
+    word sext_value = sign_extend_word(value, 8, 32);
+
+    set_register(cpu, instruction.i.rt, sext_value);
 }
 
 MIPS32_INSTR(mips32_spc_srl) {
