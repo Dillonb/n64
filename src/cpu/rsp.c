@@ -61,7 +61,6 @@ INLINE void status_reg_write(n64_system_t* system, word value) {
 
     CLEAR_SET(system->rsp_status.halt,          write.clear_halt,          write.set_halt)
     CLEAR_SET(system->rsp_status.broke,         write.clear_broke,         false)
-    // CLEAR_SET(system->rsp_status.intr,          write.clear_intr,          write.set_intr)
     if (write.clear_intr) {
         logwarn("TODO: Clearing RSP intr?")
     }
@@ -78,15 +77,12 @@ INLINE void status_reg_write(n64_system_t* system, word value) {
     CLEAR_SET(system->rsp_status.signal_5,      write.clear_signal_5,      write.set_signal_5)
     CLEAR_SET(system->rsp_status.signal_6,      write.clear_signal_6,      write.set_signal_6)
     CLEAR_SET(system->rsp_status.signal_7,      write.clear_signal_7,      write.set_signal_7)
-
-    //logfatal("Write to status reg")
 }
 
 void write_word_spreg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_SP_STATUS_REG:
             status_reg_write(system, value);
-            printf("Write to SP status\n");
             break;
         default:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)

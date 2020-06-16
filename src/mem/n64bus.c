@@ -137,6 +137,11 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define ADDR_MI_FIRST ADDR_MI_MODE_REG
 #define ADDR_MI_LAST  ADDR_MI_INTR_MASK_REG
 
+#define ADDR_SI_DRAM_ADDR_REG      0x04800000
+#define ADDR_SI_PIF_ADDR_RD64B_REG 0x04800004
+#define ADDR_SI_PIF_ADDR_WR64B_REG 0x04800010
+#define ADDR_SI_STATUS_REG         0x04800018
+
 word vatopa(word address) {
     word physical;
     switch (address) {
@@ -303,6 +308,16 @@ word read_word_mireg(n64_system_t* system, word address) {
     return system->mem.mi_reg[(address - SREGION_MI_REGS) / 4];
 }
 
+void write_word_sireg(n64_system_t* system, word address, word value) {
+    switch (address) {
+        case ADDR_SI_STATUS_REG:
+            logwarn("TODO: any write to SI status register clears interrupt")
+            break;
+        default:
+            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address)
+    }
+}
+
 void n64_write_word(n64_system_t* system, word address, word value) {
     switch (address) {
         case REGION_RDRAM:
@@ -335,7 +350,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_VI_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_VI_REGS", value, address)
         case REGION_AI_REGS:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
+            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
+            break;
         case REGION_PI_REGS:
             write_word_pireg(system, address, value);
             break;
@@ -344,7 +360,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             break;
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address)
         case REGION_SI_REGS:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address)
+            write_word_sireg(system, address, value);
+            break;
         case REGION_UNUSED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_UNUSED", value, address)
         case REGION_CART_2_1:
