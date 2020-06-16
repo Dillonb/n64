@@ -14,11 +14,13 @@ MIPS32_INSTR(mips32_andi);
 MIPS32_INSTR(mips32_blezl);
 MIPS32_INSTR(mips32_beq);
 MIPS32_INSTR(mips32_beql);
+MIPS32_INSTR(mips32_bgtz);
 MIPS32_INSTR(mips32_bne);
 MIPS32_INSTR(mips32_bnel);
 
 MIPS32_INSTR(mips32_cache);
 
+MIPS32_INSTR(mips32_j);
 MIPS32_INSTR(mips32_jal);
 
 MIPS32_INSTR(mips32_slti);

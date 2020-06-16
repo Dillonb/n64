@@ -126,6 +126,7 @@ typedef enum mips32_instruction_type {
     MIPS32_SB,
     MIPS32_SW,
     MIPS32_ORI,
+    MIPS32_J,
     MIPS32_JAL,
     MIPS32_SLTI,
     MIPS32_XORI,

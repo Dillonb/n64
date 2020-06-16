@@ -161,6 +161,16 @@ MIPS32_INSTR(mips32_cache) {
     return; // No need to emulate the cache. Might be fun to do someday for accuracy.
 }
 
+MIPS32_INSTR(mips32_j) {
+    unimplemented(cpu->width_mode == M64, "J in 64 bit mode")
+
+    word target = instruction.j.target;
+    target <<= 2;
+    target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
+
+    branch_abs(cpu, target);
+}
+
 MIPS32_INSTR(mips32_jal) {
     link(cpu);
     unimplemented(cpu->width_mode == M64, "JAL in 64 bit mode")

@@ -33,6 +33,7 @@ const char* cp0_register_names[] = {
 #define OPC_SB     0b101000
 #define OPC_SW     0b101011
 #define OPC_ORI    0b001101
+#define OPC_J      0b000010
 #define OPC_JAL    0b000011
 #define OPC_SLTI   0b001010
 #define OPC_XORI   0b001110
@@ -129,6 +130,7 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
         case OPC_SB:    return MIPS32_SB;
         case OPC_SW:    return MIPS32_SW;
         case OPC_ORI:   return MIPS32_ORI;
+        case OPC_J:     return MIPS32_J;
         case OPC_JAL:   return MIPS32_JAL;
         case OPC_SLTI:  return MIPS32_SLTI;
         case OPC_XORI:  return MIPS32_XORI;
@@ -165,6 +167,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS32_SB,    mips32_sb)
         exec_instr(MIPS32_SW,    mips32_sw)
         exec_instr(MIPS32_ORI,   mips32_ori)
+        exec_instr(MIPS32_J,     mips32_j)
         exec_instr(MIPS32_JAL,   mips32_jal)
         exec_instr(MIPS32_SLTI,  mips32_slti)
         exec_instr(MIPS32_BEQL,  mips32_beql)
