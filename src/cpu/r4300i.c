@@ -59,7 +59,8 @@ const char* cp0_register_names[] = {
 #define FUNCT_SLTU  0b101011
 
 // REGIMM
-#define RT_BGEZL 0b00011
+#define RT_BGEZL  0b00011
+#define RT_BGEZAL 0b10001
 
 mips32_instruction_type_t decode_cp(r4300i_t* cpu, mips32_instruction_t instr) {
     if ((instr.raw & MTC0_MASK) == MTC0_VALUE) {
@@ -95,6 +96,7 @@ mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t ins
 mips32_instruction_type_t decode_regimm(r4300i_t* cpu, mips32_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BGEZL: return RI_BGEZL;
+        case RT_BGEZAL: return RI_BGEZAL;
         default: logfatal("other/unknown MIPS32 REGIMM 0x%08X with RT: %d%d%d%d%d", instr.raw,
                           instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4)
     }
@@ -185,7 +187,8 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(SPC_SLTU,  spc_sltu)
 
         // REGIMM
-        exec_instr(RI_BGEZL, ri_bgezl)
+        exec_instr(RI_BGEZL,  ri_bgezl)
+        exec_instr(RI_BGEZAL, ri_bgezal)
         default: logfatal("Unknown instruction type!")
     }
 

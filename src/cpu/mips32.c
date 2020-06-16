@@ -150,9 +150,13 @@ MIPS32_INSTR(cache) {
     return; // No need to emulate the cache. Might be fun to do someday for accuracy.
 }
 
-MIPS32_INSTR(jal) {
-    unimplemented(cpu->width_mode == M64, "JAL in 64 bit mode")
+INLINE void link(r4300i_t* cpu) {
     set_register(cpu, R4300I_REG_LR, cpu->pc + 4); // Skips the instruction in the delay slot on return
+}
+
+MIPS32_INSTR(jal) {
+    link(cpu);
+    unimplemented(cpu->width_mode == M64, "JAL in 64 bit mode")
 
     word target = instruction.j.target;
     target <<= 2;
@@ -361,4 +365,10 @@ MIPS32_INSTR(spc_sltu) {
 MIPS32_INSTR(ri_bgezl) {
     sword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg >= 0);
+}
+
+MIPS32_INSTR(ri_bgezal) {
+    link(cpu);
+    sword reg = get_register(cpu, instruction.i.rs);
+    conditional_branch(cpu, instruction.i.immediate, reg >= 0);
 }
