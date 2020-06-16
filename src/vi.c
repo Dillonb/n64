@@ -75,3 +75,38 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
             logfatal("Writing word 0x%08X to address 0x%08X in region: REGION_VI_REGS", value, address)
     }
 }
+
+word read_word_vireg(n64_system_t* system, word address) {
+    switch (address) {
+        case ADDR_VI_STATUS_REG:
+            logfatal("Reading of ADDR_VI_STATUS_REG is unsupported")
+        case ADDR_VI_ORIGIN_REG:
+            logfatal("Reading of ADDR_VI_ORIGIN_REG is unsupported")
+        case ADDR_VI_WIDTH_REG:
+            logfatal("Reading of ADDR_VI_WIDTH_REG is unsupported")
+        case ADDR_VI_V_INTR_REG:
+            logfatal("Reading of ADDR_VI_V_INTR_REG is unsupported")
+        case ADDR_VI_V_CURRENT_REG:
+            logfatal("Reading of ADDR_VI_V_CURRENT_REG is unsupported")
+        case ADDR_VI_BURST_REG:
+            logfatal("Reading of ADDR_VI_BURST_REG is unsupported")
+        case ADDR_VI_V_SYNC_REG:
+            logfatal("Reading of ADDR_VI_V_SYNC_REG is unsupported")
+        case ADDR_VI_H_SYNC_REG:
+            logfatal("Reading of ADDR_VI_H_SYNC_REG is unsupported")
+        case ADDR_VI_LEAP_REG:
+            logfatal("Reading of ADDR_VI_LEAP_REG is unsupported")
+        case ADDR_VI_H_START_REG:
+            logfatal("Reading of ADDR_VI_H_START_REG is unsupported")
+        case ADDR_VI_V_START_REG:
+            logfatal("Reading of ADDR_VI_V_START_REG is unsupported")
+        case ADDR_VI_V_BURST_REG:
+            logfatal("Reading of ADDR_VI_V_BURST_REG is unsupported")
+        case ADDR_VI_X_SCALE_REG:
+            logfatal("Reading of ADDR_VI_X_SCALE_REG is unsupported")
+        case ADDR_VI_Y_SCALE_REG:
+            logfatal("Reading of ADDR_VI_Y_SCALE_REG is unsupported")
+        default:
+            logfatal("Attempted to read word from unknown VI reg: 0x%08X", address)
+    }
+}

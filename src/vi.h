@@ -4,5 +4,6 @@
 #define N64_VI_H
 
 void write_word_vireg(n64_system_t* system, word address, word value);
+word read_word_vireg(n64_system_t* system, word address);
 
 #endif //N64_VI_H

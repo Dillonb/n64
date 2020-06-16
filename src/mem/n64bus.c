@@ -437,7 +437,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_MI_REGS:
             return read_word_mireg(system, address);
         case REGION_VI_REGS:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_VI_REGS", address)
+            return read_word_vireg(system, address);
         case REGION_AI_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_AI_REGS", address)
         case REGION_PI_REGS:

@@ -121,6 +121,7 @@ typedef enum mips32_instruction_type {
     MIPS32_CACHE,
     MIPS32_BEQ,
     MIPS32_BEQL,
+    MIPS32_BGTZ,
     MIPS32_NOP,
     MIPS32_SB,
     MIPS32_SW,

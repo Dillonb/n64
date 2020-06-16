@@ -132,6 +132,11 @@ MIPS32_INSTR(mips32_beql) {
     conditional_branch_likely(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) == get_register(cpu, instruction.i.rt));
 }
 
+MIPS32_INSTR(mips32_bgtz) {
+    unimplemented(cpu->width_mode == M64, "BGTZ in 64bit mode")
+    conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) >= 0);
+}
+
 MIPS32_INSTR(mips32_ble) {
     conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
 }
