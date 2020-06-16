@@ -197,11 +197,11 @@ void r4300i_step(r4300i_t* cpu) {
 
     if (cpu->branch) {
         if (cpu->branch_delay == 0) {
-            logdebug("[BRANCH DELAY] Branching to 0x%08X", cpu->branch_pc)
+            logtrace("[BRANCH DELAY] Branching to 0x%08X", cpu->branch_pc)
             cpu->pc = cpu->branch_pc;
             cpu->branch = false;
         } else {
-            logdebug("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay)
+            logtrace("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay)
             cpu->branch_delay--;
         }
     }
