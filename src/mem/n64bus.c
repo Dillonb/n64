@@ -2,6 +2,7 @@
 #include "../common/log.h"
 #include "dma.h"
 #include "../cpu/rsp.h"
+#include "../vi.h"
 
 #include <endian.h>
 
@@ -141,6 +142,8 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define ADDR_SI_PIF_ADDR_RD64B_REG 0x04800004
 #define ADDR_SI_PIF_ADDR_WR64B_REG 0x04800010
 #define ADDR_SI_STATUS_REG         0x04800018
+
+#define ADDR_PIF_RAM_JOYPAD 0x1FC007C4
 
 word vatopa(word address) {
     word physical;
@@ -358,7 +361,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             write_word_mireg(system, address, value);
             break;
         case REGION_VI_REGS:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_VI_REGS", value, address)
+            write_word_vireg(system, address, value);
+            break;
         case REGION_AI_REGS:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
             break;
@@ -385,7 +389,14 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_PIF_BOOT:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_RAM", value, address)
+            if (address == ADDR_PIF_RAM_JOYPAD) {
+                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
+                break;
+            } else {
+                word_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
+                logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_PIF_RAM", value, address)
+            }
+            break;
         case REGION_RESERVED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
         case REGION_CART_1_3:

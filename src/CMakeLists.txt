@@ -11,7 +11,8 @@ add_library(core
         mem/n64mem.c mem/n64mem.h
         mem/n64bus.c mem/n64bus.h
         mem/pif_rom.c mem/pif_rom.h
-        mem/dma.c mem/dma.h)
+        mem/dma.c mem/dma.h
+        vi.c vi.h vi_reg.h)
 
 target_link_libraries(core r4300i rsp)
 
