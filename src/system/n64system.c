@@ -18,6 +18,8 @@
 #define SHORTLINE_CYCLES 5963
 #define LONGLINE_CYCLES  5964
 
+bool should_quit = false;
+
 
 n64_system_t* global_system;
 
@@ -64,8 +66,8 @@ void n64_system_step(n64_system_t* system) {
     _n64_system_step(system);
 }
 
-_Noreturn void n64_system_loop(n64_system_t* system) {
-    while (true) {
+void n64_system_loop(n64_system_t* system) {
+    while (!should_quit) {
         system->vi.v_current = 0;
         for (; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
             for (int i = 0; i < SHORTLINE_CYCLES; i++) {
@@ -83,4 +85,8 @@ _Noreturn void n64_system_loop(n64_system_t* system) {
 
 void n64_system_cleanup(n64_system_t* system) {
     logfatal("No cleanup yet")
+}
+
+void n64_request_quit() {
+    should_quit = true;
 }

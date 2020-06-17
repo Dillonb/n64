@@ -87,7 +87,7 @@ word read_word_vireg(n64_system_t* system, word address) {
         case ADDR_VI_V_INTR_REG:
             logfatal("Reading of ADDR_VI_V_INTR_REG is unsupported")
         case ADDR_VI_V_CURRENT_REG:
-            logfatal("Reading of ADDR_VI_V_CURRENT_REG is unsupported")
+            return system->vi.v_current;
         case ADDR_VI_BURST_REG:
             logfatal("Reading of ADDR_VI_BURST_REG is unsupported")
         case ADDR_VI_V_SYNC_REG:

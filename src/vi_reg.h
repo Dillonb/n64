@@ -4,6 +4,11 @@
 #include <stdbool.h>
 #include "common/util.h"
 
+#define VI_TYPE_BLANK    0
+#define VI_TYPE_RESERVED 1
+#define VI_TYPE_16BIT    2
+#define VI_TYPE_32BIT    3
+
 typedef union vi_status {
     word raw;
     struct {

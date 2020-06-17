@@ -15,7 +15,7 @@ add_library(core
         vi.c vi.h vi_reg.h
         render.c render.h)
 
-target_link_libraries(core r4300i rsp)
+target_link_libraries(core r4300i rsp ${SDL2_LIBRARY})
 
 add_executable(${N64_TARGET} cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)

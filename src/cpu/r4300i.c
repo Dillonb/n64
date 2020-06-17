@@ -44,7 +44,7 @@ const char* cp0_register_names[] = {
 #define MTC0_VALUE 0b01000000100000000000000000000000
 
 // Special
-#define FUNCT_NOP   0b000000
+#define FUNCT_SLL   0b000000
 #define FUNCT_SRL   0b000010
 #define FUNCT_SLLV  0b000100
 #define FUNCT_SRLV  0b000110
@@ -75,7 +75,7 @@ mips32_instruction_type_t decode_cp(r4300i_t* cpu, mips32_instruction_t instr) {
 
 mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t instr) {
     switch (instr.r.funct) {
-        case FUNCT_NOP:   return MIPS32_NOP;
+        case FUNCT_SLL:   return MIPS32_SPC_SLL;
         case FUNCT_SRL:   return MIPS32_SPC_SRL;
         case FUNCT_SLLV:  return MIPS32_SPC_SLLV;
         case FUNCT_SRLV:  return MIPS32_SPC_SRLV;
@@ -107,8 +107,13 @@ mips32_instruction_type_t decode_regimm(r4300i_t* cpu, mips32_instruction_t inst
 
 mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t instr) {
     char buf[50];
-    disassemble32(pc, instr.raw, buf, 50);
-    logdebug("[0x%08lX] %s", pc, buf)
+    if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
+        disassemble32(pc, instr.raw, buf, 50);
+        logdebug("[0x%08lX]=0x%08X %s", pc, instr.raw, buf)
+    }
+    if (instr.raw == 0) {
+        return MIPS32_NOP;
+    }
     switch (instr.op) {
         case OPC_CP:     return decode_cp(cpu, instr);
         case OPC_SPCL:   return decode_special(cpu, instr);
@@ -179,6 +184,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS32_CP_MTC0, mips32_mtc0)
 
         // Special
+        exec_instr(MIPS32_SPC_SLL,   mips32_spc_sll)
         exec_instr(MIPS32_SPC_SRL,   mips32_spc_srl)
         exec_instr(MIPS32_SPC_SLLV,  mips32_spc_sllv)
         exec_instr(MIPS32_SPC_SRLV,  mips32_spc_srlv)

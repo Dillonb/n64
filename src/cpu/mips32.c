@@ -80,8 +80,6 @@ MIPS32_INSTR(mips32_addi) {
         check_sword_add_overflow(addend1, addend2, result);
 
         set_register(cpu, instruction.i.rt, result);
-        logtrace("Setting r%d to r%d (0x%016lX) + %d (0x%08X) = 0x%016lX",
-                 instruction.i.rt, instruction.i.rs, reg_addend, addend1, addend1, get_register(cpu, instruction.i.rt ))
     } else if (cpu->width_mode == M64) {
         sdword addend1 = sign_extend_dword(instruction.i.immediate, 16, 64);
         sdword addend2 = reg_addend;
@@ -272,6 +270,11 @@ MIPS32_INSTR(mips32_lb) {
     word sext_value = sign_extend_word(value, 8, 32);
 
     set_register(cpu, instruction.i.rt, sext_value);
+}
+
+MIPS32_INSTR(mips32_spc_sll) {
+    NO64
+    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) << instruction.r.sa);
 }
 
 MIPS32_INSTR(mips32_spc_srl) {

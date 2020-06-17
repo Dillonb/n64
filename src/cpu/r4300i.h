@@ -136,6 +136,7 @@ typedef enum mips32_instruction_type {
     MIPS32_CP_MTC0,
 
     // Special
+    MIPS32_SPC_SLL,
     MIPS32_SPC_SRL,
     MIPS32_SPC_SLLV,
     MIPS32_SPC_SRLV,

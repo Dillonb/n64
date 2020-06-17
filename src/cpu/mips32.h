@@ -37,6 +37,7 @@ MIPS32_INSTR(mips32_xori);
 
 MIPS32_INSTR(mips32_lb);
 
+MIPS32_INSTR(mips32_spc_sll);
 MIPS32_INSTR(mips32_spc_srl);
 MIPS32_INSTR(mips32_spc_sllv);
 MIPS32_INSTR(mips32_spc_srlv);
