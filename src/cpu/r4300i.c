@@ -108,7 +108,7 @@ mips32_instruction_type_t decode_regimm(r4300i_t* cpu, mips32_instruction_t inst
 mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t instr) {
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
-        disassemble32(pc, instr.raw, buf, 50);
+        disassemble(pc, instr.raw, buf, 50);
         logdebug("[0x%08lX]=0x%08X %s", pc, instr.raw, buf)
     }
     if (instr.raw == 0) {
@@ -142,7 +142,7 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
         case OPC_LB:    return MIPS32_LB;
         default:
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
-                disassemble32(pc, instr.raw, buf, 50);
+                disassemble(pc, instr.raw, buf, 50);
             }
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)

@@ -12,7 +12,7 @@
 
 bool disassembler_initialized = false;
 #ifdef HAVE_CAPSTONE
-csh handle_mips32;
+csh handle_mips64;
 cs_insn* insn;
 #endif
 
@@ -22,7 +22,7 @@ void disassembler_initialize() {
     }
 
 #ifdef HAVE_CAPSTONE
-    if (cs_open(CS_ARCH_MIPS, CS_MODE_MIPS32, &handle_mips32) != CS_ERR_OK) {
+    if (cs_open(CS_ARCH_MIPS, CS_MODE_MIPS64, &handle_mips64) != CS_ERR_OK) {
         logfatal("Failed to initialize capstone for ARM THUMB")
     }
 #endif
@@ -30,7 +30,7 @@ void disassembler_initialize() {
     disassembler_initialized = true;
 }
 
-int disassemble32(word address, word raw, char* buf, int buflen) {
+int disassemble(word address, word raw, char* buf, int buflen) {
 #ifdef HAVE_CAPSTONE
     byte code[4];
     code[0] = raw & 0xFF;
@@ -38,7 +38,7 @@ int disassemble32(word address, word raw, char* buf, int buflen) {
     code[2] = (raw >> 16) & 0xFF;
     code[3] = (raw >> 24) & 0xFF;
     disassembler_initialize();
-    size_t count = cs_disasm(handle_mips32, code, 4, address, 0, &insn);
+    size_t count = cs_disasm(handle_mips64, code, 4, address, 0, &insn);
     if (count == 0) {
         logwarn("Failed to disassemble code!")
         snprintf(buf, buflen, "ERROR! big (0x%08X) little (0x%08X)", raw, FAKELITTLE_WORD(raw));
