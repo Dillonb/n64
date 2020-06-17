@@ -136,10 +136,6 @@ MIPS32_INSTR(mips32_bgtz) {
     conditional_branch(cpu, instruction.i.immediate,  reg > 0);
 }
 
-MIPS32_INSTR(mips32_ble) {
-    conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
-}
-
 MIPS32_INSTR(mips32_blezl) {
     sword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg <= 0);
