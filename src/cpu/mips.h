@@ -26,10 +26,12 @@ MIPS_INSTR(mips_jal);
 MIPS_INSTR(mips_slti);
 
 MIPS_INSTR(mips_mtc0);
+MIPS_INSTR(mips_ld);
 MIPS_INSTR(mips_lui);
 MIPS_INSTR(mips_lbu);
 MIPS_INSTR(mips_lw);
 MIPS_INSTR(mips_sb);
+MIPS_INSTR(mips_sd);
 MIPS_INSTR(mips_sw);
 MIPS_INSTR(mips_ori);
 

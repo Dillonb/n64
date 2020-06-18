@@ -163,6 +163,13 @@ MIPS_INSTR(mips_mtc0) {
     set_cp0_register(cpu, instruction.r.rd, value);
 }
 
+MIPS_INSTR(mips_ld) {
+    shalf offset = instruction.i.immediate;
+    word address = get_register(cpu, instruction.i.rs) + offset;
+    dword result = cpu->read_dword(address);
+    set_register(cpu, instruction.i.rt, result);
+}
+
 MIPS_INSTR(mips_lui) {
     word immediate = instruction.i.immediate << 16;
     set_register(cpu, instruction.i.rt, sign_extend_dword(immediate, 32, 64));
@@ -196,6 +203,14 @@ MIPS_INSTR(mips_sb) {
     address += offset;
     byte value = get_register(cpu, instruction.i.rt) & 0xFF;
     cpu->write_byte(address, value);
+}
+
+MIPS_INSTR(mips_sd) {
+    shalf offset = instruction.i.immediate;
+    word address = get_register(cpu, instruction.i.rs);
+    address += offset;
+    dword value = get_register(cpu, instruction.i.rt);
+    cpu->write_dword(address, value);
 }
 
 MIPS_INSTR(mips_sw) {

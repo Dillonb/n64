@@ -43,10 +43,8 @@ typedef struct r4300i {
     word (*read_word)(word);
     void (*write_word)(word, word);
 
-    /*
     dword (*read_dword)(word);
     void (*write_dword)(word, dword);
-     */
 } r4300i_t;
 
 typedef union mips_instruction {
@@ -111,6 +109,7 @@ typedef union mips_instruction {
 } mips_instruction_t;
 
 typedef enum mips_instruction_type {
+    MIPS_LD,
     MIPS_LUI,
     MIPS_ADDI,
     MIPS_ADDIU,
@@ -126,6 +125,7 @@ typedef enum mips_instruction_type {
     MIPS_BGTZ,
     MIPS_NOP,
     MIPS_SB,
+    MIPS_SD,
     MIPS_SW,
     MIPS_ORI,
     MIPS_J,

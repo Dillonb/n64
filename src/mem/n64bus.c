@@ -6,6 +6,11 @@
 
 #include <endian.h>
 
+INLINE dword dword_from_byte_array(byte* arr, word index) {
+    dword* dwarr = (dword*)arr;
+    return be64toh(dwarr[index / sizeof(dword)]);
+}
+
 INLINE word word_from_byte_array(byte* arr, word index) {
     word* warr = (word*)arr;
     return be32toh(warr[index / sizeof(word)]);
@@ -14,6 +19,11 @@ INLINE word word_from_byte_array(byte* arr, word index) {
 INLINE half half_from_byte_array(byte* arr, word index) {
     half* warr = (half*)arr;
     return be16toh(warr[index / sizeof(half)]);
+}
+
+INLINE void dword_to_byte_array(byte* arr, word index, dword value) {
+    dword* dwarr = (dword*)arr;
+    dwarr[index / sizeof(dword)] = htobe64(value);
 }
 
 INLINE void word_to_byte_array(byte* arr, word index, word value) {
@@ -331,6 +341,152 @@ void write_word_sireg(n64_system_t* system, word address, word value) {
     }
 }
 
+word read_unused(word address) {
+    logwarn("Reading unused value at 0x%08X!", address)
+    return 0;
+}
+
+void n64_write_dword(n64_system_t* system, word address, dword value) {
+    switch (address) {
+        case REGION_RDRAM:
+            dword_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
+            break;
+        case REGION_RDRAM_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address)
+            break;
+        case REGION_RDRAM_UNUSED:
+            return;
+        case REGION_SP_DMEM:
+            dword_to_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM, value);
+            break;
+        case REGION_SP_IMEM:
+            dword_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
+            break;
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address)
+        case REGION_SP_UNUSED:
+            return;
+        case REGION_SP_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
+            break;
+        case REGION_DP_COMMAND_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address)
+        case REGION_DP_SPAN_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address)
+        case REGION_MI_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_MI_REGS", value, address)
+            break;
+        case REGION_VI_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_VI_REGS", value, address)
+            break;
+        case REGION_AI_REGS:
+            logwarn("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
+            break;
+        case REGION_PI_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PI_REGS", value, address)
+            break;
+        case REGION_RI_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RI_REGS", value, address)
+            break;
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RI_REGS", value, address)
+        case REGION_SI_REGS:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SI_REGS", value, address)
+            break;
+        case REGION_UNUSED:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_UNUSED", value, address)
+        case REGION_CART_2_1:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_1", value, address)
+        case REGION_CART_1_1:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_1", value, address)
+        case REGION_CART_2_2:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_2", value, address)
+        case REGION_CART_1_2:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_2", value, address)
+        case REGION_PIF_BOOT:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
+        case REGION_PIF_RAM:
+            if (address == ADDR_PIF_RAM_JOYPAD) {
+                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
+                break;
+            } else {
+                dword_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
+                logwarn("Writing dword 0x%016lX to address 0x%08X in region: REGION_PIF_RAM", value, address)
+            }
+            break;
+        case REGION_RESERVED:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
+        case REGION_CART_1_3:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
+        case REGION_SYSAD_DEVICE:
+            n64_write_dword(system, vatopa(address), value);
+            break;
+        default:
+            logfatal("Writing dword 0x%016lX to unknown address: 0x%08X", value, address)
+    }
+}
+
+dword n64_read_dword(n64_system_t* system, word address) {
+    switch (address) {
+        case REGION_RDRAM:
+            return dword_from_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM);
+        case REGION_RDRAM_UNUSED:
+            return read_unused(address);
+        case REGION_RDRAM_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address)
+        case REGION_SP_DMEM:
+            return dword_from_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM);
+        case REGION_SP_IMEM:
+            return dword_from_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM);
+        case REGION_SP_UNUSED:
+            return read_unused(address);
+        case REGION_SP_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_SP_REGS", address)
+        case REGION_DP_COMMAND_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address)
+        case REGION_DP_SPAN_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", address)
+        case REGION_MI_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_MI_REGS", address)
+        case REGION_VI_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_VI_REGS", address)
+        case REGION_AI_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_AI_REGS", address)
+        case REGION_PI_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_PI_REGS", address)
+        case REGION_RI_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_RI_REGS", address)
+        case REGION_SI_REGS:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_SI_REGS", address)
+        case REGION_UNUSED:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_UNUSED", address)
+        case REGION_CART_2_1:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_2_1", address)
+        case REGION_CART_1_1:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_1_1", address)
+        case REGION_CART_2_2:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_2_2", address)
+        case REGION_CART_1_2: {
+            dword index = address - SREGION_CART_1_2;
+            if (index > system->mem.rom.size - 7) { // -7 because we're reading an entire dword
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index)
+            }
+            return dword_from_byte_array(system->mem.rom.rom, index);
+        }
+        case REGION_PIF_BOOT:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_PIF_BOOT", address)
+        case REGION_PIF_RAM:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_PIF_RAM", address)
+        case REGION_RESERVED:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_RESERVED", address)
+        case REGION_CART_1_3:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_1_3", address)
+        case REGION_SYSAD_DEVICE:
+            return n64_read_dword(system, vatopa(address));
+        default:
+            logfatal("Reading dword from unknown address: 0x%08X", address)
+    }
+}
+
+
 void n64_write_word(n64_system_t* system, word address, word value) {
     switch (address) {
         case REGION_RDRAM:
@@ -407,11 +563,6 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         default:
             logfatal("Writing word 0x%08X to unknown address: 0x%08X", value, address)
     }
-}
-
-word read_unused(word address) {
-    logwarn("Reading unused value at 0x%08X!", address)
-    return 0;
 }
 
 word n64_read_word(n64_system_t* system, word address) {

@@ -15,6 +15,7 @@ const char* cp0_register_names[] = {
 };
 
 #define OPC_CP     0b010000
+#define OPC_LD     0b110111
 #define OPC_LUI    0b001111
 #define OPC_ADDI   0b001000
 #define OPC_ADDIU  0b001001
@@ -31,6 +32,7 @@ const char* cp0_register_names[] = {
 #define OPC_REGIMM 0b000001
 #define OPC_SPCL   0b000000
 #define OPC_SB     0b101000
+#define OPC_SD     0b111111
 #define OPC_SW     0b101011
 #define OPC_ORI    0b001101
 #define OPC_J      0b000010
@@ -119,6 +121,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, dword pc, mips_instruction_t instr
         case OPC_SPCL:   return decode_special(cpu, instr);
         case OPC_REGIMM: return decode_regimm(cpu, instr);
 
+        case OPC_LD:    return MIPS_LD;
         case OPC_LUI:   return MIPS_LUI;
         case OPC_ADDIU: return MIPS_ADDIU;
         case OPC_ADDI:  return MIPS_ADDI;
@@ -133,6 +136,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, dword pc, mips_instruction_t instr
         case OPC_BNEL:  return MIPS_BNEL;
         case OPC_CACHE: return MIPS_CACHE;
         case OPC_SB:    return MIPS_SB;
+        case OPC_SD:    return MIPS_SD;
         case OPC_SW:    return MIPS_SW;
         case OPC_ORI:   return MIPS_ORI;
         case OPC_J:     return MIPS_J;
@@ -171,6 +175,7 @@ void r4300i_step(r4300i_t* cpu) {
         case MIPS_NOP: break;
 
         exec_instr(MIPS_LUI,   mips_lui)
+        exec_instr(MIPS_LD,    mips_ld)
         exec_instr(MIPS_ADDI,  mips_addi)
         exec_instr(MIPS_ADDIU, mips_addiu)
         exec_instr(MIPS_ANDI,  mips_andi)
@@ -182,6 +187,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_BNEL,  mips_bnel)
         exec_instr(MIPS_CACHE, mips_cache)
         exec_instr(MIPS_SB,    mips_sb)
+        exec_instr(MIPS_SD,    mips_sd)
         exec_instr(MIPS_SW,    mips_sw)
         exec_instr(MIPS_ORI,   mips_ori)
         exec_instr(MIPS_J,     mips_j)

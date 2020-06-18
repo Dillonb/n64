@@ -23,6 +23,14 @@ bool should_quit = false;
 
 n64_system_t* global_system;
 
+dword read_dword_wrapper(word address) {
+    return n64_read_dword(global_system, address);
+}
+
+void write_dword_wrapper(word address, dword value) {
+    n64_write_dword(global_system, address, value);
+}
+
 word read_word_wrapper(word address) {
     return n64_read_word(global_system, address);
 }
@@ -44,8 +52,15 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     unimplemented(!enable_frontend, "Disabling the frontend is not yet supported")
     init_mem(&system->mem);
     load_n64rom(&system->mem.rom, rom_path);
+
+    system->cpu.read_dword = &read_dword_wrapper;
+    system->cpu.write_dword = &write_dword_wrapper;
+
     system->cpu.read_word = &read_word_wrapper;
     system->cpu.write_word = &write_word_wrapper;
+
+    //system->cpu.read_half = &read_half_wrapper;
+    //system->cpu.write_half = &write_half_wrapper;
 
     system->cpu.read_byte = &read_byte_wrapper;
     system->cpu.write_byte = &write_byte_wrapper;
