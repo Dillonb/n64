@@ -149,9 +149,18 @@ mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t i
     }
 }
 
+void cp0_step(cp0_t* cp0) {
+    cp0->count_stepper = !cp0->count_stepper;
+    cp0->r[R4300I_CP0_REG_COUNT] += cp0->count_stepper;
+    if (cp0->r[R4300I_CP0_REG_COUNT] == cp0->r[R4300I_CP0_REG_COMPARE]) {
+        logwarn("TODO: Compare interrupt!")
+    }
+}
+
 #define exec_instr(key, fn) case key: fn(cpu, instruction); break;
 
 void r4300i_step(r4300i_t* cpu) {
+    cp0_step(&cpu->cp0);
     dword pc = cpu->pc;
 
     mips32_instruction_t instruction;

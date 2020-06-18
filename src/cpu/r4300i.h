@@ -7,17 +7,19 @@
 
 #define R4300I_REG_LR 31
 
-typedef enum width_mode {
-    M32,
-    M64
-} width_mode_t;
+#define R4300I_CP0_REG_COUNT   9
+#define R4300I_CP0_REG_COMPARE 11
+#define R4300I_CP0_REG_CAUSE   13
+#define R4300I_CP0_REG_TAGLO   28
+#define R4300I_CP0_REG_TAGHI   29
 
 typedef struct cp0 {
-    dword r[32];
+    // Internal tool for stepping $Count
+    bool count_stepper;
+    word r[32];
 } cp0_t;
 
 typedef struct r4300i {
-    width_mode_t width_mode;
     dword gpr[32];
     dword pc;
     dword mult_hi;
@@ -164,12 +166,7 @@ extern const char* register_names[];
 extern const char* cp0_register_names[];
 
 INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
-    if (cpu->width_mode == M32) {
-        value &= 0xFFFFFFFF;
-        logtrace("Setting $%s (r%d) to [0x%08lX]", register_names[r], r, value)
-    } else {
-        logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value)
-    }
+    logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value)
     if (r != 0) {
         if (r < 64) {
             cpu->gpr[r] = value;
@@ -180,9 +177,8 @@ INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
 }
 
 INLINE dword get_register(r4300i_t* cpu, byte r) {
-    dword mask = cpu->width_mode == M32 ? 0xFFFFFFFF : 0xFFFFFFFFFFFFFFFF;
     if (r < 64) {
-        dword value = cpu->gpr[r] & mask;
+        dword value = cpu->gpr[r];
         logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value)
         return value;
     } else {
@@ -190,14 +186,25 @@ INLINE dword get_register(r4300i_t* cpu, byte r) {
     }
 }
 
-INLINE void set_cp0_register(r4300i_t* cpu, byte r, dword value) {
-    // TODO do these need to be forced to 32 bits as well?
-    if (r < 64) {
-        logtrace("Setting CP0 $%s (CP0r%d) to [0x%08lX]", cp0_register_names[r], r, value);
-        cpu->cp0.r[r] = value;
-    } else {
-        logfatal("Write to unknown CP0 register: CP0r%d", r)
+INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
+    logwarn("TODO: throw a \"coprocessor unusuable exception\" if CP0 disabled")
+    switch (r) {
+        // No special handling needed for these registers
+        case R4300I_CP0_REG_COUNT:
+        case R4300I_CP0_REG_CAUSE:
+        case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
+        case R4300I_CP0_REG_TAGHI: // Used for the cache, which is unimplemented.
+            break;
+        case R4300I_CP0_REG_COMPARE:
+            logwarn("$Compare written with 0x%08X (count is now 0x%08X) - TODO: clear interrupt in $Cause", value, cpu->cp0.r[R4300I_CP0_REG_COUNT]);
+            break;
+        default:
+            logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value)
     }
+
+    logwarn("CP0 $%s = 0x%08X", cp0_register_names[r], value)
+
+    cpu->cp0.r[r] = value;
 }
 
 #endif //N64_R4300I_H

@@ -42,15 +42,38 @@ int main(int argc, char** argv) {
     log_set_verbosity(verbose->count);
     n64_system_t* system = init_n64system(rom, true);
     pif_rom_execute(system);
+    char lastinstr[100];
     for (int line = 0; line < log_lines; line++) {
-        char* strline = NULL;
+        char* regline = NULL;
+        char* instrline = NULL;
         size_t len = 0;
 
-        if (getline(&strline, &len, fp) == -1) {
+        if (getline(&regline, &len, fp) == -1) {
             break;
         }
-        loginfo_nonewline("Checking log line %d | %s", line + 1, strline)
-        char* tok = strtok(strline, " ");
+
+        loginfo_nonewline("Checking log line %d | %s", line + 1, regline)
+        char* tok = strtok(regline, " ");
+        for (int r = 0; r < 32; r++) {
+            dword expected = strtol(tok, NULL, 16);
+            tok = strtok(NULL, " ");
+            dword actual = system->cpu.gpr[r];
+            if (expected != actual) {
+                logwarn("Failed running line: %s", lastinstr)
+                logwarn("Line %d: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
+                logfatal("Line %d: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
+            }
+        }
+
+        if (getline(&instrline, &len, fp) == -1) {
+            break;
+        }
+
+        loginfo_nonewline("Checking log line %d | %s", line + 1, instrline)
+
+        strcpy(lastinstr, instrline);
+
+        tok = strtok(instrline, " ");
         dword pc = strtol(tok, NULL, 16);
         if (pc != system->cpu.pc) {
             logfatal("Line %d: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, system->cpu.pc)
