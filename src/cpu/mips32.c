@@ -66,26 +66,29 @@ void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
 
 
 MIPS32_INSTR(mips32_addi) {
-    dword reg_addend = get_register(cpu, instruction.i.rs);
+    sword reg_addend = get_register(cpu, instruction.i.rs);
 
-    sdword addend1 = sign_extend_dword(instruction.i.immediate, 16, 64);
-    sdword addend2 = reg_addend;
-    sdword result = addend1 + addend2;
+    sword imm_addend = sign_extend_dword(instruction.i.immediate, 16, 32);
 
-    check_sdword_add_overflow(addend1, addend2, result);
+    sword result = imm_addend + reg_addend;
+
+    check_sword_add_overflow(imm_addend, reg_addend, result);
 
     set_register(cpu, instruction.i.rt, result);
-    logtrace("Setting r%d to r%d (0x%016lX) + %ld (0x%016lX) = 0x%016lX",
-             instruction.i.rt, instruction.i.rs, reg_addend, addend1, addend1, get_register(cpu, instruction.i.rt))
+    logtrace("Setting r%d to r%d (0x%08X) + %d (0x%08X) = 0x%08lX",
+             instruction.i.rt, instruction.i.rs, reg_addend, imm_addend, imm_addend, get_register(cpu, instruction.i.rt))
 }
 
 MIPS32_INSTR(mips32_addiu) {
-    dword reg_addend = get_register(cpu, instruction.i.rs);
+    word reg_addend = get_register(cpu, instruction.i.rs);
+    word addend = sign_extend_word(instruction.i.immediate, 16, 32);
 
-    dword addend = sign_extend_dword(instruction.i.immediate, 16, 64);
-    set_register(cpu, instruction.i.rt, reg_addend + addend);
-    logtrace("Setting r%d to r%d (0x%016lX) + %ld (0x%016lX) = 0x%016lX",
-             instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, get_register(cpu, instruction.i.rt))
+    word result = reg_addend + addend;
+    dword dresult = sign_extend_dword(result, 32, 64);
+
+    set_register(cpu, instruction.i.rt, dresult);
+    logtrace("Setting r%d to r%d (0x%08X) + %d (0x%08X) = 0x%016lX",
+             instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, dresult)
 }
 
 MIPS32_INSTR(mips32_andi) {
@@ -167,6 +170,7 @@ MIPS32_INSTR(mips32_lui) {
 
 MIPS32_INSTR(mips32_lbu) {
     shalf offset = instruction.i.immediate;
+    logtrace("LBU offset: %d", offset)
     word address = get_register(cpu, instruction.i.rs) + offset;
     byte value   = cpu->read_byte(address);
 
@@ -219,19 +223,26 @@ MIPS32_INSTR(mips32_lb) {
 }
 
 MIPS32_INSTR(mips32_spc_sll) {
-    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) << instruction.r.sa);
+    sword result = get_register(cpu, instruction.r.rt) << instruction.r.sa;
+    set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
 MIPS32_INSTR(mips32_spc_srl) {
-    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) >> instruction.r.sa);
+    word value = get_register(cpu, instruction.r.rt);
+    sword result = value >> instruction.r.sa;
+    set_register(cpu, instruction.r.rd, (sdword) result);
 }
 
 MIPS32_INSTR(mips32_spc_sllv) {
-    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) << (get_register(cpu, instruction.r.rs) & 0b11111));
+    word value = get_register(cpu, instruction.r.rt);
+    sword result = value << (get_register(cpu, instruction.r.rs) & 0b11111);
+    set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
 MIPS32_INSTR(mips32_spc_srlv) {
-    set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rt) >> (get_register(cpu, instruction.r.rs) & 0b11111));
+    word value = get_register(cpu, instruction.r.rt);
+    sword result = value >> (get_register(cpu, instruction.r.rs) & 0b11111);
+    set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
 MIPS32_INSTR(mips32_spc_jr) {
