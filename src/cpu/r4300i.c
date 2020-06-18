@@ -175,8 +175,8 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
 
 void cp0_step(cp0_t* cp0) {
     cp0->count_stepper = !cp0->count_stepper;
-    cp0->r[R4300I_CP0_REG_COUNT] += cp0->count_stepper;
-    if (cp0->r[R4300I_CP0_REG_COUNT] == cp0->r[R4300I_CP0_REG_COMPARE]) {
+    cp0->count += cp0->count_stepper;
+    if (cp0->count == cp0->compare) {
         logwarn("TODO: Compare interrupt!")
     }
 }

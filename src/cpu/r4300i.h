@@ -10,14 +10,69 @@
 #define R4300I_CP0_REG_ENTRYLO0 2
 #define R4300I_CP0_REG_COUNT    9
 #define R4300I_CP0_REG_COMPARE  11
+#define R4300I_CP0_REG_STATUS   12
 #define R4300I_CP0_REG_CAUSE    13
 #define R4300I_CP0_REG_TAGLO    28
 #define R4300I_CP0_REG_TAGHI    29
 
+typedef union cp0_status {
+    word raw;
+    struct {
+        bool ie:1;
+        bool exl:1;
+        bool erl:1;
+        byte ksu:2;
+        bool ux:1;
+        bool sx:1;
+        bool kx:1;
+        byte im:8;
+        unsigned ds:9;
+        bool re:1;
+        bool fr:1;
+        bool rp:1;
+        bool cu0:1;
+        bool cu1:1;
+        bool cu2:1;
+        bool cu3:1;
+    };
+} cp0_status_t;
+
 typedef struct cp0 {
     // Internal tool for stepping $Count
     bool count_stepper;
-    word r[32];
+
+    word index;
+    word random;
+    word entry_lo0;
+    word entry_lo1;
+    word context;
+    word page_mask;
+    word wired;
+    word r7;
+    word bad_vaddr;
+    word count;
+    word entry_hi;
+    word compare;
+    cp0_status_t status;
+    word cause;
+    word EPC;
+    word PRId;
+    word config;
+    word lladdr;
+    word watch_lo;
+    word watch_hi;
+    word x_context;
+    word r21;
+    word r22;
+    word r23;
+    word r24;
+    word r25;
+    word parity_error;
+    word cache_error;
+    word tag_lo;
+    word tag_hi;
+    word error_epc;
+    word r31;
 } cp0_t;
 
 typedef struct r4300i {
@@ -203,37 +258,56 @@ INLINE dword get_register(r4300i_t* cpu, byte r) {
 INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
     logwarn("TODO: throw a \"coprocessor unusuable exception\" if CP0 disabled")
     switch (r) {
-        // No special handling needed for these registers
         case R4300I_CP0_REG_COUNT:
+            cpu->cp0.count = value;
         case R4300I_CP0_REG_CAUSE:
+            cpu->cp0.cause = value;
         case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
+            cpu->cp0.tag_lo = value;
         case R4300I_CP0_REG_TAGHI: // Used for the cache, which is unimplemented.
+            cpu->cp0.tag_hi = value;
             break;
         case R4300I_CP0_REG_COMPARE:
-            logwarn("$Compare written with 0x%08X (count is now 0x%08X) - TODO: clear interrupt in $Cause", value, cpu->cp0.r[R4300I_CP0_REG_COUNT]);
+            logwarn("$Compare written with 0x%08X (count is now 0x%08X) - TODO: clear interrupt in $Cause", value, cpu->cp0.count);
+            cpu->cp0.compare = value;
+            break;
+        case R4300I_CP0_REG_STATUS:
+            cpu->cp0.status.raw = value;
+            logwarn("CP0 status: ie:  %d", cpu->cp0.status.ie)
+            logwarn("CP0 status: exl: %d", cpu->cp0.status.exl)
+            logwarn("CP0 status: erl: %d", cpu->cp0.status.erl)
+            logwarn("CP0 status: ksu: %d", cpu->cp0.status.ksu)
+            logwarn("CP0 status: ux:  %d", cpu->cp0.status.ux)
+            logwarn("CP0 status: sx:  %d", cpu->cp0.status.sx)
+            logwarn("CP0 status: kx:  %d", cpu->cp0.status.kx)
+            logwarn("CP0 status: im:  %d", cpu->cp0.status.im)
+            logwarn("CP0 status: ds:  %d", cpu->cp0.status.ds)
+            logwarn("CP0 status: re:  %d", cpu->cp0.status.re)
+            logwarn("CP0 status: fr:  %d", cpu->cp0.status.fr)
+            logwarn("CP0 status: rp:  %d", cpu->cp0.status.rp)
+            logwarn("CP0 status: cu0: %d", cpu->cp0.status.cu0)
+            logwarn("CP0 status: cu1: %d", cpu->cp0.status.cu1)
+            logwarn("CP0 status: cu2: %d", cpu->cp0.status.cu2)
+            logwarn("CP0 status: cu3: %d", cpu->cp0.status.cu3)
             break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value)
     }
 
     logwarn("CP0 $%s = 0x%08X", cp0_register_names[r], value)
-
-    cpu->cp0.r[r] = value;
 }
 
 INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
     logwarn("TODO: throw a \"coprocessor unusuable exception\" if CP0 disabled")
-    word value = cpu->cp0.r[r];
     switch (r) {
         case R4300I_CP0_REG_ENTRYLO0:
-            logfatal("TODO: $EntryLo0 read")
-            break;
+            return cpu->cp0.entry_lo0;
         default:
-            logfatal("Unsupported CP0 $%s (%d) read: 0x%08X", cp0_register_names[r], r, value)
+            logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
     }
 
-    logwarn("0x%08X = CP0 $%s", value, cp0_register_names[r])
+    //logwarn("0x%08X = CP0 $%s", value, cp0_register_names[r])
 
-    return value;
+    //return value;
 }
 #endif //N64_R4300I_H

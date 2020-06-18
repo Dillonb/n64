@@ -36,38 +36,55 @@ void pif_rom_execute(n64_system_t* system) {
     system->cpu.gpr[30] = 0;
     system->cpu.gpr[31] = 0;
 
-    system->cpu.cp0.r[0] = 0;
-    system->cpu.cp0.r[1] = 0x0000001F;
-    system->cpu.cp0.r[2] = 0;
-    system->cpu.cp0.r[3] = 0;
-    system->cpu.cp0.r[4] = 0;
-    system->cpu.cp0.r[5] = 0;
-    system->cpu.cp0.r[6] = 0;
-    system->cpu.cp0.r[7] = 0;
-    system->cpu.cp0.r[8] = 0;
-    system->cpu.cp0.r[9] = 0;
-    system->cpu.cp0.r[10] = 0;
-    system->cpu.cp0.r[11] = 0;
-    system->cpu.cp0.r[12] = 0x70400004;
-    system->cpu.cp0.r[13] = 0;
-    system->cpu.cp0.r[14] = 0;
-    system->cpu.cp0.r[15] = 0x00000B00;
-    system->cpu.cp0.r[16] = 0x0006E463;
-    system->cpu.cp0.r[17] = 0;
-    system->cpu.cp0.r[18] = 0;
-    system->cpu.cp0.r[19] = 0;
-    system->cpu.cp0.r[20] = 0;
-    system->cpu.cp0.r[21] = 0;
-    system->cpu.cp0.r[22] = 0;
-    system->cpu.cp0.r[23] = 0;
-    system->cpu.cp0.r[24] = 0;
-    system->cpu.cp0.r[25] = 0;
-    system->cpu.cp0.r[26] = 0;
-    system->cpu.cp0.r[27] = 0;
-    system->cpu.cp0.r[28] = 0;
-    system->cpu.cp0.r[29] = 0;
-    system->cpu.cp0.r[30] = 0;
-    system->cpu.cp0.r[31] = 0;
+    system->cpu.cp0.index        = 0;
+    system->cpu.cp0.random       = 0x0000001F;
+    system->cpu.cp0.entry_lo0    = 0;
+    system->cpu.cp0.entry_lo1    = 0;
+    system->cpu.cp0.context      = 0;
+    system->cpu.cp0.page_mask    = 0;
+    system->cpu.cp0.wired        = 0;
+    system->cpu.cp0.r7           = 0;
+    system->cpu.cp0.bad_vaddr    = 0;
+    system->cpu.cp0.count        = 0;
+    system->cpu.cp0.entry_hi     = 0;
+    system->cpu.cp0.compare      = 0;
+    system->cpu.cp0.status.raw   = 0x70400004;
+    system->cpu.cp0.cause        = 0;
+    system->cpu.cp0.EPC          = 0;
+    system->cpu.cp0.PRId         = 0x00000B00;
+    system->cpu.cp0.config       = 0x0006E463;
+    system->cpu.cp0.lladdr       = 0;
+    system->cpu.cp0.watch_lo     = 0;
+    system->cpu.cp0.watch_hi     = 0;
+    system->cpu.cp0.x_context    = 0;
+    system->cpu.cp0.r21          = 0;
+    system->cpu.cp0.r22          = 0;
+    system->cpu.cp0.r23          = 0;
+    system->cpu.cp0.r24          = 0;
+    system->cpu.cp0.r25          = 0;
+    system->cpu.cp0.parity_error = 0;
+    system->cpu.cp0.cache_error  = 0;
+    system->cpu.cp0.tag_lo       = 0;
+    system->cpu.cp0.tag_hi       = 0;
+    system->cpu.cp0.error_epc    = 0;
+    system->cpu.cp0.r31          = 0;
+
+    logwarn("CP0 status: ie:  %d", system->cpu.cp0.status.ie)
+    logwarn("CP0 status: exl: %d", system->cpu.cp0.status.exl)
+    logwarn("CP0 status: erl: %d", system->cpu.cp0.status.erl)
+    logwarn("CP0 status: ksu: %d", system->cpu.cp0.status.ksu)
+    logwarn("CP0 status: ux:  %d", system->cpu.cp0.status.ux)
+    logwarn("CP0 status: sx:  %d", system->cpu.cp0.status.sx)
+    logwarn("CP0 status: kx:  %d", system->cpu.cp0.status.kx)
+    logwarn("CP0 status: im:  %d", system->cpu.cp0.status.im)
+    logwarn("CP0 status: ds:  %d", system->cpu.cp0.status.ds)
+    logwarn("CP0 status: re:  %d", system->cpu.cp0.status.re)
+    logwarn("CP0 status: fr:  %d", system->cpu.cp0.status.fr)
+    logwarn("CP0 status: rp:  %d", system->cpu.cp0.status.rp)
+    logwarn("CP0 status: cu0: %d", system->cpu.cp0.status.cu0)
+    logwarn("CP0 status: cu1: %d", system->cpu.cp0.status.cu1)
+    logwarn("CP0 status: cu2: %d", system->cpu.cp0.status.cu2)
+    logwarn("CP0 status: cu3: %d", system->cpu.cp0.status.cu3)
 
     //n64_write_word(system, 0x04300004, 0x01010101);
 
