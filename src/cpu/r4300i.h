@@ -7,11 +7,12 @@
 
 #define R4300I_REG_LR 31
 
-#define R4300I_CP0_REG_COUNT   9
-#define R4300I_CP0_REG_COMPARE 11
-#define R4300I_CP0_REG_CAUSE   13
-#define R4300I_CP0_REG_TAGLO   28
-#define R4300I_CP0_REG_TAGHI   29
+#define R4300I_CP0_REG_ENTRYLO0 2
+#define R4300I_CP0_REG_COUNT    9
+#define R4300I_CP0_REG_COMPARE  11
+#define R4300I_CP0_REG_CAUSE    13
+#define R4300I_CP0_REG_TAGLO    28
+#define R4300I_CP0_REG_TAGHI    29
 
 typedef struct cp0 {
     // Internal tool for stepping $Count
@@ -106,6 +107,16 @@ typedef union mips_instruction {
         unsigned:11;
     };
 
+    struct {
+        unsigned:21;
+        unsigned rs4:1;
+        unsigned rs3:1;
+        unsigned rs2:1;
+        unsigned rs1:1;
+        unsigned rs0:1;
+        unsigned:6;
+    };
+
 } mips_instruction_t;
 
 typedef enum mips_instruction_type {
@@ -136,6 +147,7 @@ typedef enum mips_instruction_type {
     MIPS_LB,
 
     // Coprocessor
+    MIPS_CP_MFC0,
     MIPS_CP_MTC0,
 
     // Special
@@ -209,4 +221,19 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
     cpu->cp0.r[r] = value;
 }
 
+INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
+    logwarn("TODO: throw a \"coprocessor unusuable exception\" if CP0 disabled")
+    word value = cpu->cp0.r[r];
+    switch (r) {
+        case R4300I_CP0_REG_ENTRYLO0:
+            logfatal("TODO: $EntryLo0 read")
+            break;
+        default:
+            logfatal("Unsupported CP0 $%s (%d) read: 0x%08X", cp0_register_names[r], r, value)
+    }
+
+    logwarn("0x%08X = CP0 $%s", value, cp0_register_names[r])
+
+    return value;
+}
 #endif //N64_R4300I_H

@@ -14,7 +14,7 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
 };
 
-#define OPC_CP     0b010000
+#define OPC_CP0    0b010000
 #define OPC_LD     0b110111
 #define OPC_LUI    0b001111
 #define OPC_ADDI   0b001000
@@ -43,8 +43,8 @@ const char* cp0_register_names[] = {
 #define OPC_LB     0b100000
 
 // Coprocessor
-#define MTC0_MASK  0b11111111111000000000011111111111
-#define MTC0_VALUE 0b01000000100000000000000000000000
+#define COP_MF 0b00000
+#define COP_MT 0b00100
 
 // Special
 #define FUNCT_SLL   0b000000
@@ -69,13 +69,19 @@ const char* cp0_register_names[] = {
 #define RT_BGEZL  0b00011
 #define RT_BGEZAL 0b10001
 
-mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr) {
-    if ((instr.raw & MTC0_MASK) == MTC0_VALUE) {
-        return MIPS_CP_MTC0;
-    } else {
-        char buf[50];
-        disassemble(pc, instr.raw, buf, 50);
-        logfatal("other/unknown MIPS Coprocessor: 0x%08X [%s]", instr.raw, buf)
+mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr, int cop) {
+    unimplemented(cop != 0, "Decoding coprocessor instruction where COP != 0")
+    switch (instr.r.rs) {
+        case COP_MF:
+            return MIPS_CP_MFC0;
+        case COP_MT:
+            return MIPS_CP_MTC0;
+        default: {
+            char buf[50];
+            disassemble(pc, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS Coprocessor 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                    instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf)
+        }
     }
 }
 
@@ -130,7 +136,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         return MIPS_NOP;
     }
     switch (instr.op) {
-        case OPC_CP:     return decode_cp(cpu, pc, instr);
+        case OPC_CP0:    return decode_cp(cpu, pc, instr, 0);
         case OPC_SPCL:   return decode_special(cpu, pc, instr);
         case OPC_REGIMM: return decode_regimm(cpu, pc, instr);
 
@@ -214,6 +220,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_LB,    mips_lb)
 
         // Coprocessor
+        exec_instr(MIPS_CP_MFC0, mips_mfc0)
         exec_instr(MIPS_CP_MTC0, mips_mtc0)
 
         // Special

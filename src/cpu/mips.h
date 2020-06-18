@@ -27,6 +27,7 @@ MIPS_INSTR(mips_jal);
 
 MIPS_INSTR(mips_slti);
 
+MIPS_INSTR(mips_mfc0);
 MIPS_INSTR(mips_mtc0);
 MIPS_INSTR(mips_ld);
 MIPS_INSTR(mips_lui);

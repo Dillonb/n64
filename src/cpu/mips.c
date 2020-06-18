@@ -167,6 +167,12 @@ MIPS_INSTR(mips_slti) {
     }
 }
 
+MIPS_INSTR(mips_mfc0) {
+    word value = get_cp0_register(cpu, instruction.r.rt);
+    set_register(cpu, instruction.r.rd, value);
+}
+
+
 MIPS_INSTR(mips_mtc0) {
     word value = get_register(cpu, instruction.r.rt);
     set_cp0_register(cpu, instruction.r.rd, value);
