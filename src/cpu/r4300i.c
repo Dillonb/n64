@@ -67,7 +67,7 @@ const char* cp0_register_names[] = {
 #define RT_BGEZL  0b00011
 #define RT_BGEZAL 0b10001
 
-mips_instruction_type_t decode_cp(r4300i_t* cpu, mips_instruction_t instr) {
+mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if ((instr.raw & MTC0_MASK) == MTC0_VALUE) {
         return MIPS_CP_MTC0;
     } else {
@@ -75,7 +75,7 @@ mips_instruction_type_t decode_cp(r4300i_t* cpu, mips_instruction_t instr) {
     }
 }
 
-mips_instruction_type_t decode_special(r4300i_t* cpu, mips_instruction_t instr) {
+mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:   return MIPS_SPC_SLL;
         case FUNCT_SRL:   return MIPS_SPC_SRL;
@@ -93,33 +93,41 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, mips_instruction_t instr) 
         case FUNCT_XOR:   return MIPS_SPC_XOR;
         case FUNCT_SLT:   return MIPS_SPC_SLT;
         case FUNCT_SLTU:  return MIPS_SPC_SLTU;
-        default: logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d", instr.raw,
-                instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5)
+        default: {
+            char buf[50];
+            disassemble(pc, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+        }
     }
 }
 
-mips_instruction_type_t decode_regimm(r4300i_t* cpu, mips_instruction_t instr) {
+mips_instruction_type_t decode_regimm(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BGEZL:  return MIPS_RI_BGEZL;
         case RT_BGEZAL: return MIPS_RI_BGEZAL;
-        default: logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d", instr.raw,
-                          instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4)
+        default: {
+            char buf[50];
+            disassemble(pc, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf)
+        }
     }
 }
 
-mips_instruction_type_t decode(r4300i_t* cpu, dword pc, mips_instruction_t instr) {
+mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
-        logdebug("[0x%08lX]=0x%08X %s", pc, instr.raw, buf)
+        logdebug("[0x%08X]=0x%08X %s", pc, instr.raw, buf)
     }
     if (instr.raw == 0) {
         return MIPS_NOP;
     }
     switch (instr.op) {
-        case OPC_CP:     return decode_cp(cpu, instr);
-        case OPC_SPCL:   return decode_special(cpu, instr);
-        case OPC_REGIMM: return decode_regimm(cpu, instr);
+        case OPC_CP:     return decode_cp(cpu, pc, instr);
+        case OPC_SPCL:   return decode_special(cpu, pc, instr);
+        case OPC_REGIMM: return decode_regimm(cpu, pc, instr);
 
         case OPC_LD:    return MIPS_LD;
         case OPC_LUI:   return MIPS_LUI;
