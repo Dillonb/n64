@@ -19,6 +19,7 @@ const char* cp0_register_names[] = {
 #define OPC_LUI    0b001111
 #define OPC_ADDI   0b001000
 #define OPC_ADDIU  0b001001
+#define OPC_DADDI  0b011000
 #define OPC_ANDI   0b001100
 #define OPC_LBU    0b100100
 #define OPC_LW     0b100011
@@ -62,6 +63,7 @@ const char* cp0_register_names[] = {
 #define FUNCT_XOR   0b100110
 #define FUNCT_SLT   0b101010
 #define FUNCT_SLTU  0b101011
+#define FUNCT_DADD  0b101100
 
 // REGIMM
 #define RT_BGEZL  0b00011
@@ -71,7 +73,9 @@ mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t ins
     if ((instr.raw & MTC0_MASK) == MTC0_VALUE) {
         return MIPS_CP_MTC0;
     } else {
-        logfatal("other/unknown MIPS Coprocessor: 0x%08X", instr.raw)
+        char buf[50];
+        disassemble(pc, instr.raw, buf, 50);
+        logfatal("other/unknown MIPS Coprocessor: 0x%08X [%s]", instr.raw, buf)
     }
 }
 
@@ -93,6 +97,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
         case FUNCT_XOR:   return MIPS_SPC_XOR;
         case FUNCT_SLT:   return MIPS_SPC_SLT;
         case FUNCT_SLTU:  return MIPS_SPC_SLTU;
+        case FUNCT_DADD:  return MIPS_SPC_DADD;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -133,6 +138,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_LUI:   return MIPS_LUI;
         case OPC_ADDIU: return MIPS_ADDIU;
         case OPC_ADDI:  return MIPS_ADDI;
+        case OPC_DADDI: return MIPS_DADDI;
         case OPC_ANDI:  return MIPS_ANDI;
         case OPC_LBU:   return MIPS_LBU;
         case OPC_LW:    return MIPS_LW;
@@ -186,6 +192,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_LD,    mips_ld)
         exec_instr(MIPS_ADDI,  mips_addi)
         exec_instr(MIPS_ADDIU, mips_addiu)
+        exec_instr(MIPS_DADDI, mips_daddi)
         exec_instr(MIPS_ANDI,  mips_andi)
         exec_instr(MIPS_LBU,   mips_lbu)
         exec_instr(MIPS_LW,    mips_lw)
@@ -226,6 +233,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_XOR,   mips_spc_xor)
         exec_instr(MIPS_SPC_SLT,   mips_spc_slt)
         exec_instr(MIPS_SPC_SLTU,  mips_spc_sltu)
+        exec_instr(MIPS_SPC_DADD,  mips_spc_dadd)
 
         // REGIMM
         exec_instr(MIPS_RI_BGEZL,  mips_ri_bgezl)

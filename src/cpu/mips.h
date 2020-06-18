@@ -8,6 +8,8 @@ MIPS_INSTR(mips_addi);
 MIPS_INSTR(mips_addiu);
 MIPS_INSTR(mips_addu);
 
+MIPS_INSTR(mips_daddi);
+
 MIPS_INSTR(mips_and);
 MIPS_INSTR(mips_andi);
 
@@ -55,6 +57,7 @@ MIPS_INSTR(mips_spc_or);
 MIPS_INSTR(mips_spc_xor);
 MIPS_INSTR(mips_spc_slt);
 MIPS_INSTR(mips_spc_sltu);
+MIPS_INSTR(mips_spc_dadd);
 
 
 MIPS_INSTR(mips_ri_bgezl);

@@ -91,6 +91,15 @@ MIPS_INSTR(mips_addiu) {
              instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, dresult)
 }
 
+MIPS_INSTR(mips_daddi) {
+    shalf  addend1 = instruction.i.immediate;
+    sdword addend2 = get_register(cpu, instruction.i.rs);
+    sdword result = addend1 + addend2;
+    check_sdword_add_overflow(addend1, addend2, result);
+    set_register(cpu, instruction.i.rt, result);
+}
+
+
 MIPS_INSTR(mips_andi) {
     dword immediate = instruction.i.immediate;
     dword result = immediate & get_register(cpu, instruction.i.rs);
@@ -352,6 +361,14 @@ MIPS_INSTR(mips_spc_sltu) {
     } else {
         set_register(cpu, instruction.r.rd, 0);
     }
+}
+
+MIPS_INSTR(mips_spc_dadd) {
+    sdword addend1 = get_register(cpu, instruction.r.rs);
+    sdword addend2 = get_register(cpu, instruction.r.rt);
+    sdword result = addend1 + addend2;
+    check_sdword_add_overflow(addend1, addend2, result);
+    set_register(cpu, instruction.r.rd, result);
 }
 
 MIPS_INSTR(mips_ri_bgezl) {

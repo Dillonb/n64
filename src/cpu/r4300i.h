@@ -112,6 +112,7 @@ typedef enum mips_instruction_type {
     MIPS_LD,
     MIPS_LUI,
     MIPS_ADDI,
+    MIPS_DADDI,
     MIPS_ADDIU,
     MIPS_ANDI,
     MIPS_LBU,
@@ -154,6 +155,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_XOR,
     MIPS_SPC_SLT,
     MIPS_SPC_SLTU,
+    MIPS_SPC_DADD,
 
     // REGIMM
     MIPS_RI_BGEZL,
