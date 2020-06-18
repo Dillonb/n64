@@ -15,6 +15,7 @@ const char* cp0_register_names[] = {
 };
 
 #define OPC_CP0    0b010000
+#define OPC_CP1    0b010001
 #define OPC_LD     0b110111
 #define OPC_LUI    0b001111
 #define OPC_ADDI   0b001000
@@ -44,7 +45,9 @@ const char* cp0_register_names[] = {
 
 // Coprocessor
 #define COP_MF 0b00000
+#define COP_CF 0b00010
 #define COP_MT 0b00100
+#define COP_CT 0b00110
 
 // Special
 #define FUNCT_SLL   0b000000
@@ -70,12 +73,35 @@ const char* cp0_register_names[] = {
 #define RT_BGEZAL 0b10001
 
 mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr, int cop) {
-    unimplemented(cop != 0, "Decoding coprocessor instruction where COP != 0")
     switch (instr.r.rs) {
         case COP_MF:
-            return MIPS_CP_MFC0;
+            switch (cop) {
+                case 0:
+                    return MIPS_CP_MFC0;
+                default:
+                    logfatal("MF from unsupported coprocessor: %d", cop)
+            }
+        case COP_CF:
+            switch (cop) {
+                case 1:
+                    return MIPS_CP_CFC1;
+                default:
+                    logfatal("CF from unsupported coprocessor: %d", cop)
+            }
         case COP_MT:
-            return MIPS_CP_MTC0;
+            switch (cop) {
+                case 0:
+                    return MIPS_CP_MTC0;
+                default:
+                    logfatal("MT to unsupported coprocessor: %d", cop)
+            }
+        case COP_CT:
+            switch (cop) {
+                case 1:
+                    return MIPS_CP_CTC1;
+                default:
+                    logfatal("CT to unsupported coprocessor: %d", cop)
+            }
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -137,6 +163,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
     }
     switch (instr.op) {
         case OPC_CP0:    return decode_cp(cpu, pc, instr, 0);
+        case OPC_CP1:    return decode_cp(cpu, pc, instr, 1);
         case OPC_SPCL:   return decode_special(cpu, pc, instr);
         case OPC_REGIMM: return decode_regimm(cpu, pc, instr);
 
@@ -222,6 +249,9 @@ void r4300i_step(r4300i_t* cpu) {
         // Coprocessor
         exec_instr(MIPS_CP_MFC0, mips_mfc0)
         exec_instr(MIPS_CP_MTC0, mips_mtc0)
+
+        exec_instr(MIPS_CP_CFC1, mips_cfc1)
+        exec_instr(MIPS_CP_CTC1, mips_ctc1)
 
         // Special
         exec_instr(MIPS_SPC_SLL,   mips_spc_sll)

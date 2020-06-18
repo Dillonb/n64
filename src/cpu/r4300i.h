@@ -80,7 +80,10 @@ typedef struct r4300i {
     dword pc;
     dword mult_hi;
     dword mult_lo;
-    bool llb;
+
+    word fcr0;
+    word fcr31;
+
     cp0_t cp0;
 
     // Branch delay
@@ -204,6 +207,9 @@ typedef enum mips_instruction_type {
     // Coprocessor
     MIPS_CP_MFC0,
     MIPS_CP_MTC0,
+
+    MIPS_CP_CTC1,
+    MIPS_CP_CFC1,
 
     // Special
     MIPS_SPC_SLL,

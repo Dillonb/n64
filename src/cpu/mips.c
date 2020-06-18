@@ -178,6 +178,40 @@ MIPS_INSTR(mips_mtc0) {
     set_cp0_register(cpu, instruction.r.rd, value);
 }
 
+
+MIPS_INSTR(mips_cfc1) {
+    byte fs = instruction.r.rd;
+    sword value;
+    switch (fs) {
+        case 0:
+            value = cpu->fcr0;
+            break;
+        case 31:
+            value = cpu->fcr31;
+            break;
+        default:
+            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)")
+    }
+
+    set_register(cpu, instruction.r.rt, value);
+}
+
+MIPS_INSTR(mips_ctc1) {
+    byte fs = instruction.r.rd;
+    word value = get_register(cpu, instruction.r.rt);
+    switch (fs) {
+        case 0:
+            cpu->fcr0 = value;
+            break;
+        case 31:
+            cpu->fcr31 = value;
+            logwarn("TODO: possible exception here. See manual for CTC1")
+            break;
+        default:
+            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)")
+    }
+}
+
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
