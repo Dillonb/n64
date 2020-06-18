@@ -1,7 +1,7 @@
 #include "r4300i.h"
 #include "../common/log.h"
 #include "disassemble.h"
-#include "mips32.h"
+#include "mips.h"
 
 const char* register_names[] = {
         "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -65,81 +65,81 @@ const char* cp0_register_names[] = {
 #define RT_BGEZL  0b00011
 #define RT_BGEZAL 0b10001
 
-mips32_instruction_type_t decode_cp(r4300i_t* cpu, mips32_instruction_t instr) {
+mips_instruction_type_t decode_cp(r4300i_t* cpu, mips_instruction_t instr) {
     if ((instr.raw & MTC0_MASK) == MTC0_VALUE) {
-        return MIPS32_CP_MTC0;
+        return MIPS_CP_MTC0;
     } else {
-        logfatal("other/unknown MIPS32 Coprocessor: 0x%08X", instr.raw)
+        logfatal("other/unknown MIPS Coprocessor: 0x%08X", instr.raw)
     }
 }
 
-mips32_instruction_type_t decode_special(r4300i_t* cpu, mips32_instruction_t instr) {
+mips_instruction_type_t decode_special(r4300i_t* cpu, mips_instruction_t instr) {
     switch (instr.r.funct) {
-        case FUNCT_SLL:   return MIPS32_SPC_SLL;
-        case FUNCT_SRL:   return MIPS32_SPC_SRL;
-        case FUNCT_SLLV:  return MIPS32_SPC_SLLV;
-        case FUNCT_SRLV:  return MIPS32_SPC_SRLV;
-        case FUNCT_JR:    return MIPS32_SPC_JR;
-        case FUNCT_MFHI:  return MIPS32_SPC_MFHI;
-        case FUNCT_MFLO:  return MIPS32_SPC_MFLO;
-        case FUNCT_MULTU: return MIPS32_SPC_MULTU;
-        case FUNCT_ADD:   return MIPS32_SPC_ADD;
-        case FUNCT_ADDU:  return MIPS32_SPC_ADDU;
-        case FUNCT_AND:   return MIPS32_SPC_AND;
-        case FUNCT_SUBU:  return MIPS32_SPC_SUBU;
-        case FUNCT_OR:    return MIPS32_SPC_OR;
-        case FUNCT_XOR:   return MIPS32_SPC_XOR;
-        case FUNCT_SLT:   return MIPS32_SPC_SLT;
-        case FUNCT_SLTU:  return MIPS32_SPC_SLTU;
-        default: logfatal("other/unknown MIPS32 Special 0x%08X with FUNCT: %d%d%d%d%d%d", instr.raw,
+        case FUNCT_SLL:   return MIPS_SPC_SLL;
+        case FUNCT_SRL:   return MIPS_SPC_SRL;
+        case FUNCT_SLLV:  return MIPS_SPC_SLLV;
+        case FUNCT_SRLV:  return MIPS_SPC_SRLV;
+        case FUNCT_JR:    return MIPS_SPC_JR;
+        case FUNCT_MFHI:  return MIPS_SPC_MFHI;
+        case FUNCT_MFLO:  return MIPS_SPC_MFLO;
+        case FUNCT_MULTU: return MIPS_SPC_MULTU;
+        case FUNCT_ADD:   return MIPS_SPC_ADD;
+        case FUNCT_ADDU:  return MIPS_SPC_ADDU;
+        case FUNCT_AND:   return MIPS_SPC_AND;
+        case FUNCT_SUBU:  return MIPS_SPC_SUBU;
+        case FUNCT_OR:    return MIPS_SPC_OR;
+        case FUNCT_XOR:   return MIPS_SPC_XOR;
+        case FUNCT_SLT:   return MIPS_SPC_SLT;
+        case FUNCT_SLTU:  return MIPS_SPC_SLTU;
+        default: logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d", instr.raw,
                 instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5)
     }
 }
 
-mips32_instruction_type_t decode_regimm(r4300i_t* cpu, mips32_instruction_t instr) {
+mips_instruction_type_t decode_regimm(r4300i_t* cpu, mips_instruction_t instr) {
     switch (instr.i.rt) {
-        case RT_BGEZL:  return MIPS32_RI_BGEZL;
-        case RT_BGEZAL: return MIPS32_RI_BGEZAL;
-        default: logfatal("other/unknown MIPS32 REGIMM 0x%08X with RT: %d%d%d%d%d", instr.raw,
+        case RT_BGEZL:  return MIPS_RI_BGEZL;
+        case RT_BGEZAL: return MIPS_RI_BGEZAL;
+        default: logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d", instr.raw,
                           instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4)
     }
 }
 
-mips32_instruction_type_t decode(r4300i_t* cpu, dword pc, mips32_instruction_t instr) {
+mips_instruction_type_t decode(r4300i_t* cpu, dword pc, mips_instruction_t instr) {
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
         logdebug("[0x%08lX]=0x%08X %s", pc, instr.raw, buf)
     }
     if (instr.raw == 0) {
-        return MIPS32_NOP;
+        return MIPS_NOP;
     }
     switch (instr.op) {
         case OPC_CP:     return decode_cp(cpu, instr);
         case OPC_SPCL:   return decode_special(cpu, instr);
         case OPC_REGIMM: return decode_regimm(cpu, instr);
 
-        case OPC_LUI:   return MIPS32_LUI;
-        case OPC_ADDIU: return MIPS32_ADDIU;
-        case OPC_ADDI:  return MIPS32_ADDI;
-        case OPC_ANDI:  return MIPS32_ANDI;
-        case OPC_LBU:   return MIPS32_LBU;
-        case OPC_LW:    return MIPS32_LW;
-        case OPC_BEQ:   return MIPS32_BEQ;
-        case OPC_BEQL:  return MIPS32_BEQL;
-        case OPC_BGTZ:  return MIPS32_BGTZ;
-        case OPC_BLEZL: return MIPS32_BLEZL;
-        case OPC_BNE:   return MIPS32_BNE;
-        case OPC_BNEL:  return MIPS32_BNEL;
-        case OPC_CACHE: return MIPS32_CACHE;
-        case OPC_SB:    return MIPS32_SB;
-        case OPC_SW:    return MIPS32_SW;
-        case OPC_ORI:   return MIPS32_ORI;
-        case OPC_J:     return MIPS32_J;
-        case OPC_JAL:   return MIPS32_JAL;
-        case OPC_SLTI:  return MIPS32_SLTI;
-        case OPC_XORI:  return MIPS32_XORI;
-        case OPC_LB:    return MIPS32_LB;
+        case OPC_LUI:   return MIPS_LUI;
+        case OPC_ADDIU: return MIPS_ADDIU;
+        case OPC_ADDI:  return MIPS_ADDI;
+        case OPC_ANDI:  return MIPS_ANDI;
+        case OPC_LBU:   return MIPS_LBU;
+        case OPC_LW:    return MIPS_LW;
+        case OPC_BEQ:   return MIPS_BEQ;
+        case OPC_BEQL:  return MIPS_BEQL;
+        case OPC_BGTZ:  return MIPS_BGTZ;
+        case OPC_BLEZL: return MIPS_BLEZL;
+        case OPC_BNE:   return MIPS_BNE;
+        case OPC_BNEL:  return MIPS_BNEL;
+        case OPC_CACHE: return MIPS_CACHE;
+        case OPC_SB:    return MIPS_SB;
+        case OPC_SW:    return MIPS_SW;
+        case OPC_ORI:   return MIPS_ORI;
+        case OPC_J:     return MIPS_J;
+        case OPC_JAL:   return MIPS_JAL;
+        case OPC_SLTI:  return MIPS_SLTI;
+        case OPC_XORI:  return MIPS_XORI;
+        case OPC_LB:    return MIPS_LB;
         default:
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(pc, instr.raw, buf, 50);
@@ -163,59 +163,59 @@ void r4300i_step(r4300i_t* cpu) {
     cp0_step(&cpu->cp0);
     dword pc = cpu->pc;
 
-    mips32_instruction_t instruction;
+    mips_instruction_t instruction;
     instruction.raw = cpu->read_word(pc);
     cpu->pc += 4;
 
     switch (decode(cpu, pc, instruction)) {
-        case MIPS32_NOP: break;
+        case MIPS_NOP: break;
 
-        exec_instr(MIPS32_LUI,   mips32_lui)
-        exec_instr(MIPS32_ADDI,  mips32_addi)
-        exec_instr(MIPS32_ADDIU, mips32_addiu)
-        exec_instr(MIPS32_ANDI,  mips32_andi)
-        exec_instr(MIPS32_LBU,   mips32_lbu)
-        exec_instr(MIPS32_LW,    mips32_lw)
-        exec_instr(MIPS32_BEQ,   mips32_beq)
-        exec_instr(MIPS32_BLEZL, mips32_blezl)
-        exec_instr(MIPS32_BNE,   mips32_bne)
-        exec_instr(MIPS32_BNEL,  mips32_bnel)
-        exec_instr(MIPS32_CACHE, mips32_cache)
-        exec_instr(MIPS32_SB,    mips32_sb)
-        exec_instr(MIPS32_SW,    mips32_sw)
-        exec_instr(MIPS32_ORI,   mips32_ori)
-        exec_instr(MIPS32_J,     mips32_j)
-        exec_instr(MIPS32_JAL,   mips32_jal)
-        exec_instr(MIPS32_SLTI,  mips32_slti)
-        exec_instr(MIPS32_BEQL,  mips32_beql)
-        exec_instr(MIPS32_BGTZ,  mips32_bgtz)
-        exec_instr(MIPS32_XORI,  mips32_xori)
-        exec_instr(MIPS32_LB,    mips32_lb)
+        exec_instr(MIPS_LUI,   mips_lui)
+        exec_instr(MIPS_ADDI,  mips_addi)
+        exec_instr(MIPS_ADDIU, mips_addiu)
+        exec_instr(MIPS_ANDI,  mips_andi)
+        exec_instr(MIPS_LBU,   mips_lbu)
+        exec_instr(MIPS_LW,    mips_lw)
+        exec_instr(MIPS_BEQ,   mips_beq)
+        exec_instr(MIPS_BLEZL, mips_blezl)
+        exec_instr(MIPS_BNE,   mips_bne)
+        exec_instr(MIPS_BNEL,  mips_bnel)
+        exec_instr(MIPS_CACHE, mips_cache)
+        exec_instr(MIPS_SB,    mips_sb)
+        exec_instr(MIPS_SW,    mips_sw)
+        exec_instr(MIPS_ORI,   mips_ori)
+        exec_instr(MIPS_J,     mips_j)
+        exec_instr(MIPS_JAL,   mips_jal)
+        exec_instr(MIPS_SLTI,  mips_slti)
+        exec_instr(MIPS_BEQL,  mips_beql)
+        exec_instr(MIPS_BGTZ,  mips_bgtz)
+        exec_instr(MIPS_XORI,  mips_xori)
+        exec_instr(MIPS_LB,    mips_lb)
 
         // Coprocessor
-        exec_instr(MIPS32_CP_MTC0, mips32_mtc0)
+        exec_instr(MIPS_CP_MTC0, mips_mtc0)
 
         // Special
-        exec_instr(MIPS32_SPC_SLL,   mips32_spc_sll)
-        exec_instr(MIPS32_SPC_SRL,   mips32_spc_srl)
-        exec_instr(MIPS32_SPC_SLLV,  mips32_spc_sllv)
-        exec_instr(MIPS32_SPC_SRLV,  mips32_spc_srlv)
-        exec_instr(MIPS32_SPC_JR,    mips32_spc_jr)
-        exec_instr(MIPS32_SPC_MFHI,  mips32_spc_mfhi)
-        exec_instr(MIPS32_SPC_MFLO,  mips32_spc_mflo)
-        exec_instr(MIPS32_SPC_MULTU, mips32_spc_multu)
-        exec_instr(MIPS32_SPC_ADD,   mips32_spc_add)
-        exec_instr(MIPS32_SPC_ADDU,  mips32_spc_addu)
-        exec_instr(MIPS32_SPC_AND,   mips32_spc_and)
-        exec_instr(MIPS32_SPC_SUBU,  mips32_spc_subu)
-        exec_instr(MIPS32_SPC_OR,    mips32_spc_or)
-        exec_instr(MIPS32_SPC_XOR,   mips32_spc_xor)
-        exec_instr(MIPS32_SPC_SLT,   mips32_spc_slt)
-        exec_instr(MIPS32_SPC_SLTU,  mips32_spc_sltu)
+        exec_instr(MIPS_SPC_SLL,   mips_spc_sll)
+        exec_instr(MIPS_SPC_SRL,   mips_spc_srl)
+        exec_instr(MIPS_SPC_SLLV,  mips_spc_sllv)
+        exec_instr(MIPS_SPC_SRLV,  mips_spc_srlv)
+        exec_instr(MIPS_SPC_JR,    mips_spc_jr)
+        exec_instr(MIPS_SPC_MFHI,  mips_spc_mfhi)
+        exec_instr(MIPS_SPC_MFLO,  mips_spc_mflo)
+        exec_instr(MIPS_SPC_MULTU, mips_spc_multu)
+        exec_instr(MIPS_SPC_ADD,   mips_spc_add)
+        exec_instr(MIPS_SPC_ADDU,  mips_spc_addu)
+        exec_instr(MIPS_SPC_AND,   mips_spc_and)
+        exec_instr(MIPS_SPC_SUBU,  mips_spc_subu)
+        exec_instr(MIPS_SPC_OR,    mips_spc_or)
+        exec_instr(MIPS_SPC_XOR,   mips_spc_xor)
+        exec_instr(MIPS_SPC_SLT,   mips_spc_slt)
+        exec_instr(MIPS_SPC_SLTU,  mips_spc_sltu)
 
         // REGIMM
-        exec_instr(MIPS32_RI_BGEZL,  mips32_ri_bgezl)
-        exec_instr(MIPS32_RI_BGEZAL, mips32_ri_bgezal)
+        exec_instr(MIPS_RI_BGEZL,  mips_ri_bgezl)
+        exec_instr(MIPS_RI_BGEZAL, mips_ri_bgezal)
         default: logfatal("Unknown instruction type!")
     }
 

@@ -1,7 +1,7 @@
 add_library(r4300i
         r4300i.c r4300i.h
         disassemble.c disassemble.h
-        mips32.c mips32.h
+        mips.c mips.h
         sign_extension.c sign_extension.h)
 
 add_library(rsp

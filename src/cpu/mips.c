@@ -1,4 +1,4 @@
-#include "mips32.h"
+#include "mips.h"
 #include "../common/log.h"
 #include "sign_extension.h"
 
@@ -65,7 +65,7 @@ void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
 
 
 
-MIPS32_INSTR(mips32_addi) {
+MIPS_INSTR(mips_addi) {
     sword reg_addend = get_register(cpu, instruction.i.rs);
 
     sword imm_addend = sign_extend_dword(instruction.i.immediate, 16, 32);
@@ -79,7 +79,7 @@ MIPS32_INSTR(mips32_addi) {
              instruction.i.rt, instruction.i.rs, reg_addend, imm_addend, imm_addend, get_register(cpu, instruction.i.rt))
 }
 
-MIPS32_INSTR(mips32_addiu) {
+MIPS_INSTR(mips_addiu) {
     word reg_addend = get_register(cpu, instruction.i.rs);
     word addend = sign_extend_word(instruction.i.immediate, 16, 32);
 
@@ -91,46 +91,46 @@ MIPS32_INSTR(mips32_addiu) {
              instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, dresult)
 }
 
-MIPS32_INSTR(mips32_andi) {
+MIPS_INSTR(mips_andi) {
     dword immediate = instruction.i.immediate;
     dword result = immediate & get_register(cpu, instruction.i.rs);
     set_register(cpu, instruction.i.rt, result);
 }
 
-MIPS32_INSTR(mips32_beq) {
+MIPS_INSTR(mips_beq) {
     conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) == get_register(cpu, instruction.i.rt));
 }
 
-MIPS32_INSTR(mips32_beql) {
+MIPS_INSTR(mips_beql) {
     conditional_branch_likely(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) == get_register(cpu, instruction.i.rt));
 }
 
-MIPS32_INSTR(mips32_bgtz) {
+MIPS_INSTR(mips_bgtz) {
     sdword reg = get_register(cpu, instruction.i.rs);
     conditional_branch(cpu, instruction.i.immediate,  reg > 0);
 }
 
-MIPS32_INSTR(mips32_blezl) {
+MIPS_INSTR(mips_blezl) {
     sdword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg <= 0);
 }
 
-MIPS32_INSTR(mips32_bne) {
+MIPS_INSTR(mips_bne) {
     logtrace("Branch if: 0x%08lX != 0x%08lX", get_register(cpu, instruction.i.rs), get_register(cpu, instruction.i.rt))
     conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
 }
 
-MIPS32_INSTR(mips32_bnel) {
+MIPS_INSTR(mips_bnel) {
     logtrace("Branch if: 0x%08lX != 0x%08lX", get_register(cpu, instruction.i.rs), get_register(cpu, instruction.i.rt))
     conditional_branch_likely(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
 }
 
 
-MIPS32_INSTR(mips32_cache) {
+MIPS_INSTR(mips_cache) {
     return; // No need to emulate the cache. Might be fun to do someday for accuracy.
 }
 
-MIPS32_INSTR(mips32_j) {
+MIPS_INSTR(mips_j) {
     word target = instruction.j.target;
     target <<= 2;
     target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
@@ -138,7 +138,7 @@ MIPS32_INSTR(mips32_j) {
     branch_abs(cpu, target);
 }
 
-MIPS32_INSTR(mips32_jal) {
+MIPS_INSTR(mips_jal) {
     link(cpu);
 
     word target = instruction.j.target;
@@ -148,7 +148,7 @@ MIPS32_INSTR(mips32_jal) {
     branch_abs(cpu, target);
 }
 
-MIPS32_INSTR(mips32_slti) {
+MIPS_INSTR(mips_slti) {
     sdword immediate = sign_extend_word(instruction.i.immediate, 16, 64);
     logtrace("Set if %ld < %ld", get_register(cpu, instruction.i.rs), immediate)
     if (get_register(cpu, instruction.i.rs) < immediate) {
@@ -158,17 +158,17 @@ MIPS32_INSTR(mips32_slti) {
     }
 }
 
-MIPS32_INSTR(mips32_mtc0) {
+MIPS_INSTR(mips_mtc0) {
     word value = get_register(cpu, instruction.r.rt);
     set_cp0_register(cpu, instruction.r.rd, value);
 }
 
-MIPS32_INSTR(mips32_lui) {
+MIPS_INSTR(mips_lui) {
     word immediate = instruction.i.immediate << 16;
     set_register(cpu, instruction.i.rt, sign_extend_dword(immediate, 32, 64));
 }
 
-MIPS32_INSTR(mips32_lbu) {
+MIPS_INSTR(mips_lbu) {
     shalf offset = instruction.i.immediate;
     logtrace("LBU offset: %d", offset)
     word address = get_register(cpu, instruction.i.rs) + offset;
@@ -177,7 +177,7 @@ MIPS32_INSTR(mips32_lbu) {
     set_register(cpu, instruction.i.rt, value);
 }
 
-MIPS32_INSTR(mips32_lw) {
+MIPS_INSTR(mips_lw) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
@@ -190,7 +190,7 @@ MIPS32_INSTR(mips32_lw) {
     set_register(cpu, instruction.i.rt, value);
 }
 
-MIPS32_INSTR(mips32_sb) {
+MIPS_INSTR(mips_sb) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs);
     address += offset;
@@ -198,22 +198,22 @@ MIPS32_INSTR(mips32_sb) {
     cpu->write_byte(address, value);
 }
 
-MIPS32_INSTR(mips32_sw) {
+MIPS_INSTR(mips_sw) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs);
     address += offset;
     cpu->write_word(address, get_register(cpu, instruction.i.rt));
 }
 
-MIPS32_INSTR(mips32_ori) {
+MIPS_INSTR(mips_ori) {
     set_register(cpu, instruction.i.rt, instruction.i.immediate | get_register(cpu, instruction.i.rs));
 }
 
-MIPS32_INSTR(mips32_xori) {
+MIPS_INSTR(mips_xori) {
     set_register(cpu, instruction.i.rt, instruction.i.immediate ^ get_register(cpu, instruction.i.rs));
 }
 
-MIPS32_INSTR(mips32_lb) {
+MIPS_INSTR(mips_lb) {
     shalf offset    = instruction.i.immediate;
     word address    = get_register(cpu, instruction.i.rs) + offset;
     byte value      = cpu->read_byte(address);
@@ -222,42 +222,42 @@ MIPS32_INSTR(mips32_lb) {
     set_register(cpu, instruction.i.rt, sext_value);
 }
 
-MIPS32_INSTR(mips32_spc_sll) {
+MIPS_INSTR(mips_spc_sll) {
     sword result = get_register(cpu, instruction.r.rt) << instruction.r.sa;
     set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
-MIPS32_INSTR(mips32_spc_srl) {
+MIPS_INSTR(mips_spc_srl) {
     word value = get_register(cpu, instruction.r.rt);
     sword result = value >> instruction.r.sa;
     set_register(cpu, instruction.r.rd, (sdword) result);
 }
 
-MIPS32_INSTR(mips32_spc_sllv) {
+MIPS_INSTR(mips_spc_sllv) {
     word value = get_register(cpu, instruction.r.rt);
     sword result = value << (get_register(cpu, instruction.r.rs) & 0b11111);
     set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
-MIPS32_INSTR(mips32_spc_srlv) {
+MIPS_INSTR(mips_spc_srlv) {
     word value = get_register(cpu, instruction.r.rt);
     sword result = value >> (get_register(cpu, instruction.r.rs) & 0b11111);
     set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
-MIPS32_INSTR(mips32_spc_jr) {
+MIPS_INSTR(mips_spc_jr) {
     branch_abs(cpu, get_register(cpu, instruction.r.rs));
 }
 
-MIPS32_INSTR(mips32_spc_mfhi) {
+MIPS_INSTR(mips_spc_mfhi) {
     logfatal("mfhi")
 }
 
-MIPS32_INSTR(mips32_spc_mflo) {
+MIPS_INSTR(mips_spc_mflo) {
     set_register(cpu, instruction.r.rd, cpu->mult_lo);
 }
 
-MIPS32_INSTR(mips32_spc_multu) {
+MIPS_INSTR(mips_spc_multu) {
     word multiplicand_1 = get_register(cpu, instruction.r.rs);
     word multiplicand_2 = get_register(cpu, instruction.r.rt);
 
@@ -270,7 +270,7 @@ MIPS32_INSTR(mips32_spc_multu) {
     cpu->mult_hi = result_upper;
 }
 
-MIPS32_INSTR(mips32_spc_add) {
+MIPS_INSTR(mips_spc_add) {
 
     sword addend1 = get_register(cpu, instruction.r.rs);
     sword addend2 = get_register(cpu, instruction.r.rt);
@@ -283,18 +283,18 @@ MIPS32_INSTR(mips32_spc_add) {
     set_register(cpu, instruction.r.rd, result);
 }
 
-MIPS32_INSTR(mips32_spc_addu) {
+MIPS_INSTR(mips_spc_addu) {
     word result = get_register(cpu, instruction.r.rs) + get_register(cpu, instruction.r.rt);
     dword sex_result = sign_extend_dword(result, 32, 64);
     set_register(cpu, instruction.r.rd, sex_result);
 }
 
-MIPS32_INSTR(mips32_spc_and) {
+MIPS_INSTR(mips_spc_and) {
     dword result = get_register(cpu, instruction.r.rs) & get_register(cpu, instruction.r.rt);
     set_register(cpu, instruction.r.rd, result);
 }
 
-MIPS32_INSTR(mips32_spc_subu) {
+MIPS_INSTR(mips_spc_subu) {
     word operand1 = get_register(cpu, instruction.r.rs);
     word operand2 = get_register(cpu, instruction.r.rt);
 
@@ -302,15 +302,15 @@ MIPS32_INSTR(mips32_spc_subu) {
     set_register(cpu, instruction.r.rd, result);
 }
 
-MIPS32_INSTR(mips32_spc_or) {
+MIPS_INSTR(mips_spc_or) {
     set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rs) | get_register(cpu, instruction.r.rt));
 }
 
-MIPS32_INSTR(mips32_spc_xor) {
+MIPS_INSTR(mips_spc_xor) {
     set_register(cpu, instruction.r.rd, get_register(cpu, instruction.r.rs) ^ get_register(cpu, instruction.r.rt));
 }
 
-MIPS32_INSTR(mips32_spc_slt) {
+MIPS_INSTR(mips_spc_slt) {
     sdword op1 = get_register(cpu, instruction.r.rs);
     sdword op2 = get_register(cpu, instruction.r.rt);
 
@@ -327,7 +327,7 @@ MIPS32_INSTR(mips32_spc_slt) {
     }
 }
 
-MIPS32_INSTR(mips32_spc_sltu) {
+MIPS_INSTR(mips_spc_sltu) {
     dword op1 = get_register(cpu, instruction.r.rs);
     dword op2 = get_register(cpu, instruction.r.rt);
 
@@ -339,12 +339,12 @@ MIPS32_INSTR(mips32_spc_sltu) {
     }
 }
 
-MIPS32_INSTR(mips32_ri_bgezl) {
+MIPS_INSTR(mips_ri_bgezl) {
     sdword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg >= 0);
 }
 
-MIPS32_INSTR(mips32_ri_bgezal) {
+MIPS_INSTR(mips_ri_bgezal) {
     link(cpu);
     sdword reg = get_register(cpu, instruction.i.rs);
     conditional_branch(cpu, instruction.i.immediate, reg >= 0);

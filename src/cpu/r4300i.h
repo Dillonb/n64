@@ -49,7 +49,7 @@ typedef struct r4300i {
      */
 } r4300i_t;
 
-typedef union mips32_instruction {
+typedef union mips_instruction {
     word raw;
 
     struct {
@@ -108,57 +108,57 @@ typedef union mips32_instruction {
         unsigned:11;
     };
 
-} mips32_instruction_t;
+} mips_instruction_t;
 
-typedef enum mips32_instruction_type {
-    MIPS32_LUI,
-    MIPS32_ADDI,
-    MIPS32_ADDIU,
-    MIPS32_ANDI,
-    MIPS32_LBU,
-    MIPS32_LW,
-    MIPS32_BLEZL,
-    MIPS32_BNE,
-    MIPS32_BNEL,
-    MIPS32_CACHE,
-    MIPS32_BEQ,
-    MIPS32_BEQL,
-    MIPS32_BGTZ,
-    MIPS32_NOP,
-    MIPS32_SB,
-    MIPS32_SW,
-    MIPS32_ORI,
-    MIPS32_J,
-    MIPS32_JAL,
-    MIPS32_SLTI,
-    MIPS32_XORI,
-    MIPS32_LB,
+typedef enum mips_instruction_type {
+    MIPS_LUI,
+    MIPS_ADDI,
+    MIPS_ADDIU,
+    MIPS_ANDI,
+    MIPS_LBU,
+    MIPS_LW,
+    MIPS_BLEZL,
+    MIPS_BNE,
+    MIPS_BNEL,
+    MIPS_CACHE,
+    MIPS_BEQ,
+    MIPS_BEQL,
+    MIPS_BGTZ,
+    MIPS_NOP,
+    MIPS_SB,
+    MIPS_SW,
+    MIPS_ORI,
+    MIPS_J,
+    MIPS_JAL,
+    MIPS_SLTI,
+    MIPS_XORI,
+    MIPS_LB,
 
     // Coprocessor
-    MIPS32_CP_MTC0,
+    MIPS_CP_MTC0,
 
     // Special
-    MIPS32_SPC_SLL,
-    MIPS32_SPC_SRL,
-    MIPS32_SPC_SLLV,
-    MIPS32_SPC_SRLV,
-    MIPS32_SPC_JR,
-    MIPS32_SPC_MFHI,
-    MIPS32_SPC_MFLO,
-    MIPS32_SPC_MULTU,
-    MIPS32_SPC_ADD,
-    MIPS32_SPC_ADDU,
-    MIPS32_SPC_AND,
-    MIPS32_SPC_SUBU,
-    MIPS32_SPC_OR,
-    MIPS32_SPC_XOR,
-    MIPS32_SPC_SLT,
-    MIPS32_SPC_SLTU,
+    MIPS_SPC_SLL,
+    MIPS_SPC_SRL,
+    MIPS_SPC_SLLV,
+    MIPS_SPC_SRLV,
+    MIPS_SPC_JR,
+    MIPS_SPC_MFHI,
+    MIPS_SPC_MFLO,
+    MIPS_SPC_MULTU,
+    MIPS_SPC_ADD,
+    MIPS_SPC_ADDU,
+    MIPS_SPC_AND,
+    MIPS_SPC_SUBU,
+    MIPS_SPC_OR,
+    MIPS_SPC_XOR,
+    MIPS_SPC_SLT,
+    MIPS_SPC_SLTU,
 
     // REGIMM
-    MIPS32_RI_BGEZL,
-    MIPS32_RI_BGEZAL
-} mips32_instruction_type_t;
+    MIPS_RI_BGEZL,
+    MIPS_RI_BGEZAL
+} mips_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu);
 
