@@ -648,6 +648,146 @@ word n64_read_word(n64_system_t* system, word address) {
     }
 }
 
+void n64_write_half(n64_system_t* system, word address, half value) {
+    switch (address) {
+        case REGION_RDRAM:
+            half_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
+            break;
+        case REGION_RDRAM_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address)
+            break;
+        case REGION_RDRAM_UNUSED:
+            return;
+        case REGION_SP_DMEM:
+            half_to_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM, value);
+            break;
+        case REGION_SP_IMEM:
+            half_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
+            break;
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address)
+        case REGION_SP_UNUSED:
+            return;
+        case REGION_SP_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
+            break;
+        case REGION_DP_COMMAND_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address)
+        case REGION_DP_SPAN_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address)
+        case REGION_MI_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_MI_REGS", value, address)
+            break;
+        case REGION_VI_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_VI_REGS", value, address)
+            break;
+        case REGION_AI_REGS:
+            logwarn("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
+            break;
+        case REGION_PI_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_PI_REGS", value, address)
+            break;
+        case REGION_RI_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address)
+            break;
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address)
+        case REGION_SI_REGS:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address)
+            break;
+        case REGION_UNUSED:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_UNUSED", value, address)
+        case REGION_CART_2_1:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_2_1", value, address)
+        case REGION_CART_1_1:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address)
+        case REGION_CART_2_2:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address)
+        case REGION_CART_1_2:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address)
+        case REGION_PIF_BOOT:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
+        case REGION_PIF_RAM:
+            if (address == ADDR_PIF_RAM_JOYPAD) {
+                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
+                break;
+            } else {
+                half_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
+                logwarn("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address)
+            }
+            break;
+        case REGION_RESERVED:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
+        case REGION_CART_1_3:
+            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
+        case REGION_SYSAD_DEVICE:
+            n64_write_half(system, vatopa(address), value);
+            break;
+        default:
+            logfatal("Writing half 0x%04X to unknown address: 0x%08X", value, address)
+    }
+}
+
+half n64_read_half(n64_system_t* system, word address) {
+    switch (address) {
+        case REGION_RDRAM:
+            return half_from_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM);
+        case REGION_RDRAM_UNUSED:
+            return read_unused(address);
+        case REGION_RDRAM_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address)
+        case REGION_SP_DMEM:
+            return half_from_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM);
+        case REGION_SP_IMEM:
+            return half_from_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM);
+        case REGION_SP_UNUSED:
+            return read_unused(address);
+        case REGION_SP_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_SP_REGS", address)
+        case REGION_DP_COMMAND_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address)
+        case REGION_DP_SPAN_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", address)
+        case REGION_MI_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_MI_REGS", address)
+        case REGION_VI_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_VI_REGS", address)
+        case REGION_AI_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_AI_REGS", address)
+        case REGION_PI_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_PI_REGS", address)
+        case REGION_RI_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_RI_REGS", address)
+        case REGION_SI_REGS:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_SI_REGS", address)
+        case REGION_UNUSED:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_UNUSED", address)
+        case REGION_CART_2_1:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_2_1", address)
+        case REGION_CART_1_1:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_1_1", address)
+        case REGION_CART_2_2:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_2_2", address)
+        case REGION_CART_1_2: {
+            half index = address - SREGION_CART_1_2;
+            if (index > system->mem.rom.size - 1) { // -1 because we're reading an entire half
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index)
+            }
+            return half_from_byte_array(system->mem.rom.rom, index);
+        }
+        case REGION_PIF_BOOT:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_PIF_BOOT", address)
+        case REGION_PIF_RAM:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_PIF_RAM", address)
+        case REGION_RESERVED:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_RESERVED", address)
+        case REGION_CART_1_3:
+            logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_1_3", address)
+        case REGION_SYSAD_DEVICE:
+            return n64_read_half(system, vatopa(address));
+        default:
+            logfatal("Reading half from unknown address: 0x%08X", address)
+    }
+}
+
 void n64_write_byte(n64_system_t* system, word address, byte value) {
     switch (address) {
         case REGION_RDRAM:

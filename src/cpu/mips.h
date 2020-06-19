@@ -50,6 +50,7 @@ MIPS_INSTR(mips_lb);
 
 MIPS_INSTR(mips_spc_sll);
 MIPS_INSTR(mips_spc_srl);
+MIPS_INSTR(mips_spc_sra);
 MIPS_INSTR(mips_spc_sllv);
 MIPS_INSTR(mips_spc_srlv);
 MIPS_INSTR(mips_spc_jr);

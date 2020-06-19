@@ -35,6 +35,7 @@ const char* cp0_register_names[] = {
 #define OPC_REGIMM 0b000001
 #define OPC_SPCL   0b000000
 #define OPC_SB     0b101000
+#define OPC_SH     0b101001
 #define OPC_SD     0b111111
 #define OPC_SW     0b101011
 #define OPC_ORI    0b001101
@@ -55,6 +56,7 @@ const char* cp0_register_names[] = {
 // Special
 #define FUNCT_SLL   0b000000
 #define FUNCT_SRL   0b000010
+#define FUNCT_SRA   0b000011
 #define FUNCT_SLLV  0b000100
 #define FUNCT_SRLV  0b000110
 #define FUNCT_JR    0b001000
@@ -127,6 +129,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
     switch (instr.r.funct) {
         case FUNCT_SLL:   return MIPS_SPC_SLL;
         case FUNCT_SRL:   return MIPS_SPC_SRL;
+        case FUNCT_SRA:   return MIPS_SPC_SRA;
         case FUNCT_SLLV:  return MIPS_SPC_SLLV;
         case FUNCT_SRLV:  return MIPS_SPC_SRLV;
         case FUNCT_JR:    return MIPS_SPC_JR;
@@ -199,8 +202,9 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_BNEL:  return MIPS_BNEL;
         case OPC_CACHE: return MIPS_CACHE;
         case OPC_SB:    return MIPS_SB;
-        case OPC_SD:    return MIPS_SD;
+        case OPC_SH:    return MIPS_SH;
         case OPC_SW:    return MIPS_SW;
+        case OPC_SD:    return MIPS_SD;
         case OPC_ORI:   return MIPS_ORI;
         case OPC_J:     return MIPS_J;
         case OPC_JAL:   return MIPS_JAL;
@@ -253,8 +257,9 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_BNEL,  mips_bnel)
         exec_instr(MIPS_CACHE, mips_cache)
         exec_instr(MIPS_SB,    mips_sb)
-        exec_instr(MIPS_SD,    mips_sd)
+        exec_instr(MIPS_SH,    mips_sh)
         exec_instr(MIPS_SW,    mips_sw)
+        exec_instr(MIPS_SD,    mips_sd)
         exec_instr(MIPS_ORI,   mips_ori)
         exec_instr(MIPS_J,     mips_j)
         exec_instr(MIPS_JAL,   mips_jal)
@@ -275,6 +280,7 @@ void r4300i_step(r4300i_t* cpu) {
         // Special
         exec_instr(MIPS_SPC_SLL,   mips_spc_sll)
         exec_instr(MIPS_SPC_SRL,   mips_spc_srl)
+        exec_instr(MIPS_SPC_SRA,   mips_spc_sra)
         exec_instr(MIPS_SPC_SLLV,  mips_spc_sllv)
         exec_instr(MIPS_SPC_SRLV,  mips_spc_srlv)
         exec_instr(MIPS_SPC_JR,    mips_spc_jr)

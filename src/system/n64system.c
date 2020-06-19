@@ -39,6 +39,14 @@ void write_word_wrapper(word address, word value) {
     n64_write_word(global_system, address, value);
 }
 
+half read_half_wrapper(word address) {
+    return n64_read_half(global_system, address);
+}
+
+void write_half_wrapper(word address, half value) {
+    n64_write_half(global_system, address, value);
+}
+
 byte read_byte_wrapper(word address) {
     return n64_read_byte(global_system, address);
 }
@@ -59,8 +67,8 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->cpu.read_word = &read_word_wrapper;
     system->cpu.write_word = &write_word_wrapper;
 
-    //system->cpu.read_half = &read_half_wrapper;
-    //system->cpu.write_half = &write_half_wrapper;
+    system->cpu.read_half = &read_half_wrapper;
+    system->cpu.write_half = &write_half_wrapper;
 
     system->cpu.read_byte = &read_byte_wrapper;
     system->cpu.write_byte = &write_byte_wrapper;

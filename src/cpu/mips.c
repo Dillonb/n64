@@ -270,12 +270,12 @@ MIPS_INSTR(mips_sb) {
     cpu->write_byte(address, value);
 }
 
-MIPS_INSTR(mips_sd) {
+MIPS_INSTR(mips_sh) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs);
     address += offset;
-    dword value = get_register(cpu, instruction.i.rt);
-    cpu->write_dword(address, value);
+    byte value = get_register(cpu, instruction.i.rt) & 0xFFFF;
+    cpu->write_half(address, value);
 }
 
 MIPS_INSTR(mips_sw) {
@@ -283,6 +283,14 @@ MIPS_INSTR(mips_sw) {
     word address = get_register(cpu, instruction.i.rs);
     address += offset;
     cpu->write_word(address, get_register(cpu, instruction.i.rt));
+}
+
+MIPS_INSTR(mips_sd) {
+    shalf offset = instruction.i.immediate;
+    word address = get_register(cpu, instruction.i.rs);
+    address += offset;
+    dword value = get_register(cpu, instruction.i.rt);
+    cpu->write_dword(address, value);
 }
 
 MIPS_INSTR(mips_ori) {
@@ -309,6 +317,12 @@ MIPS_INSTR(mips_spc_sll) {
 
 MIPS_INSTR(mips_spc_srl) {
     word value = get_register(cpu, instruction.r.rt);
+    sword result = value >> instruction.r.sa;
+    set_register(cpu, instruction.r.rd, (sdword) result);
+}
+
+MIPS_INSTR(mips_spc_sra) {
+    sword value = get_register(cpu, instruction.r.rt);
     sword result = value >> instruction.r.sa;
     set_register(cpu, instruction.r.rd, (sdword) result);
 }

@@ -99,10 +99,8 @@ typedef struct r4300i {
     byte (*read_byte)(word);
     void (*write_byte)(word, byte);
 
-    /*
     half (*read_half)(word);
     void (*write_half)(word, half);
-     */
 
     word (*read_word)(word);
     void (*write_word)(word, word);
@@ -201,8 +199,9 @@ typedef enum mips_instruction_type {
     MIPS_BGTZ,
     MIPS_NOP,
     MIPS_SB,
-    MIPS_SD,
+    MIPS_SH,
     MIPS_SW,
+    MIPS_SD,
     MIPS_ORI,
     MIPS_J,
     MIPS_JAL,
@@ -221,6 +220,7 @@ typedef enum mips_instruction_type {
     // Special
     MIPS_SPC_SLL,
     MIPS_SPC_SRL,
+    MIPS_SPC_SRA,
     MIPS_SPC_SLLV,
     MIPS_SPC_SRLV,
     MIPS_SPC_JR,
