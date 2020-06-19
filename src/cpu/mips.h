@@ -13,6 +13,7 @@ MIPS_INSTR(mips_daddi);
 MIPS_INSTR(mips_and);
 MIPS_INSTR(mips_andi);
 
+MIPS_INSTR(mips_blez);
 MIPS_INSTR(mips_blezl);
 MIPS_INSTR(mips_beq);
 MIPS_INSTR(mips_beql);
@@ -26,6 +27,7 @@ MIPS_INSTR(mips_j);
 MIPS_INSTR(mips_jal);
 
 MIPS_INSTR(mips_slti);
+MIPS_INSTR(mips_sltiu);
 
 MIPS_INSTR(mips_mfc0);
 MIPS_INSTR(mips_mtc0);
@@ -53,7 +55,9 @@ MIPS_INSTR(mips_spc_srlv);
 MIPS_INSTR(mips_spc_jr);
 MIPS_INSTR(mips_spc_mfhi);
 MIPS_INSTR(mips_spc_mflo);
+MIPS_INSTR(mips_spc_mult);
 MIPS_INSTR(mips_spc_multu);
+MIPS_INSTR(mips_spc_divu);
 MIPS_INSTR(mips_spc_add);
 MIPS_INSTR(mips_spc_addu);
 MIPS_INSTR(mips_spc_and);
@@ -65,6 +69,7 @@ MIPS_INSTR(mips_spc_sltu);
 MIPS_INSTR(mips_spc_dadd);
 
 
+MIPS_INSTR(mips_ri_bgez);
 MIPS_INSTR(mips_ri_bgezl);
 MIPS_INSTR(mips_ri_bgezal);
 

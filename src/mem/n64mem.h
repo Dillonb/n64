@@ -21,7 +21,15 @@ typedef enum ri_reg {
 
 typedef enum pi_reg {
     PI_DRAM_ADDR_REG,
-    PI_CART_ADDR_REG
+    PI_CART_ADDR_REG,
+    PI_DOMAIN1_REG,
+    PI_BSD_DOM1_PWD_REG,
+    PI_BSD_DOM1_PGS_REG,
+    PI_BSD_DOM1_RLS_REG,
+    PI_DOMAIN2_REG,
+    PI_BSD_DOM2_PWD_REG,
+    PI_BSD_DOM2_PGS_REG,
+    PI_BSD_DOM2_RLS_REG,
 } pi_reg_t;
 
 typedef struct n64_mem {

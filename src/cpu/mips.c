@@ -119,6 +119,11 @@ MIPS_INSTR(mips_bgtz) {
     conditional_branch(cpu, instruction.i.immediate,  reg > 0);
 }
 
+MIPS_INSTR(mips_blez) {
+    sdword reg = get_register(cpu, instruction.i.rs);
+    conditional_branch(cpu, instruction.i.immediate, reg <= 0);
+}
+
 MIPS_INSTR(mips_blezl) {
     sdword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg <= 0);
@@ -158,8 +163,19 @@ MIPS_INSTR(mips_jal) {
 }
 
 MIPS_INSTR(mips_slti) {
-    sdword immediate = sign_extend_word(instruction.i.immediate, 16, 64);
-    logtrace("Set if %ld < %ld", get_register(cpu, instruction.i.rs), immediate)
+    shalf immediate = instruction.i.immediate;
+    logtrace("Set if %ld < %d", get_register(cpu, instruction.i.rs), immediate)
+    sdword reg = get_register(cpu, instruction.i.rs);
+    if (reg < immediate) {
+        set_register(cpu, instruction.i.rt, 1);
+    } else {
+        set_register(cpu, instruction.i.rt, 0);
+    }
+}
+
+MIPS_INSTR(mips_sltiu) {
+    shalf immediate = instruction.i.immediate;
+    logtrace("Set if %ld < %d", get_register(cpu, instruction.i.rs), immediate)
     if (get_register(cpu, instruction.i.rs) < immediate) {
         set_register(cpu, instruction.i.rt, 1);
     } else {
@@ -168,8 +184,8 @@ MIPS_INSTR(mips_slti) {
 }
 
 MIPS_INSTR(mips_mfc0) {
-    word value = get_cp0_register(cpu, instruction.r.rt);
-    set_register(cpu, instruction.r.rd, value);
+    word value = get_cp0_register(cpu, instruction.r.rd);
+    set_register(cpu, instruction.r.rt, value);
 }
 
 
@@ -314,16 +330,32 @@ MIPS_INSTR(mips_spc_jr) {
 }
 
 MIPS_INSTR(mips_spc_mfhi) {
-    logfatal("mfhi")
+    set_register(cpu, instruction.r.rd, cpu->mult_hi);
 }
 
 MIPS_INSTR(mips_spc_mflo) {
     set_register(cpu, instruction.r.rd, cpu->mult_lo);
 }
 
+MIPS_INSTR(mips_spc_mult) {
+    sword multiplicand_1 = get_register(cpu, instruction.r.rs);
+    sword multiplicand_2 = get_register(cpu, instruction.r.rt);
+
+    sdword dmultiplicand_1 = multiplicand_1;
+    sdword dmultiplicand_2 = multiplicand_2;
+
+    sdword result = dmultiplicand_1 * dmultiplicand_2;
+
+    sword result_lower = result         & 0xFFFFFFFF;
+    sword result_upper = (result >> 32) & 0xFFFFFFFF;
+
+    cpu->mult_lo = (sdword)result_lower;
+    cpu->mult_hi = (sdword)result_upper;
+}
+
 MIPS_INSTR(mips_spc_multu) {
-    word multiplicand_1 = get_register(cpu, instruction.r.rs);
-    word multiplicand_2 = get_register(cpu, instruction.r.rt);
+    dword multiplicand_1 = get_register(cpu, instruction.r.rs) & 0xFFFFFFFF;
+    dword multiplicand_2 = get_register(cpu, instruction.r.rt) & 0xFFFFFFFF;
 
     dword result = multiplicand_1 * multiplicand_2;
 
@@ -332,6 +364,26 @@ MIPS_INSTR(mips_spc_multu) {
 
     cpu->mult_lo = result_lower;
     cpu->mult_hi = result_upper;
+}
+
+MIPS_INSTR(mips_spc_divu) {
+    dword dividend = get_register(cpu, instruction.r.rs);
+    dword divisor  = get_register(cpu, instruction.r.rt);
+
+    // TEMPORARY REMOVE ME LATER PLEASE
+    if (divisor == 0) {
+        logwarn("FORCING DIVIDE BY ZERO TO BE A DIVIDE BY 1 - FIXME")
+        divisor = 1;
+    }
+
+
+    unimplemented(divisor == 0, "Divide by zero exception")
+
+    sword quotient  = dividend / divisor;
+    sword remainder = dividend % divisor;
+
+    cpu->mult_lo = quotient;
+    cpu->mult_hi = remainder;
 }
 
 MIPS_INSTR(mips_spc_add) {
@@ -409,6 +461,11 @@ MIPS_INSTR(mips_spc_dadd) {
     sdword result = addend1 + addend2;
     check_sdword_add_overflow(addend1, addend2, result);
     set_register(cpu, instruction.r.rd, result);
+}
+
+MIPS_INSTR(mips_ri_bgez) {
+    sdword reg = get_register(cpu, instruction.i.rs);
+    conditional_branch(cpu, instruction.i.immediate, reg >= 0);
 }
 
 MIPS_INSTR(mips_ri_bgezl) {

@@ -66,7 +66,7 @@ void render_screen(n64_system_t* system) {
     unimplemented(system->vi.status.type == VI_TYPE_16BIT, "VI_TYPE_16BIT unimplemented!")
 
     if (system->vi.status.type == VI_TYPE_32BIT) {
-        SDL_UpdateTexture(argb32buffer, NULL, &system->mem.rdram[system->vi.vi_origin], N64_SCREEN_X * 4);
+        SDL_UpdateTexture(argb32buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 4);
         SDL_RenderCopy(renderer, argb32buffer, NULL, NULL);
     }
 

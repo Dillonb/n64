@@ -27,6 +27,7 @@ const char* cp0_register_names[] = {
 #define OPC_BEQ    0b000100
 #define OPC_BEQL   0b010100
 #define OPC_BGTZ   0b000111
+#define OPC_BLEZ   0b000110
 #define OPC_BLEZL  0b010110
 #define OPC_BNE    0b000101
 #define OPC_BNEL   0b010101
@@ -40,14 +41,16 @@ const char* cp0_register_names[] = {
 #define OPC_J      0b000010
 #define OPC_JAL    0b000011
 #define OPC_SLTI   0b001010
+#define OPC_SLTIU  0b001011
 #define OPC_XORI   0b001110
 #define OPC_LB     0b100000
 
 // Coprocessor
-#define COP_MF 0b00000
-#define COP_CF 0b00010
-#define COP_MT 0b00100
-#define COP_CT 0b00110
+#define COP_MF    0b00000
+#define COP_CF    0b00010
+#define COP_MT    0b00100
+#define COP_CT    0b00110
+#define COP_TLBWI 0b10000
 
 // Special
 #define FUNCT_SLL   0b000000
@@ -57,7 +60,9 @@ const char* cp0_register_names[] = {
 #define FUNCT_JR    0b001000
 #define FUNCT_MFHI  0b010000
 #define FUNCT_MFLO  0b010010
+#define FUNCT_MULT  0b011000
 #define FUNCT_MULTU 0b011001
+#define FUNCT_DIVU  0b011011
 #define FUNCT_ADD   0b100000
 #define FUNCT_ADDU  0b100001
 #define FUNCT_AND   0b100100
@@ -69,10 +74,14 @@ const char* cp0_register_names[] = {
 #define FUNCT_DADD  0b101100
 
 // REGIMM
+#define RT_BGEZ   0b00001
 #define RT_BGEZL  0b00011
 #define RT_BGEZAL 0b10001
 
 mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr, int cop) {
+    if (cop == 1 && !cpu->cp0.status.cu1) {
+        logfatal("CP1 instruction when CP1 disabled")
+    }
     switch (instr.r.rs) {
         case COP_MF:
             switch (cop) {
@@ -102,6 +111,9 @@ mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t ins
                 default:
                     logfatal("CT to unsupported coprocessor: %d", cop)
             }
+        case COP_TLBWI:
+            logwarn("Ignoring (NOP) TLBWI!")
+            return MIPS_NOP;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -120,7 +132,9 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
         case FUNCT_JR:    return MIPS_SPC_JR;
         case FUNCT_MFHI:  return MIPS_SPC_MFHI;
         case FUNCT_MFLO:  return MIPS_SPC_MFLO;
+        case FUNCT_MULT:  return MIPS_SPC_MULT;
         case FUNCT_MULTU: return MIPS_SPC_MULTU;
+        case FUNCT_DIVU:  return MIPS_SPC_DIVU;
         case FUNCT_ADD:   return MIPS_SPC_ADD;
         case FUNCT_ADDU:  return MIPS_SPC_ADDU;
         case FUNCT_AND:   return MIPS_SPC_AND;
@@ -141,6 +155,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
 
 mips_instruction_type_t decode_regimm(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
+        case RT_BGEZ:   return MIPS_RI_BGEZ;
         case RT_BGEZL:  return MIPS_RI_BGEZL;
         case RT_BGEZAL: return MIPS_RI_BGEZAL;
         default: {
@@ -178,6 +193,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_BEQ:   return MIPS_BEQ;
         case OPC_BEQL:  return MIPS_BEQL;
         case OPC_BGTZ:  return MIPS_BGTZ;
+        case OPC_BLEZ:  return MIPS_BLEZ;
         case OPC_BLEZL: return MIPS_BLEZL;
         case OPC_BNE:   return MIPS_BNE;
         case OPC_BNEL:  return MIPS_BNEL;
@@ -189,6 +205,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_J:     return MIPS_J;
         case OPC_JAL:   return MIPS_JAL;
         case OPC_SLTI:  return MIPS_SLTI;
+        case OPC_SLTIU: return MIPS_SLTIU;
         case OPC_XORI:  return MIPS_XORI;
         case OPC_LB:    return MIPS_LB;
         default:
@@ -230,6 +247,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_LBU,   mips_lbu)
         exec_instr(MIPS_LW,    mips_lw)
         exec_instr(MIPS_BEQ,   mips_beq)
+        exec_instr(MIPS_BLEZ,  mips_blez)
         exec_instr(MIPS_BLEZL, mips_blezl)
         exec_instr(MIPS_BNE,   mips_bne)
         exec_instr(MIPS_BNEL,  mips_bnel)
@@ -241,6 +259,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_J,     mips_j)
         exec_instr(MIPS_JAL,   mips_jal)
         exec_instr(MIPS_SLTI,  mips_slti)
+        exec_instr(MIPS_SLTIU, mips_sltiu)
         exec_instr(MIPS_BEQL,  mips_beql)
         exec_instr(MIPS_BGTZ,  mips_bgtz)
         exec_instr(MIPS_XORI,  mips_xori)
@@ -261,7 +280,9 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_JR,    mips_spc_jr)
         exec_instr(MIPS_SPC_MFHI,  mips_spc_mfhi)
         exec_instr(MIPS_SPC_MFLO,  mips_spc_mflo)
+        exec_instr(MIPS_SPC_MULT,  mips_spc_mult)
         exec_instr(MIPS_SPC_MULTU, mips_spc_multu)
+        exec_instr(MIPS_SPC_DIVU,  mips_spc_divu)
         exec_instr(MIPS_SPC_ADD,   mips_spc_add)
         exec_instr(MIPS_SPC_ADDU,  mips_spc_addu)
         exec_instr(MIPS_SPC_AND,   mips_spc_and)
@@ -273,6 +294,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_DADD,  mips_spc_dadd)
 
         // REGIMM
+        exec_instr(MIPS_RI_BGEZ,   mips_ri_bgez)
         exec_instr(MIPS_RI_BGEZL,  mips_ri_bgezl)
         exec_instr(MIPS_RI_BGEZAL, mips_ri_bgezal)
         default: logfatal("Unknown instruction type!")

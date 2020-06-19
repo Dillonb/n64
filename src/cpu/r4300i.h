@@ -7,8 +7,13 @@
 
 #define R4300I_REG_LR 31
 
+#define R4300I_CP0_REG_INDEX    0
 #define R4300I_CP0_REG_ENTRYLO0 2
+#define R4300I_CP0_REG_ENTRYLO1 3
+#define R4300I_CP0_REG_PAGEMASK 5
+#define R4300I_CP0_REG_BADVADDR 8
 #define R4300I_CP0_REG_COUNT    9
+#define R4300I_CP0_REG_ENTRYHI  10
 #define R4300I_CP0_REG_COMPARE  11
 #define R4300I_CP0_REG_STATUS   12
 #define R4300I_CP0_REG_CAUSE    13
@@ -186,6 +191,7 @@ typedef enum mips_instruction_type {
     MIPS_ANDI,
     MIPS_LBU,
     MIPS_LW,
+    MIPS_BLEZ,
     MIPS_BLEZL,
     MIPS_BNE,
     MIPS_BNEL,
@@ -201,6 +207,7 @@ typedef enum mips_instruction_type {
     MIPS_J,
     MIPS_JAL,
     MIPS_SLTI,
+    MIPS_SLTIU,
     MIPS_XORI,
     MIPS_LB,
 
@@ -219,7 +226,9 @@ typedef enum mips_instruction_type {
     MIPS_SPC_JR,
     MIPS_SPC_MFHI,
     MIPS_SPC_MFLO,
+    MIPS_SPC_MULT,
     MIPS_SPC_MULTU,
+    MIPS_SPC_DIVU,
     MIPS_SPC_ADD,
     MIPS_SPC_ADDU,
     MIPS_SPC_AND,
@@ -231,6 +240,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_DADD,
 
     // REGIMM
+    MIPS_RI_BGEZ,
     MIPS_RI_BGEZL,
     MIPS_RI_BGEZAL
 } mips_instruction_type_t;
@@ -262,14 +272,19 @@ INLINE dword get_register(r4300i_t* cpu, byte r) {
 }
 
 INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
-    logwarn("TODO: throw a \"coprocessor unusuable exception\" if CP0 disabled")
     switch (r) {
+        case R4300I_CP0_REG_INDEX:
+            cpu->cp0.index = value;
+            break;
         case R4300I_CP0_REG_COUNT:
             cpu->cp0.count = value;
+            break;
         case R4300I_CP0_REG_CAUSE:
-            cpu->cp0.cause = value;
+            //cpu->cp0.cause = value;
+            break;
         case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
             cpu->cp0.tag_lo = value;
+            break;
         case R4300I_CP0_REG_TAGHI: // Used for the cache, which is unimplemented.
             cpu->cp0.tag_hi = value;
             break;
@@ -296,6 +311,18 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             logwarn("CP0 status: cu2: %d", cpu->cp0.status.cu2)
             logwarn("CP0 status: cu3: %d", cpu->cp0.status.cu3)
             break;
+        case R4300I_CP0_REG_ENTRYLO0:
+            cpu->cp0.entry_lo0 = value;
+            break;
+        case R4300I_CP0_REG_ENTRYLO1:
+            cpu->cp0.entry_lo1 = value;
+            break;
+        case R4300I_CP0_REG_ENTRYHI:
+            cpu->cp0.entry_hi = value;
+            break;
+        case R4300I_CP0_REG_PAGEMASK:
+            cpu->cp0.page_mask = value;
+            break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value)
     }
@@ -304,10 +331,17 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
 }
 
 INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
-    logwarn("TODO: throw a \"coprocessor unusuable exception\" if CP0 disabled")
     switch (r) {
         case R4300I_CP0_REG_ENTRYLO0:
             return cpu->cp0.entry_lo0;
+        case R4300I_CP0_REG_BADVADDR:
+            return cpu->cp0.bad_vaddr;
+        case R4300I_CP0_REG_STATUS:
+            return cpu->cp0.status.raw;
+        case R4300I_CP0_REG_ENTRYHI:
+            return cpu->cp0.entry_hi;
+        case R4300I_CP0_REG_CAUSE:
+            return cpu->cp0.cause;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
     }
