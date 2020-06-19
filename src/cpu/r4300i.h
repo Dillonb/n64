@@ -17,6 +17,7 @@
 #define R4300I_CP0_REG_COMPARE  11
 #define R4300I_CP0_REG_STATUS   12
 #define R4300I_CP0_REG_CAUSE    13
+#define R4300I_CP0_REG_EPC      14
 #define R4300I_CP0_REG_TAGLO    28
 #define R4300I_CP0_REG_TAGHI    29
 
@@ -40,7 +41,41 @@ typedef union cp0_status {
         bool cu2:1;
         bool cu3:1;
     };
+    struct {
+        unsigned:16;
+        bool de:1;
+        bool ce:1;
+        bool ch:1;
+        bool:1;
+        bool sr:1;
+        bool ts:1;
+        bool bev:1;
+        bool:1;
+        bool its:1;
+        unsigned:7;
+    };
 } cp0_status_t;
+
+typedef union cp0_cause {
+    struct {
+        byte:2;
+        byte exception_code:5;
+        bool:1;
+        bool ip0:1;
+        bool ip1:1;
+        bool ip2:1;
+        bool ip3:1;
+        bool ip4:1;
+        bool ip5:1;
+        bool ip6:1;
+        bool ip7:1;
+        unsigned:12;
+        byte coprocessor_error:2;
+        bool:1;
+        bool branch_delay:1;
+    };
+    word raw;
+} cp0_cause_t;
 
 typedef struct cp0 {
     // Internal tool for stepping $Count
@@ -59,7 +94,7 @@ typedef struct cp0 {
     word entry_hi;
     word compare;
     cp0_status_t status;
-    word cause;
+    cp0_cause_t cause;
     word EPC;
     word PRId;
     word config;
@@ -82,12 +117,14 @@ typedef struct cp0 {
 
 typedef struct r4300i {
     dword gpr[32];
-    dword pc;
+    word pc;
     dword mult_hi;
     dword mult_lo;
 
     word fcr0;
     word fcr31;
+
+    dword f[32];
 
     cp0_t cp0;
 
@@ -188,6 +225,7 @@ typedef enum mips_instruction_type {
     MIPS_ADDIU,
     MIPS_ANDI,
     MIPS_LBU,
+    MIPS_LHU,
     MIPS_LW,
     MIPS_BLEZ,
     MIPS_BLEZL,
@@ -209,6 +247,7 @@ typedef enum mips_instruction_type {
     MIPS_SLTIU,
     MIPS_XORI,
     MIPS_LB,
+    MIPS_LDC1,
 
     // Coprocessor
     MIPS_CP_MFC0,
@@ -225,7 +264,9 @@ typedef enum mips_instruction_type {
     MIPS_SPC_SRLV,
     MIPS_SPC_JR,
     MIPS_SPC_MFHI,
+    MIPS_SPC_MTHI,
     MIPS_SPC_MFLO,
+    MIPS_SPC_MTLO,
     MIPS_SPC_MULT,
     MIPS_SPC_MULTU,
     MIPS_SPC_DIVU,
@@ -280,6 +321,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.count = value;
             break;
         case R4300I_CP0_REG_CAUSE:
+            logwarn("Need to allow writes to IP0 and IP1 here.")
             //cpu->cp0.cause = value;
             break;
         case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
@@ -323,6 +365,9 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
         case R4300I_CP0_REG_PAGEMASK:
             cpu->cp0.page_mask = value;
             break;
+        case R4300I_CP0_REG_EPC:
+            cpu->cp0.EPC = value;
+            break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value)
     }
@@ -341,7 +386,9 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_ENTRYHI:
             return cpu->cp0.entry_hi;
         case R4300I_CP0_REG_CAUSE:
-            return cpu->cp0.cause;
+            return cpu->cp0.cause.raw;
+        case R4300I_CP0_REG_EPC:
+            return cpu->cp0.EPC;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
     }

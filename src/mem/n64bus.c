@@ -555,7 +555,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_CART_1_1:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address)
         case REGION_CART_2_2:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address)
+            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address)
+            return;
         case REGION_CART_1_2:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address)
         case REGION_PIF_BOOT:

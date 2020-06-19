@@ -38,8 +38,10 @@ MIPS_INSTR(mips_ctc1);
 MIPS_INSTR(mips_ld);
 MIPS_INSTR(mips_lui);
 MIPS_INSTR(mips_lbu);
+MIPS_INSTR(mips_lhu);
 MIPS_INSTR(mips_lw);
 MIPS_INSTR(mips_sb);
+MIPS_INSTR(mips_sh);
 MIPS_INSTR(mips_sd);
 MIPS_INSTR(mips_sw);
 MIPS_INSTR(mips_ori);
@@ -48,6 +50,8 @@ MIPS_INSTR(mips_xori);
 
 MIPS_INSTR(mips_lb);
 
+MIPS_INSTR(mips_ldc1);
+
 MIPS_INSTR(mips_spc_sll);
 MIPS_INSTR(mips_spc_srl);
 MIPS_INSTR(mips_spc_sra);
@@ -55,7 +59,9 @@ MIPS_INSTR(mips_spc_sllv);
 MIPS_INSTR(mips_spc_srlv);
 MIPS_INSTR(mips_spc_jr);
 MIPS_INSTR(mips_spc_mfhi);
+MIPS_INSTR(mips_spc_mthi);
 MIPS_INSTR(mips_spc_mflo);
+MIPS_INSTR(mips_spc_mtlo);
 MIPS_INSTR(mips_spc_mult);
 MIPS_INSTR(mips_spc_multu);
 MIPS_INSTR(mips_spc_divu);

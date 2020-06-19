@@ -49,7 +49,7 @@ void pif_rom_execute(n64_system_t* system) {
     system->cpu.cp0.entry_hi     = 0;
     system->cpu.cp0.compare      = 0;
     system->cpu.cp0.status.raw   = 0x70400004;
-    system->cpu.cp0.cause        = 0;
+    system->cpu.cp0.cause.raw    = 0;
     system->cpu.cp0.EPC          = 0;
     system->cpu.cp0.PRId         = 0x00000B00;
     system->cpu.cp0.config       = 0x0006E463;

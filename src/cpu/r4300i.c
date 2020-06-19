@@ -23,6 +23,7 @@ const char* cp0_register_names[] = {
 #define OPC_DADDI  0b011000
 #define OPC_ANDI   0b001100
 #define OPC_LBU    0b100100
+#define OPC_LHU    0b100101
 #define OPC_LW     0b100011
 #define OPC_BEQ    0b000100
 #define OPC_BEQL   0b010100
@@ -45,6 +46,7 @@ const char* cp0_register_names[] = {
 #define OPC_SLTIU  0b001011
 #define OPC_XORI   0b001110
 #define OPC_LB     0b100000
+#define OPC_LDC1   0b110101
 
 // Coprocessor
 #define COP_MF    0b00000
@@ -61,7 +63,9 @@ const char* cp0_register_names[] = {
 #define FUNCT_SRLV  0b000110
 #define FUNCT_JR    0b001000
 #define FUNCT_MFHI  0b010000
+#define FUNCT_MTHI  0b010001
 #define FUNCT_MFLO  0b010010
+#define FUNCT_MTLO  0b010011
 #define FUNCT_MULT  0b011000
 #define FUNCT_MULTU 0b011001
 #define FUNCT_DIVU  0b011011
@@ -80,9 +84,46 @@ const char* cp0_register_names[] = {
 #define RT_BGEZL  0b00011
 #define RT_BGEZAL 0b10001
 
+// Exceptions
+#define EXCEPTION_COPROCESSOR_UNUSABLE 11
+
+void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
+    loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error)
+    if (cpu->branch) {
+        pc -= 4;
+        cpu->cp0.cause.branch_delay = true;
+        cpu->branch = false;
+        cpu->branch_delay = 0;
+        cpu->branch_pc = 0;
+        logfatal("Exception thrown in a branch delay slot! make sure this is being handled correctly. "
+                 "EPC is supposed to be set to the address of the branch preceding the slot.")
+    } else {
+        cpu->cp0.cause.branch_delay = false;
+    }
+
+    if (!cpu->cp0.status.exl) {
+        cpu->cp0.EPC = pc;
+    }
+
+    cpu->cp0.cause.exception_code = code;
+    cpu->cp0.cause.coprocessor_error = coprocessor_error;
+
+    if (cpu->cp0.status.bev) {
+        switch (code) {
+            case EXCEPTION_COPROCESSOR_UNUSABLE:
+                cpu->pc = 0x80000180;
+                break;
+            default:
+                logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code)
+        }
+    } else {
+        logfatal("Exception %d without BEV! See page 181 in the manual.", code)
+    }
+}
+
 mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr, int cop) {
     if (cop == 1 && !cpu->cp0.status.cu1) {
-        logfatal("CP1 instruction when CP1 disabled")
+        //exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
     }
     switch (instr.r.rs) {
         case COP_MF:
@@ -134,7 +175,9 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
         case FUNCT_SRLV:  return MIPS_SPC_SRLV;
         case FUNCT_JR:    return MIPS_SPC_JR;
         case FUNCT_MFHI:  return MIPS_SPC_MFHI;
+        case FUNCT_MTHI:  return MIPS_SPC_MTHI;
         case FUNCT_MFLO:  return MIPS_SPC_MFLO;
+        case FUNCT_MTLO:  return MIPS_SPC_MTLO;
         case FUNCT_MULT:  return MIPS_SPC_MULT;
         case FUNCT_MULTU: return MIPS_SPC_MULTU;
         case FUNCT_DIVU:  return MIPS_SPC_DIVU;
@@ -192,6 +235,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_DADDI: return MIPS_DADDI;
         case OPC_ANDI:  return MIPS_ANDI;
         case OPC_LBU:   return MIPS_LBU;
+        case OPC_LHU:   return MIPS_LHU;
         case OPC_LW:    return MIPS_LW;
         case OPC_BEQ:   return MIPS_BEQ;
         case OPC_BEQL:  return MIPS_BEQL;
@@ -212,6 +256,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_SLTIU: return MIPS_SLTIU;
         case OPC_XORI:  return MIPS_XORI;
         case OPC_LB:    return MIPS_LB;
+        case OPC_LDC1:  return MIPS_LDC1;
         default:
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(pc, instr.raw, buf, 50);
@@ -249,6 +294,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_DADDI, mips_daddi)
         exec_instr(MIPS_ANDI,  mips_andi)
         exec_instr(MIPS_LBU,   mips_lbu)
+        exec_instr(MIPS_LHU,   mips_lhu)
         exec_instr(MIPS_LW,    mips_lw)
         exec_instr(MIPS_BEQ,   mips_beq)
         exec_instr(MIPS_BLEZ,  mips_blez)
@@ -269,6 +315,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_BGTZ,  mips_bgtz)
         exec_instr(MIPS_XORI,  mips_xori)
         exec_instr(MIPS_LB,    mips_lb)
+        exec_instr(MIPS_LDC1,  mips_ldc1)
 
         // Coprocessor
         exec_instr(MIPS_CP_MFC0, mips_mfc0)
@@ -285,7 +332,9 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_SRLV,  mips_spc_srlv)
         exec_instr(MIPS_SPC_JR,    mips_spc_jr)
         exec_instr(MIPS_SPC_MFHI,  mips_spc_mfhi)
+        exec_instr(MIPS_SPC_MTHI,  mips_spc_mthi)
         exec_instr(MIPS_SPC_MFLO,  mips_spc_mflo)
+        exec_instr(MIPS_SPC_MTLO,  mips_spc_mtlo)
         exec_instr(MIPS_SPC_MULT,  mips_spc_mult)
         exec_instr(MIPS_SPC_MULTU, mips_spc_multu)
         exec_instr(MIPS_SPC_DIVU,  mips_spc_divu)

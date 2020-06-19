@@ -249,6 +249,15 @@ MIPS_INSTR(mips_lbu) {
     set_register(cpu, instruction.i.rt, value);
 }
 
+MIPS_INSTR(mips_lhu) {
+    shalf offset = instruction.i.immediate;
+    logtrace("LHU offset: %d", offset)
+    word address = get_register(cpu, instruction.i.rs) + offset;
+    half value   = cpu->read_half(address);
+
+    set_register(cpu, instruction.i.rt, value);
+}
+
 MIPS_INSTR(mips_lw) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
@@ -310,6 +319,29 @@ MIPS_INSTR(mips_lb) {
     set_register(cpu, instruction.i.rt, sext_value);
 }
 
+MIPS_INSTR(mips_ldc1) {
+    shalf offset    = instruction.i.immediate;
+    word address    = get_register(cpu, instruction.i.rs) + offset;
+    if (address & 0b111) {
+        logfatal("Address error exception: misaligned dword read!")
+    }
+
+    dword value = cpu->read_dword(address);
+
+    if ((instruction.i.rt & 0b1) == 1) {
+        logfatal("This instruction is undefined if ft is odd. See manual.")
+    }
+
+    if (cpu->cp0.status.fr) {
+        cpu->f[instruction.i.rt] = value;
+    } else {
+        word high = value >> 32;
+        word low  = value & 0xFFFFFFFF;
+        cpu->f[instruction.i.rt] = low;
+        cpu->f[instruction.i.rt + 1] = high;
+    }
+}
+
 MIPS_INSTR(mips_spc_sll) {
     sword result = get_register(cpu, instruction.r.rt) << instruction.r.sa;
     set_register(cpu, instruction.r.rd, (sdword)result);
@@ -347,8 +379,16 @@ MIPS_INSTR(mips_spc_mfhi) {
     set_register(cpu, instruction.r.rd, cpu->mult_hi);
 }
 
+MIPS_INSTR(mips_spc_mthi) {
+    cpu->mult_hi = get_register(cpu, instruction.r.rs);
+}
+
 MIPS_INSTR(mips_spc_mflo) {
     set_register(cpu, instruction.r.rd, cpu->mult_lo);
+}
+
+MIPS_INSTR(mips_spc_mtlo) {
+    cpu->mult_lo = get_register(cpu, instruction.r.rs);
 }
 
 MIPS_INSTR(mips_spc_mult) {
