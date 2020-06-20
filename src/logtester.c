@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
         tok = strtok(instrline, " ");
         dword pc = strtol(tok, NULL, 16);
         if (pc != system->cpu.pc) {
-            logfatal("Line %d: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, system->cpu.pc)
+            logfatal("Line %d: PC expected: 0x%08lX actual: 0x%08X", line + 1, pc, system->cpu.pc)
         }
         n64_system_step(system);
     }

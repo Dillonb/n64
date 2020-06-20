@@ -124,7 +124,7 @@ typedef struct r4300i {
     word fcr0;
     word fcr31;
 
-    dword f[32];
+    byte f[256];
 
     cp0_t cp0;
 
@@ -172,6 +172,13 @@ typedef union mips_instruction {
     } i;
 
     struct {
+        unsigned offset:16;
+        unsigned ft:5;
+        unsigned base:5;
+        unsigned op:6;
+    } fi;
+
+    struct {
         unsigned target:26;
         unsigned op:6;
     } j;
@@ -184,6 +191,15 @@ typedef union mips_instruction {
         unsigned rs:5;
         unsigned op:6;
     } r;
+
+    struct {
+        unsigned funct:6;
+        unsigned fd:5;
+        unsigned fs:5;
+        unsigned ft:5;
+        unsigned fmt:5;
+        unsigned op:6;
+    } fr;
 
     struct {
         unsigned funct5:1;
@@ -213,6 +229,11 @@ typedef union mips_instruction {
         unsigned rs1:1;
         unsigned rs0:1;
         unsigned:6;
+    };
+
+    struct {
+        unsigned last11:11;
+        unsigned:21;
     };
 
 } mips_instruction_t;
@@ -248,6 +269,9 @@ typedef enum mips_instruction_type {
     MIPS_XORI,
     MIPS_LB,
     MIPS_LDC1,
+    MIPS_SDC1,
+    MIPS_LWC1,
+    MIPS_SWC1,
 
     // Coprocessor
     MIPS_CP_MFC0,
@@ -255,6 +279,9 @@ typedef enum mips_instruction_type {
 
     MIPS_CP_CTC1,
     MIPS_CP_CFC1,
+
+    MIPS_CP_MUL_D,
+    MIPS_CP_MUL_S,
 
     // Special
     MIPS_SPC_SLL,
@@ -312,6 +339,10 @@ INLINE dword get_register(r4300i_t* cpu, byte r) {
     }
 }
 
+INLINE void on_change_fr(r4300i_t* cpu, cp0_status_t oldstatus) {
+    logfatal("FR changed from %d to %d!", oldstatus.fr, cpu->cp0.status.fr)
+}
+
 INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
@@ -334,8 +365,12 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             logwarn("$Compare written with 0x%08X (count is now 0x%08X) - TODO: clear interrupt in $Cause", value, cpu->cp0.count);
             cpu->cp0.compare = value;
             break;
-        case R4300I_CP0_REG_STATUS:
+        case R4300I_CP0_REG_STATUS: {
+            cp0_status_t oldstatus = cpu->cp0.status;
             cpu->cp0.status.raw = value;
+            if (oldstatus.fr != cpu->cp0.status.fr) {
+                on_change_fr(cpu, oldstatus);
+            }
             logwarn("CP0 status: ie:  %d", cpu->cp0.status.ie)
             logwarn("CP0 status: exl: %d", cpu->cp0.status.exl)
             logwarn("CP0 status: erl: %d", cpu->cp0.status.erl)
@@ -353,6 +388,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             logwarn("CP0 status: cu2: %d", cpu->cp0.status.cu2)
             logwarn("CP0 status: cu3: %d", cpu->cp0.status.cu3)
             break;
+        }
         case R4300I_CP0_REG_ENTRYLO0:
             cpu->cp0.entry_lo0 = value;
             break;
@@ -392,9 +428,74 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
     }
-
-    //logwarn("0x%08X = CP0 $%s", value, cp0_register_names[r])
-
-    //return value;
 }
+
+INLINE void set_fpu_register_dword(r4300i_t* cpu, byte r, dword value) {
+    dword* darr = (dword*)cpu->f;
+    darr[r] = value;
+}
+
+INLINE void set_fpu_register_double(r4300i_t* cpu, byte r, double value) {
+    double* darr = (double*)cpu->f;
+    darr[r] = value;
+}
+
+INLINE dword get_fpu_register_dword(r4300i_t* cpu, byte r) {
+    dword* darr = (dword*)cpu->f;
+    return darr[r];
+}
+
+INLINE double get_fpu_register_double(r4300i_t* cpu, byte r) {
+    double* darr = (double*)cpu->f;
+    return darr[r];
+}
+
+INLINE void set_fpu_register_word(r4300i_t* cpu, byte r, word value) {
+    dword* darr = (dword*)cpu->f;
+    if (!cpu->cp0.status.fr) {
+        if ((r & 1) == 0) {
+            darr[r] &= 0xFFFFFFFF00000000;
+            darr[r] |= value;
+        } else {
+            darr[r - 1] &= 0x00000000FFFFFFFF;
+            darr[r - 1] |= (dword)value << 32;
+        }
+    } else {
+        logfatal("Unimplemented!")
+    }
+}
+
+INLINE word get_fpu_register_word(r4300i_t* cpu, byte r) {
+    dword* darr = (dword*)cpu->f;
+    if (!cpu->cp0.status.fr) {
+        if ((r & 1) == 0) {
+            return darr[r] & 0xFFFFFFFF;
+        } else {
+            return darr[r - 1] >> 32;
+        }
+    } else {
+        logfatal("Unimplemented!")
+    }
+}
+
+INLINE void set_fpu_register_float(r4300i_t* cpu, byte r, float value) {
+    union {
+        float f;
+        word w;
+    } conv;
+
+    conv.f = value;
+    set_fpu_register_word(cpu, r, conv.w);
+}
+
+INLINE float get_fpu_register_float(r4300i_t* cpu, byte r) {
+    union {
+        float f;
+        word w;
+    } conv;
+
+    conv.w = get_fpu_register_word(cpu, r);
+    return conv.f;
+}
+
 #endif //N64_R4300I_H

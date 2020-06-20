@@ -228,6 +228,22 @@ MIPS_INSTR(mips_ctc1) {
     }
 }
 
+MIPS_INSTR(mips_cp_mul_d) {
+    double fs = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+    double result = fs * ft;
+    set_fpu_register_double(cpu, instruction.fr.fd, result);
+    loginfo("mul.d: 0x%08X with fmt %d: %f * %f = %f", instruction.raw, instruction.fr.fmt, fs, ft, result)
+}
+
+MIPS_INSTR(mips_cp_mul_s) {
+    float fs = get_fpu_register_float(cpu, instruction.fr.fs);
+    float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+    float result = fs * ft;
+    set_fpu_register_float(cpu, instruction.fr.fd, result);
+    loginfo("mul.s: 0x%08X with fmt %d: %f * %f = %f", instruction.raw, instruction.fr.fmt, fs, ft, result)
+}
+
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
@@ -327,19 +343,31 @@ MIPS_INSTR(mips_ldc1) {
     }
 
     dword value = cpu->read_dword(address);
+    set_fpu_register_dword(cpu, instruction.i.rt, value);
+}
 
-    if ((instruction.i.rt & 0b1) == 1) {
-        logfatal("This instruction is undefined if ft is odd. See manual.")
-    }
+MIPS_INSTR(mips_sdc1) {
+    shalf offset    = instruction.fi.offset;
+    word address    = get_register(cpu, instruction.fi.base) + offset;
+    dword value     = get_fpu_register_dword(cpu, instruction.fi.ft);
 
-    if (cpu->cp0.status.fr) {
-        cpu->f[instruction.i.rt] = value;
-    } else {
-        word high = value >> 32;
-        word low  = value & 0xFFFFFFFF;
-        cpu->f[instruction.i.rt] = low;
-        cpu->f[instruction.i.rt + 1] = high;
-    }
+    cpu->write_dword(address, value);
+}
+
+MIPS_INSTR(mips_lwc1) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+    word value   = cpu->read_word(address);
+
+    set_fpu_register_word(cpu, instruction.fi.ft, value);
+}
+
+MIPS_INSTR(mips_swc1) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+    word value   = get_fpu_register_word(cpu, instruction.fi.ft);
+
+    cpu->write_word(address, value);
 }
 
 MIPS_INSTR(mips_spc_sll) {

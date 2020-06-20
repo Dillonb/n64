@@ -47,13 +47,22 @@ const char* cp0_register_names[] = {
 #define OPC_XORI   0b001110
 #define OPC_LB     0b100000
 #define OPC_LDC1   0b110101
+#define OPC_SDC1   0b111101
+#define OPC_LWC1   0b110001
+#define OPC_SWC1   0b111001
 
 // Coprocessor
 #define COP_MF    0b00000
 #define COP_CF    0b00010
 #define COP_MT    0b00100
 #define COP_CT    0b00110
-#define COP_TLBWI 0b10000
+
+// Coprocessor FUNCT
+#define COP_FUNCT_TLBWI_MULT 0b000010
+
+// Floating point
+#define FP_FMT_SINGLE 16
+#define FP_FMT_DOUBLE 17
 
 // Special
 #define FUNCT_SLL   0b000000
@@ -125,43 +134,68 @@ mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t ins
     if (cop == 1 && !cpu->cp0.status.cu1) {
         //exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
     }
-    switch (instr.r.rs) {
-        case COP_MF:
-            switch (cop) {
-                case 0:
-                    return MIPS_CP_MFC0;
-                default:
-                    logfatal("MF from unsupported coprocessor: %d", cop)
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            case COP_MF: // Last 11 bits are 0
+                switch (cop) {
+                    case 0:
+                        return MIPS_CP_MFC0;
+                    default:
+                        logfatal("MF from unsupported coprocessor: %d", cop)
+                }
+            case COP_CF: // Last 11 bits are 0
+                switch (cop) {
+                    case 1:
+                        return MIPS_CP_CFC1;
+                    default:
+                        logfatal("CF from unsupported coprocessor: %d", cop)
+                }
+            case COP_MT: // Last 11 bits are 0
+                switch (cop) {
+                    case 0:
+                        return MIPS_CP_MTC0;
+                    default:
+                        logfatal("MT to unsupported coprocessor: %d", cop)
+                }
+            case COP_CT: // Last 11 bits are 0
+                switch (cop) {
+                    case 1:
+                        return MIPS_CP_CTC1;
+                    default:
+                        logfatal("CT to unsupported coprocessor: %d", cop)
+                }
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS Coprocessor 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf)
             }
-        case COP_CF:
-            switch (cop) {
-                case 1:
-                    return MIPS_CP_CFC1;
-                default:
-                    logfatal("CF from unsupported coprocessor: %d", cop)
+        }
+    } else {
+        switch (instr.fr.funct) {
+            case COP_FUNCT_TLBWI_MULT:
+                switch (cop) {
+                    case 1:
+                        switch (instr.fr.fmt) {
+                            case FP_FMT_DOUBLE:
+                                return MIPS_CP_MUL_D;
+                            case FP_FMT_SINGLE:
+                                return MIPS_CP_MUL_S;
+                            default:
+                                logfatal("Unknown FP format: %d", instr.fr.fmt)
+                        }
+                    case 0:
+                        logwarn("Ignoring (NOP) TLBWI!")
+                        return MIPS_NOP;
+                    default:
+                        logfatal("mul.d to unsupported coprocessor: %d", cop)
+                }
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS Coprocessor 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
             }
-        case COP_MT:
-            switch (cop) {
-                case 0:
-                    return MIPS_CP_MTC0;
-                default:
-                    logfatal("MT to unsupported coprocessor: %d", cop)
-            }
-        case COP_CT:
-            switch (cop) {
-                case 1:
-                    return MIPS_CP_CTC1;
-                default:
-                    logfatal("CT to unsupported coprocessor: %d", cop)
-            }
-        case COP_TLBWI:
-            logwarn("Ignoring (NOP) TLBWI!")
-            return MIPS_NOP;
-        default: {
-            char buf[50];
-            disassemble(pc, instr.raw, buf, 50);
-            logfatal("other/unknown MIPS Coprocessor 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
-                    instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf)
         }
     }
 }
@@ -257,6 +291,9 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_XORI:  return MIPS_XORI;
         case OPC_LB:    return MIPS_LB;
         case OPC_LDC1:  return MIPS_LDC1;
+        case OPC_SDC1:  return MIPS_SDC1;
+        case OPC_LWC1:  return MIPS_LWC1;
+        case OPC_SWC1:  return MIPS_SWC1;
         default:
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(pc, instr.raw, buf, 50);
@@ -316,6 +353,9 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_XORI,  mips_xori)
         exec_instr(MIPS_LB,    mips_lb)
         exec_instr(MIPS_LDC1,  mips_ldc1)
+        exec_instr(MIPS_SDC1,  mips_sdc1)
+        exec_instr(MIPS_LWC1,  mips_lwc1)
+        exec_instr(MIPS_SWC1,  mips_swc1)
 
         // Coprocessor
         exec_instr(MIPS_CP_MFC0, mips_mfc0)
@@ -323,6 +363,9 @@ void r4300i_step(r4300i_t* cpu) {
 
         exec_instr(MIPS_CP_CFC1, mips_cfc1)
         exec_instr(MIPS_CP_CTC1, mips_ctc1)
+
+        exec_instr(MIPS_CP_MUL_D, mips_cp_mul_d)
+        exec_instr(MIPS_CP_MUL_S, mips_cp_mul_s)
 
         // Special
         exec_instr(MIPS_SPC_SLL,   mips_spc_sll)
