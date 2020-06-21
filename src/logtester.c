@@ -13,12 +13,10 @@ void usage(cflags_t* flags) {
 
 int main(int argc, char** argv) {
     const char* log_file = NULL;
-    int log_lines = -1;
 
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
     cflags_add_string(flags, 'f', "log-file", &log_file, "log file to check run against");
-    cflags_add_int(flags, 'l', "num-log-lines", &log_lines, "number of lines in the file to check");
 
     cflags_parse(flags, argc, argv);
 
@@ -31,10 +29,6 @@ int main(int argc, char** argv) {
         logfatal("Must pass a log file with -f!")
     }
 
-    if (log_lines == -1) {
-        logfatal("Must pass number of log lines with -l!")
-    }
-
     FILE* fp = fopen(log_file, "r");
 
     const char* rom = flags->argv[0];
@@ -42,8 +36,43 @@ int main(int argc, char** argv) {
     log_set_verbosity(verbose->count);
     n64_system_t* system = init_n64system(rom, true);
     pif_rom_execute(system);
+
+    system->cpu.gpr[0] = 0x00000000;
+    system->cpu.gpr[1] = 0x00000001;
+    system->cpu.gpr[2] = 0x0ebda536;
+    system->cpu.gpr[3] = 0x0ebda536;
+    system->cpu.gpr[4] = 0x0000a536;
+    system->cpu.gpr[5] = 0xc0f1d859;
+    system->cpu.gpr[6] = 0xa4001f0c;
+    system->cpu.gpr[7] = 0xa4001f08;
+    system->cpu.gpr[8] = 0x000000f0;
+    system->cpu.gpr[9] = 0x00000000;
+    system->cpu.gpr[10] = 0x00000040;
+    system->cpu.gpr[11] = 0xa4000040;
+    system->cpu.gpr[12] = 0xed10d0b3;
+    system->cpu.gpr[13] = 0x1402a4cc;
+    system->cpu.gpr[14] = 0x2de108ea;
+    system->cpu.gpr[15] = 0x3103e121;
+    system->cpu.gpr[16] = 0x00000000;
+    system->cpu.gpr[17] = 0x00000000;
+    system->cpu.gpr[18] = 0x00000000;
+    system->cpu.gpr[19] = 0x00000000;
+    system->cpu.gpr[20] = 0x00000001;
+    system->cpu.gpr[21] = 0x00000000;
+    system->cpu.gpr[22] = 0x0000003f;
+    system->cpu.gpr[23] = 0x00000000;
+    system->cpu.gpr[24] = 0x00000000;
+    system->cpu.gpr[25] = 0x9debb54f;
+    system->cpu.gpr[26] = 0x00000000;
+    system->cpu.gpr[27] = 0x00000000;
+    system->cpu.gpr[28] = 0x00000000;
+    system->cpu.gpr[29] = 0xa4001ff0;
+    system->cpu.gpr[30] = 0x00000000;
+    system->cpu.gpr[31] = 0xa4001550;
+
+
     char lastinstr[100];
-    for (int line = 0; line < log_lines; line++) {
+    for (long line = 0; line < 0xFFFFFFFFFFFFFFFF; line++) {
         char* regline = NULL;
         char* instrline = NULL;
         size_t len = 0;
@@ -52,16 +81,16 @@ int main(int argc, char** argv) {
             break;
         }
 
-        loginfo_nonewline("Checking log line %d | %s", line + 1, regline)
+        loginfo_nonewline("Checking log line %ld | %s", line + 1, regline)
         char* tok = strtok(regline, " ");
         for (int r = 0; r < 32; r++) {
             dword expected = strtol(tok, NULL, 16);
             tok = strtok(NULL, " ");
-            dword actual = system->cpu.gpr[r];
+            dword actual = system->cpu.gpr[r] & 0xFFFFFFFF;
             if (expected != actual) {
                 logwarn("Failed running line: %s", lastinstr)
                 logwarn("Line %d: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
-                logfatal("Line %d: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
+                //logfatal("Line %d: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
             }
         }
 

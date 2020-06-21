@@ -40,7 +40,6 @@ typedef struct n64_mem {
     word rdram_reg[10];
     word pi_reg[13];
     word ri_reg[8];
-    word mi_reg[4];
     byte pif_ram[64];
 } n64_mem_t;
 

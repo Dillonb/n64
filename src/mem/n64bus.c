@@ -185,8 +185,30 @@ word read_word_rdramreg(n64_system_t* system, word address) {
 
     if (address < ADDR_RDRAM_REG_FIRST || address > ADDR_RDRAM_REG_LAST) {
         logfatal("In RDRAM register write handler with out of bounds address 0x%08X", address)
-    } else {
-        return system->mem.rdram_reg[(address - SREGION_RDRAM_REGS) / 4];
+    }
+    switch (address) {
+        case ADDR_RDRAM_CONFIG_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_CONFIG_REG")
+        case ADDR_RDRAM_DEVICE_ID_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_DEVICE_ID_REG")
+        case ADDR_RDRAM_DELAY_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_DELAY_REG")
+        case ADDR_RDRAM_MODE_REG:
+            return 0;
+        case ADDR_RDRAM_REF_INTERVAL_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_REF_INTERVAL_REG")
+        case ADDR_RDRAM_REF_ROW_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_REF_ROW_REG")
+        case ADDR_RDRAM_RAS_INTERVAL_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_RAS_INTERVAL_REG")
+        case ADDR_RDRAM_MIN_INTERVAL_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_MIN_INTERVAL_REG")
+        case ADDR_RDRAM_ADDR_SELECT_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_ADDR_SELECT_REG")
+        case ADDR_RDRAM_DEVICE_MANUF_REG:
+            logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_DEVICE_MANUF_REG")
+        default:
+            logfatal("Read from unknown RDRAM reg: 0x%08X", address)
     }
 }
 
@@ -315,20 +337,96 @@ void write_word_mireg(n64_system_t* system, word address, word value) {
     if (address < ADDR_MI_FIRST || address > ADDR_MI_LAST) {
         logfatal("In MI write handler with out of bounds address 0x%08X", address)
     }
+    switch (address) {
+        case ADDR_MI_MODE_REG: {
+            // Lowest 7 bits: 'init length'
+            system->mi.init_mode &= 0xFFFFFF80;
+            system->mi.init_mode |= value & 0x7F;
 
-    system->mem.mi_reg[(address - SREGION_MI_REGS) / 4] = value;
+            // Bit 7 = "clear init mode"
+            if (value & (1 << 7)) {
+                system->mi.init_mode &= ~(1 << 7);
+            }
+
+            // Bit 8 = "set init mode"
+            if (value & (1 << 8)) {
+                system->mi.init_mode |= 1 << 7;
+            }
+
+            // Bit 9 = "clear ebus test mode"
+            if (value & (1 << 9)) {
+                system->mi.init_mode &= ~(1 << 8);
+            }
+
+            // Bit 10 = "set ebus test mode"
+            if (value & (1 << 10)) {
+                system->mi.init_mode |= 1 << 8;
+            }
+
+            // Bit 11 = "clear DP interrupt"
+            if (value & (1 << 11)) {
+                system->mi.intr.dp = false;
+            }
+
+            // Bit 12 = "clear RDRAM reg"
+            if (value & (1 << 12)) {
+                system->mi.init_mode &= ~(1 << 9);
+            }
+
+            // Bit 13 = "set RDRAM reg mode"
+            if (value & (1 << 13)) {
+                system->mi.init_mode |= 1 << 9;
+            }
+            break;
+        }
+        case ADDR_MI_VERSION_REG:
+            logwarn("Ignoring write to MI version reg!")
+            break;
+        case ADDR_MI_INTR_REG:
+            logfatal("Unhandled write to ADDR_MI_INTR_REG")
+        case ADDR_MI_INTR_MASK_REG:
+            for (int bit = 0; bit < 6; bit++) {
+                int clearbit = bit * 2;
+                int setbit = (bit * 2) + 1;
+
+                // Clear
+                if (value & (1 << clearbit)) {
+                    system->mi.intr_mask.raw &= ~(1 << bit);
+                }
+                // Set
+                if (value & (1 << setbit)) {
+                    system->mi.intr_mask.raw |= 1 << bit;
+                }
+            }
+            break;
+        default:
+            logfatal("Write to unknown MI register: 0x%08X", address)
+    }
 }
 
 word read_word_mireg(n64_system_t* system, word address) {
     if (address % 4 != 0) {
-        logfatal("Writing to MI register at non-word-aligned address 0x%08X", address)
+        logfatal("Reading from MI register at non-word-aligned address 0x%08X", address)
     }
 
     if (address < ADDR_MI_FIRST || address > ADDR_MI_LAST) {
-        logfatal("In MI write handler with out of bounds address 0x%08X", address)
+        logfatal("In MI read handler with out of bounds address 0x%08X", address)
     }
 
-    return system->mem.mi_reg[(address - SREGION_MI_REGS) / 4];
+    switch (address) {
+        case ADDR_MI_MODE_REG:
+            logfatal("Read from unimplemented MI register: ADDR_MI_MODE_REG")
+        case ADDR_MI_VERSION_REG:
+            return 0x02020102;
+            return 0x01010101;
+        case ADDR_MI_INTR_REG:
+            return system->mi.intr.raw;
+        case ADDR_MI_INTR_MASK_REG:
+            return system->mi.intr_mask.raw;
+            logfatal("Read from unimplemented MI register: ADDR_MI_INTR_MASK_REG")
+        default:
+            logfatal("Read from unknown MI register: 0x%08X", address)
+    }
 }
 
 void write_word_sireg(n64_system_t* system, word address, word value) {

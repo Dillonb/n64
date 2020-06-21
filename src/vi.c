@@ -34,7 +34,7 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
             break;
         case ADDR_VI_V_CURRENT_REG:
             loginfo("V_CURRENT written, V Intr cleared")
-            system->vi.vi_v_intr = 0;
+            interrupt_lower(system, INTERRUPT_VI);
             break;
         case ADDR_VI_BURST_REG:
             system->vi.vi_burst.raw = value;
@@ -108,5 +108,14 @@ word read_word_vireg(n64_system_t* system, word address) {
             logfatal("Reading of ADDR_VI_Y_SCALE_REG is unsupported")
         default:
             logfatal("Attempted to read word from unknown VI reg: 0x%08X", address)
+    }
+}
+
+void check_vi_interrupt(n64_system_t* system) {
+    if (system->vi.v_current == system->vi.vi_v_intr) {
+        logwarn("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr)
+        interrupt_raise(system, INTERRUPT_VI);
+    } else {
+        logwarn("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr)
     }
 }

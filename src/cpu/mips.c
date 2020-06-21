@@ -194,6 +194,20 @@ MIPS_INSTR(mips_mtc0) {
     set_cp0_register(cpu, instruction.r.rd, value);
 }
 
+MIPS_INSTR(mips_mtc1) {
+    word value = get_register(cpu, instruction.r.rt);
+    set_fpu_register_word(cpu, instruction.r.rd, value);
+}
+
+MIPS_INSTR(mips_eret) {
+    if (cpu->cp0.status.erl) {
+        cpu->pc = cpu->cp0.error_epc;
+        cpu->cp0.status.erl = false;
+    } else {
+        cpu->pc = cpu->cp0.EPC;
+        cpu->cp0.status.exl = false;
+    }
+}
 
 MIPS_INSTR(mips_cfc1) {
     byte fs = instruction.r.rd;

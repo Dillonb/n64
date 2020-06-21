@@ -1,6 +1,7 @@
 #include "n64system.h"
 #include "../mem/n64bus.h"
 #include "../render.h"
+#include "../vi.h"
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
@@ -93,11 +94,13 @@ void n64_system_loop(n64_system_t* system) {
     while (!should_quit) {
         system->vi.v_current = 0;
         for (; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
+            check_vi_interrupt(system);
             for (int i = 0; i < SHORTLINE_CYCLES; i++) {
                 _n64_system_step(system);
             }
         }
         for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
+            check_vi_interrupt(system);
             for (int i = 0; i < LONGLINE_CYCLES; i++) {
                 _n64_system_step(system);
             }
@@ -112,4 +115,34 @@ void n64_system_cleanup(n64_system_t* system) {
 
 void n64_request_quit() {
     should_quit = true;
+}
+
+void on_interrupt_change(n64_system_t* system) {
+    bool interrupt = system->mi.intr.raw & system->mi.intr_mask.raw;
+    logwarn("ip2 is now: %d", interrupt);
+    system->cpu.cp0.cause.ip2 = interrupt;
+}
+
+void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
+    switch (interrupt) {
+        case INTERRUPT_VI:
+            system->mi.intr.vi = true;
+            break;
+        default:
+            logfatal("Raising unimplemented interrupt: %d", interrupt)
+    }
+
+    on_interrupt_change(system);
+}
+
+void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
+    switch (interrupt) {
+        case INTERRUPT_VI:
+            system->mi.intr.vi = false;
+            break;
+        default:
+            logfatal("Lowering unimplemented interrupt: %d", interrupt)
+    }
+
+    on_interrupt_change(system);
 }

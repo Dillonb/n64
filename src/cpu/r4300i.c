@@ -59,6 +59,7 @@ const char* cp0_register_names[] = {
 
 // Coprocessor FUNCT
 #define COP_FUNCT_TLBWI_MULT 0b000010
+#define COP_FUNCT_ERET       0b011000
 
 // Floating point
 #define FP_FMT_SINGLE 16
@@ -94,6 +95,7 @@ const char* cp0_register_names[] = {
 #define RT_BGEZAL 0b10001
 
 // Exceptions
+#define EXCEPTION_INTERRUPT            0
 #define EXCEPTION_COPROCESSOR_UNUSABLE 11
 
 void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
@@ -112,6 +114,7 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
 
     if (!cpu->cp0.status.exl) {
         cpu->cp0.EPC = pc;
+        cpu->cp0.status.exl = true;
     }
 
     cpu->cp0.cause.exception_code = code;
@@ -120,16 +123,24 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     if (cpu->cp0.status.bev) {
         switch (code) {
             case EXCEPTION_COPROCESSOR_UNUSABLE:
+                logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.")
                 cpu->pc = 0x80000180;
                 break;
             default:
                 logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code)
         }
     } else {
-        logfatal("Exception %d without BEV! See page 181 in the manual.", code)
+        switch (code) {
+            case EXCEPTION_INTERRUPT:
+                cpu->pc = 0x80000180;
+                break;
+            default:
+                logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code)
+        }
     }
 }
 
+// TODO: this really, really needs to be one function per coprocessor.
 mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr, int cop) {
     if (cop == 1 && !cpu->cp0.status.cu1) {
         //exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
@@ -154,6 +165,8 @@ mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t ins
                 switch (cop) {
                     case 0:
                         return MIPS_CP_MTC0;
+                    case 1:
+                        return MIPS_CP_MTC1;
                     default:
                         logfatal("MT to unsupported coprocessor: %d", cop)
                 }
@@ -190,6 +203,13 @@ mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t ins
                     default:
                         logfatal("mul.d to unsupported coprocessor: %d", cop)
                 }
+            case COP_FUNCT_ERET:
+                if (cop == 0) {
+                    return MIPS_ERET;
+                } else {
+                    logfatal("ERET on COP%d?", cop)
+                }
+                break;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -316,9 +336,19 @@ void cp0_step(cp0_t* cp0) {
 void r4300i_step(r4300i_t* cpu) {
     cp0_step(&cpu->cp0);
     dword pc = cpu->pc;
-
     mips_instruction_t instruction;
     instruction.raw = cpu->read_word(pc);
+
+    byte interrupts = cpu->cp0.cause.interrupt_pending & cpu->cp0.status.im;
+    if (interrupts > 0) {
+        if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
+            cpu->cp0.cause.interrupt_pending = interrupts;
+            exception(cpu, pc, 0, interrupts);
+            return;
+        }
+    }
+
+
     cpu->pc += 4;
 
     switch (decode(cpu, pc, instruction)) {
@@ -360,6 +390,9 @@ void r4300i_step(r4300i_t* cpu) {
         // Coprocessor
         exec_instr(MIPS_CP_MFC0, mips_mfc0)
         exec_instr(MIPS_CP_MTC0, mips_mtc0)
+        exec_instr(MIPS_CP_MTC1, mips_mtc1)
+
+        exec_instr(MIPS_ERET, mips_eret)
 
         exec_instr(MIPS_CP_CFC1, mips_cfc1)
         exec_instr(MIPS_CP_CTC1, mips_ctc1)
