@@ -38,6 +38,9 @@ MIPS_INSTR(mips_eret);
 MIPS_INSTR(mips_cfc1);
 MIPS_INSTR(mips_ctc1);
 
+MIPS_INSTR(mips_cp_bc1f);
+MIPS_INSTR(mips_cp_bc1t);
+
 MIPS_INSTR(mips_cp_mul_d);
 MIPS_INSTR(mips_cp_mul_s);
 MIPS_INSTR(mips_cp_div_d);

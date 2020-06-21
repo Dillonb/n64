@@ -120,14 +120,46 @@ typedef struct cp0 {
     word r31;
 } cp0_t;
 
+typedef union fcr0 {
+    word raw;
+} fcr0_t;
+
+typedef union fcr31 {
+    word raw;
+
+    struct {
+        byte rounding_mode:2;
+        bool flag_inexact_operation:1;
+        bool flag_underflow:1;
+        bool flag_overflow:1;
+        bool flag_division_by_zero:1;
+        bool flag_invalid_operation:1;
+        bool enable_inexact_operation:1;
+        bool enable_underflow:1;
+        bool enable_overflow:1;
+        bool enable_division_by_zero:1;
+        bool enable_invalid_operation:1;
+        bool cause_inexact_operation:1;
+        bool cause_underflow:1;
+        bool cause_overflow:1;
+        bool cause_division_by_zero:1;
+        bool cause_invalid_operation:1;
+        bool cause_unimplemented_operation:1;
+        unsigned:5;
+        bool compare:1;
+        bool fs:1;
+        unsigned:7;
+    };
+} fcr31_t;
+
 typedef struct r4300i {
     dword gpr[32];
     word pc;
     dword mult_hi;
     dword mult_lo;
 
-    word fcr0;
-    word fcr31;
+    fcr0_t  fcr0;
+    fcr31_t fcr31;
 
     byte f[256];
 
@@ -287,6 +319,9 @@ typedef enum mips_instruction_type {
 
     MIPS_CP_CTC1,
     MIPS_CP_CFC1,
+
+    MIPS_CP_BC1F,
+    MIPS_CP_BC1T,
 
     MIPS_CP_ADD_D,
     MIPS_CP_ADD_S,

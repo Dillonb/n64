@@ -214,10 +214,10 @@ MIPS_INSTR(mips_cfc1) {
     sword value;
     switch (fs) {
         case 0:
-            value = cpu->fcr0;
+            value = cpu->fcr0.raw;
             break;
         case 31:
-            value = cpu->fcr31;
+            value = cpu->fcr31.raw;
             break;
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)")
@@ -231,15 +231,23 @@ MIPS_INSTR(mips_ctc1) {
     word value = get_register(cpu, instruction.r.rt);
     switch (fs) {
         case 0:
-            cpu->fcr0 = value;
+            cpu->fcr0.raw = value;
             break;
         case 31:
-            cpu->fcr31 = value;
+            cpu->fcr31.raw = value;
             logwarn("TODO: possible exception here. See manual for CTC1")
             break;
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)")
     }
+}
+
+MIPS_INSTR(mips_cp_bc1f) {
+    conditional_branch(cpu, instruction.i.immediate, !cpu->fcr31.compare);
+}
+
+MIPS_INSTR(mips_cp_bc1t) {
+    conditional_branch(cpu, instruction.i.immediate, cpu->fcr31.compare);
 }
 
 MIPS_INSTR(mips_cp_mul_d) {
@@ -389,7 +397,9 @@ MIPS_INSTR(mips_cp_c_nge_s) {
     logfatal("Unimplemented: mips_cp_c_nge_s")
 }
 MIPS_INSTR(mips_cp_c_le_s) {
-    logfatal("Unimplemented: mips_cp_c_le_s")
+    float fs = get_fpu_register_float(cpu, instruction.fr.fs);
+    float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+    cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_s) {
     logfatal("Unimplemented: mips_cp_c_ngt_s")
@@ -468,7 +478,7 @@ MIPS_INSTR(mips_cp_c_nge_d) {
 MIPS_INSTR(mips_cp_c_le_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
-    logfatal("Unimplemented: mips_cp_c_le_d")
+    cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);

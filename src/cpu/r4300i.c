@@ -56,6 +56,11 @@ const char* cp0_register_names[] = {
 #define COP_CF    0b00010
 #define COP_MT    0b00100
 #define COP_CT    0b00110
+#define COP_BC    0b01000
+
+
+#define COP_BC_BCF 0b00000
+#define COP_BC_BCT 0b00001
 
 // Coprocessor FUNCT
 #define COP_FUNCT_ADD        0b000000
@@ -209,6 +214,18 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
             return MIPS_CP_MTC1;
         case COP_CT:
             return MIPS_CP_CTC1;
+        case COP_BC:
+            switch (instr.r.rt) {
+                case COP_BC_BCT:
+                    return MIPS_CP_BC1T;
+                case COP_BC_BCF:
+                    return MIPS_CP_BC1F;
+                default: {
+                    char buf[50];
+                    disassemble(pc, instr.raw, buf, 50);
+                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf)
+                }
+            }
     }
     switch (instr.fr.funct) {
         case COP_FUNCT_ADD:
@@ -503,6 +520,9 @@ void r4300i_step(r4300i_t* cpu) {
 
         exec_instr(MIPS_CP_CFC1, mips_cfc1)
         exec_instr(MIPS_CP_CTC1, mips_ctc1)
+
+        exec_instr(MIPS_CP_BC1F, mips_cp_bc1f)
+        exec_instr(MIPS_CP_BC1T, mips_cp_bc1t)
 
         exec_instr(MIPS_CP_ADD_D, mips_cp_add_d)
         exec_instr(MIPS_CP_ADD_S, mips_cp_add_s)
