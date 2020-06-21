@@ -397,82 +397,82 @@ MIPS_INSTR(mips_cp_c_ngt_s) {
 
 MIPS_INSTR(mips_cp_c_f_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_f_d")
 }
 MIPS_INSTR(mips_cp_c_un_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_un_d")
 }
 MIPS_INSTR(mips_cp_c_eq_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_eq_d")
 }
 MIPS_INSTR(mips_cp_c_ueq_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_ueq_d")
 }
 MIPS_INSTR(mips_cp_c_olt_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_olt_d")
 }
 MIPS_INSTR(mips_cp_c_ult_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_ult_d")
 }
 MIPS_INSTR(mips_cp_c_ole_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_ole_d")
 }
 MIPS_INSTR(mips_cp_c_ule_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_ule_d")
 }
 MIPS_INSTR(mips_cp_c_sf_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_sf_d")
 }
 MIPS_INSTR(mips_cp_c_ngle_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_ngle_d")
 }
 MIPS_INSTR(mips_cp_c_seq_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_seq_d")
 }
 MIPS_INSTR(mips_cp_c_ngl_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_ngl_d")
 }
 MIPS_INSTR(mips_cp_c_lt_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_lt_d")
 }
 MIPS_INSTR(mips_cp_c_nge_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_nge_d")
 }
 MIPS_INSTR(mips_cp_c_le_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_le_d")
 }
 MIPS_INSTR(mips_cp_c_ngt_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
-    double ft = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     logfatal("Unimplemented: mips_cp_c_ngt_d")
 }
 
