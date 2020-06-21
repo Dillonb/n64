@@ -10,6 +10,7 @@ static SDL_Window* window = NULL;
 static uint32_t window_id;
 static SDL_Renderer* renderer = NULL;
 static SDL_Texture* argb32buffer = NULL;
+static SDL_Texture* rgb16buffer = NULL;
 
 word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
@@ -32,6 +33,7 @@ void render_init() {
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     argb32buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, N64_SCREEN_X, N64_SCREEN_Y);
+    rgb16buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB1555, SDL_TEXTUREACCESS_STREAMING, N64_SCREEN_X, N64_SCREEN_Y);
 
     if (renderer == NULL) {
         logfatal("SDL couldn't create a renderer! %s", SDL_GetError());
@@ -63,11 +65,13 @@ void render_screen(n64_system_t* system) {
     }
 
     unimplemented(system->vi.status.type == VI_TYPE_RESERVED, "VI_TYPE_RESERVED unimplemented!")
-    unimplemented(system->vi.status.type == VI_TYPE_16BIT, "VI_TYPE_16BIT unimplemented!")
 
     if (system->vi.status.type == VI_TYPE_32BIT) {
         SDL_UpdateTexture(argb32buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 4);
         SDL_RenderCopy(renderer, argb32buffer, NULL, NULL);
+    } else if (system->vi.status.type == VI_TYPE_16BIT) {
+        SDL_UpdateTexture(rgb16buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 2);
+        SDL_RenderCopy(renderer, rgb16buffer, NULL, NULL);
     }
 
     SDL_RenderPresent(renderer);

@@ -284,6 +284,7 @@ typedef enum mips_instruction_type {
     MIPS_ANDI,
     MIPS_LBU,
     MIPS_LHU,
+    MIPS_LH,
     MIPS_LW,
     MIPS_BLEZ,
     MIPS_BLEZL,
@@ -309,10 +310,15 @@ typedef enum mips_instruction_type {
     MIPS_SDC1,
     MIPS_LWC1,
     MIPS_SWC1,
+    MIPS_LWL,
+    MIPS_LWR,
+    MIPS_SWL,
+    MIPS_SWR,
 
     // Coprocessor
     MIPS_CP_MFC0,
     MIPS_CP_MTC0,
+    MIPS_CP_MFC1,
     MIPS_CP_MTC1,
 
     MIPS_ERET, // Technically COP0?
@@ -322,6 +328,8 @@ typedef enum mips_instruction_type {
 
     MIPS_CP_BC1F,
     MIPS_CP_BC1T,
+    MIPS_CP_BC1FL,
+    MIPS_CP_BC1TL,
 
     MIPS_CP_ADD_D,
     MIPS_CP_ADD_S,
@@ -329,6 +337,8 @@ typedef enum mips_instruction_type {
     MIPS_CP_MUL_S,
     MIPS_CP_DIV_D,
     MIPS_CP_DIV_S,
+    MIPS_CP_TRUNC_W_D,
+    MIPS_CP_TRUNC_W_S,
 
     MIPS_CP_CVT_D_S,
     MIPS_CP_CVT_D_W,
@@ -377,6 +387,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_SLL,
     MIPS_SPC_SRL,
     MIPS_SPC_SRA,
+    MIPS_SPC_SRAV,
     MIPS_SPC_SLLV,
     MIPS_SPC_SRLV,
     MIPS_SPC_JR,
@@ -386,16 +397,20 @@ typedef enum mips_instruction_type {
     MIPS_SPC_MTLO,
     MIPS_SPC_MULT,
     MIPS_SPC_MULTU,
+    MIPS_SPC_DIV,
     MIPS_SPC_DIVU,
     MIPS_SPC_ADD,
     MIPS_SPC_ADDU,
     MIPS_SPC_AND,
+    MIPS_SPC_NOR,
     MIPS_SPC_SUBU,
     MIPS_SPC_OR,
     MIPS_SPC_XOR,
     MIPS_SPC_SLT,
     MIPS_SPC_SLTU,
     MIPS_SPC_DADD,
+    MIPS_SPC_DSLL,
+    MIPS_SPC_DSLL32,
 
     // REGIMM
     MIPS_RI_BGEZ,
@@ -453,6 +468,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             break;
         case R4300I_CP0_REG_COMPARE:
             logwarn("$Compare written with 0x%08X (count is now 0x%08X) - TODO: clear interrupt in $Cause", value, cpu->cp0.count);
+            cpu->cp0.cause.ip7 = false;
             cpu->cp0.compare = value;
             break;
         case R4300I_CP0_REG_STATUS: {
@@ -515,6 +531,10 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
             return cpu->cp0.cause.raw;
         case R4300I_CP0_REG_EPC:
             return cpu->cp0.EPC;
+        case R4300I_CP0_REG_COUNT:
+            return cpu->cp0.count;
+        case R4300I_CP0_REG_COMPARE:
+            return cpu->cp0.compare;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
     }

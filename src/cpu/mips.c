@@ -1,6 +1,7 @@
 #include "mips.h"
 #include "../common/log.h"
 #include "sign_extension.h"
+#include "math.h"
 
 void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
@@ -194,6 +195,11 @@ MIPS_INSTR(mips_mtc0) {
     set_cp0_register(cpu, instruction.r.rd, value);
 }
 
+MIPS_INSTR(mips_mfc1) {
+    word value = get_fpu_register_word(cpu, instruction.fr.fs);
+    set_register(cpu, instruction.r.rt, value);
+}
+
 MIPS_INSTR(mips_mtc1) {
     word value = get_register(cpu, instruction.r.rt);
     set_fpu_register_word(cpu, instruction.r.rd, value);
@@ -246,8 +252,15 @@ MIPS_INSTR(mips_cp_bc1f) {
     conditional_branch(cpu, instruction.i.immediate, !cpu->fcr31.compare);
 }
 
+MIPS_INSTR(mips_cp_bc1fl) {
+    conditional_branch_likely(cpu, instruction.i.immediate, !cpu->fcr31.compare);
+}
+
 MIPS_INSTR(mips_cp_bc1t) {
     conditional_branch(cpu, instruction.i.immediate, cpu->fcr31.compare);
+}
+MIPS_INSTR(mips_cp_bc1tl) {
+    conditional_branch_likely(cpu, instruction.i.immediate, cpu->fcr31.compare);
 }
 
 MIPS_INSTR(mips_cp_mul_d) {
@@ -292,6 +305,15 @@ MIPS_INSTR(mips_cp_add_s) {
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     float result = fs + ft;
     set_fpu_register_float(cpu, instruction.fr.fd, result);
+}
+
+MIPS_INSTR(mips_cp_trunc_w_d) {
+    logfatal("mips_cp_trunc_w_d")
+}
+
+MIPS_INSTR(mips_cp_trunc_w_s) {
+    float fs = get_fpu_register_float(cpu, instruction.fr.fs);
+    set_fpu_register_float(cpu, instruction.fr.fd, trunc(fs));
 }
 
 MIPS_INSTR(mips_cp_cvt_d_s) {
@@ -546,6 +568,14 @@ MIPS_INSTR(mips_lhu) {
     set_register(cpu, instruction.i.rt, value);
 }
 
+MIPS_INSTR(mips_lh) {
+    shalf offset = instruction.i.immediate;
+    word address = get_register(cpu, instruction.i.rs) + offset;
+    shalf value   = cpu->read_half(address);
+
+    set_register(cpu, instruction.i.rt, (sdword)value);
+}
+
 MIPS_INSTR(mips_lw) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
@@ -642,6 +672,55 @@ MIPS_INSTR(mips_swc1) {
     cpu->write_word(address, value);
 }
 
+MIPS_INSTR(mips_lwl) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+
+    word shift = 8 * ((address ^ 0) & 3);
+    word mask = (word)(0) - 1 << shift;
+    word data = cpu->read_word(address & ~3);
+    if (data) {
+        set_register(cpu, instruction.i.rt, (get_register(cpu, instruction.i.rt) & ~mask) | data << shift);
+    }
+}
+
+MIPS_INSTR(mips_lwr) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+
+    word shift = 8 * ((address ^ 7) & 3);
+
+    word mask = (word)(0) - 1 >> shift;
+    word data = cpu->read_word(address & ~3);
+    if (data) {
+        set_register(cpu, instruction.i.rt, (get_register(cpu, instruction.i.rt) & ~mask) | data >> shift);
+    }
+}
+
+MIPS_INSTR(mips_swl) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+
+    auto shift = 8 * ((address ^ 0) & 3);
+    auto mask = (word)(0) - 1 >> shift;
+    auto data = cpu->read_word(address & ~3);
+    if (data) {
+        cpu->write_word(address & ~3, (data & ~mask) | get_register(cpu, instruction.i.rt) >> shift);
+    }
+}
+
+MIPS_INSTR(mips_swr) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+
+    auto shift = 8 * ((address ^ 7) & 3);
+    auto mask = (word)(0) - 1 << shift;
+    auto data = cpu->read_word(address & ~3);
+    if (data) {
+        cpu->write_word(address & ~3, (data & ~mask) | get_register(cpu, instruction.i.rt) << shift);
+    }
+}
+
 MIPS_INSTR(mips_spc_sll) {
     sword result = get_register(cpu, instruction.r.rt) << instruction.r.sa;
     set_register(cpu, instruction.r.rd, (sdword)result);
@@ -656,6 +735,12 @@ MIPS_INSTR(mips_spc_srl) {
 MIPS_INSTR(mips_spc_sra) {
     sword value = get_register(cpu, instruction.r.rt);
     sword result = value >> instruction.r.sa;
+    set_register(cpu, instruction.r.rd, (sdword) result);
+}
+
+MIPS_INSTR(mips_spc_srav) {
+    sword value = get_register(cpu, instruction.r.rt);
+    sword result = value >> (get_register(cpu, instruction.r.rs) & 0b11111);
     set_register(cpu, instruction.r.rd, (sdword) result);
 }
 
@@ -720,6 +805,24 @@ MIPS_INSTR(mips_spc_multu) {
     cpu->mult_hi = result_upper;
 }
 
+MIPS_INSTR(mips_spc_div) {
+    sdword dividend = get_register(cpu, instruction.r.rs);
+    sdword divisor  = get_register(cpu, instruction.r.rt);
+
+    if (divisor == 0) {
+        logwarn("Undefined behavior! No exception thrown, but a divide by zero happened.")
+        cpu->mult_lo = 0;
+        cpu->mult_hi = 0;
+    } else {
+        sdword quotient  = dividend / divisor;
+        sdword remainder = dividend % divisor;
+
+        cpu->mult_lo = quotient;
+        cpu->mult_hi = remainder;
+    }
+
+}
+
 MIPS_INSTR(mips_spc_divu) {
     dword dividend = get_register(cpu, instruction.r.rs);
     dword divisor  = get_register(cpu, instruction.r.rt);
@@ -761,6 +864,11 @@ MIPS_INSTR(mips_spc_addu) {
 
 MIPS_INSTR(mips_spc_and) {
     dword result = get_register(cpu, instruction.r.rs) & get_register(cpu, instruction.r.rt);
+    set_register(cpu, instruction.r.rd, result);
+}
+
+MIPS_INSTR(mips_spc_nor) {
+    dword result = ~(get_register(cpu, instruction.r.rs) | get_register(cpu, instruction.r.rt));
     set_register(cpu, instruction.r.rd, result);
 }
 
@@ -815,6 +923,18 @@ MIPS_INSTR(mips_spc_dadd) {
     sdword result = addend1 + addend2;
     check_sdword_add_overflow(addend1, addend2, result);
     set_register(cpu, instruction.r.rd, result);
+}
+
+MIPS_INSTR(mips_spc_dsll) {
+    dword value = get_register(cpu, instruction.r.rt);
+    value <<= instruction.r.sa;
+    set_register(cpu, instruction.r.rd, value);
+}
+
+MIPS_INSTR(mips_spc_dsll32) {
+    dword value = get_register(cpu, instruction.r.rt);
+    value <<= instruction.r.sa + 32;
+    set_register(cpu, instruction.r.rd, value);
 }
 
 MIPS_INSTR(mips_ri_bgez) {

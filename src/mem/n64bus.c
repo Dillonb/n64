@@ -285,13 +285,17 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             break;
         }
         case ADDR_PI_DOMAIN1_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_DOMAIN1_REG", value)
+            system->mem.pi_reg[PI_DOMAIN1_REG] = value;
+            break;
         case ADDR_PI_BSD_DOM1_PWD_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_BSD_DOM1_PWD_REG", value)
+            system->mem.pi_reg[PI_BSD_DOM1_PWD_REG] = value;
+            break;
         case ADDR_PI_BSD_DOM1_PGS_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_BSD_DOM1_PGS_REG", value)
+            system->mem.pi_reg[PI_BSD_DOM1_PGS_REG] = value;
+            break;
         case ADDR_PI_BSD_DOM1_RLS_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_BSD_DOM1_RLS_REG", value)
+            system->mem.pi_reg[PI_BSD_DOM1_RLS_REG] = value;
+            break;
         case ADDR_PI_DOMAIN2_REG:
             logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_DOMAIN2_REG", value)
         case ADDR_PI_BSD_DOM2_PWD_REG:
@@ -432,7 +436,18 @@ word read_word_mireg(n64_system_t* system, word address) {
 void write_word_sireg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_SI_STATUS_REG:
-            logwarn("TODO: any write to SI status register clears interrupt")
+            interrupt_lower(system, INTERRUPT_SI);
+            break;
+        case ADDR_SI_DRAM_ADDR_REG:
+            system->mem.si_reg.dram_address = value;
+            break;
+        case ADDR_SI_PIF_ADDR_RD64B_REG:
+            run_dma(system, value, system->mem.si_reg.dram_address, 63, "PIF to DRAM");
+            interrupt_raise(system, INTERRUPT_SI);
+            break;
+        case ADDR_SI_PIF_ADDR_WR64B_REG:
+            run_dma(system, system->mem.si_reg.dram_address, value, 63, "DRAM to PIF");
+            interrupt_raise(system, INTERRUPT_SI);
             break;
         default:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address)
@@ -705,7 +720,8 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_VI_REGS:
             return read_word_vireg(system, address);
         case REGION_AI_REGS:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_AI_REGS", address)
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_AI_REGS", address)
+            return 0;
         case REGION_PI_REGS:
             return read_word_pireg(system, address);
         case REGION_RI_REGS:
@@ -933,11 +949,18 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
         case REGION_PIF_BOOT:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_RAM", value, address)
+            if (address == ADDR_PIF_RAM_JOYPAD) {
+                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
+                break;
+            } else {
+                system->mem.pif_ram[address - SREGION_PIF_RAM] = value;
+            }
+            break;
         case REGION_RESERVED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
         case REGION_CART_1_3:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
+            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
+            break;
         case REGION_SYSAD_DEVICE:
             return n64_write_byte(system, vatopa(address), value);
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_SYSAD_DEVICE", value, address)
@@ -993,7 +1016,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_PIF_BOOT:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_PIF_BOOT", address)
         case REGION_PIF_RAM:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_PIF_RAM", address)
+            return system->mem.pif_ram[address - SREGION_PIF_RAM];
         case REGION_RESERVED:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RESERVED", address)
         case REGION_CART_1_3:

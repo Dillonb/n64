@@ -7,7 +7,8 @@
 #include "../vi_reg.h"
 
 typedef enum n64_interrupt {
-    INTERRUPT_VI
+    INTERRUPT_VI,
+    INTERRUPT_SI,
 } n64_interrupt_t;
 
 typedef union mi_intr_mask {

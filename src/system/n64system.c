@@ -128,6 +128,9 @@ void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
         case INTERRUPT_VI:
             system->mi.intr.vi = true;
             break;
+        case INTERRUPT_SI:
+            system->mi.intr.si = true;
+            break;
         default:
             logfatal("Raising unimplemented interrupt: %d", interrupt)
     }
@@ -139,6 +142,9 @@ void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
             system->mi.intr.vi = false;
+            break;
+        case INTERRUPT_SI:
+            system->mi.intr.si = false;
             break;
         default:
             logfatal("Lowering unimplemented interrupt: %d", interrupt)

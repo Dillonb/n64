@@ -24,6 +24,7 @@ const char* cp0_register_names[] = {
 #define OPC_ANDI   0b001100
 #define OPC_LBU    0b100100
 #define OPC_LHU    0b100101
+#define OPC_LH     0b100001
 #define OPC_LW     0b100011
 #define OPC_BEQ    0b000100
 #define OPC_BEQL   0b010100
@@ -50,6 +51,10 @@ const char* cp0_register_names[] = {
 #define OPC_SDC1   0b111101
 #define OPC_LWC1   0b110001
 #define OPC_SWC1   0b111001
+#define OPC_LWL    0b100010
+#define OPC_LWR    0b100110
+#define OPC_SWL    0b101010
+#define OPC_SWR    0b101110
 
 // Coprocessor
 #define COP_MF    0b00000
@@ -59,13 +64,16 @@ const char* cp0_register_names[] = {
 #define COP_BC    0b01000
 
 
-#define COP_BC_BCF 0b00000
-#define COP_BC_BCT 0b00001
+#define COP_BC_BCF  0b00000
+#define COP_BC_BCT  0b00001
+#define COP_BC_BCFL 0b00010
+#define COP_BC_BCTL 0b00011
 
 // Coprocessor FUNCT
 #define COP_FUNCT_ADD        0b000000
 #define COP_FUNCT_TLBWI_MULT 0b000010
 #define COP_FUNCT_DIV        0b000011
+#define COP_FUNCT_TRUNC_W    0b001101
 #define COP_FUNCT_ERET       0b011000
 #define COP_FUNCT_CVT_S      0b100000
 #define COP_FUNCT_CVT_D      0b100001
@@ -88,6 +96,7 @@ const char* cp0_register_names[] = {
 #define COP_FUNCT_C_LE       0b111110
 #define COP_FUNCT_C_NGT      0b111111
 
+
 // Floating point
 #define FP_FMT_SINGLE 16
 #define FP_FMT_DOUBLE 17
@@ -95,28 +104,34 @@ const char* cp0_register_names[] = {
 #define FP_FMT_L      21
 
 // Special
-#define FUNCT_SLL   0b000000
-#define FUNCT_SRL   0b000010
-#define FUNCT_SRA   0b000011
-#define FUNCT_SLLV  0b000100
-#define FUNCT_SRLV  0b000110
-#define FUNCT_JR    0b001000
-#define FUNCT_MFHI  0b010000
-#define FUNCT_MTHI  0b010001
-#define FUNCT_MFLO  0b010010
-#define FUNCT_MTLO  0b010011
-#define FUNCT_MULT  0b011000
-#define FUNCT_MULTU 0b011001
-#define FUNCT_DIVU  0b011011
-#define FUNCT_ADD   0b100000
-#define FUNCT_ADDU  0b100001
-#define FUNCT_AND   0b100100
-#define FUNCT_SUBU  0b100011
-#define FUNCT_OR    0b100101
-#define FUNCT_XOR   0b100110
-#define FUNCT_SLT   0b101010
-#define FUNCT_SLTU  0b101011
-#define FUNCT_DADD  0b101100
+#define FUNCT_SLL    0b000000
+#define FUNCT_SRL    0b000010
+#define FUNCT_SRA    0b000011
+#define FUNCT_SRAV   0b000111
+#define FUNCT_SLLV   0b000100
+#define FUNCT_SRLV   0b000110
+#define FUNCT_JR     0b001000
+#define FUNCT_MFHI   0b010000
+#define FUNCT_MTHI   0b010001
+#define FUNCT_MFLO   0b010010
+#define FUNCT_MTLO   0b010011
+#define FUNCT_MULT   0b011000
+#define FUNCT_MULTU  0b011001
+#define FUNCT_DIV    0b011010
+#define FUNCT_DIVU   0b011011
+#define FUNCT_ADD    0b100000
+#define FUNCT_ADDU   0b100001
+#define FUNCT_AND    0b100100
+#define FUNCT_NOR    0b100111
+#define FUNCT_SUBU   0b100011
+#define FUNCT_OR     0b100101
+#define FUNCT_XOR    0b100110
+#define FUNCT_SLT    0b101010
+#define FUNCT_SLTU   0b101011
+#define FUNCT_DADD   0b101100
+#define FUNCT_DSLL   0b111000
+#define FUNCT_DSLL32 0b111100
+
 
 // REGIMM
 #define RT_BGEZ   0b00001
@@ -135,8 +150,8 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
         cpu->branch = false;
         cpu->branch_delay = 0;
         cpu->branch_pc = 0;
-        logfatal("Exception thrown in a branch delay slot! make sure this is being handled correctly. "
-                 "EPC is supposed to be set to the address of the branch preceding the slot.")
+        //logfatal("Exception thrown in a branch delay slot! make sure this is being handled correctly. "
+         //        "EPC is supposed to be set to the address of the branch preceding the slot.")
     } else {
         cpu->cp0.cause.branch_delay = false;
     }
@@ -161,6 +176,9 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     } else {
         switch (code) {
             case EXCEPTION_INTERRUPT:
+                cpu->pc = 0x80000180;
+                break;
+            case EXCEPTION_COPROCESSOR_UNUSABLE:
                 cpu->pc = 0x80000180;
                 break;
             default:
@@ -202,7 +220,7 @@ mips_instruction_type_t decode_cp0(r4300i_t* cpu, word pc, mips_instruction_t in
 
 mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if (!cpu->cp0.status.cu1) {
-        //exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
+        exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
     }
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
@@ -210,6 +228,8 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
     switch (instr.r.rs) {
         case COP_CF:
             return MIPS_CP_CFC1;
+        case COP_MF:
+            return MIPS_CP_MFC1;
         case COP_MT:
             return MIPS_CP_MTC1;
         case COP_CT:
@@ -220,6 +240,10 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
                     return MIPS_CP_BC1T;
                 case COP_BC_BCF:
                     return MIPS_CP_BC1F;
+                case COP_BC_BCTL:
+                    return MIPS_CP_BC1TL;
+                case COP_BC_BCFL:
+                    return MIPS_CP_BC1FL;
                 default: {
                     char buf[50];
                     disassemble(pc, instr.raw, buf, 50);
@@ -252,6 +276,15 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
                     return MIPS_CP_DIV_D;
                 case FP_FMT_SINGLE:
                     return MIPS_CP_DIV_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_TRUNC_W:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_TRUNC_W_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_TRUNC_W_S;
                 default:
                     logfatal("Undefined!")
             }
@@ -346,28 +379,33 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
 
 mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
-        case FUNCT_SLL:   return MIPS_SPC_SLL;
-        case FUNCT_SRL:   return MIPS_SPC_SRL;
-        case FUNCT_SRA:   return MIPS_SPC_SRA;
-        case FUNCT_SLLV:  return MIPS_SPC_SLLV;
-        case FUNCT_SRLV:  return MIPS_SPC_SRLV;
-        case FUNCT_JR:    return MIPS_SPC_JR;
-        case FUNCT_MFHI:  return MIPS_SPC_MFHI;
-        case FUNCT_MTHI:  return MIPS_SPC_MTHI;
-        case FUNCT_MFLO:  return MIPS_SPC_MFLO;
-        case FUNCT_MTLO:  return MIPS_SPC_MTLO;
-        case FUNCT_MULT:  return MIPS_SPC_MULT;
-        case FUNCT_MULTU: return MIPS_SPC_MULTU;
-        case FUNCT_DIVU:  return MIPS_SPC_DIVU;
-        case FUNCT_ADD:   return MIPS_SPC_ADD;
-        case FUNCT_ADDU:  return MIPS_SPC_ADDU;
-        case FUNCT_AND:   return MIPS_SPC_AND;
-        case FUNCT_SUBU:  return MIPS_SPC_SUBU;
-        case FUNCT_OR:    return MIPS_SPC_OR;
-        case FUNCT_XOR:   return MIPS_SPC_XOR;
-        case FUNCT_SLT:   return MIPS_SPC_SLT;
-        case FUNCT_SLTU:  return MIPS_SPC_SLTU;
-        case FUNCT_DADD:  return MIPS_SPC_DADD;
+        case FUNCT_SLL:    return MIPS_SPC_SLL;
+        case FUNCT_SRL:    return MIPS_SPC_SRL;
+        case FUNCT_SRA:    return MIPS_SPC_SRA;
+        case FUNCT_SRAV:   return MIPS_SPC_SRAV;
+        case FUNCT_SLLV:   return MIPS_SPC_SLLV;
+        case FUNCT_SRLV:   return MIPS_SPC_SRLV;
+        case FUNCT_JR:     return MIPS_SPC_JR;
+        case FUNCT_MFHI:   return MIPS_SPC_MFHI;
+        case FUNCT_MTHI:   return MIPS_SPC_MTHI;
+        case FUNCT_MFLO:   return MIPS_SPC_MFLO;
+        case FUNCT_MTLO:   return MIPS_SPC_MTLO;
+        case FUNCT_MULT:   return MIPS_SPC_MULT;
+        case FUNCT_MULTU:  return MIPS_SPC_MULTU;
+        case FUNCT_DIV:    return MIPS_SPC_DIV;
+        case FUNCT_DIVU:   return MIPS_SPC_DIVU;
+        case FUNCT_ADD:    return MIPS_SPC_ADD;
+        case FUNCT_ADDU:   return MIPS_SPC_ADDU;
+        case FUNCT_AND:    return MIPS_SPC_AND;
+        case FUNCT_NOR:    return MIPS_SPC_NOR;
+        case FUNCT_SUBU:   return MIPS_SPC_SUBU;
+        case FUNCT_OR:     return MIPS_SPC_OR;
+        case FUNCT_XOR:    return MIPS_SPC_XOR;
+        case FUNCT_SLT:    return MIPS_SPC_SLT;
+        case FUNCT_SLTU:   return MIPS_SPC_SLTU;
+        case FUNCT_DADD:   return MIPS_SPC_DADD;
+        case FUNCT_DSLL:   return MIPS_SPC_DSLL;
+        case FUNCT_DSLL32: return MIPS_SPC_DSLL32;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -414,6 +452,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_ANDI:  return MIPS_ANDI;
         case OPC_LBU:   return MIPS_LBU;
         case OPC_LHU:   return MIPS_LHU;
+        case OPC_LH:    return MIPS_LH;
         case OPC_LW:    return MIPS_LW;
         case OPC_BEQ:   return MIPS_BEQ;
         case OPC_BEQL:  return MIPS_BEQL;
@@ -438,6 +477,10 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_SDC1:  return MIPS_SDC1;
         case OPC_LWC1:  return MIPS_LWC1;
         case OPC_SWC1:  return MIPS_SWC1;
+        case OPC_LWL:   return MIPS_LWL;
+        case OPC_LWR:   return MIPS_LWR;
+        case OPC_SWL:   return MIPS_SWL;
+        case OPC_SWR:   return MIPS_SWR;
         default:
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(pc, instr.raw, buf, 50);
@@ -451,6 +494,7 @@ void cp0_step(cp0_t* cp0) {
     cp0->count_stepper = !cp0->count_stepper;
     cp0->count += cp0->count_stepper;
     if (cp0->count == cp0->compare) {
+        cp0->cause.ip7 = true;
         logwarn("TODO: Compare interrupt!")
     }
 }
@@ -486,6 +530,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_ANDI,  mips_andi)
         exec_instr(MIPS_LBU,   mips_lbu)
         exec_instr(MIPS_LHU,   mips_lhu)
+        exec_instr(MIPS_LH,    mips_lh)
         exec_instr(MIPS_LW,    mips_lw)
         exec_instr(MIPS_BEQ,   mips_beq)
         exec_instr(MIPS_BLEZ,  mips_blez)
@@ -510,10 +555,15 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SDC1,  mips_sdc1)
         exec_instr(MIPS_LWC1,  mips_lwc1)
         exec_instr(MIPS_SWC1,  mips_swc1)
+        exec_instr(MIPS_LWL,   mips_lwl)
+        exec_instr(MIPS_LWR,   mips_lwr)
+        exec_instr(MIPS_SWL,   mips_swl)
+        exec_instr(MIPS_SWR,   mips_swr)
 
         // Coprocessor
         exec_instr(MIPS_CP_MFC0, mips_mfc0)
         exec_instr(MIPS_CP_MTC0, mips_mtc0)
+        exec_instr(MIPS_CP_MFC1, mips_mfc1)
         exec_instr(MIPS_CP_MTC1, mips_mtc1)
 
         exec_instr(MIPS_ERET, mips_eret)
@@ -521,8 +571,10 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_CFC1, mips_cfc1)
         exec_instr(MIPS_CP_CTC1, mips_ctc1)
 
-        exec_instr(MIPS_CP_BC1F, mips_cp_bc1f)
-        exec_instr(MIPS_CP_BC1T, mips_cp_bc1t)
+        exec_instr(MIPS_CP_BC1F,  mips_cp_bc1f)
+        exec_instr(MIPS_CP_BC1T,  mips_cp_bc1t)
+        exec_instr(MIPS_CP_BC1FL, mips_cp_bc1fl)
+        exec_instr(MIPS_CP_BC1TL, mips_cp_bc1tl)
 
         exec_instr(MIPS_CP_ADD_D, mips_cp_add_d)
         exec_instr(MIPS_CP_ADD_S, mips_cp_add_s)
@@ -530,6 +582,9 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_MUL_S, mips_cp_mul_s)
         exec_instr(MIPS_CP_DIV_D, mips_cp_div_d)
         exec_instr(MIPS_CP_DIV_S, mips_cp_div_s)
+
+        exec_instr(MIPS_CP_TRUNC_W_D, mips_cp_trunc_w_d)
+        exec_instr(MIPS_CP_TRUNC_W_S, mips_cp_trunc_w_s)
 
         exec_instr(MIPS_CP_CVT_D_S, mips_cp_cvt_d_s)
         exec_instr(MIPS_CP_CVT_D_W, mips_cp_cvt_d_w)
@@ -580,28 +635,33 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_C_NGT_D,  mips_cp_c_ngt_d)
 
         // Special
-        exec_instr(MIPS_SPC_SLL,   mips_spc_sll)
-        exec_instr(MIPS_SPC_SRL,   mips_spc_srl)
-        exec_instr(MIPS_SPC_SRA,   mips_spc_sra)
-        exec_instr(MIPS_SPC_SLLV,  mips_spc_sllv)
-        exec_instr(MIPS_SPC_SRLV,  mips_spc_srlv)
-        exec_instr(MIPS_SPC_JR,    mips_spc_jr)
-        exec_instr(MIPS_SPC_MFHI,  mips_spc_mfhi)
-        exec_instr(MIPS_SPC_MTHI,  mips_spc_mthi)
-        exec_instr(MIPS_SPC_MFLO,  mips_spc_mflo)
-        exec_instr(MIPS_SPC_MTLO,  mips_spc_mtlo)
-        exec_instr(MIPS_SPC_MULT,  mips_spc_mult)
-        exec_instr(MIPS_SPC_MULTU, mips_spc_multu)
-        exec_instr(MIPS_SPC_DIVU,  mips_spc_divu)
-        exec_instr(MIPS_SPC_ADD,   mips_spc_add)
-        exec_instr(MIPS_SPC_ADDU,  mips_spc_addu)
-        exec_instr(MIPS_SPC_AND,   mips_spc_and)
-        exec_instr(MIPS_SPC_SUBU,  mips_spc_subu)
-        exec_instr(MIPS_SPC_OR,    mips_spc_or)
-        exec_instr(MIPS_SPC_XOR,   mips_spc_xor)
-        exec_instr(MIPS_SPC_SLT,   mips_spc_slt)
-        exec_instr(MIPS_SPC_SLTU,  mips_spc_sltu)
-        exec_instr(MIPS_SPC_DADD,  mips_spc_dadd)
+        exec_instr(MIPS_SPC_SLL,    mips_spc_sll)
+        exec_instr(MIPS_SPC_SRL,    mips_spc_srl)
+        exec_instr(MIPS_SPC_SRA,    mips_spc_sra)
+        exec_instr(MIPS_SPC_SRAV,   mips_spc_srav)
+        exec_instr(MIPS_SPC_SLLV,   mips_spc_sllv)
+        exec_instr(MIPS_SPC_SRLV,   mips_spc_srlv)
+        exec_instr(MIPS_SPC_JR,     mips_spc_jr)
+        exec_instr(MIPS_SPC_MFHI,   mips_spc_mfhi)
+        exec_instr(MIPS_SPC_MTHI,   mips_spc_mthi)
+        exec_instr(MIPS_SPC_MFLO,   mips_spc_mflo)
+        exec_instr(MIPS_SPC_MTLO,   mips_spc_mtlo)
+        exec_instr(MIPS_SPC_MULT,   mips_spc_mult)
+        exec_instr(MIPS_SPC_MULTU,  mips_spc_multu)
+        exec_instr(MIPS_SPC_DIV,    mips_spc_div)
+        exec_instr(MIPS_SPC_DIVU,   mips_spc_divu)
+        exec_instr(MIPS_SPC_ADD,    mips_spc_add)
+        exec_instr(MIPS_SPC_ADDU,   mips_spc_addu)
+        exec_instr(MIPS_SPC_AND,    mips_spc_and)
+        exec_instr(MIPS_SPC_NOR,    mips_spc_nor)
+        exec_instr(MIPS_SPC_SUBU,   mips_spc_subu)
+        exec_instr(MIPS_SPC_OR,     mips_spc_or)
+        exec_instr(MIPS_SPC_XOR,    mips_spc_xor)
+        exec_instr(MIPS_SPC_SLT,    mips_spc_slt)
+        exec_instr(MIPS_SPC_SLTU,   mips_spc_sltu)
+        exec_instr(MIPS_SPC_DADD,   mips_spc_dadd)
+        exec_instr(MIPS_SPC_DSLL,   mips_spc_dsll)
+        exec_instr(MIPS_SPC_DSLL32, mips_spc_dsll32)
 
         // REGIMM
         exec_instr(MIPS_RI_BGEZ,   mips_ri_bgez)
