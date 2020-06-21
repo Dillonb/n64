@@ -58,12 +58,36 @@ const char* cp0_register_names[] = {
 #define COP_CT    0b00110
 
 // Coprocessor FUNCT
+#define COP_FUNCT_ADD        0b000000
 #define COP_FUNCT_TLBWI_MULT 0b000010
+#define COP_FUNCT_DIV        0b000011
 #define COP_FUNCT_ERET       0b011000
+#define COP_FUNCT_CVT_S      0b100000
+#define COP_FUNCT_CVT_D      0b100001
+#define COP_FUNCT_CVT_W      0b100100
+#define COP_FUNCT_CVT_L      0b100101
+#define COP_FUNCT_C_F        0b110000
+#define COP_FUNCT_C_UN       0b110001
+#define COP_FUNCT_C_EQ       0b110010
+#define COP_FUNCT_C_UEQ      0b110011
+#define COP_FUNCT_C_OLT      0b110100
+#define COP_FUNCT_C_ULT      0b110101
+#define COP_FUNCT_C_OLE      0b110110
+#define COP_FUNCT_C_ULE      0b110111
+#define COP_FUNCT_C_SF       0b111000
+#define COP_FUNCT_C_NGLE     0b111001
+#define COP_FUNCT_C_SEQ      0b111010
+#define COP_FUNCT_C_NGL      0b111011
+#define COP_FUNCT_C_LT       0b111100
+#define COP_FUNCT_C_NGE      0b111101
+#define COP_FUNCT_C_LE       0b111110
+#define COP_FUNCT_C_NGT      0b111111
 
 // Floating point
 #define FP_FMT_SINGLE 16
 #define FP_FMT_DOUBLE 17
+#define FP_FMT_W      20
+#define FP_FMT_L      21
 
 // Special
 #define FUNCT_SLL   0b000000
@@ -140,84 +164,167 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     }
 }
 
-// TODO: this really, really needs to be one function per coprocessor.
-mips_instruction_type_t decode_cp(r4300i_t* cpu, word pc, mips_instruction_t instr, int cop) {
-    if (cop == 1 && !cpu->cp0.status.cu1) {
-        //exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
-    }
+mips_instruction_type_t decode_cp0(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
-            case COP_MF: // Last 11 bits are 0
-                switch (cop) {
-                    case 0:
-                        return MIPS_CP_MFC0;
-                    default:
-                        logfatal("MF from unsupported coprocessor: %d", cop)
-                }
-            case COP_CF: // Last 11 bits are 0
-                switch (cop) {
-                    case 1:
-                        return MIPS_CP_CFC1;
-                    default:
-                        logfatal("CF from unsupported coprocessor: %d", cop)
-                }
+            case COP_MF:
+                return MIPS_CP_MFC0;
             case COP_MT: // Last 11 bits are 0
-                switch (cop) {
-                    case 0:
-                        return MIPS_CP_MTC0;
-                    case 1:
-                        return MIPS_CP_MTC1;
-                    default:
-                        logfatal("MT to unsupported coprocessor: %d", cop)
-                }
-            case COP_CT: // Last 11 bits are 0
-                switch (cop) {
-                    case 1:
-                        return MIPS_CP_CTC1;
-                    default:
-                        logfatal("CT to unsupported coprocessor: %d", cop)
-                }
+                return MIPS_CP_MTC0;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS Coprocessor 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
                          instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf)
             }
         }
     } else {
         switch (instr.fr.funct) {
             case COP_FUNCT_TLBWI_MULT:
-                switch (cop) {
-                    case 1:
-                        switch (instr.fr.fmt) {
-                            case FP_FMT_DOUBLE:
-                                return MIPS_CP_MUL_D;
-                            case FP_FMT_SINGLE:
-                                return MIPS_CP_MUL_S;
-                            default:
-                                logfatal("Unknown FP format: %d", instr.fr.fmt)
-                        }
-                    case 0:
-                        logwarn("Ignoring (NOP) TLBWI!")
-                        return MIPS_NOP;
-                    default:
-                        logfatal("mul.d to unsupported coprocessor: %d", cop)
-                }
+                logwarn("Ignoring (NOP) TLBWI!")
+                return MIPS_NOP;
             case COP_FUNCT_ERET:
-                if (cop == 0) {
-                    return MIPS_ERET;
-                } else {
-                    logfatal("ERET on COP%d?", cop)
-                }
-                break;
+                return MIPS_ERET;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS Coprocessor 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
                          instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
             }
         }
     }
+}
+
+mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+    if (!cpu->cp0.status.cu1) {
+        //exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
+    }
+    // This function uses a series of two switch statements.
+    // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
+    // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
+    switch (instr.r.rs) {
+        case COP_CF:
+            return MIPS_CP_CFC1;
+        case COP_MT:
+            return MIPS_CP_MTC1;
+        case COP_CT:
+            return MIPS_CP_CTC1;
+    }
+    switch (instr.fr.funct) {
+        case COP_FUNCT_ADD:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_ADD_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_ADD_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_TLBWI_MULT:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_MUL_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_MUL_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_DIV:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_DIV_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_DIV_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_CVT_D:
+            switch (instr.fr.fmt) {
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_CVT_D_S;
+                case FP_FMT_W:
+                    return MIPS_CP_CVT_D_W;
+                case FP_FMT_L:
+                    return MIPS_CP_CVT_D_L;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_CVT_L:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_CVT_L_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_CVT_L_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_CVT_S:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_CVT_S_D;
+                case FP_FMT_W:
+                    return MIPS_CP_CVT_S_W;
+                case FP_FMT_L:
+                    return MIPS_CP_CVT_S_L;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_CVT_W:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_CVT_W_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_CVT_W_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_C_F:
+            logfatal("COP_FUNCT_C_F unimplemented")
+        case COP_FUNCT_C_UN:
+            logfatal("COP_FUNCT_C_UN unimplemented")
+        case COP_FUNCT_C_EQ:
+            logfatal("COP_FUNCT_C_EQ unimplemented")
+        case COP_FUNCT_C_UEQ:
+            logfatal("COP_FUNCT_C_UEQ unimplemented")
+        case COP_FUNCT_C_OLT:
+            logfatal("COP_FUNCT_C_OLT unimplemented")
+        case COP_FUNCT_C_ULT:
+            logfatal("COP_FUNCT_C_ULT unimplemented")
+        case COP_FUNCT_C_OLE:
+            logfatal("COP_FUNCT_C_OLE unimplemented")
+        case COP_FUNCT_C_ULE:
+            logfatal("COP_FUNCT_C_ULE unimplemented")
+        case COP_FUNCT_C_SF:
+            logfatal("COP_FUNCT_C_SF unimplemented")
+        case COP_FUNCT_C_NGLE:
+            logfatal("COP_FUNCT_C_NGLE unimplemented")
+        case COP_FUNCT_C_SEQ:
+            logfatal("COP_FUNCT_C_SEQ unimplemented")
+        case COP_FUNCT_C_NGL:
+            logfatal("COP_FUNCT_C_NGL unimplemented")
+        case COP_FUNCT_C_LT:
+            logfatal("COP_FUNCT_C_LT unimplemented")
+        case COP_FUNCT_C_NGE:
+            logfatal("COP_FUNCT_C_NGE unimplemented")
+        case COP_FUNCT_C_LE:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_C_LE_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_C_LE_S;
+                default:
+                    logfatal("Undefined!")
+            }
+            logfatal("COP_FUNCT_C_LE unimplemented")
+        case COP_FUNCT_C_NGT:
+            logfatal("COP_FUNCT_C_NGT unimplemented")
+    }
+
+    char buf[50];
+    disassemble(pc, instr.raw, buf, 50);
+    logfatal("other/unknown MIPS CP1 0x%08X with rs: %d%d%d%d%d and FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+             instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4,
+             instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
 }
 
 mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_t instr) {
@@ -277,8 +384,8 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         return MIPS_NOP;
     }
     switch (instr.op) {
-        case OPC_CP0:    return decode_cp(cpu, pc, instr, 0);
-        case OPC_CP1:    return decode_cp(cpu, pc, instr, 1);
+        case OPC_CP0:    return decode_cp0(cpu, pc, instr);
+        case OPC_CP1:    return decode_cp1(cpu, pc, instr);
         case OPC_SPCL:   return decode_special(cpu, pc, instr);
         case OPC_REGIMM: return decode_regimm(cpu, pc, instr);
 
@@ -397,8 +504,60 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_CFC1, mips_cfc1)
         exec_instr(MIPS_CP_CTC1, mips_ctc1)
 
+        exec_instr(MIPS_CP_ADD_D, mips_cp_add_d)
+        exec_instr(MIPS_CP_ADD_S, mips_cp_add_s)
         exec_instr(MIPS_CP_MUL_D, mips_cp_mul_d)
         exec_instr(MIPS_CP_MUL_S, mips_cp_mul_s)
+        exec_instr(MIPS_CP_DIV_D, mips_cp_div_d)
+        exec_instr(MIPS_CP_DIV_S, mips_cp_div_s)
+
+        exec_instr(MIPS_CP_CVT_D_S, mips_cp_cvt_d_s)
+        exec_instr(MIPS_CP_CVT_D_W, mips_cp_cvt_d_w)
+        exec_instr(MIPS_CP_CVT_D_L, mips_cp_cvt_d_l)
+
+        exec_instr(MIPS_CP_CVT_L_S, mips_cp_cvt_l_s)
+        exec_instr(MIPS_CP_CVT_L_D, mips_cp_cvt_l_d)
+
+        exec_instr(MIPS_CP_CVT_S_D, mips_cp_cvt_s_d)
+        exec_instr(MIPS_CP_CVT_S_W, mips_cp_cvt_s_w)
+        exec_instr(MIPS_CP_CVT_S_L, mips_cp_cvt_s_l)
+
+        exec_instr(MIPS_CP_CVT_W_S, mips_cp_cvt_w_s)
+        exec_instr(MIPS_CP_CVT_W_D, mips_cp_cvt_w_d)
+
+
+        exec_instr(MIPS_CP_C_F_S,    mips_cp_c_f_s)
+        exec_instr(MIPS_CP_C_UN_S,   mips_cp_c_un_s)
+        exec_instr(MIPS_CP_C_EQ_S,   mips_cp_c_eq_s)
+        exec_instr(MIPS_CP_C_UEQ_S,  mips_cp_c_ueq_s)
+        exec_instr(MIPS_CP_C_OLT_S,  mips_cp_c_olt_s)
+        exec_instr(MIPS_CP_C_ULT_S,  mips_cp_c_ult_s)
+        exec_instr(MIPS_CP_C_OLE_S,  mips_cp_c_ole_s)
+        exec_instr(MIPS_CP_C_ULE_S,  mips_cp_c_ule_s)
+        exec_instr(MIPS_CP_C_SF_S,   mips_cp_c_sf_s)
+        exec_instr(MIPS_CP_C_NGLE_S, mips_cp_c_ngle_s)
+        exec_instr(MIPS_CP_C_SEQ_S,  mips_cp_c_seq_s)
+        exec_instr(MIPS_CP_C_NGL_S,  mips_cp_c_ngl_s)
+        exec_instr(MIPS_CP_C_LT_S,   mips_cp_c_lt_s)
+        exec_instr(MIPS_CP_C_NGE_S,  mips_cp_c_nge_s)
+        exec_instr(MIPS_CP_C_LE_S,   mips_cp_c_le_s)
+        exec_instr(MIPS_CP_C_NGT_S,  mips_cp_c_ngt_s)
+        exec_instr(MIPS_CP_C_F_D,    mips_cp_c_f_d)
+        exec_instr(MIPS_CP_C_UN_D,   mips_cp_c_un_d)
+        exec_instr(MIPS_CP_C_EQ_D,   mips_cp_c_eq_d)
+        exec_instr(MIPS_CP_C_UEQ_D,  mips_cp_c_ueq_d)
+        exec_instr(MIPS_CP_C_OLT_D,  mips_cp_c_olt_d)
+        exec_instr(MIPS_CP_C_ULT_D,  mips_cp_c_ult_d)
+        exec_instr(MIPS_CP_C_OLE_D,  mips_cp_c_ole_d)
+        exec_instr(MIPS_CP_C_ULE_D,  mips_cp_c_ule_d)
+        exec_instr(MIPS_CP_C_SF_D,   mips_cp_c_sf_d)
+        exec_instr(MIPS_CP_C_NGLE_D, mips_cp_c_ngle_d)
+        exec_instr(MIPS_CP_C_SEQ_D,  mips_cp_c_seq_d)
+        exec_instr(MIPS_CP_C_NGL_D,  mips_cp_c_ngl_d)
+        exec_instr(MIPS_CP_C_LT_D,   mips_cp_c_lt_d)
+        exec_instr(MIPS_CP_C_NGE_D,  mips_cp_c_nge_d)
+        exec_instr(MIPS_CP_C_LE_D,   mips_cp_c_le_d)
+        exec_instr(MIPS_CP_C_NGT_D,  mips_cp_c_ngt_d)
 
         // Special
         exec_instr(MIPS_SPC_SLL,   mips_spc_sll)
