@@ -89,8 +89,8 @@ int main(int argc, char** argv) {
             dword actual = system->cpu.gpr[r] & 0xFFFFFFFF;
             if (expected != actual) {
                 logwarn("Failed running line: %s", lastinstr)
-                logwarn("Line %d: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
-                //logfatal("Line %d: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
+                logwarn("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
+                logfatal("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
             }
         }
 
@@ -98,14 +98,14 @@ int main(int argc, char** argv) {
             break;
         }
 
-        loginfo_nonewline("Checking log line %d | %s", line + 1, instrline)
+        loginfo_nonewline("Checking log line %ld | %s", line + 1, instrline)
 
         strcpy(lastinstr, instrline);
 
         tok = strtok(instrline, " ");
         dword pc = strtol(tok, NULL, 16);
         if (pc != system->cpu.pc) {
-            logfatal("Line %d: PC expected: 0x%08lX actual: 0x%08X", line + 1, pc, system->cpu.pc)
+            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08X", line + 1, pc, system->cpu.pc)
         }
         n64_system_step(system);
     }

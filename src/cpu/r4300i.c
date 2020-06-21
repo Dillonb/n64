@@ -73,6 +73,7 @@ const char* cp0_register_names[] = {
 #define COP_FUNCT_ADD        0b000000
 #define COP_FUNCT_TLBWI_MULT 0b000010
 #define COP_FUNCT_DIV        0b000011
+#define COP_FUNCT_TRUNC_L    0b001001
 #define COP_FUNCT_TRUNC_W    0b001101
 #define COP_FUNCT_ERET       0b011000
 #define COP_FUNCT_CVT_S      0b100000
@@ -276,6 +277,15 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
                     return MIPS_CP_DIV_D;
                 case FP_FMT_SINGLE:
                     return MIPS_CP_DIV_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        case COP_FUNCT_TRUNC_L:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_TRUNC_L_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_TRUNC_L_S;
                 default:
                     logfatal("Undefined!")
             }
@@ -583,6 +593,8 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_DIV_D, mips_cp_div_d)
         exec_instr(MIPS_CP_DIV_S, mips_cp_div_s)
 
+        exec_instr(MIPS_CP_TRUNC_L_D, mips_cp_trunc_l_d)
+        exec_instr(MIPS_CP_TRUNC_L_S, mips_cp_trunc_l_s)
         exec_instr(MIPS_CP_TRUNC_W_D, mips_cp_trunc_w_d)
         exec_instr(MIPS_CP_TRUNC_W_S, mips_cp_trunc_w_s)
 

@@ -307,13 +307,28 @@ MIPS_INSTR(mips_cp_add_s) {
     set_fpu_register_float(cpu, instruction.fr.fd, result);
 }
 
+MIPS_INSTR(mips_cp_trunc_l_d) {
+    double value = get_fpu_register_double(cpu, instruction.fr.fs);
+    dword truncated = value;
+    set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
+}
+
+MIPS_INSTR(mips_cp_trunc_l_s) {
+    float value = get_fpu_register_float(cpu, instruction.fr.fs);
+    dword truncated = value;
+    set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
+}
+
 MIPS_INSTR(mips_cp_trunc_w_d) {
-    logfatal("mips_cp_trunc_w_d")
+    double value = get_fpu_register_double(cpu, instruction.fr.fs);
+    word truncated = value;
+    set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_s) {
-    float fs = get_fpu_register_float(cpu, instruction.fr.fs);
-    set_fpu_register_float(cpu, instruction.fr.fd, trunc(fs));
+    float value = get_fpu_register_float(cpu, instruction.fr.fs);
+    word truncated = value;
+    set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_s) {

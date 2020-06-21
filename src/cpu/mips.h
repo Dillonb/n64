@@ -51,6 +51,8 @@ MIPS_INSTR(mips_cp_div_s);
 MIPS_INSTR(mips_cp_add_d);
 MIPS_INSTR(mips_cp_add_s);
 
+MIPS_INSTR(mips_cp_trunc_l_d);
+MIPS_INSTR(mips_cp_trunc_l_s);
 MIPS_INSTR(mips_cp_trunc_w_d);
 MIPS_INSTR(mips_cp_trunc_w_s);
 
