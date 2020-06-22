@@ -76,6 +76,8 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
     system->rsp_status.halt = true; // RSP starts halted
 
+    system->vi.vi_v_intr = 256;
+
     global_system = system;
     render_init();
     return system;
@@ -131,6 +133,9 @@ void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
         case INTERRUPT_SI:
             system->mi.intr.si = true;
             break;
+        case INTERRUPT_PI:
+            system->mi.intr.pi = true;
+            break;
         default:
             logfatal("Raising unimplemented interrupt: %d", interrupt)
     }
@@ -145,6 +150,9 @@ void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
             break;
         case INTERRUPT_SI:
             system->mi.intr.si = false;
+            break;
+        case INTERRUPT_PI:
+            system->mi.intr.pi = false;
             break;
         default:
             logfatal("Lowering unimplemented interrupt: %d", interrupt)

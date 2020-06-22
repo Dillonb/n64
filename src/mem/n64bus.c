@@ -281,6 +281,7 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             }
             if (value & 0b10) {
                 logwarn("TODO: Clearing PI intr?")
+                interrupt_lower(system, INTERRUPT_PI);
             }
             break;
         }
@@ -402,6 +403,7 @@ void write_word_mireg(n64_system_t* system, word address, word value) {
                     system->mi.intr_mask.raw |= 1 << bit;
                 }
             }
+            on_interrupt_change(system);
             break;
         default:
             logfatal("Write to unknown MI register: 0x%08X", address)
