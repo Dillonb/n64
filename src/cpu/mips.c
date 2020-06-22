@@ -68,28 +68,18 @@ void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
 
 MIPS_INSTR(mips_addi) {
     sword reg_addend = get_register(cpu, instruction.i.rs);
-
-    sword imm_addend = sign_extend_dword(instruction.i.immediate, 16, 32);
-
+    shalf imm_addend = instruction.i.immediate;
     sword result = imm_addend + reg_addend;
-
     check_sword_add_overflow(imm_addend, reg_addend, result);
-
-    set_register(cpu, instruction.i.rt, result);
-    logtrace("Setting r%d to r%d (0x%08X) + %d (0x%08X) = 0x%08lX",
-             instruction.i.rt, instruction.i.rs, reg_addend, imm_addend, imm_addend, get_register(cpu, instruction.i.rt))
+    set_register(cpu, instruction.i.rt, (sdword)result);
 }
 
 MIPS_INSTR(mips_addiu) {
     word reg_addend = get_register(cpu, instruction.i.rs);
-    word addend = sign_extend_word(instruction.i.immediate, 16, 32);
+    shalf addend = instruction.i.immediate;
+    sword result = reg_addend + addend;
 
-    word result = reg_addend + addend;
-    dword dresult = sign_extend_dword(result, 32, 64);
-
-    set_register(cpu, instruction.i.rt, dresult);
-    logtrace("Setting r%d to r%d (0x%08X) + %d (0x%08X) = 0x%016lX",
-             instruction.i.rt, instruction.i.rs, reg_addend, addend, addend, dresult)
+    set_register(cpu, instruction.i.rt, (sdword)result);
 }
 
 MIPS_INSTR(mips_daddi) {
@@ -185,8 +175,8 @@ MIPS_INSTR(mips_sltiu) {
 }
 
 MIPS_INSTR(mips_mfc0) {
-    word value = get_cp0_register(cpu, instruction.r.rd);
-    set_register(cpu, instruction.r.rt, value);
+    sword value = get_cp0_register(cpu, instruction.r.rd);
+    set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
 
@@ -196,8 +186,8 @@ MIPS_INSTR(mips_mtc0) {
 }
 
 MIPS_INSTR(mips_mfc1) {
-    word value = get_fpu_register_word(cpu, instruction.fr.fs);
-    set_register(cpu, instruction.r.rt, value);
+    sword value = get_fpu_register_word(cpu, instruction.fr.fs);
+    set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_mtc1) {
@@ -229,7 +219,7 @@ MIPS_INSTR(mips_cfc1) {
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)")
     }
 
-    set_register(cpu, instruction.r.rt, value);
+    set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_ctc1) {
@@ -561,8 +551,8 @@ MIPS_INSTR(mips_ld) {
 }
 
 MIPS_INSTR(mips_lui) {
-    word immediate = instruction.i.immediate << 16;
-    set_register(cpu, instruction.i.rt, sign_extend_dword(immediate, 32, 64));
+    sword immediate = instruction.i.immediate << 16;
+    set_register(cpu, instruction.i.rt, (sdword)immediate);
 }
 
 MIPS_INSTR(mips_lbu) {
@@ -571,7 +561,7 @@ MIPS_INSTR(mips_lbu) {
     word address = get_register(cpu, instruction.i.rs) + offset;
     byte value   = cpu->read_byte(address);
 
-    set_register(cpu, instruction.i.rt, value);
+    set_register(cpu, instruction.i.rt, value); // zero extend
 }
 
 MIPS_INSTR(mips_lhu) {
@@ -580,7 +570,7 @@ MIPS_INSTR(mips_lhu) {
     word address = get_register(cpu, instruction.i.rs) + offset;
     half value   = cpu->read_half(address);
 
-    set_register(cpu, instruction.i.rt, value);
+    set_register(cpu, instruction.i.rt, value); // zero extend
 }
 
 MIPS_INSTR(mips_lh) {
@@ -598,10 +588,8 @@ MIPS_INSTR(mips_lw) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address)
     }
 
-    dword value = cpu->read_word(address);
-    value = sign_extend_dword(value, 32, 64);
-
-    set_register(cpu, instruction.i.rt, value);
+    sword value = cpu->read_word(address);
+    set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_sb) {
@@ -646,10 +634,9 @@ MIPS_INSTR(mips_xori) {
 MIPS_INSTR(mips_lb) {
     shalf offset    = instruction.i.immediate;
     word address    = get_register(cpu, instruction.i.rs) + offset;
-    byte value      = cpu->read_byte(address);
-    word sext_value = sign_extend_word(value, 8, 64);
+    sbyte value     = cpu->read_byte(address);
 
-    set_register(cpu, instruction.i.rt, sext_value);
+    set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_ldc1) {
@@ -813,11 +800,11 @@ MIPS_INSTR(mips_spc_multu) {
 
     dword result = multiplicand_1 * multiplicand_2;
 
-    word result_lower = result         & 0xFFFFFFFF;
-    word result_upper = (result >> 32) & 0xFFFFFFFF;
+    sword result_lower = result         & 0xFFFFFFFF;
+    sword result_upper = (result >> 32) & 0xFFFFFFFF;
 
-    cpu->mult_lo = result_lower;
-    cpu->mult_hi = result_upper;
+    cpu->mult_lo = (sdword)result_lower;
+    cpu->mult_hi = (sdword)result_upper;
 }
 
 MIPS_INSTR(mips_spc_div) {
@@ -872,9 +859,8 @@ MIPS_INSTR(mips_spc_add) {
 }
 
 MIPS_INSTR(mips_spc_addu) {
-    word result = get_register(cpu, instruction.r.rs) + get_register(cpu, instruction.r.rt);
-    dword sex_result = sign_extend_dword(result, 32, 64);
-    set_register(cpu, instruction.r.rd, sex_result);
+    sword result = get_register(cpu, instruction.r.rs) + get_register(cpu, instruction.r.rt);
+    set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
 MIPS_INSTR(mips_spc_and) {
@@ -891,8 +877,8 @@ MIPS_INSTR(mips_spc_subu) {
     word operand1 = get_register(cpu, instruction.r.rs);
     word operand2 = get_register(cpu, instruction.r.rt);
 
-    word result = operand1 - operand2;
-    set_register(cpu, instruction.r.rd, result);
+    sword result = operand1 - operand2;
+    set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
 MIPS_INSTR(mips_spc_or) {
