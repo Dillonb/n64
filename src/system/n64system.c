@@ -93,19 +93,23 @@ void n64_system_step(n64_system_t* system) {
 }
 
 void n64_system_loop(n64_system_t* system) {
+    int cycles = 0;
     while (!should_quit) {
-        system->vi.v_current = 0;
-        for (; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
+        for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
             check_vi_interrupt(system);
-            for (int i = 0; i < SHORTLINE_CYCLES; i++) {
+            while (cycles <= SHORTLINE_CYCLES) {
                 _n64_system_step(system);
+                cycles += 2;
             }
+            cycles -= SHORTLINE_CYCLES;
         }
         for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
             check_vi_interrupt(system);
-            for (int i = 0; i < LONGLINE_CYCLES; i++) {
+            while (cycles <= LONGLINE_CYCLES) {
                 _n64_system_step(system);
+                cycles += 2;
             }
+            cycles -= LONGLINE_CYCLES;
         }
         render_screen(system);
     }
