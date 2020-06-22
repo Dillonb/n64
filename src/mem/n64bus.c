@@ -37,7 +37,7 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 }
 
 #define SREGION_RDRAM           0x00000000
-#define SREGION_RDRAM_UNUSED    0x00400000
+#define SREGION_RDRAM_UNUSED    0x00800000
 #define SREGION_RDRAM_REGS      0x03F00000
 #define SREGION_SP_DMEM         0x04000000
 #define SREGION_SP_IMEM         0x04001000
@@ -62,7 +62,7 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define SREGION_CART_1_3        0x1FD00000
 #define SREGION_SYSAD_DEVICE    0x80000000
 
-#define REGION_RDRAM           SREGION_RDRAM           ... 0x003FFFFF
+#define REGION_RDRAM           SREGION_RDRAM           ... 0x007FFFFF
 #define REGION_RDRAM_UNUSED    SREGION_RDRAM_UNUSED    ... 0x03EFFFFF
 #define REGION_RDRAM_REGS      SREGION_RDRAM_REGS      ... 0x03FFFFFF
 #define REGION_SP_DMEM         SREGION_SP_DMEM         ... 0x04000FFF

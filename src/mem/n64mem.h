@@ -4,7 +4,7 @@
 #include "n64rom.h"
 #include "../common/util.h"
 
-#define RDRAM_SIZE   0x400000
+#define RDRAM_SIZE   0x800000
 #define SP_DMEM_SIZE 0x1000
 #define SP_IMEM_SIZE 0x1000
 
