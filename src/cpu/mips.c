@@ -543,6 +543,16 @@ MIPS_INSTR(mips_cp_c_ngt_d) {
     logfatal("Unimplemented: mips_cp_c_ngt_d")
 }
 
+MIPS_INSTR(mips_cp_mov_s) {
+    float value = get_fpu_register_float(cpu, instruction.fr.fs);
+    set_fpu_register_float(cpu, instruction.fr.fd, value);
+}
+
+MIPS_INSTR(mips_cp_mov_d) {
+    double value = get_fpu_register_double(cpu, instruction.fr.fs);
+    set_fpu_register_double(cpu, instruction.fr.fd, value);
+}
+
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
@@ -773,6 +783,11 @@ MIPS_INSTR(mips_spc_jr) {
     branch_abs(cpu, get_register(cpu, instruction.r.rs));
 }
 
+MIPS_INSTR(mips_spc_jalr) {
+    link(cpu);
+    branch_abs(cpu, get_register(cpu, instruction.r.rs));
+}
+
 MIPS_INSTR(mips_spc_mfhi) {
     set_register(cpu, instruction.r.rd, cpu->mult_hi);
 }
@@ -947,6 +962,16 @@ MIPS_INSTR(mips_spc_dsll32) {
     dword value = get_register(cpu, instruction.r.rt);
     value <<= instruction.r.sa + 32;
     set_register(cpu, instruction.r.rd, value);
+}
+
+MIPS_INSTR(mips_ri_bltz) {
+    sdword reg = get_register(cpu, instruction.i.rs);
+    conditional_branch(cpu, instruction.i.immediate, reg <= 0);
+}
+
+MIPS_INSTR(mips_ri_bltzl) {
+    sdword reg = get_register(cpu, instruction.i.rs);
+    conditional_branch_likely(cpu, instruction.i.immediate, reg <= 0);
 }
 
 MIPS_INSTR(mips_ri_bgez) {

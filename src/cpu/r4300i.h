@@ -382,6 +382,8 @@ typedef enum mips_instruction_type {
     MIPS_CP_C_NGE_D,
     MIPS_CP_C_LE_D,
     MIPS_CP_C_NGT_D,
+    MIPS_CP_MOV_D,
+    MIPS_CP_MOV_S,
 
     // Special
     MIPS_SPC_SLL,
@@ -391,6 +393,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_SLLV,
     MIPS_SPC_SRLV,
     MIPS_SPC_JR,
+    MIPS_SPC_JALR,
     MIPS_SPC_MFHI,
     MIPS_SPC_MTHI,
     MIPS_SPC_MFLO,
@@ -413,6 +416,8 @@ typedef enum mips_instruction_type {
     MIPS_SPC_DSLL32,
 
     // REGIMM
+    MIPS_RI_BLTZ,
+    MIPS_RI_BLTZL,
     MIPS_RI_BGEZ,
     MIPS_RI_BGEZL,
     MIPS_RI_BGEZAL

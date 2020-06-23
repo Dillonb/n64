@@ -97,6 +97,7 @@ const char* cp0_register_names[] = {
 #define COP_FUNCT_C_NGE      0b111101
 #define COP_FUNCT_C_LE       0b111110
 #define COP_FUNCT_C_NGT      0b111111
+#define COP_FUNCT_MOV        0b000110
 
 
 // Floating point
@@ -113,6 +114,7 @@ const char* cp0_register_names[] = {
 #define FUNCT_SLLV   0b000100
 #define FUNCT_SRLV   0b000110
 #define FUNCT_JR     0b001000
+#define FUNCT_JALR   0b001001
 #define FUNCT_MFHI   0b010000
 #define FUNCT_MTHI   0b010001
 #define FUNCT_MFLO   0b010010
@@ -136,6 +138,8 @@ const char* cp0_register_names[] = {
 
 
 // REGIMM
+#define RT_BLTZ   0b00000
+#define RT_BLTZL  0b00010
 #define RT_BGEZ   0b00001
 #define RT_BGEZL  0b00011
 #define RT_BGEZAL 0b10001
@@ -339,6 +343,15 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
                 default:
                     logfatal("Undefined!")
             }
+        case COP_FUNCT_MOV:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_MOV_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_MOV_S;
+                default:
+                    logfatal("Undefined!")
+            }
         case COP_FUNCT_C_F:
             logfatal("COP_FUNCT_C_F unimplemented")
         case COP_FUNCT_C_UN:
@@ -397,6 +410,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
         case FUNCT_SLLV:   return MIPS_SPC_SLLV;
         case FUNCT_SRLV:   return MIPS_SPC_SRLV;
         case FUNCT_JR:     return MIPS_SPC_JR;
+        case FUNCT_JALR:   return MIPS_SPC_JALR;
         case FUNCT_MFHI:   return MIPS_SPC_MFHI;
         case FUNCT_MTHI:   return MIPS_SPC_MTHI;
         case FUNCT_MFLO:   return MIPS_SPC_MFLO;
@@ -428,6 +442,8 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
 
 mips_instruction_type_t decode_regimm(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
+        case RT_BLTZ:   return MIPS_RI_BLTZ;
+        case RT_BLTZL:  return MIPS_RI_BLTZL;
         case RT_BGEZ:   return MIPS_RI_BGEZ;
         case RT_BGEZL:  return MIPS_RI_BGEZL;
         case RT_BGEZAL: return MIPS_RI_BGEZAL;
@@ -647,6 +663,8 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_C_NGE_D,  mips_cp_c_nge_d)
         exec_instr(MIPS_CP_C_LE_D,   mips_cp_c_le_d)
         exec_instr(MIPS_CP_C_NGT_D,  mips_cp_c_ngt_d)
+        exec_instr(MIPS_CP_MOV_S,    mips_cp_mov_s)
+        exec_instr(MIPS_CP_MOV_D,    mips_cp_mov_d)
 
         // Special
         exec_instr(MIPS_SPC_SLL,    mips_spc_sll)
@@ -656,6 +674,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_SLLV,   mips_spc_sllv)
         exec_instr(MIPS_SPC_SRLV,   mips_spc_srlv)
         exec_instr(MIPS_SPC_JR,     mips_spc_jr)
+        exec_instr(MIPS_SPC_JALR,   mips_spc_jalr)
         exec_instr(MIPS_SPC_MFHI,   mips_spc_mfhi)
         exec_instr(MIPS_SPC_MTHI,   mips_spc_mthi)
         exec_instr(MIPS_SPC_MFLO,   mips_spc_mflo)
@@ -678,6 +697,8 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_DSLL32, mips_spc_dsll32)
 
         // REGIMM
+        exec_instr(MIPS_RI_BLTZ,   mips_ri_bltz)
+        exec_instr(MIPS_RI_BLTZL,  mips_ri_bltzl)
         exec_instr(MIPS_RI_BGEZ,   mips_ri_bgez)
         exec_instr(MIPS_RI_BGEZL,  mips_ri_bgezl)
         exec_instr(MIPS_RI_BGEZAL, mips_ri_bgezal)
