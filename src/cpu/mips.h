@@ -109,6 +109,7 @@ MIPS_INSTR(mips_lbu);
 MIPS_INSTR(mips_lhu);
 MIPS_INSTR(mips_lh);
 MIPS_INSTR(mips_lw);
+MIPS_INSTR(mips_lwu);
 MIPS_INSTR(mips_sb);
 MIPS_INSTR(mips_sh);
 MIPS_INSTR(mips_sd);

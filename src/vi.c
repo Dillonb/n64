@@ -112,10 +112,10 @@ word read_word_vireg(n64_system_t* system, word address) {
 }
 
 void check_vi_interrupt(n64_system_t* system) {
-    if (system->vi.v_current == system->vi.vi_v_intr) {
-        logdebug("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr)
+    if (system->vi.v_current == system->vi.vi_v_intr >> 1) {
+        logwarn("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr >> 1)
         interrupt_raise(system, INTERRUPT_VI);
     } else {
-        logdebug("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr)
+        logwarn("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr)
     }
 }

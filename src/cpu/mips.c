@@ -592,6 +592,17 @@ MIPS_INSTR(mips_lw) {
     set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
+MIPS_INSTR(mips_lwu) {
+    shalf offset = instruction.i.immediate;
+    word address = get_register(cpu, instruction.i.rs) + offset;
+    if ((address & 0b11) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address)
+    }
+
+    word value = cpu->read_word(address);
+    set_register(cpu, instruction.i.rt, value);
+}
+
 MIPS_INSTR(mips_sb) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs);

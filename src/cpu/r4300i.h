@@ -83,9 +83,6 @@ typedef union cp0_cause {
 } cp0_cause_t;
 
 typedef struct cp0 {
-    // Internal tool for stepping $Count
-    bool count_stepper;
-
     word index;
     word random;
     word entry_lo0;
@@ -286,6 +283,7 @@ typedef enum mips_instruction_type {
     MIPS_LHU,
     MIPS_LH,
     MIPS_LW,
+    MIPS_LWU,
     MIPS_BLEZ,
     MIPS_BLEZL,
     MIPS_BNE,

@@ -113,7 +113,8 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 #define ADDR_RDRAM_REG_FIRST ADDR_RDRAM_CONFIG_REG
 #define ADDR_RDRAM_REG_LAST  ADDR_RDRAM_DEVICE_MANUF_REG
 
-#define ADDR_PI_DRAM_ADDR_REG 0x04600000
+
+#define ADDR_AI_STATUS_REG 0x0450000C
 
 #define ADDR_PI_DRAM_ADDR_REG    0x04600000
 #define ADDR_PI_CART_ADDR_REG    0x04600004
@@ -268,9 +269,11 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             logfatal("Writing word to unsupported PI register: ADDR_PI_CART_ADDR_REG")
         case ADDR_PI_RD_LEN_REG:
             run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], value, "DRAM to CART");
+            interrupt_raise(system, INTERRUPT_PI);
             break; // TODO: do we need to persist the `length` value anywhere?
         case ADDR_PI_WR_LEN_REG:
             run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], value, "CART to DRAM");
+            interrupt_raise(system, INTERRUPT_PI);
             break; // TODO: do we need to persist the `length` value anywhere?
         case ADDR_PI_STATUS_REG: {
             if (value & 0b01) {
@@ -722,7 +725,11 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_VI_REGS:
             return read_word_vireg(system, address);
         case REGION_AI_REGS:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_AI_REGS", address)
+            switch (address) {
+                case ADDR_AI_STATUS_REG:
+                    return 0xC0000001; // Mock value, buffer is busy and full.
+            }
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_AI_REGS (pc 0x%08X)", address, system->cpu.pc)
             return 0;
         case REGION_PI_REGS:
             return read_word_pireg(system, address);

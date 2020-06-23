@@ -26,6 +26,7 @@ const char* cp0_register_names[] = {
 #define OPC_LHU    0b100101
 #define OPC_LH     0b100001
 #define OPC_LW     0b100011
+#define OPC_LWU    0b100111
 #define OPC_BEQ    0b000100
 #define OPC_BEQL   0b010100
 #define OPC_BGTZ   0b000111
@@ -464,6 +465,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_LHU:   return MIPS_LHU;
         case OPC_LH:    return MIPS_LH;
         case OPC_LW:    return MIPS_LW;
+        case OPC_LWU:   return MIPS_LWU;
         case OPC_BEQ:   return MIPS_BEQ;
         case OPC_BEQL:  return MIPS_BEQL;
         case OPC_BGTZ:  return MIPS_BGTZ;
@@ -501,12 +503,11 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
 }
 
 void cp0_step(cp0_t* cp0) {
-    cp0->count_stepper = !cp0->count_stepper;
-    cp0->count += cp0->count_stepper;
-    if (cp0->count == cp0->compare) {
+    if (cp0->count < cp0->compare && cp0->count + 2 >= cp0->compare) {
         cp0->cause.ip7 = true;
-        logwarn("TODO: Compare interrupt!")
+        logwarn("Compare interrupt!")
     }
+    cp0->count += 2;
 }
 
 #define exec_instr(key, fn) case key: fn(cpu, instruction); break;
@@ -542,6 +543,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_LHU,   mips_lhu)
         exec_instr(MIPS_LH,    mips_lh)
         exec_instr(MIPS_LW,    mips_lw)
+        exec_instr(MIPS_LWU,   mips_lwu)
         exec_instr(MIPS_BEQ,   mips_beq)
         exec_instr(MIPS_BLEZ,  mips_blez)
         exec_instr(MIPS_BLEZL, mips_blezl)
