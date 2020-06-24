@@ -482,22 +482,22 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             if (oldstatus.fr != cpu->cp0.status.fr) {
                 on_change_fr(cpu, oldstatus);
             }
-            logwarn("    CP0 status: ie:  %d", cpu->cp0.status.ie)
-            logwarn("    CP0 status: exl: %d", cpu->cp0.status.exl)
-            logwarn("    CP0 status: erl: %d", cpu->cp0.status.erl)
-            logwarn("    CP0 status: ksu: %d", cpu->cp0.status.ksu)
-            logwarn("    CP0 status: ux:  %d", cpu->cp0.status.ux)
-            logwarn("    CP0 status: sx:  %d", cpu->cp0.status.sx)
-            logwarn("    CP0 status: kx:  %d", cpu->cp0.status.kx)
-            logwarn("    CP0 status: im:  %d", cpu->cp0.status.im)
-            logwarn("    CP0 status: ds:  %d", cpu->cp0.status.ds)
-            logwarn("    CP0 status: re:  %d", cpu->cp0.status.re)
-            logwarn("    CP0 status: fr:  %d", cpu->cp0.status.fr)
-            logwarn("    CP0 status: rp:  %d", cpu->cp0.status.rp)
-            logwarn("    CP0 status: cu0: %d", cpu->cp0.status.cu0)
-            logwarn("    CP0 status: cu1: %d", cpu->cp0.status.cu1)
-            logwarn("    CP0 status: cu2: %d", cpu->cp0.status.cu2)
-            logwarn("    CP0 status: cu3: %d", cpu->cp0.status.cu3)
+            loginfo("    CP0 status: ie:  %d", cpu->cp0.status.ie)
+            loginfo("    CP0 status: exl: %d", cpu->cp0.status.exl)
+            loginfo("    CP0 status: erl: %d", cpu->cp0.status.erl)
+            loginfo("    CP0 status: ksu: %d", cpu->cp0.status.ksu)
+            loginfo("    CP0 status: ux:  %d", cpu->cp0.status.ux)
+            loginfo("    CP0 status: sx:  %d", cpu->cp0.status.sx)
+            loginfo("    CP0 status: kx:  %d", cpu->cp0.status.kx)
+            loginfo("    CP0 status: im:  %d", cpu->cp0.status.im)
+            loginfo("    CP0 status: ds:  %d", cpu->cp0.status.ds)
+            loginfo("    CP0 status: re:  %d", cpu->cp0.status.re)
+            loginfo("    CP0 status: fr:  %d", cpu->cp0.status.fr)
+            loginfo("    CP0 status: rp:  %d", cpu->cp0.status.rp)
+            loginfo("    CP0 status: cu0: %d", cpu->cp0.status.cu0)
+            loginfo("    CP0 status: cu1: %d", cpu->cp0.status.cu1)
+            loginfo("    CP0 status: cu2: %d", cpu->cp0.status.cu2)
+            loginfo("    CP0 status: cu3: %d", cpu->cp0.status.cu3)
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
