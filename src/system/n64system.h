@@ -10,6 +10,7 @@ typedef enum n64_interrupt {
     INTERRUPT_VI,
     INTERRUPT_SI,
     INTERRUPT_PI,
+    INTERRUPT_DP,
 } n64_interrupt_t;
 
 typedef union mi_intr_mask {

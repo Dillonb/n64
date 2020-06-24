@@ -132,12 +132,15 @@ void on_interrupt_change(n64_system_t* system) {
 void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
+            logwarn("Raising VI interrupt")
             system->mi.intr.vi = true;
             break;
         case INTERRUPT_SI:
+            logwarn("Raising SI interrupt")
             system->mi.intr.si = true;
             break;
         case INTERRUPT_PI:
+            logwarn("Raising PI interrupt")
             system->mi.intr.pi = true;
             break;
         default:
@@ -151,12 +154,19 @@ void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
             system->mi.intr.vi = false;
+            logwarn("Lowering VI interrupt")
             break;
         case INTERRUPT_SI:
             system->mi.intr.si = false;
+            logwarn("Lowering SI interrupt")
             break;
         case INTERRUPT_PI:
             system->mi.intr.pi = false;
+            logwarn("Lowering PI interrupt")
+            break;
+        case INTERRUPT_DP:
+            system->mi.intr.dp = false;
+            logwarn("Lowering DP interrupt")
             break;
         default:
             logfatal("Lowering unimplemented interrupt: %d", interrupt)
