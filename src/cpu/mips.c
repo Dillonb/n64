@@ -627,7 +627,7 @@ MIPS_INSTR(mips_sh) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs);
     address += offset;
-    byte value = get_register(cpu, instruction.i.rt) & 0xFFFF;
+    half value = get_register(cpu, instruction.i.rt);
     cpu->write_half(address, value);
 }
 
@@ -640,8 +640,7 @@ MIPS_INSTR(mips_sw) {
 
 MIPS_INSTR(mips_sd) {
     shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs);
-    address += offset;
+    word address = get_register(cpu, instruction.i.rs) + offset;
     dword value = get_register(cpu, instruction.i.rt);
     cpu->write_dword(address, value);
 }
