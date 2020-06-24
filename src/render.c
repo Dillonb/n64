@@ -11,12 +11,23 @@ static uint32_t window_id;
 static SDL_Renderer* renderer = NULL;
 static SDL_Texture* argb32buffer = NULL;
 static SDL_Texture* rgb16buffer = NULL;
+static int rgb16buffer_width;
+static int rgb16buffer_height;
 
 word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
 word sdl_numframes = 0;
 word sdl_fps = 0;
 char sdl_wintitle[100] = "dgb n64 00 FPS";
+
+void update_rgb16_buffer(int width, int height) {
+    if (rgb16buffer != NULL) {
+        SDL_DestroyTexture(rgb16buffer);
+    }
+    rgb16buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB555, SDL_TEXTUREACCESS_STREAMING, width, height);
+    rgb16buffer_width = width;
+    rgb16buffer_height = height;
+}
 
 void render_init() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -33,7 +44,7 @@ void render_init() {
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     argb32buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, N64_SCREEN_X, N64_SCREEN_Y);
-    rgb16buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB1555, SDL_TEXTUREACCESS_STREAMING, N64_SCREEN_X, N64_SCREEN_Y);
+    update_rgb16_buffer(N64_SCREEN_X, N64_SCREEN_Y);
 
     if (renderer == NULL) {
         logfatal("SDL couldn't create a renderer! %s", SDL_GetError());
@@ -70,6 +81,9 @@ void render_screen(n64_system_t* system) {
         SDL_UpdateTexture(argb32buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 4);
         SDL_RenderCopy(renderer, argb32buffer, NULL, NULL);
     } else if (system->vi.status.type == VI_TYPE_16BIT) {
+        if (system->vi.vi_width != rgb16buffer_width) {
+            update_rgb16_buffer(system->vi.vi_width, system->vi.vi_width);
+        }
         SDL_UpdateTexture(rgb16buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 2);
         SDL_RenderCopy(renderer, rgb16buffer, NULL, NULL);
     }
