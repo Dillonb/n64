@@ -13,7 +13,7 @@ add_library(core
         mem/pif_rom.c mem/pif_rom.h
         mem/dma.c mem/dma.h
         vi.c vi.h vi_reg.h
-        render.c render.h)
+        render.c render.h interface/ai.c interface/ai.h mem/addresses.h)
 
 target_link_libraries(core r4300i rsp ${SDL2_LIBRARY})
 

@@ -22,6 +22,8 @@ typedef enum ri_reg {
 typedef enum pi_reg {
     PI_DRAM_ADDR_REG,
     PI_CART_ADDR_REG,
+    PI_RD_LEN_REG,
+    PI_WR_LEN_REG,
     PI_DOMAIN1_REG,
     PI_BSD_DOM1_PWD_REG,
     PI_BSD_DOM1_PGS_REG,

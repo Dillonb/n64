@@ -3,6 +3,8 @@
 #include "dma.h"
 #include "../cpu/rsp.h"
 #include "../vi.h"
+#include "addresses.h"
+#include "../interface/ai.h"
 
 #include <endian.h>
 
@@ -35,126 +37,6 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
     half* warr = (half*)arr;
     warr[index / sizeof(half)] = htobe16(value);
 }
-
-#define SREGION_RDRAM           0x00000000
-#define SREGION_RDRAM_UNUSED    0x00800000
-#define SREGION_RDRAM_REGS      0x03F00000
-#define SREGION_SP_DMEM         0x04000000
-#define SREGION_SP_IMEM         0x04001000
-#define SREGION_SP_UNUSED       0x04002000
-#define SREGION_SP_REGS         0x04040000
-#define SREGION_DP_COMMAND_REGS 0x04100000
-#define SREGION_DP_SPAN_REGS    0x04200000
-#define SREGION_MI_REGS         0x04300000
-#define SREGION_VI_REGS         0x04400000
-#define SREGION_AI_REGS         0x04500000
-#define SREGION_PI_REGS         0x04600000
-#define SREGION_RI_REGS         0x04700000
-#define SREGION_SI_REGS         0x04800000
-#define SREGION_UNUSED          0x04900000
-#define SREGION_CART_2_1        0x05000000
-#define SREGION_CART_1_1        0x06000000
-#define SREGION_CART_2_2        0x08000000
-#define SREGION_CART_1_2        0x10000000
-#define SREGION_PIF_BOOT        0x1FC00000
-#define SREGION_PIF_RAM         0x1FC007C0
-#define SREGION_RESERVED        0x1FC00800
-#define SREGION_CART_1_3        0x1FD00000
-#define SREGION_SYSAD_DEVICE    0x80000000
-
-#define REGION_RDRAM           SREGION_RDRAM           ... 0x007FFFFF
-#define REGION_RDRAM_UNUSED    SREGION_RDRAM_UNUSED    ... 0x03EFFFFF
-#define REGION_RDRAM_REGS      SREGION_RDRAM_REGS      ... 0x03FFFFFF
-#define REGION_SP_DMEM         SREGION_SP_DMEM         ... 0x04000FFF
-#define REGION_SP_IMEM         SREGION_SP_IMEM         ... 0x04001FFF
-#define REGION_SP_UNUSED       SREGION_SP_UNUSED       ... 0x0403FFFF
-#define REGION_SP_REGS         SREGION_SP_REGS         ... 0x040FFFFF
-#define REGION_DP_COMMAND_REGS SREGION_DP_COMMAND_REGS ... 0x041FFFFF
-#define REGION_DP_SPAN_REGS    SREGION_DP_SPAN_REGS    ... 0x042FFFFF
-#define REGION_MI_REGS         SREGION_MI_REGS         ... 0x043FFFFF
-#define REGION_VI_REGS         SREGION_VI_REGS         ... 0x044FFFFF
-#define REGION_AI_REGS         SREGION_AI_REGS         ... 0x045FFFFF
-#define REGION_PI_REGS         SREGION_PI_REGS         ... 0x046FFFFF
-#define REGION_RI_REGS         SREGION_RI_REGS         ... 0x047FFFFF
-#define REGION_SI_REGS         SREGION_SI_REGS         ... 0x048FFFFF
-#define REGION_UNUSED          SREGION_UNUSED          ... 0x04FFFFFF
-#define REGION_CART_2_1        SREGION_CART_2_1        ... 0x05FFFFFF
-#define REGION_CART_1_1        SREGION_CART_1_1        ... 0x07FFFFFF
-#define REGION_CART_2_2        SREGION_CART_2_2        ... 0x0FFFFFFF
-#define REGION_CART_1_2        SREGION_CART_1_2        ... 0x1FBFFFFF
-#define REGION_PIF_BOOT        SREGION_PIF_BOOT        ... 0x1FC007BF
-#define REGION_PIF_RAM         SREGION_PIF_RAM         ... 0x1FC007FF
-#define REGION_RESERVED        SREGION_RESERVED        ... 0x1FCFFFFF
-#define REGION_CART_1_3        SREGION_CART_1_3        ... 0x7FFFFFFF
-#define REGION_SYSAD_DEVICE    SREGION_SYSAD_DEVICE    ... 0xFFFFFFFF
-
-#define SVREGION_KSEG0 0x80000000
-#define SVREGION_KSEG1 0xA0000000
-#define SVREGION_KSSEG 0xC0000000
-#define SVREGION_KSEG3 0xE0000000
-
-#define VREGION_KSEG0 SVREGION_KSEG0 ... 0x9FFFFFFF
-#define VREGION_KSEG1 SVREGION_KSEG1 ... 0xBFFFFFFF
-#define VREGION_KSSEG SVREGION_KSSEG ... 0xDFFFFFFF
-#define VREGION_KSEG3 SVREGION_KSEG3 ... 0xFFFFFFFF
-
-
-#define ADDR_RDRAM_CONFIG_REG       0x03F00000
-#define ADDR_RDRAM_DEVICE_ID_REG    0x03F00004
-#define ADDR_RDRAM_DELAY_REG        0x03F00008
-#define ADDR_RDRAM_MODE_REG         0x03F0000C
-#define ADDR_RDRAM_REF_INTERVAL_REG 0x03F00010
-#define ADDR_RDRAM_REF_ROW_REG      0x03F00014
-#define ADDR_RDRAM_RAS_INTERVAL_REG 0x03F00018
-#define ADDR_RDRAM_MIN_INTERVAL_REG 0x03F0001C
-#define ADDR_RDRAM_ADDR_SELECT_REG  0x03F00020
-#define ADDR_RDRAM_DEVICE_MANUF_REG 0x03F00024
-
-#define ADDR_RDRAM_REG_FIRST ADDR_RDRAM_CONFIG_REG
-#define ADDR_RDRAM_REG_LAST  ADDR_RDRAM_DEVICE_MANUF_REG
-
-
-#define ADDR_AI_STATUS_REG 0x0450000C
-
-#define ADDR_PI_DRAM_ADDR_REG    0x04600000
-#define ADDR_PI_CART_ADDR_REG    0x04600004
-#define ADDR_PI_RD_LEN_REG       0x04600008
-#define ADDR_PI_WR_LEN_REG       0x0460000C
-#define ADDR_PI_STATUS_REG       0x04600010
-#define ADDR_PI_DOMAIN1_REG      0x04600014
-#define ADDR_PI_BSD_DOM1_PWD_REG 0x04600018
-#define ADDR_PI_BSD_DOM1_PGS_REG 0x0460001C
-#define ADDR_PI_BSD_DOM1_RLS_REG 0x04600020
-#define ADDR_PI_DOMAIN2_REG      0x04600024
-#define ADDR_PI_BSD_DOM2_PWD_REG 0x04600028
-#define ADDR_PI_BSD_DOM2_PGS_REG 0x0460002C
-#define ADDR_PI_BSD_DOM2_RLS_REG 0x04600030
-
-#define ADDR_RI_MODE_REG    0x04700000
-#define ADDR_RI_CONFIG_REG  0x04700004
-#define ADDR_RI_SELECT_REG  0x0470000C
-#define ADDR_RI_REFRESH_REG 0x04700010
-#define ADDR_RI_LATENCY_REG 0x04700014
-#define ADDR_RI_RERROR_REG  0x04700018
-#define ADDR_RI_WERROR_REG  0x0470001C
-
-#define ADDR_RI_FIRST ADDR_RI_MODE_REG
-#define ADDR_RI_LAST  ADDR_RI_WERROR_REG
-
-#define ADDR_MI_MODE_REG      0x04300000
-#define ADDR_MI_VERSION_REG   0x04300004
-#define ADDR_MI_INTR_REG      0x04300008
-#define ADDR_MI_INTR_MASK_REG 0x0430000C
-
-#define ADDR_MI_FIRST ADDR_MI_MODE_REG
-#define ADDR_MI_LAST  ADDR_MI_INTR_MASK_REG
-
-#define ADDR_SI_DRAM_ADDR_REG      0x04800000
-#define ADDR_SI_PIF_ADDR_RD64B_REG 0x04800004
-#define ADDR_SI_PIF_ADDR_WR64B_REG 0x04800010
-#define ADDR_SI_STATUS_REG         0x04800018
-
-#define ADDR_PIF_RAM_JOYPAD 0x1FC007C4
 
 word vatopa(word address) {
     word physical;
@@ -235,8 +117,14 @@ word read_word_pireg(n64_system_t* system, word address) {
             logfatal("Reading word from unsupported PI register: PI_RD_LEN_REG")
         case ADDR_PI_WR_LEN_REG:
             logfatal("Reading word from unsupported PI register: PI_WR_LEN_REG")
-        case ADDR_PI_STATUS_REG:
-            return is_dma_active();
+        case ADDR_PI_STATUS_REG: {
+            word value = 0;
+            value |= is_dma_active();
+            value |= (0 << 1); // Is PI IO busy?
+            value |= (0 << 2); // PI IO error?
+            value |= (system->mi.intr.pi << 3); // PI interrupt?
+            return value;
+        }
         case ADDR_PI_DOMAIN1_REG:
             return system->mem.pi_reg[PI_DOMAIN1_REG];
         case ADDR_PI_BSD_DOM1_PWD_REG:
@@ -262,28 +150,31 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
             system->mem.pi_reg[PI_DRAM_ADDR_REG] = value;
+            //system->mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~7;
             break;
         case ADDR_PI_CART_ADDR_REG:
             system->mem.pi_reg[PI_CART_ADDR_REG] = value;
+            //system->mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
             break;
-            logfatal("Writing word to unsupported PI register: ADDR_PI_CART_ADDR_REG")
-        case ADDR_PI_RD_LEN_REG:
-            run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], value, "DRAM to CART");
+        case ADDR_PI_RD_LEN_REG: {
+            word length = ((value & 0x00FFFFFF) | 7) + 1;
+            system->mem.pi_reg[PI_RD_LEN_REG] = length;
+            run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
             interrupt_raise(system, INTERRUPT_PI);
-            break; // TODO: do we need to persist the `length` value anywhere?
-        case ADDR_PI_WR_LEN_REG:
-            run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], value, "CART to DRAM");
+            break;
+        }
+        case ADDR_PI_WR_LEN_REG: {
+            word length = ((value & 0x00FFFFFF) | 7) + 1;
+            system->mem.pi_reg[PI_WR_LEN_REG] = length;
+            run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], length, "CART to DRAM");
             interrupt_raise(system, INTERRUPT_PI);
-            break; // TODO: do we need to persist the `length` value anywhere?
+            break;
+        }
         case ADDR_PI_STATUS_REG: {
             if (value & 0b01) {
-                // Reset controller
-                system->mem.pi_reg[PI_DRAM_ADDR_REG] = 0;
-                system->mem.pi_reg[PI_CART_ADDR_REG] = 0;
-                // TODO: probably other stuff needs to happen here, too.
+                // TODO: Set PI error to 0
             }
             if (value & 0b10) {
-                logwarn("TODO: Clearing PI intr?")
                 interrupt_lower(system, INTERRUPT_PI);
             }
             break;
@@ -426,13 +317,11 @@ word read_word_mireg(n64_system_t* system, word address) {
         case ADDR_MI_MODE_REG:
             logfatal("Read from unimplemented MI register: ADDR_MI_MODE_REG")
         case ADDR_MI_VERSION_REG:
-            return 0x02020102;
             return 0x01010101;
         case ADDR_MI_INTR_REG:
             return system->mi.intr.raw;
         case ADDR_MI_INTR_MASK_REG:
             return system->mi.intr_mask.raw;
-            logfatal("Read from unimplemented MI register: ADDR_MI_INTR_MASK_REG")
         default:
             logfatal("Read from unknown MI register: 0x%08X", address)
     }
@@ -512,7 +401,7 @@ void n64_write_dword(n64_system_t* system, word address, dword value) {
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_VI_REGS", value, address)
             break;
         case REGION_AI_REGS:
-            logwarn("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
             break;
         case REGION_PI_REGS:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PI_REGS", value, address)
@@ -654,7 +543,7 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             write_word_vireg(system, address, value);
             break;
         case REGION_AI_REGS:
-            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
+            write_word_aireg(system, address, value);
             break;
         case REGION_PI_REGS:
             write_word_pireg(system, address, value);
@@ -725,12 +614,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_VI_REGS:
             return read_word_vireg(system, address);
         case REGION_AI_REGS:
-            switch (address) {
-                case ADDR_AI_STATUS_REG:
-                    return 0xC0000001; // Mock value, buffer is busy and full.
-            }
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_AI_REGS (pc 0x%08X)", address, system->cpu.pc)
-            return 0;
+            return read_word_aireg(system, address);
         case REGION_PI_REGS:
             return read_word_pireg(system, address);
         case REGION_RI_REGS:

@@ -11,6 +11,7 @@ typedef enum n64_interrupt {
     INTERRUPT_SI,
     INTERRUPT_PI,
     INTERRUPT_DP,
+    INTERRUPT_AI,
 } n64_interrupt_t;
 
 typedef union mi_intr_mask {
@@ -65,6 +66,21 @@ typedef struct n64_system {
         word yscale;
         word v_current;
     } vi;
+    struct {
+        bool dma_enable;
+        half dac_rate;
+        byte bitrate;
+        int dma_count;
+        word dma_length[2];
+        word dma_address[2];
+        int cycles;
+
+        struct {
+            word frequency;
+            word period;
+            word precision;
+        } dac;
+    } ai;
 } n64_system_t;
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend);

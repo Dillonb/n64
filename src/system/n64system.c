@@ -2,6 +2,7 @@
 #include "../mem/n64bus.h"
 #include "../render.h"
 #include "../vi.h"
+#include "../interface/ai.h"
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
@@ -78,6 +79,11 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
     system->vi.vi_v_intr = 256;
 
+
+    system->ai.dac.frequency = 44100;
+    system->ai.dac.precision = 16;
+    system->ai.dac.period = 93750000 / 44100;
+
     global_system = system;
     render_init();
     return system;
@@ -102,6 +108,7 @@ void n64_system_loop(n64_system_t* system) {
                 cycles += 2;
             }
             cycles -= SHORTLINE_CYCLES;
+            ai_step(system, SHORTLINE_CYCLES);
         }
         for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
             check_vi_interrupt(system);
@@ -110,6 +117,7 @@ void n64_system_loop(n64_system_t* system) {
                 cycles += 2;
             }
             cycles -= LONGLINE_CYCLES;
+            ai_step(system, LONGLINE_CYCLES);
         }
         render_screen(system);
     }
@@ -143,6 +151,10 @@ void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
             logwarn("Raising PI interrupt")
             system->mi.intr.pi = true;
             break;
+        case INTERRUPT_AI:
+            logwarn("Raising AI interrupt")
+            system->mi.intr.ai = true;
+            break;
         default:
             logfatal("Raising unimplemented interrupt: %d", interrupt)
     }
@@ -166,6 +178,10 @@ void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
             break;
         case INTERRUPT_DP:
             system->mi.intr.dp = false;
+            logwarn("Lowering DP interrupt")
+            break;
+        case INTERRUPT_AI:
+            system->mi.intr.ai = false;
             logwarn("Lowering DP interrupt")
             break;
         default:

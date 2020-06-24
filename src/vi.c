@@ -87,7 +87,7 @@ word read_word_vireg(n64_system_t* system, word address) {
         case ADDR_VI_V_INTR_REG:
             logfatal("Reading of ADDR_VI_V_INTR_REG is unsupported")
         case ADDR_VI_V_CURRENT_REG:
-            return system->vi.v_current;
+            return system->vi.v_current << 1;
         case ADDR_VI_BURST_REG:
             logfatal("Reading of ADDR_VI_BURST_REG is unsupported")
         case ADDR_VI_V_SYNC_REG:
@@ -113,9 +113,9 @@ word read_word_vireg(n64_system_t* system, word address) {
 
 void check_vi_interrupt(n64_system_t* system) {
     if (system->vi.v_current == system->vi.vi_v_intr >> 1) {
-        logwarn("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr >> 1)
+        loginfo("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr >> 1)
         interrupt_raise(system, INTERRUPT_VI);
     } else {
-        logwarn("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr)
+        loginfo("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr >> 1)
     }
 }
