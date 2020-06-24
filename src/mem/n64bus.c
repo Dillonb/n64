@@ -373,7 +373,7 @@ void write_word_mireg(n64_system_t* system, word address, word value) {
 
             // Bit 11 = "clear DP interrupt"
             if (value & (1 << 11)) {
-                system->mi.intr.dp = false;
+                interrupt_lower(system, INTERRUPT_DP);
             }
 
             // Bit 12 = "clear RDRAM reg"
