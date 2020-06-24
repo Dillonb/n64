@@ -700,10 +700,11 @@ MIPS_INSTR(mips_lwl) {
     word address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 0) & 3);
-    word mask = (word)(0) - 1 << shift;
+    word mask = 0xFFFFFFFF << shift;
     word data = cpu->read_word(address & ~3);
     if (data) {
-        set_register(cpu, instruction.i.rt, (get_register(cpu, instruction.i.rt) & ~mask) | data << shift);
+        sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data << shift;
+        set_register(cpu, instruction.i.rt, (sdword)result);
     }
 }
 
@@ -713,10 +714,11 @@ MIPS_INSTR(mips_lwr) {
 
     word shift = 8 * ((address ^ 7) & 3);
 
-    word mask = (word)(0) - 1 >> shift;
+    word mask = 0xFFFFFFFF >> shift;
     word data = cpu->read_word(address & ~3);
     if (data) {
-        set_register(cpu, instruction.i.rt, (get_register(cpu, instruction.i.rt) & ~mask) | data >> shift);
+        sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data >> shift;
+        set_register(cpu, instruction.i.rt, (sdword)result);
     }
 }
 
@@ -724,11 +726,12 @@ MIPS_INSTR(mips_swl) {
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
 
-    auto shift = 8 * ((address ^ 0) & 3);
-    auto mask = (word)(0) - 1 >> shift;
-    auto data = cpu->read_word(address & ~3);
+    word shift = 8 * ((address ^ 0) & 3);
+    word mask = 0xFFFFFFFF >> shift;
+    word data = cpu->read_word(address & ~3);
     if (data) {
-        cpu->write_word(address & ~3, (data & ~mask) | get_register(cpu, instruction.i.rt) >> shift);
+        word oldreg = get_register(cpu, instruction.i.rt);
+        cpu->write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
     }
 }
 
@@ -736,11 +739,12 @@ MIPS_INSTR(mips_swr) {
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
 
-    auto shift = 8 * ((address ^ 7) & 3);
-    auto mask = (word)(0) - 1 << shift;
-    auto data = cpu->read_word(address & ~3);
+    word shift = 8 * ((address ^ 7) & 3);
+    word mask = 0xFFFFFFFF << shift;
+    word data = cpu->read_word(address & ~3);
     if (data) {
-        cpu->write_word(address & ~3, (data & ~mask) | get_register(cpu, instruction.i.rt) << shift);
+        word oldreg = get_register(cpu, instruction.i.rt);
+        cpu->write_word(address & ~3, (data & ~mask) | oldreg << shift);
     }
 }
 
