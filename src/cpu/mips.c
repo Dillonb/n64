@@ -126,8 +126,10 @@ MIPS_INSTR(mips_bne) {
 }
 
 MIPS_INSTR(mips_bnel) {
-    logtrace("Branch if: 0x%08lX != 0x%08lX", get_register(cpu, instruction.i.rs), get_register(cpu, instruction.i.rt))
-    conditional_branch_likely(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
+    dword rs = get_register(cpu, instruction.i.rs);
+    dword rt = get_register(cpu, instruction.i.rt);
+    logtrace("Branch if: 0x%08lX != 0x%08lX", rs, rt)
+    conditional_branch_likely(cpu, instruction.i.immediate, rs != rt);
 }
 
 
