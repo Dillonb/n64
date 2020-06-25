@@ -330,6 +330,71 @@ word read_word_mireg(n64_system_t* system, word address) {
             logfatal("Read from unknown MI register: 0x%08X", address)
     }
 }
+byte mock_controller[] = {
+        0xFF, 0x01, 0x04, 0x01,
+        0xFF, 0x01, 0x83, 0x00,
+        0xFF, 0x01, 0x04, 0x01,
+        0x02, 0x07, 0x13, 0x04,
+        0x00, 0x00, 0x00, 0xFF,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0xFE, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+
+};
+
+byte mock_controller_other[] = {
+        0xFF, 0x01, 0x04, 0x01,
+        0x00, 0x00, 0x00, 0x00,
+
+        0xFF, 0x01, 0x83, 0x00,
+        0xFF, 0xFF, 0xFF, 0xFF,
+
+        0xFF, 0x01, 0x04, 0x01,
+        0x00, 0x00, 0x00, 0x00,
+
+        0x02, 0x07, 0x13, 0x04,
+        0x00, 0x00, 0x00, 0x00,
+
+        0x00, 0x00, 0x00, 0xFF,
+        0xFE, 0x00, 0x00, 0x00,
+
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+};
+void pif_to_dram(n64_system_t* system, word pif_address, word dram_address) {
+    //printf("PIF to DRAM: ");
+    for (int i = 0; i < 64; i++) {
+        //byte value = n64_read_byte(system, pif_address + i);
+        byte value = mock_controller[i];
+        //printf("%02X", value);
+        n64_write_byte(system, dram_address + i, value);
+    }
+    //printf("\n");
+}
+
+void dram_to_pif(n64_system_t* system, word dram_address, word pif_address) {
+    //printf("DRAM to PIF: ");
+    for (int i = 0; i < 64; i++) {
+        byte value = n64_read_byte(system, dram_address + i);
+        //printf("%02X", value);
+        n64_write_byte(system, pif_address + i, value);
+    }
+    //printf("\n");
+}
 
 void write_word_sireg(n64_system_t* system, word address, word value) {
     switch (address) {
@@ -340,11 +405,11 @@ void write_word_sireg(n64_system_t* system, word address, word value) {
             system->mem.si_reg.dram_address = value;
             break;
         case ADDR_SI_PIF_ADDR_RD64B_REG:
-            run_dma(system, value, system->mem.si_reg.dram_address, 63, "PIF to DRAM");
+            pif_to_dram(system, value, system->mem.si_reg.dram_address);
             interrupt_raise(system, INTERRUPT_SI);
             break;
         case ADDR_SI_PIF_ADDR_WR64B_REG:
-            run_dma(system, system->mem.si_reg.dram_address, value, 63, "DRAM to PIF");
+            dram_to_pif(system, system->mem.si_reg.dram_address, value);
             interrupt_raise(system, INTERRUPT_SI);
             break;
         default:
