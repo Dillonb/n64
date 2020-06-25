@@ -192,13 +192,17 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             system->mem.pi_reg[PI_BSD_DOM1_RLS_REG] = value;
             break;
         case ADDR_PI_DOMAIN2_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_DOMAIN2_REG", value)
+            system->mem.pi_reg[PI_DOMAIN2_REG] = value;
+            break;
         case ADDR_PI_BSD_DOM2_PWD_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_BSD_DOM2_PWD_REG", value)
+            system->mem.pi_reg[PI_BSD_DOM2_PWD_REG] = value;
+            break;
         case ADDR_PI_BSD_DOM2_PGS_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_BSD_DOM2_PGS_REG", value)
+            system->mem.pi_reg[PI_BSD_DOM2_PGS_REG] = value;
+            break;
         case ADDR_PI_BSD_DOM2_RLS_REG:
-            logfatal("Writing word 0x%08X to unsupported PI register: ADDR_PI_BSD_DOM2_RLS_REG", value)
+            system->mem.pi_reg[PI_BSD_DOM2_RLS_REG] = value;
+            break;
         default:
             logfatal("Writing word 0x%08X to unknown PI register 0x%08X", value, address)
     }

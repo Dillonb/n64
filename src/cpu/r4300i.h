@@ -21,6 +21,8 @@
 #define R4300I_CP0_REG_TAGLO    28
 #define R4300I_CP0_REG_TAGHI    29
 
+#define CP0_STATUS_WRITE_MASK 0xFF57FFFF
+
 typedef union cp0_status {
     word raw;
     struct {
@@ -292,6 +294,7 @@ typedef enum mips_instruction_type {
     MIPS_BEQ,
     MIPS_BEQL,
     MIPS_BGTZ,
+    MIPS_BGTZL,
     MIPS_NOP,
     MIPS_SB,
     MIPS_SH,
@@ -312,6 +315,10 @@ typedef enum mips_instruction_type {
     MIPS_LWR,
     MIPS_SWL,
     MIPS_SWR,
+    MIPS_LDL,
+    MIPS_LDR,
+    MIPS_SDL,
+    MIPS_SDR,
 
     // Coprocessor
     MIPS_CP_MFC0,
@@ -461,10 +468,13 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
         case R4300I_CP0_REG_COUNT:
             cpu->cp0.count = value;
             break;
-        case R4300I_CP0_REG_CAUSE:
-            logwarn("Need to allow writes to IP0 and IP1 here.")
-            //cpu->cp0.cause = value;
+        case R4300I_CP0_REG_CAUSE: {
+            cp0_cause_t newcause;
+            newcause.raw = value;
+            cpu->cp0.cause.ip0 = newcause.ip0;
+            cpu->cp0.cause.ip1 = newcause.ip1;
             break;
+        }
         case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
             cpu->cp0.tag_lo = value;
             break;
@@ -472,16 +482,20 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.tag_hi = value;
             break;
         case R4300I_CP0_REG_COMPARE:
-            logwarn("$Compare written with 0x%08X (count is now 0x%08X) - TODO: clear interrupt in $Cause", value, cpu->cp0.count);
+            logwarn("$Compare written with 0x%08X (count is now 0x%08X)", value, cpu->cp0.count);
             cpu->cp0.cause.ip7 = false;
             cpu->cp0.compare = value;
             break;
         case R4300I_CP0_REG_STATUS: {
             cp0_status_t oldstatus = cpu->cp0.status;
-            cpu->cp0.status.raw = value;
+
+            cpu->cp0.status.raw &= value & ~CP0_STATUS_WRITE_MASK;
+            cpu->cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
+
             if (oldstatus.fr != cpu->cp0.status.fr) {
                 on_change_fr(cpu, oldstatus);
             }
+
             loginfo("    CP0 status: ie:  %d", cpu->cp0.status.ie)
             loginfo("    CP0 status: exl: %d", cpu->cp0.status.exl)
             loginfo("    CP0 status: erl: %d", cpu->cp0.status.erl)

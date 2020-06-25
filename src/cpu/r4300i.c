@@ -30,6 +30,7 @@ const char* cp0_register_names[] = {
 #define OPC_BEQ    0b000100
 #define OPC_BEQL   0b010100
 #define OPC_BGTZ   0b000111
+#define OPC_BGTZL  0b010111
 #define OPC_BLEZ   0b000110
 #define OPC_BLEZL  0b010110
 #define OPC_BNE    0b000101
@@ -56,6 +57,10 @@ const char* cp0_register_names[] = {
 #define OPC_LWR    0b100110
 #define OPC_SWL    0b101010
 #define OPC_SWR    0b101110
+#define OPC_LDL    0b011010
+#define OPC_LDR    0b011011
+#define OPC_SDL    0b101100
+#define OPC_SDR    0b101101
 
 // Coprocessor
 #define COP_MF    0b00000
@@ -151,13 +156,14 @@ const char* cp0_register_names[] = {
 void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error)
     if (cpu->branch) {
-        pc -= 4;
+        unimplemented(cpu->cp0.status.exl, "handling branch delay when exl == true")
         cpu->cp0.cause.branch_delay = true;
         cpu->branch = false;
         cpu->branch_delay = 0;
         cpu->branch_pc = 0;
-        //logfatal("Exception thrown in a branch delay slot! make sure this is being handled correctly. "
-         //        "EPC is supposed to be set to the address of the branch preceding the slot.")
+        logwarn("Exception thrown in a branch delay slot! make sure this is being handled correctly. "
+                 "EPC is supposed to be set to the address of the branch preceding the slot.")
+        pc -= 4;
     } else {
         cpu->cp0.cause.branch_delay = false;
     }
@@ -485,6 +491,7 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_BEQ:   return MIPS_BEQ;
         case OPC_BEQL:  return MIPS_BEQL;
         case OPC_BGTZ:  return MIPS_BGTZ;
+        case OPC_BGTZL: return MIPS_BGTZL;
         case OPC_BLEZ:  return MIPS_BLEZ;
         case OPC_BLEZL: return MIPS_BLEZL;
         case OPC_BNE:   return MIPS_BNE;
@@ -509,6 +516,10 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         case OPC_LWR:   return MIPS_LWR;
         case OPC_SWL:   return MIPS_SWL;
         case OPC_SWR:   return MIPS_SWR;
+        case OPC_LDL:   return MIPS_LDL;
+        case OPC_LDR:   return MIPS_LDR;
+        case OPC_SDL:   return MIPS_SDL;
+        case OPC_SDR:   return MIPS_SDR;
         default:
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(pc, instr.raw, buf, 50);
@@ -538,7 +549,7 @@ void r4300i_step(r4300i_t* cpu) {
     if (interrupts > 0) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
             cpu->cp0.cause.interrupt_pending = interrupts;
-            exception(cpu, pc, 0, interrupts);
+            exception(cpu, cpu->pc, 0, interrupts);
             return;
         }
     }
@@ -577,6 +588,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SLTIU, mips_sltiu)
         exec_instr(MIPS_BEQL,  mips_beql)
         exec_instr(MIPS_BGTZ,  mips_bgtz)
+        exec_instr(MIPS_BGTZL, mips_bgtzl)
         exec_instr(MIPS_XORI,  mips_xori)
         exec_instr(MIPS_LB,    mips_lb)
         exec_instr(MIPS_LDC1,  mips_ldc1)
@@ -587,6 +599,10 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_LWR,   mips_lwr)
         exec_instr(MIPS_SWL,   mips_swl)
         exec_instr(MIPS_SWR,   mips_swr)
+        exec_instr(MIPS_LDL,   mips_ldl)
+        exec_instr(MIPS_LDR,   mips_ldr)
+        exec_instr(MIPS_SDL,   mips_sdl)
+        exec_instr(MIPS_SDR,   mips_sdr)
 
         // Coprocessor
         exec_instr(MIPS_CP_MFC0, mips_mfc0)

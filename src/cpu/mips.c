@@ -107,6 +107,11 @@ MIPS_INSTR(mips_bgtz) {
     conditional_branch(cpu, instruction.i.immediate,  reg > 0);
 }
 
+MIPS_INSTR(mips_bgtzl) {
+    sdword reg = get_register(cpu, instruction.i.rs);
+    conditional_branch_likely(cpu, instruction.i.immediate,  reg > 0);
+}
+
 MIPS_INSTR(mips_blez) {
     sdword reg = get_register(cpu, instruction.i.rs);
     conditional_branch(cpu, instruction.i.immediate, reg <= 0);
@@ -710,7 +715,7 @@ MIPS_INSTR(mips_lwr) {
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
 
-    word shift = 8 * ((address ^ 7) & 3);
+    word shift = 8 * ((address ^ 3) & 3);
 
     word mask = 0xFFFFFFFF >> shift;
     word data = cpu->read_word(address & ~3);
@@ -727,23 +732,65 @@ MIPS_INSTR(mips_swl) {
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF >> shift;
     word data = cpu->read_word(address & ~3);
-    if (data) {
-        word oldreg = get_register(cpu, instruction.i.rt);
-        cpu->write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
-    }
+    word oldreg = get_register(cpu, instruction.i.rt);
+    cpu->write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
 }
 
 MIPS_INSTR(mips_swr) {
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
 
-    word shift = 8 * ((address ^ 7) & 3);
+    word shift = 8 * ((address ^ 3) & 3);
     word mask = 0xFFFFFFFF << shift;
     word data = cpu->read_word(address & ~3);
-    if (data) {
-        word oldreg = get_register(cpu, instruction.i.rt);
-        cpu->write_word(address & ~3, (data & ~mask) | oldreg << shift);
-    }
+    word oldreg = get_register(cpu, instruction.i.rt);
+    cpu->write_word(address & ~3, (data & ~mask) | oldreg << shift);
+}
+
+MIPS_INSTR(mips_ldl) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+    int shift = 8 * ((address ^ 0) & 7);
+    dword mask = (dword)0xFFFFFFFFFFFFFFFF << shift;
+    dword data = cpu->read_dword(address & ~7);
+    dword oldreg = get_register(cpu, instruction.i.rt);
+
+    set_register(cpu, instruction.i.rt, (oldreg & ~mask) | (data << shift));
+}
+
+MIPS_INSTR(mips_ldr) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+    int shift = 8 * ((address ^ 7) & 7);
+    dword mask = (dword)0xFFFFFFFFFFFFFFFF >> shift;
+    dword data = cpu->read_dword(address & ~7);
+    dword oldreg = get_register(cpu, instruction.i.rt);
+
+    set_register(cpu, instruction.i.rt, (oldreg & ~mask) | (data >> shift));
+}
+
+MIPS_INSTR(mips_sdl) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+
+    int shift = 8 * ((address ^ 0) & 7);
+    dword mask = 0xFFFFFFFFFFFFFFFF;
+    mask >>= shift;
+    dword data = cpu->read_dword(address & ~7);
+    dword oldreg = get_register(cpu, instruction.i.rt);
+    cpu->write_dword(address & ~7, (data & ~mask) | (oldreg >> shift));
+}
+
+MIPS_INSTR(mips_sdr) {
+    shalf offset = instruction.fi.offset;
+    word address = get_register(cpu, instruction.fi.base) + offset;
+
+    int shift = 8 * ((address ^ 7) & 7);
+    dword mask = 0xFFFFFFFFFFFFFFFF ;
+    mask <<= shift;
+    dword data = cpu->read_dword(address & ~7);
+    dword oldreg = get_register(cpu, instruction.i.rt);
+    cpu->write_dword(address & ~7, (data & ~mask) | (oldreg << shift));
 }
 
 MIPS_INSTR(mips_spc_sll) {
@@ -966,12 +1013,12 @@ MIPS_INSTR(mips_spc_dsll32) {
 
 MIPS_INSTR(mips_ri_bltz) {
     sdword reg = get_register(cpu, instruction.i.rs);
-    conditional_branch(cpu, instruction.i.immediate, reg <= 0);
+    conditional_branch(cpu, instruction.i.immediate, reg < 0);
 }
 
 MIPS_INSTR(mips_ri_bltzl) {
     sdword reg = get_register(cpu, instruction.i.rs);
-    conditional_branch_likely(cpu, instruction.i.immediate, reg <= 0);
+    conditional_branch_likely(cpu, instruction.i.immediate, reg < 0);
 }
 
 MIPS_INSTR(mips_ri_bgez) {
