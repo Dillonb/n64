@@ -2,7 +2,7 @@ add_library(r4300i
         r4300i.c r4300i.h
         disassemble.c disassemble.h
         mips.c mips.h
-        sign_extension.c sign_extension.h)
+        )
 
 add_library(rsp
         rsp.c rsp.h rsp_status.h)

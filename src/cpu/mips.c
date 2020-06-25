@@ -1,7 +1,4 @@
 #include "mips.h"
-#include "../common/log.h"
-#include "sign_extension.h"
-#include "math.h"
 
 void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
@@ -41,8 +38,8 @@ void branch_abs(r4300i_t* cpu, word address) {
     logtrace("Setting up a branch_offset (delayed by 1 instruction) to 0x%08X", cpu->branch_pc)
 }
 
-void branch_offset(r4300i_t* cpu, word offset) {
-    sword soffset = sign_extend_word(offset, 16, 32);
+void branch_offset(r4300i_t* cpu, shalf offset) {
+    sword soffset = offset;
     soffset <<= 2;
     // This is taking advantage of the fact that we add 4 to the PC after each instruction.
     // Due to the compiler expecting pipelining, the address we get here will be 4 _too early_
@@ -881,12 +878,10 @@ MIPS_INSTR(mips_spc_add) {
     sword addend1 = get_register(cpu, instruction.r.rs);
     sword addend2 = get_register(cpu, instruction.r.rt);
 
-    sword sresult = addend1 + addend2;
-    check_sword_add_overflow(addend1, addend2, sresult);
+    sword result = addend1 + addend2;
+    check_sword_add_overflow(addend1, addend2, result);
 
-    dword result = sign_extend_dword(sresult, 32, 64);
-
-    set_register(cpu, instruction.r.rd, result);
+    set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
 MIPS_INSTR(mips_spc_addu) {
