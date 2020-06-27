@@ -112,81 +112,70 @@ void pif_rom_execute(n64_system_t* system) {
 #define PIF_COMMAND_EEPROM_WRITE  0x05
 #define PIF_COMMAND_RESET         0xFF
 
-void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int* index) {
+void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int* index, int* channel) {
     if (cmdlen == 0) {
-        // TODO: just increment channel counter.
+        (*channel)++;
         return;
     }
-    byte command = system->mem.pif_ram[++(*index)];
-    printf("Got CMD=%d (0x%X)\n", command, command);
+    byte command = system->mem.pif_ram[(*index)];
+    (*index)++;
     switch (command) {
         case PIF_COMMAND_CONTROLLER_ID:
-            printf("PIF_COMMAND_CONTROLLER_ID\n");
             unimplemented(cmdlen != 1, "Controller ID with cmdlen != 1")
             unimplemented(reslen != 3, "Controller ID with reslen != 3")
             system->mem.pif_ram[(*index)++] = 0x05;
             system->mem.pif_ram[(*index)++] = 0x00;
-            system->mem.pif_ram[*index]     = 0x02; // No controller pak plugged in.
+            system->mem.pif_ram[(*index)++] = 0x02; // No controller pak plugged in.
             break;
         case PIF_COMMAND_READ_BUTTONS:
-            printf("PIF_COMMAND_READ_BUTTONS\n");
             unimplemented(cmdlen != 1, "Read button values with cmdlen != 1")
             unimplemented(reslen != 4, "Read button values with reslen != 4")
-            system->mem.pif_ram[(*index)++] = system->si.controllers[0].byte1;
-            system->mem.pif_ram[(*index)++] = system->si.controllers[0].byte2;
-            system->mem.pif_ram[(*index)++] = system->si.controllers[0].joy_x;
-            system->mem.pif_ram[*index]     = system->si.controllers[0].joy_y;
+            byte bytes[4];
+            if (*channel < 4) {
+                bytes[0] = system->si.controllers[*channel].byte1;
+                bytes[1] = system->si.controllers[*channel].byte2;
+                bytes[2] = system->si.controllers[*channel].joy_x;
+                bytes[3] = system->si.controllers[*channel].joy_y;
+            }
+            system->mem.pif_ram[(*index)++] = bytes[0];
+            system->mem.pif_ram[(*index)++] = bytes[1];
+            system->mem.pif_ram[(*index)++] = bytes[2];
+            system->mem.pif_ram[(*index)++] = bytes[3];
+            (*channel)++;
             break;
         case PIF_COMMAND_MEMPACK_READ:
             logfatal("PIF_COMMAND_MEMPACK_READ")
             break;
         case PIF_COMMAND_MEMPACK_WRITE:
-            printf("PIF_COMMAND_MEMPACK_WRITE\n");
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35")
             unimplemented(reslen != 1, "Mempack write with reslen != 1")
-            (*index) += 35; // NOOP. (35 + 1 - 1: command byte already read)
+            (*index) += 36; // NOOP
             break;
         case PIF_COMMAND_EEPROM_READ:
             logfatal("PIF_COMMAND_EEPROM_READ")
         case PIF_COMMAND_EEPROM_WRITE:
             logfatal("PIF_COMMAND_EEPROM_WRITE")
         case PIF_COMMAND_RESET:
-            printf("PIF_COMMAND_RESET\n");
-            //unimplemented(cmdlen != 1, "Reset with cmdlen != 1")
-            //unimplemented(reslen != 3, "Reset with reslen != 3")
-            (*index) += reslen - 1;
-            //logfatal("PIF_COMMAND_RESET")
+            (*index) += reslen;
             break;
         default:
             logfatal("Unknown PIF command: %d", command)
     }
 }
 
-void pif_write_hook(n64_system_t* system) {
-    printf("Write to PIF detected!\n");
+void process_pif_command(n64_system_t* system) {
     byte control = system->mem.pif_ram[63];
     if (control == 1) {
-        printf("PIF command executing: ");
-        for (int i = 0; i < 64; i++) {
-            printf("%02X ", system->mem.pif_ram[i]);
-        }
-        printf("\n");
-        for (int i = 0; i < 63; i++) {
-            sbyte t = system->mem.pif_ram[i];
-            byte ut = t;
-            printf("i=%d: Got T=%d (0x%02X)\n", i, t, ut);
+        int i = 0;
+        int channel = 0;
+        while (i < 63) {
+            sbyte t = system->mem.pif_ram[i++];
             if (t >= 0) {
-                i++;
                 // TODO: should R be signed?
-                byte r = system->mem.pif_ram[i]; // TODO: out of bounds access possible on invalid data
-                printf("i=%d: Got R=%X\n", i, r);
-                pif_command(system, t, r, &i);
-            } else {
-                printf("Not a command\n");
+                byte r = system->mem.pif_ram[i++]; // TODO: out of bounds access possible on invalid data
+                pif_command(system, t, r, &i, &channel);
             }
         }
-        printf("Done with PIF.\n");
-        system->mem.pif_ram[63] = 0;
     }
 }
 
@@ -194,9 +183,11 @@ void pif_write_hook(n64_system_t* system) {
 void update_button(n64_system_t* system, int controller, n64_button_t button, bool held) {
     switch(button) {
         case A:
+            loginfo("Button A is now: %d\n", held);
             system->si.controllers[controller].a = held;
             break;
         case B:
+            loginfo("Button B is now: %d\n", held);
             system->si.controllers[controller].b = held;
             break;
     }

@@ -44,27 +44,27 @@ typedef struct n64_controller {
     union {
         byte byte1;
         struct {
-            bool a:1;
-            bool b:1;
-            bool z:1;
-            bool start:1;
-            bool dp_up:1;
-            bool dp_down:1;
-            bool dp_left:1;
             bool dp_right:1;
+            bool dp_left:1;
+            bool dp_down:1;
+            bool dp_up:1;
+            bool start:1;
+            bool z:1;
+            bool b:1;
+            bool a:1;
         };
     };
     union {
         byte byte2;
         struct {
-            bool joy_reset:1;
-            bool zero:1;
-            bool l:1;
-            bool r:1;
-            bool c_up:1;
-            bool c_down:1;
-            bool c_left:1;
             bool c_right:1;
+            bool c_left:1;
+            bool c_down:1;
+            bool c_up:1;
+            bool r:1;
+            bool l:1;
+            bool zero:1;
+            bool joy_reset:1;
         };
     };
     sbyte joy_x;

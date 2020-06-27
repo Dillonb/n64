@@ -78,6 +78,7 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                     update_button(system, 0, B, true);
                     break;
             }
+            break;
         }
         case SDL_KEYUP: {
             switch (event->key.keysym.sym) {
@@ -88,6 +89,7 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                     update_button(system, 0, B, false);
                     break;
             }
+            break;
         }
 
     }

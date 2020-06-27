@@ -9,6 +9,6 @@ typedef enum n64_button {
 } n64_button_t;
 
 void pif_rom_execute(n64_system_t* system);
-void pif_write_hook(n64_system_t* system);
+void process_pif_command(n64_system_t* system);
 void update_button(n64_system_t* system, int controller, n64_button_t button, bool held);
 #endif //N64_PIF_H

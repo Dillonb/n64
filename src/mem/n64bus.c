@@ -333,6 +333,7 @@ word read_word_mireg(n64_system_t* system, word address) {
 }
 
 void pif_to_dram(n64_system_t* system, word pif_address, word dram_address) {
+    process_pif_command(system);
     for (int i = 0; i < 64; i++) {
         byte value = n64_read_byte(system, pif_address + i);
         //printf("PIF to DRAM: 0x%08X --> 0x%08X: 0x%02X\n", pif_address + i, dram_address + i, value);
@@ -454,7 +455,6 @@ void n64_write_dword(n64_system_t* system, word address, dword value) {
         case REGION_PIF_RAM:
             dword_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
             logwarn("Writing dword 0x%016lX to address 0x%08X in region: REGION_PIF_RAM", value, address)
-            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
@@ -593,7 +593,6 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_PIF_RAM:
             word_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
             logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_PIF_RAM", value, address)
-            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
@@ -730,7 +729,6 @@ void n64_write_half(n64_system_t* system, word address, half value) {
         case REGION_PIF_RAM:
             half_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
             logwarn("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address)
-            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
@@ -853,7 +851,6 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
             system->mem.pif_ram[address - SREGION_PIF_RAM] = value;
-            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
