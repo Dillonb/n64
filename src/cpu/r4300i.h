@@ -338,6 +338,8 @@ typedef enum mips_instruction_type {
 
     MIPS_CP_ADD_D,
     MIPS_CP_ADD_S,
+    MIPS_CP_SUB_D,
+    MIPS_CP_SUB_S,
     MIPS_CP_MUL_D,
     MIPS_CP_MUL_S,
     MIPS_CP_DIV_D,

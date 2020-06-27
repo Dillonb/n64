@@ -301,6 +301,20 @@ MIPS_INSTR(mips_cp_add_s) {
     set_fpu_register_float(cpu, instruction.fr.fd, result);
 }
 
+MIPS_INSTR(mips_cp_sub_d) {
+    double fs = get_fpu_register_double(cpu, instruction.fr.fs);
+    double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+    double result = fs - ft;
+    set_fpu_register_double(cpu, instruction.fr.fd, result);
+}
+
+MIPS_INSTR(mips_cp_sub_s) {
+    float fs = get_fpu_register_float(cpu, instruction.fr.fs);
+    float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+    float result = fs - ft;
+    set_fpu_register_float(cpu, instruction.fr.fd, result);
+}
+
 MIPS_INSTR(mips_cp_trunc_l_d) {
     double value = get_fpu_register_double(cpu, instruction.fr.fs);
     dword truncated = value;

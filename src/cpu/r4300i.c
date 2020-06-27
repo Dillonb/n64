@@ -77,6 +77,7 @@ const char* cp0_register_names[] = {
 
 // Coprocessor FUNCT
 #define COP_FUNCT_ADD        0b000000
+#define COP_FUNCT_SUB        0b000001
 #define COP_FUNCT_TLBWI_MULT 0b000010
 #define COP_FUNCT_DIV        0b000011
 #define COP_FUNCT_TRUNC_L    0b001001
@@ -273,6 +274,16 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
                 default:
                     logfatal("Undefined!")
             }
+        case COP_FUNCT_SUB: {
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_SUB_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_SUB_S;
+                default:
+                    logfatal("Undefined!")
+            }
+        }
         case COP_FUNCT_TLBWI_MULT:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -629,6 +640,8 @@ void r4300i_step(r4300i_t* cpu) {
 
         exec_instr(MIPS_CP_ADD_D, mips_cp_add_d)
         exec_instr(MIPS_CP_ADD_S, mips_cp_add_s)
+        exec_instr(MIPS_CP_SUB_D, mips_cp_sub_d)
+        exec_instr(MIPS_CP_SUB_S, mips_cp_sub_s)
         exec_instr(MIPS_CP_MUL_D, mips_cp_mul_d)
         exec_instr(MIPS_CP_MUL_S, mips_cp_mul_s)
         exec_instr(MIPS_CP_DIV_D, mips_cp_div_d)
