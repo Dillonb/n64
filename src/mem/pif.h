@@ -5,7 +5,12 @@
 
 typedef enum n64_button {
     A,
-    B
+    B,
+    START,
+    DPAD_UP,
+    DPAD_DOWN,
+    DPAD_LEFT,
+    DPAD_RIGHT,
 } n64_button_t;
 
 void pif_rom_execute(n64_system_t* system);

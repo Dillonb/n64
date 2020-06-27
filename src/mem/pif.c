@@ -113,6 +113,8 @@ void pif_rom_execute(n64_system_t* system) {
 #define PIF_COMMAND_RESET         0xFF
 
 void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int* index, int* channel) {
+    reslen &= ~0xC0;
+    int r_index = (*index) - 1;
     if (cmdlen == 0) {
         (*channel)++;
         return;
@@ -125,11 +127,13 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int* index, in
             unimplemented(reslen != 3, "Controller ID with reslen != 3")
             system->mem.pif_ram[(*index)++] = 0x05;
             system->mem.pif_ram[(*index)++] = 0x00;
-            system->mem.pif_ram[(*index)++] = 0x02; // No controller pak plugged in.
+            system->mem.pif_ram[(*index)++] = 0x01; // Controller pak plugged in.
             break;
         case PIF_COMMAND_READ_BUTTONS:
             unimplemented(cmdlen != 1, "Read button values with cmdlen != 1")
-            unimplemented(reslen != 4, "Read button values with reslen != 4")
+            if (reslen != 4) {
+                logfatal("Read button values with reslen != 4: %d", reslen)
+            }
             byte bytes[4];
             if (*channel < 4) {
                 bytes[0] = system->si.controllers[*channel].byte1;
@@ -137,10 +141,19 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int* index, in
                 bytes[2] = system->si.controllers[*channel].joy_x;
                 bytes[3] = system->si.controllers[*channel].joy_y;
             }
-            system->mem.pif_ram[(*index)++] = bytes[0];
-            system->mem.pif_ram[(*index)++] = bytes[1];
-            system->mem.pif_ram[(*index)++] = bytes[2];
-            system->mem.pif_ram[(*index)++] = bytes[3];
+            if (system->si.controllers[*channel].plugged_in) {
+                system->mem.pif_ram[r_index]   |= 0x00; // Success!
+                system->mem.pif_ram[(*index)++] = bytes[0];
+                system->mem.pif_ram[(*index)++] = bytes[1];
+                system->mem.pif_ram[(*index)++] = bytes[2];
+                system->mem.pif_ram[(*index)++] = bytes[3];
+            } else {
+                system->mem.pif_ram[r_index]   |= 0x80; // Device not present
+                system->mem.pif_ram[(*index)++] = 0xFF;
+                system->mem.pif_ram[(*index)++] = 0xFF;
+                system->mem.pif_ram[(*index)++] = 0xFF;
+                system->mem.pif_ram[(*index)++] = 0xFF;
+            }
             (*channel)++;
             break;
         case PIF_COMMAND_MEMPACK_READ:
@@ -183,12 +196,36 @@ void process_pif_command(n64_system_t* system) {
 void update_button(n64_system_t* system, int controller, n64_button_t button, bool held) {
     switch(button) {
         case A:
-            loginfo("Button A is now: %d\n", held);
             system->si.controllers[controller].a = held;
             break;
+
         case B:
-            loginfo("Button B is now: %d\n", held);
             system->si.controllers[controller].b = held;
             break;
+
+        case DPAD_UP:
+            system->si.controllers[controller].dp_up = held;
+            break;
+
+        case DPAD_DOWN:
+            system->si.controllers[controller].dp_down = held;
+            break;
+
+        case DPAD_LEFT:
+            system->si.controllers[controller].dp_left = held;
+            break;
+
+        case DPAD_RIGHT:
+            system->si.controllers[controller].dp_right = held;
+            break;
+
+        case START:
+            system->si.controllers[controller].start = held;
+            break;
     }
+    printf("%02X%02X%02X%02X\n",
+           system->si.controllers[0].byte1,
+           system->si.controllers[0].byte2,
+           system->si.controllers[0].joy_x,
+           system->si.controllers[0].joy_y);
 }

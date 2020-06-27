@@ -71,11 +71,37 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                 case SDLK_ESCAPE:
                     n64_request_quit();
                     break;
+
                 case SDLK_j:
                     update_button(system, 0, A, true);
                     break;
+
                 case SDLK_k:
                     update_button(system, 0, B, true);
+                    break;
+
+                case SDLK_UP:
+                case SDLK_w:
+                    update_button(system, 0, DPAD_UP, true);
+                    break;
+
+                case SDLK_DOWN:
+                case SDLK_s:
+                    update_button(system, 0, DPAD_DOWN, true);
+                    break;
+
+                case SDLK_LEFT:
+                case SDLK_a:
+                    update_button(system, 0, DPAD_LEFT, true);
+                    break;
+
+                case SDLK_RIGHT:
+                case SDLK_d:
+                    update_button(system, 0, DPAD_RIGHT, true);
+                    break;
+
+                case SDLK_RETURN:
+                    update_button(system, 0, START, true);
                     break;
             }
             break;
@@ -85,8 +111,33 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                 case SDLK_j:
                     update_button(system, 0, A, false);
                     break;
+
                 case SDLK_k:
                     update_button(system, 0, B, false);
+                    break;
+
+                case SDLK_UP:
+                case SDLK_w:
+                    update_button(system, 0, DPAD_UP, false);
+                    break;
+
+                case SDLK_DOWN:
+                case SDLK_s:
+                    update_button(system, 0, DPAD_DOWN, false);
+                    break;
+
+                case SDLK_LEFT:
+                case SDLK_a:
+                    update_button(system, 0, DPAD_LEFT, false);
+                    break;
+
+                case SDLK_RIGHT:
+                case SDLK_d:
+                    update_button(system, 0, DPAD_RIGHT, false);
+                    break;
+
+                case SDLK_RETURN:
+                    update_button(system, 0, START, false);
                     break;
             }
             break;

@@ -41,6 +41,7 @@ typedef union mi_intr {
 } mi_intr_t;
 
 typedef struct n64_controller {
+    bool plugged_in;
     union {
         byte byte1;
         struct {
@@ -134,4 +135,5 @@ void n64_system_cleanup(n64_system_t* system);
 void n64_request_quit();
 void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt);
 void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt);
+void on_interrupt_change(n64_system_t* system);
 #endif //N64_N64SYSTEM_H

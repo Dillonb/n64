@@ -342,10 +342,11 @@ void pif_to_dram(n64_system_t* system, word pif_address, word dram_address) {
 }
 
 void dram_to_pif(n64_system_t* system, word dram_address, word pif_address) {
+    unimplemented(pif_address != 0x1FC007C0, "SI DMA not to start of PIF RAM!")
     for (int i = 0; i < 64; i++) {
-        byte value = n64_read_byte(system, dram_address + i);
-        n64_write_byte(system, pif_address + i, value);
+        system->mem.pif_ram[i] = n64_read_byte(system, dram_address + i);
     }
+    process_pif_command(system);
 }
 
 void write_word_sireg(n64_system_t* system, word address, word value) {
@@ -792,7 +793,8 @@ half n64_read_half(n64_system_t* system, word address) {
         case REGION_PIF_BOOT:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_PIF_BOOT", address)
         case REGION_PIF_RAM:
-            logfatal("Reading half from address 0x%08X in unsupported region: REGION_PIF_RAM", address)
+            printf("READHALF FROM PIF RAM\n");
+            return half_from_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM);
         case REGION_RESERVED:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_RESERVED", address)
         case REGION_CART_1_3:

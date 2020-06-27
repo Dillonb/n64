@@ -84,6 +84,11 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->ai.dac.precision = 16;
     system->ai.dac.period = 93750000 / 44100;
 
+    system->si.controllers[0].plugged_in = true;
+    system->si.controllers[1].plugged_in = false;
+    system->si.controllers[2].plugged_in = false;
+    system->si.controllers[3].plugged_in = false;
+
     global_system = system;
     render_init();
     return system;
