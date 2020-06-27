@@ -5,6 +5,7 @@
 #include "../vi.h"
 #include "addresses.h"
 #include "../interface/ai.h"
+#include "pif.h"
 
 #include <endian.h>
 
@@ -376,24 +377,18 @@ byte mock_controller_other[] = {
         0x00, 0x00, 0x00, 0x00,
 };
 void pif_to_dram(n64_system_t* system, word pif_address, word dram_address) {
-    //printf("PIF to DRAM: ");
     for (int i = 0; i < 64; i++) {
-        //byte value = n64_read_byte(system, pif_address + i);
-        byte value = mock_controller[i];
-        //printf("%02X", value);
+        byte value = n64_read_byte(system, pif_address + i);
+        //printf("PIF to DRAM: 0x%08X --> 0x%08X: 0x%02X\n", pif_address + i, dram_address + i, value);
         n64_write_byte(system, dram_address + i, value);
     }
-    //printf("\n");
 }
 
 void dram_to_pif(n64_system_t* system, word dram_address, word pif_address) {
-    //printf("DRAM to PIF: ");
     for (int i = 0; i < 64; i++) {
         byte value = n64_read_byte(system, dram_address + i);
-        //printf("%02X", value);
         n64_write_byte(system, pif_address + i, value);
     }
-    //printf("\n");
 }
 
 void write_word_sireg(n64_system_t* system, word address, word value) {
@@ -425,8 +420,14 @@ word read_word_sireg(n64_system_t* system, word address) {
             logfatal("Reading from unimplemented SI register: ADDR_SI_PIF_ADDR_RD64B_REG")
         case ADDR_SI_PIF_ADDR_WR64B_REG:
             logfatal("Reading from unimplemented SI register: ADDR_SI_PIF_ADDR_WR64B_REG")
-        case ADDR_SI_STATUS_REG:
-            return 0;
+        case ADDR_SI_STATUS_REG: {
+            word value = 0;
+            value |= (false << 0); // DMA busy
+            value |= (false << 1); // IO read busy
+            value |= (false << 3); // DMA error
+            value |= (system->mi.intr.si << 12); // SI interrupt
+            return value;
+        }
         default:
             logfatal("Reading from unknown SI register: 0x%08X", address)
     }
@@ -495,13 +496,9 @@ void n64_write_dword(n64_system_t* system, word address, dword value) {
         case REGION_PIF_BOOT:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
-            if (address == ADDR_PIF_RAM_JOYPAD) {
-                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
-                break;
-            } else {
-                dword_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
-                logwarn("Writing dword 0x%016lX to address 0x%08X in region: REGION_PIF_RAM", value, address)
-            }
+            dword_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
+            logwarn("Writing dword 0x%016lX to address 0x%08X in region: REGION_PIF_RAM", value, address)
+            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
@@ -638,13 +635,9 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_PIF_BOOT:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
-            if (address == ADDR_PIF_RAM_JOYPAD) {
-                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
-                break;
-            } else {
-                word_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
-                logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_PIF_RAM", value, address)
-            }
+            word_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
+            logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_PIF_RAM", value, address)
+            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
@@ -709,11 +702,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_PIF_BOOT:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_PIF_BOOT", address)
         case REGION_PIF_RAM:
-            if (address == 0x1FC007FC) {
-                logwarn("Reading word from CONTROLLER")
-                return 0;
-            }
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_PIF_RAM", address)
+            return word_from_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM);
         case REGION_RESERVED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RESERVED", address)
         case REGION_CART_1_3:
@@ -783,13 +772,9 @@ void n64_write_half(n64_system_t* system, word address, half value) {
         case REGION_PIF_BOOT:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
-            if (address == ADDR_PIF_RAM_JOYPAD) {
-                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
-                break;
-            } else {
-                half_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
-                logwarn("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address)
-            }
+            half_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
+            logwarn("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address)
+            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)
@@ -911,12 +896,8 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
         case REGION_PIF_BOOT:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
-            if (address == ADDR_PIF_RAM_JOYPAD) {
-                logwarn("Ignoring write to JOYPAD in REGION_PIF_RAM")
-                break;
-            } else {
-                system->mem.pif_ram[address - SREGION_PIF_RAM] = value;
-            }
+            system->mem.pif_ram[address - SREGION_PIF_RAM] = value;
+            pif_write_hook(system);
             break;
         case REGION_RESERVED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value, address)

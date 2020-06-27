@@ -533,7 +533,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value)
     }
 
-    logwarn("CP0 $%s = 0x%08X", cp0_register_names[r], value)
+    loginfo("CP0 $%s = 0x%08X", cp0_register_names[r], value)
 }
 
 INLINE word get_cp0_register(r4300i_t* cpu, byte r) {

@@ -56,8 +56,16 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
             loginfo("VI hstart is now 0x%X (wrote 0x%08X)", value, value)
             break;
         case ADDR_VI_V_START_REG:
-            system->vi.vstart = value;
-            loginfo("VI vstart is now 0x%X (wrote 0x%08X)", value, value)
+            system->vi.vstart.raw = value;
+            system->vi.calculated_height = system->vi.vstart.vend - system->vi.vstart.vstart;
+            loginfo("VI vstart is now 0x%X - (wrote 0x%08X): vend: %d, vstart: %d, vend-vstart=%d", value, value,
+                    system->vi.vstart.vend, system->vi.vstart.vstart,
+                   system->vi.vstart.vend - system->vi.vstart.vstart)
+            if (system->vi.calculated_height < 0) {
+                logfatal("Got a negative video height??")
+            } else {
+                system->vi.calculated_height /= 2;
+            }
             break;
         case ADDR_VI_V_BURST_REG:
             system->vi.vburst = value;
@@ -113,9 +121,9 @@ word read_word_vireg(n64_system_t* system, word address) {
 
 void check_vi_interrupt(n64_system_t* system) {
     if (system->vi.v_current == system->vi.vi_v_intr >> 1) {
-        loginfo("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr >> 1)
+        logdebug("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr >> 1)
         interrupt_raise(system, INTERRUPT_VI);
     } else {
-        loginfo("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr >> 1)
+        logdebug("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr >> 1)
     }
 }

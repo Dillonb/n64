@@ -10,7 +10,7 @@ add_library(core
         mem/n64rom.c mem/n64rom.h
         mem/n64mem.c mem/n64mem.h
         mem/n64bus.c mem/n64bus.h
-        mem/pif_rom.c mem/pif_rom.h
+        mem/pif.c mem/pif.h
         mem/dma.c mem/dma.h
         vi.c vi.h vi_reg.h
         render.c render.h interface/ai.c interface/ai.h mem/addresses.h)

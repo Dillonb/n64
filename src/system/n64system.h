@@ -40,6 +40,37 @@ typedef union mi_intr {
     };
 } mi_intr_t;
 
+typedef struct n64_controller {
+    union {
+        byte byte1;
+        struct {
+            bool a:1;
+            bool b:1;
+            bool z:1;
+            bool start:1;
+            bool dp_up:1;
+            bool dp_down:1;
+            bool dp_left:1;
+            bool dp_right:1;
+        };
+    };
+    union {
+        byte byte2;
+        struct {
+            bool joy_reset:1;
+            bool zero:1;
+            bool l:1;
+            bool r:1;
+            bool c_up:1;
+            bool c_down:1;
+            bool c_left:1;
+            bool c_right:1;
+        };
+    };
+    sbyte joy_x;
+    sbyte joy_y;
+} n64_controller_t;
+
 typedef struct n64_system {
     n64_mem_t mem;
     r4300i_t cpu;
@@ -60,11 +91,20 @@ typedef struct n64_system {
         word hsync;
         word leap;
         word hstart;
-        word vstart;
+        union {
+            word raw;
+            struct {
+                unsigned vend:10;
+                unsigned:5;
+                unsigned vstart:10;
+                unsigned:6;
+            };
+        } vstart;
         word vburst;
         word xscale;
         word yscale;
         word v_current;
+        int calculated_height;
     } vi;
     struct {
         bool dma_enable;
@@ -81,6 +121,9 @@ typedef struct n64_system {
             word precision;
         } dac;
     } ai;
+    struct {
+        n64_controller_t controllers[4];
+    } si;
 } n64_system_t;
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend);

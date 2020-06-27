@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include "render.h"
+#include "mem/pif.h"
 
 #define N64_SCREEN_X 640
 #define N64_SCREEN_Y 480
@@ -11,6 +12,7 @@ static uint32_t window_id;
 static SDL_Renderer* renderer = NULL;
 static SDL_Texture* argb32buffer = NULL;
 static SDL_Texture* rgb16buffer = NULL;
+static half* rgb16_host_endianness = NULL;
 static int rgb16buffer_width;
 static int rgb16buffer_height;
 
@@ -24,7 +26,12 @@ void update_rgb16_buffer(int width, int height) {
     if (rgb16buffer != NULL) {
         SDL_DestroyTexture(rgb16buffer);
     }
-    rgb16buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB555, SDL_TEXTUREACCESS_STREAMING, width, height);
+    if (rgb16_host_endianness != NULL) {
+        free(rgb16_host_endianness);
+    }
+
+    rgb16buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA5551, SDL_TEXTUREACCESS_STREAMING, width, height);
+    rgb16_host_endianness = malloc(width * height * sizeof(half));
     rgb16buffer_width = width;
     rgb16buffer_height = height;
 }
@@ -53,7 +60,7 @@ void render_init() {
     SDL_RenderSetScale(renderer, SCREEN_SCALE, SCREEN_SCALE);
 }
 
-void handle_event(SDL_Event* event) {
+void handle_event(n64_system_t* system, SDL_Event* event) {
     switch (event->type) {
         case SDL_QUIT:
             logwarn("User requested quit")
@@ -64,15 +71,32 @@ void handle_event(SDL_Event* event) {
                 case SDLK_ESCAPE:
                     n64_request_quit();
                     break;
+                case SDLK_j:
+                    update_button(system, 0, A, true);
+                    break;
+                case SDLK_k:
+                    update_button(system, 0, B, true);
+                    break;
             }
         }
+        case SDL_KEYUP: {
+            switch (event->key.keysym.sym) {
+                case SDLK_j:
+                    update_button(system, 0, A, false);
+                    break;
+                case SDLK_k:
+                    update_button(system, 0, B, false);
+                    break;
+            }
+        }
+
     }
 }
 
 void render_screen(n64_system_t* system) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        handle_event(&event);
+        handle_event(system, &event);
     }
 
     unimplemented(system->vi.status.type == VI_TYPE_RESERVED, "VI_TYPE_RESERVED unimplemented!")
@@ -81,10 +105,15 @@ void render_screen(n64_system_t* system) {
         SDL_UpdateTexture(argb32buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 4);
         SDL_RenderCopy(renderer, argb32buffer, NULL, NULL);
     } else if (system->vi.status.type == VI_TYPE_16BIT) {
-        if (system->vi.vi_width != rgb16buffer_width) {
-            update_rgb16_buffer(system->vi.vi_width, system->vi.vi_width);
+        if (system->vi.vi_width != rgb16buffer_width || system->vi.calculated_height != rgb16buffer_height) {
+            update_rgb16_buffer(system->vi.vi_width, system->vi.calculated_height);
         }
-        SDL_UpdateTexture(rgb16buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 2);
+        half* harr = (half*)system->mem.rdram;
+        for (int i = 0; i < system->vi.vi_width * system->vi.calculated_height; i++) {
+            half converted = be16toh(harr[system->vi.vi_origin / 2 + i]);
+            rgb16_host_endianness[i] = converted;
+        }
+        SDL_UpdateTexture(rgb16buffer, NULL, rgb16_host_endianness, system->vi.vi_width * 2);
         SDL_RenderCopy(renderer, rgb16buffer, NULL, NULL);
     }
 
