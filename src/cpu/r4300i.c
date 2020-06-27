@@ -383,7 +383,14 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
         case COP_FUNCT_C_NGL:
             logfatal("COP_FUNCT_C_NGL unimplemented")
         case COP_FUNCT_C_LT:
-            logfatal("COP_FUNCT_C_LT unimplemented")
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_C_LT_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_C_LT_S;
+                default:
+                    logfatal("Undefined!")
+            }
         case COP_FUNCT_C_NGE:
             logfatal("COP_FUNCT_C_NGE unimplemented")
         case COP_FUNCT_C_LE:

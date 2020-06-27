@@ -448,7 +448,7 @@ MIPS_INSTR(mips_cp_c_ngl_s) {
 MIPS_INSTR(mips_cp_c_lt_s) {
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
-    logfatal("Unimplemented: mips_cp_c_lt_s")
+    cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_s) {
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
@@ -529,7 +529,7 @@ MIPS_INSTR(mips_cp_c_ngl_d) {
 MIPS_INSTR(mips_cp_c_lt_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
-    logfatal("Unimplemented: mips_cp_c_lt_d")
+    cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_d) {
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
