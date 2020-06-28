@@ -407,6 +407,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_MTHI,
     MIPS_SPC_MFLO,
     MIPS_SPC_MTLO,
+    MIPS_SPC_DSLLV,
     MIPS_SPC_MULT,
     MIPS_SPC_MULTU,
     MIPS_SPC_DIV,

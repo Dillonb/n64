@@ -867,6 +867,12 @@ MIPS_INSTR(mips_spc_mtlo) {
     cpu->mult_lo = get_register(cpu, instruction.r.rs);
 }
 
+MIPS_INSTR(mips_spc_dsllv) {
+    dword val = get_register(cpu, instruction.r.rt);
+    val <<= (get_register(cpu, instruction.r.rs) & 0b111111);
+    set_register(cpu, instruction.r.rd, val);
+}
+
 MIPS_INSTR(mips_spc_mult) {
     sword multiplicand_1 = get_register(cpu, instruction.r.rs);
     sword multiplicand_2 = get_register(cpu, instruction.r.rt);
