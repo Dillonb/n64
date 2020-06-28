@@ -25,6 +25,11 @@ extern unsigned int n64_log_verbosity;
     fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
     exit(EXIT_FAILURE);}
 
+#define logdie(message,...) if (1) { \
+    fprintf(stderr, COLOR_RED "[FATAL] ");\
+    fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
+    exit(EXIT_FAILURE);}
+
 #define logwarn(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_WARN) {printf(COLOR_YELLOW "[WARN]  " message "\n" COLOR_END, ##__VA_ARGS__);}
 #define loginfo(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message "\n" COLOR_END, ##__VA_ARGS__);}
 #define loginfo_nonewline(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message COLOR_END, ##__VA_ARGS__);}

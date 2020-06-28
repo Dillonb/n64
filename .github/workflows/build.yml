@@ -24,6 +24,11 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release ..
           make
 
+      - name: Run tests on N64
+        run: |
+          cd build
+          make test
+
       - name: Collect files
         run: |
           mkdir upload
