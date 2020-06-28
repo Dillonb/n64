@@ -6,7 +6,6 @@
 
 MIPS_INSTR(mips_addi);
 MIPS_INSTR(mips_addiu);
-MIPS_INSTR(mips_addu);
 
 MIPS_INSTR(mips_daddi);
 

@@ -952,7 +952,9 @@ MIPS_INSTR(mips_spc_add) {
 }
 
 MIPS_INSTR(mips_spc_addu) {
-    sword result = get_register(cpu, instruction.r.rs) + get_register(cpu, instruction.r.rt);
+    word rs = get_register(cpu, instruction.r.rs);
+    word rt = get_register(cpu, instruction.r.rt);
+    sword result = rs + rt;
     set_register(cpu, instruction.r.rd, (sdword)result);
 }
 
