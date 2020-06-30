@@ -9,7 +9,6 @@ MIPS_INSTR(mips_addiu);
 
 MIPS_INSTR(mips_daddi);
 
-MIPS_INSTR(mips_and);
 MIPS_INSTR(mips_andi);
 
 MIPS_INSTR(mips_blez);
