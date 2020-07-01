@@ -100,6 +100,8 @@ void run_testcase(const char *filename, void (*instr)(r4300i_t*, mips_instructio
 
     if (tests_failed) {
         logdie("Tests failed: %d", tests_failed)
+    } else {
+        printf("%s: passed!\n", filename);
     }
 }
 
