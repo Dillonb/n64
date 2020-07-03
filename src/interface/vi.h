@@ -1,4 +1,4 @@
-#include "system/n64system.h"
+#include "../system/n64system.h"
 
 #ifndef N64_VI_H
 #define N64_VI_H

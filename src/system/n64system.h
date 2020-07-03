@@ -4,7 +4,10 @@
 #include "../mem/n64mem.h"
 #include "../cpu/r4300i.h"
 #include "../cpu/rsp_status.h"
-#include "../vi_reg.h"
+#include "../interface/vi_reg.h"
+
+#define CPU_HERTZ 93750000
+#define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
 
 typedef enum n64_interrupt {
     INTERRUPT_VI,

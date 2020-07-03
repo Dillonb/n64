@@ -2,7 +2,7 @@
 #include "../common/log.h"
 #include "dma.h"
 #include "../cpu/rsp.h"
-#include "../vi.h"
+#include "../interface/vi.h"
 #include "addresses.h"
 #include "../interface/ai.h"
 #include "pif.h"
@@ -518,7 +518,7 @@ dword n64_read_dword(n64_system_t* system, word address) {
         case REGION_CART_2_2:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_2_2", address)
         case REGION_CART_1_2: {
-            dword index = address - SREGION_CART_1_2;
+            word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size - 7) { // -7 because we're reading an entire dword
                 logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index)
             }

@@ -2,12 +2,9 @@
 
 #include "n64system.h"
 #include "../mem/n64bus.h"
-#include "../render.h"
-#include "../vi.h"
+#include "../frontend/render.h"
+#include "../interface/vi.h"
 #include "../interface/ai.h"
-
-#define CPU_HERTZ 93750000
-#define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.
@@ -85,7 +82,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
     system->ai.dac.frequency = 44100;
     system->ai.dac.precision = 16;
-    system->ai.dac.period = 93750000 / 44100;
+    system->ai.dac.period = CPU_HERTZ / system->ai.dac.frequency;
 
     system->si.controllers[0].plugged_in = true;
     system->si.controllers[1].plugged_in = false;
@@ -93,7 +90,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->si.controllers[3].plugged_in = false;
 
     global_system = system;
-    render_init();
+    render_init(system);
     return system;
 }
 

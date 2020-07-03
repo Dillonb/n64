@@ -12,12 +12,12 @@ add_library(core
         mem/n64bus.c mem/n64bus.h
         mem/pif.c mem/pif.h
         mem/dma.c mem/dma.h
-        vi.c vi.h vi_reg.h
-        render.c render.h interface/ai.c interface/ai.h mem/addresses.h)
+        interface/vi.c interface/vi.h interface/vi_reg.h
+        frontend/render.c frontend/render.h interface/ai.c interface/ai.h mem/addresses.h)
 
 target_link_libraries(core r4300i rsp ${SDL2_LIBRARY})
 
-add_executable(${N64_TARGET} cli_frontend.c)
+add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)
 
 add_executable(logtester logtester.c)

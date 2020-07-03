@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <cflags.h>
-#include "common/log.h"
-#include "system/n64system.h"
-#include "mem/pif.h"
+#include "../common/log.h"
+#include "../system/n64system.h"
+#include "../mem/pif.h"
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,

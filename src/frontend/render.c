@@ -1,6 +1,6 @@
 #include <SDL.h>
 #include "render.h"
-#include "mem/pif.h"
+#include "../mem/pif.h"
 
 #define N64_SCREEN_X 640
 #define N64_SCREEN_Y 480
@@ -15,6 +15,12 @@ static SDL_Texture* rgb16buffer = NULL;
 static half* rgb16_host_endianness = NULL;
 static int rgb16buffer_width;
 static int rgb16buffer_height;
+
+#define AUDIO_SAMPLE_RATE 48000
+static SDL_AudioStream* audio_stream = NULL;
+SDL_AudioSpec audio_spec;
+SDL_AudioSpec request;
+SDL_AudioDeviceID audio_dev;
 
 word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
@@ -36,11 +42,45 @@ void update_rgb16_buffer(int width, int height) {
     rgb16buffer_height = height;
 }
 
-void render_init() {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        logfatal("SDL couldn't initialize! %s", SDL_GetError());
+void audio_callback(void* userdata, Uint8* stream, int length) {
+    int gotten = SDL_AudioStreamGet(audio_stream, stream, length);
+
+    if (gotten < length) {
+        int gotten_samples = gotten / sizeof(float);
+        float* out = (float*)stream;
+        out += gotten_samples;
+
+        for (int i = gotten_samples; i < length / sizeof(float); i++) {
+            float sample = 0;
+            *out++ = sample;
+        }
+    }
+}
+
+void audio_init(n64_system_t* system) {
+    adjust_audio_sample_rate(AUDIO_SAMPLE_RATE);
+    memset(&request, 0, sizeof(request));
+
+    request.freq = AUDIO_SAMPLE_RATE;
+    request.format = AUDIO_F32SYS;
+    request.channels = 2;
+    request.samples = 1024;
+    request.callback = audio_callback;
+    request.userdata = NULL;
+
+    audio_dev = SDL_OpenAudioDevice(NULL, 0, &request, &audio_spec, 0);
+
+    audio_dev = SDL_OpenAudioDevice(NULL, 0, &request, &audio_spec, 0);
+    unimplemented(request.format != audio_spec.format, "Request != got")
+
+    if (audio_dev == 0) {
+        logfatal("Failed to initialize SDL audio: %s", SDL_GetError())
     }
 
+    SDL_PauseAudioDevice(audio_dev, false);
+}
+
+void video_init() {
     window = SDL_CreateWindow("dgb n64",
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
@@ -58,6 +98,14 @@ void render_init() {
     }
 
     SDL_RenderSetScale(renderer, SCREEN_SCALE, SCREEN_SCALE);
+}
+
+void render_init(n64_system_t* system) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+        logfatal("SDL couldn't initialize! %s", SDL_GetError());
+    }
+    video_init();
+    audio_init(system);
 }
 
 void handle_event(n64_system_t* system, SDL_Event* event) {
@@ -181,4 +229,21 @@ void render_screen(n64_system_t* system) {
         snprintf(sdl_wintitle, sizeof(sdl_wintitle), "dgb n64 [%s] %02d FPS", system->mem.rom.header.image_name, sdl_fps);
         SDL_SetWindowTitle(window, sdl_wintitle);
     }
+}
+
+void adjust_audio_sample_rate(int sample_rate) {
+    if (audio_stream != NULL) {
+        SDL_FreeAudioStream(audio_stream);
+    }
+
+    audio_stream = SDL_NewAudioStream(AUDIO_S16SYS, 2, sample_rate, AUDIO_F32SYS, 2, AUDIO_SAMPLE_RATE);
+}
+
+void audio_push_sample(shalf left, shalf right) {
+    shalf samples[2] = {
+            left,
+            right
+    };
+
+    SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
 }

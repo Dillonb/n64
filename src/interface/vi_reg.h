@@ -2,7 +2,7 @@
 #define N64_VI_REG_H
 
 #include <stdbool.h>
-#include "common/util.h"
+#include "../common/util.h"
 
 #define VI_TYPE_BLANK    0
 #define VI_TYPE_RESERVED 1

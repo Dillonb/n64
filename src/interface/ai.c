@@ -1,5 +1,6 @@
 #include "ai.h"
 #include "../mem/addresses.h"
+#include "../frontend/render.h"
 
 INLINE int max(int x, int y) {
     if (x > y) return x;
@@ -9,7 +10,7 @@ INLINE int max(int x, int y) {
 void write_word_aireg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_AI_DRAM_ADDR_REG:
-            if (system->ai.dma_count > 2) {
+            if (system->ai.dma_count < 2) {
                 system->ai.dma_address[system->ai.dma_count] = value & 0x00FFFFFF & ~7;
             }
             break;
@@ -18,7 +19,6 @@ void write_word_aireg(n64_system_t* system, word address, word value) {
             if (system->ai.dma_count < 2 && length) {
                 system->ai.dma_length[system->ai.dma_count] = length;
                 system->ai.dma_count++;
-                //printf("AI length: %d\n", length);
             }
             break;
         }
@@ -31,11 +31,10 @@ void write_word_aireg(n64_system_t* system, word address, word value) {
         case ADDR_AI_DACRATE_REG: {
             word old_dac_frequency = system->ai.dac.frequency;
             system->ai.dac_rate = value & 0b11111111111111;
-            system->ai.dac.frequency = max(1, 93750000 / 2 / (system->ai.dac_rate + 1)) * 1.037;
-            system->ai.dac.period = 93750000 / system->ai.dac.frequency;
-            //printf("DAC period: %d\n", system->ai.dac.period);
-            if(old_dac_frequency != system->ai.dac.frequency) {
-                logwarn("TODO adjust sample rate")
+            system->ai.dac.frequency = max(1, CPU_HERTZ / 2 / (system->ai.dac_rate + 1)) * 1.037;
+            system->ai.dac.period = CPU_HERTZ / system->ai.dac.frequency;
+            if (old_dac_frequency != system->ai.dac.frequency) {
+                adjust_audio_sample_rate(system->ai.dac.frequency);
             }
             break;
         }
@@ -79,11 +78,10 @@ void sample(n64_system_t* system) {
         return;
     }
 
-    //word data  = system->cpu.read_word(system->ai.dma_address[0]);
-    //shalf left  = data >> 16;
-    //shalf right = data >>  0;
-    //printf("%d %d\n", left, right);
-    //stream->sample(left / 32768.0, right / 32768.0);
+    word data  = system->cpu.read_word(system->ai.dma_address[0]);
+    shalf left  = data >> 16;
+    shalf right = data >>  0;
+    audio_push_sample(left, right);
 
     system->ai.dma_address[0] += 4;
     system->ai.dma_length[0]  -= 4;
