@@ -976,13 +976,6 @@ MIPS_INSTR(mips_spc_divu) {
     dword dividend = get_register(cpu, instruction.r.rs);
     dword divisor  = get_register(cpu, instruction.r.rt);
 
-    // TEMPORARY REMOVE ME LATER PLEASE
-    if (divisor == 0) {
-        logwarn("FORCING DIVIDE BY ZERO TO BE A DIVIDE BY 1 - FIXME")
-        divisor = 1;
-    }
-
-
     unimplemented(divisor == 0, "Divide by zero exception")
 
     sword quotient  = dividend / divisor;
@@ -1003,6 +996,19 @@ MIPS_INSTR(mips_spc_dmultu) {
 
     cpu->mult_lo = result_lower;
     cpu->mult_hi = result_upper;
+}
+
+MIPS_INSTR(mips_spc_ddivu) {
+    dword dividend = get_register(cpu, instruction.r.rs);
+    dword divisor  = get_register(cpu, instruction.r.rt);
+
+    unimplemented(divisor == 0, "Divide by zero exception")
+
+    dword quotient  = dividend / divisor;
+    dword remainder = dividend % divisor;
+
+    cpu->mult_lo = quotient;
+    cpu->mult_hi = remainder;
 }
 
 MIPS_INSTR(mips_spc_add) {
@@ -1103,7 +1109,6 @@ MIPS_INSTR(mips_spc_dsra32) {
     value >>= instruction.r.sa + 32;
     set_register(cpu, instruction.r.rd, value);
 }
-
 
 MIPS_INSTR(mips_ri_bltz) {
     sdword reg = get_register(cpu, instruction.i.rs);

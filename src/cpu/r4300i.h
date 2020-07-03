@@ -413,6 +413,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_DIV,
     MIPS_SPC_DIVU,
     MIPS_SPC_DMULTU,
+    MIPS_SPC_DDIVU,
     MIPS_SPC_ADD,
     MIPS_SPC_ADDU,
     MIPS_SPC_AND,

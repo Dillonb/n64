@@ -155,6 +155,7 @@ MIPS_INSTR(mips_spc_multu);
 MIPS_INSTR(mips_spc_div);
 MIPS_INSTR(mips_spc_divu);
 MIPS_INSTR(mips_spc_dmultu);
+MIPS_INSTR(mips_spc_ddivu);
 MIPS_INSTR(mips_spc_add);
 MIPS_INSTR(mips_spc_addu);
 MIPS_INSTR(mips_spc_nor);
