@@ -77,9 +77,10 @@ const char* cp0_register_names[] = {
 
 // Coprocessor FUNCT
 #define COP_FUNCT_ADD        0b000000
-#define COP_FUNCT_SUB        0b000001
+#define COP_FUNCT_TLBR_SUB   0b000001
 #define COP_FUNCT_TLBWI_MULT 0b000010
 #define COP_FUNCT_DIV        0b000011
+#define COP_FUNCT_TLBP       0b001000
 #define COP_FUNCT_TRUNC_L    0b001001
 #define COP_FUNCT_TRUNC_W    0b001101
 #define COP_FUNCT_ERET       0b011000
@@ -221,8 +222,11 @@ mips_instruction_type_t decode_cp0(r4300i_t* cpu, word pc, mips_instruction_t in
     } else {
         switch (instr.fr.funct) {
             case COP_FUNCT_TLBWI_MULT:
-                logwarn("Ignoring (NOP) TLBWI!")
-                return MIPS_NOP;
+                return MIPS_TLBWI;
+            case COP_FUNCT_TLBP:
+                return MIPS_TLBP;
+            case COP_FUNCT_TLBR_SUB:
+                return MIPS_TLBR;
             case COP_FUNCT_ERET:
                 return MIPS_ERET;
             default: {
@@ -278,7 +282,7 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
                 default:
                     logfatal("Undefined!")
             }
-        case COP_FUNCT_SUB: {
+        case COP_FUNCT_TLBR_SUB: {
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
                     return MIPS_CP_SUB_D;
@@ -636,7 +640,10 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_MFC1, mips_mfc1)
         exec_instr(MIPS_CP_MTC1, mips_mtc1)
 
-        exec_instr(MIPS_ERET, mips_eret)
+        exec_instr(MIPS_ERET,  mips_eret)
+        exec_instr(MIPS_TLBWI, mips_tlbwi)
+        exec_instr(MIPS_TLBP,  mips_tlbp)
+        exec_instr(MIPS_TLBR,  mips_tlbr)
 
         exec_instr(MIPS_CP_CFC1, mips_cfc1)
         exec_instr(MIPS_CP_CTC1, mips_ctc1)

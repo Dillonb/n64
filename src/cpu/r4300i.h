@@ -84,18 +84,73 @@ typedef union cp0_cause {
     word raw;
 } cp0_cause_t;
 
+typedef union cp0_entry_lo {
+    word raw;
+    struct {
+        bool g:1;
+        bool v:1;
+        bool d:1;
+        unsigned c:3;
+        unsigned pfn:20;
+        unsigned:6;
+    };
+} cp0_entry_lo_t;
+
+typedef union cp0_page_mask {
+    word raw;
+    struct {
+        unsigned:13;
+        unsigned mask:12;
+        unsigned:7;
+    };
+} cp0_page_mask_t;
+
+typedef union cp0_entry_hi {
+    struct {
+        unsigned asid:8;
+        unsigned:5;
+        unsigned vpn2:19;
+    };
+    word raw;
+} cp0_entry_hi_t;
+
+typedef struct tlb_entry {
+    union {
+        word raw;
+    } entry_lo0;
+
+    union {
+        word raw;
+    } entry_lo1;
+
+    union {
+        word raw;
+        struct {
+            unsigned asid:8;
+            unsigned:4;
+            bool g:1;
+            unsigned vpn2:19;
+        };
+    } entry_hi;
+
+    union {
+        word raw;
+    } page_mask;
+
+} tlb_entry_t;
+
 typedef struct cp0 {
     word index;
     word random;
-    word entry_lo0;
-    word entry_lo1;
+    cp0_entry_lo_t entry_lo0;
+    cp0_entry_lo_t entry_lo1;
     word context;
-    word page_mask;
+    cp0_page_mask_t page_mask;
     word wired;
     word r7;
     word bad_vaddr;
     word count;
-    word entry_hi;
+    cp0_entry_hi_t entry_hi;
     word compare;
     cp0_status_t status;
     cp0_cause_t cause;
@@ -117,6 +172,8 @@ typedef struct cp0 {
     word tag_hi;
     word error_epc;
     word r31;
+
+    tlb_entry_t tlb[32];
 } cp0_t;
 
 typedef union fcr0 {
@@ -326,7 +383,10 @@ typedef enum mips_instruction_type {
     MIPS_CP_MFC1,
     MIPS_CP_MTC1,
 
-    MIPS_ERET, // Technically COP0?
+    MIPS_ERET,
+    MIPS_TLBWI,
+    MIPS_TLBP,
+    MIPS_TLBR,
 
     MIPS_CP_CTC1,
     MIPS_CP_CFC1,
@@ -521,16 +581,16 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
-            cpu->cp0.entry_lo0 = value;
+            cpu->cp0.entry_lo0.raw = value;
             break;
         case R4300I_CP0_REG_ENTRYLO1:
-            cpu->cp0.entry_lo1 = value;
+            cpu->cp0.entry_lo1.raw = value;
             break;
         case R4300I_CP0_REG_ENTRYHI:
-            cpu->cp0.entry_hi = value;
+            cpu->cp0.entry_hi.raw = value;
             break;
         case R4300I_CP0_REG_PAGEMASK:
-            cpu->cp0.page_mask = value;
+            cpu->cp0.page_mask.raw = value;
             break;
         case R4300I_CP0_REG_EPC:
             cpu->cp0.EPC = value;
@@ -545,13 +605,13 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
 INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
     switch (r) {
         case R4300I_CP0_REG_ENTRYLO0:
-            return cpu->cp0.entry_lo0;
+            return cpu->cp0.entry_lo0.raw;
         case R4300I_CP0_REG_BADVADDR:
             return cpu->cp0.bad_vaddr;
         case R4300I_CP0_REG_STATUS:
             return cpu->cp0.status.raw;
         case R4300I_CP0_REG_ENTRYHI:
-            return cpu->cp0.entry_hi;
+            return cpu->cp0.entry_hi.raw;
         case R4300I_CP0_REG_CAUSE:
             return cpu->cp0.cause.raw;
         case R4300I_CP0_REG_EPC:
@@ -560,6 +620,10 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
             return cpu->cp0.count;
         case R4300I_CP0_REG_COMPARE:
             return cpu->cp0.compare;
+        case R4300I_CP0_REG_INDEX:
+            return cpu->cp0.index & 0x8000003F;
+        case R4300I_CP0_REG_PAGEMASK:
+            return cpu->cp0.page_mask.raw;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
     }
