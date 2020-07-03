@@ -44,15 +44,6 @@ typedef union sp_status_write {
     };
 } sp_status_write_t;
 
-word read_word_spreg(n64_system_t* system, word address) {
-    switch (address) {
-        case ADDR_SP_PC_REG:
-            return 0;
-        default:
-            logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address)
-    }
-}
-
 #define CLEAR_SET(VAL, CLEAR, SET) if (CLEAR) {VAL = false; } if (SET) { VAL = true; }
 
 INLINE void status_reg_write(n64_system_t* system, word value) {
@@ -79,11 +70,50 @@ INLINE void status_reg_write(n64_system_t* system, word value) {
     CLEAR_SET(system->rsp_status.signal_7,      write.clear_signal_7,      write.set_signal_7)
 }
 
+word read_word_spreg(n64_system_t* system, word address) {
+    switch (address) {
+        case ADDR_SP_PC_REG:
+            return system->rsp.pc;
+        case ADDR_SP_STATUS_REG:
+            return system->rsp_status.raw;
+        default:
+            logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address)
+    }
+}
+
 void write_word_spreg(n64_system_t* system, word address, word value) {
     switch (address) {
+        case ADDR_SP_MEM_ADDR_REG:
+            system->sp.mem_addr.raw = value;
+            printf("SP mem addr: 0x%08X\n", value);
+            break;
+        case ADDR_SP_DRAM_ADDR_REG:
+            system->sp.dram_addr = value & 0xFFFFFF;
+            break;
+        case ADDR_SP_RD_LEN_REG: {
+            struct {
+                unsigned length:12;
+                unsigned count:8;
+                unsigned skip:12;
+            } parsed;
+            logfatal("Write to unsupported SP reg: ADDR_SP_RD_LEN_REG")
+        }
+        case ADDR_SP_WR_LEN_REG:
+            logfatal("Write to unsupported SP reg: ADDR_SP_WR_LEN_REG")
         case ADDR_SP_STATUS_REG:
             status_reg_write(system, value);
             break;
+        case ADDR_SP_DMA_FULL_REG:
+            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_FULL_REG")
+        case ADDR_SP_DMA_BUSY_REG:
+            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_BUSY_REG")
+        case ADDR_SP_SEMAPHORE_REG:
+            logfatal("Write to unsupported SP reg: ADDR_SP_SEMAPHORE_REG")
+        case ADDR_SP_PC_REG:
+            system->rsp.pc = value;
+            break;
+        case ADDR_SP_IBIST_REG:
+            logfatal("Write to unsupported SP reg: ADDR_SP_IBIST_REG")
         default:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
     }

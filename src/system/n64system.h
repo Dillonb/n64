@@ -128,6 +128,17 @@ typedef struct n64_system {
     struct {
         n64_controller_t controllers[4];
     } si;
+    struct {
+        union {
+            word raw;
+            struct {
+                unsigned address:12;
+                bool imem:1;
+                unsigned:19;
+            };
+        } mem_addr;
+        word dram_addr;
+    } sp;
 } n64_system_t;
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend);
