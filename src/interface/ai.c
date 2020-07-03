@@ -51,7 +51,7 @@ word read_word_aireg(n64_system_t* system, word address) {
         case ADDR_AI_DRAM_ADDR_REG:
             logfatal("Read from unknown AI register: AI_DRAM_ADDR_REG")
         case ADDR_AI_LEN_REG:
-            logfatal("Read from unknown AI register: AI_LEN_REG")
+            return system->ai.dma_length[0];
         case ADDR_AI_CONTROL_REG:
             logfatal("Read from unknown AI register: AI_CONTROL_REG")
         case ADDR_AI_STATUS_REG: {
