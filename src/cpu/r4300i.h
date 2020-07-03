@@ -412,6 +412,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_MULTU,
     MIPS_SPC_DIV,
     MIPS_SPC_DIVU,
+    MIPS_SPC_DMULTU,
     MIPS_SPC_ADD,
     MIPS_SPC_ADDU,
     MIPS_SPC_AND,
@@ -424,6 +425,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_DADD,
     MIPS_SPC_DSLL,
     MIPS_SPC_DSLL32,
+    MIPS_SPC_DSRA32,
 
     // REGIMM
     MIPS_RI_BLTZ,

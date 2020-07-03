@@ -6,11 +6,13 @@
 #define half uint16_t
 #define word uint32_t
 #define dword uint64_t
+#define qword __uint128_t
 
 #define sbyte int8_t
 #define shalf int16_t
 #define sword int32_t
 #define sdword int64_t
+#define sqword __int128
 
 #define PRINTF_BYTE "0x%02X"
 #define PRINTF_HALF "0x%04X"

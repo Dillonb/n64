@@ -130,6 +130,7 @@ const char* cp0_register_names[] = {
 #define FUNCT_MULTU  0b011001
 #define FUNCT_DIV    0b011010
 #define FUNCT_DIVU   0b011011
+#define FUNCT_DMULTU 0b011101
 #define FUNCT_ADD    0b100000
 #define FUNCT_ADDU   0b100001
 #define FUNCT_AND    0b100100
@@ -142,6 +143,7 @@ const char* cp0_register_names[] = {
 #define FUNCT_DADD   0b101100
 #define FUNCT_DSLL   0b111000
 #define FUNCT_DSLL32 0b111100
+#define FUNCT_DSRA32 0b111111
 
 
 // REGIMM
@@ -445,6 +447,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
         case FUNCT_MULTU:  return MIPS_SPC_MULTU;
         case FUNCT_DIV:    return MIPS_SPC_DIV;
         case FUNCT_DIVU:   return MIPS_SPC_DIVU;
+        case FUNCT_DMULTU: return MIPS_SPC_DMULTU;
         case FUNCT_ADD:    return MIPS_SPC_ADD;
         case FUNCT_ADDU:   return MIPS_SPC_ADDU;
         case FUNCT_AND:    return MIPS_SPC_AND;
@@ -457,6 +460,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
         case FUNCT_DADD:   return MIPS_SPC_DADD;
         case FUNCT_DSLL:   return MIPS_SPC_DSLL;
         case FUNCT_DSLL32: return MIPS_SPC_DSLL32;
+        case FUNCT_DSRA32: return MIPS_SPC_DSRA32;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -722,6 +726,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_MULTU,  mips_spc_multu)
         exec_instr(MIPS_SPC_DIV,    mips_spc_div)
         exec_instr(MIPS_SPC_DIVU,   mips_spc_divu)
+        exec_instr(MIPS_SPC_DMULTU, mips_spc_dmultu)
         exec_instr(MIPS_SPC_ADD,    mips_spc_add)
         exec_instr(MIPS_SPC_ADDU,   mips_spc_addu)
         exec_instr(MIPS_SPC_AND,    mips_spc_and)
@@ -734,6 +739,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_DADD,   mips_spc_dadd)
         exec_instr(MIPS_SPC_DSLL,   mips_spc_dsll)
         exec_instr(MIPS_SPC_DSLL32, mips_spc_dsll32)
+        exec_instr(MIPS_SPC_DSRA32, mips_spc_dsra32)
 
         // REGIMM
         exec_instr(MIPS_RI_BLTZ,   mips_ri_bltz)
