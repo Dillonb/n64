@@ -126,9 +126,9 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
                 system->mem.pif_ram[(*index)++] = 0x00;
                 system->mem.pif_ram[(*index)++] = 0x01; // Controller pak plugged in.
             } else {
-                system->mem.pif_ram[(*index)++] = 0xFF;
-                system->mem.pif_ram[(*index)++] = 0xFF;
-                system->mem.pif_ram[(*index)++] = 0x02;
+                system->mem.pif_ram[(*index)++] = 0x05;
+                system->mem.pif_ram[(*index)++] = 0x00;
+                system->mem.pif_ram[(*index)++] = 0x01;
             }
             (*channel)++;
             break;
@@ -163,6 +163,8 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_MEMPACK_WRITE:
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35")
             unimplemented(reslen != 1, "Mempack write with reslen != 1")
+            system->mem.pif_ram[r_index]   |= 0x80; // Device not present
+            system->mem.pif_ram[(*index) + 34] = 0x00;
             (*index) += 35; // NOOP
             break;
         case PIF_COMMAND_EEPROM_READ:

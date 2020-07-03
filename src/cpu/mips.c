@@ -719,10 +719,8 @@ MIPS_INSTR(mips_lwl) {
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF << shift;
     word data = cpu->read_word(address & ~3);
-    if (data) {
-        sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data << shift;
-        set_register(cpu, instruction.i.rt, (sdword)result);
-    }
+    sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data << shift;
+    set_register(cpu, instruction.i.rt, (sdword)result);
 }
 
 MIPS_INSTR(mips_lwr) {
@@ -733,10 +731,8 @@ MIPS_INSTR(mips_lwr) {
 
     word mask = 0xFFFFFFFF >> shift;
     word data = cpu->read_word(address & ~3);
-    if (data) {
-        sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data >> shift;
-        set_register(cpu, instruction.i.rt, (sdword)result);
-    }
+    sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data >> shift;
+    set_register(cpu, instruction.i.rt, (sdword)result);
 }
 
 MIPS_INSTR(mips_swl) {

@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "n64system.h"
 #include "../mem/n64bus.h"
 #include "../render.h"
@@ -59,6 +61,7 @@ void write_byte_wrapper(word address, byte value) {
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
+    memset(system, 0x00, sizeof(n64_system_t));
     unimplemented(!enable_frontend, "Disabling the frontend is not yet supported")
     init_mem(&system->mem);
     load_n64rom(&system->mem.rom, rom_path);

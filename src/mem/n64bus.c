@@ -173,7 +173,7 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
         }
         case ADDR_PI_STATUS_REG: {
             if (value & 0b01) {
-                // TODO: Set PI error to 0
+                logfatal("TODO: Set PI error to 0")
             }
             if (value & 0b10) {
                 interrupt_lower(system, INTERRUPT_PI);
@@ -181,28 +181,28 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             break;
         }
         case ADDR_PI_DOMAIN1_REG:
-            system->mem.pi_reg[PI_DOMAIN1_REG] = value;
+            system->mem.pi_reg[PI_DOMAIN1_REG] = value & 0xFF;
             break;
         case ADDR_PI_BSD_DOM1_PWD_REG:
-            system->mem.pi_reg[PI_BSD_DOM1_PWD_REG] = value;
+            system->mem.pi_reg[PI_BSD_DOM1_PWD_REG] = value & 0xFF;
             break;
         case ADDR_PI_BSD_DOM1_PGS_REG:
-            system->mem.pi_reg[PI_BSD_DOM1_PGS_REG] = value;
+            system->mem.pi_reg[PI_BSD_DOM1_PGS_REG] = value & 0xFF;
             break;
         case ADDR_PI_BSD_DOM1_RLS_REG:
-            system->mem.pi_reg[PI_BSD_DOM1_RLS_REG] = value;
+            system->mem.pi_reg[PI_BSD_DOM1_RLS_REG] = value & 0xFF;
             break;
         case ADDR_PI_DOMAIN2_REG:
-            system->mem.pi_reg[PI_DOMAIN2_REG] = value;
+            system->mem.pi_reg[PI_DOMAIN2_REG] = value & 0xFF;
             break;
         case ADDR_PI_BSD_DOM2_PWD_REG:
-            system->mem.pi_reg[PI_BSD_DOM2_PWD_REG] = value;
+            system->mem.pi_reg[PI_BSD_DOM2_PWD_REG] = value & 0xFF;
             break;
         case ADDR_PI_BSD_DOM2_PGS_REG:
-            system->mem.pi_reg[PI_BSD_DOM2_PGS_REG] = value;
+            system->mem.pi_reg[PI_BSD_DOM2_PGS_REG] = value & 0xFF;
             break;
         case ADDR_PI_BSD_DOM2_RLS_REG:
-            system->mem.pi_reg[PI_BSD_DOM2_RLS_REG] = value;
+            system->mem.pi_reg[PI_BSD_DOM2_RLS_REG] = value & 0xFF;
             break;
         default:
             logfatal("Writing word 0x%08X to unknown PI register 0x%08X", value, address)
@@ -215,10 +215,10 @@ word read_word_rireg(n64_system_t* system, word address) {
     }
 
     if (address < ADDR_RI_MODE_REG || address > ADDR_RI_WERROR_REG) {
-        logfatal("In RI write handler with out of bounds address 0x%08X", address)
+        logfatal("In RI read handler with out of bounds address 0x%08X", address)
     }
 
-    return system->mem.ri_reg[(address - SREGION_RI_REGS) / 4];
+    return 0;
 }
 
 void write_word_rireg(n64_system_t* system, word address, word value) {
@@ -333,40 +333,44 @@ word read_word_mireg(n64_system_t* system, word address) {
 }
 
 void pif_to_dram(n64_system_t* system, word pif_address, word dram_address) {
+    if ((dram_address & 1) != 0) {
+        logfatal("PIF to DRAM on unaligned address")
+    }
     unimplemented(pif_address != 0x1FC007C0, "SI DMA not from start of PIF RAM!")
     process_pif_command(system);
 
-    for (int i = 0; i < 63; i++) {
+    for (int i = 0; i < 64; i++) {
         byte value = system->mem.pif_ram[i];
         n64_write_byte(system, dram_address + i, value);
     }
-    n64_write_byte(system, dram_address + 63, 0);
-
+    interrupt_raise(system, INTERRUPT_SI);
 }
 
 void dram_to_pif(n64_system_t* system, word dram_address, word pif_address) {
+    if ((dram_address & 1) != 0) {
+        logfatal("DRAM to PIF on unaligned address")
+    }
     unimplemented(pif_address != 0x1FC007C0, "SI DMA not to start of PIF RAM!")
     for (int i = 0; i < 64; i++) {
         system->mem.pif_ram[i] = n64_read_byte(system, dram_address + i);
     }
     process_pif_command(system);
+    interrupt_raise(system, INTERRUPT_SI);
 }
 
 void write_word_sireg(n64_system_t* system, word address, word value) {
     switch (address) {
-        case ADDR_SI_STATUS_REG:
-            interrupt_lower(system, INTERRUPT_SI);
-            break;
         case ADDR_SI_DRAM_ADDR_REG:
             system->mem.si_reg.dram_address = value;
             break;
         case ADDR_SI_PIF_ADDR_RD64B_REG:
             pif_to_dram(system, value, system->mem.si_reg.dram_address);
-            interrupt_raise(system, INTERRUPT_SI);
             break;
         case ADDR_SI_PIF_ADDR_WR64B_REG:
             dram_to_pif(system, system->mem.si_reg.dram_address, value);
-            interrupt_raise(system, INTERRUPT_SI);
+            break;
+        case ADDR_SI_STATUS_REG:
+            interrupt_lower(system, INTERRUPT_SI);
             break;
         default:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address)
@@ -400,6 +404,7 @@ word read_unused(word address) {
 }
 
 void n64_write_dword(n64_system_t* system, word address, dword value) {
+    logdebug("Writing 0x%016lX to [0x%08X]", value, address)
     switch (address) {
         case REGION_RDRAM:
             dword_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
@@ -674,6 +679,7 @@ word n64_read_word(n64_system_t* system, word address) {
 }
 
 void n64_write_half(n64_system_t* system, word address, half value) {
+    logdebug("Writing 0x%04X to [0x%08X]", value, address)
     switch (address) {
         case REGION_RDRAM:
             half_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
@@ -731,7 +737,7 @@ void n64_write_half(n64_system_t* system, word address, half value) {
         case REGION_PIF_BOOT:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address)
         case REGION_PIF_RAM:
-            half_to_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM, value);
+            half_to_byte_array((byte*) &system->mem.pif_ram, address - SREGION_PIF_RAM, value);
             logfatal("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address)
             break;
         case REGION_RESERVED:
@@ -810,6 +816,7 @@ half n64_read_half(n64_system_t* system, word address) {
 }
 
 void n64_write_byte(n64_system_t* system, word address, byte value) {
+    logdebug("Writing 0x%02X to [0x%08X]", value, address)
     switch (address) {
         case REGION_RDRAM:
             system->mem.rdram[address] = value;
