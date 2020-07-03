@@ -137,6 +137,7 @@ const char* cp0_register_names[] = {
 #define FUNCT_ADDU   0b100001
 #define FUNCT_AND    0b100100
 #define FUNCT_NOR    0b100111
+#define FUNCT_SUB    0b100010
 #define FUNCT_SUBU   0b100011
 #define FUNCT_OR     0b100101
 #define FUNCT_XOR    0b100110
@@ -458,6 +459,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
         case FUNCT_ADDU:   return MIPS_SPC_ADDU;
         case FUNCT_AND:    return MIPS_SPC_AND;
         case FUNCT_NOR:    return MIPS_SPC_NOR;
+        case FUNCT_SUB:    return MIPS_SPC_SUB;
         case FUNCT_SUBU:   return MIPS_SPC_SUBU;
         case FUNCT_OR:     return MIPS_SPC_OR;
         case FUNCT_XOR:    return MIPS_SPC_XOR;
@@ -741,6 +743,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_ADDU,   mips_spc_addu)
         exec_instr(MIPS_SPC_AND,    mips_spc_and)
         exec_instr(MIPS_SPC_NOR,    mips_spc_nor)
+        exec_instr(MIPS_SPC_SUB,    mips_spc_sub)
         exec_instr(MIPS_SPC_SUBU,   mips_spc_subu)
         exec_instr(MIPS_SPC_OR,     mips_spc_or)
         exec_instr(MIPS_SPC_XOR,    mips_spc_xor)

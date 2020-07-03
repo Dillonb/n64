@@ -1103,6 +1103,14 @@ MIPS_INSTR(mips_spc_nor) {
     set_register(cpu, instruction.r.rd, result);
 }
 
+MIPS_INSTR(mips_spc_sub) {
+    sword operand1 = get_register(cpu, instruction.r.rs);
+    sword operand2 = get_register(cpu, instruction.r.rt);
+
+    sword result = operand1 - operand2;
+    set_register(cpu, instruction.r.rd, (sdword)result);
+}
+
 MIPS_INSTR(mips_spc_subu) {
     word operand1 = get_register(cpu, instruction.r.rs);
     word operand2 = get_register(cpu, instruction.r.rt);

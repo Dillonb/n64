@@ -478,6 +478,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_ADDU,
     MIPS_SPC_AND,
     MIPS_SPC_NOR,
+    MIPS_SPC_SUB,
     MIPS_SPC_SUBU,
     MIPS_SPC_OR,
     MIPS_SPC_XOR,

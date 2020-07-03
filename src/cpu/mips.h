@@ -163,6 +163,7 @@ MIPS_INSTR(mips_spc_add);
 MIPS_INSTR(mips_spc_addu);
 MIPS_INSTR(mips_spc_nor);
 MIPS_INSTR(mips_spc_and);
+MIPS_INSTR(mips_spc_sub);
 MIPS_INSTR(mips_spc_subu);
 MIPS_INSTR(mips_spc_or);
 MIPS_INSTR(mips_spc_xor);
