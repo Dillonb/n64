@@ -95,8 +95,8 @@ void pif_rom_execute(n64_system_t* system) {
     for (int i = 0; i < 0x1000; i++) {
         word src_address = src_ptr + i;
         word dest_address = dest_ptr + i;
-        byte src = n64_read_byte(system, vatopa(src_address));
-        n64_write_byte(system, vatopa(dest_address), src);
+        byte src = n64_read_byte(system, vatopa(src_address, &system->cpu.cp0));
+        n64_write_byte(system, vatopa(dest_address, &system->cpu.cp0), src);
 
         logtrace("PIF: Copied 0x%02X from 0x%08X ==> 0x%08X", src, src_address, dest_address)
     }

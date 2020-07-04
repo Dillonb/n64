@@ -57,42 +57,42 @@ void write_byte_wrapper(word address, byte value) {
 }
 
 dword virtual_read_dword_wrapper(word address) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     return n64_read_dword(global_system, address);
 }
 
 void virtual_write_dword_wrapper(word address, dword value) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     n64_write_dword(global_system, address, value);
 }
 
 word virtual_read_word_wrapper(word address) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     return n64_read_word(global_system, address);
 }
 
 void virtual_write_word_wrapper(word address, word value) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     n64_write_word(global_system, address, value);
 }
 
 half virtual_read_half_wrapper(word address) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     return n64_read_half(global_system, address);
 }
 
 void virtual_write_half_wrapper(word address, half value) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     n64_write_half(global_system, address, value);
 }
 
 byte virtual_read_byte_wrapper(word address) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     return n64_read_byte(global_system, address);
 }
 
 void virtual_write_byte_wrapper(word address, byte value) {
-    address = vatopa(address);
+    address = vatopa(address, &global_system->cpu.cp0);
     n64_write_byte(global_system, address, value);
 }
 

@@ -39,11 +39,16 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
     warr[index / sizeof(half)] = htobe16(value);
 }
 
-word vatopa(word address) {
+word vatopa(word address, cp0_t* cp0) {
     word physical;
     switch (address) {
         case VREGION_KUSEG:
-            logfatal("Unimplemented: translating virtual address in VREGION_KUSEG")
+            for (int i = 0; i < 32; i++) {
+                tlb_entry_t entry = cp0->tlb[i];
+                printf("entry: 0x%08X 0x%08X 0x%08X 0x%08X\n",
+                        entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw);
+            }
+            logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KUSEG", address)
             break;
         case VREGION_KSEG0:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
