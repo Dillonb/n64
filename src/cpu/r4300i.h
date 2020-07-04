@@ -8,9 +8,12 @@
 #define R4300I_REG_LR 31
 
 #define R4300I_CP0_REG_INDEX    0
+#define R4300I_CP0_REG_RANDOM   1
 #define R4300I_CP0_REG_ENTRYLO0 2
 #define R4300I_CP0_REG_ENTRYLO1 3
+#define R4300I_CP0_REG_CONTEXT  4
 #define R4300I_CP0_REG_PAGEMASK 5
+#define R4300I_CP0_REG_WIRED    6
 #define R4300I_CP0_REG_BADVADDR 8
 #define R4300I_CP0_REG_COUNT    9
 #define R4300I_CP0_REG_ENTRYHI  10
@@ -532,6 +535,8 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
         case R4300I_CP0_REG_INDEX:
             cpu->cp0.index = value;
             break;
+        case R4300I_CP0_REG_RANDOM:
+            break;
         case R4300I_CP0_REG_COUNT:
             cpu->cp0.count = value;
             break;
@@ -587,6 +592,8 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
         case R4300I_CP0_REG_ENTRYLO1:
             cpu->cp0.entry_lo1.raw = value;
             break;
+        case 7:
+            break;
         case R4300I_CP0_REG_ENTRYHI:
             cpu->cp0.entry_hi.raw = value;
             break;
@@ -623,8 +630,12 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
             return cpu->cp0.compare;
         case R4300I_CP0_REG_INDEX:
             return cpu->cp0.index & 0x8000003F;
+        case R4300I_CP0_REG_CONTEXT:
+            return cpu->cp0.context;
         case R4300I_CP0_REG_PAGEMASK:
             return cpu->cp0.page_mask.raw;
+        case R4300I_CP0_REG_WIRED:
+            return cpu->cp0.wired;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
     }

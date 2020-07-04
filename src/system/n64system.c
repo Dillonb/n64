@@ -56,6 +56,46 @@ void write_byte_wrapper(word address, byte value) {
     n64_write_byte(global_system, address, value);
 }
 
+dword virtual_read_dword_wrapper(word address) {
+    address = vatopa(address);
+    return n64_read_dword(global_system, address);
+}
+
+void virtual_write_dword_wrapper(word address, dword value) {
+    address = vatopa(address);
+    n64_write_dword(global_system, address, value);
+}
+
+word virtual_read_word_wrapper(word address) {
+    address = vatopa(address);
+    return n64_read_word(global_system, address);
+}
+
+void virtual_write_word_wrapper(word address, word value) {
+    address = vatopa(address);
+    n64_write_word(global_system, address, value);
+}
+
+half virtual_read_half_wrapper(word address) {
+    address = vatopa(address);
+    return n64_read_half(global_system, address);
+}
+
+void virtual_write_half_wrapper(word address, half value) {
+    address = vatopa(address);
+    n64_write_half(global_system, address, value);
+}
+
+byte virtual_read_byte_wrapper(word address) {
+    address = vatopa(address);
+    return n64_read_byte(global_system, address);
+}
+
+void virtual_write_byte_wrapper(word address, byte value) {
+    address = vatopa(address);
+    n64_write_byte(global_system, address, value);
+}
+
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
     memset(system, 0x00, sizeof(n64_system_t));
@@ -63,17 +103,29 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     init_mem(&system->mem);
     load_n64rom(&system->mem.rom, rom_path);
 
-    system->cpu.read_dword = &read_dword_wrapper;
-    system->cpu.write_dword = &write_dword_wrapper;
+    system->cpu.read_dword = &virtual_read_dword_wrapper;
+    system->cpu.write_dword = &virtual_write_dword_wrapper;
 
-    system->cpu.read_word = &read_word_wrapper;
-    system->cpu.write_word = &write_word_wrapper;
+    system->cpu.read_word = &virtual_read_word_wrapper;
+    system->cpu.write_word = &virtual_write_word_wrapper;
 
-    system->cpu.read_half = &read_half_wrapper;
-    system->cpu.write_half = &write_half_wrapper;
+    system->cpu.read_half = &virtual_read_half_wrapper;
+    system->cpu.write_half = &virtual_write_half_wrapper;
 
-    system->cpu.read_byte = &read_byte_wrapper;
-    system->cpu.write_byte = &write_byte_wrapper;
+    system->cpu.read_byte = &virtual_read_byte_wrapper;
+    system->cpu.write_byte = &virtual_write_byte_wrapper;
+
+    system->rsp.read_dword = &read_dword_wrapper;
+    system->rsp.write_dword = &write_dword_wrapper;
+
+    system->rsp.read_word = &read_word_wrapper;
+    system->rsp.write_word = &write_word_wrapper;
+
+    system->rsp.read_half = &read_half_wrapper;
+    system->rsp.write_half = &write_half_wrapper;
+
+    system->rsp.read_byte = &read_byte_wrapper;
+    system->rsp.write_byte = &write_byte_wrapper;
 
     system->rsp_status.halt = true; // RSP starts halted
 
@@ -96,7 +148,10 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
 INLINE void _n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
-    unimplemented(!system->rsp_status.halt, "RSP running!")
+    if (!system->rsp_status.halt) {
+        logfatal("RSP unhalted. PC: 0x%08X", system->rsp.pc);
+        r4300i_step(&system->rsp);
+    }
 }
 
 void n64_system_step(n64_system_t* system) {

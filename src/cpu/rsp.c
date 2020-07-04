@@ -1,5 +1,6 @@
 #include "rsp.h"
 #include "../common/log.h"
+#include "../mem/addresses.h"
 
 #define ADDR_SP_MEM_ADDR_REG  0x04040000
 #define ADDR_SP_DRAM_ADDR_REG 0x04040004
@@ -88,15 +89,23 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             printf("SP mem addr: 0x%08X\n", value);
             break;
         case ADDR_SP_DRAM_ADDR_REG:
-            system->sp.dram_addr = value & 0xFFFFFF;
+            system->sp.dram_addr.raw = value;
             break;
         case ADDR_SP_RD_LEN_REG: {
-            struct {
-                unsigned length:12;
-                unsigned count:8;
-                unsigned skip:12;
-            } parsed;
-            logfatal("Write to unsupported SP reg: ADDR_SP_RD_LEN_REG")
+            system->sp.dma_read.raw = value;
+            word length = (system->sp.dma_read.length | 7) + 1;
+            for (int i = 0; i < system->sp.dma_read.count + 1; i++) {
+                word mem_addr = system->sp.mem_addr.address + (system->sp.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+                for (int j = 0; j < length; j++) {
+                    byte val = system->cpu.read_byte(system->sp.dram_addr.address + j);
+                    logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, system->sp.dram_addr.address + j, mem_addr + j)
+                    system->cpu.write_byte(mem_addr + j, val);
+                }
+
+                system->sp.dram_addr.address += length + system->sp.dma_read.skip;
+                system->sp.mem_addr.address += length;
+            }
+            break;
         }
         case ADDR_SP_WR_LEN_REG:
             logfatal("Write to unsupported SP reg: ADDR_SP_WR_LEN_REG")

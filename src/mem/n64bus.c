@@ -42,6 +42,9 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
 word vatopa(word address) {
     word physical;
     switch (address) {
+        case VREGION_KUSEG:
+            logfatal("Unimplemented: translating virtual address in VREGION_KUSEG")
+            break;
         case VREGION_KSEG0:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             physical = address - SVREGION_KSEG0;
@@ -470,7 +473,7 @@ void n64_write_dword(n64_system_t* system, word address, dword value) {
         case REGION_CART_1_3:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
         case REGION_SYSAD_DEVICE:
-            n64_write_dword(system, vatopa(address), value);
+            logfatal("This is a virtual address!")
             break;
         default:
             logfatal("Writing dword 0x%016lX to unknown address: 0x%08X", value, address)
@@ -533,7 +536,7 @@ dword n64_read_dword(n64_system_t* system, word address) {
         case REGION_CART_1_3:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_1_3", address)
         case REGION_SYSAD_DEVICE:
-            return n64_read_dword(system, vatopa(address));
+            logfatal("This is a virtual address!")
         default:
             logfatal("Reading dword from unknown address: 0x%08X", address)
     }
@@ -608,7 +611,7 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_CART_1_3:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
         case REGION_SYSAD_DEVICE:
-            n64_write_word(system, vatopa(address), value);
+            logfatal("This is a virtual address!")
             break;
         default:
             logfatal("Writing word 0x%08X to unknown address: 0x%08X", value, address)
@@ -672,7 +675,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_CART_1_3:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_1_3", address)
         case REGION_SYSAD_DEVICE:
-            return n64_read_word(system, vatopa(address));
+            logfatal("This is a virtual address!")
         default:
             logfatal("Reading word from unknown address: 0x%08X", address)
     }
@@ -745,7 +748,7 @@ void n64_write_half(n64_system_t* system, word address, half value) {
         case REGION_CART_1_3:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
         case REGION_SYSAD_DEVICE:
-            n64_write_half(system, vatopa(address), value);
+            logfatal("This is a virtual address!")
             break;
         default:
             logfatal("Writing half 0x%04X to unknown address: 0x%08X", value, address)
@@ -809,7 +812,7 @@ half n64_read_half(n64_system_t* system, word address) {
         case REGION_CART_1_3:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_1_3", address)
         case REGION_SYSAD_DEVICE:
-            return n64_read_half(system, vatopa(address));
+            logfatal("This is a virtual address!")
         default:
             logfatal("Reading half from unknown address: 0x%08X", address)
     }
@@ -871,8 +874,7 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
             logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address)
             break;
         case REGION_SYSAD_DEVICE:
-            return n64_write_byte(system, vatopa(address), value);
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_SYSAD_DEVICE", value, address)
+            logfatal("This is a virtual address!")
         default:
             logfatal("Writing byte 0x%02X to unknown address: 0x%08X", value, address)
     }
@@ -932,8 +934,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_1_3:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_3", address)
         case REGION_SYSAD_DEVICE:
-            return n64_read_byte(system, vatopa(address));
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_SYSAD_DEVICE", address)
+            logfatal("This is a virtual address!")
         default:
             logfatal("Reading byte from unknown address: 0x%08X", address)
     }

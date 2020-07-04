@@ -4,6 +4,8 @@
 #include "../common/util.h"
 #include "../system/n64system.h"
 
+word vatopa(word address);
+
 void n64_write_dword(n64_system_t* system, word address, dword value);
 dword n64_read_dword(n64_system_t* system, word address);
 

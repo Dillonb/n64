@@ -137,7 +137,21 @@ typedef struct n64_system {
                 unsigned:19;
             };
         } mem_addr;
-        word dram_addr;
+        union {
+            word raw;
+            struct {
+                unsigned address:24;
+                unsigned:8;
+            };
+        } dram_addr;
+        union {
+            struct {
+                unsigned length: 12;
+                unsigned count: 8;
+                unsigned skip: 12;
+            };
+            word raw;
+        } dma_read;
     } sp;
 } n64_system_t;
 

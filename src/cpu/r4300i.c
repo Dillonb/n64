@@ -566,6 +566,11 @@ void cp0_step(cp0_t* cp0) {
         cp0->cause.ip7 = true;
         logwarn("Compare interrupt!")
     }
+    if (cp0->random <= cp0->wired) {
+        cp0->random = 31;
+    } else {
+        cp0->random--;
+    }
     cp0->count += 2;
 }
 

@@ -1,6 +1,7 @@
 #include "ai.h"
 #include "../mem/addresses.h"
 #include "../frontend/render.h"
+#include "../mem/n64bus.h"
 
 INLINE int max(int x, int y) {
     if (x > y) return x;
@@ -78,7 +79,7 @@ void sample(n64_system_t* system) {
         return;
     }
 
-    word data  = system->cpu.read_word(system->ai.dma_address[0]);
+    word data  = n64_read_word(system, system->ai.dma_address[0]);
     shalf left  = data >> 16;
     shalf right = data >>  0;
     audio_push_sample(left, right);
