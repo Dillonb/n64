@@ -97,9 +97,9 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             for (int i = 0; i < system->sp.dma_read.count + 1; i++) {
                 word mem_addr = system->sp.mem_addr.address + (system->sp.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
                 for (int j = 0; j < length; j++) {
-                    byte val = system->cpu.read_byte(system->sp.dram_addr.address + j);
+                    byte val = system->rsp.read_byte(system->sp.dram_addr.address + j);
                     logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, system->sp.dram_addr.address + j, mem_addr + j)
-                    system->cpu.write_byte(mem_addr + j, val);
+                    system->rsp.write_byte(mem_addr + j, val);
                 }
 
                 system->sp.dram_addr.address += length + system->sp.dma_read.skip;
