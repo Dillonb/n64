@@ -38,19 +38,12 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_SRAV:   return MIPS_SPC_SRAV;
         //case FUNCT_SLLV:   return MIPS_SPC_SLLV;
         //case FUNCT_SRLV:   return MIPS_SPC_SRLV;
-        //case FUNCT_JR:     return MIPS_SPC_JR;
+        case FUNCT_JR:     return MIPS_SPC_JR;
         //case FUNCT_JALR:   return MIPS_SPC_JALR;
-        //case FUNCT_MFHI:   return MIPS_SPC_MFHI;
-        //case FUNCT_MTHI:   return MIPS_SPC_MTHI;
-        //case FUNCT_MFLO:   return MIPS_SPC_MFLO;
-        //case FUNCT_MTLO:   return MIPS_SPC_MTLO;
-        //case FUNCT_DSLLV:  return MIPS_SPC_DSLLV;
         //case FUNCT_MULT:   return MIPS_SPC_MULT;
         //case FUNCT_MULTU:  return MIPS_SPC_MULTU;
         //case FUNCT_DIV:    return MIPS_SPC_DIV;
         //case FUNCT_DIVU:   return MIPS_SPC_DIVU;
-        //case FUNCT_DMULTU: return MIPS_SPC_DMULTU;
-        //case FUNCT_DDIVU:  return MIPS_SPC_DDIVU;
         //case FUNCT_ADD:    return MIPS_SPC_ADD;
         //case FUNCT_ADDU:   return MIPS_SPC_ADDU;
         //case FUNCT_AND:    return MIPS_SPC_AND;
@@ -61,10 +54,6 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_XOR:    return MIPS_SPC_XOR;
         //case FUNCT_SLT:    return MIPS_SPC_SLT;
         //case FUNCT_SLTU:   return MIPS_SPC_SLTU;
-        //case FUNCT_DADD:   return MIPS_SPC_DADD;
-        //case FUNCT_DSLL:   return MIPS_SPC_DSLL;
-        //case FUNCT_DSLL32: return MIPS_SPC_DSLL32;
-        //case FUNCT_DSRA32: return MIPS_SPC_DSRA32;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -84,11 +73,9 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             return MIPS_NOP;
         }
         switch (instr.op) {
-            //case OPC_LD:    return MIPS_LD;
             //case OPC_LUI:   return MIPS_LUI;
             //case OPC_ADDIU: return MIPS_ADDIU;
             case OPC_ADDI:  return MIPS_ADDI;
-            //case OPC_DADDI: return MIPS_DADDI;
             case OPC_ANDI:  return MIPS_ANDI;
             //case OPC_LBU:   return MIPS_LBU;
             //case OPC_LHU:   return MIPS_LHU;
@@ -98,16 +85,13 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_BEQ:   return MIPS_BEQ;
             //case OPC_BEQL:  return MIPS_BEQL;
             //case OPC_BGTZ:  return MIPS_BGTZ;
-            //case OPC_BGTZL: return MIPS_BGTZL;
             //case OPC_BLEZ:  return MIPS_BLEZ;
-            //case OPC_BLEZL: return MIPS_BLEZL;
             case OPC_BNE:   return MIPS_BNE;
             //case OPC_BNEL:  return MIPS_BNEL;
             //case OPC_CACHE: return MIPS_CACHE;
             //case OPC_SB:    return MIPS_SB;
             //case OPC_SH:    return MIPS_SH;
             //case OPC_SW:    return MIPS_SW;
-            //case OPC_SD:    return MIPS_SD;
             case OPC_ORI:   return MIPS_ORI;
             case OPC_J:     return MIPS_J;
             case OPC_JAL:   return MIPS_JAL;
@@ -115,18 +99,10 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_SLTIU: return MIPS_SLTIU;
             //case OPC_XORI:  return MIPS_XORI;
             //case OPC_LB:    return MIPS_LB;
-            //case OPC_LDC1:  return MIPS_LDC1;
-            //case OPC_SDC1:  return MIPS_SDC1;
-            //case OPC_LWC1:  return MIPS_LWC1;
-            //case OPC_SWC1:  return MIPS_SWC1;
             //case OPC_LWL:   return MIPS_LWL;
             //case OPC_LWR:   return MIPS_LWR;
             //case OPC_SWL:   return MIPS_SWL;
             //case OPC_SWR:   return MIPS_SWR;
-            //case OPC_LDL:   return MIPS_LDL;
-            //case OPC_LDR:   return MIPS_LDR;
-            //case OPC_SDL:   return MIPS_SDL;
-            //case OPC_SDR:   return MIPS_SDR;
 
             case OPC_CP0:    return rsp_cp0_decode(rsp, pc, instr);
             case OPC_CP1:    logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
@@ -158,7 +134,7 @@ void rsp_step(rsp_t* rsp) {
 
         exec_instr(MIPS_J,      rsp_j)
         exec_instr(MIPS_JAL,    rsp_jal)
-        //exec_instr(MIPS_SPC_JR, rsp_spc_jr)
+        exec_instr(MIPS_SPC_JR, rsp_spc_jr)
 
         exec_instr(MIPS_BNE, rsp_bne)
         exec_instr(MIPS_BEQ, rsp_beq)
