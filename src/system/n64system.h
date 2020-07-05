@@ -80,7 +80,6 @@ typedef struct n64_system {
     n64_mem_t mem;
     r4300i_t cpu;
     rsp_t rsp;
-    rsp_status_t rsp_status;
     struct {
         word init_mode;
         mi_intr_mask_t intr_mask;

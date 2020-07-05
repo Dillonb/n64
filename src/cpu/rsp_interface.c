@@ -39,24 +39,24 @@ INLINE void status_reg_write(n64_system_t* system, word value) {
     sp_status_write_t write;
     write.raw = value;
 
-    CLEAR_SET(system->rsp_status.halt,          write.clear_halt,          write.set_halt)
-    CLEAR_SET(system->rsp_status.broke,         write.clear_broke,         false)
+    CLEAR_SET(system->rsp.status.halt,          write.clear_halt,          write.set_halt)
+    CLEAR_SET(system->rsp.status.broke,         write.clear_broke,         false)
     if (write.clear_intr) {
         logwarn("TODO: Clearing RSP intr?")
     }
     if (write.set_intr) {
         logwarn("TODO: Setting RSP intr?")
     }
-    CLEAR_SET(system->rsp_status.single_step,   write.clear_sstep,         write.set_sstep)
-    CLEAR_SET(system->rsp_status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break)
-    CLEAR_SET(system->rsp_status.signal_0,      write.clear_signal_0,      write.set_signal_0)
-    CLEAR_SET(system->rsp_status.signal_1,      write.clear_signal_1,      write.set_signal_1)
-    CLEAR_SET(system->rsp_status.signal_2,      write.clear_signal_2,      write.set_signal_2)
-    CLEAR_SET(system->rsp_status.signal_3,      write.clear_signal_3,      write.set_signal_3)
-    CLEAR_SET(system->rsp_status.signal_4,      write.clear_signal_4,      write.set_signal_4)
-    CLEAR_SET(system->rsp_status.signal_5,      write.clear_signal_5,      write.set_signal_5)
-    CLEAR_SET(system->rsp_status.signal_6,      write.clear_signal_6,      write.set_signal_6)
-    CLEAR_SET(system->rsp_status.signal_7,      write.clear_signal_7,      write.set_signal_7)
+    CLEAR_SET(system->rsp.status.single_step,   write.clear_sstep,         write.set_sstep)
+    CLEAR_SET(system->rsp.status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break)
+    CLEAR_SET(system->rsp.status.signal_0,      write.clear_signal_0,      write.set_signal_0)
+    CLEAR_SET(system->rsp.status.signal_1,      write.clear_signal_1,      write.set_signal_1)
+    CLEAR_SET(system->rsp.status.signal_2,      write.clear_signal_2,      write.set_signal_2)
+    CLEAR_SET(system->rsp.status.signal_3,      write.clear_signal_3,      write.set_signal_3)
+    CLEAR_SET(system->rsp.status.signal_4,      write.clear_signal_4,      write.set_signal_4)
+    CLEAR_SET(system->rsp.status.signal_5,      write.clear_signal_5,      write.set_signal_5)
+    CLEAR_SET(system->rsp.status.signal_6,      write.clear_signal_6,      write.set_signal_6)
+    CLEAR_SET(system->rsp.status.signal_7,      write.clear_signal_7,      write.set_signal_7)
 }
 
 word read_word_spreg(n64_system_t* system, word address) {
@@ -64,7 +64,7 @@ word read_word_spreg(n64_system_t* system, word address) {
         case ADDR_SP_PC_REG:
             return system->rsp.pc;
         case ADDR_SP_STATUS_REG:
-            return system->rsp_status.raw;
+            return system->rsp.status.raw;
         default:
             logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address)
     }

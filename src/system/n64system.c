@@ -127,7 +127,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->rsp.read_byte = &read_byte_wrapper;
     system->rsp.write_byte = &write_byte_wrapper;
 
-    system->rsp_status.halt = true; // RSP starts halted
+    system->rsp.status.halt = true; // RSP starts halted
 
     system->vi.vi_v_intr = 256;
 
@@ -148,7 +148,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
 INLINE void _n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
-    if (!system->rsp_status.halt) {
+    if (!system->rsp.status.halt) {
         rsp_step(&system->rsp);
     }
 }

@@ -101,7 +101,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_BGTZL: return MIPS_BGTZL;
             //case OPC_BLEZ:  return MIPS_BLEZ;
             //case OPC_BLEZL: return MIPS_BLEZL;
-            //case OPC_BNE:   return MIPS_BNE;
+            case OPC_BNE:   return MIPS_BNE;
             //case OPC_BNEL:  return MIPS_BNEL;
             //case OPC_CACHE: return MIPS_CACHE;
             //case OPC_SB:    return MIPS_SB;
@@ -160,7 +160,7 @@ void rsp_step(rsp_t* rsp) {
         exec_instr(MIPS_JAL,    rsp_jal)
         //exec_instr(MIPS_SPC_JR, rsp_spc_jr)
 
-        //exec_instr(MIPS_BNE, rsp_bne)
+        exec_instr(MIPS_BNE, rsp_bne)
         exec_instr(MIPS_BEQ, rsp_beq)
 
         exec_instr(MIPS_CP_MTC0, rsp_mtc0)

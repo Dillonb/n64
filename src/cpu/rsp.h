@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "../common/util.h"
 #include "../common/log.h"
+#include "rsp_status.h"
 
 #define RSP_CP0_DMA_CACHE        0
 #define RSP_CP0_DMA_DRAM         1
@@ -28,6 +29,8 @@ typedef struct rsp {
     word pc;
     //dword mult_hi;
     //dword mult_lo;
+
+    rsp_status_t status;
 
     // Branch delay
     bool branch;
@@ -71,78 +74,77 @@ INLINE word get_rsp_register(rsp_t* rsp, byte r) {
 INLINE word get_rsp_cp0_register(rsp_t* rsp, byte r) {
     switch (r) {
         case RSP_CP0_DMA_CACHE:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_DMA_CACHE")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r)
         case RSP_CP0_DMA_DRAM:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_DMA_DRAM")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_DRAM", r)
         case RSP_CP0_DMA_READ_LENGTH:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_DMA_READ_LENGTH")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r)
         case RSP_CP0_DMA_WRITE_LENGTH:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_DMA_WRITE_LENGTH")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r)
         case RSP_CP0_SP_STATUS:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_SP_STATUS")
-        case RSP_CP0_DMA_FULL:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_DMA_FULL")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_SP_STATUS", r)
+        case RSP_CP0_DMA_FULL: return rsp->status.dma_full;
         case RSP_CP0_DMA_BUSY:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_DMA_BUSY")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r)
         case RSP_CP0_DMA_RESERVED:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_DMA_RESERVED")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_RESERVED", r)
         case RSP_CP0_CMD_START:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_START")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r)
         case RSP_CP0_CMD_END:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_END")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_END", r)
         case RSP_CP0_CMD_CURRENT:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_CURRENT")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r)
         case RSP_CP0_CMD_STATUS:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_STATUS")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_STATUS", r)
         case RSP_CP0_CMD_CLOCK:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_CLOCK")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r)
         case RSP_CP0_CMD_BUSY:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_BUSY")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r)
         case RSP_CP0_CMD_PIPE_BUSY:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_PIPE_BUSY")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r)
         case RSP_CP0_CMD_TMEM_BUSY:
-            logfatal("Read from unknown RSP CP0 register: RSP_CP0_CMD_TMEM_BUSY")
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r)
         default:
-            logfatal("Unsupported RSP CP0 %d read", r)
+            logfatal("Unsupported RSP CP0 $c%d read", r)
     }
 }
 
 INLINE void set_rsp_cp0_register(rsp_t* rsp, byte r, word value) {
     switch (r) {
         case RSP_CP0_DMA_CACHE:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_DMA_CACHE")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r)
         case RSP_CP0_DMA_DRAM:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_DMA_DRAM")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_DRAM", r)
         case RSP_CP0_DMA_READ_LENGTH:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_DMA_READ_LENGTH")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r)
         case RSP_CP0_DMA_WRITE_LENGTH:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_DMA_WRITE_LENGTH")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r)
         case RSP_CP0_SP_STATUS:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_SP_STATUS")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_SP_STATUS", r)
         case RSP_CP0_DMA_FULL:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_DMA_FULL")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r)
         case RSP_CP0_DMA_BUSY:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_DMA_BUSY")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r)
         case RSP_CP0_DMA_RESERVED:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_DMA_RESERVED")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_RESERVED", r)
         case RSP_CP0_CMD_START:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_START")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r)
         case RSP_CP0_CMD_END:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_END")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_END", r)
         case RSP_CP0_CMD_CURRENT:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_CURRENT")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r)
         case RSP_CP0_CMD_STATUS:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_STATUS")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_STATUS", r)
         case RSP_CP0_CMD_CLOCK:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_CLOCK")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r)
         case RSP_CP0_CMD_BUSY:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_BUSY")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r)
         case RSP_CP0_CMD_PIPE_BUSY:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_PIPE_BUSY")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r)
         case RSP_CP0_CMD_TMEM_BUSY:
-            logfatal("Write to unknown RSP CP0 register: RSP_CP0_CMD_TMEM_BUSY")
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r)
         default:
-            logfatal("Unsupported RSP CP0 %d read", r)
+            logfatal("Unsupported RSP CP0 $c%d written to", r)
     }
 }
 

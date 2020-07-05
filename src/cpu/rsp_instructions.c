@@ -95,6 +95,10 @@ RSP_INSTR(rsp_mtc0) {
     set_rsp_cp0_register(rsp, instruction.r.rd, value);
 }
 
+RSP_INSTR(rsp_bne) {
+    rsp_conditional_branch(rsp, instruction.i.immediate, get_rsp_register(rsp, instruction.i.rs) != get_rsp_register(rsp, instruction.i.rt));
+}
+
 RSP_INSTR(rsp_beq) {
     rsp_conditional_branch(rsp, instruction.i.immediate, get_rsp_register(rsp, instruction.i.rs) == get_rsp_register(rsp, instruction.i.rt));
 }
