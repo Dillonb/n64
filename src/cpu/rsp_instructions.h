@@ -6,8 +6,14 @@
 
 RSP_INSTR(rsp_ori);
 RSP_INSTR(rsp_addi);
+RSP_INSTR(rsp_andi);
+
+RSP_INSTR(rsp_lw);
 
 RSP_INSTR(rsp_j);
+RSP_INSTR(rsp_jal);
+
+RSP_INSTR(rsp_beq);
 
 RSP_INSTR(rsp_mfc0);
 RSP_INSTR(rsp_mtc0);

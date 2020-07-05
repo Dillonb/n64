@@ -9,8 +9,8 @@
 mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
-            //case COP_MT: return MIPS_CP_MTC0;
-            //case COP_MF: return MIPS_CP_MFC0;
+            case COP_MT: return MIPS_CP_MTC0;
+            case COP_MF: return MIPS_CP_MFC0;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -89,13 +89,13 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_ADDIU: return MIPS_ADDIU;
             case OPC_ADDI:  return MIPS_ADDI;
             //case OPC_DADDI: return MIPS_DADDI;
-            //case OPC_ANDI:  return MIPS_ANDI;
+            case OPC_ANDI:  return MIPS_ANDI;
             //case OPC_LBU:   return MIPS_LBU;
             //case OPC_LHU:   return MIPS_LHU;
             //case OPC_LH:    return MIPS_LH;
-            //case OPC_LW:    return MIPS_LW;
+            case OPC_LW:    return MIPS_LW;
             //case OPC_LWU:   return MIPS_LWU;
-            //case OPC_BEQ:   return MIPS_BEQ;
+            case OPC_BEQ:   return MIPS_BEQ;
             //case OPC_BEQL:  return MIPS_BEQL;
             //case OPC_BGTZ:  return MIPS_BGTZ;
             //case OPC_BGTZL: return MIPS_BGTZL;
@@ -110,7 +110,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_SD:    return MIPS_SD;
             case OPC_ORI:   return MIPS_ORI;
             case OPC_J:     return MIPS_J;
-            //case OPC_JAL:   return MIPS_JAL;
+            case OPC_JAL:   return MIPS_JAL;
             //case OPC_SLTI:  return MIPS_SLTI;
             //case OPC_SLTIU: return MIPS_SLTIU;
             //case OPC_XORI:  return MIPS_XORI;
@@ -150,19 +150,21 @@ void rsp_step(rsp_t* rsp) {
     rsp->pc += 4;
 
     switch (rsp_instruction_decode(rsp, pc, instruction)) {
-        case MIPS_NOP: return;
+        case MIPS_NOP: break;
         exec_instr(MIPS_ORI,  rsp_ori)
         exec_instr(MIPS_ADDI, rsp_addi)
-        //exec_instr(MIPS_LW,   rsp_lw)
+        exec_instr(MIPS_ANDI, rsp_andi)
+        exec_instr(MIPS_LW,   rsp_lw)
 
         exec_instr(MIPS_J,      rsp_j)
-        //exec_instr(MIPS_JAL,    rsp_jal)
+        exec_instr(MIPS_JAL,    rsp_jal)
         //exec_instr(MIPS_SPC_JR, rsp_spc_jr)
 
         //exec_instr(MIPS_BNE, rsp_bne)
+        exec_instr(MIPS_BEQ, rsp_beq)
 
-        //exec_instr(MIPS_CP_MTC0, rsp_mtc0)
-        //exec_instr(MIPS_CP_MFC0, rsp_mfc0)
+        exec_instr(MIPS_CP_MTC0, rsp_mtc0)
+        exec_instr(MIPS_CP_MFC0, rsp_mfc0)
         default:
             logfatal("[RSP] Unknown instruction!")
     }
