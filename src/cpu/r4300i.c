@@ -14,148 +14,6 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
 };
 
-#define OPC_CP0    0b010000
-#define OPC_CP1    0b010001
-#define OPC_LD     0b110111
-#define OPC_LUI    0b001111
-#define OPC_ADDI   0b001000
-#define OPC_ADDIU  0b001001
-#define OPC_DADDI  0b011000
-#define OPC_ANDI   0b001100
-#define OPC_LBU    0b100100
-#define OPC_LHU    0b100101
-#define OPC_LH     0b100001
-#define OPC_LW     0b100011
-#define OPC_LWU    0b100111
-#define OPC_BEQ    0b000100
-#define OPC_BEQL   0b010100
-#define OPC_BGTZ   0b000111
-#define OPC_BGTZL  0b010111
-#define OPC_BLEZ   0b000110
-#define OPC_BLEZL  0b010110
-#define OPC_BNE    0b000101
-#define OPC_BNEL   0b010101
-#define OPC_CACHE  0b101111
-#define OPC_REGIMM 0b000001
-#define OPC_SPCL   0b000000
-#define OPC_SB     0b101000
-#define OPC_SH     0b101001
-#define OPC_SD     0b111111
-#define OPC_SW     0b101011
-#define OPC_ORI    0b001101
-#define OPC_J      0b000010
-#define OPC_JAL    0b000011
-#define OPC_SLTI   0b001010
-#define OPC_SLTIU  0b001011
-#define OPC_XORI   0b001110
-#define OPC_LB     0b100000
-#define OPC_LDC1   0b110101
-#define OPC_SDC1   0b111101
-#define OPC_LWC1   0b110001
-#define OPC_SWC1   0b111001
-#define OPC_LWL    0b100010
-#define OPC_LWR    0b100110
-#define OPC_SWL    0b101010
-#define OPC_SWR    0b101110
-#define OPC_LDL    0b011010
-#define OPC_LDR    0b011011
-#define OPC_SDL    0b101100
-#define OPC_SDR    0b101101
-
-// Coprocessor
-#define COP_MF    0b00000
-#define COP_CF    0b00010
-#define COP_MT    0b00100
-#define COP_CT    0b00110
-#define COP_BC    0b01000
-
-
-#define COP_BC_BCF  0b00000
-#define COP_BC_BCT  0b00001
-#define COP_BC_BCFL 0b00010
-#define COP_BC_BCTL 0b00011
-
-// Coprocessor FUNCT
-#define COP_FUNCT_ADD        0b000000
-#define COP_FUNCT_TLBR_SUB   0b000001
-#define COP_FUNCT_TLBWI_MULT 0b000010
-#define COP_FUNCT_DIV        0b000011
-#define COP_FUNCT_TLBP       0b001000
-#define COP_FUNCT_TRUNC_L    0b001001
-#define COP_FUNCT_TRUNC_W    0b001101
-#define COP_FUNCT_ERET       0b011000
-#define COP_FUNCT_CVT_S      0b100000
-#define COP_FUNCT_CVT_D      0b100001
-#define COP_FUNCT_CVT_W      0b100100
-#define COP_FUNCT_CVT_L      0b100101
-#define COP_FUNCT_C_F        0b110000
-#define COP_FUNCT_C_UN       0b110001
-#define COP_FUNCT_C_EQ       0b110010
-#define COP_FUNCT_C_UEQ      0b110011
-#define COP_FUNCT_C_OLT      0b110100
-#define COP_FUNCT_C_ULT      0b110101
-#define COP_FUNCT_C_OLE      0b110110
-#define COP_FUNCT_C_ULE      0b110111
-#define COP_FUNCT_C_SF       0b111000
-#define COP_FUNCT_C_NGLE     0b111001
-#define COP_FUNCT_C_SEQ      0b111010
-#define COP_FUNCT_C_NGL      0b111011
-#define COP_FUNCT_C_LT       0b111100
-#define COP_FUNCT_C_NGE      0b111101
-#define COP_FUNCT_C_LE       0b111110
-#define COP_FUNCT_C_NGT      0b111111
-#define COP_FUNCT_MOV        0b000110
-
-
-// Floating point
-#define FP_FMT_SINGLE 16
-#define FP_FMT_DOUBLE 17
-#define FP_FMT_W      20
-#define FP_FMT_L      21
-
-// Special
-#define FUNCT_SLL    0b000000
-#define FUNCT_SRL    0b000010
-#define FUNCT_SRA    0b000011
-#define FUNCT_SRAV   0b000111
-#define FUNCT_SLLV   0b000100
-#define FUNCT_SRLV   0b000110
-#define FUNCT_JR     0b001000
-#define FUNCT_JALR   0b001001
-#define FUNCT_MFHI   0b010000
-#define FUNCT_MTHI   0b010001
-#define FUNCT_MFLO   0b010010
-#define FUNCT_MTLO   0b010011
-#define FUNCT_DSLLV  0b010100
-#define FUNCT_MULT   0b011000
-#define FUNCT_MULTU  0b011001
-#define FUNCT_DIV    0b011010
-#define FUNCT_DIVU   0b011011
-#define FUNCT_DMULTU 0b011101
-#define FUNCT_DDIVU  0b011111
-#define FUNCT_ADD    0b100000
-#define FUNCT_ADDU   0b100001
-#define FUNCT_AND    0b100100
-#define FUNCT_NOR    0b100111
-#define FUNCT_SUB    0b100010
-#define FUNCT_SUBU   0b100011
-#define FUNCT_OR     0b100101
-#define FUNCT_XOR    0b100110
-#define FUNCT_SLT    0b101010
-#define FUNCT_SLTU   0b101011
-#define FUNCT_DADD   0b101100
-#define FUNCT_DSLL   0b111000
-#define FUNCT_DSLL32 0b111100
-#define FUNCT_DSRA32 0b111111
-
-
-// REGIMM
-#define RT_BLTZ   0b00000
-#define RT_BLTZL  0b00010
-#define RT_BGEZ   0b00001
-#define RT_BGEZL  0b00011
-#define RT_BGEZAL 0b10001
-
 // Exceptions
 #define EXCEPTION_INTERRUPT            0
 #define EXCEPTION_COPROCESSOR_UNUSABLE 11
@@ -206,7 +64,7 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     }
 }
 
-mips_instruction_type_t decode_cp0(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MF:
@@ -240,7 +98,7 @@ mips_instruction_type_t decode_cp0(r4300i_t* cpu, word pc, mips_instruction_t in
     }
 }
 
-mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if (!cpu->cp0.status.cu1) {
         exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
     }
@@ -434,7 +292,7 @@ mips_instruction_type_t decode_cp1(r4300i_t* cpu, word pc, mips_instruction_t in
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
 }
 
-mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+mips_instruction_type_t r4300i_special_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return MIPS_SPC_SLL;
         case FUNCT_SRL:    return MIPS_SPC_SRL;
@@ -478,7 +336,7 @@ mips_instruction_type_t decode_special(r4300i_t* cpu, word pc, mips_instruction_
     }
 }
 
-mips_instruction_type_t decode_regimm(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+mips_instruction_type_t r4300i_regimm_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:   return MIPS_RI_BLTZ;
         case RT_BLTZL:  return MIPS_RI_BLTZL;
@@ -494,7 +352,7 @@ mips_instruction_type_t decode_regimm(r4300i_t* cpu, word pc, mips_instruction_t
     }
 }
 
-mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
@@ -504,10 +362,10 @@ mips_instruction_type_t decode(r4300i_t* cpu, word pc, mips_instruction_t instr)
         return MIPS_NOP;
     }
     switch (instr.op) {
-        case OPC_CP0:    return decode_cp0(cpu, pc, instr);
-        case OPC_CP1:    return decode_cp1(cpu, pc, instr);
-        case OPC_SPCL:   return decode_special(cpu, pc, instr);
-        case OPC_REGIMM: return decode_regimm(cpu, pc, instr);
+        case OPC_CP0:    return r4300i_cp0_decode(cpu, pc, instr);
+        case OPC_CP1:    return r4300i_cp1_decode(cpu, pc, instr);
+        case OPC_SPCL:   return r4300i_special_decode(cpu, pc, instr);
+        case OPC_REGIMM: return r4300i_regimm_decode(cpu, pc, instr);
 
         case OPC_LD:    return MIPS_LD;
         case OPC_LUI:   return MIPS_LUI;
@@ -594,7 +452,7 @@ void r4300i_step(r4300i_t* cpu) {
 
     cpu->pc += 4;
 
-    switch (decode(cpu, pc, instruction)) {
+    switch (r4300i_instruction_decode(cpu, pc, instruction)) {
         case MIPS_NOP: break;
 
         exec_instr(MIPS_LUI,   mips_lui)

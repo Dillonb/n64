@@ -5,6 +5,7 @@
 #include "../frontend/render.h"
 #include "../interface/vi.h"
 #include "../interface/ai.h"
+#include "../cpu/rsp.h"
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.
@@ -149,8 +150,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 INLINE void _n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
     if (!system->rsp_status.halt) {
-        logfatal("RSP unhalted. PC: 0x%08X", system->rsp.pc);
-        r4300i_step(&system->rsp);
+        rsp_step(&system->rsp);
     }
 }
 

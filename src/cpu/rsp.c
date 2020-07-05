@@ -1,6 +1,8 @@
 #include "rsp.h"
 #include "../common/log.h"
 #include "../mem/addresses.h"
+#include "../cpu/mips.h"
+#include "disassemble.h"
 
 #define ADDR_SP_MEM_ADDR_REG  0x04040000
 #define ADDR_SP_DRAM_ADDR_REG 0x04040004
@@ -12,6 +14,8 @@
 #define ADDR_SP_SEMAPHORE_REG 0x0404001C
 #define ADDR_SP_PC_REG        0x04080000
 #define ADDR_SP_IBIST_REG     0x04080004
+
+#define exec_instr(key, fn) case key: fn(rsp, instruction); break;
 
 typedef union sp_status_write {
     word raw;
@@ -125,5 +129,83 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             logfatal("Write to unsupported SP reg: ADDR_SP_IBIST_REG")
         default:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
+    }
+}
+
+mips_instruction_type_t rsp_cp0_decode(r4300i_t* rsp, word pc, mips_instruction_t instr) {
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            case COP_MT: return MIPS_CP_MTC0;
+            case COP_MF: return MIPS_CP_MFC0;
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf)
+            }
+        }
+    } else {
+        switch (instr.fr.funct) {
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+            }
+        }
+    }
+}
+
+mips_instruction_type_t rsp_instruction_decode(r4300i_t* rsp, word pc, mips_instruction_t instr) {
+        char buf[50];
+        if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
+            disassemble(pc, instr.raw, buf, 50);
+            logdebug("RSP [0x%08X]=0x%08X %s", pc, instr.raw, buf)
+        }
+        if (instr.raw == 0) {
+            return MIPS_NOP;
+        }
+        switch (instr.op) {
+            case OPC_ORI:  return MIPS_ORI;
+            case OPC_J:    return MIPS_J;
+            case OPC_ADDI: return MIPS_ADDI;
+            case OPC_LW:   return MIPS_LW;
+            case OPC_CP0:  return rsp_cp0_decode(rsp, pc, instr);
+            default:
+                if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
+                    disassemble(pc, instr.raw, buf, 50);
+                }
+                logfatal("Failed to r4300i_instruction_decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                         instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)
+        }
+}
+
+INLINE void rsp_cp0_step(cp0_t* cp0) {
+    if (cp0->random <= cp0->wired) {
+        cp0->random = 31;
+    } else {
+        cp0->random--;
+    }
+    cp0->count += 2;
+}
+
+void rsp_step(r4300i_t* rsp) {
+    rsp_cp0_step(&rsp->cp0); // TODO: does the RSP have a CP0?
+    dword pc = rsp->pc;
+    mips_instruction_t instruction;
+    instruction.raw = rsp->read_word(pc);
+
+    rsp->pc += 4;
+
+    switch (rsp_instruction_decode(rsp, pc, instruction)) {
+        exec_instr(MIPS_ORI,  mips_ori)
+        exec_instr(MIPS_J,    mips_j)
+        exec_instr(MIPS_ADDI, mips_addi)
+        exec_instr(MIPS_LW,   mips_lw)
+
+        exec_instr(MIPS_CP_MTC0, mips_mtc0)
+        exec_instr(MIPS_CP_MFC0, mips_mfc0)
+        default:
+            logfatal("Unknown instruction!")
     }
 }
