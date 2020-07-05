@@ -1,6 +1,7 @@
-#ifndef N64_MIPS_H
-#define N64_MIPS_H
+#ifndef N64_MIPS_INSTRUCTIONS_H
+#define N64_MIPS_INSTRUCTIONS_H
 #include "r4300i.h"
+#include "mips_instruction_decode.h"
 
 #define MIPS_INSTR(NAME) void NAME(r4300i_t* cpu, mips_instruction_t instruction)
 
@@ -181,4 +182,4 @@ MIPS_INSTR(mips_ri_bgez);
 MIPS_INSTR(mips_ri_bgezl);
 MIPS_INSTR(mips_ri_bgezal);
 
-#endif //N64_MIPS_H
+#endif //N64_MIPS_INSTRUCTIONS_H

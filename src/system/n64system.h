@@ -5,6 +5,7 @@
 #include "../cpu/r4300i.h"
 #include "../cpu/rsp_status.h"
 #include "../interface/vi_reg.h"
+#include "../cpu/rsp.h"
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
@@ -78,7 +79,7 @@ typedef struct n64_controller {
 typedef struct n64_system {
     n64_mem_t mem;
     r4300i_t cpu;
-    r4300i_t rsp;
+    rsp_t rsp;
     rsp_status_t rsp_status;
     struct {
         word init_mode;

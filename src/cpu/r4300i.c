@@ -1,7 +1,7 @@
 #include "r4300i.h"
 #include "../common/log.h"
 #include "disassemble.h"
-#include "mips.h"
+#include "mips_instructions.h"
 
 const char* register_names[] = {
         "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",

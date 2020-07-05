@@ -1,142 +1,16 @@
 #include "rsp.h"
 #include "../common/log.h"
-#include "../mem/addresses.h"
-#include "../cpu/mips.h"
+#include "mips_instructions.h"
+#include "rsp_instructions.h"
 #include "disassemble.h"
-
-#define ADDR_SP_MEM_ADDR_REG  0x04040000
-#define ADDR_SP_DRAM_ADDR_REG 0x04040004
-#define ADDR_SP_RD_LEN_REG    0x04040008
-#define ADDR_SP_WR_LEN_REG    0x0404000C
-#define ADDR_SP_STATUS_REG    0x04040010
-#define ADDR_SP_DMA_FULL_REG  0x04040014
-#define ADDR_SP_DMA_BUSY_REG  0x04040018
-#define ADDR_SP_SEMAPHORE_REG 0x0404001C
-#define ADDR_SP_PC_REG        0x04080000
-#define ADDR_SP_IBIST_REG     0x04080004
 
 #define exec_instr(key, fn) case key: fn(rsp, instruction); break;
 
-typedef union sp_status_write {
-    word raw;
-    struct {
-        bool clear_halt:1;
-        bool set_halt:1;
-        bool clear_broke:1;
-        bool clear_intr:1;
-        bool set_intr:1;
-        bool clear_sstep:1;
-        bool set_sstep:1;
-        bool clear_intr_on_break:1;
-        bool set_intr_on_break:1;
-        bool clear_signal_0:1;
-        bool set_signal_0:1;
-        bool clear_signal_1:1;
-        bool set_signal_1:1;
-        bool clear_signal_2:1;
-        bool set_signal_2:1;
-        bool clear_signal_3:1;
-        bool set_signal_3:1;
-        bool clear_signal_4:1;
-        bool set_signal_4:1;
-        bool clear_signal_5:1;
-        bool set_signal_5:1;
-        bool clear_signal_6:1;
-        bool set_signal_6:1;
-        bool clear_signal_7:1;
-        bool set_signal_7:1;
-        unsigned:7;
-    };
-} sp_status_write_t;
-
-#define CLEAR_SET(VAL, CLEAR, SET) if (CLEAR) {VAL = false; } if (SET) { VAL = true; }
-
-INLINE void status_reg_write(n64_system_t* system, word value) {
-    sp_status_write_t write;
-    write.raw = value;
-
-    CLEAR_SET(system->rsp_status.halt,          write.clear_halt,          write.set_halt)
-    CLEAR_SET(system->rsp_status.broke,         write.clear_broke,         false)
-    if (write.clear_intr) {
-        logwarn("TODO: Clearing RSP intr?")
-    }
-    if (write.set_intr) {
-        logwarn("TODO: Setting RSP intr?")
-    }
-    CLEAR_SET(system->rsp_status.single_step,   write.clear_sstep,         write.set_sstep)
-    CLEAR_SET(system->rsp_status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break)
-    CLEAR_SET(system->rsp_status.signal_0,      write.clear_signal_0,      write.set_signal_0)
-    CLEAR_SET(system->rsp_status.signal_1,      write.clear_signal_1,      write.set_signal_1)
-    CLEAR_SET(system->rsp_status.signal_2,      write.clear_signal_2,      write.set_signal_2)
-    CLEAR_SET(system->rsp_status.signal_3,      write.clear_signal_3,      write.set_signal_3)
-    CLEAR_SET(system->rsp_status.signal_4,      write.clear_signal_4,      write.set_signal_4)
-    CLEAR_SET(system->rsp_status.signal_5,      write.clear_signal_5,      write.set_signal_5)
-    CLEAR_SET(system->rsp_status.signal_6,      write.clear_signal_6,      write.set_signal_6)
-    CLEAR_SET(system->rsp_status.signal_7,      write.clear_signal_7,      write.set_signal_7)
-}
-
-word read_word_spreg(n64_system_t* system, word address) {
-    switch (address) {
-        case ADDR_SP_PC_REG:
-            return system->rsp.pc;
-        case ADDR_SP_STATUS_REG:
-            return system->rsp_status.raw;
-        default:
-            logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address)
-    }
-}
-
-void write_word_spreg(n64_system_t* system, word address, word value) {
-    switch (address) {
-        case ADDR_SP_MEM_ADDR_REG:
-            system->sp.mem_addr.raw = value;
-            printf("SP mem addr: 0x%08X\n", value);
-            break;
-        case ADDR_SP_DRAM_ADDR_REG:
-            system->sp.dram_addr.raw = value;
-            break;
-        case ADDR_SP_RD_LEN_REG: {
-            system->sp.dma_read.raw = value;
-            word length = (system->sp.dma_read.length | 7) + 1;
-            for (int i = 0; i < system->sp.dma_read.count + 1; i++) {
-                word mem_addr = system->sp.mem_addr.address + (system->sp.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-                for (int j = 0; j < length; j++) {
-                    byte val = system->rsp.read_byte(system->sp.dram_addr.address + j);
-                    logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, system->sp.dram_addr.address + j, mem_addr + j)
-                    system->rsp.write_byte(mem_addr + j, val);
-                }
-
-                system->sp.dram_addr.address += length + system->sp.dma_read.skip;
-                system->sp.mem_addr.address += length;
-            }
-            break;
-        }
-        case ADDR_SP_WR_LEN_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_WR_LEN_REG")
-        case ADDR_SP_STATUS_REG:
-            status_reg_write(system, value);
-            break;
-        case ADDR_SP_DMA_FULL_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_FULL_REG")
-        case ADDR_SP_DMA_BUSY_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_BUSY_REG")
-        case ADDR_SP_SEMAPHORE_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_SEMAPHORE_REG")
-        case ADDR_SP_PC_REG:
-            system->rsp.pc = value;
-            break;
-        case ADDR_SP_IBIST_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_IBIST_REG")
-        default:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
-    }
-}
-
-mips_instruction_type_t rsp_cp0_decode(r4300i_t* rsp, word pc, mips_instruction_t instr) {
+mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
-            case COP_MT: return MIPS_CP_MTC0;
-            case COP_MF: return MIPS_CP_MFC0;
+            //case COP_MT: return MIPS_CP_MTC0;
+            //case COP_MF: return MIPS_CP_MFC0;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -156,7 +30,51 @@ mips_instruction_type_t rsp_cp0_decode(r4300i_t* rsp, word pc, mips_instruction_
     }
 }
 
-mips_instruction_type_t rsp_instruction_decode(r4300i_t* rsp, word pc, mips_instruction_t instr) {
+mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+    switch (instr.r.funct) {
+        //case FUNCT_SLL:    return MIPS_SPC_SLL;
+        //case FUNCT_SRL:    return MIPS_SPC_SRL;
+        //case FUNCT_SRA:    return MIPS_SPC_SRA;
+        //case FUNCT_SRAV:   return MIPS_SPC_SRAV;
+        //case FUNCT_SLLV:   return MIPS_SPC_SLLV;
+        //case FUNCT_SRLV:   return MIPS_SPC_SRLV;
+        //case FUNCT_JR:     return MIPS_SPC_JR;
+        //case FUNCT_JALR:   return MIPS_SPC_JALR;
+        //case FUNCT_MFHI:   return MIPS_SPC_MFHI;
+        //case FUNCT_MTHI:   return MIPS_SPC_MTHI;
+        //case FUNCT_MFLO:   return MIPS_SPC_MFLO;
+        //case FUNCT_MTLO:   return MIPS_SPC_MTLO;
+        //case FUNCT_DSLLV:  return MIPS_SPC_DSLLV;
+        //case FUNCT_MULT:   return MIPS_SPC_MULT;
+        //case FUNCT_MULTU:  return MIPS_SPC_MULTU;
+        //case FUNCT_DIV:    return MIPS_SPC_DIV;
+        //case FUNCT_DIVU:   return MIPS_SPC_DIVU;
+        //case FUNCT_DMULTU: return MIPS_SPC_DMULTU;
+        //case FUNCT_DDIVU:  return MIPS_SPC_DDIVU;
+        //case FUNCT_ADD:    return MIPS_SPC_ADD;
+        //case FUNCT_ADDU:   return MIPS_SPC_ADDU;
+        //case FUNCT_AND:    return MIPS_SPC_AND;
+        //case FUNCT_NOR:    return MIPS_SPC_NOR;
+        //case FUNCT_SUB:    return MIPS_SPC_SUB;
+        //case FUNCT_SUBU:   return MIPS_SPC_SUBU;
+        //case FUNCT_OR:     return MIPS_SPC_OR;
+        //case FUNCT_XOR:    return MIPS_SPC_XOR;
+        //case FUNCT_SLT:    return MIPS_SPC_SLT;
+        //case FUNCT_SLTU:   return MIPS_SPC_SLTU;
+        //case FUNCT_DADD:   return MIPS_SPC_DADD;
+        //case FUNCT_DSLL:   return MIPS_SPC_DSLL;
+        //case FUNCT_DSLL32: return MIPS_SPC_DSLL32;
+        //case FUNCT_DSRA32: return MIPS_SPC_DSRA32;
+        default: {
+            char buf[50];
+            disassemble(pc, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS RSP Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+        }
+    }
+}
+
+mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
         char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
             disassemble(pc, instr.raw, buf, 50);
@@ -166,31 +84,65 @@ mips_instruction_type_t rsp_instruction_decode(r4300i_t* rsp, word pc, mips_inst
             return MIPS_NOP;
         }
         switch (instr.op) {
-            case OPC_ORI:  return MIPS_ORI;
-            case OPC_J:    return MIPS_J;
-            case OPC_ADDI: return MIPS_ADDI;
-            case OPC_LW:   return MIPS_LW;
-            case OPC_CP0:  return rsp_cp0_decode(rsp, pc, instr);
+            //case OPC_LD:    return MIPS_LD;
+            //case OPC_LUI:   return MIPS_LUI;
+            //case OPC_ADDIU: return MIPS_ADDIU;
+            case OPC_ADDI:  return MIPS_ADDI;
+            //case OPC_DADDI: return MIPS_DADDI;
+            //case OPC_ANDI:  return MIPS_ANDI;
+            //case OPC_LBU:   return MIPS_LBU;
+            //case OPC_LHU:   return MIPS_LHU;
+            //case OPC_LH:    return MIPS_LH;
+            //case OPC_LW:    return MIPS_LW;
+            //case OPC_LWU:   return MIPS_LWU;
+            //case OPC_BEQ:   return MIPS_BEQ;
+            //case OPC_BEQL:  return MIPS_BEQL;
+            //case OPC_BGTZ:  return MIPS_BGTZ;
+            //case OPC_BGTZL: return MIPS_BGTZL;
+            //case OPC_BLEZ:  return MIPS_BLEZ;
+            //case OPC_BLEZL: return MIPS_BLEZL;
+            //case OPC_BNE:   return MIPS_BNE;
+            //case OPC_BNEL:  return MIPS_BNEL;
+            //case OPC_CACHE: return MIPS_CACHE;
+            //case OPC_SB:    return MIPS_SB;
+            //case OPC_SH:    return MIPS_SH;
+            //case OPC_SW:    return MIPS_SW;
+            //case OPC_SD:    return MIPS_SD;
+            case OPC_ORI:   return MIPS_ORI;
+            case OPC_J:     return MIPS_J;
+            //case OPC_JAL:   return MIPS_JAL;
+            //case OPC_SLTI:  return MIPS_SLTI;
+            //case OPC_SLTIU: return MIPS_SLTIU;
+            //case OPC_XORI:  return MIPS_XORI;
+            //case OPC_LB:    return MIPS_LB;
+            //case OPC_LDC1:  return MIPS_LDC1;
+            //case OPC_SDC1:  return MIPS_SDC1;
+            //case OPC_LWC1:  return MIPS_LWC1;
+            //case OPC_SWC1:  return MIPS_SWC1;
+            //case OPC_LWL:   return MIPS_LWL;
+            //case OPC_LWR:   return MIPS_LWR;
+            //case OPC_SWL:   return MIPS_SWL;
+            //case OPC_SWR:   return MIPS_SWR;
+            //case OPC_LDL:   return MIPS_LDL;
+            //case OPC_LDR:   return MIPS_LDR;
+            //case OPC_SDL:   return MIPS_SDL;
+            //case OPC_SDR:   return MIPS_SDR;
+
+            case OPC_CP0:    return rsp_cp0_decode(rsp, pc, instr);
+            case OPC_CP1:    logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
+            case OPC_SPCL:   return rsp_special_decode(rsp, pc, instr);
+            case OPC_REGIMM: logfatal("Decoding RSP REGIMM instruction!")  //return rsp_regimm_decode(rsp, pc, instr);
+
             default:
                 if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                     disassemble(pc, instr.raw, buf, 50);
                 }
-                logfatal("Failed to r4300i_instruction_decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                          instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)
         }
 }
 
-INLINE void rsp_cp0_step(cp0_t* cp0) {
-    if (cp0->random <= cp0->wired) {
-        cp0->random = 31;
-    } else {
-        cp0->random--;
-    }
-    cp0->count += 2;
-}
-
-void rsp_step(r4300i_t* rsp) {
-    rsp_cp0_step(&rsp->cp0); // TODO: does the RSP have a CP0?
+void rsp_step(rsp_t* rsp) {
     dword pc = rsp->pc;
     mips_instruction_t instruction;
     instruction.raw = rsp->read_word(pc);
@@ -198,14 +150,31 @@ void rsp_step(r4300i_t* rsp) {
     rsp->pc += 4;
 
     switch (rsp_instruction_decode(rsp, pc, instruction)) {
-        exec_instr(MIPS_ORI,  mips_ori)
-        exec_instr(MIPS_J,    mips_j)
-        exec_instr(MIPS_ADDI, mips_addi)
-        exec_instr(MIPS_LW,   mips_lw)
+        case MIPS_NOP: return;
+        exec_instr(MIPS_ORI,  rsp_ori)
+        exec_instr(MIPS_ADDI, rsp_addi)
+        //exec_instr(MIPS_LW,   rsp_lw)
 
-        exec_instr(MIPS_CP_MTC0, mips_mtc0)
-        exec_instr(MIPS_CP_MFC0, mips_mfc0)
+        exec_instr(MIPS_J,      rsp_j)
+        //exec_instr(MIPS_JAL,    rsp_jal)
+        //exec_instr(MIPS_SPC_JR, rsp_spc_jr)
+
+        //exec_instr(MIPS_BNE, rsp_bne)
+
+        //exec_instr(MIPS_CP_MTC0, rsp_mtc0)
+        //exec_instr(MIPS_CP_MFC0, rsp_mfc0)
         default:
-            logfatal("Unknown instruction!")
+            logfatal("[RSP] Unknown instruction!")
+    }
+
+    if (rsp->branch) {
+        if (rsp->branch_delay == 0) {
+            logtrace("[RSP] [BRANCH DELAY] Branching to 0x%08X", rsp->branch_pc)
+            rsp->pc = rsp->branch_pc;
+            rsp->branch = false;
+        } else {
+            logtrace("[RSP] [BRANCH DELAY] Need to execute %d more instruction(s).", rsp->branch_delay)
+            rsp->branch_delay--;
+        }
     }
 }

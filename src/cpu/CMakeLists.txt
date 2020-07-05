@@ -1,15 +1,22 @@
+add_library(disassemble
+        disassemble.c disassemble.h)
+
 add_library(r4300i
         r4300i.c r4300i.h
-        disassemble.c disassemble.h
-        mips.c mips.h
-        )
+        mips_instructions.c mips_instructions.h
+        rsp_interface.c rsp_interface.h mips_instruction_decode.h)
 
 add_library(rsp
-        rsp.c rsp.h rsp_status.h)
+        rsp_status.h
+        rsp.c rsp.h
+        rsp_instructions.c rsp_instructions.h)
+
+TARGET_LINK_LIBRARIES(rsp    disassemble)
+TARGET_LINK_LIBRARIES(r4300i disassemble)
 
 find_package(Capstone)
 
 IF(Capstone_FOUND)
-    TARGET_LINK_LIBRARIES(r4300i Capstone::Capstone)
-    TARGET_COMPILE_DEFINITIONS(r4300i PRIVATE -DHAVE_CAPSTONE)
+    TARGET_LINK_LIBRARIES(disassemble Capstone::Capstone)
+    TARGET_COMPILE_DEFINITIONS(disassemble PRIVATE -DHAVE_CAPSTONE)
 ENDIF()

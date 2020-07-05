@@ -1,11 +1,11 @@
 #include "n64bus.h"
 #include "../common/log.h"
 #include "dma.h"
-#include "../cpu/rsp.h"
 #include "../interface/vi.h"
 #include "addresses.h"
 #include "../interface/ai.h"
 #include "pif.h"
+#include "../cpu/rsp_interface.h"
 
 #include <endian.h>
 

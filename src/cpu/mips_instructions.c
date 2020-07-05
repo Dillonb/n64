@@ -1,4 +1,4 @@
-#include "mips.h"
+#include "mips_instructions.h"
 
 void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
@@ -212,6 +212,7 @@ MIPS_INSTR(mips_eret) {
 // Loads the contents of the entry Hi, entry Lo0, entry Lo1, and page mask
 // registers to the TLB entry indicated by the index register.
 MIPS_INSTR(mips_tlbwi) {
+    printf("TLBWI at pc=0x%08X\n", cpu->pc);
     int index = cpu->cp0.index & 0b111111;
     printf(
             "index: %d\n"
@@ -238,6 +239,8 @@ MIPS_INSTR(mips_tlbwi) {
 // Hi register to the index register.
 MIPS_INSTR(mips_tlbp) {
     int match = -1;
+    printf("TLBP: 0x%X 0x%X\nentry_hi: 0x%08X\n", cpu->cp0.entry_hi.vpn2, cpu->cp0.entry_hi.asid, cpu->cp0.entry_hi.raw);
+
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = cpu->cp0.tlb[i];
 
