@@ -43,7 +43,10 @@ void update_rgb16_buffer(int width, int height) {
 }
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
-    int gotten = SDL_AudioStreamGet(audio_stream, stream, length);
+    int gotten = 0;
+    if (SDL_AudioStreamAvailable(audio_stream) > 0) {
+        gotten = SDL_AudioStreamGet(audio_stream, stream, length);
+    }
 
     if (gotten < length) {
         int gotten_samples = gotten / sizeof(float);
