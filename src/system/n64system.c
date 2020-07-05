@@ -5,6 +5,7 @@
 #include "../frontend/render.h"
 #include "../interface/vi.h"
 #include "../interface/ai.h"
+#include "../mem/n64_rsp_bus.h"
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.
@@ -32,8 +33,8 @@ void write_dword_wrapper(word address, dword value) {
     n64_write_dword(global_system, address, value);
 }
 
-word read_word_wrapper(word address) {
-    return n64_read_word(global_system, address);
+word read_rsp_word_wrapper(word address) {
+    return n64_rsp_read_word(global_system, address);
 }
 
 void write_word_wrapper(word address, word value) {
@@ -48,11 +49,11 @@ void write_half_wrapper(word address, half value) {
     n64_write_half(global_system, address, value);
 }
 
-byte read_byte_wrapper(word address) {
+byte read_physical_byte_wrapper(word address) {
     return n64_read_byte(global_system, address);
 }
 
-void write_byte_wrapper(word address, byte value) {
+void write_physical_byte_wrapper(word address, byte value) {
     n64_write_byte(global_system, address, value);
 }
 
@@ -115,17 +116,17 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->cpu.read_byte = &virtual_read_byte_wrapper;
     system->cpu.write_byte = &virtual_write_byte_wrapper;
 
-    system->rsp.read_dword = &read_dword_wrapper;
-    system->rsp.write_dword = &write_dword_wrapper;
+    //system->rsp.read_dword = &read_dword_wrapper;
+    //system->rsp.write_dword = &write_dword_wrapper;
 
-    system->rsp.read_word = &read_word_wrapper;
-    system->rsp.write_word = &write_word_wrapper;
+    system->rsp.read_word = &read_rsp_word_wrapper;
+    //system->rsp.write_word = &write_word_wrapper;
 
-    system->rsp.read_half = &read_half_wrapper;
-    system->rsp.write_half = &write_half_wrapper;
+    //system->rsp.read_half = &read_half_wrapper;
+    //system->rsp.write_half = &write_half_wrapper;
 
-    system->rsp.read_byte = &read_byte_wrapper;
-    system->rsp.write_byte = &write_byte_wrapper;
+    system->rsp.read_physical_byte = &read_physical_byte_wrapper;
+    system->rsp.write_physical_byte = &write_physical_byte_wrapper;
 
     system->rsp.status.halt = true; // RSP starts halted
 

@@ -12,6 +12,7 @@ RSP_INSTR(rsp_lw);
 
 RSP_INSTR(rsp_j);
 RSP_INSTR(rsp_jal);
+RSP_INSTR(rsp_spc_jr);
 
 RSP_INSTR(rsp_bne);
 RSP_INSTR(rsp_beq);

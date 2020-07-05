@@ -1,5 +1,6 @@
 #include "rsp_interface.h"
 #include "../mem/addresses.h"
+#include "../mem/n64bus.h"
 
 typedef union sp_status_write {
     word raw;
@@ -73,26 +74,15 @@ word read_word_spreg(n64_system_t* system, word address) {
 void write_word_spreg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_SP_MEM_ADDR_REG:
-            system->sp.mem_addr.raw = value;
+            system->rsp.io.mem_addr.raw = value;
             printf("SP mem addr: 0x%08X\n", value);
             break;
         case ADDR_SP_DRAM_ADDR_REG:
-            system->sp.dram_addr.raw = value;
+            system->rsp.io.dram_addr.raw = value;
             break;
         case ADDR_SP_RD_LEN_REG: {
-            system->sp.dma_read.raw = value;
-            word length = (system->sp.dma_read.length | 7) + 1;
-            for (int i = 0; i < system->sp.dma_read.count + 1; i++) {
-                word mem_addr = system->sp.mem_addr.address + (system->sp.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-                for (int j = 0; j < length; j++) {
-                    byte val = system->rsp.read_byte(system->sp.dram_addr.address + j);
-                    logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, system->sp.dram_addr.address + j, mem_addr + j)
-                    system->rsp.write_byte(mem_addr + j, val);
-                }
-
-                system->sp.dram_addr.address += length + system->sp.dma_read.skip;
-                system->sp.mem_addr.address += length;
-            }
+            system->rsp.io.dma_read.raw = value;
+            rsp_dma_read(&system->rsp);
             break;
         }
         case ADDR_SP_WR_LEN_REG:

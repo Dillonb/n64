@@ -143,7 +143,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
 }
 
 void rsp_step(rsp_t* rsp) {
-    dword pc = rsp->pc;
+    dword pc = rsp->pc & 0xFFFFFF;
     mips_instruction_t instruction;
     instruction.raw = rsp->read_word(pc);
 

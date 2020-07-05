@@ -22,14 +22,6 @@ void rsp_branch_offset(rsp_t* rsp, shalf offset) {
     rsp_branch_abs(rsp, rsp->pc + soffset);
 }
 
-void rsp_conditional_branch_likely(rsp_t* rsp, word offset, bool condition) {
-    if (condition) {
-        rsp_branch_offset(rsp, offset);
-    } else {
-        rsp->pc += 4; // Skip instruction in delay slot
-    }
-}
-
 void rsp_conditional_branch(rsp_t* rsp, word offset, bool condition) {
     if (condition) {
         rsp_branch_offset(rsp, offset);
@@ -83,6 +75,10 @@ RSP_INSTR(rsp_jal) {
     target |= ((rsp->pc - 4) & 0xF0000000); // PC is 4 ahead
 
     rsp_branch_abs(rsp, target);
+}
+
+RSP_INSTR(rsp_spc_jr) {
+    rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs));
 }
 
 RSP_INSTR(rsp_mfc0) {
