@@ -86,10 +86,13 @@ RSP_INSTR(rsp_jal) {
 }
 
 RSP_INSTR(rsp_mfc0) {
-    logfatal("RSP MFC0")
+    sword value = get_rsp_cp0_register(rsp, instruction.r.rd);
+    set_rsp_register(rsp, instruction.r.rt, (sdword)value);
 }
+
 RSP_INSTR(rsp_mtc0) {
-    logfatal("RSP MTC0")
+    word value = get_rsp_register(rsp, instruction.r.rt);
+    set_rsp_cp0_register(rsp, instruction.r.rd, value);
 }
 
 RSP_INSTR(rsp_beq) {
