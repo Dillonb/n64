@@ -2,10 +2,7 @@
 #include "render.h"
 #include "../mem/pif.h"
 
-#define N64_SCREEN_X 640
-#define N64_SCREEN_Y 480
-
-static int SCREEN_SCALE = 2;
+int SCREEN_SCALE = 2;
 
 static SDL_Window* window = NULL;
 static uint32_t window_id;

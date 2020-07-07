@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.10)
 ADD_COMPILE_OPTIONS(-Wall)
+ADD_LINK_OPTIONS(-export-dynamic)
 project (N64)
 set(N64_TARGET n64)
 set(CMAKE_BUILD_TYPE Debug)

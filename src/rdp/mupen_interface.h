@@ -5,13 +5,28 @@
 #include "contrib/m64p_plugin.h"
 #include "contrib/m64p_common.h"
 
+void init_mupen_interface();
+
 typedef struct mupen_graphics_plugin {
+    // Called on startup. Gives the plugin some handles back into the core.
+    ptr_PluginStartup PluginStartup;
+    // Called on shutdown to clean up plugin stuff.
+    ptr_PluginShutdown PluginShutdown;
+    // Called when plugin loaded to retrieve version info
     ptr_PluginGetVersion PluginGetVersion;
+
+
+    // This emulator does not support fullscreen (yet?) so this is never called.
     ptr_ChangeWindow ChangeWindow;
+    // Called as the plugin is loaded. This sets up the graphics context, and lets the plugin access parts of the emulator's memory.
     ptr_InitiateGFX InitiateGFX;
+    // TODO? Angrylion does not use this, so this is never called.
     ptr_MoveScreen MoveScreen;
+    // Used by HLE RSP plugins, and HLE RDP plugins. Never called.
     ptr_ProcessDList ProcessDList;
+    // Called by the RSP when a command needs to be run, I think?
     ptr_ProcessRDPList ProcessRDPList;
+    // For cleanup
     ptr_RomClosed RomClosed;
     ptr_RomOpen RomOpen;
     ptr_ShowCFB ShowCFB;

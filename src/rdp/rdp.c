@@ -11,6 +11,16 @@ static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;
 static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
 
+#define ADDR_DPC_START_REG    0x04100000
+#define ADDR_DPC_END_REG      0x04100004
+#define ADDR_DPC_CURRENT_REG  0x04100008
+#define ADDR_DPC_STATUS_REG   0x0410000C
+#define ADDR_DPC_CLOCK_REG    0x04100010
+#define ADDR_DPC_BUFBUSY_REG  0x04100014
+#define ADDR_DPC_PIPEBUSY_REG 0x04100018
+#define ADDR_DPC_TMEM_REG     0x0410001C
+
+
 #define LOAD_SYM(var, name) do { \
     var = dlsym(plugin_handle, name); \
         if (var == NULL) { logfatal("Failed to load RDP plugin! Missing symbol: %s", name) } \
@@ -33,6 +43,9 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
         logfatal("Failed to load RDP plugin. Please pass a path to a shared library file!")
     }
 
+    init_mupen_interface();
+
+    LOAD_SYM(graphics_plugin.PluginStartup, "PluginStartup");
     LOAD_SYM(graphics_plugin.PluginGetVersion, "PluginGetVersion");
     LOAD_SYM(graphics_plugin.ChangeWindow, "ChangeWindow");
     LOAD_SYM(graphics_plugin.InitiateGFX, "InitiateGFX");
@@ -62,6 +75,8 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
     if (plugin_type != M64PLUGIN_GFX) {
         logfatal("Plugin loaded successfully, but was not a graphics plugin!")
     }
+
+    graphics_plugin.PluginStartup(NULL, NULL, NULL); // Null handle, null debug callbacks.
 
     GFX_INFO gfx_info;
     gfx_info.HEADER = system->mem.rom.rom;
@@ -103,8 +118,38 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
     gfx_info.RDRAM_SIZE = &rdram_size_word;
 
     graphics_plugin.InitiateGFX(gfx_info);
+    graphics_plugin.RomOpen();
 
     // TODO: check plugin version, API version, etc for compatibility
 
     printf("Loaded RDP plugin %s\n", plugin_name);
+}
+
+void write_word_dpcreg(n64_system_t* system, word address, word value) {
+    switch (address) {
+        case ADDR_DPC_START_REG:
+            system->dpc.start = value;
+            break;
+        case ADDR_DPC_END_REG:
+            system->dpc.end = value;
+            break;
+        case ADDR_DPC_CURRENT_REG:
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG")
+        case ADDR_DPC_STATUS_REG:
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_STATUS_REG")
+        case ADDR_DPC_CLOCK_REG:
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CLOCK_REG")
+        case ADDR_DPC_BUFBUSY_REG:
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_BUFBUSY_REG")
+        case ADDR_DPC_PIPEBUSY_REG:
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_PIPEBUSY_REG")
+        case ADDR_DPC_TMEM_REG:
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_TMEM_REG")
+        default:
+            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address)
+    }
+}
+
+void rdp_cleanup() {
+    graphics_plugin.RomClosed();
 }

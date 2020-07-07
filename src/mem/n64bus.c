@@ -7,6 +7,7 @@
 #include "pif.h"
 #include "../cpu/rsp_interface.h"
 #include "mem_util.h"
+#include "../rdp/rdp.h"
 
 #include <endian.h>
 
@@ -544,7 +545,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             write_word_spreg(system, address, value);
             break;
         case REGION_DP_COMMAND_REGS:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address)
+            write_word_dpcreg(system, address, value);
+            break;
         case REGION_DP_SPAN_REGS:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address)
         case REGION_MI_REGS:
