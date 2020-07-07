@@ -24,11 +24,13 @@ typedef struct mupen_graphics_plugin {
     ptr_MoveScreen MoveScreen;
     // Used by HLE RSP plugins, and HLE RDP plugins. Never called.
     ptr_ProcessDList ProcessDList;
-    // Called by the RSP when a command needs to be run, I think?
+    // Called by the RSP when a command needs to be run.
     ptr_ProcessRDPList ProcessRDPList;
     // For cleanup
     ptr_RomClosed RomClosed;
+    // Initialization
     ptr_RomOpen RomOpen;
+    // TODO: no idea. " Called from the RSP plugin to signal a condition to the video plugin. "
     ptr_ShowCFB ShowCFB;
     ptr_UpdateScreen UpdateScreen;
     ptr_ViStatusChanged ViStatusChanged;

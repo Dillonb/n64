@@ -218,6 +218,10 @@ void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
             logwarn("Raising AI interrupt")
             system->mi.intr.ai = true;
             break;
+        case INTERRUPT_DP:
+            printf("Raising DP interrupt\n");
+            system->mi.intr.dp = true;
+            break;
         default:
             logfatal("Raising unimplemented interrupt: %d", interrupt)
     }
