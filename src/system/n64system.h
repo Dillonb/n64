@@ -3,9 +3,8 @@
 #include <stdbool.h>
 #include "../mem/n64mem.h"
 #include "../cpu/r4300i.h"
-#include "../cpu/rsp_status.h"
+#include "../cpu/rsp_types.h"
 #include "../interface/vi_reg.h"
-#include "../cpu/rsp.h"
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
@@ -128,6 +127,18 @@ typedef struct n64_system {
     struct {
         n64_controller_t controllers[4];
     } si;
+    struct {
+        word start;
+        word end;
+        word current;
+        union {
+            word raw;
+        } status;
+        word clock;
+        word bufbusy;
+        word pipebusy;
+        word tmem;
+    } dpc;
 } n64_system_t;
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend);

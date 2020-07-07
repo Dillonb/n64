@@ -1,5 +1,6 @@
 #include "n64_rsp_bus.h"
 #include "mem_util.h"
+#include "addresses.h"
 
 word n64_rsp_read_word(n64_system_t* system, word address) {
     printf("RSP reading word from 0x%08X - which is actually 0x%08X\n", address, address & 0xFFFFFF);

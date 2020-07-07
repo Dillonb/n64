@@ -4,6 +4,7 @@ INCLUDE_DIRECTORIES(SYSTEM "contrib" ${SDL2_INCLUDE_DIR})
 
 add_subdirectory(common)
 add_subdirectory(cpu)
+add_subdirectory(rdp)
 
 add_library(core
         system/n64system.c system/n64system.h
@@ -13,9 +14,13 @@ add_library(core
         mem/pif.c mem/pif.h
         mem/dma.c mem/dma.h
         interface/vi.c interface/vi.h interface/vi_reg.h
-        frontend/render.c frontend/render.h interface/ai.c interface/ai.h mem/addresses.h mem/n64_rsp_bus.c mem/n64_rsp_bus.h mem/mem_util.h)
+        frontend/render.c frontend/render.h
+        interface/ai.c interface/ai.h
+        mem/addresses.h
+        mem/n64_rsp_bus.c mem/n64_rsp_bus.h
+        mem/mem_util.h)
 
-target_link_libraries(core r4300i rsp ${SDL2_LIBRARY})
+target_link_libraries(core r4300i rsp rdp ${SDL2_LIBRARY})
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)

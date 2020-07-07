@@ -118,7 +118,8 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
         }
 }
 
-void rsp_step(rsp_t* rsp) {
+void rsp_step(n64_system_t* system) {
+    rsp_t* rsp = &system->rsp;
     dword pc = rsp->pc & 0xFFFFFF;
     mips_instruction_t instruction;
     instruction.raw = rsp->read_word(pc);
@@ -139,8 +140,8 @@ void rsp_step(rsp_t* rsp) {
         exec_instr(MIPS_BNE, rsp_bne)
         exec_instr(MIPS_BEQ, rsp_beq)
 
-        exec_instr(MIPS_CP_MTC0, rsp_mtc0)
-        exec_instr(MIPS_CP_MFC0, rsp_mfc0)
+        case MIPS_CP_MTC0: rsp_mtc0(system, instruction); break;
+        case MIPS_CP_MFC0: rsp_mfc0(system, instruction); break;
         default:
             logfatal("[RSP] Unknown instruction!")
     }

@@ -1,6 +1,5 @@
 #include "rsp_interface.h"
-#include "../mem/addresses.h"
-#include "../mem/n64bus.h"
+#include "rsp.h"
 
 typedef union sp_status_write {
     word raw;

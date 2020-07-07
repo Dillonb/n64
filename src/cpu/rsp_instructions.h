@@ -17,7 +17,7 @@ RSP_INSTR(rsp_spc_jr);
 RSP_INSTR(rsp_bne);
 RSP_INSTR(rsp_beq);
 
-RSP_INSTR(rsp_mfc0);
-RSP_INSTR(rsp_mtc0);
+void rsp_mfc0(n64_system_t* system, mips_instruction_t instruction);
+void rsp_mtc0(n64_system_t* system, mips_instruction_t instruction);
 
 #endif //N64_RSP_INSTRUCTIONS_H

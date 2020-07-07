@@ -4,8 +4,9 @@
 #include <stdbool.h>
 #include "../common/util.h"
 #include "../common/log.h"
-#include "rsp_status.h"
+#include "rsp_types.h"
 #include "../mem/addresses.h"
+#include "../system/n64system.h"
 
 #define RSP_CP0_DMA_CACHE        0
 #define RSP_CP0_DMA_DRAM         1
@@ -24,63 +25,6 @@
 #define RSP_CP0_CMD_PIPE_BUSY    14
 #define RSP_CP0_CMD_TMEM_BUSY    15
 
-
-typedef struct rsp {
-    word gpr[32];
-    half pc;
-    //dword mult_hi;
-    //dword mult_lo;
-
-    rsp_status_t status;
-
-    // Branch delay
-    bool branch;
-    int branch_delay;
-    word branch_pc;
-
-    struct {
-        union {
-            word raw;
-            struct {
-                unsigned address:12;
-                bool imem:1;
-                unsigned:19;
-            };
-        } mem_addr;
-        union {
-            word raw;
-            struct {
-                unsigned address:24;
-                unsigned:8;
-            };
-        } dram_addr;
-        union {
-            struct {
-                unsigned length: 12;
-                unsigned count: 8;
-                unsigned skip: 12;
-            };
-            word raw;
-        } dma_read;
-    } io;
-
-    bool semaphore_held;
-
-    //byte (*read_byte)(word);
-    //void (*write_byte)(word, byte);
-
-    byte (*read_physical_byte)(word);
-    void (*write_physical_byte)(word, byte);
-
-    //half (*read_half)(word);
-    //void (*write_half)(word, half);
-
-    word (*read_word)(word);
-    //void (*write_word)(word, word);
-
-    //dword (*read_dword)(word);
-    //void (*write_dword)(word, dword);
-} rsp_t;
 
 INLINE void rsp_dma_read(rsp_t* rsp) {
     word length = (rsp->io.dma_read.length | 7) + 1;
@@ -118,7 +62,7 @@ INLINE word get_rsp_register(rsp_t* rsp, byte r) {
     }
 }
 
-INLINE word get_rsp_cp0_register(rsp_t* rsp, byte r) {
+INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     switch (r) {
         case RSP_CP0_DMA_CACHE:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r)
@@ -128,9 +72,9 @@ INLINE word get_rsp_cp0_register(rsp_t* rsp, byte r) {
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r)
         case RSP_CP0_DMA_WRITE_LENGTH:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r)
-        case RSP_CP0_SP_STATUS: return rsp->status.raw;
-        case RSP_CP0_DMA_FULL:  return rsp->status.dma_full;
-        case RSP_CP0_DMA_BUSY:  return rsp->status.dma_busy;
+        case RSP_CP0_SP_STATUS: return system->rsp.status.raw;
+        case RSP_CP0_DMA_FULL:  return system->rsp.status.dma_full;
+        case RSP_CP0_DMA_BUSY:  return system->rsp.status.dma_busy;
         case RSP_CP0_DMA_RESERVED:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_RESERVED", r)
         case RSP_CP0_CMD_START:
@@ -139,8 +83,7 @@ INLINE word get_rsp_cp0_register(rsp_t* rsp, byte r) {
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_END", r)
         case RSP_CP0_CMD_CURRENT:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r)
-        case RSP_CP0_CMD_STATUS:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_STATUS", r)
+        case RSP_CP0_CMD_STATUS: return system->dpc.status.raw;
         case RSP_CP0_CMD_CLOCK:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r)
         case RSP_CP0_CMD_BUSY:
@@ -154,13 +97,13 @@ INLINE word get_rsp_cp0_register(rsp_t* rsp, byte r) {
     }
 }
 
-INLINE void set_rsp_cp0_register(rsp_t* rsp, byte r, word value) {
+INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: rsp->io.mem_addr.raw = value; break;
-        case RSP_CP0_DMA_DRAM:  rsp->io.dram_addr.raw = value; break;
+        case RSP_CP0_DMA_CACHE: system->rsp.io.mem_addr.raw = value; break;
+        case RSP_CP0_DMA_DRAM:  system->rsp.io.dram_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
-            rsp->io.dma_read.raw = value;
-            rsp_dma_read(rsp);
+            system->rsp.io.dma_read.raw = value;
+            rsp_dma_read(&system->rsp);
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r)
@@ -172,7 +115,7 @@ INLINE void set_rsp_cp0_register(rsp_t* rsp, byte r, word value) {
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r)
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
-                rsp->semaphore_held = 0;
+                system->rsp.semaphore_held = 0;
             } else {
                 logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value)
             }
@@ -199,6 +142,6 @@ INLINE void set_rsp_cp0_register(rsp_t* rsp, byte r, word value) {
     }
 }
 
-void rsp_step(rsp_t* rsp);
+void rsp_step(n64_system_t* system);
 
 #endif //N64_RSP_H

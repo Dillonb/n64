@@ -81,14 +81,14 @@ RSP_INSTR(rsp_spc_jr) {
     rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs));
 }
 
-RSP_INSTR(rsp_mfc0) {
-    sword value = get_rsp_cp0_register(rsp, instruction.r.rd);
-    set_rsp_register(rsp, instruction.r.rt, (sdword)value);
+void rsp_mfc0(n64_system_t* system, mips_instruction_t instruction) {
+    sword value = get_rsp_cp0_register(system, instruction.r.rd);
+    set_rsp_register(&system->rsp, instruction.r.rt, (sdword)value);
 }
 
-RSP_INSTR(rsp_mtc0) {
-    word value = get_rsp_register(rsp, instruction.r.rt);
-    set_rsp_cp0_register(rsp, instruction.r.rd, value);
+void rsp_mtc0(n64_system_t* system, mips_instruction_t instruction) {
+    word value = get_rsp_register(&system->rsp, instruction.r.rt);
+    set_rsp_cp0_register(system, instruction.r.rd, value);
 }
 
 RSP_INSTR(rsp_bne) {

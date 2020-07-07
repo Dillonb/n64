@@ -8,7 +8,7 @@ add_library(r4300i
         mips_instruction_decode.h)
 
 add_library(rsp
-        rsp_status.h
+        rsp_types.h
         rsp.c rsp.h
         rsp_instructions.c rsp_instructions.h
         mips_instruction_decode.h)

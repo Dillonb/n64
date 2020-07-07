@@ -3,6 +3,7 @@
 #include "../common/log.h"
 #include "../system/n64system.h"
 #include "../mem/pif.h"
+#include "../rdp/rdp.h"
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -14,6 +15,9 @@ void usage(cflags_t* flags) {
 int main(int argc, char** argv) {
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
+    const char* rdp_plugin_path = NULL;
+
+    cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible)");
     cflags_parse(flags, argc, argv);
     if (flags->argc != 1) {
         usage(flags);
@@ -21,6 +25,12 @@ int main(int argc, char** argv) {
     }
     log_set_verbosity(verbose->count);
     n64_system_t* system = init_n64system(flags->argv[0], true);
+    if (rdp_plugin_path != NULL) {
+        load_rdp_plugin(system, rdp_plugin_path);
+    } else {
+        usage(flags);
+        logdie("Running without loading an RDP plugin is not currently supported.")
+    }
     pif_rom_execute(system);
     n64_system_loop(system);
     n64_system_cleanup(system);
