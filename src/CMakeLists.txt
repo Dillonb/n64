@@ -1,6 +1,6 @@
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 find_package(SDL2 REQUIRED)
-INCLUDE_DIRECTORIES(SYSTEM "contrib" ${SDL2_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(SYSTEM "contrib/include" ${SDL2_INCLUDE_DIR})
 
 add_subdirectory(common)
 add_subdirectory(cpu)
@@ -20,7 +20,12 @@ add_library(core
         mem/n64_rsp_bus.c mem/n64_rsp_bus.h
         mem/mem_util.h)
 
-target_link_libraries(core r4300i rsp rdp ${SDL2_LIBRARY})
+add_library(glad
+        contrib/src/glad.c)
+
+target_link_libraries(glad dl)
+
+target_link_libraries(core r4300i rsp rdp glad ${SDL2_LIBRARY})
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)

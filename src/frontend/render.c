@@ -1,9 +1,12 @@
-#include <SDL.h>
 #include "render.h"
+
+#include <SDL.h>
+#include <glad/glad.h>
+
 #include "../mem/pif.h"
 
 int SCREEN_SCALE = 2;
-
+static SDL_GLContext gl_context;
 static SDL_Window* window = NULL;
 static uint32_t window_id;
 static SDL_Renderer* renderer = NULL;
@@ -86,15 +89,36 @@ void video_init() {
                               SDL_WINDOWPOS_UNDEFINED,
                               N64_SCREEN_X * SCREEN_SCALE,
                               N64_SCREEN_Y * SCREEN_SCALE,
-                              SDL_WINDOW_SHOWN);
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+    gl_context = SDL_GL_CreateContext(window);
+    if (gl_context == NULL) {
+        logfatal("SDL couldn't create OpenGL context! %s", SDL_GetError())
+    }
+
+    int gl_version = gladLoadGLLoader(SDL_GL_GetProcAddress);
+
+
+
+    if (gl_version == 0) {
+        logfatal("Failed to initialize Glad context")
+    }
+
+    printf("OpenGL initialized.\n");
+    printf("Vendor:   %s\n", glGetString(GL_VENDOR));
+    printf("Renderer: %s\n", glGetString(GL_RENDERER));
+    printf("Version:  %s\n", glGetString(GL_VERSION));
+
     window_id = SDL_GetWindowID(window);
+
+    glViewport(0, 0, N64_SCREEN_X * SCREEN_SCALE, N64_SCREEN_Y * SCREEN_SCALE);
+    glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     argb32buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, N64_SCREEN_X, N64_SCREEN_Y);
     update_rgb16_buffer(N64_SCREEN_X, N64_SCREEN_Y);
 
     if (renderer == NULL) {
-        logfatal("SDL couldn't create a renderer! %s", SDL_GetError());
+        logfatal("SDL couldn't create a renderer! %s", SDL_GetError())
     }
 
     SDL_RenderSetScale(renderer, SCREEN_SCALE, SCREEN_SCALE);
