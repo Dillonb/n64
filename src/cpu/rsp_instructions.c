@@ -43,6 +43,15 @@ RSP_INSTR(rsp_addi) {
     set_rsp_register(rsp, instruction.i.rt, result);
 }
 
+RSP_INSTR(rsp_spc_add) {
+    word addend1 = get_rsp_register(rsp, instruction.r.rs);
+    word addend2 = get_rsp_register(rsp, instruction.r.rt);
+
+    word result = addend1 + addend2;
+
+    set_rsp_register(rsp, instruction.r.rd, result);
+}
+
 RSP_INSTR(rsp_andi) {
         word immediate = instruction.i.immediate;
         word result = immediate & get_rsp_register(rsp, instruction.i.rs);
@@ -97,4 +106,9 @@ RSP_INSTR(rsp_bne) {
 
 RSP_INSTR(rsp_beq) {
     rsp_conditional_branch(rsp, instruction.i.immediate, get_rsp_register(rsp, instruction.i.rs) == get_rsp_register(rsp, instruction.i.rt));
+}
+
+RSP_INSTR(rsp_blez) {
+    sword reg = get_rsp_register(rsp, instruction.i.rs);
+    rsp_conditional_branch(rsp, instruction.i.immediate, reg <= 0);
 }

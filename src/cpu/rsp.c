@@ -44,7 +44,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_MULTU:  return MIPS_SPC_MULTU;
         //case FUNCT_DIV:    return MIPS_SPC_DIV;
         //case FUNCT_DIVU:   return MIPS_SPC_DIVU;
-        //case FUNCT_ADD:    return MIPS_SPC_ADD;
+        case FUNCT_ADD:    return MIPS_SPC_ADD;
         //case FUNCT_ADDU:   return MIPS_SPC_ADDU;
         //case FUNCT_AND:    return MIPS_SPC_AND;
         //case FUNCT_NOR:    return MIPS_SPC_NOR;
@@ -85,7 +85,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_BEQ:   return MIPS_BEQ;
             //case OPC_BEQL:  return MIPS_BEQL;
             //case OPC_BGTZ:  return MIPS_BGTZ;
-            //case OPC_BLEZ:  return MIPS_BLEZ;
+            case OPC_BLEZ:  return MIPS_BLEZ;
             case OPC_BNE:   return MIPS_BNE;
             //case OPC_BNEL:  return MIPS_BNEL;
             //case OPC_CACHE: return MIPS_CACHE;
@@ -128,17 +128,19 @@ void rsp_step(n64_system_t* system) {
 
     switch (rsp_instruction_decode(rsp, pc, instruction)) {
         case MIPS_NOP: break;
-        exec_instr(MIPS_ORI,  rsp_ori)
-        exec_instr(MIPS_ADDI, rsp_addi)
-        exec_instr(MIPS_ANDI, rsp_andi)
-        exec_instr(MIPS_LW,   rsp_lw)
+        exec_instr(MIPS_ORI,     rsp_ori)
+        exec_instr(MIPS_ADDI,    rsp_addi)
+        exec_instr(MIPS_SPC_ADD, rsp_spc_add)
+        exec_instr(MIPS_ANDI,    rsp_andi)
+        exec_instr(MIPS_LW,      rsp_lw)
 
         exec_instr(MIPS_J,      rsp_j)
         exec_instr(MIPS_JAL,    rsp_jal)
         exec_instr(MIPS_SPC_JR, rsp_spc_jr)
 
-        exec_instr(MIPS_BNE, rsp_bne)
-        exec_instr(MIPS_BEQ, rsp_beq)
+        exec_instr(MIPS_BNE,  rsp_bne)
+        exec_instr(MIPS_BEQ,  rsp_beq)
+        exec_instr(MIPS_BLEZ, rsp_blez)
 
         case MIPS_CP_MTC0: rsp_mtc0(system, instruction); break;
         case MIPS_CP_MFC0: rsp_mfc0(system, instruction); break;

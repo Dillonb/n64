@@ -6,6 +6,7 @@
 
 RSP_INSTR(rsp_ori);
 RSP_INSTR(rsp_addi);
+RSP_INSTR(rsp_spc_add);
 RSP_INSTR(rsp_andi);
 
 RSP_INSTR(rsp_lw);
@@ -16,6 +17,7 @@ RSP_INSTR(rsp_spc_jr);
 
 RSP_INSTR(rsp_bne);
 RSP_INSTR(rsp_beq);
+RSP_INSTR(rsp_blez);
 
 void rsp_mfc0(n64_system_t* system, mips_instruction_t instruction);
 void rsp_mtc0(n64_system_t* system, mips_instruction_t instruction);
