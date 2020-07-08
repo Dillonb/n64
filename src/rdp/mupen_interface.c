@@ -59,7 +59,12 @@ EXPORT m64p_error CALL VidExt_SetVideoMode(int arg1, int arg2, int arg3, m64p_vi
 
 EXPORT void* CALL VidExt_GL_GetProcAddress(const char* proc) {
     printf("VidExt_GL_GetProcAddress: %s\n", proc);
-    return SDL_GL_GetProcAddress(proc);
+    void* pointer = SDL_GL_GetProcAddress(proc);
+    if (pointer == NULL) {
+        logfatal("VidExt_GL_GetProcAddress: could not get address of %s!", proc)
+    }
+
+    return pointer;
 }
 
 EXPORT int CALL ConfigGetParamInt(m64p_handle handle, const char* param) {
@@ -94,5 +99,10 @@ EXPORT const char * CALL ConfigGetParamString(m64p_handle handle, const char* pa
 
 EXPORT m64p_error CALL VidExt_Quit(void) {
     printf("VidExt_Quit\n");
+    return M64ERR_SUCCESS;
+}
+
+EXPORT m64p_error CALL VidExt_GL_SwapBuffers(void) {
+    printf("VidExt_GL_SwapBuffers\n");
     return M64ERR_SUCCESS;
 }

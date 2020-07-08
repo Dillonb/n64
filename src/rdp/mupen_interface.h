@@ -8,6 +8,8 @@
 void init_mupen_interface();
 
 typedef struct mupen_graphics_plugin {
+    const char* plugin_name;
+
     // Called on startup. Gives the plugin some handles back into the core.
     ptr_PluginStartup PluginStartup;
     // Called on shutdown to clean up plugin stuff.
@@ -30,12 +32,17 @@ typedef struct mupen_graphics_plugin {
     ptr_RomClosed RomClosed;
     // Initialization
     ptr_RomOpen RomOpen;
-    // TODO: no idea. " Called from the RSP plugin to signal a condition to the video plugin. "
+    // TODO? Angrylion does not use this, so this is never called. Might be used for HLE RSP emulation?
     ptr_ShowCFB ShowCFB;
+    // Called on every VI interrupt, whether or not it's been masked to actually happen
     ptr_UpdateScreen UpdateScreen;
+    // Called when VI_STATUS_REG is changed
     ptr_ViStatusChanged ViStatusChanged;
+    // Called when VI_WIDTH_REG is changed
     ptr_ViWidthChanged ViWidthChanged;
+    // Seems to be used for screenshots?
     ptr_ReadScreen2 ReadScreen2;
+    // Used to set a function to be called when a new frame is rendered.
     ptr_SetRenderingCallback SetRenderingCallback;
     ptr_FBRead FBRead;
     ptr_FBWrite FBWrite;

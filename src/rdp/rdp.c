@@ -6,10 +6,15 @@
 
 #include "mupen_interface.h"
 #include "../common/log.h"
+#include "../frontend/render.h"
 
 static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;
 static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
+
+void stub_rendering_callback(int redrawn) {
+    printf("Stubbed render callback! Redrawn: %d\n", redrawn);
+}
 
 #define ADDR_DPC_START_REG    0x04100000
 #define ADDR_DPC_END_REG      0x04100004
@@ -120,6 +125,8 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
     graphics_plugin.InitiateGFX(gfx_info);
     graphics_plugin.RomOpen();
 
+    graphics_plugin.SetRenderingCallback(stub_rendering_callback);
+
     // TODO: check plugin version, API version, etc for compatibility
 
     printf("Loaded RDP plugin %s\n", plugin_name);
@@ -158,4 +165,16 @@ void rdp_cleanup() {
 
 void rdp_run_command() {
     graphics_plugin.ProcessRDPList();
+}
+
+void rdp_update_screen() {
+    graphics_plugin.UpdateScreen();
+}
+
+void rdp_vi_status_changed() {
+    graphics_plugin.ViStatusChanged();
+}
+
+void rdp_vi_width_changed() {
+    graphics_plugin.ViWidthChanged();
 }

@@ -1,4 +1,5 @@
 #include "vi.h"
+#include "../rdp/rdp.h"
 
 #define ADDR_VI_STATUS_REG    0x04400000
 #define ADDR_VI_ORIGIN_REG    0x04400004
@@ -17,17 +18,27 @@
 
 void write_word_vireg(n64_system_t* system, word address, word value) {
     switch (address) {
-        case ADDR_VI_STATUS_REG:
+        case ADDR_VI_STATUS_REG: {
+            bool changed = system->vi.status.raw != value;
             system->vi.status.raw = value;
+            if (changed) {
+                rdp_vi_status_changed();
+            }
             break;
+        }
         case ADDR_VI_ORIGIN_REG:
             system->vi.vi_origin = value & 0xFFFFFF;
             loginfo("VI origin is now 0x%08X (wrote 0x%08X)", value & 0xFFFFFF, value)
             break;
-        case ADDR_VI_WIDTH_REG:
+        case ADDR_VI_WIDTH_REG: {
+            bool changed = system->vi.vi_width != (value & 0x7FF);
             system->vi.vi_width = value & 0x7FF;
+            if (changed) {
+                rdp_vi_width_changed();
+            }
             loginfo("VI width is now 0x%X (wrote 0x%08X)", value & 0xFFF, value)
             break;
+        }
         case ADDR_VI_V_INTR_REG:
             system->vi.vi_v_intr = value & 0x3FF;
             loginfo("VI interrupt is now 0x%X (wrote 0x%08X)", value & 0x3FF, value)
@@ -122,6 +133,7 @@ word read_word_vireg(n64_system_t* system, word address) {
 void check_vi_interrupt(n64_system_t* system) {
     if (system->vi.v_current == system->vi.vi_v_intr >> 1) {
         logdebug("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr >> 1)
+        rdp_update_screen();
         interrupt_raise(system, INTERRUPT_VI);
     } else {
         logdebug("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr >> 1)
