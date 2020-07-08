@@ -82,7 +82,7 @@ void sample(n64_system_t* system) {
     word data  = n64_read_word(system, system->ai.dma_address[0]);
     shalf left  = data >> 16;
     shalf right = data >>  0;
-    audio_push_sample(left, right);
+    audio_push_sample(left * 0.1, right * 0.1);
 
     system->ai.dma_address[0] += 4;
     system->ai.dma_length[0]  -= 4;
