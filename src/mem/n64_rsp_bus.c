@@ -55,3 +55,29 @@ void n64_rsp_write_half(n64_system_t* system, word address, half value) {
     }
 }
 
+byte n64_rsp_read_byte(n64_system_t* system, word address) {
+    address &= 0xFFFFFF;
+    switch (address) {
+        case RSP_REGION_SP_DMEM:
+            return system->mem.sp_dmem[address - RSP_SREGION_SP_DMEM];
+        case RSP_REGION_SP_IMEM:
+            return system->mem.sp_imem[address - RSP_SREGION_SP_IMEM];
+        default:
+            logfatal("RSP reading byte at 0x%08X", address)
+    }
+}
+
+void n64_rsp_write_byte(n64_system_t* system, word address, byte value) {
+    address &= 0xFFFFFF;
+    switch (address) {
+        case RSP_REGION_SP_DMEM:
+            system->mem.sp_dmem[address - RSP_SREGION_SP_DMEM] = value;
+            break;
+        case RSP_REGION_SP_IMEM:
+            system->mem.sp_imem[address - RSP_SREGION_SP_IMEM] = value;
+            break;
+        default:
+            logfatal("RSP writing byte to 0x%08X", address)
+    }
+}
+

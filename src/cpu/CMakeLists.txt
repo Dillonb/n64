@@ -11,6 +11,7 @@ add_library(rsp
         rsp_types.h
         rsp.c rsp.h
         rsp_instructions.c rsp_instructions.h
+        rsp_vector_instructions.c rsp_vector_instructions.h
         mips_instruction_decode.h)
 
 TARGET_LINK_LIBRARIES(rsp    disassemble)

@@ -548,7 +548,33 @@ typedef enum mips_instruction_type {
     MIPS_RI_BLTZL,
     MIPS_RI_BGEZ,
     MIPS_RI_BGEZL,
-    MIPS_RI_BGEZAL
+    MIPS_RI_BGEZAL,
+
+    // RSP
+
+    RSP_LWC2_LBV,
+    RSP_LWC2_LDV,
+    RSP_LWC2_LFV,
+    RSP_LWC2_LHV,
+    RSP_LWC2_LLV,
+    RSP_LWC2_LPV,
+    RSP_LWC2_LQV,
+    RSP_LWC2_LRV,
+    RSP_LWC2_LSV,
+    RSP_LWC2_LTV,
+    RSP_LWC2_LUV,
+
+    RSP_SWC2_SBV,
+    RSP_SWC2_SDV,
+    RSP_SWC2_SFV,
+    RSP_SWC2_SHV,
+    RSP_SWC2_SLV,
+    RSP_SWC2_SPV,
+    RSP_SWC2_SQV,
+    RSP_SWC2_SRV,
+    RSP_SWC2_SSV,
+    RSP_SWC2_STV,
+    RSP_SWC2_SUV
 } mips_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu);

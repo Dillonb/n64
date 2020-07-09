@@ -26,6 +26,7 @@
 #define RSP_CP0_CMD_TMEM_BUSY    15
 
 #define RSP_OPC_LWC2 0b110010
+#define RSP_OPC_SWC2 0b111010
 
 #define LWC2_LBV 0b00000
 #define LWC2_LDV 0b00011

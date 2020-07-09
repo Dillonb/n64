@@ -2,7 +2,19 @@
 #define N64_RSP_TYPES_H
 
 #include <stdbool.h>
+#include <assert.h>
 #include "../common/util.h"
+
+typedef union vu_reg {
+    // Used by instructions
+    byte bytes[16];
+    half elements[8];
+    qword single;
+    // Only used for loading
+    word words[4];
+} vu_reg_t;
+
+static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
 
 typedef union rsp_types {
     word raw;
@@ -65,10 +77,12 @@ typedef struct rsp {
         } dma_read;
     } io;
 
+    vu_reg_t vu_regs[32];
+
     bool semaphore_held;
 
-    //byte (*read_byte)(word);
-    //void (*write_byte)(word, byte);
+    byte (*read_byte)(word);
+    void (*write_byte)(word, byte);
 
     byte (*read_physical_byte)(word);
     void (*write_physical_byte)(word, byte);

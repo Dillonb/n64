@@ -53,6 +53,14 @@ void write_rsp_half_wrapper(word address, half value) {
     n64_rsp_write_half(global_system, address, value);
 }
 
+byte read_rsp_byte_wrapper(word address) {
+    return n64_rsp_read_byte(global_system, address);
+}
+
+void write_rsp_byte_wrapper(word address, byte value) {
+    n64_rsp_write_byte(global_system, address, value);
+}
+
 byte read_physical_byte_wrapper(word address) {
     return n64_read_byte(global_system, address);
 }
@@ -128,6 +136,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
     system->rsp.read_half = &read_rsp_half_wrapper;
     system->rsp.write_half = &write_rsp_half_wrapper;
+
+    system->rsp.read_byte = &read_rsp_byte_wrapper;
+    system->rsp.write_byte = &write_rsp_byte_wrapper;
 
     system->rsp.read_physical_byte = &read_physical_byte_wrapper;
     system->rsp.write_physical_byte = &write_physical_byte_wrapper;

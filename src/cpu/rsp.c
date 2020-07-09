@@ -1,7 +1,7 @@
 #include "rsp.h"
-#include "../common/log.h"
 #include "mips_instructions.h"
 #include "rsp_instructions.h"
+#include "rsp_vector_instructions.h"
 #include "disassemble.h"
 
 #define exec_instr(key, fn) case key: fn(rsp, instruction); break;
@@ -74,28 +74,35 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
 
 mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     switch (instr.lwc2.funct) {
-        case LWC2_LBV:
-            logfatal("Unimplemented: LWC2_LBV")
-        case LWC2_LDV:
-            logfatal("Unimplemented: LWC2_LDV")
-        case LWC2_LFV:
-            logfatal("Unimplemented: LWC2_LFV")
-        case LWC2_LHV:
-            logfatal("Unimplemented: LWC2_LHV")
-        case LWC2_LLV:
-            logfatal("Unimplemented: LWC2_LLV")
-        case LWC2_LPV:
-            logfatal("Unimplemented: LWC2_LPV")
-        case LWC2_LQV:
-            logfatal("Unimplemented: LWC2_LQV")
-        case LWC2_LRV:
-            logfatal("Unimplemented: LWC2_LRV")
-        case LWC2_LSV:
-            logfatal("Unimplemented: LWC2_LSV")
-        case LWC2_LTV:
-            logfatal("Unimplemented: LWC2_LTV")
-        case LWC2_LUV:
-            logfatal("Unimplemented: LWC2_LUV")
+        case LWC2_LBV: return RSP_LWC2_LBV;
+        case LWC2_LDV: return RSP_LWC2_LDV;
+        case LWC2_LFV: return RSP_LWC2_LFV;
+        case LWC2_LHV: return RSP_LWC2_LHV;
+        case LWC2_LLV: return RSP_LWC2_LLV;
+        case LWC2_LPV: return RSP_LWC2_LPV;
+        case LWC2_LQV: return RSP_LWC2_LQV;
+        case LWC2_LRV: return RSP_LWC2_LRV;
+        case LWC2_LSV: return RSP_LWC2_LSV;
+        case LWC2_LTV: return RSP_LWC2_LTV;
+        case LWC2_LUV: return RSP_LWC2_LUV;
+        default:
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.lwc2.funct)
+    }
+}
+
+mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+    switch (instr.lwc2.funct) {
+        case LWC2_LBV: return RSP_SWC2_SBV;
+        case LWC2_LDV: return RSP_SWC2_SDV;
+        case LWC2_LFV: return RSP_SWC2_SFV;
+        case LWC2_LHV: return RSP_SWC2_SHV;
+        case LWC2_LLV: return RSP_SWC2_SLV;
+        case LWC2_LPV: return RSP_SWC2_SPV;
+        case LWC2_LQV: return RSP_SWC2_SQV;
+        case LWC2_LRV: return RSP_SWC2_SRV;
+        case LWC2_LSV: return RSP_SWC2_SSV;
+        case LWC2_LTV: return RSP_SWC2_STV;
+        case LWC2_LUV: return RSP_SWC2_SUV;
         default:
             logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.lwc2.funct)
     }
@@ -147,6 +154,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_SPCL:   return rsp_special_decode(rsp, pc, instr);
             case OPC_REGIMM: logfatal("Decoding RSP REGIMM instruction!")  //return rsp_regimm_decode(rsp, pc, instr);
             case RSP_OPC_LWC2: return rsp_lwc2_decode(rsp, pc, instr);
+            case RSP_OPC_SWC2: return rsp_swc2_decode(rsp, pc, instr);
 
             default:
                 if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
@@ -188,6 +196,30 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_BEQ,  rsp_beq)
         exec_instr(MIPS_BGTZ, rsp_bgtz)
         exec_instr(MIPS_BLEZ, rsp_blez)
+
+        exec_instr(RSP_LWC2_LBV, rsp_lwc2_lbv)
+        exec_instr(RSP_LWC2_LDV, rsp_lwc2_ldv)
+        exec_instr(RSP_LWC2_LFV, rsp_lwc2_lfv)
+        exec_instr(RSP_LWC2_LHV, rsp_lwc2_lhv)
+        exec_instr(RSP_LWC2_LLV, rsp_lwc2_llv)
+        exec_instr(RSP_LWC2_LPV, rsp_lwc2_lpv)
+        exec_instr(RSP_LWC2_LQV, rsp_lwc2_lqv)
+        exec_instr(RSP_LWC2_LRV, rsp_lwc2_lrv)
+        exec_instr(RSP_LWC2_LSV, rsp_lwc2_lsv)
+        exec_instr(RSP_LWC2_LTV, rsp_lwc2_ltv)
+        exec_instr(RSP_LWC2_LUV, rsp_lwc2_luv)
+
+        exec_instr(RSP_SWC2_SBV, rsp_swc2_sbv)
+        exec_instr(RSP_SWC2_SDV, rsp_swc2_sdv)
+        exec_instr(RSP_SWC2_SFV, rsp_swc2_sfv)
+        exec_instr(RSP_SWC2_SHV, rsp_swc2_shv)
+        exec_instr(RSP_SWC2_SLV, rsp_swc2_slv)
+        exec_instr(RSP_SWC2_SPV, rsp_swc2_spv)
+        exec_instr(RSP_SWC2_SQV, rsp_swc2_sqv)
+        exec_instr(RSP_SWC2_SRV, rsp_swc2_srv)
+        exec_instr(RSP_SWC2_SSV, rsp_swc2_ssv)
+        exec_instr(RSP_SWC2_STV, rsp_swc2_stv)
+        exec_instr(RSP_SWC2_SUV, rsp_swc2_suv)
 
         case MIPS_CP_MTC0: rsp_mtc0(system, instruction); break;
         case MIPS_CP_MFC0: rsp_mfc0(system, instruction); break;
