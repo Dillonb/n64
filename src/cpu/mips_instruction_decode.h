@@ -66,7 +66,7 @@ typedef union mips_instruction {
         unsigned vt:5;
         unsigned base:5;
         unsigned op:6;
-    } lwc2; // TODO is this format used by other instruction classes?
+    } v;
 
     struct {
         unsigned funct5:1;

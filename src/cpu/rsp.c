@@ -73,7 +73,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
 }
 
 mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
-    switch (instr.lwc2.funct) {
+    switch (instr.v.funct) {
         case LWC2_LBV: return RSP_LWC2_LBV;
         case LWC2_LDV: return RSP_LWC2_LDV;
         case LWC2_LFV: return RSP_LWC2_LFV;
@@ -86,12 +86,12 @@ mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
         case LWC2_LTV: return RSP_LWC2_LTV;
         case LWC2_LUV: return RSP_LWC2_LUV;
         default:
-            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.lwc2.funct)
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct)
     }
 }
 
 mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
-    switch (instr.lwc2.funct) {
+    switch (instr.v.funct) {
         case LWC2_LBV: return RSP_SWC2_SBV;
         case LWC2_LDV: return RSP_SWC2_SDV;
         case LWC2_LFV: return RSP_SWC2_SFV;
@@ -104,7 +104,7 @@ mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
         case LWC2_LTV: return RSP_SWC2_STV;
         case LWC2_LUV: return RSP_SWC2_SUV;
         default:
-            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.lwc2.funct)
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct)
     }
 }
 

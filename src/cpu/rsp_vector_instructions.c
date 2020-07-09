@@ -7,13 +7,13 @@ RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
-    sbyte offset = instruction.lwc2.offset << 1;
-    word address = get_rsp_register(rsp, instruction.lwc2.base) + offset * 8;
+    sbyte offset = instruction.v.offset << 1;
+    word address = get_rsp_register(rsp, instruction.v.base) + offset * 8;
 
     for (int i = 0; i < 8; i++) {
-        int element = i + instruction.lwc2.element;
+        int element = i + instruction.v.element;
         unimplemented(element > 15, "LDV overflowing vector register")
-        rsp->vu_regs[instruction.lwc2.vt].bytes[element] = rsp->read_byte(address + i);
+        rsp->vu_regs[instruction.v.vt].bytes[element] = rsp->read_byte(address + i);
     }
 }
 
@@ -34,14 +34,14 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
-    unimplemented(instruction.lwc2.element != 0, "LQV with element != 0!")
+    unimplemented(instruction.v.element != 0, "LQV with element != 0!")
 
-    sbyte offset     = instruction.lwc2.offset << 1;
-    word address     = get_rsp_register(rsp, instruction.lwc2.base) + offset * 8;
+    sbyte offset     = instruction.v.offset << 1;
+    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address; i++) {
-        rsp->vu_regs[instruction.lwc2.vt].bytes[i] = rsp->read_byte(address + i);
+        rsp->vu_regs[instruction.v.vt].bytes[i] = rsp->read_byte(address + i);
     }
 }
 
@@ -66,13 +66,13 @@ RSP_VECTOR_INSTR(rsp_swc2_sbv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sdv) {
-    sbyte offset = instruction.lwc2.offset << 1;
-    word address = get_rsp_register(rsp, instruction.lwc2.base) + offset * 8;
+    sbyte offset = instruction.v.offset << 1;
+    word address = get_rsp_register(rsp, instruction.v.base) + offset * 8;
 
     for (int i = 0; i < 8; i++) {
-        int element = i + instruction.lwc2.element;
+        int element = i + instruction.v.element;
         unimplemented(element > 15, "SDV overflowing vector register")
-        rsp->write_byte(address + i, rsp->vu_regs[instruction.lwc2.vt].bytes[element]);
+        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[element]);
     }
 }
 
