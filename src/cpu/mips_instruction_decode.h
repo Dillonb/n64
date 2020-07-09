@@ -60,6 +60,15 @@ typedef union mips_instruction {
     } fr;
 
     struct {
+        unsigned offset:7;
+        unsigned element:4;
+        unsigned funct:5;
+        unsigned vt:5;
+        unsigned base:5;
+        unsigned op:6;
+    } lwc2; // TODO is this format used by other instruction classes?
+
+    struct {
         unsigned funct5:1;
         unsigned funct4:1;
         unsigned funct3:1;

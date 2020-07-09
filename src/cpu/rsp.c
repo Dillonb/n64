@@ -73,7 +73,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
 }
 
 mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
-    switch (instr.r.rt) {
+    switch (instr.lwc2.funct) {
         case LWC2_LBV:
             logfatal("Unimplemented: LWC2_LBV")
         case LWC2_LDV:
@@ -97,7 +97,7 @@ mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
         case LWC2_LUV:
             logfatal("Unimplemented: LWC2_LUV")
         default:
-            logfatal("other/unknown MIPS RSP LWC2 with RT: 0x%02X", instr.r.rt)
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.lwc2.funct)
     }
 }
 
