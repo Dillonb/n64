@@ -1,7 +1,7 @@
 #ifndef N64_MEM_UTIL_H
 #define N64_MEM_UTIL_H
 
-#include <zconf.h>
+#include <endian.h>
 #include "../common/util.h"
 
 INLINE dword dword_from_byte_array(byte* arr, word index) {

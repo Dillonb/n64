@@ -6,9 +6,12 @@
 #include <stdio.h>
 #include <SDL_video.h>
 
+static n64_system_t* mupen_interface_global_system;
+
 #define PARAM(name, value) if (strcmp(param, name) == 0) { return value; }
 
-void init_mupen_interface() {
+void init_mupen_interface(n64_system_t* system) {
+    mupen_interface_global_system = system;
     printf("Initialized Mupen64Plus plugin interface\n");
 }
 
@@ -51,9 +54,8 @@ EXPORT m64p_error CALL VidExt_GL_SetAttribute(m64p_GLattr attr, int arg1) {
     printf("VidExt_GL_SetAttribute\n");
     return M64ERR_SUCCESS;
 }
-
-EXPORT m64p_error CALL VidExt_SetVideoMode(int arg1, int arg2, int arg3, m64p_video_mode mode, m64p_video_flags flags) {
-    printf("VidExt_SetVideoMode\n");
+EXPORT m64p_error CALL VidExt_SetVideoMode(int width, int height, int bits_per_pixel, m64p_video_mode mode, m64p_video_flags flags) {
+    printf("VidExt_SetVideoMode: width: %d height: %d bpp: %d mode: %d flags: %d\n", width, height, bits_per_pixel, mode, flags);
     return M64ERR_SUCCESS;
 }
 
@@ -103,6 +105,6 @@ EXPORT m64p_error CALL VidExt_Quit(void) {
 }
 
 EXPORT m64p_error CALL VidExt_GL_SwapBuffers(void) {
-    printf("VidExt_GL_SwapBuffers\n");
+    render_screen(mupen_interface_global_system);
     return M64ERR_SUCCESS;
 }

@@ -4,8 +4,9 @@
 #include "contrib/m64p_types.h"
 #include "contrib/m64p_plugin.h"
 #include "contrib/m64p_common.h"
+#include "../system/n64system.h"
 
-void init_mupen_interface();
+void init_mupen_interface(n64_system_t* system);
 
 typedef struct mupen_graphics_plugin {
     const char* plugin_name;

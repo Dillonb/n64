@@ -12,9 +12,7 @@ static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;
 static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
 
-void stub_rendering_callback(int redrawn) {
-    printf("Stubbed render callback! Redrawn: %d\n", redrawn);
-}
+void stub_rendering_callback(int redrawn) {}
 
 #define ADDR_DPC_START_REG    0x04100000
 #define ADDR_DPC_END_REG      0x04100004
@@ -32,7 +30,7 @@ void stub_rendering_callback(int redrawn) {
     } while(false)
 
 void rdp_check_interrupts() {
-    logfatal("GFX plugin called CheckInterrupts!()")
+    logwarn("GFX plugin called CheckInterrupts!()")
 }
 
 void load_rdp_plugin(n64_system_t* system, const char* filename) {
@@ -48,7 +46,7 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
         logfatal("Failed to load RDP plugin. Please pass a path to a shared library file!")
     }
 
-    init_mupen_interface();
+    init_mupen_interface(system);
 
     LOAD_SYM(graphics_plugin.PluginStartup, "PluginStartup");
     LOAD_SYM(graphics_plugin.PluginGetVersion, "PluginGetVersion");
@@ -135,10 +133,13 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
 void write_word_dpcreg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_DPC_START_REG:
-            system->dpc.start = value;
+            system->dpc.start = value & 0xFFFFFF;
+            system->dpc.current = system->dpc.start;
+            printf("DPC_START = 0x%08X\n", system->dpc.start);
             break;
         case ADDR_DPC_END_REG:
-            system->dpc.end = value;
+            printf("DPC_END = 0x%08X\n", system->dpc.start);
+            system->dpc.end = value & 0xFFFFFF;
             rdp_run_command();
             interrupt_raise(system, INTERRUPT_DP);
             break;
@@ -159,6 +160,29 @@ void write_word_dpcreg(n64_system_t* system, word address, word value) {
     }
 }
 
+word read_word_dpcreg(n64_system_t* system, word address) {
+    switch (address) {
+        case ADDR_DPC_START_REG:
+            return system->dpc.start;
+        case ADDR_DPC_END_REG:
+            return system->dpc.end;
+        case ADDR_DPC_CURRENT_REG:
+            return system->dpc.current;
+        case ADDR_DPC_STATUS_REG:
+            return system->dpc.status.raw;
+        case ADDR_DPC_CLOCK_REG:
+            return system->dpc.clock;
+        case ADDR_DPC_BUFBUSY_REG:
+            return system->dpc.bufbusy;
+        case ADDR_DPC_PIPEBUSY_REG:
+            return system->dpc.pipebusy;
+        case ADDR_DPC_TMEM_REG:
+            return system->dpc.tmem;
+        default:
+            logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address)
+    }
+}
+
 void rdp_cleanup() {
     graphics_plugin.RomClosed();
 }
@@ -169,12 +193,4 @@ void rdp_run_command() {
 
 void rdp_update_screen() {
     graphics_plugin.UpdateScreen();
-}
-
-void rdp_vi_status_changed() {
-    graphics_plugin.ViStatusChanged();
-}
-
-void rdp_vi_width_changed() {
-    graphics_plugin.ViWidthChanged();
 }

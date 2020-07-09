@@ -8,13 +8,7 @@
 int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;
 static SDL_Window* window = NULL;
-static uint32_t window_id;
 static SDL_Renderer* renderer = NULL;
-static SDL_Texture* argb32buffer = NULL;
-static SDL_Texture* rgb16buffer = NULL;
-static half* rgb16_host_endianness = NULL;
-static int rgb16buffer_width;
-static int rgb16buffer_height;
 
 #define AUDIO_SAMPLE_RATE 48000
 static SDL_AudioStream* audio_stream = NULL;
@@ -27,20 +21,6 @@ word sdl_lastframe = 0;
 word sdl_numframes = 0;
 word sdl_fps = 0;
 char sdl_wintitle[100] = "dgb n64 00 FPS";
-
-void update_rgb16_buffer(int width, int height) {
-    if (rgb16buffer != NULL) {
-        SDL_DestroyTexture(rgb16buffer);
-    }
-    if (rgb16_host_endianness != NULL) {
-        free(rgb16_host_endianness);
-    }
-
-    rgb16buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA5551, SDL_TEXTUREACCESS_STREAMING, width, height);
-    rgb16_host_endianness = malloc(width * height * sizeof(half));
-    rgb16buffer_width = width;
-    rgb16buffer_height = height;
-}
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
     int gotten = 0;
@@ -108,14 +88,11 @@ void video_init() {
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
     printf("Version:  %s\n", glGetString(GL_VERSION));
 
-    window_id = SDL_GetWindowID(window);
-
     glViewport(0, 0, N64_SCREEN_X * SCREEN_SCALE, N64_SCREEN_Y * SCREEN_SCALE);
     glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    argb32buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, N64_SCREEN_X, N64_SCREEN_Y);
-    update_rgb16_buffer(N64_SCREEN_X, N64_SCREEN_Y);
+    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     if (renderer == NULL) {
         logfatal("SDL couldn't create a renderer! %s", SDL_GetError())
@@ -222,24 +199,6 @@ void render_screen(n64_system_t* system) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         handle_event(system, &event);
-    }
-
-    unimplemented(system->vi.status.type == VI_TYPE_RESERVED, "VI_TYPE_RESERVED unimplemented!")
-
-    if (system->vi.status.type == VI_TYPE_32BIT) {
-        SDL_UpdateTexture(argb32buffer, NULL, &system->mem.rdram[system->vi.vi_origin], system->vi.vi_width * 4);
-        SDL_RenderCopy(renderer, argb32buffer, NULL, NULL);
-    } else if (system->vi.status.type == VI_TYPE_16BIT) {
-        if (system->vi.vi_width != rgb16buffer_width || system->vi.calculated_height != rgb16buffer_height) {
-            update_rgb16_buffer(system->vi.vi_width, system->vi.calculated_height);
-        }
-        half* harr = (half*)system->mem.rdram;
-        for (int i = 0; i < system->vi.vi_width * system->vi.calculated_height; i++) {
-            half converted = be16toh(harr[system->vi.vi_origin / 2 + i]);
-            rgb16_host_endianness[i] = converted;
-        }
-        SDL_UpdateTexture(rgb16buffer, NULL, rgb16_host_endianness, system->vi.vi_width * 2);
-        SDL_RenderCopy(renderer, rgb16buffer, NULL, NULL);
     }
 
     SDL_RenderPresent(renderer);

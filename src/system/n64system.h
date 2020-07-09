@@ -107,7 +107,6 @@ typedef struct n64_system {
         word xscale;
         word yscale;
         word v_current;
-        int calculated_height;
     } vi;
     struct {
         bool dma_enable;

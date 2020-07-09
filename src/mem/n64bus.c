@@ -1,5 +1,5 @@
 #include "n64bus.h"
-#include "../common/log.h"
+
 #include "dma.h"
 #include "../interface/vi.h"
 #include "addresses.h"
@@ -8,9 +8,6 @@
 #include "../cpu/rsp_interface.h"
 #include "mem_util.h"
 #include "../rdp/rdp.h"
-
-#include <endian.h>
-
 
 word vatopa(word address, cp0_t* cp0) {
     word physical;
@@ -614,6 +611,7 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_SP_REGS:
             return read_word_spreg(system, address);
         case REGION_DP_COMMAND_REGS:
+            return read_word_dpcreg(system, address);
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address)
         case REGION_DP_SPAN_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", address)

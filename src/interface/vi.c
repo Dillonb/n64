@@ -19,11 +19,7 @@
 void write_word_vireg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_VI_STATUS_REG: {
-            bool changed = system->vi.status.raw != value;
             system->vi.status.raw = value;
-            if (changed) {
-                rdp_vi_status_changed();
-            }
             break;
         }
         case ADDR_VI_ORIGIN_REG:
@@ -31,11 +27,7 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
             loginfo("VI origin is now 0x%08X (wrote 0x%08X)", value & 0xFFFFFF, value)
             break;
         case ADDR_VI_WIDTH_REG: {
-            bool changed = system->vi.vi_width != (value & 0x7FF);
             system->vi.vi_width = value & 0x7FF;
-            if (changed) {
-                rdp_vi_width_changed();
-            }
             loginfo("VI width is now 0x%X (wrote 0x%08X)", value & 0xFFF, value)
             break;
         }
@@ -68,15 +60,6 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
             break;
         case ADDR_VI_V_START_REG:
             system->vi.vstart.raw = value;
-            system->vi.calculated_height = system->vi.vstart.vend - system->vi.vstart.vstart;
-            loginfo("VI vstart is now 0x%X - (wrote 0x%08X): vend: %d, vstart: %d, vend-vstart=%d", value, value,
-                    system->vi.vstart.vend, system->vi.vstart.vstart,
-                   system->vi.vstart.vend - system->vi.vstart.vstart)
-            if (system->vi.calculated_height < 0) {
-                logfatal("Got a negative video height??")
-            } else {
-                system->vi.calculated_height /= 2;
-            }
             break;
         case ADDR_VI_V_BURST_REG:
             system->vi.vburst = value;

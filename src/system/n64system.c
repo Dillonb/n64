@@ -134,6 +134,8 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
     system->vi.vi_v_intr = 256;
 
+    system->dpc.status.raw = 0x80;
+
 
     system->ai.dac.frequency = 44100;
     system->ai.dac.precision = 16;
