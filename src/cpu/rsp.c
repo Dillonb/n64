@@ -72,6 +72,35 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
     }
 }
 
+mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+    switch (instr.r.rt) {
+        case LWC2_LBV:
+            logfatal("Unimplemented: LWC2_LBV")
+        case LWC2_LDV:
+            logfatal("Unimplemented: LWC2_LDV")
+        case LWC2_LFV:
+            logfatal("Unimplemented: LWC2_LFV")
+        case LWC2_LHV:
+            logfatal("Unimplemented: LWC2_LHV")
+        case LWC2_LLV:
+            logfatal("Unimplemented: LWC2_LLV")
+        case LWC2_LPV:
+            logfatal("Unimplemented: LWC2_LPV")
+        case LWC2_LQV:
+            logfatal("Unimplemented: LWC2_LQV")
+        case LWC2_LRV:
+            logfatal("Unimplemented: LWC2_LRV")
+        case LWC2_LSV:
+            logfatal("Unimplemented: LWC2_LSV")
+        case LWC2_LTV:
+            logfatal("Unimplemented: LWC2_LTV")
+        case LWC2_LUV:
+            logfatal("Unimplemented: LWC2_LUV")
+        default:
+            logfatal("other/unknown MIPS RSP LWC2 with RT: 0x%02X", instr.r.rt)
+    }
+}
+
 mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
         char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
@@ -117,6 +146,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_CP1:    logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
             case OPC_SPCL:   return rsp_special_decode(rsp, pc, instr);
             case OPC_REGIMM: logfatal("Decoding RSP REGIMM instruction!")  //return rsp_regimm_decode(rsp, pc, instr);
+            case RSP_OPC_LWC2: return rsp_lwc2_decode(rsp, pc, instr);
 
             default:
                 if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {

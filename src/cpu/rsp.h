@@ -25,6 +25,19 @@
 #define RSP_CP0_CMD_PIPE_BUSY    14
 #define RSP_CP0_CMD_TMEM_BUSY    15
 
+#define RSP_OPC_LWC2 0b110010
+
+#define LWC2_LBV 0b00000
+#define LWC2_LDV 0b00011
+#define LWC2_LFV 0b01001
+#define LWC2_LHV 0b01000
+#define LWC2_LLV 0b00010
+#define LWC2_LPV 0b00110
+#define LWC2_LQV 0b00100
+#define LWC2_LRV 0b00101
+#define LWC2_LSV 0b00001
+#define LWC2_LTV 0b01011
+#define LWC2_LUV 0b00111
 
 INLINE void rsp_dma_read(rsp_t* rsp) {
     word length = (rsp->io.dma_read.length | 7) + 1;
