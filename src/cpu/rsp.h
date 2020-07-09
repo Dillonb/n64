@@ -62,6 +62,8 @@ INLINE word get_rsp_register(rsp_t* rsp, byte r) {
     }
 }
 
+bool rsp_acquire_semaphore(n64_system_t* system);
+
 INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     switch (r) {
         case RSP_CP0_DMA_CACHE:
@@ -75,8 +77,7 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
         case RSP_CP0_SP_STATUS: return system->rsp.status.raw;
         case RSP_CP0_DMA_FULL:  return system->rsp.status.dma_full;
         case RSP_CP0_DMA_BUSY:  return system->rsp.status.dma_busy;
-        case RSP_CP0_DMA_RESERVED:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_RESERVED", r)
+        case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore(system);
         case RSP_CP0_CMD_START:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r)
         case RSP_CP0_CMD_END:

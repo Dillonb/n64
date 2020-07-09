@@ -6,6 +6,15 @@
 
 #define exec_instr(key, fn) case key: fn(rsp, instruction); break;
 
+bool rsp_acquire_semaphore(n64_system_t* system) {
+    if (system->rsp.semaphore_held) {
+        return false; // Semaphore is already held
+    } else {
+        system->rsp.semaphore_held = true;
+        return true; // Acquired semaphore.
+    }
+}
+
 mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
@@ -32,8 +41,8 @@ mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t i
 
 mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
-        //case FUNCT_SLL:    return MIPS_SPC_SLL;
-        //case FUNCT_SRL:    return MIPS_SPC_SRL;
+        case FUNCT_SLL:    return MIPS_SPC_SLL;
+        case FUNCT_SRL:    return MIPS_SPC_SRL;
         //case FUNCT_SRA:    return MIPS_SPC_SRA;
         //case FUNCT_SRAV:   return MIPS_SPC_SRAV;
         //case FUNCT_SLLV:   return MIPS_SPC_SLLV;
@@ -78,20 +87,20 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_ADDI:  return MIPS_ADDI;
             case OPC_ANDI:  return MIPS_ANDI;
             //case OPC_LBU:   return MIPS_LBU;
-            //case OPC_LHU:   return MIPS_LHU;
-            //case OPC_LH:    return MIPS_LH;
+            case OPC_LHU:   return MIPS_LHU;
+            case OPC_LH:    return MIPS_LH;
             case OPC_LW:    return MIPS_LW;
             //case OPC_LWU:   return MIPS_LWU;
             case OPC_BEQ:   return MIPS_BEQ;
             //case OPC_BEQL:  return MIPS_BEQL;
-            //case OPC_BGTZ:  return MIPS_BGTZ;
+            case OPC_BGTZ:  return MIPS_BGTZ;
             case OPC_BLEZ:  return MIPS_BLEZ;
             case OPC_BNE:   return MIPS_BNE;
             //case OPC_BNEL:  return MIPS_BNEL;
             //case OPC_CACHE: return MIPS_CACHE;
             //case OPC_SB:    return MIPS_SB;
-            //case OPC_SH:    return MIPS_SH;
-            //case OPC_SW:    return MIPS_SW;
+            case OPC_SH:    return MIPS_SH;
+            case OPC_SW:    return MIPS_SW;
             case OPC_ORI:   return MIPS_ORI;
             case OPC_J:     return MIPS_J;
             case OPC_JAL:   return MIPS_JAL;
@@ -132,14 +141,22 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_ADDI,    rsp_addi)
         exec_instr(MIPS_SPC_ADD, rsp_spc_add)
         exec_instr(MIPS_ANDI,    rsp_andi)
+        exec_instr(MIPS_SH,      rsp_sh)
+        exec_instr(MIPS_SW,      rsp_sw)
+        exec_instr(MIPS_LHU,     rsp_lhu)
+        exec_instr(MIPS_LH,      rsp_lh)
         exec_instr(MIPS_LW,      rsp_lw)
 
         exec_instr(MIPS_J,      rsp_j)
         exec_instr(MIPS_JAL,    rsp_jal)
-        exec_instr(MIPS_SPC_JR, rsp_spc_jr)
+
+        exec_instr(MIPS_SPC_JR,  rsp_spc_jr)
+        exec_instr(MIPS_SPC_SLL, rsp_spc_sll)
+        exec_instr(MIPS_SPC_SRL, rsp_spc_srl)
 
         exec_instr(MIPS_BNE,  rsp_bne)
         exec_instr(MIPS_BEQ,  rsp_beq)
+        exec_instr(MIPS_BGTZ, rsp_bgtz)
         exec_instr(MIPS_BLEZ, rsp_blez)
 
         case MIPS_CP_MTC0: rsp_mtc0(system, instruction); break;

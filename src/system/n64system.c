@@ -27,28 +27,30 @@ bool should_quit = false;
 
 n64_system_t* global_system;
 
-dword read_dword_wrapper(word address) {
-    return n64_read_dword(global_system, address);
+/* TODO I'm 99% sure the RSP can't read/write DWORDs
+dword read_rsp_dword_wrapper(word address) {
+    return n64_rsp_read_dword(global_system, address);
 }
 
-void write_dword_wrapper(word address, dword value) {
-    n64_write_dword(global_system, address, value);
+void write_rsp_dword_wrapper(word address, dword value) {
+    n64_rsp_write_dword(global_system, address, value);
 }
+ */
 
 word read_rsp_word_wrapper(word address) {
     return n64_rsp_read_word(global_system, address);
 }
 
-void write_word_wrapper(word address, word value) {
-    n64_write_word(global_system, address, value);
+void write_rsp_word_wrapper(word address, word value) {
+    n64_rsp_write_word(global_system, address, value);
 }
 
-half read_half_wrapper(word address) {
-    return n64_read_half(global_system, address);
+half read_rsp_half_wrapper(word address) {
+    return n64_rsp_read_half(global_system, address);
 }
 
-void write_half_wrapper(word address, half value) {
-    n64_write_half(global_system, address, value);
+void write_rsp_half_wrapper(word address, half value) {
+    n64_rsp_write_half(global_system, address, value);
 }
 
 byte read_physical_byte_wrapper(word address) {
@@ -122,10 +124,10 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     //system->rsp.write_dword = &write_dword_wrapper;
 
     system->rsp.read_word = &read_rsp_word_wrapper;
-    //system->rsp.write_word = &write_word_wrapper;
+    system->rsp.write_word = &write_rsp_word_wrapper;
 
-    //system->rsp.read_half = &read_half_wrapper;
-    //system->rsp.write_half = &write_half_wrapper;
+    system->rsp.read_half = &read_rsp_half_wrapper;
+    system->rsp.write_half = &write_rsp_half_wrapper;
 
     system->rsp.read_physical_byte = &read_physical_byte_wrapper;
     system->rsp.write_physical_byte = &write_physical_byte_wrapper;

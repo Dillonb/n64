@@ -73,11 +73,11 @@ typedef struct rsp {
     byte (*read_physical_byte)(word);
     void (*write_physical_byte)(word, byte);
 
-    //half (*read_half)(word);
-    //void (*write_half)(word, half);
+    half (*read_half)(word);
+    void (*write_half)(word, half);
 
     word (*read_word)(word);
-    //void (*write_word)(word, word);
+    void (*write_word)(word, word);
 
     //dword (*read_dword)(word);
     //void (*write_dword)(word, dword);
