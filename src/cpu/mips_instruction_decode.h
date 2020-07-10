@@ -69,6 +69,25 @@ typedef union mips_instruction {
     } v;
 
     struct {
+        unsigned funct:6;
+        unsigned vd:5;
+        unsigned vs:5;
+        unsigned vt:5;
+        unsigned e:4;
+        bool is_vec:1;
+        unsigned op:6;
+    } cp2_vec;
+
+    struct {
+        unsigned:7;
+        unsigned e:4;
+        unsigned rd:5;
+        unsigned rt:5;
+        unsigned funct:5;
+        unsigned op:6;
+    } cp2_regmove;
+
+    struct {
         unsigned funct5:1;
         unsigned funct4:1;
         unsigned funct3:1;

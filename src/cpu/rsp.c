@@ -39,6 +39,74 @@ mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t i
     }
 }
 
+mips_instruction_type_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+    if (instr.cp2_vec.is_vec) {
+        switch (instr.cp2_vec.funct) {
+            case FUNCT_RSP_VEC_VABS:  return RSP_VEC_VABS;
+            case FUNCT_RSP_VEC_VADD:  return RSP_VEC_VADD;
+            case FUNCT_RSP_VEC_VADDC: return RSP_VEC_VADDC;
+            case FUNCT_RSP_VEC_VAND:  return RSP_VEC_VAND;
+            case FUNCT_RSP_VEC_VCH:   return RSP_VEC_VCH;
+            case FUNCT_RSP_VEC_VCL:   return RSP_VEC_VCL;
+            case FUNCT_RSP_VEC_VCR:   return RSP_VEC_VCR;
+            case FUNCT_RSP_VEC_VEQ:   return RSP_VEC_VEQ;
+            case FUNCT_RSP_VEC_VGE:   return RSP_VEC_VGE;
+            case FUNCT_RSP_VEC_VLT:   return RSP_VEC_VLT;
+            case FUNCT_RSP_VEC_VMACF: return RSP_VEC_VMACF;
+            case FUNCT_RSP_VEC_VMACQ: return RSP_VEC_VMACQ;
+            case FUNCT_RSP_VEC_VMACU: return RSP_VEC_VMACU;
+            case FUNCT_RSP_VEC_VMADH: return RSP_VEC_VMADH;
+            case FUNCT_RSP_VEC_VMADL: return RSP_VEC_VMADL;
+            case FUNCT_RSP_VEC_VMADM: return RSP_VEC_VMADM;
+            case FUNCT_RSP_VEC_VMADN: return RSP_VEC_VMADN;
+            case FUNCT_RSP_VEC_VMOV:  return RSP_VEC_VMOV;
+            case FUNCT_RSP_VEC_VMRG:  return RSP_VEC_VMRG;
+            case FUNCT_RSP_VEC_VMUDH: return RSP_VEC_VMUDH;
+            case FUNCT_RSP_VEC_VMUDL: return RSP_VEC_VMUDL;
+            case FUNCT_RSP_VEC_VMUDM: return RSP_VEC_VMUDM;
+            case FUNCT_RSP_VEC_VMUDN: return RSP_VEC_VMUDN;
+            case FUNCT_RSP_VEC_VMULF: return RSP_VEC_VMULF;
+            case FUNCT_RSP_VEC_VMULQ: return RSP_VEC_VMULQ;
+            case FUNCT_RSP_VEC_VMULU: return RSP_VEC_VMULU;
+            case FUNCT_RSP_VEC_VNAND: return RSP_VEC_VNAND;
+            case FUNCT_RSP_VEC_VNE:   return RSP_VEC_VNE;
+            case FUNCT_RSP_VEC_VNOP:  return RSP_VEC_VNOP;
+            case FUNCT_RSP_VEC_VNOR:  return RSP_VEC_VNOR;
+            case FUNCT_RSP_VEC_VNXOR: return RSP_VEC_VNXOR;
+            case FUNCT_RSP_VEC_VOR :  return RSP_VEC_VOR;
+            case FUNCT_RSP_VEC_VRCP:  return RSP_VEC_VRCP;
+            case FUNCT_RSP_VEC_VRCPH: return RSP_VEC_VRCPH;
+            case FUNCT_RSP_VEC_VRCPL: return RSP_VEC_VRCPL;
+            case FUNCT_RSP_VEC_VRNDN: return RSP_VEC_VRNDN;
+            case FUNCT_RSP_VEC_VRNDP: return RSP_VEC_VRNDP;
+            case FUNCT_RSP_VEC_VRSQ:  return RSP_VEC_VRSQ;
+            case FUNCT_RSP_VEC_VRSQH: return RSP_VEC_VRSQH;
+            case FUNCT_RSP_VEC_VRSQL: return RSP_VEC_VRSQL;
+            case FUNCT_RSP_VEC_VSAR:  return RSP_VEC_VSAR;
+            case FUNCT_RSP_VEC_VSUB:  return RSP_VEC_VSUB;
+            case FUNCT_RSP_VEC_VSUBC: return RSP_VEC_VSUBC;
+            case FUNCT_RSP_VEC_VXOR:  return RSP_VEC_VXOR;
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("Invalid RSP CP2 VEC [0x%08X]=0x%08X | Capstone thinks it's %s", pc, instr.raw, buf)
+            }
+        }
+    } else {
+        switch (instr.cp2_regmove.funct) {
+            case COP_CF: return RSP_CFC2;
+            case COP_CT: return RSP_CTC2;
+            case COP_MF: return RSP_MFC2;
+            case COP_MT: return RSP_MTC2;
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("Invalid RSP CP2 regmove instruction! [0x%08x]=0x%08x | Capstone thinks it's %s", pc, instr.raw, buf)
+            }
+        }
+    }
+}
+
 mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return MIPS_SPC_SLL;
@@ -151,6 +219,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
 
             case OPC_CP0:    return rsp_cp0_decode(rsp, pc, instr);
             case OPC_CP1:    logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
+            case OPC_CP2:    return rsp_cp2_decode(rsp, pc, instr);
             case OPC_SPCL:   return rsp_special_decode(rsp, pc, instr);
             case OPC_REGIMM: logfatal("Decoding RSP REGIMM instruction!")  //return rsp_regimm_decode(rsp, pc, instr);
             case RSP_OPC_LWC2: return rsp_lwc2_decode(rsp, pc, instr);
@@ -220,6 +289,55 @@ void rsp_step(n64_system_t* system) {
         exec_instr(RSP_SWC2_SSV, rsp_swc2_ssv)
         exec_instr(RSP_SWC2_STV, rsp_swc2_stv)
         exec_instr(RSP_SWC2_SUV, rsp_swc2_suv)
+        exec_instr(RSP_CFC2, rsp_cfc2)
+        exec_instr(RSP_CTC2, rsp_ctc2)
+        exec_instr(RSP_MFC2, rsp_mfc2)
+        exec_instr(RSP_MTC2, rsp_mtc2)
+
+        exec_instr(RSP_VEC_VABS,  rsp_vec_vabs)
+        exec_instr(RSP_VEC_VADD,  rsp_vec_vadd)
+        exec_instr(RSP_VEC_VADDC, rsp_vec_vaddc)
+        exec_instr(RSP_VEC_VAND,  rsp_vec_vand)
+        exec_instr(RSP_VEC_VCH,   rsp_vec_vch)
+        exec_instr(RSP_VEC_VCL,   rsp_vec_vcl)
+        exec_instr(RSP_VEC_VCR,   rsp_vec_vcr)
+        exec_instr(RSP_VEC_VEQ,   rsp_vec_veq)
+        exec_instr(RSP_VEC_VGE,   rsp_vec_vge)
+        exec_instr(RSP_VEC_VLT,   rsp_vec_vlt)
+        exec_instr(RSP_VEC_VMACF, rsp_vec_vmacf)
+        exec_instr(RSP_VEC_VMACQ, rsp_vec_vmacq)
+        exec_instr(RSP_VEC_VMACU, rsp_vec_vmacu)
+        exec_instr(RSP_VEC_VMADH, rsp_vec_vmadh)
+        exec_instr(RSP_VEC_VMADL, rsp_vec_vmadl)
+        exec_instr(RSP_VEC_VMADM, rsp_vec_vmadm)
+        exec_instr(RSP_VEC_VMADN, rsp_vec_vmadn)
+        exec_instr(RSP_VEC_VMOV,  rsp_vec_vmov)
+        exec_instr(RSP_VEC_VMRG,  rsp_vec_vmrg)
+        exec_instr(RSP_VEC_VMUDH, rsp_vec_vmudh)
+        exec_instr(RSP_VEC_VMUDL, rsp_vec_vmudl)
+        exec_instr(RSP_VEC_VMUDM, rsp_vec_vmudm)
+        exec_instr(RSP_VEC_VMUDN, rsp_vec_vmudn)
+        exec_instr(RSP_VEC_VMULF, rsp_vec_vmulf)
+        exec_instr(RSP_VEC_VMULQ, rsp_vec_vmulq)
+        exec_instr(RSP_VEC_VMULU, rsp_vec_vmulu)
+        exec_instr(RSP_VEC_VNAND, rsp_vec_vnand)
+        exec_instr(RSP_VEC_VNE,   rsp_vec_vne)
+        exec_instr(RSP_VEC_VNOP,  rsp_vec_vnop)
+        exec_instr(RSP_VEC_VNOR,  rsp_vec_vnor)
+        exec_instr(RSP_VEC_VNXOR, rsp_vec_vnxor)
+        exec_instr(RSP_VEC_VOR,   rsp_vec_vor)
+        exec_instr(RSP_VEC_VRCP,  rsp_vec_vrcp)
+        exec_instr(RSP_VEC_VRCPH, rsp_vec_vrcph)
+        exec_instr(RSP_VEC_VRCPL, rsp_vec_vrcpl)
+        exec_instr(RSP_VEC_VRNDN, rsp_vec_vrndn)
+        exec_instr(RSP_VEC_VRNDP, rsp_vec_vrndp)
+        exec_instr(RSP_VEC_VRSQ,  rsp_vec_vrsq)
+        exec_instr(RSP_VEC_VRSQH, rsp_vec_vrsqh)
+        exec_instr(RSP_VEC_VRSQL, rsp_vec_vrsql)
+        exec_instr(RSP_VEC_VSAR,  rsp_vec_vsar)
+        exec_instr(RSP_VEC_VSUB,  rsp_vec_vsub)
+        exec_instr(RSP_VEC_VSUBC, rsp_vec_vsubc)
+        exec_instr(RSP_VEC_VXOR,  rsp_vec_vxor)
 
         case MIPS_CP_MTC0: rsp_mtc0(system, instruction); break;
         case MIPS_CP_MFC0: rsp_mfc0(system, instruction); break;

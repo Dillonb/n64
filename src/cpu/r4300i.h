@@ -28,6 +28,7 @@
 
 #define OPC_CP0    0b010000
 #define OPC_CP1    0b010001
+#define OPC_CP2    0b010010
 #define OPC_LD     0b110111
 #define OPC_LUI    0b001111
 #define OPC_ADDI   0b001000
@@ -574,7 +575,57 @@ typedef enum mips_instruction_type {
     RSP_SWC2_SRV,
     RSP_SWC2_SSV,
     RSP_SWC2_STV,
-    RSP_SWC2_SUV
+    RSP_SWC2_SUV,
+
+    RSP_CFC2,
+    RSP_CTC2,
+    RSP_MFC2,
+    RSP_MTC2,
+
+    RSP_VEC_VABS,
+    RSP_VEC_VADD,
+    RSP_VEC_VADDC,
+    RSP_VEC_VAND,
+    RSP_VEC_VCH,
+    RSP_VEC_VCL,
+    RSP_VEC_VCR,
+    RSP_VEC_VEQ,
+    RSP_VEC_VGE,
+    RSP_VEC_VLT,
+    RSP_VEC_VMACF,
+    RSP_VEC_VMACQ,
+    RSP_VEC_VMACU,
+    RSP_VEC_VMADH,
+    RSP_VEC_VMADL,
+    RSP_VEC_VMADM,
+    RSP_VEC_VMADN,
+    RSP_VEC_VMOV,
+    RSP_VEC_VMRG,
+    RSP_VEC_VMUDH,
+    RSP_VEC_VMUDL,
+    RSP_VEC_VMUDM,
+    RSP_VEC_VMUDN,
+    RSP_VEC_VMULF,
+    RSP_VEC_VMULQ,
+    RSP_VEC_VMULU,
+    RSP_VEC_VNAND,
+    RSP_VEC_VNE,
+    RSP_VEC_VNOP,
+    RSP_VEC_VNOR,
+    RSP_VEC_VNXOR,
+    RSP_VEC_VOR,
+    RSP_VEC_VRCP,
+    RSP_VEC_VRCPH,
+    RSP_VEC_VRCPL,
+    RSP_VEC_VRNDN,
+    RSP_VEC_VRNDP,
+    RSP_VEC_VRSQ,
+    RSP_VEC_VRSQH,
+    RSP_VEC_VRSQL,
+    RSP_VEC_VSAR,
+    RSP_VEC_VSUB,
+    RSP_VEC_VSUBC,
+    RSP_VEC_VXOR,
 } mips_instruction_type_t;
 
 void r4300i_step(r4300i_t* cpu);
