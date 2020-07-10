@@ -64,10 +64,27 @@ RSP_INSTR(rsp_spc_add) {
     set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction) {
+    system->rsp.status.halt = true;
+    system->rsp.status.broke = true;
+
+    if (system->rsp.status.intr_on_break) {
+        interrupt_raise(system, INTERRUPT_SP);
+    }
+}
+
 RSP_INSTR(rsp_andi) {
         word immediate = instruction.i.immediate;
         word result = immediate & get_rsp_register(rsp, instruction.i.rs);
         set_rsp_register(rsp, instruction.i.rt, result);
+}
+
+RSP_INSTR(rsp_sb) {
+    shalf offset = instruction.i.immediate;
+    word address = get_rsp_register(rsp, instruction.i.rs) + offset;
+
+    byte value = get_rsp_register(rsp, instruction.i.rt);
+    rsp->write_byte(address, value);
 }
 
 RSP_INSTR(rsp_sh) {

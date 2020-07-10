@@ -93,7 +93,15 @@ RSP_VECTOR_INSTR(rsp_swc2_spv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sqv) {
-    logfatal("Unimplemented: rsp_swc2_sqv")
+    unimplemented(instruction.v.element != 0, "SQV with element != 0!")
+
+    sbyte offset     = instruction.v.offset << 1;
+    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    word end_address = ((address & ~15) + 15);
+
+    for (int i = 0; address + i <= end_address; i++) {
+        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[i]);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_srv) {
@@ -113,7 +121,7 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 }
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
-    logfatal("Unimplemented: rsp_cfc2")
+    //logfatal("Unimplemented: rsp_cfc2")
 }
 
 RSP_VECTOR_INSTR(rsp_ctc2) {
@@ -222,7 +230,13 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulf) {
-    logfatal("Unimplemented: rsp_vec_vmulf")
+    for (int e = 0; e < 8; e++) {
+        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        sdword result = multiplicand1 * multiplicand2;
+        rsp->accumulator[e].raw = result;
+        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = rsp->accumulator[e].raw;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulq) {
@@ -230,7 +244,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulq) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
-    logfatal("Unimplemented: rsp_vec_vmulu")
+    //logfatal("Unimplemented: rsp_vec_vmulu")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
@@ -290,7 +304,26 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
-    logfatal("Unimplemented: rsp_vec_vsar")
+    switch (instruction.cp2_vec.e) {
+        case 0:
+            for (int i = 0; i < 8; i++) {
+                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i].high;
+                rsp->accumulator[i].high = rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
+            }
+            break;
+        case 1:
+            for (int i = 0; i < 8; i++) {
+                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i].middle;
+                rsp->accumulator[i].middle = rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
+            }
+            break;
+        case 2:
+            for (int i = 0; i < 8; i++) {
+                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i].low;
+                rsp->accumulator[i].low = rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
+            }
+            break;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsub) {

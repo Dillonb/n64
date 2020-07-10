@@ -161,6 +161,8 @@
 #define FUNCT_DSLL32 0b111100
 #define FUNCT_DSRA32 0b111111
 
+#define FUNCT_BREAK 0b001101
+
 
 // REGIMM
 #define RT_BLTZ   0b00000
@@ -543,6 +545,8 @@ typedef enum mips_instruction_type {
     MIPS_SPC_DSLL,
     MIPS_SPC_DSLL32,
     MIPS_SPC_DSRA32,
+
+    MIPS_SPC_BREAK,
 
     // REGIMM
     MIPS_RI_BLTZ,

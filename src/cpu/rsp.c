@@ -132,6 +132,8 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_XOR:    return MIPS_SPC_XOR;
         //case FUNCT_SLT:    return MIPS_SPC_SLT;
         //case FUNCT_SLTU:   return MIPS_SPC_SLTU;
+
+        case FUNCT_BREAK: return MIPS_SPC_BREAK;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -203,7 +205,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_BNE:   return MIPS_BNE;
             //case OPC_BNEL:  return MIPS_BNEL;
             //case OPC_CACHE: return MIPS_CACHE;
-            //case OPC_SB:    return MIPS_SB;
+            case OPC_SB:    return MIPS_SB;
             case OPC_SH:    return MIPS_SH;
             case OPC_SW:    return MIPS_SW;
             case OPC_ORI:   return MIPS_ORI;
@@ -218,11 +220,11 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_SWL:   return MIPS_SWL;
             //case OPC_SWR:   return MIPS_SWR;
 
-            case OPC_CP0:    return rsp_cp0_decode(rsp, pc, instr);
-            case OPC_CP1:    logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
-            case OPC_CP2:    return rsp_cp2_decode(rsp, pc, instr);
-            case OPC_SPCL:   return rsp_special_decode(rsp, pc, instr);
-            case OPC_REGIMM: logfatal("Decoding RSP REGIMM instruction!")  //return rsp_regimm_decode(rsp, pc, instr);
+            case OPC_CP0:      return rsp_cp0_decode(rsp, pc, instr);
+            case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
+            case OPC_CP2:      return rsp_cp2_decode(rsp, pc, instr);
+            case OPC_SPCL:     return rsp_special_decode(rsp, pc, instr);
+            case OPC_REGIMM:   logfatal("Decoding RSP REGIMM instruction!")  //return rsp_regimm_decode(rsp, pc, instr);
             case RSP_OPC_LWC2: return rsp_lwc2_decode(rsp, pc, instr);
             case RSP_OPC_SWC2: return rsp_swc2_decode(rsp, pc, instr);
 
@@ -250,6 +252,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_ADDI,    rsp_addi)
         exec_instr(MIPS_SPC_ADD, rsp_spc_add)
         exec_instr(MIPS_ANDI,    rsp_andi)
+        exec_instr(MIPS_SB,      rsp_sb)
         exec_instr(MIPS_SH,      rsp_sh)
         exec_instr(MIPS_SW,      rsp_sw)
         exec_instr(MIPS_LHU,     rsp_lhu)
@@ -262,6 +265,8 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_SPC_JR,  rsp_spc_jr)
         exec_instr(MIPS_SPC_SLL, rsp_spc_sll)
         exec_instr(MIPS_SPC_SRL, rsp_spc_srl)
+
+        case MIPS_SPC_BREAK: rsp_spc_break(system, instruction);
 
         exec_instr(MIPS_BNE,  rsp_bne)
         exec_instr(MIPS_BEQ,  rsp_beq)

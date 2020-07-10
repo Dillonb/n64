@@ -15,6 +15,7 @@ typedef enum n64_interrupt {
     INTERRUPT_PI,
     INTERRUPT_DP,
     INTERRUPT_AI,
+    INTERRUPT_SP
 } n64_interrupt_t;
 
 typedef union mi_intr_mask {
