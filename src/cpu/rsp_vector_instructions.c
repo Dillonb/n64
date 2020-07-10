@@ -121,7 +121,7 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 }
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
-    //logfatal("Unimplemented: rsp_cfc2")
+    logfatal("Unimplemented: rsp_cfc2")
 }
 
 RSP_VECTOR_INSTR(rsp_ctc2) {
@@ -244,7 +244,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulq) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
-    //logfatal("Unimplemented: rsp_vec_vmulu")
+    logfatal("Unimplemented: rsp_vec_vmulu")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
