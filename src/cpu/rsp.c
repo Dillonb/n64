@@ -3,6 +3,7 @@
 #include "rsp_instructions.h"
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
+#include "../mem/mem_util.h"
 
 #define exec_instr(key, fn) case key: fn(rsp, instruction); break;
 
@@ -238,7 +239,8 @@ void rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
     dword pc = rsp->pc & 0xFFFFFF;
     mips_instruction_t instruction;
-    instruction.raw = rsp->read_word(pc);
+    // RSP can only read from IMEM.
+    instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, pc & 0xFFF);
 
     rsp->pc += 4;
 
