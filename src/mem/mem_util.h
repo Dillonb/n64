@@ -19,6 +19,11 @@ INLINE half half_from_byte_array(byte* arr, word index) {
     return be16toh(warr[index / sizeof(half)]);
 }
 
+INLINE half half_from_byte_array_unaligned(byte* arr, word index) {
+    half* harr = (half*)(arr + index);
+    return be16toh(harr[0]);
+}
+
 INLINE void dword_to_byte_array(byte* arr, word index, dword value) {
     dword* dwarr = (dword*)arr;
     dwarr[index / sizeof(dword)] = htobe64(value);

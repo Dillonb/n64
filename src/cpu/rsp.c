@@ -112,7 +112,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
     switch (instr.r.funct) {
         case FUNCT_SLL:    return MIPS_SPC_SLL;
         case FUNCT_SRL:    return MIPS_SPC_SRL;
-        //case FUNCT_SRA:    return MIPS_SPC_SRA;
+        case FUNCT_SRA:    return MIPS_SPC_SRA;
         //case FUNCT_SRAV:   return MIPS_SPC_SRAV;
         //case FUNCT_SLLV:   return MIPS_SPC_SLLV;
         //case FUNCT_SRLV:   return MIPS_SPC_SRLV;
@@ -193,7 +193,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_ADDIU: return MIPS_ADDIU;
             case OPC_ADDI:  return MIPS_ADDI;
             case OPC_ANDI:  return MIPS_ANDI;
-            //case OPC_LBU:   return MIPS_LBU;
+            case OPC_LBU:   return MIPS_LBU;
             case OPC_LHU:   return MIPS_LHU;
             case OPC_LH:    return MIPS_LH;
             case OPC_LW:    return MIPS_LW;
@@ -252,6 +252,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_ADDI,    rsp_addi)
         exec_instr(MIPS_SPC_ADD, rsp_spc_add)
         exec_instr(MIPS_ANDI,    rsp_andi)
+        exec_instr(MIPS_LBU,     rsp_lbu)
         exec_instr(MIPS_SB,      rsp_sb)
         exec_instr(MIPS_SH,      rsp_sh)
         exec_instr(MIPS_SW,      rsp_sw)
@@ -265,6 +266,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_SPC_JR,  rsp_spc_jr)
         exec_instr(MIPS_SPC_SLL, rsp_spc_sll)
         exec_instr(MIPS_SPC_SRL, rsp_spc_srl)
+        exec_instr(MIPS_SPC_SRA, rsp_spc_sra)
         exec_instr(MIPS_SPC_SUB, rsp_spc_sub)
 
         case MIPS_SPC_BREAK: rsp_spc_break(system, instruction);

@@ -8,6 +8,7 @@
 #include "../mem/addresses.h"
 #include "../system/n64system.h"
 #include "rsp_interface.h"
+#include "../rdp/rdp.h"
 
 #define RSP_CP0_DMA_CACHE        0
 #define RSP_CP0_DMA_DRAM         1
@@ -199,13 +200,21 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             break;
         }
         case RSP_CP0_CMD_START:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r)
+            system->dpc.start = value & 0xFFFFFF;
+            system->dpc.current = system->dpc.start;
+            printf("DPC_START = 0x%08X\n", system->dpc.start);
+            break;
         case RSP_CP0_CMD_END:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_END", r)
+            printf("DPC_END = 0x%08X\n", system->dpc.start);
+            system->dpc.end = value & 0xFFFFFF;
+            rdp_run_command();
+            interrupt_raise(system, INTERRUPT_DP);
+            break;
         case RSP_CP0_CMD_CURRENT:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r)
         case RSP_CP0_CMD_STATUS:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_STATUS", r)
+            rdp_status_reg_write(system, value);
+            break;
         case RSP_CP0_CMD_CLOCK:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r)
         case RSP_CP0_CMD_BUSY:

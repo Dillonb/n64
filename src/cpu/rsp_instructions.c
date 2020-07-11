@@ -55,6 +55,12 @@ RSP_INSTR(rsp_spc_srl) {
         set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+RSP_INSTR(rsp_spc_sra) {
+    sword value = get_rsp_register(rsp, instruction.r.rt);
+    sword result = value >> instruction.r.sa;
+    set_rsp_register(rsp, instruction.r.rd, result);
+}
+
 RSP_INSTR(rsp_spc_sub) {
     sword operand1 = get_rsp_register(rsp, instruction.r.rs);
     sword operand2 = get_rsp_register(rsp, instruction.r.rt);
@@ -81,6 +87,14 @@ void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction) {
     }
 }
 
+RSP_INSTR(rsp_lbu) {
+    shalf offset = instruction.i.immediate;
+    word address = get_rsp_register(rsp, instruction.i.rs) + offset;
+
+    byte value = rsp->read_byte(address);
+    set_rsp_register(rsp, instruction.i.rt, value);
+}
+
 RSP_INSTR(rsp_andi) {
         word immediate = instruction.i.immediate;
         word result = immediate & get_rsp_register(rsp, instruction.i.rs);
@@ -98,9 +112,6 @@ RSP_INSTR(rsp_sb) {
 RSP_INSTR(rsp_sh) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
-    if ((address & 0b1) > 0) {
-        logfatal("TODO: is the RSP allowed to write to unaligned addresses?")
-    }
 
     half value = get_rsp_register(rsp, instruction.i.rt);
     rsp->write_half(address, value);
@@ -109,9 +120,6 @@ RSP_INSTR(rsp_sh) {
 RSP_INSTR(rsp_sw) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
-    if ((address & 0b11) > 0) {
-        logfatal("TODO: is the RSP allowed to write to unaligned addresses?")
-    }
 
     word value = get_rsp_register(rsp, instruction.i.rt);
     rsp->write_word(address, value);
@@ -120,9 +128,6 @@ RSP_INSTR(rsp_sw) {
 RSP_INSTR(rsp_lhu) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
-    if ((address & 0b1) > 0) {
-        logfatal("TODO: RSP is allowed to read from unaligned addresses, but what comes back?")
-    }
 
     half value = rsp->read_half(address);
     set_rsp_register(rsp, instruction.i.rt, value);
@@ -131,9 +136,6 @@ RSP_INSTR(rsp_lhu) {
 RSP_INSTR(rsp_lh) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
-    if ((address & 0b1) > 0) {
-        logfatal("TODO: RSP is allowed to read from unaligned addresses, but what comes back?")
-    }
 
     shalf value = rsp->read_half(address);
     set_rsp_register(rsp, instruction.i.rt, (sword)value);
@@ -142,9 +144,6 @@ RSP_INSTR(rsp_lh) {
 RSP_INSTR(rsp_lw) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
-    if ((address & 0b11) > 0) {
-        logfatal("TODO: RSP is allowed to read from unaligned addresses, but what comes back?")
-    }
 
     sword value = rsp->read_word(address);
     set_rsp_register(rsp, instruction.i.rt, value);

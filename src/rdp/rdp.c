@@ -194,3 +194,38 @@ void rdp_run_command() {
 void rdp_update_screen() {
     graphics_plugin.UpdateScreen();
 }
+
+void rdp_status_reg_write(n64_system_t* system, word value) {
+    union {
+        word raw;
+        struct {
+            bool clear_xbus_dmem_dma:1;
+            bool set_xbus_dmem_dma:1;
+            bool clear_freeze:1;
+            bool set_freeze:1;
+            bool clear_flush:1;
+            bool set_flush:1;
+            bool clear_tmem_ctr:1;
+            bool clear_pipe_ctr:1;
+            bool clear_cmd_ctr:1;
+            bool clear_clock_ctr:1;
+            unsigned:22;
+        };
+    } status_write;
+
+    status_write.raw = value;
+
+    if (status_write.clear_xbus_dmem_dma) system->dpc.status.xbus_dmem_dma = false;
+    if (status_write.set_xbus_dmem_dma) system->dpc.status.xbus_dmem_dma = true;
+
+    if (status_write.clear_freeze) system->dpc.status.freeze = false;
+    if (status_write.set_freeze) system->dpc.status.freeze = true;
+
+    if (status_write.clear_flush) system->dpc.status.flush = false;
+    if (status_write.set_flush) system->dpc.status.flush = true;
+
+    if (status_write.clear_tmem_ctr) logfatal("Clear tmem ctr (should I let angrylion handle this?)")
+    if (status_write.clear_pipe_ctr) logfatal("Clear pipe ctr (should I let angrylion handle this?)")
+    if (status_write.clear_cmd_ctr) logfatal("Clear cmd ctr (should I let angrylion handle this?)")
+    if (status_write.clear_clock_ctr) logfatal("Clear clock ctr (should I let angrylion handle this?)")
+}

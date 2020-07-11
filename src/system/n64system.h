@@ -133,6 +133,20 @@ typedef struct n64_system {
         word current;
         union {
             word raw;
+            struct {
+                bool xbus_dmem_dma;
+                bool freeze;
+                bool flush;
+                bool start_gclk;
+                bool tmem_busy;
+                bool pipe_busy;
+                bool cmd_busy;
+                bool cbuf_ready;
+                bool dma_busy;
+                bool end_valid;
+                bool start_valid;
+                unsigned:21;
+            };
         } status;
         word clock;
         word bufbusy;
