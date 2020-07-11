@@ -22,6 +22,7 @@ RSP_INSTR(rsp_jal);
 RSP_INSTR(rsp_spc_jr);
 RSP_INSTR(rsp_spc_sll);
 RSP_INSTR(rsp_spc_srl);
+RSP_INSTR(rsp_spc_sub);
 
 void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction);
 

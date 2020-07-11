@@ -55,6 +55,14 @@ RSP_INSTR(rsp_spc_srl) {
         set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+RSP_INSTR(rsp_spc_sub) {
+    sword operand1 = get_rsp_register(rsp, instruction.r.rs);
+    sword operand2 = get_rsp_register(rsp, instruction.r.rt);
+
+    sword result = operand1 - operand2;
+    set_rsp_register(rsp, instruction.r.rd, result);
+}
+
 RSP_INSTR(rsp_spc_add) {
     word addend1 = get_rsp_register(rsp, instruction.r.rs);
     word addend2 = get_rsp_register(rsp, instruction.r.rt);

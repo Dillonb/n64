@@ -126,7 +126,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_ADDU:   return MIPS_SPC_ADDU;
         //case FUNCT_AND:    return MIPS_SPC_AND;
         //case FUNCT_NOR:    return MIPS_SPC_NOR;
-        //case FUNCT_SUB:    return MIPS_SPC_SUB;
+        case FUNCT_SUB:    return MIPS_SPC_SUB;
         //case FUNCT_SUBU:   return MIPS_SPC_SUBU;
         //case FUNCT_OR:     return MIPS_SPC_OR;
         //case FUNCT_XOR:    return MIPS_SPC_XOR;
@@ -265,6 +265,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_SPC_JR,  rsp_spc_jr)
         exec_instr(MIPS_SPC_SLL, rsp_spc_sll)
         exec_instr(MIPS_SPC_SRL, rsp_spc_srl)
+        exec_instr(MIPS_SPC_SUB, rsp_spc_sub)
 
         case MIPS_SPC_BREAK: rsp_spc_break(system, instruction);
 
