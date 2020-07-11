@@ -100,6 +100,21 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
     }
 }
 
+INLINE void rsp_dma_write(rsp_t* rsp) {
+    word length = (rsp->io.dma_read.length | 7) + 1;
+    for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
+        word mem_addr = rsp->io.mem_addr.address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+        for (int j = 0; j < length; j++) {
+            byte val = rsp->read_physical_byte(mem_addr + j);
+            logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, rsp->io.dram_addr.address + j, mem_addr + j)
+            rsp->write_physical_byte(rsp->io.dram_addr.address + j, val);
+        }
+
+        rsp->io.dram_addr.address += length + rsp->io.dma_read.skip;
+        rsp->io.mem_addr.address += length;
+    }
+}
+
 INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
     logtrace("Setting RSP r%d to [0x%08X]", r, value)
     if (r != 0) {
@@ -166,7 +181,9 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             rsp_dma_read(&system->rsp);
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r)
+            system->rsp.io.dma_write.raw = value;
+            rsp_dma_write(&system->rsp);
+            break;
         case RSP_CP0_SP_STATUS:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_SP_STATUS", r)
         case RSP_CP0_DMA_FULL:

@@ -84,8 +84,11 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             rsp_dma_read(&system->rsp);
             break;
         }
-        case ADDR_SP_WR_LEN_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_WR_LEN_REG")
+        case ADDR_SP_WR_LEN_REG: {
+            system->rsp.io.dma_write.raw = value;
+            rsp_dma_write(&system->rsp);
+            break;
+        }
         case ADDR_SP_STATUS_REG:
             status_reg_write(system, value);
             break;

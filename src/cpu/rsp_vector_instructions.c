@@ -112,7 +112,12 @@ RSP_VECTOR_INSTR(rsp_swc2_srv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_ssv) {
-    logfatal("Unimplemented: rsp_swc2_ssv")
+    sbyte offset = instruction.v.offset << 1;
+    word address = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+
+    int element = instruction.v.element;
+    unimplemented(element % 2 != 0, "SSV: element is not even") // TODO: If discovered it's allowed to be uneven, at least make sure it's not 15.
+    rsp->write_half(address, rsp->vu_regs[instruction.v.vt].elements[7 - (element / 2)]);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {

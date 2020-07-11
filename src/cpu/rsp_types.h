@@ -89,6 +89,14 @@ typedef struct rsp {
             };
             word raw;
         } dma_read;
+        union {
+            struct {
+                unsigned length: 12;
+                unsigned count: 8;
+                unsigned skip: 12;
+            };
+            word raw;
+        } dma_write;
     } io;
 
     vu_reg_t vu_regs[32];
