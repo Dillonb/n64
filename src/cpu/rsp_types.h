@@ -17,11 +17,10 @@ typedef union vu_reg {
 static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
 
 typedef union vu_accumulator {
-    // "backwards" because this reg is big-endian.
     struct {
-        half high:16;
-        half middle:16;
         half low:16;
+        half middle:16;
+        half high:16;
     } __attribute((packed));
     struct {
         sdword raw:48;
