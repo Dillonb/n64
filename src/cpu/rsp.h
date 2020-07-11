@@ -208,7 +208,7 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             printf("DPC_END = 0x%08X\n", system->dpc.start);
             system->dpc.end = value & 0xFFFFFF;
             rdp_run_command();
-            interrupt_raise(system, INTERRUPT_DP);
+            on_interrupt_change(system); // RDP plugin may or may not raise an interrupt
             break;
         case RSP_CP0_CMD_CURRENT:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r)
