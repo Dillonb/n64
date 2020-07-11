@@ -7,6 +7,7 @@
 #include "rsp_types.h"
 #include "../mem/addresses.h"
 #include "../system/n64system.h"
+#include "rsp_interface.h"
 
 #define RSP_CP0_DMA_CACHE        0
 #define RSP_CP0_DMA_DRAM         1
@@ -154,11 +155,9 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
         case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore(system);
         case RSP_CP0_CMD_START:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r)
-        case RSP_CP0_CMD_END:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_END", r)
-        case RSP_CP0_CMD_CURRENT:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r)
-        case RSP_CP0_CMD_STATUS: return system->dpc.status.raw;
+        case RSP_CP0_CMD_END:     return system->dpc.end;
+        case RSP_CP0_CMD_CURRENT: return system->dpc.current;
+        case RSP_CP0_CMD_STATUS:  return system->dpc.status.raw;
         case RSP_CP0_CMD_CLOCK:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r)
         case RSP_CP0_CMD_BUSY:
@@ -185,7 +184,8 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             rsp_dma_write(&system->rsp);
             break;
         case RSP_CP0_SP_STATUS:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_SP_STATUS", r)
+            rsp_status_reg_write(system, value);
+            break;
         case RSP_CP0_DMA_FULL:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r)
         case RSP_CP0_DMA_BUSY:

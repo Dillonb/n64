@@ -15,4 +15,5 @@
 
 word read_word_spreg(n64_system_t* system, word address);
 void write_word_spreg(n64_system_t* system, word address, word value);
+void rsp_status_reg_write(n64_system_t* system, word value);
 #endif //N64_RSP_INTERFACE_H

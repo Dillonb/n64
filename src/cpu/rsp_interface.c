@@ -35,17 +35,17 @@ typedef union sp_status_write {
 
 #define CLEAR_SET(VAL, CLEAR, SET) if (CLEAR) {VAL = false; } if (SET) { VAL = true; }
 
-INLINE void status_reg_write(n64_system_t* system, word value) {
+void rsp_status_reg_write(n64_system_t* system, word value) {
     sp_status_write_t write;
     write.raw = value;
 
     CLEAR_SET(system->rsp.status.halt,          write.clear_halt,          write.set_halt)
     CLEAR_SET(system->rsp.status.broke,         write.clear_broke,         false)
     if (write.clear_intr) {
-        logwarn("TODO: Clearing RSP intr?")
+        interrupt_lower(system, INTERRUPT_SP);
     }
     if (write.set_intr) {
-        logwarn("TODO: Setting RSP intr?")
+        interrupt_raise(system, INTERRUPT_SP);
     }
     CLEAR_SET(system->rsp.status.single_step,   write.clear_sstep,         write.set_sstep)
     CLEAR_SET(system->rsp.status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break)
@@ -90,7 +90,7 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             break;
         }
         case ADDR_SP_STATUS_REG:
-            status_reg_write(system, value);
+            rsp_status_reg_write(system, value);
             break;
         case ADDR_SP_DMA_FULL_REG:
             logfatal("Write to unsupported SP reg: ADDR_SP_DMA_FULL_REG")

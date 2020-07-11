@@ -237,6 +237,10 @@ void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
             printf("Raising DP interrupt\n");
             system->mi.intr.dp = true;
             break;
+        case INTERRUPT_SP:
+            printf("Raising SP interrupt\n");
+            system->mi.intr.sp = true;
+            break;
         default:
             logfatal("Raising unimplemented interrupt: %d", interrupt)
     }
@@ -265,6 +269,10 @@ void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
         case INTERRUPT_AI:
             system->mi.intr.ai = false;
             logwarn("Lowering DP interrupt")
+            break;
+        case INTERRUPT_SP:
+            system->mi.intr.sp = false;
+            logwarn("Lowering SP interrupt")
             break;
         default:
             logfatal("Lowering unimplemented interrupt: %d", interrupt)
