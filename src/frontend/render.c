@@ -92,13 +92,10 @@ void video_init() {
     glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     if (renderer == NULL) {
         logfatal("SDL couldn't create a renderer! %s", SDL_GetError())
     }
-
-    SDL_RenderSetScale(renderer, SCREEN_SCALE, SCREEN_SCALE);
 }
 
 void render_init(n64_system_t* system) {
