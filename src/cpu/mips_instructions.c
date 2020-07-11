@@ -1,5 +1,7 @@
 #include "mips_instructions.h"
 
+#include <math.h>
+
 void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
         if (result < 0) {
@@ -466,6 +468,18 @@ MIPS_INSTR(mips_cp_cvt_w_d) {
     set_fpu_register_word(cpu, instruction.fr.fd, converted);
 }
 
+MIPS_INSTR(mips_cp_sqrt_s) {
+    float fs = get_fpu_register_float(cpu, instruction.fr.fs);
+    float root = sqrt(fs);
+    set_fpu_register_float(cpu, instruction.fr.fd, root);
+}
+
+MIPS_INSTR(mips_cp_sqrt_d) {
+    double fs = get_fpu_register_double(cpu, instruction.fr.fs);
+    double root = sqrt(fs);
+    set_fpu_register_double(cpu, instruction.fr.fd, root);
+}
+
 MIPS_INSTR(mips_cp_c_f_s) {
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
@@ -481,11 +495,9 @@ MIPS_INSTR(mips_cp_c_un_s) {
     logfatal("Unimplemented: mips_cp_c_un_s")
 }
 MIPS_INSTR(mips_cp_c_eq_s) {
-    /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_eq_s")
+    cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_s) {
     /*
@@ -590,11 +602,9 @@ MIPS_INSTR(mips_cp_c_un_d) {
     logfatal("Unimplemented: mips_cp_c_un_d")
 }
 MIPS_INSTR(mips_cp_c_eq_d) {
-    /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_eq_d")
+    cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_d) {
     /*

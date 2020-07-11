@@ -227,6 +227,16 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 default:
                     logfatal("Undefined!")
             }
+        case COP_FUNCT_SQRT:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_SQRT_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_SQRT_S;
+                default:
+                    logfatal("Undefined!")
+            }
+
         case COP_FUNCT_MOV:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -241,7 +251,14 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
         case COP_FUNCT_C_UN:
             logfatal("COP_FUNCT_C_UN unimplemented")
         case COP_FUNCT_C_EQ:
-            logfatal("COP_FUNCT_C_EQ unimplemented")
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_C_EQ_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_C_EQ_S;
+                default:
+                    logfatal("Undefined!")
+            }
         case COP_FUNCT_C_UEQ:
             logfatal("COP_FUNCT_C_UEQ unimplemented")
         case COP_FUNCT_C_OLT:
@@ -546,6 +563,8 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_CVT_W_S, mips_cp_cvt_w_s)
         exec_instr(MIPS_CP_CVT_W_D, mips_cp_cvt_w_d)
 
+        exec_instr(MIPS_CP_SQRT_S, mips_cp_sqrt_s)
+        exec_instr(MIPS_CP_SQRT_D, mips_cp_sqrt_d)
 
         exec_instr(MIPS_CP_C_F_S,    mips_cp_c_f_s)
         exec_instr(MIPS_CP_C_UN_S,   mips_cp_c_un_s)

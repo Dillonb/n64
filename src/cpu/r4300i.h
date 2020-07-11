@@ -93,6 +93,8 @@
 #define COP_FUNCT_TLBR_SUB   0b000001
 #define COP_FUNCT_TLBWI_MULT 0b000010
 #define COP_FUNCT_DIV        0b000011
+#define COP_FUNCT_SQRT       0b000100
+#define COP_FUNCT_MOV        0b000110
 #define COP_FUNCT_TLBP       0b001000
 #define COP_FUNCT_TRUNC_L    0b001001
 #define COP_FUNCT_TRUNC_W    0b001101
@@ -117,7 +119,6 @@
 #define COP_FUNCT_C_NGE      0b111101
 #define COP_FUNCT_C_LE       0b111110
 #define COP_FUNCT_C_NGT      0b111111
-#define COP_FUNCT_MOV        0b000110
 
 
 // Floating point
@@ -476,6 +477,8 @@ typedef enum mips_instruction_type {
     MIPS_CP_CVT_S_L,
     MIPS_CP_CVT_W_S,
     MIPS_CP_CVT_W_D,
+    MIPS_CP_SQRT_S,
+    MIPS_CP_SQRT_D,
     MIPS_CP_C_F_S,
     MIPS_CP_C_UN_S,
     MIPS_CP_C_EQ_S,

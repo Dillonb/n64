@@ -75,6 +75,9 @@ MIPS_INSTR(mips_cp_cvt_s_l);
 MIPS_INSTR(mips_cp_cvt_w_s);
 MIPS_INSTR(mips_cp_cvt_w_d);
 
+MIPS_INSTR(mips_cp_sqrt_s);
+MIPS_INSTR(mips_cp_sqrt_d);
+
 MIPS_INSTR(mips_cp_c_f_s);
 MIPS_INSTR(mips_cp_c_un_s);
 MIPS_INSTR(mips_cp_c_eq_s);

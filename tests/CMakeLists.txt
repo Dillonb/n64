@@ -1,5 +1,5 @@
 add_executable(test_cpu test_cpu.c unit.h)
-target_link_libraries(test_cpu common core)
+target_link_libraries(test_cpu r4300i common core)
 add_test(test_cpu test_cpu)
 
 configure_file(testcases/addi.testcase addi.testcase COPYONLY)
