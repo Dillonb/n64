@@ -65,7 +65,11 @@ RSP_VECTOR_INSTR(rsp_lwc2_luv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sbv) {
-    logfatal("Unimplemented: rsp_swc2_sbv")
+    sbyte offset = instruction.v.offset << 1;
+    word address = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+
+    int element = instruction.v.element;
+    rsp->write_byte(address, rsp->vu_regs[instruction.v.vt].bytes[7 - element]);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sdv) {
