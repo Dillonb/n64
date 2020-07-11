@@ -114,7 +114,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         case FUNCT_SRL:    return MIPS_SPC_SRL;
         case FUNCT_SRA:    return MIPS_SPC_SRA;
         //case FUNCT_SRAV:   return MIPS_SPC_SRAV;
-        //case FUNCT_SLLV:   return MIPS_SPC_SLLV;
+        case FUNCT_SLLV:   return MIPS_SPC_SLLV;
         //case FUNCT_SRLV:   return MIPS_SPC_SRLV;
         case FUNCT_JR:     return MIPS_SPC_JR;
         //case FUNCT_JALR:   return MIPS_SPC_JALR;
@@ -124,12 +124,12 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_DIVU:   return MIPS_SPC_DIVU;
         case FUNCT_ADD:    return MIPS_SPC_ADD;
         //case FUNCT_ADDU:   return MIPS_SPC_ADDU;
-        //case FUNCT_AND:    return MIPS_SPC_AND;
+        case FUNCT_AND:    return MIPS_SPC_AND;
         //case FUNCT_NOR:    return MIPS_SPC_NOR;
         case FUNCT_SUB:    return MIPS_SPC_SUB;
         //case FUNCT_SUBU:   return MIPS_SPC_SUBU;
-        //case FUNCT_OR:     return MIPS_SPC_OR;
-        //case FUNCT_XOR:    return MIPS_SPC_XOR;
+        case FUNCT_OR:     return MIPS_SPC_OR;
+        case FUNCT_XOR:    return MIPS_SPC_XOR;
         //case FUNCT_SLT:    return MIPS_SPC_SLT;
         //case FUNCT_SLTU:   return MIPS_SPC_SLTU;
 
@@ -139,6 +139,20 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
             disassemble(pc, instr.raw, buf, 50);
             logfatal("other/unknown MIPS RSP Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
                      instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+        }
+    }
+}
+
+mips_instruction_type_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instruction_t instr) {
+    switch (instr.i.rt) {
+        case RT_BLTZ:   return MIPS_RI_BLTZ;
+        case RT_BGEZ:   return MIPS_RI_BGEZ;
+        //case RT_BGEZAL: return MIPS_RI_BGEZAL;
+        default: {
+            char buf[50];
+            disassemble(pc, instr.raw, buf, 50);
+            logfatal("other/unknown RSP REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf)
         }
     }
 }
@@ -214,7 +228,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_SLTI:  return MIPS_SLTI;
             //case OPC_SLTIU: return MIPS_SLTIU;
             //case OPC_XORI:  return MIPS_XORI;
-            //case OPC_LB:    return MIPS_LB;
+            case OPC_LB:    return MIPS_LB;
             //case OPC_LWL:   return MIPS_LWL;
             //case OPC_LWR:   return MIPS_LWR;
             //case OPC_SWL:   return MIPS_SWL;
@@ -224,7 +238,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
             case OPC_CP2:      return rsp_cp2_decode(rsp, pc, instr);
             case OPC_SPCL:     return rsp_special_decode(rsp, pc, instr);
-            case OPC_REGIMM:   logfatal("Decoding RSP REGIMM instruction!")  //return rsp_regimm_decode(rsp, pc, instr);
+            case OPC_REGIMM:   return rsp_regimm_decode(rsp, pc, instr);
             case RSP_OPC_LWC2: return rsp_lwc2_decode(rsp, pc, instr);
             case RSP_OPC_SWC2: return rsp_swc2_decode(rsp, pc, instr);
 
@@ -251,7 +265,9 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_ORI,     rsp_ori)
         exec_instr(MIPS_ADDI,    rsp_addi)
         exec_instr(MIPS_SPC_ADD, rsp_spc_add)
+        exec_instr(MIPS_SPC_AND, rsp_spc_and)
         exec_instr(MIPS_ANDI,    rsp_andi)
+        exec_instr(MIPS_LB,      rsp_lb)
         exec_instr(MIPS_LBU,     rsp_lbu)
         exec_instr(MIPS_SB,      rsp_sb)
         exec_instr(MIPS_SH,      rsp_sh)
@@ -263,11 +279,14 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_J,      rsp_j)
         exec_instr(MIPS_JAL,    rsp_jal)
 
-        exec_instr(MIPS_SPC_JR,  rsp_spc_jr)
-        exec_instr(MIPS_SPC_SLL, rsp_spc_sll)
-        exec_instr(MIPS_SPC_SRL, rsp_spc_srl)
-        exec_instr(MIPS_SPC_SRA, rsp_spc_sra)
-        exec_instr(MIPS_SPC_SUB, rsp_spc_sub)
+        exec_instr(MIPS_SPC_JR,   rsp_spc_jr)
+        exec_instr(MIPS_SPC_SLL,  rsp_spc_sll)
+        exec_instr(MIPS_SPC_SRL,  rsp_spc_srl)
+        exec_instr(MIPS_SPC_SRA,  rsp_spc_sra)
+        exec_instr(MIPS_SPC_SLLV, rsp_spc_sllv)
+        exec_instr(MIPS_SPC_SUB,  rsp_spc_sub)
+        exec_instr(MIPS_SPC_OR,   rsp_spc_or)
+        exec_instr(MIPS_SPC_XOR,  rsp_spc_xor)
 
         case MIPS_SPC_BREAK: rsp_spc_break(system, instruction);
 
@@ -275,6 +294,10 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_BEQ,  rsp_beq)
         exec_instr(MIPS_BGTZ, rsp_bgtz)
         exec_instr(MIPS_BLEZ, rsp_blez)
+
+        exec_instr(MIPS_RI_BLTZ,   rsp_ri_bltz)
+        exec_instr(MIPS_RI_BGEZ,   rsp_ri_bgez)
+        exec_instr(MIPS_RI_BGEZAL, rsp_ri_bgezal)
 
         exec_instr(RSP_LWC2_LBV, rsp_lwc2_lbv)
         exec_instr(RSP_LWC2_LDV, rsp_lwc2_ldv)

@@ -10,7 +10,7 @@ void rsp_branch_abs(rsp_t* rsp, word address) {
     rsp->branch = true;
     rsp->branch_delay = 1;
 
-    printf("Setting up a branch_offset (delayed by 1 instruction) to 0x%08X\n", rsp->branch_pc);
+    logtrace("[RSP] Setting up a branch_offset (delayed by 1 instruction) to 0x%08X", rsp->branch_pc)
 }
 
 void rsp_branch_offset(rsp_t* rsp, shalf offset) {
@@ -61,12 +61,26 @@ RSP_INSTR(rsp_spc_sra) {
     set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+RSP_INSTR(rsp_spc_sllv) {
+        word value = get_rsp_register(rsp, instruction.r.rt);
+        sword result = value << (get_rsp_register(rsp, instruction.r.rs) & 0b11111);
+        set_rsp_register(rsp, instruction.r.rd, result);
+}
+
 RSP_INSTR(rsp_spc_sub) {
     sword operand1 = get_rsp_register(rsp, instruction.r.rs);
     sword operand2 = get_rsp_register(rsp, instruction.r.rt);
 
     sword result = operand1 - operand2;
     set_rsp_register(rsp, instruction.r.rd, result);
+}
+
+RSP_INSTR(rsp_spc_or) {
+    set_rsp_register(rsp, instruction.r.rd, get_rsp_register(rsp, instruction.r.rs) | get_rsp_register(rsp, instruction.r.rt));
+}
+
+RSP_INSTR(rsp_spc_xor) {
+    set_rsp_register(rsp, instruction.r.rd, get_rsp_register(rsp, instruction.r.rs) ^ get_rsp_register(rsp, instruction.r.rt));
 }
 
 RSP_INSTR(rsp_spc_add) {
@@ -78,6 +92,10 @@ RSP_INSTR(rsp_spc_add) {
     set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+RSP_INSTR(rsp_spc_and) {
+    set_rsp_register(rsp, instruction.r.rd, get_rsp_register(rsp, instruction.r.rs) & get_rsp_register(rsp, instruction.r.rt));
+}
+
 void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction) {
     system->rsp.status.halt = true;
     system->rsp.status.broke = true;
@@ -85,6 +103,14 @@ void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction) {
     if (system->rsp.status.intr_on_break) {
         interrupt_raise(system, INTERRUPT_SP);
     }
+}
+
+RSP_INSTR(rsp_lb) {
+    shalf offset = instruction.i.immediate;
+    word address = get_rsp_register(rsp, instruction.i.rs) + offset;
+
+    sbyte value = rsp->read_byte(address);
+    set_rsp_register(rsp, instruction.i.rt, (sword)value);
 }
 
 RSP_INSTR(rsp_lbu) {
@@ -172,7 +198,7 @@ RSP_INSTR(rsp_spc_jr) {
 
 void rsp_mfc0(n64_system_t* system, mips_instruction_t instruction) {
     sword value = get_rsp_cp0_register(system, instruction.r.rd);
-    set_rsp_register(&system->rsp, instruction.r.rt, (sdword)value);
+    set_rsp_register(&system->rsp, instruction.r.rt, value);
 }
 
 void rsp_mtc0(n64_system_t* system, mips_instruction_t instruction) {
@@ -196,4 +222,20 @@ RSP_INSTR(rsp_bgtz) {
 RSP_INSTR(rsp_blez) {
     sword reg = get_rsp_register(rsp, instruction.i.rs);
     rsp_conditional_branch(rsp, instruction.i.immediate, reg <= 0);
+}
+
+RSP_INSTR(rsp_ri_bltz) {
+        sword reg = get_rsp_register(rsp, instruction.i.rs);
+        rsp_conditional_branch(rsp, instruction.i.immediate, reg < 0);
+}
+
+RSP_INSTR(rsp_ri_bgez) {
+        sword reg = get_rsp_register(rsp, instruction.i.rs);
+        rsp_conditional_branch(rsp, instruction.i.immediate, reg >= 0);
+}
+
+RSP_INSTR(rsp_ri_bgezal) {
+        rsp_link(rsp);
+        sword reg = get_rsp_register(rsp, instruction.i.rs);
+        rsp_conditional_branch(rsp, instruction.i.immediate, reg >= 0);
 }
