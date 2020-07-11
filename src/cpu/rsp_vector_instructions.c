@@ -2,6 +2,9 @@
 #include "../common/log.h"
 #include "rsp.h"
 
+#define clamp_signed(x) ((x) < -32768 ? -32768 : ((x) > 32768 ? 32767 : x))
+#define clamp_unsigned(x) ((x) < 0 ? 0 : ((x) > 32767 ? 65535 : x))
+
 RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
     logfatal("Unimplemented: rsp_lwc2_lbv")
 }
@@ -121,7 +124,21 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 }
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
-    logfatal("Unimplemented: rsp_cfc2")
+    word value;
+    switch (instruction.r.rd) {
+        case 0: // VCO
+            value = rsp->vco.raw;
+            break;
+        case 1: // VCC
+            value = rsp->vcc.raw;
+            break;
+        case 2: // VCE
+            value = rsp->vce.raw;
+            break;
+        default: logfatal("CFC2 from unknown VU control register: %d", instruction.r.rd)
+    }
+
+    set_rsp_register(rsp, instruction.r.rt, value);
 }
 
 RSP_VECTOR_INSTR(rsp_ctc2) {
@@ -231,11 +248,16 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmulf) {
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
-        sdword result = multiplicand1 * multiplicand2;
-        rsp->accumulator[e].raw = result;
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = rsp->accumulator[e].raw;
+        shalf multiplicand1 = be16toh(rsp->vu_regs[instruction.cp2_vec.vt].elements[e]);
+        shalf multiplicand2 = be16toh(rsp->vu_regs[instruction.cp2_vec.vs].elements[e]);
+        sword prod = multiplicand1 * multiplicand2;
+
+        sdword acc = (prod * 2) + 0x8000;
+
+        shalf result = clamp_signed(acc >> 16);
+
+        rsp->accumulator[e].raw = htobe64(acc << 16); // Shift left by 16 because this is a 48 bit value, and the "missing" bits are on the other end in big-endian.
+        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = htobe16(result);
     }
 }
 
@@ -244,7 +266,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmulq) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
-    logfatal("Unimplemented: rsp_vec_vmulu")
+    for (int e = 0; e < 8; e++) {
+        shalf multiplicand1 = be16toh(rsp->vu_regs[instruction.cp2_vec.vt].elements[e]);
+        shalf multiplicand2 = be16toh(rsp->vu_regs[instruction.cp2_vec.vs].elements[e]);
+        sword prod = multiplicand1 * multiplicand2;
+
+        sdword acc = (prod * 2) + 0x8000;
+
+        half result = clamp_unsigned(acc >> 16);
+
+        rsp->accumulator[e].raw = htobe64(acc << 16); // Shift left by 16 because this is a 48 bit value, and the "missing" bits are on the other end in big-endian.
+        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = htobe16(result);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
@@ -304,7 +337,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
-    switch (instruction.cp2_vec.e) {
+    switch (instruction.cp2_vec.e & 0b11) {
         case 0:
             for (int i = 0; i < 8; i++) {
                 rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i].high;
