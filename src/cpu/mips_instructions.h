@@ -113,6 +113,8 @@ MIPS_INSTR(mips_cp_c_ngt_d);
 
 MIPS_INSTR(mips_cp_mov_s);
 MIPS_INSTR(mips_cp_mov_d);
+MIPS_INSTR(mips_cp_neg_s);
+MIPS_INSTR(mips_cp_neg_d);
 
 MIPS_INSTR(mips_ld);
 MIPS_INSTR(mips_lui);

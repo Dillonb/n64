@@ -704,6 +704,16 @@ MIPS_INSTR(mips_cp_mov_d) {
     set_fpu_register_double(cpu, instruction.fr.fd, value);
 }
 
+MIPS_INSTR(mips_cp_neg_s) {
+    float value = get_fpu_register_float(cpu, instruction.fr.fs);
+    set_fpu_register_float(cpu, instruction.fr.fd, -value);
+}
+
+MIPS_INSTR(mips_cp_neg_d) {
+    double value = get_fpu_register_double(cpu, instruction.fr.fs);
+    set_fpu_register_double(cpu, instruction.fr.fd, -value);
+}
+
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;

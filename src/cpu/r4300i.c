@@ -246,6 +246,15 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 default:
                     logfatal("Undefined!")
             }
+        case COP_FUNCT_NEG:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return MIPS_CP_NEG_D;
+                case FP_FMT_SINGLE:
+                    return MIPS_CP_NEG_S;
+                default:
+                    logfatal("Undefined!")
+            }
         case COP_FUNCT_C_F:
             logfatal("COP_FUNCT_C_F unimplemented")
         case COP_FUNCT_C_UN:
@@ -600,6 +609,8 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_CP_C_NGT_D,  mips_cp_c_ngt_d)
         exec_instr(MIPS_CP_MOV_S,    mips_cp_mov_s)
         exec_instr(MIPS_CP_MOV_D,    mips_cp_mov_d)
+        exec_instr(MIPS_CP_NEG_S,    mips_cp_neg_s)
+        exec_instr(MIPS_CP_NEG_D,    mips_cp_neg_d)
 
         // Special
         exec_instr(MIPS_SPC_SLL,    mips_spc_sll)

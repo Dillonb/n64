@@ -103,6 +103,7 @@
 #define COP_FUNCT_CVT_D      0b100001
 #define COP_FUNCT_CVT_W      0b100100
 #define COP_FUNCT_CVT_L      0b100101
+#define COP_FUNCT_NEG        0b000111
 #define COP_FUNCT_C_F        0b110000
 #define COP_FUNCT_C_UN       0b110001
 #define COP_FUNCT_C_EQ       0b110010
@@ -513,6 +514,8 @@ typedef enum mips_instruction_type {
     MIPS_CP_C_NGT_D,
     MIPS_CP_MOV_D,
     MIPS_CP_MOV_S,
+    MIPS_CP_NEG_D,
+    MIPS_CP_NEG_S,
 
     // Special
     MIPS_SPC_SLL,
