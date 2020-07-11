@@ -195,7 +195,19 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacf) {
-    logfatal("Unimplemented: rsp_vec_vmacf")
+    for (int e = 0; e < 8; e++) {
+        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        sword prod = multiplicand1 * multiplicand2;
+
+        sdword acc_delta = prod * 2;
+        sdword acc = rsp->accumulator[e].raw + acc_delta;
+
+        shalf result = clamp_signed(acc >> 16);
+
+        rsp->accumulator[e].raw = acc;
+        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacq) {
@@ -203,7 +215,19 @@ RSP_VECTOR_INSTR(rsp_vec_vmacq) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacu) {
-    logfatal("Unimplemented: rsp_vec_vmacu")
+    for (int e = 0; e < 8; e++) {
+        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        sword prod = multiplicand1 * multiplicand2;
+
+        sdword acc_delta = prod * 2;
+        sdword acc = rsp->accumulator[e].raw + acc_delta;
+
+        half result = clamp_unsigned(acc >> 16);
+
+        rsp->accumulator[e].raw = acc;
+        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadh) {
