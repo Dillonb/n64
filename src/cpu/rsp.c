@@ -203,7 +203,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             return MIPS_NOP;
         }
         switch (instr.op) {
-            //case OPC_LUI:   return MIPS_LUI;
+            case OPC_LUI:   return MIPS_LUI;
             //case OPC_ADDIU: return MIPS_ADDIU;
             case OPC_ADDI:  return MIPS_ADDI;
             case OPC_ANDI:  return MIPS_ANDI;
@@ -263,6 +263,7 @@ void rsp_step(n64_system_t* system) {
     switch (rsp_instruction_decode(rsp, pc, instruction)) {
         case MIPS_NOP: break;
         exec_instr(MIPS_ORI,     rsp_ori)
+        exec_instr(MIPS_LUI,     rsp_lui)
         exec_instr(MIPS_ADDI,    rsp_addi)
         exec_instr(MIPS_SPC_ADD, rsp_spc_add)
         exec_instr(MIPS_SPC_AND, rsp_spc_and)
