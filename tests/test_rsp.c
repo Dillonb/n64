@@ -10,16 +10,18 @@
 void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
     FILE* rsp = fopen(rsp_path, "rb");
     size_t read = fread(system->mem.sp_imem, 1, SP_IMEM_SIZE, rsp);
-    printf("Loaded from %s: %ld bytes.", rsp_path, read);
+    if (read == 0) {
+        logfatal("Read 0 bytes from %s", rsp_path)
+    }
 }
 
 void load_rsp_dmem(n64_system_t* system, word* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
-        system->rsp.write_word(i, input[i]);
+        system->rsp.write_word(i * 4, input[i]);
     }
 }
 
-void run_test(const char* test_name, const char* subtest_name, word* input, int input_size, word* output, int output_size) {
+bool run_test(const char* test_name, const char* subtest_name, word* input, int input_size, word* output, int output_size) {
     n64_system_t* system = init_n64system(NULL, false);
 
     char rsp_path[PATH_MAX];
@@ -29,15 +31,35 @@ void run_test(const char* test_name, const char* subtest_name, word* input, int 
     load_rsp_dmem(system, input, input_size / 4);
 
     system->rsp.status.halt = false;
+    system->rsp.pc = 0;
 
     int cycles = 0;
 
-    while (!system->rsp.status.halt && cycles < MAX_CYCLES) {
+    while (!system->rsp.status.halt) {
+        if (cycles >= MAX_CYCLES) {
+            logfatal("Test ran too long and was killed! Possible infinite loop?")
+        }
         cycles++;
         rsp_step(system);
     }
 
+    bool failed = false;
+    for (int i = 0; i < output_size / 4; i++) {
+        word expected = output[i];
+        word actual = system->rsp.read_word(0x800 + (i * 4));
+
+        if (actual != expected) {
+            printf("%s %s: Incorrect data at offset %d / %d! Expected: 0x%08X != actual: 0x%08X\n", test_name, subtest_name, i, output_size / 4, expected, actual);
+            failed = true;
+        } else {
+            printf("%s %s: offset %d / %d Expected: 0x%08X == actual: 0x%08X\n", test_name, subtest_name, i, output_size / 4, expected, actual);
+        }
+    }
+
+
     free(system);
+
+    return failed;
 }
 
 int main(int argc, char** argv) {
@@ -66,6 +88,9 @@ int main(int argc, char** argv) {
     snprintf(output_data_path, PATH_MAX, "%s.golden", test_name);
     FILE* output_data_handle = fopen(output_data_path, "rb");
 
+
+    bool failed = false;
+
     for (int i = 4; i < argc; i++) {
         const char* subtest_name = argv[i];
         byte input[input_size];
@@ -73,7 +98,18 @@ int main(int argc, char** argv) {
         byte output[output_size];
         fread(output, 1, output_size, output_data_handle);
 
-        run_test(test_name, subtest_name, (word*)input, input_size, (word*)output, output_size);
+        bool subtest_failed = run_test(test_name, subtest_name, (word*)input, input_size, (word*)output, output_size);
+        if (subtest_failed) {
+            printf("[%s %s] FAILED\n", test_name, subtest_name);
+        } else {
+            printf("[%s %s] PASSED\n", test_name, subtest_name);
+        }
+
+        failed |= subtest_failed;
+    }
+
+    if (failed) {
+        logdie("Tests failed!")
     }
 
     exit(0);
