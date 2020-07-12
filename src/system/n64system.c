@@ -45,18 +45,15 @@ word read_rsp_word_wrapper(word address) {
 }
 
 void write_rsp_word_wrapper(word address, word value) {
+    /*
     if ((address & 0b11) > 0) {
         logfatal("TODO: is the RSP allowed to write to unaligned addresses?")
     }
+    */
     n64_rsp_write_word(global_system, address, value);
 }
 
 half read_rsp_half_wrapper(word address) {
-    /*
-    if ((address & 0b1) > 0) {
-        logfatal("TODO: RSP is allowed to read from unaligned addresses, but what comes back?")
-    }
-    */
     return n64_rsp_read_half(global_system, address);
 }
 
