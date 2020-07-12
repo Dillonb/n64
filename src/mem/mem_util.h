@@ -36,7 +36,7 @@ INLINE void word_to_byte_array(byte* arr, word index, word value) {
 
 INLINE void word_to_byte_array_unaligned(byte* arr, word index, word value) {
     word* warr = (word*)(arr + index);
-    warr[index / sizeof(word)] = htobe32(value);
+    warr[0] = htobe32(value);
 }
 
 INLINE void half_to_byte_array(byte* arr, word index, half value) {
