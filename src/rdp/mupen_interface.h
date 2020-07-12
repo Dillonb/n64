@@ -6,6 +6,8 @@
 #include "contrib/m64p_common.h"
 #include "../system/n64system.h"
 
+extern n64_system_t* mupen_interface_global_system;
+
 void init_mupen_interface(n64_system_t* system);
 
 typedef struct mupen_graphics_plugin {

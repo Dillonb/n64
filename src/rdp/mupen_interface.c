@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <SDL_video.h>
 
-static n64_system_t* mupen_interface_global_system;
+n64_system_t* mupen_interface_global_system;
 
 #define PARAM(name, value) if (strcmp(param, name) == 0) { return value; }
 

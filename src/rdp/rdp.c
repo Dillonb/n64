@@ -30,7 +30,7 @@ void stub_rendering_callback(int redrawn) {}
     } while(false)
 
 void rdp_check_interrupts() {
-    logwarn("GFX plugin called CheckInterrupts!()")
+    on_interrupt_change(mupen_interface_global_system);
 }
 
 void load_rdp_plugin(n64_system_t* system, const char* filename) {
@@ -141,7 +141,6 @@ void write_word_dpcreg(n64_system_t* system, word address, word value) {
             printf("DPC_END = 0x%08X\n", system->dpc.start);
             system->dpc.end = value & 0xFFFFFF;
             rdp_run_command();
-            on_interrupt_change(system); // RDP plugin may or may not raise an interrupt
             break;
         case ADDR_DPC_CURRENT_REG:
             logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG")
