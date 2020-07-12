@@ -123,9 +123,10 @@ void virtual_write_byte_wrapper(word address, byte value) {
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
     memset(system, 0x00, sizeof(n64_system_t));
-    unimplemented(!enable_frontend, "Disabling the frontend is not yet supported")
     init_mem(&system->mem);
-    load_n64rom(&system->mem.rom, rom_path);
+    if (rom_path != NULL) {
+        load_n64rom(&system->mem.rom, rom_path);
+    }
 
     system->cpu.read_dword = &virtual_read_dword_wrapper;
     system->cpu.write_dword = &virtual_write_dword_wrapper;
@@ -171,7 +172,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->si.controllers[3].plugged_in = false;
 
     global_system = system;
-    render_init(system);
+    if (enable_frontend) {
+        render_init(system);
+    }
     return system;
 }
 

@@ -2,6 +2,11 @@ add_executable(test_cpu test_cpu.c unit.h)
 target_link_libraries(test_cpu r4300i common core)
 add_test(test_cpu test_cpu)
 
+add_executable(test_rsp test_rsp.c unit.h)
+target_link_libraries(test_rsp rsp r4300i core common)
+
+add_subdirectory(testcases/rsp)
+
 configure_file(testcases/cpu/addi.testcase addi.testcase COPYONLY)
 configure_file(testcases/cpu/bgezal.testcase bgezal.testcase COPYONLY)
 configure_file(testcases/cpu/bltz.testcase bltz.testcase COPYONLY)
