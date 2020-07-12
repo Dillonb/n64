@@ -37,14 +37,18 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
-    unimplemented(instruction.v.element != 0, "LQV with element != 0!")
-
+    int e = instruction.v.element;
     sbyte offset     = instruction.v.offset << 1;
     word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address; i++) {
-        rsp->vu_regs[instruction.v.vt].bytes[15 - i] = rsp->read_byte(address + i);
+        int cur_e = i + e;
+        if (cur_e > 15) {
+            break;
+        }
+        byte b = rsp->read_byte(address + i);
+        rsp->vu_regs[instruction.v.vt].bytes[15 - cur_e] = b;
     }
 }
 
@@ -100,14 +104,17 @@ RSP_VECTOR_INSTR(rsp_swc2_spv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sqv) {
-    unimplemented(instruction.v.element != 0, "SQV with element != 0!")
-
+    int e = instruction.v.element;
     sbyte offset     = instruction.v.offset << 1;
     word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address; i++) {
-        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - i]);
+        int cur_e = i + e;
+        if (cur_e > 15) {
+            break;
+        }
+        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - cur_e]);
     }
 }
 
