@@ -3,7 +3,7 @@
 #include "addresses.h"
 
 word n64_rsp_read_word(n64_system_t* system, word address) {
-    return word_from_byte_array((byte*) &system->mem.sp_dmem, (address & 0xFFF));
+    return word_from_byte_array_unaligned((byte*) &system->mem.sp_dmem, (address & 0xFFF));
 }
 
 void n64_rsp_write_word(n64_system_t* system, word address, word value) {
@@ -11,12 +11,10 @@ void n64_rsp_write_word(n64_system_t* system, word address, word value) {
 }
 
 half n64_rsp_read_half(n64_system_t* system, word address) {
-    address &= 0xFFF;
     return half_from_byte_array_unaligned((byte*) &system->mem.sp_dmem, address & 0xFFF);
 }
 
 void n64_rsp_write_half(n64_system_t* system, word address, half value) {
-    address &= 0xFFF;
     half_to_byte_array((byte*) &system->mem.sp_dmem, address & 0xFFF, value);
 }
 

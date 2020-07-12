@@ -38,9 +38,6 @@ void write_rsp_dword_wrapper(word address, dword value) {
  */
 
 word read_rsp_word_wrapper(word address) {
-    if ((address & 0b11) > 0) {
-        logfatal("TODO: RSP is allowed to read from unaligned addresses, but what comes back?")
-    }
     return n64_rsp_read_word(global_system, address);
 }
 
