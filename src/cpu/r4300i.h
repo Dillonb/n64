@@ -285,8 +285,18 @@ typedef struct tlb_entry {
     } entry_hi;
 
     union {
+        struct {
+            unsigned:13;
+            unsigned mask:12;
+            unsigned:7;
+        };
         word raw;
     } page_mask;
+
+    // "parsed"
+    bool global;
+    bool valid;
+    byte asid;
 
 } tlb_entry_t;
 

@@ -2,6 +2,7 @@
 #include "../common/log.h"
 #include "disassemble.h"
 #include "mips_instructions.h"
+#include "tlb_instructions.h"
 
 const char* register_names[] = {
         "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -83,8 +84,10 @@ mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instructi
             case COP_FUNCT_TLBWI_MULT:
                 return MIPS_TLBWI;
             case COP_FUNCT_TLBP:
+                printf("TLBP at pc: 0x%08X\n", pc);
                 return MIPS_TLBP;
             case COP_FUNCT_TLBR_SUB:
+                logfatal("tlbr")
                 return MIPS_TLBR;
             case COP_FUNCT_ERET:
                 return MIPS_ERET;

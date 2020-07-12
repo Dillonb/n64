@@ -4,6 +4,7 @@
 #include "../common/util.h"
 #include "../system/n64system.h"
 
+bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0);
 word vatopa(word address, cp0_t* cp0);
 
 void n64_write_dword(n64_system_t* system, word address, dword value);

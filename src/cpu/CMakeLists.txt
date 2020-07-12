@@ -4,6 +4,7 @@ add_library(disassemble
 add_library(r4300i
         r4300i.c r4300i.h
         mips_instructions.c mips_instructions.h
+        tlb_instructions.c tlb_instructions.h
         rsp_interface.c rsp_interface.h
         mips_instruction_decode.h)
 
