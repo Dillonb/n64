@@ -9,6 +9,7 @@
 
 void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
     FILE* rsp = fopen(rsp_path, "rb");
+    // This file is already in big endian
     size_t read = fread(system->mem.sp_imem, 1, SP_IMEM_SIZE, rsp);
     if (read == 0) {
         logfatal("Read 0 bytes from %s", rsp_path)
@@ -17,8 +18,11 @@ void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
 
 void load_rsp_dmem(n64_system_t* system, word* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
-        system->rsp.write_word(i * 4, input[i]);
+        // This translates to big endian
+        word address = i * 4;
+        system->rsp.write_word(address, input[i]);
     }
+
 }
 
 bool run_test(const char* test_name, const char* subtest_name, word* input, int input_size, word* output, int output_size) {
@@ -45,7 +49,8 @@ bool run_test(const char* test_name, const char* subtest_name, word* input, int 
 
     bool failed = false;
     for (int i = 0; i < output_size / 4; i++) {
-        word expected = output[i];
+        // File is in big endian, and the read handler converts things back to little for us, so convert it here too.
+        word expected = be32toh(output[i]);
         word actual = system->rsp.read_word(0x800 + (i * 4));
 
         if (actual != expected) {
