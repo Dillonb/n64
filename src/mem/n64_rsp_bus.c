@@ -21,7 +21,6 @@ void n64_rsp_write_half(n64_system_t* system, word address, half value) {
 }
 
 byte n64_rsp_read_byte(n64_system_t* system, word address) {
-    address &= 0xFFF;
     return system->mem.sp_dmem[address & 0xFFF];
 }
 
