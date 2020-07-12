@@ -1,0 +1,44 @@
+input_desc = [
+  "v128:v0",
+  "v128:v1",
+]
+
+output_desc = [
+  "v128:and",
+  "v128:nand",
+  "v128:or",
+  "v128:nor",
+  "v128:xor",
+  "v128:nxor",
+]
+
+rsp_code = """
+  li a0,$0
+  li a1,$800
+
+  lqv v0[e0],$00(a0)
+  lqv v1[e0],$10(a0)
+
+  vand v2,v0,v1[e0]
+  vnand v3,v0,v1[e0]
+  vor v4,v0,v1[e0]
+  vnor v5,v0,v1[e0]
+  vxor v6,v0,v1[e0]
+  vnxor v7,v0,v1[e0]
+
+  sqv v2[e0],$00(a1)
+  sqv v3[e0],$10(a1)
+  sqv v4[e0],$20(a1)
+  sqv v5[e0],$30(a1)
+  sqv v6[e0],$40(a1)
+  sqv v7[e0],$50(a1)
+
+  break
+"""
+
+[[test]]
+name="basic"
+input=[
+  0x1212_3434, 0x5656_7878, 0x9A9A_BCBC, 0xDEDE_F0F0, # v0
+  0x0F0F_F0F0, 0x0F0F_F0F0, 0x0F0F_F0F0, 0x0F0F_F0F0, # v1
+]

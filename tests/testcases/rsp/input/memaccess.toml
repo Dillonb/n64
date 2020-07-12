@@ -1,0 +1,569 @@
+input_desc = [
+  "v128:fill",
+  "v128:incr",
+  "u32:addr",
+  "u32:dummy",
+]
+
+output_desc = [
+  "v128:lqv_0",
+  "v128:lqv_1",
+  "v128:lqv_2",
+  "v128:lqv_3",
+  "v128:lqv_4",
+  "v128:lqv_5",
+  "v128:lqv_6",
+  "v128:lqv_7",
+
+  "v128:ldv_0",
+  "v128:ldv_1",
+  "v128:ldv_2",
+  "v128:ldv_3",
+  "v128:ldv_4",
+  "v128:ldv_5",
+  "v128:ldv_6",
+  "v128:ldv_7",
+
+  "v128:llv_0",
+  "v128:llv_1",
+  "v128:llv_2",
+  "v128:llv_3",
+  "v128:llv_4",
+  "v128:llv_5",
+  "v128:llv_6",
+  "v128:llv_7",
+
+  "v128:lsv_0",
+  "v128:lsv_1",
+  "v128:lsv_2",
+  "v128:lsv_3",
+  "v128:lsv_4",
+  "v128:lsv_5",
+  "v128:lsv_6",
+  "v128:lsv_7",
+
+  "v128:lbv_0",
+  "v128:lbv_1",
+  "v128:lbv_2",
+  "v128:lbv_3",
+  "v128:lbv_4",
+  "v128:lbv_5",
+  "v128:lbv_6",
+  "v128:lbv_7",
+
+  "v128:luv_0",
+  "v128:luv_1",
+  "v128:luv_2",
+  "v128:luv_3",
+  "v128:luv_4",
+  "v128:luv_5",
+  "v128:luv_6",
+  "v128:luv_7",
+
+  "v128:lpv_0",
+  "v128:lpv_1",
+  "v128:lpv_2",
+  "v128:lpv_3",
+  "v128:lpv_4",
+  "v128:lpv_5",
+  "v128:lpv_6",
+  "v128:lpv_7",
+
+  "v128:ltv_0",
+  "v128:ltv_1",
+  "v128:ltv_2",
+  "v128:ltv_3",
+  "v128:ltv_4",
+  "v128:ltv_5",
+  "v128:ltv_6",
+  "v128:ltv_7",
+
+  "v128:lhv_0",
+  "v128:lhv_1",
+  "v128:lhv_2",
+  "v128:lhv_3",
+  "v128:lhv_4",
+  "v128:lhv_5",
+  "v128:lhv_6",
+  "v128:lhv_7",
+
+  "v128:lfv_0",
+  "v128:lfv_1",
+  "v128:lfv_2",
+  "v128:lfv_3",
+  "v128:lfv_4",
+  "v128:lfv_5",
+  "v128:lfv_6",
+  "v128:lfv_7",
+
+  "u32:lw_0",
+  "u32:lw_1",
+  "u32:lw_2",
+  "u32:lw_3",
+  "u32:lw_4",
+  "u32:lw_5",
+  "u32:lw_6",
+  "u32:lw_7",
+
+  "u32:lhu_0",
+  "u32:lhu_1",
+  "u32:lhu_2",
+  "u32:lhu_3",
+  "u32:lhu_4",
+  "u32:lhu_5",
+  "u32:lhu_6",
+  "u32:lhu_7",
+
+  "u32:lbu_0",
+  "u32:lbu_1",
+  "u32:lbu_2",
+  "u32:lbu_3",
+  "u32:lbu_4",
+  "u32:lbu_5",
+  "u32:lbu_6",
+  "u32:lbu_7",
+]
+
+rsp_code = """
+    li a0,$0
+    li a1,$800
+
+    lqv v0[e0],$0(a0)
+    lqv v1[e0],$10(a0)
+    lw s0,$20(a0)
+
+    li t0, 511   // try to write also beyond DMEM
+setloop:
+    // We must fill the memory as requested by sqv. Before doing
+    // that, try also to dirty it with sb, in case writes beyond
+    // the end of DMEM are implemented differently in normal/vector
+    // stores.
+    sb t0,$0(a0)
+    sb t0,$1(a0)
+    sb t0,$2(a0)
+    sb t0,$3(a0)
+    sqv v0[e0],$0(a0)
+    vaddc v0,v0,v1[e0]
+    addi a0, 16
+    bnez t0, setloop
+    addi t0, -1
+
+    vxor v0,v0
+    vxor v1,v1
+    vxor v2,v2
+    vxor v3,v3
+    vxor v4,v4
+    vxor v5,v5
+    vxor v6,v6
+    vxor v7,v7
+
+lqv:
+    lqv v0[e0],-$4(s0)
+    lqv v1[e0],-$3(s0)
+    lqv v2[e0],-$2(s0)
+    lqv v3[e0],-$1(s0)
+    lqv v4[e0],$0(s0)
+    lqv v5[e0],$1(s0)
+    lqv v6[e0],$2(s0)
+    lqv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+ldv:
+    ldv v0[e0],-$4(s0)
+    ldv v1[e0],-$3(s0)
+    ldv v2[e0],-$2(s0)
+    ldv v3[e0],-$1(s0)
+    ldv v4[e0],$0(s0)
+    ldv v5[e0],$1(s0)
+    ldv v6[e0],$2(s0)
+    ldv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+llv:
+    llv v0[e0],-$4(s0)
+    llv v1[e0],-$3(s0)
+    llv v2[e0],-$2(s0)
+    llv v3[e0],-$1(s0)
+    llv v4[e0],$0(s0)
+    llv v5[e0],$1(s0)
+    llv v6[e0],$2(s0)
+    llv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+lsv:
+    lsv v0[e0],-$4(s0)
+    lsv v1[e0],-$3(s0)
+    lsv v2[e0],-$2(s0)
+    lsv v3[e0],-$1(s0)
+    lsv v4[e0],$0(s0)
+    lsv v5[e0],$1(s0)
+    lsv v6[e0],$2(s0)
+    lsv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+lbv:
+    lbv v0[e0],-$4(s0)
+    lbv v1[e0],-$3(s0)
+    lbv v2[e0],-$2(s0)
+    lbv v3[e0],-$1(s0)
+    lbv v4[e0],$0(s0)
+    lbv v5[e0],$1(s0)
+    lbv v6[e0],$2(s0)
+    lbv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+luv:
+    luv v0[e0],-$4(s0)
+    luv v1[e0],-$3(s0)
+    luv v2[e0],-$2(s0)
+    luv v3[e0],-$1(s0)
+    luv v4[e0],$0(s0)
+    luv v5[e0],$1(s0)
+    luv v6[e0],$2(s0)
+    luv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+lpv:
+    lpv v0[e0],-$4(s0)
+    lpv v1[e0],-$3(s0)
+    lpv v2[e0],-$2(s0)
+    lpv v3[e0],-$1(s0)
+    lpv v4[e0],$0(s0)
+    lpv v5[e0],$1(s0)
+    lpv v6[e0],$2(s0)
+    lpv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+ltv:
+    ltv v0[e0],-$4(s0)
+    ltv v1[e0],-$3(s0)
+    ltv v2[e0],-$2(s0)
+    ltv v3[e0],-$1(s0)
+    ltv v4[e0],$0(s0)
+    ltv v5[e0],$1(s0)
+    ltv v6[e0],$2(s0)
+    ltv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+lhv:
+    lhv v0[e0],-$4(s0)
+    lhv v1[e0],-$3(s0)
+    lhv v2[e0],-$2(s0)
+    lhv v3[e0],-$1(s0)
+    lhv v4[e0],$0(s0)
+    lhv v5[e0],$1(s0)
+    lhv v6[e0],$2(s0)
+    lhv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+lfv:
+    lfv v0[e0],-$4(s0)
+    lfv v1[e0],-$3(s0)
+    lfv v2[e0],-$2(s0)
+    lfv v3[e0],-$1(s0)
+    lfv v4[e0],$0(s0)
+    lfv v5[e0],$1(s0)
+    lfv v6[e0],$2(s0)
+    lfv v7[e0],$3(s0)
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1, $80
+
+lw:
+    lw t0,-$4(s0)
+    lw t1,-$3(s0)
+    lw t2,-$2(s0)
+    lw t3,-$1(s0)
+    lw t4,$0(s0)
+    lw t5,$1(s0)
+    lw t6,$2(s0)
+    lw t7,$3(s0)
+
+    sw t0,$00(a1)
+    sw t1,$04(a1)
+    sw t2,$08(a1)
+    sw t3,$0c(a1)
+    sw t4,$10(a1)
+    sw t5,$14(a1)
+    sw t6,$18(a1)
+    sw t7,$1c(a1)
+
+    addi a1, $20
+
+lhu:
+    lhu t0,-$4(s0)
+    lhu t1,-$3(s0)
+    lhu t2,-$2(s0)
+    lhu t3,-$1(s0)
+    lhu t4,$0(s0)
+    lhu t5,$1(s0)
+    lhu t6,$2(s0)
+    lhu t7,$3(s0)
+
+    sw t0,$00(a1)
+    sw t1,$04(a1)
+    sw t2,$08(a1)
+    sw t3,$0c(a1)
+    sw t4,$10(a1)
+    sw t5,$14(a1)
+    sw t6,$18(a1)
+    sw t7,$1c(a1)
+
+    addi a1, $20
+
+lbu:
+    lbu t0,-$4(s0)
+    lbu t1,-$3(s0)
+    lbu t2,-$2(s0)
+    lbu t3,-$1(s0)
+    lbu t4,$0(s0)
+    lbu t5,$1(s0)
+    lbu t6,$2(s0)
+    lbu t7,$3(s0)
+
+    sw t0,$00(a1)
+    sw t1,$04(a1)
+    sw t2,$08(a1)
+    sw t3,$0c(a1)
+    sw t4,$10(a1)
+    sw t5,$14(a1)
+    sw t6,$18(a1)
+    sw t7,$1c(a1)
+
+    addi a1, $20
+
+    break
+"""
+
+[[test]]
+name = "normal"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0100,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_b1"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0101,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_bm1"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x00FF,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_b3"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0103,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_bm3"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x00FD,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_b7"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0107,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_bm7"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x00F9,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_b15"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x010F,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "unalign_bm15"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x00F1,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "overflow0"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0FF8,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "overflow1"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0FF9,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "overflow2"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0FFC,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "overflow3"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0FFD,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "overflow4"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0FFE,   # addr
+  0, # dummy
+]
+
+[[test]]
+name = "overflow5"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FF00,   # fill
+  0x0101_0101, 0x0101_0101, 0x0101_0101, 0x0101_0101,   # incr
+  0x0FFF,   # addr
+  0, # dummy
+]

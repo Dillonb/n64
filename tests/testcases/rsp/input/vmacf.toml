@@ -1,0 +1,140 @@
+input_desc = [
+  "v128:v0",
+  "v128:v1",
+]
+
+output_desc = [
+  "v128:1_res",
+  "v128:1_accum_lo",
+  "v128:1_accum_md",
+  "v128:1_accum_hi",
+  "u32:1_vco",
+  "u32:1_vcc",
+  "u32:1_vce",
+  "u32:1_padding",
+
+  "v128:2_res",
+  "v128:2_accum_lo",
+  "v128:2_accum_md",
+  "v128:2_accum_hi",
+  "u32:2_vco",
+  "u32:2_vcc",
+  "u32:2_vce",
+  "u32:2_padding",
+
+  "v128:3_res",
+  "v128:3_accum_lo",
+  "v128:3_accum_md",
+  "v128:3_accum_hi",
+  "u32:3_vco",
+  "u32:3_vcc",
+  "u32:3_vce",
+  "u32:3_padding",
+
+  "v128:4_res",
+  "v128:4_accum_lo",
+  "v128:4_accum_md",
+  "v128:4_accum_hi",
+  "u32:4_vco",
+  "u32:4_vcc",
+  "u32:4_vce",
+  "u32:4_padding",
+
+  "v128:5_res",
+  "v128:5_accum_lo",
+  "v128:5_accum_md",
+  "v128:5_accum_hi",
+  "u32:5_vco",
+  "u32:5_vcc",
+  "u32:5_vce",
+  "u32:5_padding",
+]
+
+
+rsp_code = """
+  li a0,$0
+  li a1,$800
+
+  li s0, $4  // Loop 4 times
+
+Loop:
+  lqv v0[e0],$00(a0) // $00: V0
+  lqv v1[e0],$10(a0) // $10: V1
+  vmacf v0,v1[e0]
+
+  sqv v0[e0],$00(a1)
+
+  vsar v0,v0[e10]
+  sqv v0[e0],$10(a1)
+  vsar v0,v0[e9]
+  sqv v0[e0],$20(a1)
+
+  vsar v0,v0[e8]
+  sqv v0[e0],$30(a1)
+
+  li t0,0
+  cfc2 t0,vco
+  sw t0,$40(a1)
+  li t0,0
+  cfc2 t0,vcc
+  sw t0,$44(a1)
+  li t0,0
+  cfc2 t0,vce
+  sw t0,$48(a1)
+
+  subi s0,1
+  bnez s0, Loop
+  addi a1,$50
+
+  // Last iteration: first dirty accumulator, so to test saturation
+  lqv v0[e0],$00(a0) // $00: V0
+  lqv v1[e0],$10(a0) // $10: V1
+  vmudh v0,v1[e0]
+  vmacf v0,v1[e0]
+
+  sqv v0[e0],$00(a1)
+
+  vsar v0,v0[e10]
+  sqv v0[e0],$10(a1)
+  vsar v0,v0[e9]
+  sqv v0[e0],$20(a1)
+
+  vsar v0,v0[e8]
+  sqv v0[e0],$30(a1)
+
+  li t0,0
+  cfc2 t0,vco
+  sw t0,$40(a1)
+  li t0,0
+  cfc2 t0,vcc
+  sw t0,$44(a1)
+  li t0,0
+  cfc2 t0,vce
+  sw t0,$48(a1)
+
+  break // Set SP Status Halt, Broke & Check For Interrupt, Set SP Program Counter To $0000
+"""
+
+[[test]]
+name = "basic"
+input = [
+	0x1212_3434, 0x5656_7878, 0x9A9A_BCBC, 0xDEDE_F0F0,  # v0
+	0xFDEC_BA98, 0x7654_3210, 0x0123_4567, 0x89AB_CDEF,  # v1
+]
+
+# FIXME: add code to clean accumulator to be able to run more than one test
+
+[[test]]
+name = "negate"
+input = [
+  0x1234_5678, 0x89AB_CDEF, 0xFDEC_BA98, 0x8765_4321,  # v0
+  0xFFFF_FFFF, 0xFFFF_FFFF, 0xFFFF_FFFF, 0xFFFF_FFFF,  # v1
+]
+
+[[test]]
+name = "overflow"
+input = [
+  0x7FFF_8000, 0x8000_8000, 0x8000_8000, 0x7FFF_7FFF,  # v0
+  0x7FFF_7FFF, 0x8000_8001, 0xFFFF_FFFF, 0xFFFF_FFFF,  # v1
+]
+

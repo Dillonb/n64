@@ -1,0 +1,57 @@
+input_desc = [
+    "v128:v0",
+]
+
+output_desc = [
+    "v128:rcp1",
+    "v128:rcp2",
+]
+
+rsp_code = """
+    li a0,$0
+    li a1,$800
+
+    vxor v0,v0
+    vxor v1,v1
+    vxor v2,v2
+
+    lqv v0[e0],$00(a0)
+    vrcp v1[e0],v0[e0]
+    sqv v1[e0],$00(a1)
+    sqv v2[e0],$10(a1)
+
+    // Test VRCP after VRCPH
+    vrcph v2[e0],v0[e1]
+    vrcp v1[e1],v0[e0]
+
+    // Test VRCPL after VRCPH
+    vrcph v2[e1],v0[e2]
+    vrcpl v1[e2],v0[e0]
+
+    // Test VRCPL after VRCPL
+    vrcpl v1[e3],v0[e0]
+    vrcpl v1[e4],v0[e1]
+
+    // Test VRCPH after VRCPH
+    vrcph v2[e4],v0[e2]
+    vrcph v2[e4],v0[e2]
+    vrcpl v1[e5],v0[e0]
+
+    // Test VRSQH after VRCPL
+    // Test VRCPL after VRSQH
+    vrsqh v2[e5],v0[e2]
+    vrcpl v1[e6],v0[e2]
+    vrsqh v2[e6],v0[e2]
+
+    sqv v1[e0],$00(a1)
+    sqv v2[e0],$10(a1)
+    break
+"""
+
+
+[[test]]
+name = "basic"
+input = [
+  0xA000_0010, 0x0010_0000, 0x0000_0000, 0x0000_0000,  # v0
+]
+

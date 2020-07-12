@@ -1,0 +1,93 @@
+input_desc = [
+	"v128:base",
+    "u32:data",
+    "u32:dummy",
+]
+
+output_desc = [
+	"v128:v0",
+	"v128:v1",
+	"v128:v2",
+	"v128:v3",
+	"v128:v4",
+	"v128:v5",
+	"v128:v6",
+	"v128:v7",
+	"v128:v8",
+	"v128:v9",
+	"v128:v10",
+	"v128:v11",
+	"v128:v12",
+	"v128:v13",
+	"v128:v14",
+	"v128:v15",
+]
+
+rsp_code = """
+    li a0,$0
+    li a1,$800
+
+    lqv v0[e0],$00(a0)
+    lqv v1[e0],$00(a0)
+    lqv v2[e0],$00(a0)
+    lqv v3[e0],$00(a0)
+    lqv v4[e0],$00(a0)
+    lqv v5[e0],$00(a0)
+    lqv v6[e0],$00(a0)
+    lqv v7[e0],$00(a0)
+    lqv v8[e0],$00(a0)
+    lqv v9[e0],$00(a0)
+    lqv v10[e0],$00(a0)
+    lqv v11[e0],$00(a0)
+    lqv v12[e0],$00(a0)
+    lqv v13[e0],$00(a0)
+    lqv v14[e0],$00(a0)
+    lqv v15[e0],$00(a0)
+    lw t0,$10(a0)
+
+    mtc2 t0,v0[e0]
+    mtc2 t0,v1[e1]
+    mtc2 t0,v2[e2]
+    mtc2 t0,v3[e3]
+    mtc2 t0,v4[e4]
+    mtc2 t0,v5[e5]
+    mtc2 t0,v6[e6]
+    mtc2 t0,v7[e7]
+    mtc2 t0,v8[e8]
+    mtc2 t0,v9[e9]
+    mtc2 t0,v10[e10]
+    mtc2 t0,v11[e11]
+    mtc2 t0,v12[e12]
+    mtc2 t0,v13[e13]
+    mtc2 t0,v14[e14]
+    mtc2 t0,v15[e15]
+
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+
+    addi a1,$80
+    sqv v8[e0],$00(a1)
+    sqv v9[e0],$10(a1)
+    sqv v10[e0],$20(a1)
+    sqv v11[e0],$30(a1)
+    sqv v12[e0],$40(a1)
+    sqv v13[e0],$50(a1)
+    sqv v14[e0],$60(a1)
+    sqv v15[e0],$70(a1)
+
+    break
+"""
+
+[[test]]
+name = "basic"
+input = [
+	0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAA, # base
+	0x1234_5678, # data
+	0,
+]

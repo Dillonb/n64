@@ -1,0 +1,93 @@
+input_desc = [
+  "v128:v0",
+  "v128:v1",
+  "u32:vco",
+  "u32:padding",
+]
+
+output_desc = [
+  "v128:res",
+  "v128:accum_lo",
+  "v128:accum_md",
+  "v128:accum_hi",
+  "u32:vco",
+  "u32:vcc",
+  "u32:vce",
+  "u32:padding",
+]
+
+rsp_code = """
+  li a0,$0
+  li a1,$800
+
+  lw t0,$20(a0)
+  ctc2 t0,vco
+  lqv v0[e0],$00(a0)
+  lqv v1[e0],$10(a0)
+
+  vxor v2,v2,v2
+  vsubc v2,v0,v1[e0]  // V0-V1
+
+  sqv v2[e0],$00(a1)
+
+  vsar v0,v0[e10] // VSAR E10 -> ACCUM_LO
+  sqv v0[e0],$10(a1)
+
+  vsar v0,v0[e9] // VSAR E9 -> ACCUM_MD
+  sqv v0[e0],$20(a1)
+
+  vsar v0,v0[e8] // VSAR E8 -> ACCUM_HI
+  sqv v0[e0],$30(a1)
+
+  li t0,0
+  cfc2 t0,vco   // T0 = RSP CP2 Control Register: VCO (Vector Carry Out)
+  sw t0,$40(a1)
+  li t0,0
+  cfc2 t0,vcc   // T0 = RSP CP2 Control Register: VCC (Vector Compare Code)
+  sw t0,$44(a1)
+  li t0,0
+  cfc2 t0,vce   // T0 = RSP CP2 Control Register: VCE (Vector Compare Extension)
+  sw t0,$48(a1)
+
+  break
+"""
+
+[[test]]
+name = "basic"
+input = [
+  0x0400_7000, 0x7000_9FFF, 0x0000_3333, 0xFFFF_0001,  # v0
+  0x0300_2000, 0xF000_9FFF, 0x0000_4444, 0x0002_0001,  # v1
+  0xAAF2, 0, # VCO
+]
+
+[[test]]
+name = "overflow1"
+input = [
+  0x7FFF_8000, 0x8000_8000, 0x8000_8000, 0x7FFF_7FFF,  # v0
+  0x7FFF_7FFF, 0x8000_8001, 0xFFFF_FFFF, 0xFFFF_FFFF,  # v1
+  0x0000, 0, # VCO
+]
+
+[[test]]
+name = "overflow2"
+input = [
+  0x7FFF_8000, 0x8000_8000, 0x8000_8000, 0x7FFF_7FFF,  # v0
+  0x7FFF_7FFF, 0x8000_8001, 0xFFFF_FFFF, 0xFFFF_FFFF,  # v1
+  0xFFFF, 0, # VCO
+]
+
+[[test]]
+name = "overflow3"
+input = [
+  0x7FFF_7FFF, 0x8000_8001, 0xFFFF_FFFF, 0xFFFF_FFFF,  # v0
+  0x7FFF_8000, 0x8000_8000, 0x8000_8000, 0x7FFF_7FFF,  # v1
+  0x0000, 0, # VCO
+]
+
+[[test]]
+name = "overflow4"
+input = [
+  0x7FFF_7FFF, 0x8000_8001, 0xFFFF_FFFF, 0xFFFF_FFFF,  # v0
+  0x7FFF_8000, 0x8000_8000, 0x8000_8000, 0x7FFF_7FFF,  # v1
+  0xFFFF, 0, # VCO
+]

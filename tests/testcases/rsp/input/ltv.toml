@@ -1,0 +1,240 @@
+input_desc = [
+    "v128:dummy",
+    "v128:v0",
+    "v128:v1",
+    "u32:offset",
+    "u32:dummy",
+]
+
+output_desc = [
+    "v128:v0e0",
+    "v128:v1e0",
+    "v128:v2e0",
+    "v128:v3e0",
+    "v128:v4e0",
+    "v128:v5e0",
+    "v128:v6e0",
+    "v128:v7e0",
+
+    "v128:s7v0e0",
+    "v128:s7v1e0",
+    "v128:s7v2e0",
+    "v128:s7v3e0",
+    "v128:s7v4e0",
+    "v128:s7v5e0",
+    "v128:s7v6e0",
+    "v128:s7v7e0",
+
+    "v128:v0e1",
+    "v128:v1e1",
+    "v128:v2e1",
+    "v128:v3e1",
+    "v128:v4e1",
+    "v128:v5e1",
+    "v128:v6e1",
+    "v128:v7e1",
+
+    "v128:v0e2",
+    "v128:v1e2",
+    "v128:v2e2",
+    "v128:v3e2",
+    "v128:v4e2",
+    "v128:v5e2",
+    "v128:v6e2",
+    "v128:v7e2",
+
+    "v128:v0e12",
+    "v128:v1e12",
+    "v128:v2e12",
+    "v128:v3e12",
+    "v128:v4e12",
+    "v128:v5e12",
+    "v128:v6e12",
+    "v128:v7e12",
+
+    "v128:v0e15",
+    "v128:v1e15",
+    "v128:v2e15",
+    "v128:v3e15",
+    "v128:v4e15",
+    "v128:v5e15",
+    "v128:v6e15",
+    "v128:v7e15",
+
+    "v128:s7v0e15",
+    "v128:s7v1e15",
+    "v128:s7v2e15",
+    "v128:s7v3e15",
+    "v128:s7v4e15",
+    "v128:s7v5e15",
+    "v128:s7v6e15",
+    "v128:s7v7e15",
+
+    "v128:v0e0o7",
+    "v128:v1e0o7",
+    "v128:v2e0o7",
+    "v128:v3e0o7",
+    "v128:v4e0o7",
+    "v128:v5e0o7",
+    "v128:v6e0o7",
+    "v128:v7e0o7",
+
+    "v128:v0e0o8",
+    "v128:v1e0o8",
+    "v128:v2e0o8",
+    "v128:v3e0o8",
+    "v128:v4e0o8",
+    "v128:v5e0o8",
+    "v128:v6e0o8",
+    "v128:v7e0o8",
+
+    "v128:v0e0o15",
+    "v128:v1e0o15",
+    "v128:v2e0o15",
+    "v128:v3e0o15",
+    "v128:v4e0o15",
+    "v128:v5e0o15",
+    "v128:v6e0o15",
+    "v128:v7e0o15",
+]
+
+rsp_code = """
+    li a0,$0
+    li a1,$800
+
+    lw t4,$90(a0) // input: reg offset
+    add a0,t4
+    
+    jal CleanRegs
+    nop
+    ltv v0[e0],$10(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v7[e0],$10(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v0[e1],$10(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v0[e2],$10(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v0[e12],$10(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v0[e15],$10(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v7[e15],$10(a0)
+    jal StoreOut
+    nop
+
+    // Just in case, we test with immediate offset. It must behave
+    // like adding an offset to a0, but you never know.
+    jal CleanRegs
+    nop
+    ltv v0[e0],$07(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v0[e0],$08(a0)
+    jal StoreOut
+    nop
+
+    jal CleanRegs
+    nop
+    ltv v0[e0],$0F(a0)
+    jal StoreOut
+    nop
+
+    break
+
+CleanRegs:
+    vxor v0,v0
+    vxor v1,v1
+    vxor v2,v2
+    vxor v3,v3
+    vxor v4,v4
+    vxor v5,v5
+    vxor v6,v6
+    jr ra
+    vxor v7,v7
+
+StoreOut:
+    sqv v0[e0],$00(a1)
+    sqv v1[e0],$10(a1)
+    sqv v2[e0],$20(a1)
+    sqv v3[e0],$30(a1)
+    sqv v4[e0],$40(a1)
+    sqv v5[e0],$50(a1)
+    sqv v6[e0],$60(a1)
+    sqv v7[e0],$70(a1)
+    jr ra
+    addi a1,$80
+"""
+
+[[test]]
+name = "offset0"
+input = [
+    0,0,0,0, # dummy
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    0, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset1"
+input = [
+    0,0,0,0, # dummy
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    1, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset7"
+input = [
+    0,0,0,0, # dummy
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    7, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset8"
+input = [
+    0,0,0,0, # dummy
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    8, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset15"
+input = [
+    0,0,0,0, # dummy
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    15, # offset
+    0, # dummy
+]

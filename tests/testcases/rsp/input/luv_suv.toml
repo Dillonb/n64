@@ -1,0 +1,281 @@
+input_desc = [
+  "v128:data",
+  "v128:fill",
+  "u32:offset",
+  "u32:dummy",
+]
+
+output_desc = [
+  "v128:luv_e0",
+  "v128:luv_e1",
+  "v128:luv_e2",
+  "v128:luv_e3",
+  "v128:luv_e4",
+  "v128:luv_e5",
+  "v128:luv_e6",
+  "v128:luv_e7",
+  "v128:luv_e8",
+  "v128:luv_e9",
+  "v128:luv_e10",
+  "v128:luv_e11",
+  "v128:luv_e12",
+  "v128:luv_e13",
+  "v128:luv_e14",
+  "v128:luv_e15",
+  "v128:suv_e0",
+  "v128:suv_e1",
+  "v128:suv_e2",
+  "v128:suv_e3",
+  "v128:suv_e4",
+  "v128:suv_e5",
+  "v128:suv_e6",
+  "v128:suv_e7",
+  "v128:suv_e8",
+  "v128:suv_e9",
+  "v128:suv_e10",
+  "v128:suv_e11",
+  "v128:suv_e12",
+  "v128:suv_e13",
+  "v128:suv_e14",
+  "v128:suv_e15",
+]
+
+rsp_code = """
+  li a0,$0
+  li a1,$800
+  lw t4,$20(a0) // input: offset
+
+  // This test is very sensitive to possible read/write mistakes to memory
+  // and we want to make sure that writes actually happen.
+  // So clear all registers and also output memory area to make sure
+  // tests do not shadow previous results.
+  vxor v0,v0
+  vxor v1,v1
+  vxor v2,v2
+  vxor v3,v3
+  vxor v4,v4
+  vxor v5,v5
+  vxor v6,v6
+  vxor v7,v7
+  vxor v8,v8
+  vxor v9,v9
+  vxor v10,v10
+  vxor v11,v11
+  vxor v12,v12
+  vxor v13,v13
+  vxor v14,v14
+  vxor v15,v15
+
+  lqv v0[e0],$10(a0) // input: fill
+  add a2,a1,0
+  addi a2,$1F0
+ClearLoop:
+  sqv v0[e0],$00(a2)
+  bne a1,a2,ClearLoop
+  subi a2,$10
+
+  vxor v0,v0
+
+  add a0,t4 // add offset to disalign
+  luv v0[e0],$00(a0)
+  luv v1[e1],$00(a0)
+  luv v2[e2],$00(a0)
+  luv v3[e3],$00(a0)
+  luv v4[e4],$00(a0)
+  luv v5[e5],$00(a0)
+  luv v6[e6],$00(a0)
+  luv v7[e7],$00(a0)
+  luv v8[e8],$00(a0)
+  luv v9[e9],$00(a0)
+  luv v10[e10],$00(a0)
+  luv v11[e11],$00(a0)
+  luv v12[e12],$00(a0)
+  luv v13[e13],$00(a0)
+  luv v14[e14],$00(a0)
+  luv v15[e15],$00(a0)
+
+  sqv v0[e0],$00(a1)
+  sqv v1[e0],$10(a1)
+  sqv v2[e0],$20(a1)
+  sqv v3[e0],$30(a1)
+  sqv v4[e0],$40(a1)
+  sqv v5[e0],$50(a1)
+  sqv v6[e0],$60(a1)
+  sqv v7[e0],$70(a1)
+  sqv v8[e0],$80(a1)
+  sqv v9[e0],$90(a1)
+  sqv v10[e0],$A0(a1)
+  sqv v11[e0],$B0(a1)
+  sqv v12[e0],$C0(a1)
+  sqv v13[e0],$D0(a1)
+  sqv v14[e0],$E0(a1)
+  sqv v15[e0],$F0(a1)
+
+  li a0,$0
+  lqv v0[e0],$00(a0) // input: v0
+
+  add a1,t4 // add offset to disalign
+  addi a2,a1,$1F0
+  suv v0[e15],$00(a2)
+  addi a2,a1,$1E0
+  suv v0[e14],$00(a2)
+  addi a2,a1,$1D0
+  suv v0[e13],$00(a2)
+  addi a2,a1,$1C0
+  suv v0[e12],$00(a2)
+  addi a2,a1,$1B0
+  suv v0[e11],$00(a2)
+  addi a2,a1,$1A0
+  suv v0[e10],$00(a2)
+  addi a2,a1,$190
+  suv v0[e9],$00(a2)
+  addi a2,a1,$180
+  suv v0[e8],$00(a2)
+  addi a2,a1,$170
+  suv v0[e7],$00(a2)
+  addi a2,a1,$160
+  suv v0[e6],$00(a2)
+  addi a2,a1,$150
+  suv v0[e5],$00(a2)
+  addi a2,a1,$140
+  suv v0[e4],$00(a2)
+  addi a2,a1,$130
+  suv v0[e3],$00(a2)
+  addi a2,a1,$120
+  suv v0[e2],$00(a2)
+  addi a2,a1,$110
+  suv v0[e1],$00(a2)
+  addi a2,a1,$100
+  suv v0[e0],$00(a2)
+
+  break
+"""
+
+[[test]]
+name = "offset0"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  0, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset1"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  1, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset2"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  2, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset3"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  3, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset4"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  4, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset5"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  5, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset6"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  6, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset7"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  7, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset8"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  8, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset9"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  9, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset10"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  10, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset11"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  11, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset12"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  12, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset13"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  13, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset14"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  14, # offset
+  0, # dummy
+]
+[[test]]
+name = "offset15"
+input = [
+  0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAB, # v0
+  0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, 0xAAAA_AAAA, # fill
+  15, # offset
+  0, # dummy
+]

@@ -1,0 +1,146 @@
+input_desc = [
+    "v128:v0",
+    "v128:v1",
+    "v128:v2",
+    "v128:v3",
+    "v128:v4",
+    "v128:v5",
+    "v128:v6",
+    "v128:v7",
+    "u32:offset",
+    "u32:dummy",
+]
+
+output_desc = [
+    "v128:mem0e0",
+    "v128:mem1e0",
+    "v128:mem2e0",
+
+    "v128:s7mem0e0",
+    "v128:s7mem1e0",
+    "v128:s7mem2e0",
+
+    "v128:mem0e1",
+    "v128:mem1e1",
+    "v128:mem2e1",
+
+    "v128:mem0e12",
+    "v128:mem1e12",
+    "v128:mem2e12",
+
+    "v128:mem0e15",
+    "v128:mem1e15",
+    "v128:mem2e15",
+
+    "v128:s7mem0e15",
+    "v128:s7mem1e15",
+    "v128:s7mem2e15",
+]
+
+rsp_code = """
+    li a0,$0
+    li a1,$800
+    
+    lqv v0[e0],$00(a0)
+    lqv v1[e0],$10(a0)
+    lqv v2[e0],$20(a0)
+    lqv v3[e0],$30(a0)
+    lqv v4[e0],$40(a0)
+    lqv v5[e0],$50(a0)
+    lqv v6[e0],$60(a0)
+    lqv v7[e0],$70(a0)
+
+    lw t4,$80(a0) // input: offset
+    add a1,t4
+
+    swv v0[e0],$10(a1)
+    addi a1,$30
+
+    swv v7[e0],$10(a1)
+    addi a1,$30
+
+    swv v0[e1],$10(a1)
+    addi a1,$30
+
+    swv v0[e12],$10(a1)
+    addi a1,$30
+
+    swv v0[e15],$10(a1)
+    addi a1,$30
+
+    swv v7[e15],$10(a1)
+    addi a1,$30
+
+    break
+"""
+
+[[test]]
+name = "offset0"
+input = [
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    0xA0A1_A2A3, 0xA4A5_A6A7, 0xA8A9_AAAB, 0xACAD_AEAF, # v2
+    0xB0B1_B2B3, 0xB4B5_B6B7, 0xB8B9_BABB, 0xBCBD_BEBF, # v3
+    0xC0C1_C2C3, 0xC4C5_C6C7, 0xC8C9_CAAB, 0xCCCD_CECF, # v4
+    0xD0D1_D2D3, 0xD4D5_D6D7, 0xD8D9_DAAB, 0xDCDD_DEDF, # v5
+    0xE0E1_E2E3, 0xE4E5_E6E7, 0xE8E9_EAAB, 0xECED_EEEF, # v6
+    0xF0F1_F2F3, 0xF4F5_F6F7, 0xF8F9_FAAB, 0xFCFD_FEFF, # v7
+    0, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset1"
+input = [
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    0xA0A1_A2A3, 0xA4A5_A6A7, 0xA8A9_AAAB, 0xACAD_AEAF, # v2
+    0xB0B1_B2B3, 0xB4B5_B6B7, 0xB8B9_BABB, 0xBCBD_BEBF, # v3
+    0xC0C1_C2C3, 0xC4C5_C6C7, 0xC8C9_CAAB, 0xCCCD_CECF, # v4
+    0xD0D1_D2D3, 0xD4D5_D6D7, 0xD8D9_DAAB, 0xDCDD_DEDF, # v5
+    0xE0E1_E2E3, 0xE4E5_E6E7, 0xE8E9_EAAB, 0xECED_EEEF, # v6
+    0xF0F1_F2F3, 0xF4F5_F6F7, 0xF8F9_FAAB, 0xFCFD_FEFF, # v7
+    1, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset7"
+input = [
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    0xA0A1_A2A3, 0xA4A5_A6A7, 0xA8A9_AAAB, 0xACAD_AEAF, # v2
+    0xB0B1_B2B3, 0xB4B5_B6B7, 0xB8B9_BABB, 0xBCBD_BEBF, # v3
+    0xC0C1_C2C3, 0xC4C5_C6C7, 0xC8C9_CAAB, 0xCCCD_CECF, # v4
+    0xD0D1_D2D3, 0xD4D5_D6D7, 0xD8D9_DAAB, 0xDCDD_DEDF, # v5
+    0xE0E1_E2E3, 0xE4E5_E6E7, 0xE8E9_EAAB, 0xECED_EEEF, # v6
+    0xF0F1_F2F3, 0xF4F5_F6F7, 0xF8F9_FAAB, 0xFCFD_FEFF, # v7
+    7, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset8"
+input = [
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    0xA0A1_A2A3, 0xA4A5_A6A7, 0xA8A9_AAAB, 0xACAD_AEAF, # v2
+    0xB0B1_B2B3, 0xB4B5_B6B7, 0xB8B9_BABB, 0xBCBD_BEBF, # v3
+    0xC0C1_C2C3, 0xC4C5_C6C7, 0xC8C9_CAAB, 0xCCCD_CECF, # v4
+    0xD0D1_D2D3, 0xD4D5_D6D7, 0xD8D9_DAAB, 0xDCDD_DEDF, # v5
+    0xE0E1_E2E3, 0xE4E5_E6E7, 0xE8E9_EAAB, 0xECED_EEEF, # v6
+    0xF0F1_F2F3, 0xF4F5_F6F7, 0xF8F9_FAAB, 0xFCFD_FEFF, # v7
+    8, # offset
+    0, # dummy
+]
+[[test]]
+name = "offset15"
+input = [
+    0x8081_8283, 0x8485_8687, 0x8889_8AAB, 0x8C8D_8E8F, # v0
+    0x9091_9293, 0x9495_9697, 0x9899_9AAB, 0x9C9D_9E9F, # v1
+    0xA0A1_A2A3, 0xA4A5_A6A7, 0xA8A9_AAAB, 0xACAD_AEAF, # v2
+    0xB0B1_B2B3, 0xB4B5_B6B7, 0xB8B9_BABB, 0xBCBD_BEBF, # v3
+    0xC0C1_C2C3, 0xC4C5_C6C7, 0xC8C9_CAAB, 0xCCCD_CECF, # v4
+    0xD0D1_D2D3, 0xD4D5_D6D7, 0xD8D9_DAAB, 0xDCDD_DEDF, # v5
+    0xE0E1_E2E3, 0xE4E5_E6E7, 0xE8E9_EAAB, 0xECED_EEEF, # v6
+    0xF0F1_F2F3, 0xF4F5_F6F7, 0xF8F9_FAAB, 0xFCFD_FEFF, # v7
+    15, # offset
+    0, # dummy
+]

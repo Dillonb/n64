@@ -1,0 +1,121 @@
+input_desc = [
+	"v128:base",
+    "u32:data",
+    "u32:dummy",
+]
+
+output_desc = [
+	"u32:v0",
+	"u32:v1",
+	"u32:v2",
+	"u32:v3",
+	"u32:v4",
+	"u32:v5",
+	"u32:v6",
+	"u32:v7",
+	"u32:v8",
+	"u32:v9",
+	"u32:v10",
+	"u32:v11",
+	"u32:v12",
+	"u32:v13",
+	"u32:v14",
+	"u32:v15",
+]
+
+rsp_code = """
+    li a0,$0
+    li a1,$800
+
+    lqv v0[e0],$00(a0)
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e0]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e1]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e2]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e3]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e4]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e5]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e6]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e7]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e8]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e9]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e10]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e11]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e12]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e13]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e14]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    lw t0,$10(a0)
+    mfc2 t0,v0[e15]
+    sw t0,$00(a1)
+    addi a1,$4
+
+    break
+"""
+
+[[test]]
+name = "basic"
+input = [
+	0x1122_3344, 0x5566_7788, 0x99AA_BBCC, 0xDDEE_FFAA, # base
+	0x1234_5678, # data
+	0,
+]

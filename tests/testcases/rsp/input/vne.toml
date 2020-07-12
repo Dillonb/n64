@@ -1,0 +1,183 @@
+input_desc = [
+    "v128:v0",
+    "v128:v1",
+    "u32:vco",
+    "u32:vcc",
+    "u32:vce",
+    "u32:padding",
+]
+
+output_desc = [
+    "v128:res",
+    "v128:accum_lo",
+    "v128:accum_md",
+    "v128:accum_hi",
+    "u32:vco",
+    "u32:vcc",
+    "u32:vce",
+    "u32:padding",
+]
+
+rsp_code = """
+    li a0,$0
+    li a1,$800
+
+    vxor v2,v2
+    lqv v0[e0],$00(a0)
+    lqv v1[e0],$10(a0)
+
+    lw t0,$20(a0)
+    ctc2 t0,vco
+    lw t0,$24(a0)
+    ctc2 t0,vcc
+    lw t0,$28(a0)
+    ctc2 t0,vce
+
+    vne v2,v0,v1
+
+    sqv v2[e0],$00(a1)
+
+    vsar v0,v0[e10] // VSAR E10 -> ACCUM_LO
+    sqv v0[e0],$10(a1)
+
+    vsar v0,v0[e9] // VSAR E9 -> ACCUM_MD
+    sqv v0[e0],$20(a1)
+
+    vsar v0,v0[e8] // VSAR E8 -> ACCUM_HI
+    sqv v0[e0],$30(a1)
+
+    li t0,0
+    cfc2 t0,vco   // T0 = RSP CP2 Control Register: VCO (Vector Carry Out)
+    sw t0,$40(a1)
+    li t0,0
+    cfc2 t0,vcc   // T0 = RSP CP2 Control Register: VCC (Vector Compare Code)
+    sw t0,$44(a1)
+    li t0,0
+    cfc2 t0,vce   // T0 = RSP CP2 Control Register: VCE (Vector Compare Extension)
+    sw t0,$48(a1)
+
+    break
+"""
+
+
+
+[[test]]
+name = "basic"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0x0000, # VCO
+    0x0000, # VCC
+    0x0000, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_vco"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0xFFFF, # VCO
+    0x0000, # VCC
+    0x0000, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_vcc"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0x0000, # VCO
+    0xFFFF, # VCC
+    0x0000, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_vce"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0x0000, # VCO
+    0x0000, # VCC
+    0xFFFF, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_vco_vce"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0xFFFF, # VCO
+    0x0000, # VCC
+    0xFFFF, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_vcc_vce"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0x0000, # VCO
+    0xFFFF, # VCC
+    0xFFFF, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_vco_vcc"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0xFFFF, # VCO
+    0xFFFF, # VCC
+    0x0000, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_vco_vcc_vce"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0xFFFF, # VCO
+    0xFFFF, # VCC
+    0xFFFF, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_rand1"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0xAAAA, # VCO
+    0xAAAA, # VCC
+    0xAAAA, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_rand2"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0x5555, # VCO
+    0x5555, # VCC
+    0x5555, # VCE
+    0, # dummy
+]
+
+[[test]]
+name = "with_rand3"
+input = [
+    0x1000_2000, 0x3000_4000, 0x9000_A000, 0xB000_C000, # v0
+    0x1000_2001, 0x2FFF_4000, 0x9000_A001, 0xAFFF_C000, # v1
+    0xAAAA, # VCO
+    0x5555, # VCC
+    0xAAAA, # VCE
+    0, # dummy
+]
