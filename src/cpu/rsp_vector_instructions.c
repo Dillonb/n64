@@ -428,23 +428,25 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
-    switch (instruction.cp2_vec.e & 0b11) {
-        case 0:
+    switch (instruction.cp2_vec.e) {
+        case 0x8:
             for (int i = 0; i < 8; i++) {
                 rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i].high;
-                rsp->accumulator[i].high = rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
             }
             break;
-        case 1:
+        case 0x9:
             for (int i = 0; i < 8; i++) {
                 rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i].middle;
-                rsp->accumulator[i].middle = rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
             }
             break;
-        case 2:
+        case 0xA:
             for (int i = 0; i < 8; i++) {
                 rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i].low;
-                rsp->accumulator[i].low = rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
+            }
+            break;
+        default: // Not actually sure what the default behavior is here
+            for (int i = 0; i < 8; i++) {
+                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = 0x0000;
             }
             break;
     }
