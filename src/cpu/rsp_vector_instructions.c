@@ -29,7 +29,16 @@ RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_llv) {
-    logfatal("Unimplemented: rsp_lwc2_llv")
+    int e = instruction.v.element;
+    sbyte offset     = instruction.v.offset << 1;
+    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    unimplemented(e % 4 != 0, "LLV to unaligned element")
+
+    for (int i = 0; i < 4; i++) {
+        int element = i + e;
+        unimplemented(element > 15, "LLV overflowing vector register")
+        rsp->vu_regs[instruction.v.vt].bytes[15 - element] = rsp->read_byte(address + i);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
