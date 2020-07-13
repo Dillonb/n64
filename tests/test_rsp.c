@@ -48,24 +48,33 @@ bool run_test(const char* test_name, const char* subtest_name, word* input, int 
     }
 
     bool failed = false;
-    printf("\n\nExpected:");
+    printf("\n\n================= Expected =================");
     for (int i = 0; i < output_size; i++) {
         if (i % 16 == 0) {
-            printf("\n");
+            printf("\n0x%04X:  ", 0x800 + i);
         } else if (i % 4 == 0) {
             printf(" ");
         }
         printf("%02X", ((byte*)output)[i]);
     }
 
-    printf("\n\nActual:");
+    printf("\n\n================== Actual ==================");
     for (int i = 0; i < output_size; i++) {
         if (i % 16 == 0) {
-            printf("\n");
+            printf("\n0x%04X:  ", 0x800 + i);
         } else if (i % 4 == 0) {
             printf(" ");
         }
-        printf("%02X", system->mem.sp_dmem[0x800 + i]);
+        byte actual = system->mem.sp_dmem[0x800 + i];
+        byte expected = ((byte*)output)[i];
+
+        if (actual != expected) {
+            printf(COLOR_RED);
+        }
+        printf("%02X", actual);
+        if (actual != expected) {
+            printf(COLOR_END);
+        }
     }
     printf("\n\n");
 
@@ -77,8 +86,6 @@ bool run_test(const char* test_name, const char* subtest_name, word* input, int 
         if (actual != expected) {
             printf("%s %s: Incorrect data at offset %d / %d! Expected: 0x%08X != actual: 0x%08X\n", test_name, subtest_name, i, output_size / 4, expected, actual);
             failed = true;
-        } else {
-            printf("%s %s: offset %d / %d Expected: 0x%08X == actual: 0x%08X\n", test_name, subtest_name, i, output_size / 4, expected, actual);
         }
     }
 
