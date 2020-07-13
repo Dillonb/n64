@@ -49,4 +49,9 @@ INLINE void half_to_byte_array(byte* arr, word index, half value) {
     warr[index / sizeof(half)] = htobe16(value);
 }
 
+INLINE void half_to_byte_array_unaligned(byte* arr, word index, half value) {
+    half* warr = (half*)(arr + index);
+    warr[0] = htobe16(value);
+}
+
 #endif //N64_MEM_UTIL_H
