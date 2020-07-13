@@ -43,9 +43,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address && i + e < 16; i++) {
-        byte b = rsp->read_byte(address + i);
-        rsp->vu_regs[instruction.v.vt].bytes[15 - (i + e)] = b;
-        printf("LQV: loading byte from 0x%08X to v%d byte %d\n", address + i, instruction.v.vt, 15 - (i + e));
+        rsp->vu_regs[instruction.v.vt].bytes[15 - (i + e)] = rsp->read_byte(address + i);
     }
 }
 
@@ -108,7 +106,6 @@ RSP_VECTOR_INSTR(rsp_swc2_sqv) {
 
     for (int i = 0; address + i <= end_address; i++) {
         rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + e) & 15)]);
-        printf("SQV: writing byte 0x%02X from v%d byte %d to 0x%03X\n", rsp->vu_regs[instruction.v.vt].bytes[15 - (i + e)], instruction.v.vt, 15 - (i + e), address + i);
     }
 }
 
