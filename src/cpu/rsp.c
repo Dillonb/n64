@@ -123,7 +123,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_DIV:    return MIPS_SPC_DIV;
         //case FUNCT_DIVU:   return MIPS_SPC_DIVU;
         case FUNCT_ADD:    return MIPS_SPC_ADD;
-        //case FUNCT_ADDU:   return MIPS_SPC_ADDU;
+        case FUNCT_ADDU:   return MIPS_SPC_ADD;
         case FUNCT_AND:    return MIPS_SPC_AND;
         //case FUNCT_NOR:    return MIPS_SPC_NOR;
         case FUNCT_SUB:    return MIPS_SPC_SUB;
@@ -204,7 +204,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
         }
         switch (instr.op) {
             case OPC_LUI:   return MIPS_LUI;
-            //case OPC_ADDIU: return MIPS_ADDIU;
+            case OPC_ADDIU: return MIPS_ADDI;
             case OPC_ADDI:  return MIPS_ADDI;
             case OPC_ANDI:  return MIPS_ANDI;
             case OPC_LBU:   return MIPS_LBU;
