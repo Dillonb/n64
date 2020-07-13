@@ -16,7 +16,7 @@ INLINE word word_from_byte_array(byte* arr, word index) {
 
 INLINE word word_from_byte_array_unaligned(byte* arr, word index) {
     word* warr = (word*)(arr + index);
-    return be16toh(warr[0]);
+    return be32toh(warr[0]);
 }
 
 INLINE half half_from_byte_array(byte* arr, word index) {
