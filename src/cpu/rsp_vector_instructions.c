@@ -52,7 +52,11 @@ RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
-    logfatal("Unimplemented: rsp_lwc2_lsv")
+    int e = instruction.v.element;
+    sbyte offset     = instruction.v.offset << 1;
+    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    unimplemented(e % 2 == 1, "LSV with uneven element!")
+    rsp->vu_regs[instruction.v.vt].elements[7 - (e / 2)] = rsp->read_half(address);
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
