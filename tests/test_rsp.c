@@ -48,6 +48,27 @@ bool run_test(const char* test_name, const char* subtest_name, word* input, int 
     }
 
     bool failed = false;
+    printf("\n\nExpected:");
+    for (int i = 0; i < output_size; i++) {
+        if (i % 16 == 0) {
+            printf("\n");
+        } else if (i % 4 == 0) {
+            printf(" ");
+        }
+        printf("%02X", ((byte*)output)[i]);
+    }
+
+    printf("\n\nActual:");
+    for (int i = 0; i < output_size; i++) {
+        if (i % 16 == 0) {
+            printf("\n");
+        } else if (i % 4 == 0) {
+            printf(" ");
+        }
+        printf("%02X", system->mem.sp_dmem[0x800 + i]);
+    }
+    printf("\n\n");
+
     for (int i = 0; i < output_size / 4; i++) {
         // File is in big endian, and the read handler converts things back to little for us, so convert it here too.
         word expected = be32toh(output[i]);
