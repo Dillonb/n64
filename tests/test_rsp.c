@@ -84,7 +84,6 @@ bool run_test(const char* test_name, const char* subtest_name, word* input, int 
         word actual = system->rsp.read_word(0x800 + (i * 4));
 
         if (actual != expected) {
-            printf("%s %s: Incorrect data at offset %d / %d! Expected: 0x%08X != actual: 0x%08X\n", test_name, subtest_name, i, output_size / 4, expected, actual);
             failed = true;
         }
     }
