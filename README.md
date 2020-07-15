@@ -16,7 +16,7 @@ This is a project I am working on to learn about the N64 and more advanced emula
 - Challenge myself
 
 ## Technical
-- Nothing _exclusively_ HLE. If anything is HLE'd, it must be an optional setting.
+- Nothing _exclusively_ using high level emulation (HLE.) If anything is HLE'd, it must be an optional setting.
 - GUI debugger to view hardware registers/memory
 - GDB stub for debugging
 - Reasonable amount of automated testing
