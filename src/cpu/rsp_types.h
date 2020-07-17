@@ -16,20 +16,6 @@ typedef union vu_reg {
 
 static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
 
-typedef union vu_accumulator {
-    struct {
-        half low:16;
-        half middle:16;
-        half high:16;
-    } __attribute((packed));
-    struct {
-        sdword raw:48;
-    } __attribute((packed));
-    byte bytes[6];
-} vu_accumulator_t;
-
-static_assert(sizeof(vu_accumulator_t) == 6, "vu_accumulator_t incorrect size! %d");
-
 typedef union rsp_types {
     word raw;
     struct {
@@ -113,7 +99,7 @@ typedef struct rsp {
         byte raw;
     } vce;
 
-    vu_accumulator_t accumulator[8];
+    sdword accumulator[8];
 
     bool semaphore_held;
 
