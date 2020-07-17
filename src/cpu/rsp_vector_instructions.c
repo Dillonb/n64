@@ -192,7 +192,7 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vand) {
-    unimplemented(instruction.v.element != 0, "Element != 0")
+    unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] & rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
@@ -419,7 +419,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
-    unimplemented(instruction.v.element != 0, "Element != 0")
+    unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] & rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
@@ -435,7 +435,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnop) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
-    unimplemented(instruction.v.element != 0, "Element != 0")
+    unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
@@ -443,7 +443,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnxor) {
-    unimplemented(instruction.v.element != 0, "Element != 0")
+    unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] ^ rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
@@ -451,7 +451,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnxor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vor) {
-    unimplemented(instruction.v.element != 0, "Element != 0")
+    unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
@@ -524,7 +524,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vxor) {
-    unimplemented(instruction.v.element != 0, "Element != 0")
+    unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] ^ rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
