@@ -167,8 +167,8 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
     switch (instruction.r.rd) {
         case 0: { // VCO
             for (int i = 0; i < 8; i++) {
-                bool h = rsp->vco.h.elements[i] != 0;
-                bool l = rsp->vco.l.elements[i] != 0;
+                bool h = rsp->vco.h.elements[7 - i] != 0;
+                bool l = rsp->vco.l.elements[7 - i] != 0;
                 word mask = (l << i) | (h << (i + 8));
                 value |= mask;
             }
@@ -176,8 +176,8 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
         }
         case 1: { // VCC
             for (int i = 0; i < 8; i++) {
-                bool h = rsp->vcc.h.elements[i] != 0;
-                bool l = rsp->vcc.l.elements[i] != 0;
+                bool h = rsp->vcc.h.elements[7 - i] != 0;
+                bool l = rsp->vcc.l.elements[7 - i] != 0;
                 word mask = (l << i) | (h << (i + 8));
                 value |= mask;
             }
@@ -185,7 +185,7 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
         }
         case 2: { // VCE
             for (int i = 0; i < 8; i++) {
-                bool l = rsp->vcc.l.elements[i] != 0;
+                bool l = rsp->vcc.l.elements[7 - i] != 0;
                 value |= (l << i);
             }
             break;
