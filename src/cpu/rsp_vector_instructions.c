@@ -455,7 +455,17 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudl) {
-    logfatal("Unimplemented: rsp_vec_vmudl")
+    for (int e = 0; e < 8; e++) {
+        half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        word prod = multiplicand1 * multiplicand2;
+
+        dword acc = prod >> 16;
+
+        set_rsp_accumulator(rsp, e, acc);
+        half result = rsp->acc.l.elements[e]; // TODO this isn't 100% correct, I think.
+        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudm) {
