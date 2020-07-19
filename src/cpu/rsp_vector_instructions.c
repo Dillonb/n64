@@ -238,7 +238,35 @@ RSP_VECTOR_INSTR(rsp_vec_vand) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vch) {
-    logfatal("Unimplemented: rsp_vec_vch")
+    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
+    vu_reg_t* vs = &rsp->vu_regs[instruction.cp2_vec.vs];
+
+    for (int e = 0; e < 8; e++) {
+        shalf vse = vs->signed_elements[e];
+        shalf vte = vt->signed_elements[e];
+
+        half uvse = vs->signed_elements[e];
+        half uvte = vt->signed_elements[e];
+        if((vse ^ vte) < 0) {
+            shalf result = vse + vse;
+            rsp->acc.l.signed_elements[e] = (result <= 0 ? -vte : vse);
+            rsp->vcc.l.elements[e] = result <= 0;
+            rsp->vcc.h.elements[e] = vte < 0;
+            rsp->vco.l.elements[e] = 1;
+            rsp->vco.h.elements[e] = result != 0 && uvse != (uvse ^ 0xFFFF);
+            rsp->vce.elements[e] = result == -1;
+        } else {
+            shalf result = vse - vte;
+            rsp->acc.l.signed_elements[e] = (result >= 0 ? vte : vse);
+            rsp->vcc.l.elements[e] = vte < 0;
+            rsp->vcc.h.elements[e] = result >= 0;
+            rsp->vco.l.elements[e] = 0;
+            rsp->vco.h.elements[e] = result != 0 && uvse != (uvte ^ 0xffff);
+            rsp->vce.elements[e] = 0;
+        }
+    }
+
+    rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.l.single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vcl) {
