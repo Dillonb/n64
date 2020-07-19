@@ -189,7 +189,7 @@ mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
         case LWC2_LTV: return RSP_SWC2_STV;
         case LWC2_LUV: return RSP_SWC2_SUV;
         default:
-            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct)
+            logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct)
     }
 }
 
