@@ -319,8 +319,8 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
     vsvtvd;
     for (int i = 0; i < 8; i++) {
         bool eql = vs->elements[i] == vt->elements[i];
-        bool neg = rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] != 0 && eql;
-        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] < vt->elements[i]);
+        bool neg = rsp->vco.h.elements[i] != 0 && rsp->vco.l.elements[i] != 0 && eql;
+        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] < vt->signed_elements[i]);
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vt->elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
         rsp->vcc.h.elements[i] = 0;
