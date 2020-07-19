@@ -205,7 +205,7 @@ void n64_system_loop(n64_system_t* system) {
 
 void n64_system_cleanup(n64_system_t* system) {
     rdp_cleanup();
-    logfatal("TODO: finish doing cleanup stuff")
+    free(system);
 }
 
 void n64_request_quit() {
