@@ -185,7 +185,7 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
         }
         case 2: { // VCE
             for (int i = 0; i < 8; i++) {
-                bool l = rsp->vcc.l.elements[7 - i] != 0;
+                bool l = rsp->vce.elements[7 - i] != 0;
                 value |= (l << i);
             }
             break;
