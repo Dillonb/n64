@@ -576,7 +576,12 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph) {
-    logfatal("Unimplemented: rsp_vec_vrcph")
+    byte de = instruction.cp2_vec.vs;
+
+    rsp->divin = rsp->vu_regs[instruction.cp2_vec.vt].elements[instruction.cp2_vec.e];
+    rsp->divin_loaded = true;
+    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
+    rsp->vu_regs[instruction.cp2_vec.vd].elements[de] = rsp->divout;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {

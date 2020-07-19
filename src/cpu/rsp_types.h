@@ -109,6 +109,10 @@ typedef struct rsp {
         vu_reg_t l;
     } acc;
 
+    shalf divin;
+    bool divin_loaded;
+    shalf divout;
+
     bool semaphore_held;
 
     byte (*read_byte)(word);
