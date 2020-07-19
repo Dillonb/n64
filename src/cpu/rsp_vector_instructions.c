@@ -602,7 +602,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd];
 
     sword result = 0;
-    sword input = L && rsp->divin_loaded ? rsp->divin << 16 | vt->elements[instruction.cp2_vec.e & 7] : vt->signed_elements[instruction.cp2_vec.e & 7];
+    sword input = L && rsp->divin_loaded ? rsp->divin << 16 | vt->elements[7 - (instruction.cp2_vec.e & 7)] : vt->signed_elements[7 - (instruction.cp2_vec.e & 7)];
     sword mask = input >> 31;
     sword data = input ^ mask;
     if(input > -32768) data -= mask;
@@ -621,7 +621,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     rsp->divout = result >> 16;
     rsp->acc.l.single = vt->single;
 
-    vd->elements[instruction.cp2_vec.vs] = result;
+    vd->elements[7 - (instruction.cp2_vec.vs)] = result;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
