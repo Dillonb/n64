@@ -222,11 +222,11 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
         shalf vse = vs->signed_elements[i];
         shalf vte = vt->signed_elements[i];
         // result(16..0) = VS<i>(15..0) + VT<i>(15..0) + VCO(i)
-        half result = vse + vte + (rsp->vco.l.elements[i] != 0);
+        sword result = vse + vte + (rsp->vco.l.elements[i] != 0);
         // ACC<i>(15..0) = result(15..0)
         rsp->acc.l.elements[i] = result;
         // VD<i>(15..0) = clamp_signed(result(16..0))
-        vd->elements[i] = clamp_signed((shalf)result);
+        vd->elements[i] = clamp_signed(result);
         // VCO(i) = 0
         rsp->vco.l.elements[i] = 0;
         // VCO(i + 8) = 0
