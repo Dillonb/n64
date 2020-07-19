@@ -282,39 +282,25 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
 RSP_VECTOR_INSTR(rsp_vec_vcl) {
     vsvtvd;
 
-    // for i in 0..7
     for (int i = 0; i < 8; i++) {
         half vse = vs->elements[i];
         half vte = vt->elements[i];
-        // if !VCO(i) & !VCO(i + 8)
         if (rsp->vco.l.elements[i] == 0 && rsp->vco.h.elements[i] == 0) {
-            // VCC(i + 8) = VS<i>(15..0) >= VT<i>(15..0)
             rsp->vcc.h.elements[i] = (sword)vse - (sword)vte >= 0;
-            // endif
         }
-        // if VCO(i) & !VCO(i + 8)
         if (rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] == 0) {
-            // lte = VS<i>(15..0) <= -VT<i>(15..0)
             bool lte = vse <= -vte;
-            // eql = VS<i>(15..0) == -VT<i>(15..0)
             bool eql = vse == -vte;
-            // VCC(i) = VCE(i) ? lte : eql
             rsp->vcc.l.elements[i] = rsp->vce.elements[i] != 0 ? lte : eql;
-            // endif
         }
-        // clip = VCO(i) ? VCC(i) : VCC(i + 8)
         bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] != 0 : rsp->vcc.h.elements[i] != 0;
-        // vt_abs(15..0) = VCO(i) ? -VT<i>(15..0) : VT<i>(15..0)
         half vt_abs = rsp->vco.l.elements[i] != 0 ? -vte : vte;
-        // ACC<i>(15..0) = clip ? vt_abs(15..0) : VS<i>(15..0)
         if (clip) {
             rsp->acc.l.elements[i] = vt_abs;
         } else {
             rsp->acc.l.elements[i] = vse;
         }
-        // VD<i>(15..0) = ACC<i>(15..0)
         vd->elements[i] = rsp->acc.l.elements[i];
-        // endfor
     }
 }
 
