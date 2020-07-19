@@ -251,32 +251,19 @@ RSP_VECTOR_INSTR(rsp_vec_vand) {
 RSP_VECTOR_INSTR(rsp_vec_vch) {
     vsvtvd;
 
-    for (int e = 0; e < 8; e++) {
-        shalf vse = vs->signed_elements[e];
-        shalf vte = vt->signed_elements[e];
-
-        half uvse = vs->signed_elements[e];
-        half uvte = vt->signed_elements[e];
-        if((vse ^ vte) < 0) {
-            shalf result = vse + vse;
-            rsp->acc.l.signed_elements[e] = (result <= 0 ? -vte : vse);
-            rsp->vcc.l.elements[e] = result <= 0;
-            rsp->vcc.h.elements[e] = vte < 0;
-            rsp->vco.l.elements[e] = 1;
-            rsp->vco.h.elements[e] = result != 0 && uvse != (uvse ^ 0xFFFF);
-            rsp->vce.elements[e] = result == -1;
-        } else {
-            shalf result = vse - vte;
-            rsp->acc.l.signed_elements[e] = (result >= 0 ? vte : vse);
-            rsp->vcc.l.elements[e] = vte < 0;
-            rsp->vcc.h.elements[e] = result >= 0;
-            rsp->vco.l.elements[e] = 0;
-            rsp->vco.h.elements[e] = result != 0 && uvse != (uvte ^ 0xffff);
-            rsp->vce.elements[e] = 0;
-        }
+    for (int i = 0; i < 8; i++) {
+        shalf vse = vs->signed_elements[i];
+        shalf vte = vt->signed_elements[i];
+        rsp->vco.l.elements[i] = (vs->elements[i] >> 15) != (vt->elements[i] >> 15);
+        half vt_abs = rsp->vco.l.elements[i] != 0 ? -vte : vte;
+        rsp->vce.elements[i] = rsp->vco.l.elements[i] != 0 && (vse == -vte - 1);
+        rsp->vco.h.elements[i] = rsp->vce.elements[i] == 0 && (vse != (shalf)vt_abs);
+        rsp->vcc.l.elements[i] = vse <= -vte;
+        rsp->vcc.h.elements[i] = vse >= vte;
+        bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] != 0 : rsp->vcc.h.elements[i] != 0;
+        rsp->acc.l.elements[i] = clip ? vt_abs : vs->elements[i];
+        vd->elements[i] = rsp->acc.l.elements[i];
     }
-
-    vd->single = rsp->acc.l.single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vcl) {
