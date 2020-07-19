@@ -204,7 +204,25 @@ RSP_VECTOR_INSTR(rsp_vec_vabs) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vadd) {
-    logfatal("Unimplemented: rsp_vec_vadd")
+    vu_reg_t* vs = &rsp->vu_regs[instruction.cp2_vec.vs];
+    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
+    vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd];
+    // for i in 0..7
+    for (int i = 0; i < 8; i++) {
+        shalf vse = vs->signed_elements[i];
+        shalf vte = vt->signed_elements[i];
+        // result(16..0) = VS<i>(15..0) + VT<i>(15..0) + VCO(i)
+        half result = vse + vte + (rsp->vco.l.elements[i] != 0);
+        // ACC<i>(15..0) = result(15..0)
+        rsp->acc.l.elements[i] = result;
+        // VD<i>(15..0) = clamp_signed(result(16..0))
+        vd->elements[i] = clamp_signed((shalf)result);
+        // VCO(i) = 0
+        rsp->vco.l.elements[i] = 0;
+        // VCO(i + 8) = 0
+        rsp->vco.h.elements[i] = 0;
+        // endfor
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vaddc) {
