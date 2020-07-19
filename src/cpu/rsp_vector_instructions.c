@@ -588,6 +588,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnor) {
     for (int i = 0; i < 8; i++) {
         half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
+        rsp->acc.l.elements[i] = result;
     }
 }
 
@@ -604,6 +605,7 @@ RSP_VECTOR_INSTR(rsp_vec_vor) {
     for (int i = 0; i < 8; i++) {
         half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
+        rsp->acc.l.elements[i] = result;
     }
 }
 
