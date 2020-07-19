@@ -284,16 +284,16 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
 
     // for i in 0..7
     for (int i = 0; i < 8; i++) {
-        shalf vse = vs->signed_elements[i];
-        shalf vte = vt->signed_elements[i];
+        half vse = vs->elements[i];
+        half vte = vt->elements[i];
         // if !VCO(i) & !VCO(i + 8)
-        if (~rsp->vco.l.elements[i] & ~rsp->vco.h.elements[i]) {
+        if (rsp->vco.l.elements[i] == 0 && rsp->vco.h.elements[i] == 0) {
             // VCC(i + 8) = VS<i>(15..0) >= VT<i>(15..0)
-            rsp->vcc.h.elements[i] = vse >= vte;
+            rsp->vcc.h.elements[i] = (sword)vse - (sword)vte >= 0;
             // endif
         }
         // if VCO(i) & !VCO(i + 8)
-        if (rsp->vco.l.elements[i] & ~rsp->vco.h.elements[i]) {
+        if (rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] == 0) {
             // lte = VS<i>(15..0) <= -VT<i>(15..0)
             bool lte = vse <= -vte;
             // eql = VS<i>(15..0) == -VT<i>(15..0)
