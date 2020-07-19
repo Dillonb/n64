@@ -3,13 +3,17 @@
 
 #include <stdbool.h>
 #include <assert.h>
+#include <emmintrin.h>
 #include "../common/util.h"
+
+#define vecr __m128
 
 typedef union vu_reg {
     // Used by instructions
     byte bytes[16];
+    shalf signed_elements[8];
     half elements[8];
-    qword single;
+    vecr single;
     // Only used for loading
     word words[4];
 } vu_reg_t;
@@ -87,19 +91,23 @@ typedef struct rsp {
 
     vu_reg_t vu_regs[32];
 
-    union {
-        half raw;
+    struct {
+        vu_reg_t l;
+        vu_reg_t h;
     } vcc;
 
-    union {
-        half raw;
+    struct {
+        vu_reg_t l;
+        vu_reg_t h;
     } vco;
 
-    union {
-        byte raw;
-    } vce;
+    vu_reg_t vce;
 
-    sdword accumulator[8];
+    struct {
+        vu_reg_t h;
+        vu_reg_t m;
+        vu_reg_t l;
+    } acc;
 
     bool semaphore_held;
 

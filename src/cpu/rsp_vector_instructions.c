@@ -1,4 +1,7 @@
 #include "rsp_vector_instructions.h"
+
+#include <emmintrin.h>
+
 #include "../common/log.h"
 #include "rsp.h"
 
@@ -149,18 +152,35 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 }
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
-    word value;
+    word value = 0;
     switch (instruction.r.rd) {
-        case 0: // VCO
-            value = rsp->vco.raw;
+        case 0: { // VCO
+            for (int i = 0; i < 8; i++) {
+                bool h = rsp->vco.h.elements[i] != 0;
+                bool l = rsp->vco.l.elements[i] != 0;
+                word mask = (l << i) | (h << (i + 8));
+                value |= mask;
+            }
             break;
-        case 1: // VCC
-            value = rsp->vcc.raw;
+        }
+        case 1: { // VCC
+            for (int i = 0; i < 8; i++) {
+                bool h = rsp->vcc.h.elements[i] != 0;
+                bool l = rsp->vcc.l.elements[i] != 0;
+                word mask = (l << i) | (h << (i + 8));
+                value |= mask;
+            }
             break;
-        case 2: // VCE
-            value = rsp->vce.raw;
+        }
+        case 2: { // VCE
+            for (int i = 0; i < 8; i++) {
+                bool l = rsp->vcc.l.elements[i] != 0;
+                value |= (l << i);
+            }
             break;
-        default: logfatal("CFC2 from unknown VU control register: %d", instruction.r.rd)
+            default:
+                logfatal("CFC2 from unknown VU control register: %d", instruction.r.rd)
+        }
     }
 
     set_rsp_register(rsp, instruction.r.rt, value);
@@ -230,11 +250,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod * 2;
-        sdword acc = rsp->accumulator[e] + acc_delta;
+        sdword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
         shalf result = clamp_signed(acc >> 16);
 
-        rsp->accumulator[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -250,11 +270,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod * 2;
-        sdword acc = rsp->accumulator[e] + acc_delta;
+        sdword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
         half result = clamp_unsigned(acc >> 16);
 
-        rsp->accumulator[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -267,11 +287,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
         word uprod = prod;
 
         dword acc_delta = (dword)uprod << 16;
-        sdword acc = rsp->accumulator[e] + acc_delta;
+        sdword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
         shalf result = clamp_signed((sword)(acc >> 16));
 
-        rsp->accumulator[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -283,10 +303,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
         word prod = multiplicand1 * multiplicand2;
 
         dword acc_delta = prod >> 16;
-        dword acc = rsp->accumulator[e] + acc_delta;
+        dword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
-        rsp->accumulator[e] = acc;
-        half result = rsp->accumulator[e] & 0xFFFF; // TODO this isn't 100% correct, I think.
+        set_rsp_accumulator(rsp, e, acc);
+        half result = get_rsp_accumulator(rsp, e) & 0xFFFF; // TODO this isn't 100% correct, I think.
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -298,11 +318,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod;
-        sdword acc = rsp->accumulator[e] + acc_delta;
+        sdword acc = get_rsp_accumulator(rsp, e);
+        acc += acc_delta;
 
         shalf result = clamp_signed(acc >> 16);
 
-        rsp->accumulator[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -314,10 +335,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod;
-        sdword acc = rsp->accumulator[e] + acc_delta;
+        sdword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
-        rsp->accumulator[e] = acc;
-        half result = rsp->accumulator[e] & 0xFFFF; // TODO this isn't 100% correct, I think.
+        set_rsp_accumulator(rsp, e, acc);
+        half result = get_rsp_accumulator(rsp, e) & 0xFFFF; // TODO this isn't 100% correct, I think.
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -344,8 +365,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
 
         acc <<= 16;
 
-        rsp->accumulator[e] &= 0xFFFF;
-        rsp->accumulator[e] |= acc;
+        rsp->acc.l.elements[e] = acc;
 
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
@@ -365,7 +385,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudm) {
 
         shalf result = clamp_signed(acc >> 16);
 
-        rsp->accumulator[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -378,8 +398,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
 
         sdword acc = prod;
 
-        rsp->accumulator[e] = acc;
-        half result = rsp->accumulator[e] & 0xFFFF; // TODO this isn't 100% correct, I think.
+        set_rsp_accumulator(rsp, e, acc);
+        half result = get_rsp_accumulator(rsp, e) & 0xFFFF; // TODO this isn't 100% correct, I think.
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -394,7 +414,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
 
         shalf result = clamp_signed(acc >> 16);
 
-        rsp->accumulator[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -413,7 +433,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
 
         half result = clamp_unsigned(acc >> 16);
 
-        rsp->accumulator[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -493,19 +513,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
     switch (instruction.cp2_vec.e) {
         case 0x8:
-            for (int i = 0; i < 8; i++) {
-                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i] >> 32 & 0xFFFF;
-            }
+            rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.h.single;
             break;
         case 0x9:
-            for (int i = 0; i < 8; i++) {
-                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = (rsp->accumulator[i] >> 16) & 0xFFFF;
-            }
+            rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.m.single;
             break;
         case 0xA:
-            for (int i = 0; i < 8; i++) {
-                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = rsp->accumulator[i] & 0xFFFF;
-            }
+            rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.l.single;
             break;
         default: // Not actually sure what the default behavior is here
             for (int i = 0; i < 8; i++) {
