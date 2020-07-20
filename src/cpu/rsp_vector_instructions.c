@@ -444,19 +444,16 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmudh) {
     for (int e = 0; e < 8; e++) {
-        sword multiplicand1 = (shalf)rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
-        sword multiplicand2 = (shalf)rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
-        //sdword acc = rsp->accumulator[e] >> 16;
-        sdword acc = 0;
-        acc += prod;
+        sdword acc = prod;
 
         shalf result = clamp_signed(acc);
 
         acc <<= 16;
-
-        rsp->acc.l.elements[e] = acc;
+        set_rsp_accumulator(rsp, e, acc);
 
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
