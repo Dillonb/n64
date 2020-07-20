@@ -103,8 +103,8 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
 }
 
 INLINE void rsp_dma_write(rsp_t* rsp) {
-    word length = (rsp->io.dma_read.length | 7) + 1;
-    for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
+    word length = (rsp->io.dma_write.length | 7) + 1;
+    for (int i = 0; i < rsp->io.dma_write.count + 1; i++) {
         word mem_addr = rsp->io.mem_addr.address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
         for (int j = 0; j < length; j++) {
             byte val = rsp->read_physical_byte(mem_addr + j);
@@ -112,7 +112,7 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
             rsp->write_physical_byte(rsp->io.dram_addr.address + j, val);
         }
 
-        rsp->io.dram_addr.address += length + rsp->io.dma_read.skip;
+        rsp->io.dram_addr.address += length + rsp->io.dma_write.skip;
         rsp->io.mem_addr.address += length;
     }
 }
