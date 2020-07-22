@@ -254,6 +254,10 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
 void rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
     dword pc = rsp->pc & 0xFFFFFF;
+    if (pc % 4 != 0) {
+        logfatal("RSP PC at misaligned address!")
+    }
+
     mips_instruction_t instruction;
     // RSP can only read from IMEM.
     instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, pc & 0xFFF);
