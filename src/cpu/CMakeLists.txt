@@ -15,7 +15,7 @@ add_library(rsp
         mips_instruction_decode.h)
 
 TARGET_LINK_LIBRARIES(rsp    disassemble)
-TARGET_LINK_LIBRARIES(r4300i disassemble m)
+TARGET_LINK_LIBRARIES(r4300i disassemble m mupen_cpu_compare)
 
 find_package(Capstone)
 

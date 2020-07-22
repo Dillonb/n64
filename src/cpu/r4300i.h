@@ -377,6 +377,8 @@ typedef struct r4300i {
     int branch_delay;
     word branch_pc;
 
+    bool llbit;
+
     byte (*read_byte)(word);
     void (*write_byte)(word, byte);
 

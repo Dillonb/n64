@@ -1,0 +1,2 @@
+add_library(mupen_cpu_compare mupen_cpu_compare.c mupen_cpu_compare.h mips_instructions.def mupen_mocks.h)
+target_link_libraries(mupen_cpu_compare r4300i common core)

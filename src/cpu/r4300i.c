@@ -1,7 +1,9 @@
+#include <string.h>
 #include "r4300i.h"
 #include "../common/log.h"
 #include "disassemble.h"
 #include "mips_instructions.h"
+#include "../util/mupen_cpu_compare/mupen_cpu_compare.h"
 
 const char* register_names[] = {
         "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -460,6 +462,9 @@ void cp0_step(cp0_t* cp0) {
 
 #define exec_instr(key, fn) case key: fn(cpu, instruction); break;
 
+r4300i_t* copy = NULL;
+r4300i_t* copy2 = NULL;
+
 void r4300i_step(r4300i_t* cpu) {
     cp0_step(&cpu->cp0);
     dword pc = cpu->pc;
@@ -478,7 +483,26 @@ void r4300i_step(r4300i_t* cpu) {
 
     cpu->pc += 4;
 
-    switch (r4300i_instruction_decode(cpu, pc, instruction)) {
+    mips_instruction_type_t decoded = r4300i_instruction_decode(cpu, pc, instruction);
+
+    instruction_compare_t compare = get_comparison(decoded);
+
+
+    if (compare.valid) {
+        if (copy == NULL) {
+            copy = malloc(sizeof(r4300i_t));
+        }
+
+        if (copy2 == NULL) {
+            copy2 = malloc(sizeof(r4300i_t));
+        }
+
+        memcpy(copy, cpu, sizeof(r4300i_t));
+        memcpy(copy2, cpu, sizeof(r4300i_t));
+        compare.mupen(copy, instruction);
+    }
+
+    switch (decoded) {
         case MIPS_NOP: break;
 
         exec_instr(MIPS_LUI,   mips_lui)
@@ -654,6 +678,22 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_RI_BGEZL,  mips_ri_bgezl)
         exec_instr(MIPS_RI_BGEZAL, mips_ri_bgezal)
         default: logfatal("Unknown instruction type!")
+    }
+
+    if (compare.valid) {
+        for (int i = 0; i < 32; i++) {
+            dword mine = cpu->gpr[i];
+            dword mupen = copy->gpr[i];
+            if (mine != mupen) {
+                dword before = copy2->gpr[i];
+                logfatal("\n!!!!!!!!!!!!! HOLY FUCK MAN !!!!!!!!!!!!!\n"
+                         "after %s r%d was different!\n"
+                         "mine:   0x%016lX\n"
+                         "mupen:  0x%016lX\n"
+                         "before: 0x%016lX\n",
+                         compare.name, i, mine, mupen, before);
+            }
+        }
     }
 
     if (cpu->branch) {
