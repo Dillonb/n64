@@ -3,32 +3,22 @@
 
 #include <stdbool.h>
 #include <assert.h>
+#include <emmintrin.h>
 #include "../common/util.h"
+
+#define vecr __m128
 
 typedef union vu_reg {
     // Used by instructions
     byte bytes[16];
+    shalf signed_elements[8];
     half elements[8];
-    qword single;
+    vecr single;
     // Only used for loading
     word words[4];
 } vu_reg_t;
 
 static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
-
-typedef union vu_accumulator {
-    struct {
-        half low:16;
-        half middle:16;
-        half high:16;
-    } __attribute((packed));
-    struct {
-        sdword raw:48;
-    } __attribute((packed));
-    byte bytes[6];
-} vu_accumulator_t;
-
-static_assert(sizeof(vu_accumulator_t) == 6, "vu_accumulator_t incorrect size! %d");
 
 typedef union rsp_types {
     word raw;
@@ -101,19 +91,29 @@ typedef struct rsp {
 
     vu_reg_t vu_regs[32];
 
-    union {
-        half raw;
+    struct {
+        vu_reg_t l;
+        vu_reg_t h;
     } vcc;
 
-    union {
-        half raw;
+    struct {
+        vu_reg_t l;
+        vu_reg_t h;
     } vco;
 
-    union {
-        byte raw;
-    } vce;
+    vu_reg_t vce;
 
-    vu_accumulator_t accumulator[8];
+    struct {
+        vu_reg_t h;
+        vu_reg_t m;
+        vu_reg_t l;
+    } acc;
+
+    int sync; // For syncing RSP with CPU
+
+    shalf divin;
+    bool divin_loaded;
+    shalf divout;
 
     bool semaphore_held;
 
@@ -128,6 +128,9 @@ typedef struct rsp {
 
     word (*read_word)(word);
     void (*write_word)(word, word);
+
+    word (*read_physical_word)(word);
+    void (*write_physical_word)(word, word);
 
     //dword (*read_dword)(word);
     //void (*write_dword)(word, dword);

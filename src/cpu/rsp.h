@@ -88,37 +88,58 @@
 #define FUNCT_RSP_VEC_VXOR  0b101100
 
 INLINE void rsp_dma_read(rsp_t* rsp) {
-    word length = (rsp->io.dma_read.length | 7) + 1;
+    word length = rsp->io.dma_read.length + 1;
+
+    length = (length + 0x7) & ~0x7;
+
+    word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
+    if (dram_address != rsp->io.dram_addr.address) {
+        logfatal("Misaligned DRAM RSP DMA READ!")
+    }
+    word mem_address = rsp->io.mem_addr.address & 0xFFC;
+    if (mem_address != rsp->io.mem_addr.address) {
+        logfatal("Misaligned MEM RSP DMA READ!")
+    }
+
     for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
-        word mem_addr = rsp->io.mem_addr.address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j++) {
-            byte val = rsp->read_physical_byte(rsp->io.dram_addr.address + j);
-            logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, rsp->io.dram_addr.address + j, mem_addr + j)
-            rsp->write_physical_byte(mem_addr + j, val);
+        word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+        for (int j = 0; j < length; j += 4) {
+            word val = rsp->read_physical_word(dram_address + j);
+            rsp->write_physical_word(mem_addr + j, val);
         }
 
-        rsp->io.dram_addr.address += length + rsp->io.dma_read.skip;
-        rsp->io.mem_addr.address += length;
+        dram_address += length + rsp->io.dma_read.skip;
+        mem_address += length;
     }
 }
 
 INLINE void rsp_dma_write(rsp_t* rsp) {
-    word length = (rsp->io.dma_read.length | 7) + 1;
-    for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
-        word mem_addr = rsp->io.mem_addr.address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j++) {
-            byte val = rsp->read_physical_byte(mem_addr + j);
-            logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, rsp->io.dram_addr.address + j, mem_addr + j)
-            rsp->write_physical_byte(rsp->io.dram_addr.address + j, val);
+    word length = rsp->io.dma_write.length + 1;
+
+    length = (length + 0x7) & ~0x7;
+
+    word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
+    if (dram_address != rsp->io.dram_addr.address) {
+        logfatal("Misaligned DRAM RSP DMA WRITE!")
+    }
+    word mem_address = rsp->io.mem_addr.address & 0xFFC;
+    if (mem_address != rsp->io.mem_addr.address) {
+        logfatal("Misaligned MEM RSP DMA WRITE!")
+    }
+
+    for (int i = 0; i < rsp->io.dma_write.count + 1; i++) {
+        word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+        for (int j = 0; j < length; j += 4) {
+            word val = rsp->read_physical_word(mem_addr + j);
+            rsp->write_physical_word(dram_address + j, val);
         }
 
-        rsp->io.dram_addr.address += length + rsp->io.dma_read.skip;
-        rsp->io.mem_addr.address += length;
+        dram_address += length + rsp->io.dma_write.skip;
+        mem_address += length;
     }
 }
 
 INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
-    logtrace("Setting RSP r%d to [0x%08X]", r, value)
     if (r != 0) {
         if (r < 64) {
             rsp->gpr[r] = value;
@@ -131,7 +152,6 @@ INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
 INLINE word get_rsp_register(rsp_t* rsp, byte r) {
     if (r < 64) {
         word value = rsp->gpr[r];
-        logtrace("Reading RSP r%d: 0x%08X", r, value)
         return value;
     } else {
         logfatal("Attempted to read invalid RSP register: %d", r)
@@ -193,7 +213,7 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r)
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
-                system->rsp.semaphore_held = 0;
+                system->rsp.semaphore_held = false;
             } else {
                 logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value)
             }
@@ -202,10 +222,8 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
         case RSP_CP0_CMD_START:
             system->dpc.start = value & 0xFFFFFF;
             system->dpc.current = system->dpc.start;
-            printf("DPC_START = 0x%08X\n", system->dpc.start);
             break;
         case RSP_CP0_CMD_END:
-            printf("DPC_END = 0x%08X\n", system->dpc.start);
             system->dpc.end = value & 0xFFFFFF;
             rdp_run_command();
             break;
@@ -225,6 +243,21 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
         default:
             logfatal("Unsupported RSP CP0 $c%d written to", r)
     }
+}
+
+INLINE dword get_rsp_accumulator(rsp_t* rsp, int e) {
+    sdword val = (shalf)rsp->acc.h.elements[e];
+    val <<= 16;
+    val |= rsp->acc.m.elements[e];
+    val <<= 16;
+    val |= rsp->acc.l.elements[e];
+    return val;
+}
+
+INLINE void set_rsp_accumulator(rsp_t* rsp, int e, dword val) {
+    rsp->acc.h.elements[e] = (val >> 32) & 0xFFFF;
+    rsp->acc.m.elements[e] = (val >> 16) & 0xFFFF;
+    rsp->acc.l.elements[e] = val & 0xFFFF;
 }
 
 void rsp_step(n64_system_t* system);

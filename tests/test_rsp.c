@@ -22,16 +22,9 @@ void load_rsp_dmem(n64_system_t* system, word* input, int input_size) {
         word address = i * 4;
         system->rsp.write_word(address, input[i]);
     }
-
 }
 
-bool run_test(const char* test_name, const char* subtest_name, word* input, int input_size, word* output, int output_size) {
-    n64_system_t* system = init_n64system(NULL, false);
-
-    char rsp_path[PATH_MAX];
-    snprintf(rsp_path, PATH_MAX, "%s.rsp", test_name);
-
-    load_rsp_imem(system, rsp_path);
+bool run_test(n64_system_t* system, word* input, int input_size, word* output, int output_size) {
     load_rsp_dmem(system, input, input_size / 4);
 
     system->rsp.status.halt = false;
@@ -48,23 +41,44 @@ bool run_test(const char* test_name, const char* subtest_name, word* input, int 
     }
 
     bool failed = false;
-    for (int i = 0; i < output_size / 4; i++) {
-        // File is in big endian, and the read handler converts things back to little for us, so convert it here too.
-        word expected = be32toh(output[i]);
-        word actual = system->rsp.read_word(0x800 + (i * 4));
-
-        if (actual != expected) {
-            printf("%s %s: Incorrect data at offset %d / %d! Expected: 0x%08X != actual: 0x%08X\n", test_name, subtest_name, i, output_size / 4, expected, actual);
-            failed = true;
-        } else {
-            printf("%s %s: offset %d / %d Expected: 0x%08X == actual: 0x%08X\n", test_name, subtest_name, i, output_size / 4, expected, actual);
+    printf("\n\n================= Expected =================");
+    for (int i = 0; i < output_size; i++) {
+        if (i % 16 == 0) {
+            printf("\n0x%04X:  ", 0x800 + i);
+        } else if (i % 4 == 0) {
+            printf(" ");
         }
+        printf("%02X", ((byte*)output)[i]);
     }
 
+    printf("\n\n================== Actual ==================");
+    for (int i = 0; i < output_size; i++) {
+        if (i % 16 == 0) {
+            printf("\n0x%04X:  ", 0x800 + i);
+        } else if (i % 4 == 0) {
+            printf(" ");
+        }
+        byte actual = system->mem.sp_dmem[0x800 + i];
+        byte expected = ((byte*)output)[i];
 
-    free(system);
+        if (actual != expected) {
+            printf(COLOR_RED);
+            failed = true;
+        }
+        printf("%02X", actual);
+        if (actual != expected) {
+            printf(COLOR_END);
+        }
+    }
+    printf("\n\n");
 
     return failed;
+}
+
+n64_system_t* load_test(const char* rsp_path) {
+    n64_system_t* system = init_n64system(NULL, false);
+    load_rsp_imem(system, rsp_path);
+    return system;
 }
 
 int main(int argc, char** argv) {
@@ -96,6 +110,12 @@ int main(int argc, char** argv) {
 
     bool failed = false;
 
+    char rsp_path[PATH_MAX];
+    snprintf(rsp_path, PATH_MAX, "%s.rsp", test_name);
+
+    n64_system_t* system = load_test(rsp_path);
+    unimplemented(system == NULL, "asdf")
+
     for (int i = 4; i < argc; i++) {
         const char* subtest_name = argv[i];
         byte input[input_size];
@@ -103,7 +123,8 @@ int main(int argc, char** argv) {
         byte output[output_size];
         fread(output, 1, output_size, output_data_handle);
 
-        bool subtest_failed = run_test(test_name, subtest_name, (word*)input, input_size, (word*)output, output_size);
+        bool subtest_failed = run_test(system, (word *) input, input_size, (word *) output, output_size);
+
         if (subtest_failed) {
             printf("[%s %s] FAILED\n", test_name, subtest_name);
         } else {
@@ -112,6 +133,8 @@ int main(int argc, char** argv) {
 
         failed |= subtest_failed;
     }
+
+    free(system);
 
     if (failed) {
         logdie("Tests failed!")

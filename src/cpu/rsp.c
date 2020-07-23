@@ -115,7 +115,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         case FUNCT_SRA:    return MIPS_SPC_SRA;
         //case FUNCT_SRAV:   return MIPS_SPC_SRAV;
         case FUNCT_SLLV:   return MIPS_SPC_SLLV;
-        //case FUNCT_SRLV:   return MIPS_SPC_SRLV;
+        case FUNCT_SRLV:   return MIPS_SPC_SRLV;
         case FUNCT_JR:     return MIPS_SPC_JR;
         //case FUNCT_JALR:   return MIPS_SPC_JALR;
         //case FUNCT_MULT:   return MIPS_SPC_MULT;
@@ -123,7 +123,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_DIV:    return MIPS_SPC_DIV;
         //case FUNCT_DIVU:   return MIPS_SPC_DIVU;
         case FUNCT_ADD:    return MIPS_SPC_ADD;
-        //case FUNCT_ADDU:   return MIPS_SPC_ADDU;
+        case FUNCT_ADDU:   return MIPS_SPC_ADD;
         case FUNCT_AND:    return MIPS_SPC_AND;
         //case FUNCT_NOR:    return MIPS_SPC_NOR;
         case FUNCT_SUB:    return MIPS_SPC_SUB;
@@ -189,7 +189,7 @@ mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
         case LWC2_LTV: return RSP_SWC2_STV;
         case LWC2_LUV: return RSP_SWC2_SUV;
         default:
-            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct)
+            logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct)
     }
 }
 
@@ -204,7 +204,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
         }
         switch (instr.op) {
             case OPC_LUI:   return MIPS_LUI;
-            //case OPC_ADDIU: return MIPS_ADDIU;
+            case OPC_ADDIU: return MIPS_ADDI;
             case OPC_ADDI:  return MIPS_ADDI;
             case OPC_ANDI:  return MIPS_ANDI;
             case OPC_LBU:   return MIPS_LBU;
@@ -254,6 +254,10 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
 void rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
     dword pc = rsp->pc & 0xFFFFFF;
+    if (pc % 4 != 0) {
+        logfatal("RSP PC at misaligned address!")
+    }
+
     mips_instruction_t instruction;
     // RSP can only read from IMEM.
     instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, pc & 0xFFF);
@@ -285,6 +289,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_SPC_SRL,  rsp_spc_srl)
         exec_instr(MIPS_SPC_SRA,  rsp_spc_sra)
         exec_instr(MIPS_SPC_SLLV, rsp_spc_sllv)
+        exec_instr(MIPS_SPC_SRLV, rsp_spc_srlv)
         exec_instr(MIPS_SPC_SUB,  rsp_spc_sub)
         exec_instr(MIPS_SPC_OR,   rsp_spc_or)
         exec_instr(MIPS_SPC_XOR,  rsp_spc_xor)

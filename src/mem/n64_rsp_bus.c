@@ -15,7 +15,7 @@ half n64_rsp_read_half(n64_system_t* system, word address) {
 }
 
 void n64_rsp_write_half(n64_system_t* system, word address, half value) {
-    half_to_byte_array((byte*) &system->mem.sp_dmem, address & 0xFFF, value);
+    half_to_byte_array_unaligned((byte*) &system->mem.sp_dmem, address & 0xFFF, value);
 }
 
 byte n64_rsp_read_byte(n64_system_t* system, word address) {

@@ -42,12 +42,15 @@ word read_rsp_word_wrapper(word address) {
 }
 
 void write_rsp_word_wrapper(word address, word value) {
-    /*
-    if ((address & 0b11) > 0) {
-        logfatal("TODO: is the RSP allowed to write to unaligned addresses?")
-    }
-    */
     n64_rsp_write_word(global_system, address, value);
+}
+
+word read_physical_word_wrapper(word address) {
+    return n64_read_word(global_system, address);
+}
+
+void write_physical_word_wrapper(word address, word value) {
+    n64_write_word(global_system, address, value);
 }
 
 half read_rsp_half_wrapper(word address) {
@@ -55,9 +58,6 @@ half read_rsp_half_wrapper(word address) {
 }
 
 void write_rsp_half_wrapper(word address, half value) {
-    if ((address & 0b1) > 0) {
-        logfatal("TODO: is the RSP allowed to write to unaligned addresses?")
-    }
     n64_rsp_write_half(global_system, address, value);
 }
 
@@ -152,6 +152,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     system->rsp.read_physical_byte = &read_physical_byte_wrapper;
     system->rsp.write_physical_byte = &write_physical_byte_wrapper;
 
+    system->rsp.read_physical_word = &read_physical_word_wrapper;
+    system->rsp.write_physical_word = &write_physical_word_wrapper;
+
     system->rsp.status.halt = true; // RSP starts halted
 
     system->vi.vi_v_intr = 256;
@@ -178,7 +181,11 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 INLINE void _n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
     if (!system->rsp.status.halt) {
-        rsp_step(system);
+        if (++system->rsp.sync >= 3) {
+            system->rsp.sync -= 3;
+            rsp_step(system);
+            rsp_step(system);
+        }
     }
 }
 
@@ -213,7 +220,7 @@ void n64_system_loop(n64_system_t* system) {
 
 void n64_system_cleanup(n64_system_t* system) {
     rdp_cleanup();
-    logfatal("TODO: finish doing cleanup stuff")
+    free(system);
 }
 
 void n64_request_quit() {
@@ -245,11 +252,11 @@ void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
             system->mi.intr.ai = true;
             break;
         case INTERRUPT_DP:
-            printf("Raising DP interrupt\n");
+            logwarn("Raising DP interrupt")
             system->mi.intr.dp = true;
             break;
         case INTERRUPT_SP:
-            printf("Raising SP interrupt\n");
+            logwarn("Raising SP interrupt")
             system->mi.intr.sp = true;
             break;
         default:

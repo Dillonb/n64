@@ -61,6 +61,7 @@
 #define OPC_SLTI   0b001010
 #define OPC_SLTIU  0b001011
 #define OPC_XORI   0b001110
+#define OPC_DADDIU 0b011001
 #define OPC_LB     0b100000
 #define OPC_LDC1   0b110101
 #define OPC_SDC1   0b111101
@@ -147,6 +148,7 @@
 #define FUNCT_DIV    0b011010
 #define FUNCT_DIVU   0b011011
 #define FUNCT_DMULTU 0b011101
+#define FUNCT_DDIV   0b011110
 #define FUNCT_DDIVU  0b011111
 #define FUNCT_ADD    0b100000
 #define FUNCT_ADDU   0b100001
@@ -432,6 +434,7 @@ typedef enum mips_instruction_type {
     MIPS_SLTI,
     MIPS_SLTIU,
     MIPS_XORI,
+    MIPS_DADDIU,
     MIPS_LB,
     MIPS_LDC1,
     MIPS_SDC1,
@@ -546,6 +549,7 @@ typedef enum mips_instruction_type {
     MIPS_SPC_DIV,
     MIPS_SPC_DIVU,
     MIPS_SPC_DMULTU,
+    MIPS_SPC_DDIV,
     MIPS_SPC_DDIVU,
     MIPS_SPC_ADD,
     MIPS_SPC_ADDU,

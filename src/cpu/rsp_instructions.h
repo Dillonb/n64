@@ -26,6 +26,7 @@ RSP_INSTR(rsp_spc_jr);
 RSP_INSTR(rsp_spc_sll);
 RSP_INSTR(rsp_spc_srl);
 RSP_INSTR(rsp_spc_sra);
+RSP_INSTR(rsp_spc_srlv);
 RSP_INSTR(rsp_spc_sllv);
 RSP_INSTR(rsp_spc_sub);
 RSP_INSTR(rsp_spc_or);

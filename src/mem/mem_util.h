@@ -16,7 +16,7 @@ INLINE word word_from_byte_array(byte* arr, word index) {
 
 INLINE word word_from_byte_array_unaligned(byte* arr, word index) {
     word* warr = (word*)(arr + index);
-    return be16toh(warr[0]);
+    return be32toh(warr[0]);
 }
 
 INLINE half half_from_byte_array(byte* arr, word index) {
@@ -47,6 +47,11 @@ INLINE void word_to_byte_array_unaligned(byte* arr, word index, word value) {
 INLINE void half_to_byte_array(byte* arr, word index, half value) {
     half* warr = (half*)arr;
     warr[index / sizeof(half)] = htobe16(value);
+}
+
+INLINE void half_to_byte_array_unaligned(byte* arr, word index, half value) {
+    half* warr = (half*)(arr + index);
+    warr[0] = htobe16(value);
 }
 
 #endif //N64_MEM_UTIL_H

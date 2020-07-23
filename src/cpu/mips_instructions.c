@@ -745,6 +745,14 @@ MIPS_INSTR(mips_xori) {
     set_register(cpu, instruction.i.rt, instruction.i.immediate ^ get_register(cpu, instruction.i.rs));
 }
 
+MIPS_INSTR(mips_daddiu) {
+    shalf  addend1 = instruction.i.immediate;
+    sdword addend2 = get_register(cpu, instruction.i.rs);
+    sdword result = addend1 + addend2;
+    check_sdword_add_overflow(addend1, addend2, result);
+    set_register(cpu, instruction.i.rt, result);
+}
+
 MIPS_INSTR(mips_lb) {
     shalf offset    = instruction.i.immediate;
     word address    = get_register(cpu, instruction.i.rs) + offset;
@@ -1016,6 +1024,19 @@ MIPS_INSTR(mips_spc_dmultu) {
 
     cpu->mult_lo = result_lower;
     cpu->mult_hi = result_upper;
+}
+
+MIPS_INSTR(mips_spc_ddiv) {
+    dword dividend = get_register(cpu, instruction.r.rs);
+    dword divisor  = get_register(cpu, instruction.r.rt);
+
+    unimplemented(divisor == 0, "Divide by zero exception")
+
+    dword quotient  = dividend / divisor;
+    dword remainder = dividend % divisor;
+
+    cpu->mult_lo = quotient;
+    cpu->mult_hi = remainder;
 }
 
 MIPS_INSTR(mips_spc_ddivu) {
