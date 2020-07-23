@@ -66,6 +66,12 @@ RSP_INSTR(rsp_spc_sra) {
     set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+RSP_INSTR(rsp_spc_srlv) {
+    word value = get_rsp_register(rsp, instruction.r.rt);
+    sword result = value >> (get_rsp_register(rsp, instruction.r.rs) & 0b11111);
+    set_rsp_register(rsp, instruction.r.rd, result);
+}
+
 RSP_INSTR(rsp_spc_sllv) {
         word value = get_rsp_register(rsp, instruction.r.rt);
         sword result = value << (get_rsp_register(rsp, instruction.r.rs) & 0b11111);

@@ -115,7 +115,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         case FUNCT_SRA:    return MIPS_SPC_SRA;
         //case FUNCT_SRAV:   return MIPS_SPC_SRAV;
         case FUNCT_SLLV:   return MIPS_SPC_SLLV;
-        //case FUNCT_SRLV:   return MIPS_SPC_SRLV;
+        case FUNCT_SRLV:   return MIPS_SPC_SRLV;
         case FUNCT_JR:     return MIPS_SPC_JR;
         //case FUNCT_JALR:   return MIPS_SPC_JALR;
         //case FUNCT_MULT:   return MIPS_SPC_MULT;
@@ -289,6 +289,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_SPC_SRL,  rsp_spc_srl)
         exec_instr(MIPS_SPC_SRA,  rsp_spc_sra)
         exec_instr(MIPS_SPC_SLLV, rsp_spc_sllv)
+        exec_instr(MIPS_SPC_SRLV, rsp_spc_srlv)
         exec_instr(MIPS_SPC_SUB,  rsp_spc_sub)
         exec_instr(MIPS_SPC_OR,   rsp_spc_or)
         exec_instr(MIPS_SPC_XOR,  rsp_spc_xor)
