@@ -22,7 +22,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
     sbyte offset = instruction.v.offset << 1;
-    word address = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    word address = get_rsp_register(rsp, instruction.v.base) + offset * 4;
 
     for (int i = 0; i < 8; i++) {
         int element = i + instruction.v.element;
