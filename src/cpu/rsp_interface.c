@@ -74,7 +74,6 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_SP_MEM_ADDR_REG:
             system->rsp.io.mem_addr.raw = value;
-            printf("SP mem addr: 0x%08X\n", value);
             break;
         case ADDR_SP_DRAM_ADDR_REG:
             system->rsp.io.dram_addr.raw = value;

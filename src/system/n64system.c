@@ -252,11 +252,11 @@ void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
             system->mi.intr.ai = true;
             break;
         case INTERRUPT_DP:
-            printf("Raising DP interrupt\n");
+            logwarn("Raising DP interrupt")
             system->mi.intr.dp = true;
             break;
         case INTERRUPT_SP:
-            printf("Raising SP interrupt\n");
+            logwarn("Raising SP interrupt")
             system->mi.intr.sp = true;
             break;
         default:

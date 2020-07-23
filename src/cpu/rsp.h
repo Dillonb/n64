@@ -222,11 +222,9 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
         case RSP_CP0_CMD_START:
             system->dpc.start = value & 0xFFFFFF;
             system->dpc.current = system->dpc.start;
-            printf("DPC_START = 0x%08X\n", system->dpc.start);
             break;
         case RSP_CP0_CMD_END:
             system->dpc.end = value & 0xFFFFFF;
-            printf("DPC_END = 0x%08X\n", system->dpc.end);
             rdp_run_command();
             break;
         case RSP_CP0_CMD_CURRENT:

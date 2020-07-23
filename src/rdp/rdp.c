@@ -135,10 +135,8 @@ void write_word_dpcreg(n64_system_t* system, word address, word value) {
         case ADDR_DPC_START_REG:
             system->dpc.start = value & 0xFFFFFF;
             system->dpc.current = system->dpc.start;
-            printf("DPC_START = 0x%08X\n", system->dpc.start);
             break;
         case ADDR_DPC_END_REG:
-            printf("DPC_END = 0x%08X\n", system->dpc.start);
             system->dpc.end = value & 0xFFFFFF;
             rdp_run_command();
             break;
