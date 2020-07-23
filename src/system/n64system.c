@@ -181,7 +181,11 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 INLINE void _n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
     if (!system->rsp.status.halt) {
-        rsp_step(system);
+        if (++system->rsp.sync >= 3) {
+            system->rsp.sync -= 3;
+            rsp_step(system);
+            rsp_step(system);
+        }
     }
 }
 

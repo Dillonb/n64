@@ -109,6 +109,8 @@ typedef struct rsp {
         vu_reg_t l;
     } acc;
 
+    int sync; // For syncing RSP with CPU
+
     shalf divin;
     bool divin_loaded;
     shalf divout;

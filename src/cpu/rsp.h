@@ -152,7 +152,6 @@ INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
 INLINE word get_rsp_register(rsp_t* rsp, byte r) {
     if (r < 64) {
         word value = rsp->gpr[r];
-        logtrace("Reading RSP r%d: 0x%08X", r, value)
         return value;
     } else {
         logfatal("Attempted to read invalid RSP register: %d", r)
@@ -214,7 +213,7 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r)
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
-                system->rsp.semaphore_held = 0;
+                system->rsp.semaphore_held = false;
             } else {
                 logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value)
             }
@@ -226,8 +225,8 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             printf("DPC_START = 0x%08X\n", system->dpc.start);
             break;
         case RSP_CP0_CMD_END:
-            printf("DPC_END = 0x%08X\n", system->dpc.start);
             system->dpc.end = value & 0xFFFFFF;
+            printf("DPC_END = 0x%08X\n", system->dpc.end);
             rdp_run_command();
             break;
         case RSP_CP0_CMD_CURRENT:
