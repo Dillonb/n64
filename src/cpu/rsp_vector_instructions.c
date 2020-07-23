@@ -213,7 +213,8 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
 }
 
 RSP_VECTOR_INSTR(rsp_mfc2) {
-    logfatal("Unimplemented: rsp_mfc2")
+    shalf element = rsp->vu_regs[instruction.cp2_regmove.rd].elements[7 - (instruction.cp2_regmove.e / 2)];
+    set_rsp_register(rsp, instruction.cp2_regmove.rt, (sword)element);
 }
 
 RSP_VECTOR_INSTR(rsp_mtc2) {
