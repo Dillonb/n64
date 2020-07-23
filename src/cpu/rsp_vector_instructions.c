@@ -68,7 +68,16 @@ RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
-    logfatal("Unimplemented: rsp_lwc2_lrv")
+    printf("rsp_lwc2_lrv\n");
+    int e = instruction.v.element;
+    sbyte offset       = instruction.v.offset << 1;
+    word address       = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    word start_address = address & ~15;
+    word end_address   = address - 1;
+
+    for (int i = 0; start_address + i <= end_address && i + e < 16; i++) {
+        rsp->vu_regs[instruction.v.vt].bytes[15 - (i + e)] = rsp->read_byte(start_address + i);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
