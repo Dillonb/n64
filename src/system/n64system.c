@@ -45,6 +45,14 @@ void write_rsp_word_wrapper(word address, word value) {
     n64_rsp_write_word(global_system, address, value);
 }
 
+word read_physical_word_wrapper(word address) {
+    return n64_read_word(global_system, address);
+}
+
+void write_physical_word_wrapper(word address, word value) {
+    n64_write_word(global_system, address, value);
+}
+
 half read_rsp_half_wrapper(word address) {
     return n64_rsp_read_half(global_system, address);
 }
@@ -143,6 +151,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 
     system->rsp.read_physical_byte = &read_physical_byte_wrapper;
     system->rsp.write_physical_byte = &write_physical_byte_wrapper;
+
+    system->rsp.read_physical_word = &read_physical_word_wrapper;
+    system->rsp.write_physical_word = &write_physical_word_wrapper;
 
     system->rsp.status.halt = true; // RSP starts halted
 

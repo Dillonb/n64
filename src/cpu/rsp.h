@@ -88,37 +88,58 @@
 #define FUNCT_RSP_VEC_VXOR  0b101100
 
 INLINE void rsp_dma_read(rsp_t* rsp) {
-    word length = (rsp->io.dma_read.length | 7) + 1;
+    word length = rsp->io.dma_read.length + 1;
+
+    length = (length + 0x7) & ~0x7;
+
+    word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
+    if (dram_address != rsp->io.dram_addr.address) {
+        logfatal("Misaligned DRAM RSP DMA READ!")
+    }
+    word mem_address = rsp->io.mem_addr.address & 0xFFC;
+    if (mem_address != rsp->io.mem_addr.address) {
+        logfatal("Misaligned MEM RSP DMA READ!")
+    }
+
     for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
-        word mem_addr = rsp->io.mem_addr.address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j++) {
-            byte val = rsp->read_physical_byte(rsp->io.dram_addr.address + j);
-            logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, rsp->io.dram_addr.address + j, mem_addr + j)
-            rsp->write_physical_byte(mem_addr + j, val);
+        word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+        for (int j = 0; j < length; j += 4) {
+            word val = rsp->read_physical_word(dram_address + j);
+            rsp->write_physical_word(mem_addr + j, val);
         }
 
-        rsp->io.dram_addr.address += length + rsp->io.dma_read.skip;
-        rsp->io.mem_addr.address += length;
+        dram_address += length + rsp->io.dma_read.skip;
+        mem_address += length;
     }
 }
 
 INLINE void rsp_dma_write(rsp_t* rsp) {
-    word length = (rsp->io.dma_write.length | 7) + 1;
+    word length = rsp->io.dma_write.length + 1;
+
+    length = (length + 0x7) & ~0x7;
+
+    word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
+    if (dram_address != rsp->io.dram_addr.address) {
+        logfatal("Misaligned DRAM RSP DMA WRITE!")
+    }
+    word mem_address = rsp->io.mem_addr.address & 0xFFC;
+    if (mem_address != rsp->io.mem_addr.address) {
+        logfatal("Misaligned MEM RSP DMA WRITE!")
+    }
+
     for (int i = 0; i < rsp->io.dma_write.count + 1; i++) {
-        word mem_addr = rsp->io.mem_addr.address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j++) {
-            byte val = rsp->read_physical_byte(mem_addr + j);
-            logtrace("SP DMA: Copying 0x%02X from 0x%08X to 0x%08X", val, rsp->io.dram_addr.address + j, mem_addr + j)
-            rsp->write_physical_byte(rsp->io.dram_addr.address + j, val);
+        word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+        for (int j = 0; j < length; j += 4) {
+            word val = rsp->read_physical_word(mem_addr + j);
+            rsp->write_physical_word(dram_address + j, val);
         }
 
-        rsp->io.dram_addr.address += length + rsp->io.dma_write.skip;
-        rsp->io.mem_addr.address += length;
+        dram_address += length + rsp->io.dma_write.skip;
+        mem_address += length;
     }
 }
 
 INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
-    logtrace("Setting RSP r%d to [0x%08X]", r, value)
     if (r != 0) {
         if (r < 64) {
             rsp->gpr[r] = value;

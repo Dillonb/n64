@@ -127,6 +127,9 @@ typedef struct rsp {
     word (*read_word)(word);
     void (*write_word)(word, word);
 
+    word (*read_physical_word)(word);
+    void (*write_physical_word)(word, word);
+
     //dword (*read_dword)(word);
     //void (*write_dword)(word, dword);
 } rsp_t;

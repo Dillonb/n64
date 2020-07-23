@@ -68,7 +68,6 @@ RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
-    printf("rsp_lwc2_lrv\n");
     int e = instruction.v.element;
     sbyte offset       = instruction.v.offset << 1;
     word address       = get_rsp_register(rsp, instruction.v.base) + offset * 8;
@@ -161,7 +160,6 @@ RSP_VECTOR_INSTR(rsp_swc2_ssv) {
     word address = get_rsp_register(rsp, instruction.v.base) + offset;
 
     int element = instruction.v.element;
-    unimplemented(element % 2 != 0, "SSV: element is not even") // TODO: If discovered it's allowed to be uneven, at least make sure it's not 15.
     rsp->write_half(address, rsp->vu_regs[instruction.v.vt].elements[7 - (element / 2)]);
 }
 
