@@ -219,7 +219,7 @@ RSP_VECTOR_INSTR(rsp_mfc2) {
 
 RSP_VECTOR_INSTR(rsp_mtc2) {
     half element = get_rsp_register(rsp, instruction.cp2_regmove.rt);
-    rsp->vu_regs[instruction.cp2_regmove.rd].elements[7 - instruction.cp2_regmove.e] = element;
+    rsp->vu_regs[instruction.cp2_regmove.rd].elements[7 - (instruction.cp2_regmove.e / 2)] = element;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vabs) {
