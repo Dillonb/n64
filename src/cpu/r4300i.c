@@ -338,6 +338,7 @@ mips_instruction_type_t r4300i_special_decode(r4300i_t* cpu, word pc, mips_instr
         case FUNCT_DIV:    return MIPS_SPC_DIV;
         case FUNCT_DIVU:   return MIPS_SPC_DIVU;
         case FUNCT_DMULTU: return MIPS_SPC_DMULTU;
+        case FUNCT_DDIV:   return MIPS_SPC_DDIV;
         case FUNCT_DDIVU:  return MIPS_SPC_DDIVU;
         case FUNCT_ADD:    return MIPS_SPC_ADD;
         case FUNCT_ADDU:   return MIPS_SPC_ADDU;
@@ -393,49 +394,50 @@ mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_i
         case OPC_SPCL:   return r4300i_special_decode(cpu, pc, instr);
         case OPC_REGIMM: return r4300i_regimm_decode(cpu, pc, instr);
 
-        case OPC_LD:    return MIPS_LD;
-        case OPC_LUI:   return MIPS_LUI;
-        case OPC_ADDIU: return MIPS_ADDIU;
-        case OPC_ADDI:  return MIPS_ADDI;
-        case OPC_DADDI: return MIPS_DADDI;
-        case OPC_ANDI:  return MIPS_ANDI;
-        case OPC_LBU:   return MIPS_LBU;
-        case OPC_LHU:   return MIPS_LHU;
-        case OPC_LH:    return MIPS_LH;
-        case OPC_LW:    return MIPS_LW;
-        case OPC_LWU:   return MIPS_LWU;
-        case OPC_BEQ:   return MIPS_BEQ;
-        case OPC_BEQL:  return MIPS_BEQL;
-        case OPC_BGTZ:  return MIPS_BGTZ;
-        case OPC_BGTZL: return MIPS_BGTZL;
-        case OPC_BLEZ:  return MIPS_BLEZ;
-        case OPC_BLEZL: return MIPS_BLEZL;
-        case OPC_BNE:   return MIPS_BNE;
-        case OPC_BNEL:  return MIPS_BNEL;
-        case OPC_CACHE: return MIPS_CACHE;
-        case OPC_SB:    return MIPS_SB;
-        case OPC_SH:    return MIPS_SH;
-        case OPC_SW:    return MIPS_SW;
-        case OPC_SD:    return MIPS_SD;
-        case OPC_ORI:   return MIPS_ORI;
-        case OPC_J:     return MIPS_J;
-        case OPC_JAL:   return MIPS_JAL;
-        case OPC_SLTI:  return MIPS_SLTI;
-        case OPC_SLTIU: return MIPS_SLTIU;
-        case OPC_XORI:  return MIPS_XORI;
-        case OPC_LB:    return MIPS_LB;
-        case OPC_LDC1:  return MIPS_LDC1;
-        case OPC_SDC1:  return MIPS_SDC1;
-        case OPC_LWC1:  return MIPS_LWC1;
-        case OPC_SWC1:  return MIPS_SWC1;
-        case OPC_LWL:   return MIPS_LWL;
-        case OPC_LWR:   return MIPS_LWR;
-        case OPC_SWL:   return MIPS_SWL;
-        case OPC_SWR:   return MIPS_SWR;
-        case OPC_LDL:   return MIPS_LDL;
-        case OPC_LDR:   return MIPS_LDR;
-        case OPC_SDL:   return MIPS_SDL;
-        case OPC_SDR:   return MIPS_SDR;
+        case OPC_LD:     return MIPS_LD;
+        case OPC_LUI:    return MIPS_LUI;
+        case OPC_ADDIU:  return MIPS_ADDIU;
+        case OPC_ADDI:   return MIPS_ADDI;
+        case OPC_DADDI:  return MIPS_DADDI;
+        case OPC_ANDI:   return MIPS_ANDI;
+        case OPC_LBU:    return MIPS_LBU;
+        case OPC_LHU:    return MIPS_LHU;
+        case OPC_LH:     return MIPS_LH;
+        case OPC_LW:     return MIPS_LW;
+        case OPC_LWU:    return MIPS_LWU;
+        case OPC_BEQ:    return MIPS_BEQ;
+        case OPC_BEQL:   return MIPS_BEQL;
+        case OPC_BGTZ:   return MIPS_BGTZ;
+        case OPC_BGTZL:  return MIPS_BGTZL;
+        case OPC_BLEZ:   return MIPS_BLEZ;
+        case OPC_BLEZL:  return MIPS_BLEZL;
+        case OPC_BNE:    return MIPS_BNE;
+        case OPC_BNEL:   return MIPS_BNEL;
+        case OPC_CACHE:  return MIPS_CACHE;
+        case OPC_SB:     return MIPS_SB;
+        case OPC_SH:     return MIPS_SH;
+        case OPC_SW:     return MIPS_SW;
+        case OPC_SD:     return MIPS_SD;
+        case OPC_ORI:    return MIPS_ORI;
+        case OPC_J:      return MIPS_J;
+        case OPC_JAL:    return MIPS_JAL;
+        case OPC_SLTI:   return MIPS_SLTI;
+        case OPC_SLTIU:  return MIPS_SLTIU;
+        case OPC_XORI:   return MIPS_XORI;
+        case OPC_DADDIU: return MIPS_DADDIU;
+        case OPC_LB:     return MIPS_LB;
+        case OPC_LDC1:   return MIPS_LDC1;
+        case OPC_SDC1:   return MIPS_SDC1;
+        case OPC_LWC1:   return MIPS_LWC1;
+        case OPC_SWC1:   return MIPS_SWC1;
+        case OPC_LWL:    return MIPS_LWL;
+        case OPC_LWR:    return MIPS_LWR;
+        case OPC_SWL:    return MIPS_SWL;
+        case OPC_SWR:    return MIPS_SWR;
+        case OPC_LDL:    return MIPS_LDL;
+        case OPC_LDR:    return MIPS_LDR;
+        case OPC_SDL:    return MIPS_SDL;
+        case OPC_SDR:    return MIPS_SDR;
         default:
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(pc, instr.raw, buf, 50);
@@ -481,49 +483,50 @@ void r4300i_step(r4300i_t* cpu) {
     switch (r4300i_instruction_decode(cpu, pc, instruction)) {
         case MIPS_NOP: break;
 
-        exec_instr(MIPS_LUI,   mips_lui)
-        exec_instr(MIPS_LD,    mips_ld)
-        exec_instr(MIPS_ADDI,  mips_addi)
-        exec_instr(MIPS_ADDIU, mips_addiu)
-        exec_instr(MIPS_DADDI, mips_daddi)
-        exec_instr(MIPS_ANDI,  mips_andi)
-        exec_instr(MIPS_LBU,   mips_lbu)
-        exec_instr(MIPS_LHU,   mips_lhu)
-        exec_instr(MIPS_LH,    mips_lh)
-        exec_instr(MIPS_LW,    mips_lw)
-        exec_instr(MIPS_LWU,   mips_lwu)
-        exec_instr(MIPS_BEQ,   mips_beq)
-        exec_instr(MIPS_BLEZ,  mips_blez)
-        exec_instr(MIPS_BLEZL, mips_blezl)
-        exec_instr(MIPS_BNE,   mips_bne)
-        exec_instr(MIPS_BNEL,  mips_bnel)
-        exec_instr(MIPS_CACHE, mips_cache)
-        exec_instr(MIPS_SB,    mips_sb)
-        exec_instr(MIPS_SH,    mips_sh)
-        exec_instr(MIPS_SW,    mips_sw)
-        exec_instr(MIPS_SD,    mips_sd)
-        exec_instr(MIPS_ORI,   mips_ori)
-        exec_instr(MIPS_J,     mips_j)
-        exec_instr(MIPS_JAL,   mips_jal)
-        exec_instr(MIPS_SLTI,  mips_slti)
-        exec_instr(MIPS_SLTIU, mips_sltiu)
-        exec_instr(MIPS_BEQL,  mips_beql)
-        exec_instr(MIPS_BGTZ,  mips_bgtz)
-        exec_instr(MIPS_BGTZL, mips_bgtzl)
-        exec_instr(MIPS_XORI,  mips_xori)
-        exec_instr(MIPS_LB,    mips_lb)
-        exec_instr(MIPS_LDC1,  mips_ldc1)
-        exec_instr(MIPS_SDC1,  mips_sdc1)
-        exec_instr(MIPS_LWC1,  mips_lwc1)
-        exec_instr(MIPS_SWC1,  mips_swc1)
-        exec_instr(MIPS_LWL,   mips_lwl)
-        exec_instr(MIPS_LWR,   mips_lwr)
-        exec_instr(MIPS_SWL,   mips_swl)
-        exec_instr(MIPS_SWR,   mips_swr)
-        exec_instr(MIPS_LDL,   mips_ldl)
-        exec_instr(MIPS_LDR,   mips_ldr)
-        exec_instr(MIPS_SDL,   mips_sdl)
-        exec_instr(MIPS_SDR,   mips_sdr)
+        exec_instr(MIPS_LUI,    mips_lui)
+        exec_instr(MIPS_LD,     mips_ld)
+        exec_instr(MIPS_ADDI,   mips_addi)
+        exec_instr(MIPS_ADDIU,  mips_addiu)
+        exec_instr(MIPS_DADDI,  mips_daddi)
+        exec_instr(MIPS_ANDI,   mips_andi)
+        exec_instr(MIPS_LBU,    mips_lbu)
+        exec_instr(MIPS_LHU,    mips_lhu)
+        exec_instr(MIPS_LH,     mips_lh)
+        exec_instr(MIPS_LW,     mips_lw)
+        exec_instr(MIPS_LWU,    mips_lwu)
+        exec_instr(MIPS_BEQ,    mips_beq)
+        exec_instr(MIPS_BLEZ,   mips_blez)
+        exec_instr(MIPS_BLEZL,  mips_blezl)
+        exec_instr(MIPS_BNE,    mips_bne)
+        exec_instr(MIPS_BNEL,   mips_bnel)
+        exec_instr(MIPS_CACHE,  mips_cache)
+        exec_instr(MIPS_SB,     mips_sb)
+        exec_instr(MIPS_SH,     mips_sh)
+        exec_instr(MIPS_SW,     mips_sw)
+        exec_instr(MIPS_SD,     mips_sd)
+        exec_instr(MIPS_ORI,    mips_ori)
+        exec_instr(MIPS_J,      mips_j)
+        exec_instr(MIPS_JAL,    mips_jal)
+        exec_instr(MIPS_SLTI,   mips_slti)
+        exec_instr(MIPS_SLTIU,  mips_sltiu)
+        exec_instr(MIPS_BEQL,   mips_beql)
+        exec_instr(MIPS_BGTZ,   mips_bgtz)
+        exec_instr(MIPS_BGTZL,  mips_bgtzl)
+        exec_instr(MIPS_XORI,   mips_xori)
+        exec_instr(MIPS_DADDIU, mips_daddiu)
+        exec_instr(MIPS_LB,     mips_lb)
+        exec_instr(MIPS_LDC1,   mips_ldc1)
+        exec_instr(MIPS_SDC1,   mips_sdc1)
+        exec_instr(MIPS_LWC1,   mips_lwc1)
+        exec_instr(MIPS_SWC1,   mips_swc1)
+        exec_instr(MIPS_LWL,    mips_lwl)
+        exec_instr(MIPS_LWR,    mips_lwr)
+        exec_instr(MIPS_SWL,    mips_swl)
+        exec_instr(MIPS_SWR,    mips_swr)
+        exec_instr(MIPS_LDL,    mips_ldl)
+        exec_instr(MIPS_LDR,    mips_ldr)
+        exec_instr(MIPS_SDL,    mips_sdl)
+        exec_instr(MIPS_SDR,    mips_sdr)
 
         // Coprocessor
         exec_instr(MIPS_CP_MFC0, mips_mfc0)
@@ -631,6 +634,7 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_SPC_DIV,    mips_spc_div)
         exec_instr(MIPS_SPC_DIVU,   mips_spc_divu)
         exec_instr(MIPS_SPC_DMULTU, mips_spc_dmultu)
+        exec_instr(MIPS_SPC_DDIV,   mips_spc_ddiv)
         exec_instr(MIPS_SPC_DDIVU,  mips_spc_ddivu)
         exec_instr(MIPS_SPC_ADD,    mips_spc_add)
         exec_instr(MIPS_SPC_ADDU,   mips_spc_addu)
