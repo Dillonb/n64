@@ -92,7 +92,7 @@ MIPS_INSTR(mips_tlbr) {
 
         cpu->cp0.entry_hi.raw  = entry.entry_hi.raw & ~(entry.page_mask.raw);
         cpu->cp0.entry_lo0.raw = entry.entry_lo0.raw;
-        cpu->cp0.entry_lo1.raw = entry.entry_lo0.raw;
+        cpu->cp0.entry_lo1.raw = entry.entry_lo1.raw;
 
         cpu->cp0.entry_lo0.g = entry.entry_hi.g;
         cpu->cp0.entry_lo1.g = entry.entry_hi.g;
