@@ -76,7 +76,7 @@ word vatopa(word address, cp0_t* cp0) {
     switch (address) {
         case VREGION_KUSEG: {
             if (tlb_probe(address, &physical, NULL, cp0)) {
-                logfatal("Unimplemented: page hit translating virtual address 0x%08X in VREGION_KUSEG: got 0x%08X", address, physical)
+                printf("TLB translation 0x%08x -> 0x%08x\n", address, physical);
             } else {
                 logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KUSEG", address)
             }
