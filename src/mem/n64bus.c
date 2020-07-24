@@ -10,7 +10,7 @@
 #include "../rdp/rdp.h"
 
 word get_vpn(tlb_entry_t* entry) {
-    half tmp = entry->page_mask.mask | 0x1FFF;
+    half tmp = entry->page_mask.raw | 0x1FFF;
     word vpn = entry->entry_hi.raw & ~tmp;
 
     return vpn;
@@ -19,10 +19,19 @@ word get_vpn(tlb_entry_t* entry) {
 bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = cp0->tlb[i];
-        word mask = (entry.page_mask.mask >> 1) | 0x0FFF;
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
         word page_size = mask + 1;
         word vpn = get_vpn(&entry);
-        printf("entry: 0x%08X 0x%08X 0x%08X 0x%08X | size: %d vpn: 0x%08X asid: 0x%02X valid: %d global: %d\n",
+        printf("entry: lo0: 0x%08X lo1: 0x%08X hi: 0x%08X pm: 0x%08X | size: %d vpn: 0x%08X asid: 0x%02X valid: %d global: %d\n",
+               entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw, page_size, vpn,
+               entry.asid, entry.valid, entry.global);
+    }
+    for (int i = 0; i < 32; i++) {
+        tlb_entry_t entry = cp0->tlb[i];
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
+        word page_size = mask + 1;
+        word vpn = get_vpn(&entry);
+        printf("testing entry: lo0: 0x%08X lo1: 0x%08X hi: 0x%08X pm: 0x%08X | size: %d vpn: 0x%08X asid: 0x%02X valid: %d global: %d\n",
                entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw, page_size, vpn, entry.asid, entry.valid, entry.global);
 
         if ((vaddr & vpn) != vpn) {
@@ -38,15 +47,15 @@ bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
                 printf("Not a hit! Entry was not valid.\n");
                 continue;
             }
-            pfn = (entry.entry_lo0.raw >> 6) & 0x00FFFFFF;
+            pfn = entry.entry_lo0.entry;
         } else {
             logfatal("odd")
         }
 
-        printf("Hit!!!!\n");
+        printf("Hit!!!! pfn: %d page_size: %d vaddr&mask: 0x%08X\n", pfn, page_size, vaddr & mask);
 
         if (paddr != NULL) {
-            *paddr = (0x80000000 | (pfn * page_size) | (vaddr & mask));
+            *paddr = (pfn * page_size) | (vaddr & mask);
         }
         if (entry_number != NULL) {
             *entry_number = i;
@@ -60,10 +69,8 @@ word vatopa(word address, cp0_t* cp0) {
     word physical;
     switch (address) {
         case VREGION_KUSEG: {
-            word paddr;
-            if (tlb_probe(address, &paddr, NULL, cp0)) {
-                logfatal("Unimplemented: page hit translating virtual address 0x%08X in VREGION_KUSEG", address)
-                return paddr;
+            if (tlb_probe(address, &physical, NULL, cp0)) {
+                logfatal("Unimplemented: page hit translating virtual address 0x%08X in VREGION_KUSEG: got 0x%08X", address, physical)
             } else {
                 logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KUSEG", address)
             }

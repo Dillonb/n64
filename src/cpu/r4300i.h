@@ -269,6 +269,11 @@ typedef union cp0_entry_hi {
 
 typedef struct tlb_entry {
     union {
+        struct {
+            unsigned:6;
+            unsigned entry:24;
+            unsigned:2;
+        };
         word raw;
     } entry_lo0;
 
