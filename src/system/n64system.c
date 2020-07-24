@@ -8,6 +8,7 @@
 #include "../mem/n64_rsp_bus.h"
 #include "../cpu/rsp.h"
 #include "../rdp/rdp.h"
+#include "../gdbstub/gdbstub.h"
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.
@@ -175,10 +176,12 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     if (enable_frontend) {
         render_init(system);
     }
+    gdbstub_init();
     return system;
 }
 
 INLINE void _n64_system_step(n64_system_t* system) {
+    gdbstub_tick();
     r4300i_step(&system->cpu);
     if (!system->rsp.status.halt) {
         if (++system->rsp.sync >= 3) {

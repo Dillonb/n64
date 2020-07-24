@@ -5,6 +5,7 @@ INCLUDE_DIRECTORIES(SYSTEM "contrib/include" ${SDL2_INCLUDE_DIR})
 add_subdirectory(common)
 add_subdirectory(cpu)
 add_subdirectory(rdp)
+add_subdirectory(gdbstub)
 
 add_library(core
         system/n64system.c system/n64system.h
@@ -25,7 +26,7 @@ add_library(glad
 
 target_link_libraries(glad dl)
 
-target_link_libraries(core r4300i rsp rdp glad ${SDL2_LIBRARY})
+target_link_libraries(core r4300i rsp rdp gdbstub glad ${SDL2_LIBRARY})
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)
