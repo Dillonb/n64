@@ -43,19 +43,25 @@ bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
         word pfn;
 
         if (!odd) {
-            if (!(entry.valid)) {
+            if (!(entry.entry_lo0.valid)) {
                 printf("Not a hit! Entry was not valid.\n");
                 continue;
             }
             pfn = entry.entry_lo0.entry;
+            printf("Even, pfn: 0x%08X\n", pfn);
         } else {
-            logfatal("odd")
+            if (!(entry.entry_lo1.valid)) {
+                printf("Not a hit! Entry was not valid.\n");
+                continue;
+            }
+            pfn = entry.entry_lo1.entry;
+            printf("Odd, pfn: 0x%08X\n", pfn);
         }
 
         printf("Hit!!!! pfn: %d page_size: %d vaddr&mask: 0x%08X\n", pfn, page_size, vaddr & mask);
 
         if (paddr != NULL) {
-            *paddr = (pfn * page_size) | (vaddr & mask);
+            *paddr = (pfn << 12) | (vaddr & mask);
         }
         if (entry_number != NULL) {
             *entry_number = i;
