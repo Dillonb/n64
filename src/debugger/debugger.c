@@ -132,8 +132,11 @@ void n64_debug_stop(n64_system_t* system) {
 }
 
 void n64_debug_step(n64_system_t* system) {
-    system->debugger_state.steps = 1;
-    logfatal("Debug step")
+    bool old_broken = system->debugger_state.broken;
+    system->debugger_state.broken = false;
+    n64_system_step(system);
+    system->debugger_state.broken = old_broken;
+    system->debugger_state.steps += 2;
 }
 
 void n64_debug_set_breakpoint(n64_system_t* system, word address) {
@@ -158,19 +161,20 @@ ssize_t n64_debug_get_memory(n64_system_t* system, char* buffer, size_t length, 
 ssize_t n64_debug_get_register_value(n64_system_t* system, char * buffer, size_t buffer_length, int reg) {
     switch (reg) {
         case 0 ... 31:
-            return snprintf(buffer, buffer_length, "%016lx", system->cpu.gpr[reg]);
+            return snprintf(buffer, buffer_length, "%016lx", htobe64(system->cpu.gpr[reg]));
         case 32:
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.status.raw);
+            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.cp0.status.raw));
         case 33:
-            return snprintf(buffer, buffer_length, "%016lx", system->cpu.mult_lo);
+            return snprintf(buffer, buffer_length, "%016lx", htobe64(system->cpu.mult_lo));
         case 34:
-            return snprintf(buffer, buffer_length, "%016lx", system->cpu.mult_hi);
+            return snprintf(buffer, buffer_length, "%016lx", htobe64(system->cpu.mult_hi));
         case 35:
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.bad_vaddr);
+            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.cp0.bad_vaddr));
         case 36:
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.cause.raw);
+            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.cp0.cause.raw));
         case 37:
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.pc);
+            printf("Sending PC\n");
+            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.pc));
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
         default:

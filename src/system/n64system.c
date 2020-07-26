@@ -189,12 +189,6 @@ INLINE void _n64_system_step(n64_system_t* system) {
         debugger_tick(system);
     }
     r4300i_step(&system->cpu);
-    if (system->debugger_state.steps > 0) {
-        if (--system->debugger_state.steps == 0) {
-            system->debugger_state.steps = -1;
-            system->debugger_state.broken = true;
-        }
-    }
     if (!system->rsp.status.halt) {
         if (++system->rsp.sync >= 3) {
             system->rsp.sync -= 3;
@@ -215,7 +209,8 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             while (cycles <= SHORTLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += 2;
+                cycles += 2 + system->debugger_state.steps;
+                system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
             ai_step(system, SHORTLINE_CYCLES);
@@ -224,7 +219,8 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             while (cycles <= LONGLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += 2;
+                cycles += 2 + system->debugger_state.steps;
+                system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;
             ai_step(system, LONGLINE_CYCLES);

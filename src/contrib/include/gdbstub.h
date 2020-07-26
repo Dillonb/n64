@@ -478,7 +478,7 @@ void _gdbstub_process_packet(gdbstub_t * gdb)
         if (gdb->config.step) {
             gdb->config.step(gdb->config.user_data);
         }
-        _gdbstub_send(gdb, "OK", 2);
+        _gdbstub_send(gdb, "T05", 3);
         return;
     case 'v':
         // Various remote operations, not supported
