@@ -1,5 +1,5 @@
 //
-// gdbstub version 1.0.3
+// gdbstub version 1.1.0
 //
 // MIT License
 //
@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+typedef void (*gdbstub_connected_t)(void * user_data);
+typedef void (*gdbstub_disconnected_t)(void * user_data);
 typedef void (*gdbstub_start_t)(void * user_data);
 typedef void (*gdbstub_stop_t)(void * user_data);
 typedef void (*gdbstub_step_t)(void * user_data);
@@ -46,6 +48,10 @@ struct gdbstub_config
     uint16_t port;
 
     void * user_data;
+
+    gdbstub_connected_t connected;
+
+    gdbstub_disconnected_t disconnected;
 
     gdbstub_start_t start;
 
@@ -77,6 +83,8 @@ gdbstub_t * gdbstub_init(gdbstub_config_t config);
 void gdbstub_term(gdbstub_t * gdb);
 
 void gdbstub_tick(gdbstub_t * gdb);
+
+void gdbstub_breakpoint_hit(gdbstub_t * gdb);
 
 #endif // GDBSTUB_H
 
@@ -237,11 +245,19 @@ void gdbstub_tick(gdbstub_t * gdb)
         if (gdb->client >= 0) {
             printf("accepted gdb connection\n");
             fcntl(gdb->client, F_SETFL, fcntl(gdb->client, F_GETFL, 0) | O_NONBLOCK);
+
+            if (gdb->config.connected) {
+                gdb->config.connected(gdb->config.user_data);
+            }
         }
     }
     else {
         _gdbstub_recv(gdb);
     }
+}
+
+void gdbstub_breakpoint_hit(gdbstub_t * gdb) {
+    _gdbstub_send(gdb, "T05", 3);
 }
 
 void _gdbstub_send(gdbstub_t * gdb, const char * data, size_t data_length)
@@ -264,6 +280,10 @@ void _gdbstub_send(gdbstub_t * gdb, const char * data, size_t data_length)
         close(gdb->client);
         gdb->client = -1;
         gdb->state = GDB_STATE_NO_PACKET;
+
+        if (gdb->config.disconnected) {
+            gdb->config.disconnected(gdb->config.user_data);
+        }
     }
 }
 
@@ -298,6 +318,10 @@ void _gdbstub_recv(gdbstub_t * gdb)
         close(gdb->client);
         gdb->client = -1;
         gdb->state = GDB_STATE_NO_PACKET;
+
+        if (gdb->config.disconnected) {
+            gdb->config.disconnected(gdb->config.user_data);
+        }
         return;
     }
 
@@ -367,6 +391,10 @@ void _gdbstub_process_packet(gdbstub_t * gdb)
         close(gdb->client);
         gdb->client = -1;
         gdb->state = GDB_STATE_NO_PACKET;
+
+        if (gdb->config.disconnected) {
+            gdb->config.disconnected(gdb->config.user_data);
+        }
         return;
     case 'g':
         // Get general registers

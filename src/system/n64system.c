@@ -184,6 +184,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
 }
 
 INLINE void _n64_system_step(n64_system_t* system) {
+    if (check_breakpoint(&system->debugger_state, system->cpu.pc)) {
+        debugger_breakpoint_hit(system);
+    }
     while (system->debugger_state.broken) {
         usleep(1000);
         debugger_tick(system);

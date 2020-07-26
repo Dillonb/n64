@@ -95,32 +95,18 @@ const char* target_xml =
 const char* memory_map =
 "<?xml version=\"1.0\"?>"
 "<memory-map>"
-    "<!-- Everything here is described as RAM, because we don't really have any better option. -->"
-    "<!-- Main memory bloc: let's go with 8MB straight off the bat. -->"
-    "<memory type=\"ram\" start=\"0x00000000\" length=\"0x800000\"/>"
-    "<memory type=\"ram\" start=\"0x80000000\" length=\"0x800000\"/>"
-    "<memory type=\"ram\" start=\"0xa0000000\" length=\"0x800000\"/>"
-    "<!-- EXP1 can go up to 8MB too. -->"
-    "<memory type=\"ram\" start=\"0x1f000000\" length=\"0x800000\"/>"
-    "<memory type=\"ram\" start=\"0x9f000000\" length=\"0x800000\"/>"
-    "<memory type=\"ram\" start=\"0xbf000000\" length=\"0x800000\"/>"
-    "<!-- Scratchpad -->"
-    "<memory type=\"ram\" start=\"0x1f800000\" length=\"0x400\"/>"
-    "<memory type=\"ram\" start=\"0x9f800000\" length=\"0x400\"/>"
-    "<!-- Hardware registers -->"
-    "<memory type=\"ram\" start=\"0x1f801000\" length=\"0x2000\"/>"
-    "<memory type=\"ram\" start=\"0x9f801000\" length=\"0x2000\"/>"
-    "<memory type=\"ram\" start=\"0xbf801000\" length=\"0x2000\"/>"
-    "<!-- DTL BIOS SRAM -->"
-    "<memory type=\"ram\" start=\"0x1fa00000\" length=\"0x200000\"/>"
-    "<memory type=\"ram\" start=\"0x9fa00000\" length=\"0x200000\"/>"
-    "<memory type=\"ram\" start=\"0xbfa00000\" length=\"0x200000\"/>"
-    "<!-- BIOS -->"
-    "<memory type=\"ram\" start=\"0x1fc00000\" length=\"0x80000\"/>"
-    "<memory type=\"ram\" start=\"0x9fc00000\" length=\"0x80000\"/>"
-    "<memory type=\"ram\" start=\"0xbfc00000\" length=\"0x80000\"/>"
-    "<!-- This really is only for 0xfffe0130 -->"
-    "<memory type=\"ram\" start=\"0xfffe0000\" length=\"0x200\"/>"
+    "<!-- KUSEG - TLB mapped, treat it as a giant block of RAM. Not ideal, but not sure how else to deal with it -->"
+    "<memory type=\"ram\" start=\"0x0000000000000000\" length=\"0x80000000\"/>"
+
+    "<!-- KSEG0 hardware mapped, full copy of the memory map goes here -->" // TODO finish
+    "<memory type=\"ram\" start=\"0xffffffff80000000\" length=\"0x800000\"/>" // RDRAM
+    "<memory type=\"ram\" start=\"0xffffffff84000000\" length=\"0x1000\"/>" // RSP DMEM
+    "<memory type=\"ram\" start=\"0xffffffff84001000\" length=\"0x1000\"/>" // RSP IMEM
+
+    "<!-- KSEG1 hardware mapped, full copy of the memory map goes here -->" // TODO finish
+    "<memory type=\"ram\" start=\"0xffffffffa0000000\" length=\"0x800000\"/>" // RDRAM
+    "<memory type=\"ram\" start=\"0xffffffffa4000000\" length=\"0x1000\"/>" // RSP DMEM
+    "<memory type=\"ram\" start=\"0xffffffffa4001000\" length=\"0x1000\"/>" // RSP IMEM
 "</memory-map>";
 
 void n64_debug_start(n64_system_t* system) {
@@ -140,41 +126,75 @@ void n64_debug_step(n64_system_t* system) {
 }
 
 void n64_debug_set_breakpoint(n64_system_t* system, word address) {
-    logfatal("Debug set breakpoint")
+    n64_breakpoint_t* breakpoint = malloc(sizeof(n64_breakpoint_t));
+    breakpoint->address = address;
+    breakpoint->next = NULL;
+
+    // Special case for this being the first breakpoint
+    if (system->debugger_state.breakpoints == NULL) {
+        system->debugger_state.breakpoints = breakpoint;
+    } else {
+        // Find end of the list
+        n64_breakpoint_t* tail = system->debugger_state.breakpoints;
+        while (tail->next != NULL) {
+            tail = tail->next;
+        }
+
+        tail->next = breakpoint;
+    }
 }
 
 void n64_debug_clear_breakpoint(n64_system_t* system, word address) {
-    logfatal("Debug clear breakpoint")
+    if (system->debugger_state.breakpoints == NULL) {
+        return; // No breakpoints set at all
+    } else if (system->debugger_state.breakpoints->address == address) {
+        // Special case for the first breakpoint being the one we want to clear
+        n64_breakpoint_t* next = system->debugger_state.breakpoints->next;
+        free(system->debugger_state.breakpoints);
+        system->debugger_state.breakpoints = next;
+    } else {
+        // Find the breakpoint somewhere in the list and free it
+        n64_breakpoint_t* iter = system->debugger_state.breakpoints;
+        while (iter->next != NULL) {
+            if (iter->next->address == address) {
+                n64_breakpoint_t* next = iter->next->next;
+                free(iter->next);
+                iter->next = next;
+            }
+        }
+    }
 }
 
 ssize_t n64_debug_get_memory(n64_system_t* system, char* buffer, size_t length, word address, size_t bytes) {
-    printf("Get memory: %d bytes from 0x%08X\n", bytes, address);
+    printf("Checking memory at address 0x%08X ", address);
+    //address = be32toh(address);
+    printf("or 0x%08X in host endianness\n", address);
     int printed = 0;
     for (int i = 0; i < bytes; i++) {
-        byte value = n64_read_byte(system, address + i);
-        printf("gdb: Reading one byte from 0x%08X: 0x%02X\n", address, value);
+        byte value = n64_read_byte(system, vatopa(address + i, &system->cpu.cp0));
         printed += snprintf(buffer + (i*2), length, "%02X", value);
     }
-    return printed;
+    printf("Get memory: %ld bytes from 0x%08X: %d\n", bytes, address, printed);
+    return printed + 1;
 }
 
 ssize_t n64_debug_get_register_value(n64_system_t* system, char * buffer, size_t buffer_length, int reg) {
     switch (reg) {
         case 0 ... 31:
-            return snprintf(buffer, buffer_length, "%016lx", htobe64(system->cpu.gpr[reg]));
+            return snprintf(buffer, buffer_length, "%016lx", system->cpu.gpr[reg]);
         case 32:
-            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.cp0.status.raw));
+            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.status.raw);
         case 33:
-            return snprintf(buffer, buffer_length, "%016lx", htobe64(system->cpu.mult_lo));
+            return snprintf(buffer, buffer_length, "%016lx", system->cpu.mult_lo);
         case 34:
-            return snprintf(buffer, buffer_length, "%016lx", htobe64(system->cpu.mult_hi));
+            return snprintf(buffer, buffer_length, "%016lx", system->cpu.mult_hi);
         case 35:
-            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.cp0.bad_vaddr));
+            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.bad_vaddr);
         case 36:
-            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.cp0.cause.raw));
+            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.cause.raw);
         case 37:
             printf("Sending PC\n");
-            return snprintf(buffer, buffer_length, "%08x", htobe32(system->cpu.pc));
+            return snprintf(buffer, buffer_length, "%08x", system->cpu.pc);
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
         default:
@@ -197,7 +217,7 @@ ssize_t n64_debug_get_general_registers(n64_system_t* system, char * buffer, siz
 
 void debugger_init(n64_system_t* system) {
     gdbstub_config_t config;
-    config.port                  = 1337;
+    config.port                  = GDB_CPU_PORT;
     config.user_data             = system;
     config.start                 = (gdbstub_start_t) n64_debug_start;
     config.stop                  = (gdbstub_stop_t) n64_debug_stop;
@@ -226,6 +246,11 @@ void debugger_init(n64_system_t* system) {
 
 void debugger_tick(n64_system_t* system) {
     gdbstub_tick(system->debugger_state.gdb);
+}
+
+void debugger_breakpoint_hit(n64_system_t* system) {
+    system->debugger_state.broken = true;
+    gdbstub_breakpoint_hit(system->debugger_state.gdb);
 }
 
 void debugger_cleanup(n64_system_t* system) {
