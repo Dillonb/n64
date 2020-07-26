@@ -1,1 +1,0 @@
-add_library(gdbstub gdbstub.c gdbstub.h)

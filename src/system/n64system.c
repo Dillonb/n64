@@ -1,6 +1,10 @@
-#include <string.h>
-
 #include "n64system.h"
+
+#include <string.h>
+#include <gdbstub.h>
+#include <unistd.h>
+#include <time.h>
+
 #include "../mem/n64bus.h"
 #include "../frontend/render.h"
 #include "../interface/vi.h"
@@ -8,7 +12,6 @@
 #include "../mem/n64_rsp_bus.h"
 #include "../cpu/rsp.h"
 #include "../rdp/rdp.h"
-#include "../gdbstub/gdbstub.h"
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.
@@ -176,13 +179,22 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     if (enable_frontend) {
         render_init(system);
     }
-    gdbstub_init();
+    debugger_init(system);
     return system;
 }
 
 INLINE void _n64_system_step(n64_system_t* system) {
-    gdbstub_tick();
+    while (system->debugger_state.broken) {
+        usleep(1000);
+        debugger_tick(system);
+    }
     r4300i_step(&system->cpu);
+    if (system->debugger_state.steps > 0) {
+        if (--system->debugger_state.steps == 0) {
+            system->debugger_state.steps = -1;
+            system->debugger_state.broken = true;
+        }
+    }
     if (!system->rsp.status.halt) {
         if (++system->rsp.sync >= 3) {
             system->rsp.sync -= 3;
@@ -217,12 +229,14 @@ void n64_system_loop(n64_system_t* system) {
             cycles -= LONGLINE_CYCLES;
             ai_step(system, LONGLINE_CYCLES);
         }
+        debugger_tick(system);
         render_screen(system);
     }
 }
 
 void n64_system_cleanup(n64_system_t* system) {
     rdp_cleanup();
+    debugger_cleanup(system);
     free(system);
 }
 

@@ -5,6 +5,8 @@
 #include "../cpu/r4300i.h"
 #include "../cpu/rsp_types.h"
 #include "../interface/vi_reg.h"
+#include "../debugger/debugger.h"
+#include "../debugger/debugger_types.h"
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
@@ -153,6 +155,7 @@ typedef struct n64_system {
         word pipebusy;
         word tmem;
     } dpc;
+    n64_debugger_state_t debugger_state;
 } n64_system_t;
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend);
