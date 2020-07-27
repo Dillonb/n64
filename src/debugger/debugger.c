@@ -166,9 +166,7 @@ void n64_debug_clear_breakpoint(n64_system_t* system, word address) {
 }
 
 ssize_t n64_debug_get_memory(n64_system_t* system, char* buffer, size_t length, word address, size_t bytes) {
-    printf("Checking memory at address 0x%08X ", address);
-    //address = be32toh(address);
-    printf("or 0x%08X in host endianness\n", address);
+    printf("Checking memory at address 0x%08X\n", address);
     int printed = 0;
     for (int i = 0; i < bytes; i++) {
         byte value = n64_read_byte(system, vatopa(address + i, &system->cpu.cp0));
