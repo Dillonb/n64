@@ -9,17 +9,79 @@
 #include "mem_util.h"
 #include "../rdp/rdp.h"
 
+word get_vpn(tlb_entry_t* entry) {
+    half tmp = entry->page_mask.raw | 0x1FFF;
+    word vpn = entry->entry_hi.raw & ~tmp;
+
+    return vpn;
+}
+
+bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
+    for (int i = 0; i < 32; i++) {
+        tlb_entry_t entry = cp0->tlb[i];
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
+        word page_size = mask + 1;
+        word vpn = get_vpn(&entry);
+        printf("entry: lo0: 0x%08X lo1: 0x%08X hi: 0x%08X pm: 0x%08X | size: %d vpn: 0x%08X asid: 0x%02X valid: %d global: %d\n",
+               entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw, page_size, vpn,
+               entry.asid, entry.valid, entry.global);
+    }
+    for (int i = 0; i < 32; i++) {
+        tlb_entry_t entry = cp0->tlb[i];
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
+        word page_size = mask + 1;
+        word vpn = get_vpn(&entry);
+        printf("testing entry: lo0: 0x%08X lo1: 0x%08X hi: 0x%08X pm: 0x%08X | size: %d vpn: 0x%08X asid: 0x%02X valid: %d global: %d\n",
+               entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw, page_size, vpn, entry.asid, entry.valid, entry.global);
+
+        if ((vaddr & vpn) != vpn) {
+            printf("Not a hit! 0x%08X & 0x%08X != 0x%08X\n", vaddr, vpn, vpn);
+            continue;
+        }
+
+        word odd = vaddr & page_size;
+        word pfn;
+
+        if (!odd) {
+            if (!(entry.entry_lo0.valid)) {
+                printf("Not a hit! Entry was not valid.\n");
+                continue;
+            }
+            pfn = entry.entry_lo0.entry;
+            printf("Even, pfn: 0x%08X\n", pfn);
+        } else {
+            if (!(entry.entry_lo1.valid)) {
+                printf("Not a hit! Entry was not valid.\n");
+                continue;
+            }
+            pfn = entry.entry_lo1.entry;
+            printf("Odd, pfn: 0x%08X\n", pfn);
+        }
+
+        printf("Hit!!!! pfn: %d page_size: %d vaddr&mask: 0x%08X\n", pfn, page_size, vaddr & mask);
+
+        if (paddr != NULL) {
+            *paddr = (pfn << 12) | (vaddr & mask);
+        }
+        if (entry_number != NULL) {
+            *entry_number = i;
+        }
+        return true;
+    }
+    return false;
+}
+
 word vatopa(word address, cp0_t* cp0) {
     word physical;
     switch (address) {
-        case VREGION_KUSEG:
-            for (int i = 0; i < 32; i++) {
-                tlb_entry_t entry = cp0->tlb[i];
-                printf("entry: 0x%08X 0x%08X 0x%08X 0x%08X\n",
-                        entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw);
+        case VREGION_KUSEG: {
+            if (tlb_probe(address, &physical, NULL, cp0)) {
+                printf("TLB translation 0x%08x -> 0x%08x\n", address, physical);
+            } else {
+                logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KUSEG", address)
             }
-            logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KUSEG", address)
             break;
+        }
         case VREGION_KSEG0:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             physical = address - SVREGION_KSEG0;
