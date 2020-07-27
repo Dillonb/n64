@@ -209,7 +209,7 @@ ssize_t n64_debug_get_general_registers(n64_system_t* system, char * buffer, siz
         if (ofs + 16 > buffer_length) {
             logfatal("Too big!")
         }
-        dword reg = htobe64(system->cpu.gpr[i]);
+        dword reg = system->cpu.gpr[i];
         printed += snprintf(buffer + ofs, buffer_length - ofs, "%016lx", reg);
     }
     return printed;
