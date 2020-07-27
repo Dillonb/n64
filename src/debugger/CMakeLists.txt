@@ -1,0 +1,1 @@
+add_library(debugger debugger.c debugger.h debugger_types.h)

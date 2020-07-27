@@ -1,6 +1,10 @@
-#include <string.h>
-
 #include "n64system.h"
+
+#include <string.h>
+#include <gdbstub.h>
+#include <unistd.h>
+#include <time.h>
+
 #include "../mem/n64bus.h"
 #include "../frontend/render.h"
 #include "../interface/vi.h"
@@ -175,10 +179,18 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     if (enable_frontend) {
         render_init(system);
     }
+    debugger_init(system);
     return system;
 }
 
 INLINE void _n64_system_step(n64_system_t* system) {
+    if (check_breakpoint(&system->debugger_state, system->cpu.pc)) {
+        debugger_breakpoint_hit(system);
+    }
+    while (system->debugger_state.broken) {
+        usleep(1000);
+        debugger_tick(system);
+    }
     r4300i_step(&system->cpu);
     if (!system->rsp.status.halt) {
         if (++system->rsp.sync >= 3) {
@@ -200,7 +212,8 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             while (cycles <= SHORTLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += 2;
+                cycles += 2 + system->debugger_state.steps;
+                system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
             ai_step(system, SHORTLINE_CYCLES);
@@ -209,17 +222,20 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             while (cycles <= LONGLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += 2;
+                cycles += 2 + system->debugger_state.steps;
+                system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;
             ai_step(system, LONGLINE_CYCLES);
         }
+        debugger_tick(system);
         render_screen(system);
     }
 }
 
 void n64_system_cleanup(n64_system_t* system) {
     rdp_cleanup();
+    debugger_cleanup(system);
     free(system);
 }
 

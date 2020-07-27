@@ -15,6 +15,10 @@ void usage(cflags_t* flags) {
 int main(int argc, char** argv) {
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
+    bool debug = false;
+    char description[100];
+    snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port %d for gdb.", GDB_CPU_PORT);
+    cflags_add_bool(flags, 'd', "debug", &debug, description);
     const char* rdp_plugin_path = NULL;
 
     cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible)");
@@ -32,6 +36,10 @@ int main(int argc, char** argv) {
         logdie("Running without loading an RDP plugin is not currently supported.")
     }
     pif_rom_execute(system);
+    if (debug) {
+        printf("Listening on 0.0.0.0:%d - Waiting for GDB to connect...\n", GDB_CPU_PORT);
+        system->debugger_state.broken = true;
+    }
     n64_system_loop(system);
     n64_system_cleanup(system);
 }
