@@ -9,9 +9,9 @@
 #include "mem_util.h"
 #include "../rdp/rdp.h"
 
-word get_vpn(tlb_entry_t* entry) {
-    half tmp = entry->page_mask.raw | 0x1FFF;
-    word vpn = entry->entry_hi.raw & ~tmp;
+word get_vpn(word address, word page_mask_raw) {
+    word tmp = page_mask_raw | 0x1FFF;
+    word vpn = address & ~tmp;
 
     return vpn;
 }
@@ -21,7 +21,7 @@ bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
         tlb_entry_t entry = cp0->tlb[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;
         word page_size = mask + 1;
-        word vpn = get_vpn(&entry);
+        word vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
         printf("entry: lo0: 0x%08X lo1: 0x%08X hi: 0x%08X pm: 0x%08X | size: %d vpn: 0x%08X asid: 0x%02X valid: %d global: %d\n",
                entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw, page_size, vpn,
                entry.asid, entry.valid, entry.global);
@@ -30,13 +30,16 @@ bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
         tlb_entry_t entry = cp0->tlb[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;
         word page_size = mask + 1;
-        word vpn = get_vpn(&entry);
+        word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
+        word vaddr_vpn = get_vpn(vaddr, entry.page_mask.raw);
         printf("testing entry: lo0: 0x%08X lo1: 0x%08X hi: 0x%08X pm: 0x%08X | size: %d vpn: 0x%08X asid: 0x%02X valid: %d global: %d\n",
-               entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw, page_size, vpn, entry.asid, entry.valid, entry.global);
+               entry.entry_lo0.raw, entry.entry_lo1.raw, entry.entry_hi.raw, entry.page_mask.raw, page_size, entry_vpn, entry.asid, entry.valid, entry.global);
 
-        if ((vaddr & vpn) != vpn) {
-            printf("Not a hit! 0x%08X & 0x%08X != 0x%08X\n", vaddr, vpn, vpn);
+        if (entry_vpn != vaddr_vpn) {
+            printf("Not a hit! 0x%08X != 0x%08X\n", entry_vpn, vaddr_vpn);
             continue;
+        } else {
+            printf("Might be a hit. 0x%08X == 0x%08X\n", entry_vpn, vaddr_vpn);
         }
 
         word odd = vaddr & page_size;
