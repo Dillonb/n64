@@ -2,7 +2,6 @@
 #include "../mem/n64bus.h"
 
 #define GDBSTUB_IMPLEMENTATION
-#define GDBSTUB_DEBUG
 #include <gdbstub.h>
 
 const char* target_xml =
