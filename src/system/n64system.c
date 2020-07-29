@@ -121,7 +121,7 @@ void virtual_write_byte_wrapper(word address, byte value) {
     n64_write_byte(global_system, address, value);
 }
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
@@ -179,12 +179,15 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend) {
     if (enable_frontend) {
         render_init(system);
     }
-    debugger_init(system);
+    system->debugger_state.enabled = enable_debug;
+    if (enable_debug) {
+        debugger_init(system);
+    }
     return system;
 }
 
 INLINE void _n64_system_step(n64_system_t* system) {
-    if (check_breakpoint(&system->debugger_state, system->cpu.pc)) {
+    if (system->debugger_state.enabled && check_breakpoint(&system->debugger_state, system->cpu.pc)) {
         debugger_breakpoint_hit(system);
     }
     while (system->debugger_state.broken) {
@@ -228,7 +231,9 @@ void n64_system_loop(n64_system_t* system) {
             cycles -= LONGLINE_CYCLES;
             ai_step(system, LONGLINE_CYCLES);
         }
-        debugger_tick(system);
+        if (system->debugger_state.enabled) {
+            debugger_tick(system);
+        }
         render_screen(system);
     }
 }

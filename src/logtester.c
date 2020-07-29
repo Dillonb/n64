@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     const char* rom = flags->argv[0];
 
     log_set_verbosity(verbose->count);
-    n64_system_t* system = init_n64system(rom, true);
+    n64_system_t* system = init_n64system(rom, true, false);
     pif_rom_execute(system);
 
     system->cpu.gpr[0] = 0x00000000;

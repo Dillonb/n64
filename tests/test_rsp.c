@@ -76,7 +76,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
 }
 
 n64_system_t* load_test(const char* rsp_path) {
-    n64_system_t* system = init_n64system(NULL, false);
+    n64_system_t* system = init_n64system(NULL, false, false);
     load_rsp_imem(system, rsp_path);
     return system;
 }

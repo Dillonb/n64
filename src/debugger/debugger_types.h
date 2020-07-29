@@ -15,6 +15,7 @@ typedef struct n64_debugger_state {
     bool broken;
     int steps;
     n64_breakpoint_t* breakpoints;
+    bool enabled;
 } n64_debugger_state_t;
 
 INLINE bool check_breakpoint(n64_debugger_state_t* state, word address) {

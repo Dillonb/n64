@@ -252,5 +252,7 @@ void debugger_breakpoint_hit(n64_system_t* system) {
 }
 
 void debugger_cleanup(n64_system_t* system) {
-    gdbstub_term(system->debugger_state.gdb);
+    if (system->debugger_state.enabled) {
+        gdbstub_term(system->debugger_state.gdb);
+    }
 }

@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     log_set_verbosity(verbose->count);
-    n64_system_t* system = init_n64system(flags->argv[0], true);
+    n64_system_t* system = init_n64system(flags->argv[0], true, debug);
     if (rdp_plugin_path != NULL) {
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
