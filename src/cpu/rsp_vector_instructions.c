@@ -53,7 +53,16 @@ RSP_VECTOR_INSTR(rsp_lwc2_llv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
-    logfatal("Unimplemented: rsp_lwc2_lpv")
+    word base_address = get_rsp_register(rsp, instruction.v.base);
+    sbyte base_offset = + instruction.v.offset << 1;
+
+    base_address += ((sword)base_offset << 2);
+
+    for(uint elem = 0; elem < 8; elem++) {
+        int element_offset = (16 - instruction.v.element + elem) & 0xF;
+        half value = rsp->read_byte(base_address + element_offset) << 8;
+        rsp->vu_regs[instruction.v.vt].elements[7 - elem] = value;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
@@ -92,7 +101,17 @@ RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_luv) {
-    logfatal("Unimplemented: rsp_lwc2_luv")
+    word base_address = get_rsp_register(rsp, instruction.v.base);
+    sbyte base_offset = instruction.v.offset << 1;
+
+    base_address += ((sword)base_offset << 2);
+
+    for(uint elem = 0; elem < 8; elem++) {
+        int element_offset = (16 - instruction.v.element + elem) & 0xF;
+        half value = rsp->read_byte(base_address + element_offset);
+        value <<= 7;
+        rsp->vu_regs[instruction.v.vt].elements[7 - elem] = value;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sbv) {
@@ -137,7 +156,20 @@ RSP_VECTOR_INSTR(rsp_swc2_slv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_spv) {
-    logfatal("Unimplemented: rsp_swc2_spv")
+    word address = get_rsp_register(rsp, instruction.v.base);
+    sbyte base_offset = + instruction.v.offset << 1;
+    address += ((sword)base_offset << 2);
+
+    int start = instruction.v.element;
+    int end = start + 8;
+
+    for (int offset = start; offset < end; offset++) {
+        if((offset & 15) < 8) {
+            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((offset & 7) << 1)]);
+        } else {
+            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].elements[7 - (offset & 7)] >> 7);
+        }
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sqv) {
@@ -168,7 +200,19 @@ RSP_VECTOR_INSTR(rsp_swc2_stv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_suv) {
-    logfatal("Unimplemented: rsp_swc2_suv")
+    word address = get_rsp_register(rsp, instruction.v.base);
+    sbyte base_offset = + instruction.v.offset << 1;
+    address += ((sword)base_offset << 2);
+
+    int start = instruction.v.element;
+    int end = start + 8;
+    for(uint offset = start; offset < end; offset++) {
+        if((offset & 15) < 8) {
+            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].elements[7 - (offset & 7)] >> 7);
+        } else {
+            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((offset & 7) << 1)]);
+        }
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
@@ -546,6 +590,41 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
     }
 }
 
+INLINE vu_reg_t get_vte(vu_reg_t vt, byte e) {
+    vu_reg_t vte;
+    switch(e) {
+        case 0 ... 1:
+            return vt;
+        case 2:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11110101), 0b11110101);
+            break;
+        case 3:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10100000), 0b10100000);
+            break;
+        case 4:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11111111), 0b11111111);
+            break;
+        case 5:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10101010), 0b10101010);
+            break;
+        case 6:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b01010101), 0b01010101);
+            break;
+        case 7:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b00000000), 0b00000000);
+            break;
+        case 8 ... 15:
+            for (int i = 0; i < 8; i++) {
+                vte.elements[i] = vt.elements[7 - (e - 8)];
+            }
+            break;
+        default:
+            logfatal("vte where e > 15")
+    }
+
+    return vte;
+}
+
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
     unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
@@ -582,9 +661,9 @@ RSP_VECTOR_INSTR(rsp_vec_vnxor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vor) {
-    unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int i = 0; i < 8; i++) {
-        half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
+        half result =  vte.elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }

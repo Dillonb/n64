@@ -6,7 +6,7 @@
 #include <emmintrin.h>
 #include "../common/util.h"
 
-#define vecr __m128
+#define vecr __m128i
 
 typedef union vu_reg {
     // Used by instructions

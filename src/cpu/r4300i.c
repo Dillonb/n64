@@ -84,7 +84,6 @@ mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instructi
             case COP_FUNCT_TLBWI_MULT:
                 return MIPS_TLBWI;
             case COP_FUNCT_TLBP:
-                printf("TLBP at pc: 0x%08X\n", pc);
                 return MIPS_TLBP;
             case COP_FUNCT_TLBR_SUB:
                 logfatal("tlbr")
