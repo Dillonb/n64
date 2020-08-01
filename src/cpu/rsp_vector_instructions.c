@@ -123,10 +123,18 @@ RSP_VECTOR_INSTR(rsp_lwc2_luv) {
     word base_address = get_rsp_register(rsp, instruction.v.base);
     sbyte base_offset = instruction.v.offset << 1;
 
+    int e = instruction.v.element;
+
     base_address += ((sword)base_offset << 2);
 
+    // Take into account how much the address is misaligned
+    // since the accesses still wrap on the 8 byte boundary
+    int address_offset = base_address & 7;
+    base_address &= ~7;
+
     for(uint elem = 0; elem < 8; elem++) {
-        int element_offset = (16 - instruction.v.element + elem) & 0xF;
+        int element_offset = (16 - e + (elem + address_offset)) & 0xF;
+
         half value = rsp->read_byte(base_address + element_offset);
         value <<= 7;
         rsp->vu_regs[instruction.v.vt].elements[7 - elem] = value;
