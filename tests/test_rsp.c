@@ -41,35 +41,47 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
     }
 
     bool failed = false;
-    printf("\n\n================= Expected =================");
-    for (int i = 0; i < output_size; i++) {
-        if (i % 16 == 0) {
-            printf("\n0x%04X:  ", 0x800 + i);
-        } else if (i % 4 == 0) {
-            printf(" ");
+    printf("\n\n================= Expected =================    ================== Actual ==================\n");
+    for (int i = 0; i < output_size; i += 16) {
+        printf("0x%04X:  ", 0x800 + i);
+
+        for (int b = 0; b < 16; b++) {
+            if (b != 0 && b % 4 == 0) {
+                printf(" ");
+            }
+            if (i + b < output_size) {
+                printf("%02X", ((byte*)output)[i + b]);
+            } else {
+                printf("  ");
+            }
         }
-        printf("%02X", ((byte*)output)[i]);
+
+        printf("    0x%04X:  ", 0x800 + i);
+
+        for (int b = 0; b < 16; b++) {
+            if (b != 0 && b % 4 == 0) {
+                printf(" ");
+            }
+            if (i + b < output_size) {
+                byte actual = system->mem.sp_dmem[0x800 + i + b];
+                byte expected = ((byte*)output)[i + b];
+
+                if (actual != expected) {
+                    printf(COLOR_RED);
+                    failed = true;
+                }
+                printf("%02X", actual);
+                if (actual != expected) {
+                    printf(COLOR_END);
+                }
+            } else {
+                printf("  ");
+            }
+        }
+
+        printf("\n");
     }
 
-    printf("\n\n================== Actual ==================");
-    for (int i = 0; i < output_size; i++) {
-        if (i % 16 == 0) {
-            printf("\n0x%04X:  ", 0x800 + i);
-        } else if (i % 4 == 0) {
-            printf(" ");
-        }
-        byte actual = system->mem.sp_dmem[0x800 + i];
-        byte expected = ((byte*)output)[i];
-
-        if (actual != expected) {
-            printf(COLOR_RED);
-            failed = true;
-        }
-        printf("%02X", actual);
-        if (actual != expected) {
-            printf(COLOR_END);
-        }
-    }
     printf("\n\n");
 
     return failed;
