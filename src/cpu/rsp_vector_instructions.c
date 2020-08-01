@@ -772,11 +772,40 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsqh) {
-    logfatal("Unimplemented: rsp_vec_vrsqh")
+    byte de = instruction.cp2_vec.vs;
+
+    rsp->divin = rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - instruction.cp2_vec.e];
+    rsp->divin_loaded = true;
+    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
+    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = rsp->divout;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
-    logfatal("Unimplemented: rsp_vec_vrsql")
+    bool L = true;
+    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
+    vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd];
+
+    sword result = 0;
+    sword input = L && rsp->divin_loaded ? rsp->divin << 16 | vt->elements[7 - (instruction.cp2_vec.e & 7)] : vt->signed_elements[7 - (instruction.cp2_vec.e & 7)];
+    sword mask = input >> 31;
+    sword data = input ^ mask;
+    if(input > -32768) data -= mask;
+    if(data == 0) {
+        result = 0x7FFFFFFF;
+    } else if(input == -32768) {
+        result = 0xFFFF0000;
+    } else {
+        word shift = __builtin_clz(data);
+        word index = ((dword)data << shift & 0x7FC00000) >> 22;
+        result = rcp_rom[index];
+        result = (0x10000 | result) << 14;
+        result = result >> (31 - shift) ^ mask;
+    }
+    rsp->divin_loaded = false;
+    rsp->divout = result >> 16;
+    rsp->acc.l.single = vt->single;
+
+    vd->elements[7 - (instruction.cp2_vec.vs)] = result;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
