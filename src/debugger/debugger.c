@@ -8,7 +8,7 @@ const char* target_xml =
         "<?xml version=\"1.0\"?>"
         "<!DOCTYPE feature SYSTEM \"gdb-target.dtd\">"
         "<target version=\"1.0\">"
-        "<architecture>mips:4300</architecture>"
+        "<architecture>mips:4000</architecture>"
         "<osabi>none</osabi>"
         "<feature name=\"org.gnu.gdb.mips.cpu\">"
         "        <reg name=\"r0\" bitsize=\"64\" regnum=\"0\"/>"
