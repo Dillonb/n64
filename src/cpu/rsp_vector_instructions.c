@@ -27,7 +27,9 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 
     for (int i = 0; i < 8; i++) {
         int element = i + instruction.v.element;
-        unimplemented(element > 15, "LDV overflowing vector register")
+        if (element > 15) {
+            break;
+        }
         rsp->vu_regs[instruction.v.vt].bytes[15 - element] = rsp->read_byte(address + i);
     }
 }
@@ -157,8 +159,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sdv) {
 
     for (int i = 0; i < 8; i++) {
         int element = i + instruction.v.element;
-        unimplemented(element > 15, "SDV overflowing vector register")
-        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - element]);
+        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - (element & 0xF)]);
     }
 }
 
