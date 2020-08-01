@@ -97,7 +97,23 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
-    logfatal("Unimplemented: rsp_lwc2_ltv")
+    word address = get_rsp_register(rsp, instruction.v.base);
+    sbyte offset = + instruction.v.offset << 1;
+    address += (sword)offset << 3;
+
+    word start = get_rsp_register(rsp, instruction.v.vt);
+    word end = start + 8;
+    if (end > 32) {
+        end = 32;
+    }
+
+    address = ((address + 8) & ~15) + (instruction.v.element & 1);
+    for(int i = start; i < end; i++) {
+        int byte_index = (8 - (instruction.v.element >> 1) + (i - start)) << 1;
+
+        rsp->vu_regs[i].bytes[(byte_index + 0) & 15] = rsp->read_byte(address++);
+        rsp->vu_regs[i].bytes[(byte_index + 1) & 15] = rsp->read_byte(address++);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_luv) {
@@ -196,7 +212,23 @@ RSP_VECTOR_INSTR(rsp_swc2_ssv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {
-    logfatal("Unimplemented: rsp_swc2_stv")
+    word address = get_rsp_register(rsp, instruction.v.base);
+    sbyte offset = + instruction.v.offset << 1;
+    address += (sword)offset << 3;
+    int start = instruction.v.vt;
+
+    int end = start + 8;
+    if (end > 32) {
+        end = 32;
+    }
+
+    int element = 8 - (instruction.v.element >> 1);
+    word base = (address & 0xF) + (element << 1);
+    address &= ~15;
+    for(int i = start; i < end; i++) {
+        rsp->write_half(address + (base & 15), rsp->vu_regs[i].elements[7 - (element++ & 7)]);
+        base += 2;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_suv) {
