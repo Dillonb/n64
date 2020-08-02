@@ -245,12 +245,11 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
     }
 }
 
-INLINE dword get_rsp_accumulator(rsp_t* rsp, int e) {
-    sdword val = (shalf)rsp->acc.h.elements[e];
-    val <<= 16;
-    val |= rsp->acc.m.elements[e];
-    val <<= 16;
-    val |= rsp->acc.l.elements[e];
+INLINE sdword get_rsp_accumulator(rsp_t* rsp, int e) {
+    sdword val = (sdword)rsp->acc.h.elements[e] << 48;
+    val       |= (sdword)rsp->acc.m.elements[e] << 32;
+    val       |= (sdword)rsp->acc.l.elements[e] << 16;
+    val >>= 16;
     return val;
 }
 
