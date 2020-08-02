@@ -42,6 +42,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
 
     bool failed = false;
     printf("\n\n================= Expected =================    ================== Actual ==================\n");
+    printf("          0 1 2 3  4 5 6 7  8 9 A B  C D E F              0 1 2 3  4 5 6 7  8 9 A B  C D E F\n");
     for (int i = 0; i < output_size; i += 16) {
         printf("0x%04X:  ", 0x800 + i);
 
@@ -81,6 +82,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
 
         printf("\n");
     }
+    printf("          0 1 2 3  4 5 6 7  8 9 A B  C D E F              0 1 2 3  4 5 6 7  8 9 A B  C D E F\n");
 
     printf("\n\n");
 
