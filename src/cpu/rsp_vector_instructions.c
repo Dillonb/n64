@@ -239,14 +239,22 @@ RSP_VECTOR_INSTR(rsp_swc2_stv) {
 
     int element = 8 - (instruction.v.element >> 1);
     word base = (address & 0xF) + (element << 1);
-    address &= ~15;
+    word wrap_point = (address + 0x10) & 0xFFFFFFF8;
+    base = (address & ~15) + (base & 0xF);
+    address = base;
     for(int vu_reg = start_vu_reg; vu_reg < end_vu_reg; vu_reg++) {
         half val = rsp->vu_regs[vu_reg].elements[7 - (element++ & 7)];
         byte lo = val & 0xFF;
         byte hi = (val >> 8) & 0xFF;
 
-        rsp->write_byte(address + (base++ & 15), hi);
-        rsp->write_byte(address + (base++ & 15), lo);
+        rsp->write_byte(address++, hi);
+        if (address >= wrap_point) {
+            address = base & ~0xF;
+        }
+        rsp->write_byte(address++, lo);
+        if (address >= wrap_point) {
+            address = base & ~0xF;
+        }
     }
 }
 
