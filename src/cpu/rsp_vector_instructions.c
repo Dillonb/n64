@@ -321,7 +321,12 @@ RSP_VECTOR_INSTR(rsp_mfc2) {
 
 RSP_VECTOR_INSTR(rsp_mtc2) {
     half element = get_rsp_register(rsp, instruction.cp2_regmove.rt);
-    rsp->vu_regs[instruction.cp2_regmove.rd].elements[7 - (instruction.cp2_regmove.e / 2)] = element;
+    byte lo = element & 0xFF;
+    byte hi = (element >> 8) & 0xFF;
+    rsp->vu_regs[instruction.cp2_regmove.rd].bytes[15 - (instruction.cp2_regmove.e + 0)] = hi;
+    if (instruction.cp2_regmove.e < 0xF) {
+        rsp->vu_regs[instruction.cp2_regmove.rd].bytes[15 - (instruction.cp2_regmove.e + 1)] = lo;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vabs) {
