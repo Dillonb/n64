@@ -184,14 +184,13 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_slv) {
-    sbyte offset = instruction.v.offset << 1;
-    word address = get_rsp_register(rsp, instruction.v.base) + offset;
     int e = instruction.v.element;
+    sword offset     = (sbyte)(instruction.v.offset << 1);
+    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 2;
 
     for (int i = 0; i < 4; i++) {
         int element = i + e;
-        unimplemented(element > 15, "SLV overflowing vector register")
-        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - element]);
+        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - (element & 0xF)]);
     }
 }
 
