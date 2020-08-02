@@ -107,8 +107,13 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
     int e = instruction.v.element;
     sbyte offset     = instruction.v.offset << 1;
     word address     = get_rsp_register(rsp, instruction.v.base) + offset;
-    unimplemented(e % 2 == 1, "LSV with uneven element!")
-    rsp->vu_regs[instruction.v.vt].elements[7 - (e / 2)] = rsp->read_half(address);
+    half val = rsp->read_half(address);
+    byte lo = val & 0xFF;
+    byte hi = (val >> 8) & 0xFF;
+    rsp->vu_regs[instruction.v.vt].bytes[15 - (e + 0)] = hi;
+    if (e < 15) {
+        rsp->vu_regs[instruction.v.vt].bytes[15 - (e + 1)] = lo;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
