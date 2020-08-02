@@ -48,11 +48,12 @@ RSP_VECTOR_INSTR(rsp_lwc2_llv) {
     int e = instruction.v.element;
     sword offset     = (sbyte)(instruction.v.offset << 1);
     word address     = get_rsp_register(rsp, instruction.v.base) + offset * 2;
-    unimplemented(e % 4 != 0, "LLV to unaligned element")
 
     for (int i = 0; i < 4; i++) {
         int element = i + e;
-        unimplemented(element > 15, "LLV overflowing vector register")
+        if (element > 15) {
+            break;
+        }
         rsp->vu_regs[instruction.v.vt].bytes[15 - element] = rsp->read_byte(address + i);
     }
 }
