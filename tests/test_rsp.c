@@ -144,13 +144,11 @@ int main(int argc, char** argv) {
         }
 
         failed |= subtest_failed;
+        if (failed) {
+            break;
+        }
     }
 
     free(system);
-
-    if (failed) {
-        logdie("Tests failed!")
-    }
-
-    exit(0);
+    exit(failed);
 }
