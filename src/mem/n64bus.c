@@ -21,12 +21,6 @@ bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
         tlb_entry_t entry = cp0->tlb[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;
         word page_size = mask + 1;
-        word vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
-    }
-    for (int i = 0; i < 32; i++) {
-        tlb_entry_t entry = cp0->tlb[i];
-        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
-        word page_size = mask + 1;
         word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
         word vaddr_vpn = get_vpn(vaddr, entry.page_mask.raw);
 
