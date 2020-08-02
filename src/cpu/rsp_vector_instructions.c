@@ -230,19 +230,23 @@ RSP_VECTOR_INSTR(rsp_swc2_stv) {
     word address = get_rsp_register(rsp, instruction.v.base);
     sbyte offset = + instruction.v.offset << 1;
     address += (sword)offset << 3;
-    int start = instruction.v.vt;
+    int start_vu_reg = instruction.v.vt & 0b11000;
 
-    int end = start + 8;
-    if (end > 32) {
-        end = 32;
+    int end_vu_reg = start_vu_reg + 8;
+    if (end_vu_reg > 32) {
+        end_vu_reg = 32;
     }
 
     int element = 8 - (instruction.v.element >> 1);
     word base = (address & 0xF) + (element << 1);
     address &= ~15;
-    for(int i = start; i < end; i++) {
-        rsp->write_half(address + (base & 15), rsp->vu_regs[i].elements[7 - (element++ & 7)]);
-        base += 2;
+    for(int vu_reg = start_vu_reg; vu_reg < end_vu_reg; vu_reg++) {
+        half val = rsp->vu_regs[vu_reg].elements[7 - (element++ & 7)];
+        byte lo = val & 0xFF;
+        byte hi = (val >> 8) & 0xFF;
+
+        rsp->write_byte(address + (base++ & 15), hi);
+        rsp->write_byte(address + (base++ & 15), lo);
     }
 }
 
