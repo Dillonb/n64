@@ -315,7 +315,9 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
 }
 
 RSP_VECTOR_INSTR(rsp_mfc2) {
-    shalf element = rsp->vu_regs[instruction.cp2_regmove.rd].elements[7 - (instruction.cp2_regmove.e / 2)];
+    byte hi = rsp->vu_regs[instruction.cp2_regmove.rd].bytes[15 - (instruction.cp2_regmove.e)];
+    byte lo = rsp->vu_regs[instruction.cp2_regmove.rd].bytes[15 - ((instruction.cp2_regmove.e + 1) & 0xF)];
+    shalf element = hi << 8 | lo;
     set_rsp_register(rsp, instruction.cp2_regmove.rt, (sword)element);
 }
 
