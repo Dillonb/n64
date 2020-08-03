@@ -94,6 +94,22 @@ RSP_INSTR(rsp_spc_xor) {
     set_rsp_register(rsp, instruction.r.rd, get_rsp_register(rsp, instruction.r.rs) ^ get_rsp_register(rsp, instruction.r.rt));
 }
 
+RSP_INSTR(rsp_spc_slt) {
+    sword op1 = get_rsp_register(rsp, instruction.r.rs);
+    sword op2 = get_rsp_register(rsp, instruction.r.rt);
+
+    // RS - RT
+    sword result = op1 - op2;
+    // if RS is LESS than RT
+    // aka, if result is negative
+
+    if (result < 0) {
+        set_rsp_register(rsp, instruction.r.rd, 1);
+    } else {
+        set_rsp_register(rsp, instruction.r.rd, 0);
+    }
+}
+
 RSP_INSTR(rsp_spc_add) {
     word addend1 = get_rsp_register(rsp, instruction.r.rs);
     word addend2 = get_rsp_register(rsp, instruction.r.rt);

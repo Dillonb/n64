@@ -293,6 +293,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_SPC_SUB,  rsp_spc_sub)
         exec_instr(MIPS_SPC_OR,   rsp_spc_or)
         exec_instr(MIPS_SPC_XOR,  rsp_spc_xor)
+        exec_instr(MIPS_SPC_SLT,  rsp_spc_slt)
 
         case MIPS_SPC_BREAK: rsp_spc_break(system, instruction);
 
