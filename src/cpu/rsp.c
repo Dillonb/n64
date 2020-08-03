@@ -130,7 +130,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
         //case FUNCT_SUBU:   return MIPS_SPC_SUBU;
         case FUNCT_OR:     return MIPS_SPC_OR;
         case FUNCT_XOR:    return MIPS_SPC_XOR;
-        //case FUNCT_SLT:    return MIPS_SPC_SLT;
+        case FUNCT_SLT:    return MIPS_SPC_SLT;
         //case FUNCT_SLTU:   return MIPS_SPC_SLTU;
 
         case FUNCT_BREAK: return MIPS_SPC_BREAK;
