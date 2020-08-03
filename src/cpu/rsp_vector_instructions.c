@@ -95,11 +95,11 @@ RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
     int e = instruction.v.element;
     sbyte offset       = instruction.v.offset << 1;
     word address       = get_rsp_register(rsp, instruction.v.base) + offset * 8;
-    int start = 16 - ((address & 0xF) - instruction.v.element);
+    int start = 16 - ((address & 0xF) - e);
     address &= 0xFFFFFFF0;
 
-    for (int i = start; i + e < 16; i++) {
-        rsp->vu_regs[instruction.v.vt].bytes[15 - (i + e)] = rsp->read_byte(address++);
+    for (int i = start; i < 16; i++) {
+        rsp->vu_regs[instruction.v.vt].bytes[15 - (i & 0xF)] = rsp->read_byte(address++);
     }
 }
 
