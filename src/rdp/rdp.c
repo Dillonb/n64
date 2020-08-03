@@ -145,7 +145,8 @@ void write_word_dpcreg(n64_system_t* system, word address, word value) {
         case ADDR_DPC_CURRENT_REG:
             logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG")
         case ADDR_DPC_STATUS_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_STATUS_REG")
+            rdp_status_reg_write(system, value);
+            break;
         case ADDR_DPC_CLOCK_REG:
             logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CLOCK_REG")
         case ADDR_DPC_BUFBUSY_REG:
