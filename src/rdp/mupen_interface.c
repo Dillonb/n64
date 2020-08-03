@@ -77,7 +77,7 @@ EXPORT float CALL ConfigGetParamFloat(m64p_handle handle, const char* param) {
 
 EXPORT int CALL ConfigGetParamBool(m64p_handle handle, const char* param) {
     PARAM("Fullscreen",     false)
-    PARAM("Parallel",       true)
+    PARAM("Parallel",       false)
     PARAM("ViWidescreen",   false)
     PARAM("ViHideOverscan", false)
 
