@@ -208,33 +208,46 @@ void n64_system_step(n64_system_t* system) {
     _n64_system_step(system);
 }
 
+#define CYCLES_PER_INSTR 2
+
+INLINE void check_vsync(n64_system_t* system) {
+    if (system->vi.v_current == system->vi.vsync >> 1) {
+        rdp_update_screen();
+    }
+}
+
 void n64_system_loop(n64_system_t* system) {
     int cycles = 0;
     while (!should_quit) {
         for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
             check_vi_interrupt(system);
+            check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += 2 + system->debugger_state.steps;
+                cycles += CYCLES_PER_INSTR + system->debugger_state.steps;
                 system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
             ai_step(system, SHORTLINE_CYCLES);
         }
+        check_vi_interrupt(system);
+        check_vsync(system);
         for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
             check_vi_interrupt(system);
+            check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += 2 + system->debugger_state.steps;
+                cycles += CYCLES_PER_INSTR + system->debugger_state.steps;
                 system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;
             ai_step(system, LONGLINE_CYCLES);
         }
+        check_vi_interrupt(system);
+        check_vsync(system);
         if (system->debugger_state.enabled) {
             debugger_tick(system);
         }
-        render_screen(system);
     }
 }
 

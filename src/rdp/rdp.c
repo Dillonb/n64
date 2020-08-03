@@ -12,7 +12,9 @@ static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;
 static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
 
-void stub_rendering_callback(int redrawn) {}
+void rdp_rendering_callback(int redrawn) {
+    render_screen(mupen_interface_global_system);
+}
 
 #define ADDR_DPC_START_REG    0x04100000
 #define ADDR_DPC_END_REG      0x04100004
@@ -123,7 +125,7 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
     graphics_plugin.InitiateGFX(gfx_info);
     graphics_plugin.RomOpen();
 
-    graphics_plugin.SetRenderingCallback(stub_rendering_callback);
+    graphics_plugin.SetRenderingCallback(rdp_rendering_callback);
 
     // TODO: check plugin version, API version, etc for compatibility
 
