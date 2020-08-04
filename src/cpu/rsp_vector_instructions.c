@@ -300,7 +300,7 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 }
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
-    word value = 0;
+    shalf value = 0;
     switch (instruction.r.rd) {
         case 0: { // VCO
             for (int i = 0; i < 8; i++) {
@@ -331,7 +331,7 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
         }
     }
 
-    set_rsp_register(rsp, instruction.r.rt, value);
+    set_rsp_register(rsp, instruction.r.rt, (sword)value);
 }
 
 RSP_VECTOR_INSTR(rsp_ctc2) {
