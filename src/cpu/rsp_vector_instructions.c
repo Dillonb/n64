@@ -169,7 +169,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sbv) {
     word address = get_rsp_register(rsp, instruction.v.base) + offset;
 
     int element = instruction.v.element;
-    rsp->write_byte(address, rsp->vu_regs[instruction.v.vt].bytes[7 - element]);
+    rsp->write_byte(address, rsp->vu_regs[instruction.v.vt].bytes[15 - element]);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sdv) {
