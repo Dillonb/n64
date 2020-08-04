@@ -17,8 +17,12 @@ INLINE shalf clamp_signed(sdword value) {
 #define clamp_unsigned(x) ((x) < 0 ? 0 : ((x) > 32767 ? 65535 : x))
 
 RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
-    printf("Unimplemented: rsp_lwc2_lbv\n");
-    exit(0);
+    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
+
+    sbyte offset = instruction.v.offset << 1;
+    word address = get_rsp_register(rsp, instruction.v.base) + (offset / 2);
+
+    vt->bytes[15 - instruction.v.element] = rsp->read_byte(address);
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
