@@ -416,10 +416,10 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
 
     //for i in 0..7
     for (int i = 0; i < 8; i++) {
-        shalf vse = vs->signed_elements[i];
-        shalf vte = vt->signed_elements[i];
+        half vse = vs->elements[i];
+        half vte = vt->elements[i];
         //result(16..0) = VS<i>(15..0) + VT<i>(15..0)
-        sword result = vse + vte;
+        word result = vse + vte;
         //ACC<i>(15..0) = result(15..0)
         rsp->acc.l.elements[i] = result & 0xFFFF;
         //VD<i>(15..0) = result(15..0)
