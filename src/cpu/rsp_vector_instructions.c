@@ -433,7 +433,6 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vand) {
-    //unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] & rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
