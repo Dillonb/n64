@@ -335,8 +335,37 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
 }
 
 RSP_VECTOR_INSTR(rsp_ctc2) {
-    printf("Unimplemented: rsp_ctc2\n");
-    exit(0);
+    half value = get_rsp_register(rsp, instruction.r.rt) & 0xFFFF;
+    switch (instruction.r.rd) {
+        case 0: { // VCO
+            printf("Copying %X to VCO\nVCO: ", value);
+            for (int i = 0; i < 8; i++) {
+                rsp->vco.h.elements[7 - i] = ((value >> (i + 8)) & 1) == 1;
+                rsp->vco.l.elements[7 - i] = ((value >> i) & 1) == 1;
+                printf("%d", rsp->vco.h.elements[7-i]);
+            }
+            for (int i = 0; i < 8; i++) {
+                printf("%d", rsp->vco.l.elements[7-i]);
+            }
+            printf("\n");
+            break;
+        }
+        case 1: { // VCC
+            for (int i = 0; i < 8; i++) {
+                rsp->vcc.h.elements[7 - i] = ((value >> (i + 8)) & 1) == 1;
+                rsp->vcc.l.elements[7 - i] = ((value >> i) & 1) == 1;
+            }
+            break;
+        }
+        case 2: { // VCE
+            for (int i = 0; i < 8; i++) {
+                rsp->vce.elements[7 - i] = ((value >> i) & 1) == 1;
+            }
+            break;
+        }
+        default:
+            logfatal("CTC2 to unknown VU control register: %d", instruction.r.rd)
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_mfc2) {
