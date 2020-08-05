@@ -873,7 +873,30 @@ RSP_VECTOR_INSTR(rsp_vec_vrndp) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
-    printf("Unimplemented: rsp_vec_vrsq\n");
+    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
+    vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd];
+
+    sword result = 0;
+    sword input = vt->signed_elements[7 - (instruction.cp2_vec.e & 7)];
+    sword mask = input >> 31;
+    sword data = input ^ mask;
+    if(input > -32768) data -= mask;
+    if(data == 0) {
+        result = 0x7FFFFFFF;
+    } else if(input == -32768) {
+        result = 0xFFFF0000;
+    } else {
+        word shift = __builtin_clz(data);
+        word index = ((dword)data << shift & 0x7FC00000) >> 22;
+        result = rsq_rom[index];
+        result = (0x10000 | result) << 14;
+        result = result >> (31 - shift) ^ mask;
+    }
+    rsp->divin_loaded = false;
+    rsp->divout = result >> 16;
+    rsp->acc.l.single = vt->single;
+
+    vd->elements[7 - (instruction.cp2_vec.vs)] = result;
     exit(0);
 }
 
