@@ -510,6 +510,7 @@ RSP_VECTOR_INSTR(rsp_vec_vge) {
         vd->elements[i] = rsp->acc.l.elements[i];
         rsp->vcc.h.elements[i] = 0;
         rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = 0;
 
     }
 }
