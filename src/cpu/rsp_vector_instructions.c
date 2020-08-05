@@ -903,7 +903,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     } else {
         word shift = __builtin_clz(data);
         word index = ((dword)data << shift & 0x7FC00000) >> 22;
-        result = rcp_rom[index];
+        result = rsq_rom[index];
         result = (0x10000 | result) << 14;
         result = result >> (31 - shift) ^ mask;
     }
