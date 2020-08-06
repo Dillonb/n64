@@ -39,13 +39,11 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
-    printf("Unimplemented: rsp_lwc2_lfv\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_lwc2_lfv")
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
-    printf("Unimplemented: rsp_lwc2_lhv\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_lwc2_lhv")
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_llv) {
@@ -183,13 +181,11 @@ RSP_VECTOR_INSTR(rsp_swc2_sdv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sfv) {
-    printf("Unimplemented: rsp_swc2_sfv\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_swc2_sfv")
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_shv) {
-    printf("Unimplemented: rsp_swc2_shv\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_swc2_shv")
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_slv) {
@@ -338,16 +334,10 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
     half value = get_rsp_register(rsp, instruction.r.rt) & 0xFFFF;
     switch (instruction.r.rd) {
         case 0: { // VCO
-            printf("Copying %X to VCO\nVCO: ", value);
             for (int i = 0; i < 8; i++) {
                 rsp->vco.h.elements[7 - i] = ((value >> (i + 8)) & 1) == 1;
                 rsp->vco.l.elements[7 - i] = ((value >> i) & 1) == 1;
-                printf("%d", rsp->vco.h.elements[7-i]);
             }
-            for (int i = 0; i < 8; i++) {
-                printf("%d", rsp->vco.l.elements[7-i]);
-            }
-            printf("\n");
             break;
         }
         case 1: { // VCC
@@ -386,8 +376,7 @@ RSP_VECTOR_INSTR(rsp_mtc2) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vabs) {
-    printf("Unimplemented: rsp_vec_vabs\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vabs")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vadd) {
@@ -488,13 +477,11 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vcr) {
-    printf("Unimplemented: rsp_vec_vcr\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vcr")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_veq) {
-    printf("Unimplemented: rsp_vec_veq\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_veq")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vge) {
@@ -545,8 +532,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacq) {
-    printf("Unimplemented: rsp_vec_vmacq\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vmacq");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacu) {
@@ -630,8 +616,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmov) {
-    printf("Unimplemented: rsp_vec_vmov\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vmov")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
@@ -722,8 +707,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulq) {
-    printf("Unimplemented: rsp_vec_vmulq\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vmulq");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
@@ -786,13 +770,11 @@ RSP_VECTOR_INSTR(rsp_vec_vnand) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vne) {
-    printf("Unimplemented: rsp_vec_vne\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vne");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnop) {
-    printf("Unimplemented: rsp_vec_vnop\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vnop")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
@@ -823,8 +805,7 @@ RSP_VECTOR_INSTR(rsp_vec_vor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcp) {
-    printf("Unimplemented: rsp_vec_vrcp\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vrcp")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph) {
@@ -865,12 +846,11 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
-    printf("Unimplemented: rsp_vec_vrndn\n");
-    exit(0);
+    logfatal("Unimplemented: rsp_vec_vrndn")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndp) {
-    printf("Unimplemented: rsp_vec_vrndp\n");
+    logfatal("Unimplemented: rsp_vec_vrndp")
     exit(0);
 }
 
@@ -899,7 +879,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     rsp->acc.l.single = vt->single;
 
     vd->elements[7 - (instruction.cp2_vec.vs)] = result;
-    exit(0);
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsqh) {
