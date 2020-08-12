@@ -16,6 +16,48 @@ INLINE shalf clamp_signed(sdword value) {
 
 #define clamp_unsigned(x) ((x) < 0 ? 0 : ((x) > 32767 ? 65535 : x))
 
+word rcp(sword sinput) {
+    if (sinput == 0) {
+        return ~sinput >> 1;
+    }
+
+    word input = abs(sinput);
+    int lshift = __builtin_clz(input) + 1;
+    int rshift = 32 - lshift;
+    int index = (input << lshift) >> 23;
+
+    word rom = rcp_rom[index];
+    word result = ((0x100000 | rom) << 14) >> rshift;
+
+    if (input != sinput) {
+        return ~result;
+    } else {
+        return result;
+    }
+}
+
+word rsq(sword sinput) {
+    if (sinput == 0) {
+        return ~sinput >> 1;
+    } else if (sinput == 0xFFFF8000) { // Only for RSQ special case
+        return 0xFFFF0000;
+    }
+
+    word input = abs(sinput);
+    int lshift = __builtin_clz(input) + 1;
+    int rshift = (32 - lshift) >> 1; // Shifted by 1 instead of 0
+    int index = (input << lshift) >> 24; // Shifted by 24 instead of 23
+
+    word rom = rsq_rom[(index | ((lshift & 1) << 8))];
+    word result = ((0x100000 | rom) << 14) >> rshift;
+
+    if (input != sinput) {
+        return ~result;
+    } else {
+        return result;
+    }
+}
+
 RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
     vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
 
@@ -808,41 +850,21 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     logfatal("Unimplemented: rsp_vec_vrcp")
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vrcph) {
-    byte de = instruction.cp2_vec.vs;
-
-    rsp->divin = rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - instruction.cp2_vec.e];
-    rsp->divin_loaded = true;
-    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
-    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = rsp->divout;
-}
-
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
-    bool L = true;
-    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
-    vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd];
-
-    sword result = 0;
-    sword input = L && rsp->divin_loaded ? rsp->divin << 16 | vt->elements[7 - (instruction.cp2_vec.e & 7)] : vt->signed_elements[7 - (instruction.cp2_vec.e & 7)];
-    sword mask = input >> 31;
-    sword data = input ^ mask;
-    if(input > -32768) data -= mask;
-    if(data == 0) {
-        result = 0x7FFFFFFF;
-    } else if(input == -32768) {
-        result = 0xFFFF0000;
+    sword input;
+    int e  = instruction.cp2_vec.e & 7;
+    int de = instruction.cp2_vec.vs & 7;
+    if (rsp->divin_loaded) {
+        input = (rsp->divin << 16) | rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - e];
     } else {
-        word shift = __builtin_clz(data);
-        word index = ((dword)data << shift & 0x7FC00000) >> 22;
-        result = rcp_rom[index];
-        result = (0x10000 | result) << 14;
-        result = result >> (31 - shift) ^ mask;
+        input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
     }
+    word result = rcp(input);
+    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    rsp->divout = (result >> 16) & 0xFFFF;
+    rsp->divin = 0;
     rsp->divin_loaded = false;
-    rsp->divout = result >> 16;
-    rsp->acc.l.single = vt->single;
-
-    vd->elements[7 - (instruction.cp2_vec.vs)] = result;
+    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
@@ -851,37 +873,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrndn) {
 
 RSP_VECTOR_INSTR(rsp_vec_vrndp) {
     logfatal("Unimplemented: rsp_vec_vrndp")
-    exit(0);
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
-    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
-    vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd];
-
-    sword result = 0;
-    sword input = vt->signed_elements[7 - (instruction.cp2_vec.e & 7)];
-    sword mask = input >> 31;
-    sword data = input ^ mask;
-    if(input > -32768) data -= mask;
-    if(data == 0) {
-        result = 0x7FFFFFFF;
-    } else if(input == -32768) {
-        result = 0xFFFF0000;
-    } else {
-        word shift = __builtin_clz(data);
-        word index = ((dword)data << shift & 0x7FC00000) >> 22;
-        result = rsq_rom[index];
-        result = (0x10000 | result) << 14;
-        result = result >> (31 - shift) ^ mask;
-    }
-    rsp->divin_loaded = false;
-    rsp->divout = result >> 16;
-    rsp->acc.l.single = vt->single;
-
-    vd->elements[7 - (instruction.cp2_vec.vs)] = result;
+    logfatal("Unimplemented: rsp_vec_vrsq")
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vrsqh) {
+RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     byte de = instruction.cp2_vec.vs;
 
     rsp->divin = rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - instruction.cp2_vec.e];
@@ -891,31 +889,20 @@ RSP_VECTOR_INSTR(rsp_vec_vrsqh) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
-    bool L = true;
-    vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
-    vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd];
-
-    sword result = 0;
-    sword input = L && rsp->divin_loaded ? rsp->divin << 16 | vt->elements[7 - (instruction.cp2_vec.e & 7)] : vt->signed_elements[7 - (instruction.cp2_vec.e & 7)];
-    sword mask = input >> 31;
-    sword data = input ^ mask;
-    if(input > -32768) data -= mask;
-    if(data == 0) {
-        result = 0x7FFFFFFF;
-    } else if(input == -32768) {
-        result = 0xFFFF0000;
+    sword input;
+    int e  = instruction.cp2_vec.e & 7;
+    int de = instruction.cp2_vec.vs & 7;
+    if (rsp->divin_loaded) {
+        input = (rsp->divin << 16) | rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - e];
     } else {
-        word shift = __builtin_clz(data);
-        word index = ((dword)data << shift & 0x7FC00000) >> 22;
-        result = rsq_rom[index];
-        result = (0x10000 | result) << 14;
-        result = result >> (31 - shift) ^ mask;
+        input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
     }
+    word result = rsq(input);
+    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    rsp->divout = (result >> 16) & 0xFFFF;
+    rsp->divin = 0;
     rsp->divin_loaded = false;
-    rsp->divout = result >> 16;
-    rsp->acc.l.single = vt->single;
-
-    vd->elements[7 - (instruction.cp2_vec.vs)] = result;
+    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
