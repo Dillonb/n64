@@ -847,7 +847,16 @@ RSP_VECTOR_INSTR(rsp_vec_vor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcp) {
-    logfatal("Unimplemented: rsp_vec_vrcp")
+    sword input;
+    int e  = instruction.cp2_vec.e & 7;
+    int de = instruction.cp2_vec.vs & 7;
+    input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
+    word result = rcp(input);
+    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    rsp->divout = (result >> 16) & 0xFFFF;
+    rsp->divin = 0;
+    rsp->divin_loaded = false;
+    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
@@ -876,7 +885,16 @@ RSP_VECTOR_INSTR(rsp_vec_vrndp) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
-    logfatal("Unimplemented: rsp_vec_vrsq")
+    sword input;
+    int e  = instruction.cp2_vec.e & 7;
+    int de = instruction.cp2_vec.vs & 7;
+    input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
+    word result = rsq(input);
+    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    rsp->divout = (result >> 16) & 0xFFFF;
+    rsp->divin = 0;
+    rsp->divin_loaded = false;
+    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
