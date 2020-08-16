@@ -8,7 +8,7 @@
 #endif
 
 #include "disassemble.h"
-#include "../common/log.h"
+#include <log.h>
 
 bool disassembler_initialized = false;
 #ifdef HAVE_CAPSTONE

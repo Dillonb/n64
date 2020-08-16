@@ -1,5 +1,5 @@
 #include "r4300i.h"
-#include "../common/log.h"
+#include <log.h>
 #include "disassemble.h"
 #include "mips_instructions.h"
 #include "tlb_instructions.h"

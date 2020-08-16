@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <cflags.h>
-#include "common/log.h"
+#include "log.h"
 #include "system/n64system.h"
 #include "mem/pif.h"
 

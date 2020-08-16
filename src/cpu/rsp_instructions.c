@@ -1,5 +1,5 @@
 #include "rsp_instructions.h"
-#include "../common/log.h"
+#include <log.h>
 
 #define RSP_REG_LR 31
 

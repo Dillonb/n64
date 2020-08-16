@@ -1,7 +1,7 @@
 #ifndef N64_DISASSEMBLE_H
 #define N64_DISASSEMBLE_H
 
-#include "../common/util.h"
+#include <util.h>
 
 int disassemble(word address, word raw, char* buf, int buflen);
 

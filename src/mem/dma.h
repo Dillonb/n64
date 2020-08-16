@@ -2,7 +2,7 @@
 #define N64_DMA_H
 
 #include <stdbool.h>
-#include "../common/util.h"
+#include <util.h>
 #include "../system/n64system.h"
 
 bool is_dma_active();

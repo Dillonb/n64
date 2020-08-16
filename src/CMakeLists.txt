@@ -1,6 +1,6 @@
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 find_package(SDL2 REQUIRED)
-INCLUDE_DIRECTORIES(SYSTEM "contrib/include" ${SDL2_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(SYSTEM "contrib/include" ${SDL2_INCLUDE_DIR} "common")
 
 add_subdirectory(common)
 add_subdirectory(cpu)

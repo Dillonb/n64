@@ -1,7 +1,7 @@
 #ifndef N64_N64BUS_H
 #define N64_N64BUS_H
 
-#include "../common/util.h"
+#include <util.h>
 #include "../system/n64system.h"
 
 bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0);

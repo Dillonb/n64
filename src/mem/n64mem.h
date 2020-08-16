@@ -2,7 +2,7 @@
 #define N64_N64MEM_H
 
 #include "n64rom.h"
-#include "../common/util.h"
+#include <util.h>
 
 #define N64_RDRAM_SIZE   0x800000
 #define SP_DMEM_SIZE 0x1000

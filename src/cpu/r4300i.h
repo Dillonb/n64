@@ -2,8 +2,8 @@
 #define N64_R4300I_H
 #include <stdbool.h>
 
-#include "../common/util.h"
-#include "../common/log.h"
+#include <util.h>
+#include <log.h>
 
 #define R4300I_REG_LR 31
 

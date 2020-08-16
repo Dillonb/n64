@@ -2,7 +2,7 @@
 
 #include <emmintrin.h>
 
-#include "../common/log.h"
+#include <log.h>
 #include "rsp.h"
 #include "rsp_rom.h"
 

@@ -2,8 +2,8 @@
 #define N64_RSP_H
 
 #include <stdbool.h>
-#include "../common/util.h"
-#include "../common/log.h"
+#include <util.h>
+#include <log.h>
 #include "rsp_types.h"
 #include "../mem/addresses.h"
 #include "../system/n64system.h"

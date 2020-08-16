@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "mupen_interface.h"
-#include "../common/log.h"
+#include <log.h>
 #include "../frontend/render.h"
 
 static void* plugin_handle = NULL;

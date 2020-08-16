@@ -2,7 +2,7 @@
 #define N64_MIPS_INSTRUCTION_DECODE_H
 
 #include <stdbool.h>
-#include "../common/util.h"
+#include <util.h>
 
 typedef union mips_instruction {
     word raw;

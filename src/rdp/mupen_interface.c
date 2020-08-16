@@ -1,5 +1,5 @@
 #include "mupen_interface.h"
-#include "../common/log.h"
+#include <log.h>
 #include "../frontend/render.h"
 
 #include <stdbool.h>

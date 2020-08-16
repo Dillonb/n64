@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <emmintrin.h>
-#include "../common/util.h"
+#include <util.h>
 
 #define vecr __m128i
 
