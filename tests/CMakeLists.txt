@@ -1,6 +1,6 @@
 enable_testing()
 
-INCLUDE_DIRECTORIES(SYSTEM "../src/contrib/include")
+INCLUDE_DIRECTORIES(SYSTEM "../src/contrib/include" "../src/common" "../src")
 
 add_executable(test_cpu test_cpu.c unit.h)
 target_link_libraries(test_cpu r4300i common core)

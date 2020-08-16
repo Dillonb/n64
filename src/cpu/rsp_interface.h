@@ -1,6 +1,6 @@
 #ifndef N64_RSP_INTERFACE_H
 #define N64_RSP_INTERFACE_H
-#include "../system/n64system.h"
+#include <system/n64system.h>
 
 #define ADDR_SP_MEM_ADDR_REG  0x04040000
 #define ADDR_SP_DRAM_ADDR_REG 0x04040004

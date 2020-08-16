@@ -1,7 +1,7 @@
 #ifndef N64_RENDER_H
 #define N64_RENDER_H
 
-#include "../system/n64system.h"
+#include <system/n64system.h>
 
 #define N64_SCREEN_X 640
 #define N64_SCREEN_Y 480

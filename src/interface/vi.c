@@ -1,5 +1,5 @@
 #include "vi.h"
-#include "../rdp/rdp.h"
+#include <rdp/rdp.h>
 
 #define ADDR_VI_STATUS_REG    0x04400000
 #define ADDR_VI_ORIGIN_REG    0x04400004

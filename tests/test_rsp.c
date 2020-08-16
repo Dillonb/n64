@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <linux/limits.h>
-#include "../src/system/n64system.h"
-#include "../src/cpu/rsp.h"
+#include <system/n64system.h>
+#include <cpu/rsp.h>
 
 // Just to make sure we don't get caught in an infinite loop
 #define MAX_CYCLES 100000

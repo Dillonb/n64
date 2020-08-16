@@ -5,13 +5,12 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "../mem/n64bus.h"
-#include "../frontend/render.h"
-#include "../interface/vi.h"
-#include "../interface/ai.h"
-#include "../mem/n64_rsp_bus.h"
-#include "../cpu/rsp.h"
-#include "../rdp/rdp.h"
+#include <mem/n64bus.h>
+#include <frontend/render.h>
+#include <interface/vi.h>
+#include <interface/ai.h>
+#include <mem/n64_rsp_bus.h>
+#include <cpu/rsp.h>
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.

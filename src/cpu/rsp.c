@@ -3,7 +3,8 @@
 #include "rsp_instructions.h"
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
-#include "../mem/mem_util.h"
+
+#include <mem/mem_util.h>
 
 #define exec_instr(key, fn) case key: fn(rsp, instruction); break;
 

@@ -1,7 +1,7 @@
 #ifndef N64_AI_H
 #define N64_AI_H
 
-#include "../system/n64system.h"
+#include <system/n64system.h>
 
 void write_word_aireg(n64_system_t* system, word address, word value);
 word read_word_aireg(n64_system_t* system, word address);

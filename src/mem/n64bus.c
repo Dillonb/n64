@@ -1,13 +1,14 @@
 #include "n64bus.h"
 
+#include <interface/vi.h>
+#include <interface/ai.h>
+#include <cpu/rsp_interface.h>
+#include <rdp/rdp.h>
+
 #include "dma.h"
-#include "../interface/vi.h"
 #include "addresses.h"
-#include "../interface/ai.h"
 #include "pif.h"
-#include "../cpu/rsp_interface.h"
 #include "mem_util.h"
-#include "../rdp/rdp.h"
 
 word get_vpn(word address, word page_mask_raw) {
     word tmp = page_mask_raw | 0x1FFF;

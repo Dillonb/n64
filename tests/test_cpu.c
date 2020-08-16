@@ -1,5 +1,5 @@
-#include "../src/common/util.h"
-#include "../src/cpu/mips_instructions.h"
+#include <util.h>
+#include <cpu/mips_instructions.h>
 
 #include <string.h>
 

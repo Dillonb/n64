@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <cflags.h>
 #include <log.h>
-#include "../system/n64system.h"
-#include "../mem/pif.h"
-#include "../rdp/rdp.h"
+#include <system/n64system.h>
+#include <mem/pif.h>
+#include <rdp/rdp.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,

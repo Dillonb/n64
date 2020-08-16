@@ -1,12 +1,12 @@
 #ifndef N64_N64SYSTEM_H
 #define N64_N64SYSTEM_H
 #include <stdbool.h>
-#include "../mem/n64mem.h"
-#include "../cpu/r4300i.h"
-#include "../cpu/rsp_types.h"
-#include "../interface/vi_reg.h"
-#include "../debugger/debugger.h"
-#include "../debugger/debugger_types.h"
+#include <mem/n64mem.h>
+#include <cpu/r4300i.h>
+#include <cpu/rsp_types.h>
+#include <interface/vi_reg.h>
+#include <debugger/debugger.h>
+#include <debugger/debugger_types.h>
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)

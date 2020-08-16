@@ -3,7 +3,7 @@
 #include <SDL.h>
 #include <glad/glad.h>
 
-#include "../mem/pif.h"
+#include <mem/pif.h>
 
 int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;

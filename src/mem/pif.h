@@ -1,7 +1,7 @@
 #ifndef N64_PIF_H
 #define N64_PIF_H
 
-#include "../system/n64system.h"
+#include <system/n64system.h>
 
 typedef enum n64_button {
     A,

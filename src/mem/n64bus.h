@@ -2,7 +2,7 @@
 #define N64_N64BUS_H
 
 #include <util.h>
-#include "../system/n64system.h"
+#include <system/n64system.h>
 
 bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0);
 word vatopa(word address, cp0_t* cp0);

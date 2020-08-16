@@ -4,7 +4,7 @@
 #include "contrib/m64p_types.h"
 #include "contrib/m64p_plugin.h"
 #include "contrib/m64p_common.h"
-#include "../system/n64system.h"
+#include <system/n64system.h>
 
 extern n64_system_t* mupen_interface_global_system;
 

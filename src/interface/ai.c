@@ -1,7 +1,7 @@
 #include "ai.h"
-#include "../mem/addresses.h"
-#include "../frontend/render.h"
-#include "../mem/n64bus.h"
+#include <mem/addresses.h>
+#include <frontend/render.h>
+#include <mem/n64bus.h>
 
 INLINE int max(int x, int y) {
     if (x > y) return x;

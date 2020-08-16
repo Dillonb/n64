@@ -4,11 +4,12 @@
 #include <stdbool.h>
 #include <util.h>
 #include <log.h>
+#include <mem/addresses.h>
+#include <system/n64system.h>
+#include <rdp/rdp.h>
+
 #include "rsp_types.h"
-#include "../mem/addresses.h"
-#include "../system/n64system.h"
 #include "rsp_interface.h"
-#include "../rdp/rdp.h"
 
 #define RSP_CP0_DMA_CACHE        0
 #define RSP_CP0_DMA_DRAM         1

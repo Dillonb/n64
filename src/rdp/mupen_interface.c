@@ -1,6 +1,6 @@
 #include "mupen_interface.h"
 #include <log.h>
-#include "../frontend/render.h"
+#include <frontend/render.h>
 
 #include <stdbool.h>
 #include <stdio.h>

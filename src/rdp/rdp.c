@@ -6,7 +6,7 @@
 
 #include "mupen_interface.h"
 #include <log.h>
-#include "../frontend/render.h"
+#include <frontend/render.h>
 
 static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;

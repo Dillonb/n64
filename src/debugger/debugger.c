@@ -1,5 +1,5 @@
 #include "debugger.h"
-#include "../mem/n64bus.h"
+#include <mem/n64bus.h>
 
 #define GDBSTUB_IMPLEMENTATION
 #include <gdbstub.h>

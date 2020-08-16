@@ -1,5 +1,5 @@
 #include "tlb_instructions.h"
-#include "../mem/n64bus.h"
+#include <mem/n64bus.h>
 
 // Loads the contents of the entry Hi, entry Lo0, entry Lo1, and page mask
 // registers to the TLB entry indicated by the index register.

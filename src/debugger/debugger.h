@@ -2,7 +2,7 @@
 #define N64_DEBUGGER_H
 
 #include <gdbstub.h>
-#include "../system/n64system.h"
+#include <system/n64system.h>
 
 #define GDB_CPU_PORT 1337
 
