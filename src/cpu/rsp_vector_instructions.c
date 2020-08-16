@@ -85,7 +85,19 @@ RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
-    logfatal("Unimplemented: rsp_lwc2_lhv")
+    word address = get_rsp_register(rsp, instruction.v.base);
+    sbyte offset = + instruction.v.offset << 1;
+    address += (sword)offset << 3;
+
+    int e = instruction.v.element;
+    unimplemented(e != 0, "e != 0!")
+
+    for (int i = 0; i < 8; i++) {
+        half val = rsp->read_byte(address + (i * 2));
+        val <<= 6;
+
+        rsp->vu_regs[instruction.v.vt].elements[7 - i] = val;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_llv) {
@@ -227,7 +239,19 @@ RSP_VECTOR_INSTR(rsp_swc2_sfv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_shv) {
-    logfatal("Unimplemented: rsp_swc2_shv")
+    word address = get_rsp_register(rsp, instruction.v.base);
+    sbyte offset = + instruction.v.offset << 1;
+    address += (sword)offset << 3;
+
+    int e = instruction.v.element;
+    unimplemented(e != 0, "e != 0!")
+
+    for (int i = 0; i < 8; i++) {
+        half val = rsp->vu_regs[instruction.v.vt].elements[7 - i];
+        byte b = (val >> 6) & 0xFF;
+
+        rsp->write_byte(address + (i * 2), b);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_slv) {
