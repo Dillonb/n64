@@ -245,6 +245,9 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
     sbyte offset = + instruction.v.offset << 1;
     address += (sword)offset << 3;
 
+    word in_addr_offset = address & 0x7;
+    address &= ~0x7;
+
     int e = instruction.v.element;
 
     for (int i = 0; i < 8; i++) {
@@ -253,7 +256,8 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
         val |= rsp->vu_regs[instruction.v.vt].bytes[15 - ((byte_index + 1) & 15)] >> 7;
         byte b = val & 0xFF;
 
-        rsp->write_byte(address + (i * 2), b);
+        int ofs = in_addr_offset + (i * 2);
+        rsp->write_byte(address + (ofs & 0xF), b);
     }
 }
 
