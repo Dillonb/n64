@@ -16,6 +16,25 @@ INLINE shalf clamp_signed(sdword value) {
 
 #define clamp_unsigned(x) ((x) < 0 ? 0 : ((x) > 32767 ? 65535 : x))
 
+#define SHIFT_AMOUNT_LBV_SBV 0
+#define SHIFT_AMOUNT_LSV_SSV 1
+#define SHIFT_AMOUNT_LLV_SLV 2
+#define SHIFT_AMOUNT_LDV_SDV 3
+#define SHIFT_AMOUNT_LQV_SQV 4
+#define SHIFT_AMOUNT_LRV_SRV 4
+#define SHIFT_AMOUNT_LPV_SPV 3
+#define SHIFT_AMOUNT_LUV_SUV 3
+#define SHIFT_AMOUNT_LHV_SHV 4
+#define SHIFT_AMOUNT_LFV_SFV 4
+#define SHIFT_AMOUNT_LTV_STV 4
+
+INLINE int sign_extend_7bit_offset(byte offset, int shift_amount) {
+    sbyte soffset = ((offset << 1) & 0x80) | offset;
+
+    int ofs = soffset;
+    return ofs << shift_amount;
+}
+
 word rcp(sword sinput) {
     if (sinput == 0) {
         return ~sinput >> 1;
@@ -60,16 +79,13 @@ word rsq(sword sinput) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
     vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
-
-    sbyte offset = instruction.v.offset << 1;
-    word address = get_rsp_register(rsp, instruction.v.base) + (offset / 2);
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
     vt->bytes[15 - instruction.v.element] = rsp->read_byte(address);
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
-    sbyte offset = instruction.v.offset << 1;
-    word address = get_rsp_register(rsp, instruction.v.base) + offset * 4;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
 
     for (int i = 0; i < 8; i++) {
         int element = i + instruction.v.element;
@@ -85,9 +101,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
-    word address = get_rsp_register(rsp, instruction.v.base);
-    sbyte offset = + instruction.v.offset << 1;
-    address += (sword)offset << 3;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
 
     word in_addr_offset = address & 0x7;
     address &= ~0x7;
@@ -104,8 +118,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_llv) {
     int e = instruction.v.element;
-    sword offset     = (sbyte)(instruction.v.offset << 1);
-    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 2;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
 
     for (int i = 0; i < 4; i++) {
         int element = i + e;
@@ -117,22 +130,18 @@ RSP_VECTOR_INSTR(rsp_lwc2_llv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
-    word base_address = get_rsp_register(rsp, instruction.v.base);
-    sbyte base_offset = instruction.v.offset << 1;
-
     int e = instruction.v.element;
-
-    base_address += ((sword)base_offset << 2);
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
 
     // Take into account how much the address is misaligned
     // since the accesses still wrap on the 8 byte boundary
-    int address_offset = base_address & 7;
-    base_address &= ~7;
+    int address_offset = address & 7;
+    address &= ~7;
 
     for(uint elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
-        half value = rsp->read_byte(base_address + element_offset);
+        half value = rsp->read_byte(address + element_offset);
         value <<= 8;
         rsp->vu_regs[instruction.v.vt].elements[7 - elem] = value;
     }
@@ -140,8 +149,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
     int e = instruction.v.element;
-    sbyte offset     = instruction.v.offset << 1;
-    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address && i + e < 16; i++) {
@@ -151,8 +159,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
     int e = instruction.v.element;
-    sbyte offset       = instruction.v.offset << 1;
-    word address       = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
     int start = 16 - ((address & 0xF) - e);
     address &= 0xFFFFFFF0;
 
@@ -163,8 +170,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
     int e = instruction.v.element;
-    sbyte offset     = instruction.v.offset << 1;
-    word address     = get_rsp_register(rsp, instruction.v.base) + offset;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
     half val = rsp->read_half(address);
     byte lo = val & 0xFF;
     byte hi = (val >> 8) & 0xFF;
@@ -175,9 +181,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
-    word address = get_rsp_register(rsp, instruction.v.base);
-    sbyte offset = + instruction.v.offset << 1;
-    address += (sword)offset << 3;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
 
     word start = get_rsp_register(rsp, instruction.v.vt);
     word end = start + 8;
@@ -195,40 +199,33 @@ RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_luv) {
-    word base_address = get_rsp_register(rsp, instruction.v.base);
-    sbyte base_offset = instruction.v.offset << 1;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
 
     int e = instruction.v.element;
 
-    base_address += ((sword)base_offset << 2);
-
     // Take into account how much the address is misaligned
     // since the accesses still wrap on the 8 byte boundary
-    int address_offset = base_address & 7;
-    base_address &= ~7;
+    int address_offset = address & 7;
+    address &= ~7;
 
     for(uint elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
-        half value = rsp->read_byte(base_address + element_offset);
+        half value = rsp->read_byte(address + element_offset);
         value <<= 7;
         rsp->vu_regs[instruction.v.vt].elements[7 - elem] = value;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sbv) {
-    sbyte offset = (instruction.v.offset << 1);
-    offset >>= 1;
-
-    word address = get_rsp_register(rsp, instruction.v.base) + offset;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
     int element = instruction.v.element;
     rsp->write_byte(address, rsp->vu_regs[instruction.v.vt].bytes[15 - element]);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sdv) {
-    sbyte offset = instruction.v.offset << 1;
-    word address = get_rsp_register(rsp, instruction.v.base) + offset * 4;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
 
     for (int i = 0; i < 8; i++) {
         int element = i + instruction.v.element;
@@ -241,9 +238,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sfv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_shv) {
-    word address = get_rsp_register(rsp, instruction.v.base);
-    sbyte offset = + instruction.v.offset << 1;
-    address += (sword)offset << 3;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
 
     word in_addr_offset = address & 0x7;
     address &= ~0x7;
@@ -263,8 +258,7 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_slv) {
     int e = instruction.v.element;
-    sword offset     = (sbyte)(instruction.v.offset << 1);
-    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 2;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
 
     for (int i = 0; i < 4; i++) {
         int element = i + e;
@@ -273,9 +267,7 @@ RSP_VECTOR_INSTR(rsp_swc2_slv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_spv) {
-    word address = get_rsp_register(rsp, instruction.v.base);
-    sbyte base_offset = + instruction.v.offset << 1;
-    address += ((sword)base_offset << 2);
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
 
     int start = instruction.v.element;
     int end = start + 8;
@@ -291,8 +283,7 @@ RSP_VECTOR_INSTR(rsp_swc2_spv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_sqv) {
     int e = instruction.v.element;
-    sbyte offset     = instruction.v.offset << 1;
-    word address     = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address; i++) {
@@ -301,8 +292,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sqv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_srv) {
-    sbyte offset = instruction.v.offset << 1;
-    word address = get_rsp_register(rsp, instruction.v.base) + offset * 8;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
     int start = instruction.v.element;
     int end = start + (address & 15);
     int base = 16 - (address & 15);
@@ -313,17 +303,14 @@ RSP_VECTOR_INSTR(rsp_swc2_srv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_ssv) {
-    sbyte offset = instruction.v.offset << 1;
-    word address = get_rsp_register(rsp, instruction.v.base) + offset;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
 
     int element = instruction.v.element;
     rsp->write_half(address, rsp->vu_regs[instruction.v.vt].elements[7 - (element / 2)]);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {
-    word address = get_rsp_register(rsp, instruction.v.base);
-    sbyte offset = + instruction.v.offset << 1;
-    address += (sword)offset << 3;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
     int start_vu_reg = instruction.v.vt & 0b11000;
 
     int end_vu_reg = start_vu_reg + 8;
@@ -353,9 +340,7 @@ RSP_VECTOR_INSTR(rsp_swc2_stv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_suv) {
-    word address = get_rsp_register(rsp, instruction.v.base);
-    sbyte base_offset = + instruction.v.offset << 1;
-    address += ((sword)base_offset << 2);
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
 
     int start = instruction.v.element;
     int end = start + 8;
