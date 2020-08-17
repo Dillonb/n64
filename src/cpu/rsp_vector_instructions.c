@@ -90,12 +90,11 @@ RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
     address += (sword)offset << 3;
 
     int e = instruction.v.element;
-    unimplemented(e != 0, "e != 0!")
 
     for (int i = 0; i < 8; i++) {
-        half val = rsp->read_byte(address + (i * 2));
-        val <<= 6;
-
+        int ofs = ((16 - e) + (i * 2)) & 0xF;
+        half val = rsp->read_byte(address + ofs);
+        val <<= 7;
         rsp->vu_regs[instruction.v.vt].elements[7 - i] = val;
     }
 }
