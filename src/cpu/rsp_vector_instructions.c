@@ -243,11 +243,12 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
     address += (sword)offset << 3;
 
     int e = instruction.v.element;
-    unimplemented(e != 0, "e != 0!")
 
     for (int i = 0; i < 8; i++) {
-        half val = rsp->vu_regs[instruction.v.vt].elements[7 - i];
-        byte b = (val >> 6) & 0xFF;
+        int byte_index = (i * 2) + e;
+        half val = rsp->vu_regs[instruction.v.vt].bytes[15 - (byte_index & 15)] << 1;
+        val |= rsp->vu_regs[instruction.v.vt].bytes[15 - ((byte_index + 1) & 15)] >> 7;
+        byte b = val & 0xFF;
 
         rsp->write_byte(address + (i * 2), b);
     }
