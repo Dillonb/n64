@@ -89,10 +89,13 @@ RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
     sbyte offset = + instruction.v.offset << 1;
     address += (sword)offset << 3;
 
+    word in_addr_offset = address & 0x7;
+    address &= ~0x7;
+
     int e = instruction.v.element;
 
     for (int i = 0; i < 8; i++) {
-        int ofs = ((16 - e) + (i * 2)) & 0xF;
+        int ofs = ((16 - e) + (i * 2) + in_addr_offset) & 0xF;
         half val = rsp->read_byte(address + ofs);
         val <<= 7;
         rsp->vu_regs[instruction.v.vt].elements[7 - i] = val;
