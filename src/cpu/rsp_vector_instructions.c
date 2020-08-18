@@ -97,7 +97,34 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
-    logfatal("Unimplemented: rsp_lwc2_lfv")
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
+    int e = instruction.v.element;
+    int start = e;
+    int end = (start + 8);
+    if (end > 15) {
+        end = 15;
+    }
+
+    printf("LFV 0x%08X e %d\n", address, e);
+    printf("%d -> %d (e = %d)\n", start, end, e);
+    for (int i = e; i < end; i += 2) {
+        printf("i: %d: ", i);
+        half val = rsp->read_byte(address);
+        int shift_amount = e & 7;
+        if (shift_amount == 0) {
+            shift_amount = 7;
+        }
+        printf("%02X << %d == ", val, shift_amount);
+        val <<= shift_amount;
+        printf("%04X\n", val);
+        byte low = val & 0xFF;
+        byte high = (val >> 8) & 0xFF;
+        rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + 0) & 15)] = high;
+        printf("byte %d = 0x%02X\n", ((i + 0) & 15), high);
+        rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + 1) & 15)] = low;
+        printf("byte %d = 0x%02X\n", ((i + 1) & 15), low);
+        address += 4;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
