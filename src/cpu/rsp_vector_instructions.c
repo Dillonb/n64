@@ -46,7 +46,7 @@ word rcp(sword sinput) {
     int index = (input << lshift) >> 23;
 
     word rom = rcp_rom[index];
-    word result = ((0x100000 | rom) << 14) >> rshift;
+    word result = ((0x10000 | rom) << 14) >> rshift;
 
     if (input != sinput) {
         return ~result;
