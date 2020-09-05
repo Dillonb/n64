@@ -943,8 +943,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     word result = rcp(input);
     rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
-    rsp->divin = 0;
-    rsp->divin_loaded = false;
     rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
 }
 
