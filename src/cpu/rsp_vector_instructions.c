@@ -68,7 +68,7 @@ word rsq(sword sinput) {
     int index = (input << lshift) >> 24; // Shifted by 24 instead of 23
 
     word rom = rsq_rom[(index | ((lshift & 1) << 8))];
-    word result = ((0x100000 | rom) << 14) >> rshift;
+    word result = ((0x10000 | rom) << 14) >> rshift;
 
     if (input != sinput) {
         return ~result;
