@@ -37,7 +37,7 @@ INLINE int sign_extend_7bit_offset(byte offset, int shift_amount) {
 
 word rcp(sword sinput) {
     if (sinput == 0) {
-        return ~sinput >> 1;
+        return 0x7FFFFFFF;
     }
 
     word input = abs(sinput);
