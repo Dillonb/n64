@@ -7,7 +7,7 @@ target_link_libraries(test_cpu r4300i common core)
 add_test(test_cpu test_cpu)
 
 add_executable(test_rsp test_rsp.c unit.h)
-target_link_libraries(test_rsp rsp r4300i core common)
+target_link_libraries(test_rsp rsp r4300i core common bz2)
 
 add_subdirectory(testcases/rsp)
 

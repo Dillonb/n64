@@ -260,6 +260,37 @@ INLINE void set_rsp_accumulator(rsp_t* rsp, int e, dword val) {
     rsp->acc.l.elements[e] = val & 0xFFFF;
 }
 
+INLINE half rsp_get_vco(rsp_t* rsp) {
+    half value = 0;
+    for (int i = 0; i < 8; i++) {
+        bool h = rsp->vco.h.elements[7 - i] != 0;
+        bool l = rsp->vco.l.elements[7 - i] != 0;
+        word mask = (l << i) | (h << (i + 8));
+        value |= mask;
+    }
+    return value;
+}
+
+INLINE half rsp_get_vcc(rsp_t* rsp) {
+    half value = 0;
+    for (int i = 0; i < 8; i++) {
+        bool h = rsp->vcc.h.elements[7 - i] != 0;
+        bool l = rsp->vcc.l.elements[7 - i] != 0;
+        word mask = (l << i) | (h << (i + 8));
+        value |= mask;
+    }
+    return value;
+}
+
+INLINE byte rsp_get_vce(rsp_t* rsp) {
+    byte value = 0;
+    for (int i = 0; i < 8; i++) {
+        bool l = rsp->vce.elements[7 - i] != 0;
+        value |= (l << i);
+    }
+    return value;
+}
+
 void rsp_step(n64_system_t* system);
 
 #endif //N64_RSP_H

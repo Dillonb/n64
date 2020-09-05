@@ -48,6 +48,8 @@ for filename in glob.glob("./input/*.toml"):
 
     for test in test_data["test"]:
         test_names.append(test["name"])
+        log_filename = "%s.%s.log.bz2" % (test_name, test["name"])
+        cmakelists.write("configure_file(%s %s COPYONLY)\n" % (log_filename, log_filename))
         for val in test["input"]:
             data = val.to_bytes(4, 'little')
             input_data.write(data)
