@@ -101,49 +101,50 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
 
         if (error == BZ_OK) {
             char* tok = strtok(log_line, " ");
+            bool all_correct = true;
             for (int vu_reg = 0; vu_reg < 32; vu_reg++) {
                 char namebuf[5];
                 snprintf(namebuf, 5, "vu%d", vu_reg);
-                compare_128(namebuf, system->rsp.vu_regs[vu_reg], tok);
+                all_correct &= compare_128(namebuf, system->rsp.vu_regs[vu_reg], tok);
                 tok = strtok(NULL, " ");
             }
 
-            compare_128("ACC_L", system->rsp.acc.l, tok);
+            all_correct &= compare_128("ACC_L", system->rsp.acc.l, tok);
             tok = strtok(NULL, " ");
-            compare_128("ACC_M", system->rsp.acc.m, tok);
+            all_correct &= compare_128("ACC_M", system->rsp.acc.m, tok);
             tok = strtok(NULL, " ");
-            compare_128("ACC_H", system->rsp.acc.h, tok);
+            all_correct &= compare_128("ACC_H", system->rsp.acc.h, tok);
             tok = strtok(NULL, " ");
 
             half expected_vco = strtol(tok, NULL, 16);
-            compare_16("VCO", rsp_get_vco(&system->rsp), expected_vco);
+            all_correct &= compare_16("VCO", rsp_get_vco(&system->rsp), expected_vco);
             tok = strtok(NULL, " ");
 
             byte expected_vce = strtol(tok, NULL, 16);
-            compare_8("VCE", rsp_get_vce(&system->rsp), expected_vce);
+            all_correct &= compare_8("VCE", rsp_get_vce(&system->rsp), expected_vce);
             tok = strtok(NULL, " ");
 
             half expected_vcc = strtol(tok, NULL, 16);
-            compare_16("VCC", rsp_get_vcc(&system->rsp), expected_vcc);
+            all_correct &= compare_16("VCC", rsp_get_vcc(&system->rsp), expected_vcc);
             tok = strtok(NULL, " ");
 
             bool expected_divin_loaded = strcmp(tok, "1") == 0;
             if (expected_divin_loaded != system->rsp.divin_loaded) {
                 printf("divin_loaded expected: %d\n", expected_divin_loaded);
                 printf("divin_loaded actual:   %d\n", system->rsp.divin_loaded);
-                logfatal("Log mismatch!")
+                all_correct = false;
             }
             tok = strtok(NULL, " ");
 
             // Only check if divin_loaded is true
             half expected_divin = strtol(tok, NULL, 16);
             if (expected_divin_loaded) {
-                compare_16("divin", system->rsp.divin, expected_divin);
+                all_correct &= compare_16("divin", system->rsp.divin, expected_divin);
             }
             tok = strtok(NULL, " ");
 
             half expected_divout = strtol(tok, NULL, 16);
-            compare_16("divout", system->rsp.divout, expected_divout);
+            all_correct &= compare_16("divout", system->rsp.divout, expected_divout);
             tok = strtok(NULL, " ");
 
             for (int r = 0; r < 32; r++) {
@@ -153,11 +154,16 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
                 if (expected != actual) {
                     printf("r%d expected: 0x%08X\n", r, expected);
                     printf("r%d actual:   0x%08X\n", r, actual);
-                    logfatal("Log mismatch!")
+                    all_correct = false;
                 }
 
                 tok = strtok(NULL, " ");
             }
+
+            if (!all_correct) {
+                logfatal("Log mismatch!")
+            }
+
             BZ2_bzRead(&error, log_file, log_line, 1); // Read the newline char
         } else if (error == BZ_STREAM_END) {
             logwarn("Reached end of log file, continuing without checking the log!")
