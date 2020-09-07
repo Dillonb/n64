@@ -95,11 +95,11 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
 
     word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
     if (dram_address != rsp->io.dram_addr.address) {
-        logfatal("Misaligned DRAM RSP DMA READ!")
+        logfatal("Misaligned DRAM RSP DMA READ!");
     }
     word mem_address = rsp->io.mem_addr.address & 0xFFC;
     if (mem_address != rsp->io.mem_addr.address) {
-        logfatal("Misaligned MEM RSP DMA READ!")
+        logfatal("Misaligned MEM RSP DMA READ!");
     }
 
     for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
@@ -121,11 +121,11 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
 
     word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
     if (dram_address != rsp->io.dram_addr.address) {
-        logfatal("Misaligned DRAM RSP DMA WRITE!")
+        logfatal("Misaligned DRAM RSP DMA WRITE!");
     }
     word mem_address = rsp->io.mem_addr.address & 0xFFC;
     if (mem_address != rsp->io.mem_addr.address) {
-        logfatal("Misaligned MEM RSP DMA WRITE!")
+        logfatal("Misaligned MEM RSP DMA WRITE!");
     }
 
     for (int i = 0; i < rsp->io.dma_write.count + 1; i++) {
@@ -145,7 +145,7 @@ INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
         if (r < 64) {
             rsp->gpr[r] = value;
         } else {
-            logfatal("Write to invalid RSP register: %d", r)
+            logfatal("Write to invalid RSP register: %d", r);
         }
     }
 }
@@ -155,7 +155,7 @@ INLINE word get_rsp_register(rsp_t* rsp, byte r) {
         word value = rsp->gpr[r];
         return value;
     } else {
-        logfatal("Attempted to read invalid RSP register: %d", r)
+        logfatal("Attempted to read invalid RSP register: %d", r);
     }
 }
 
@@ -164,32 +164,32 @@ bool rsp_acquire_semaphore(n64_system_t* system);
 INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     switch (r) {
         case RSP_CP0_DMA_CACHE:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
         case RSP_CP0_DMA_DRAM:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_DRAM", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_DRAM", r);
         case RSP_CP0_DMA_READ_LENGTH:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r);
         case RSP_CP0_DMA_WRITE_LENGTH:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r);
         case RSP_CP0_SP_STATUS: return system->rsp.status.raw;
         case RSP_CP0_DMA_FULL:  return system->rsp.status.dma_full;
         case RSP_CP0_DMA_BUSY:  return system->rsp.status.dma_busy;
         case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore(system);
         case RSP_CP0_CMD_START:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r);
         case RSP_CP0_CMD_END:     return system->dpc.end;
         case RSP_CP0_CMD_CURRENT: return system->dpc.current;
         case RSP_CP0_CMD_STATUS:  return system->dpc.status.raw;
         case RSP_CP0_CMD_CLOCK:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);
         case RSP_CP0_CMD_BUSY:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
         case RSP_CP0_CMD_PIPE_BUSY:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r);
         case RSP_CP0_CMD_TMEM_BUSY:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r)
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r);
         default:
-            logfatal("Unsupported RSP CP0 $c%d read", r)
+            logfatal("Unsupported RSP CP0 $c%d read", r);
     }
 }
 
@@ -209,14 +209,14 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             rsp_status_reg_write(system, value);
             break;
         case RSP_CP0_DMA_FULL:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r)
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r);
         case RSP_CP0_DMA_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r)
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r);
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
                 system->rsp.semaphore_held = false;
             } else {
-                logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value)
+                logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value);
             }
             break;
         }
@@ -229,20 +229,20 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             rdp_run_command();
             break;
         case RSP_CP0_CMD_CURRENT:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r)
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r);
         case RSP_CP0_CMD_STATUS:
             rdp_status_reg_write(system, value);
             break;
         case RSP_CP0_CMD_CLOCK:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r)
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);
         case RSP_CP0_CMD_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r)
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
         case RSP_CP0_CMD_PIPE_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r)
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r);
         case RSP_CP0_CMD_TMEM_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r)
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r);
         default:
-            logfatal("Unsupported RSP CP0 $c%d written to", r)
+            logfatal("Unsupported RSP CP0 $c%d written to", r);
     }
 }
 

@@ -15,7 +15,7 @@
 void run_testcase(const char *filename, void (*instr)(r4300i_t*, mips_instruction_t)) {
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
-        logfatal("Unable to find testcase %s", filename)
+        logfatal("Unable to find testcase %s", filename);
     }
 
     char *line = NULL;
@@ -94,12 +94,12 @@ void run_testcase(const char *filename, void (*instr)(r4300i_t*, mips_instructio
 
             test_instr_lohi(testcase, instr, name);
         } else {
-            logfatal("Unknown mode: %s in file: %s", mode, filename)
+            logfatal("Unknown mode: %s in file: %s", mode, filename);
         }
     }
 
     if (tests_failed) {
-        logdie("Tests failed: %d", tests_failed)
+        logdie("Tests failed: %d", tests_failed);
     } else {
         printf("%s: passed!\n", filename);
     }
@@ -148,6 +148,6 @@ int main(int argc, char** argv) {
     run_testcase("xor.testcase",    &mips_spc_xor);
 
     if (tests_failed) {
-        logdie("Tests failed: %d", tests_failed)
+        logdie("Tests failed: %d", tests_failed);
     }
 }

@@ -66,7 +66,7 @@ word read_word_spreg(n64_system_t* system, word address) {
         case ADDR_SP_STATUS_REG:
             return system->rsp.status.raw;
         default:
-            logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address)
+            logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address);
     }
 }
 
@@ -92,18 +92,18 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             rsp_status_reg_write(system, value);
             break;
         case ADDR_SP_DMA_FULL_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_FULL_REG")
+            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_FULL_REG");
         case ADDR_SP_DMA_BUSY_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_BUSY_REG")
+            logfatal("Write to unsupported SP reg: ADDR_SP_DMA_BUSY_REG");
         case ADDR_SP_SEMAPHORE_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_SEMAPHORE_REG")
+            logfatal("Write to unsupported SP reg: ADDR_SP_SEMAPHORE_REG");
         case ADDR_SP_PC_REG:
             system->rsp.pc = value;
             break;
         case ADDR_SP_IBIST_REG:
-            logfatal("Write to unsupported SP reg: ADDR_SP_IBIST_REG")
+            logfatal("Write to unsupported SP reg: ADDR_SP_IBIST_REG");
         default:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address)
+            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address);
     }
 }
 

@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
         usage(flags);
-        logdie("Running without loading an RDP plugin is not currently supported.")
+        logdie("Running without loading an RDP plugin is not currently supported.");
     }
     pif_rom_execute(system);
     if (debug) {

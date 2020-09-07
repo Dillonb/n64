@@ -20,21 +20,21 @@ extern unsigned int n64_log_verbosity;
 
 #define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity;} while(0);
 
-#define logfatal(message,...) if (1) { \
+#define logfatal(message,...) do { \
     fprintf(stderr, COLOR_RED "[FATAL] at %s:%d ", __FILE__, __LINE__);\
     fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
-    exit(EXIT_FAILURE);}
+    exit(EXIT_FAILURE);} while(0)
 
-#define logdie(message,...) if (1) { \
+#define logdie(message,...) do { \
     fprintf(stderr, COLOR_RED "[FATAL] ");\
     fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
-    exit(EXIT_FAILURE);}
+    exit(EXIT_FAILURE);} while(0)
 
-#define logwarn(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_WARN) {printf(COLOR_YELLOW "[WARN]  " message "\n" COLOR_END, ##__VA_ARGS__);}
-#define loginfo(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message "\n" COLOR_END, ##__VA_ARGS__);}
-#define loginfo_nonewline(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message COLOR_END, ##__VA_ARGS__);}
-#define logdebug(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {printf(COLOR_GREEN "[DEBUG] " message "\n" COLOR_END, ##__VA_ARGS__);}
-#define logtrace(message,...) if (n64_log_verbosity >= LOG_VERBOSITY_TRACE) {printf("[TRACE] " message "\n", ##__VA_ARGS__);}
+#define logwarn(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_WARN) {printf(COLOR_YELLOW "[WARN]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
+#define loginfo(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
+#define loginfo_nonewline(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message COLOR_END, ##__VA_ARGS__);} } while(0)
+#define logdebug(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {printf(COLOR_GREEN "[DEBUG] " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
+#define logtrace(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_TRACE) {printf("[TRACE] " message "\n", ##__VA_ARGS__);} } while(0)
 
-#define unimplemented(condition, message) if (condition) { logfatal("UNIMPLEMENTED CASE DETECTED: %s", message) }
+#define unimplemented(condition, message) if (condition) { logfatal("UNIMPLEMENTED CASE DETECTED: %s", message); }
 #endif

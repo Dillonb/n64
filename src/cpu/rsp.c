@@ -26,7 +26,7 @@ mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t i
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS RSP CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
-                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf)
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
             }
         }
     } else {
@@ -35,7 +35,7 @@ mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t i
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
             }
         }
     }
@@ -91,7 +91,7 @@ mips_instruction_type_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t i
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
-                logfatal("Invalid RSP CP2 VEC [0x%08X]=0x%08X | Capstone thinks it's %s", pc, instr.raw, buf)
+                logfatal("Invalid RSP CP2 VEC [0x%08X]=0x%08X | Capstone thinks it's %s", pc, instr.raw, buf);
             }
         }
     } else {
@@ -103,7 +103,7 @@ mips_instruction_type_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t i
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
-                logfatal("Invalid RSP CP2 regmove instruction! [0x%08x]=0x%08x | Capstone thinks it's %s", pc, instr.raw, buf)
+                logfatal("Invalid RSP CP2 regmove instruction! [0x%08x]=0x%08x | Capstone thinks it's %s", pc, instr.raw, buf);
             }
         }
     }
@@ -139,7 +139,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
             logfatal("other/unknown MIPS RSP Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
         }
     }
 }
@@ -153,7 +153,7 @@ mips_instruction_type_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instruction_
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
             logfatal("other/unknown RSP REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
-                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf)
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
         }
     }
 }
@@ -172,7 +172,7 @@ mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
         case LWC2_LTV: return RSP_LWC2_LTV;
         case LWC2_LUV: return RSP_LWC2_LUV;
         default:
-            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct)
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
     }
 }
 
@@ -190,7 +190,7 @@ mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
         case LWC2_LTV: return RSP_SWC2_STV;
         case LWC2_LUV: return RSP_SWC2_SUV;
         default:
-            logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct)
+            logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);
     }
 }
 
@@ -198,7 +198,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
         char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
             disassemble(pc, instr.raw, buf, 50);
-            logdebug("RSP [0x%08X]=0x%08X %s", pc, instr.raw, buf)
+            logdebug("RSP [0x%08X]=0x%08X %s", pc, instr.raw, buf);
         }
         if (instr.raw == 0) {
             return MIPS_NOP;
@@ -236,7 +236,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             //case OPC_SWR:   return MIPS_SWR;
 
             case OPC_CP0:      return rsp_cp0_decode(rsp, pc, instr);
-            case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!")     //return rsp_cp1_decode(rsp, pc, instr);
+            case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!");     //return rsp_cp1_decode(rsp, pc, instr);
             case OPC_CP2:      return rsp_cp2_decode(rsp, pc, instr);
             case OPC_SPCL:     return rsp_special_decode(rsp, pc, instr);
             case OPC_REGIMM:   return rsp_regimm_decode(rsp, pc, instr);
@@ -248,7 +248,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
                     disassemble(pc, instr.raw, buf, 50);
                 }
                 logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
-                         instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)
+                         instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
         }
 }
 
@@ -256,7 +256,7 @@ void rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
     dword pc = rsp->pc & 0xFFFFFF;
     if (pc % 4 != 0) {
-        logfatal("RSP PC at misaligned address!")
+        logfatal("RSP PC at misaligned address!");
     }
 
     mips_instruction_t instruction;
@@ -383,16 +383,16 @@ void rsp_step(n64_system_t* system) {
         case MIPS_CP_MTC0: rsp_mtc0(system, instruction); break;
         case MIPS_CP_MFC0: rsp_mfc0(system, instruction); break;
         default:
-            logfatal("[RSP] Unknown instruction!")
+            logfatal("[RSP] Unknown instruction!");
     }
 
     if (rsp->branch) {
         if (rsp->branch_delay == 0) {
-            logtrace("[RSP] [BRANCH DELAY] Branching to 0x%08X", rsp->branch_pc)
+            logtrace("[RSP] [BRANCH DELAY] Branching to 0x%08X", rsp->branch_pc);
             rsp->pc = rsp->branch_pc;
             rsp->branch = false;
         } else {
-            logtrace("[RSP] [BRANCH DELAY] Need to execute %d more instruction(s).", rsp->branch_delay)
+            logtrace("[RSP] [BRANCH DELAY] Need to execute %d more instruction(s).", rsp->branch_delay);
             rsp->branch_delay--;
         }
     }

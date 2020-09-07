@@ -17,7 +17,7 @@ void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
     // This file is already in big endian
     size_t read = fread(system->mem.sp_imem, 1, SP_IMEM_SIZE, rsp);
     if (read == 0) {
-        logfatal("Read 0 bytes from %s", rsp_path)
+        logfatal("Read 0 bytes from %s", rsp_path);
     }
 }
 
@@ -29,7 +29,7 @@ void load_rsp_dmem(n64_system_t* system, word* input, int input_size) {
     }
 }
 
-void compare_128(char* name, vu_reg_t reg, char* tok) {
+bool compare_128(char* name, vu_reg_t reg, char* tok) {
     bool correct[16];
     bool all_correct = true;
     for (int byte_index = 0; byte_index < 16; byte_index++) {
@@ -63,24 +63,26 @@ void compare_128(char* name, vu_reg_t reg, char* tok) {
             }
         }
         printf("\n");
-        logfatal("Log mismatch!")
     }
+    return all_correct;
 }
 
-void compare_16(char* name, half actual, half expected) {
+bool compare_16(char* name, half actual, half expected) {
     if (actual != expected) {
         printf("%s expected: 0x%04X\n", name, expected);
         printf("%s actual:   0x%04X\n", name, actual);
-        logfatal("Log mismatch")
+        return false;
     }
+    return true;
 }
 
-void compare_8(char* name, byte actual, byte expected) {
+bool compare_8(char* name, byte actual, byte expected) {
     if (actual != expected) {
         printf("%s expected: 0x%02X\n", name, expected);
         printf("%s actual:   0x%02X\n", name, actual);
-        logfatal("Log mismatch")
+        return false;
     }
+    return true;
 }
 
 bool run_test(n64_system_t* system, word* input, int input_size, word* output, int output_size, BZFILE* log_file) {
@@ -93,7 +95,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
 
     while (!system->rsp.status.halt) {
         if (cycles >= MAX_CYCLES) {
-            logfatal("Test ran too long and was killed! Possible infinite loop?")
+            logfatal("Test ran too long and was killed! Possible infinite loop?");
         }
         char log_line[LINE_LENGTH];
         int error;
@@ -161,14 +163,14 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
             }
 
             if (!all_correct) {
-                logfatal("Log mismatch!")
+                logfatal("Log mismatch!");
             }
 
             BZ2_bzRead(&error, log_file, log_line, 1); // Read the newline char
         } else if (error == BZ_STREAM_END) {
-            logwarn("Reached end of log file, continuing without checking the log!")
+            logwarn("Reached end of log file, continuing without checking the log!");
         } else {
-            logfatal("Failed to read log line! Error: %d (check bzlib.h)", error)
+            logfatal("Failed to read log line! Error: %d (check bzlib.h)", error);
         }
 
         cycles++;
@@ -232,7 +234,7 @@ n64_system_t* load_test(const char* rsp_path) {
 
 int main(int argc, char** argv) {
     if (argc < 5) {
-        logfatal("Not enough arguments")
+        logfatal("Not enough arguments");
     }
 
     log_set_verbosity(LOG_VERBOSITY_DEBUG)
@@ -242,11 +244,11 @@ int main(int argc, char** argv) {
     int output_size = atoi(argv[3]);
 
     if (input_size % 4 != 0) {
-        logfatal("Invalid input size: %d is not divisible by 4.", input_size)
+        logfatal("Invalid input size: %d is not divisible by 4.", input_size);
     }
 
     if (output_size % 4 != 0) {
-        logfatal("Invalid output size: %d is not divisible by 4.", output_size)
+        logfatal("Invalid output size: %d is not divisible by 4.", output_size);
     }
 
 

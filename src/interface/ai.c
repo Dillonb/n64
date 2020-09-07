@@ -43,18 +43,18 @@ void write_word_aireg(n64_system_t* system, word address, word value) {
             system->ai.bitrate = value & 0b1111;
             break;
         default:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address)
+            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address);
     }
 }
 
 word read_word_aireg(n64_system_t* system, word address) {
     switch (address) {
         case ADDR_AI_DRAM_ADDR_REG:
-            logfatal("Read from unknown AI register: AI_DRAM_ADDR_REG")
+            logfatal("Read from unknown AI register: AI_DRAM_ADDR_REG");
         case ADDR_AI_LEN_REG:
             return system->ai.dma_length[0];
         case ADDR_AI_CONTROL_REG:
-            logfatal("Read from unknown AI register: AI_CONTROL_REG")
+            logfatal("Read from unknown AI register: AI_CONTROL_REG");
         case ADDR_AI_STATUS_REG: {
             word value = 0;
             value |= (system->ai.dma_count > 1) << 0;
@@ -64,13 +64,13 @@ word read_word_aireg(n64_system_t* system, word address) {
             value |= (system->ai.dma_count > 1) << 31;
             return value;
         }
-            logfatal("Read from unknown AI register: AI_STATUS_REG")
+            logfatal("Read from unknown AI register: AI_STATUS_REG");
         case ADDR_AI_DACRATE_REG:
-            logfatal("Read from unknown AI register: AI_DACRATE_REG")
+            logfatal("Read from unknown AI register: AI_DACRATE_REG");
         case ADDR_AI_BITRATE_REG:
-            logfatal("Read from unknown AI register: AI_BITRATE_REG")
+            logfatal("Read from unknown AI register: AI_BITRATE_REG");
         default:
-            logfatal("Unrecognized read from AI register: 0x%08X", address)
+            logfatal("Unrecognized read from AI register: 0x%08X", address);
     }
 }
 
