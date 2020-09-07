@@ -28,7 +28,7 @@ void rdp_rendering_callback(int redrawn) {
 
 #define LOAD_SYM(var, name) do { \
     var = dlsym(plugin_handle, name); \
-        if (var == NULL) { logfatal("Failed to load RDP plugin! Missing symbol: %s", name) } \
+        if (var == NULL) { logfatal("Failed to load RDP plugin! Missing symbol: %s", name); } \
     } while(false)
 
 void rdp_check_interrupts() {
@@ -45,7 +45,7 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
 
     plugin_handle = dlopen(path, RTLD_NOW);
     if (plugin_handle == NULL) {
-        logfatal("Failed to load RDP plugin. Please pass a path to a shared library file!")
+        logfatal("Failed to load RDP plugin. Please pass a path to a shared library file!");
     }
 
     init_mupen_interface(system);
@@ -78,7 +78,7 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
 
     graphics_plugin.PluginGetVersion(&plugin_type, &plugin_version, &api_version, &plugin_name, &capabilities);
     if (plugin_type != M64PLUGIN_GFX) {
-        logfatal("Plugin loaded successfully, but was not a graphics plugin!")
+        logfatal("Plugin loaded successfully, but was not a graphics plugin!");
     }
 
     graphics_plugin.PluginStartup(NULL, NULL, NULL); // Null handle, null debug callbacks.
@@ -143,20 +143,20 @@ void write_word_dpcreg(n64_system_t* system, word address, word value) {
             rdp_run_command();
             break;
         case ADDR_DPC_CURRENT_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG")
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG");
         case ADDR_DPC_STATUS_REG:
             rdp_status_reg_write(system, value);
             break;
         case ADDR_DPC_CLOCK_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CLOCK_REG")
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CLOCK_REG");
         case ADDR_DPC_BUFBUSY_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_BUFBUSY_REG")
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_BUFBUSY_REG");
         case ADDR_DPC_PIPEBUSY_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_PIPEBUSY_REG")
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_PIPEBUSY_REG");
         case ADDR_DPC_TMEM_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_TMEM_REG")
+            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_TMEM_REG");
         default:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address)
+            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address);
     }
 }
 
@@ -179,7 +179,7 @@ word read_word_dpcreg(n64_system_t* system, word address) {
         case ADDR_DPC_TMEM_REG:
             return system->dpc.tmem;
         default:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address)
+            logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address);
     }
 }
 
@@ -224,8 +224,8 @@ void rdp_status_reg_write(n64_system_t* system, word value) {
     if (status_write.clear_flush) system->dpc.status.flush = false;
     if (status_write.set_flush) system->dpc.status.flush = true;
 
-    if (status_write.clear_tmem_ctr) logfatal("Clear tmem ctr (should I let angrylion handle this?)")
-    if (status_write.clear_pipe_ctr) logfatal("Clear pipe ctr (should I let angrylion handle this?)")
-    if (status_write.clear_cmd_ctr) logfatal("Clear cmd ctr (should I let angrylion handle this?)")
-    if (status_write.clear_clock_ctr) logfatal("Clear clock ctr (should I let angrylion handle this?)")
+    if (status_write.clear_tmem_ctr) logfatal("Clear tmem ctr (should I let angrylion handle this?)");
+    if (status_write.clear_pipe_ctr) logfatal("Clear pipe ctr (should I let angrylion handle this?)");
+    if (status_write.clear_cmd_ctr) logfatal("Clear cmd ctr (should I let angrylion handle this?)");
+    if (status_write.clear_clock_ctr) logfatal("Clear clock ctr (should I let angrylion handle this?)");
 }

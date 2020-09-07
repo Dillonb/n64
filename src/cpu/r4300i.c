@@ -20,7 +20,7 @@ const char* cp0_register_names[] = {
 #define EXCEPTION_COPROCESSOR_UNUSABLE 11
 
 void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
-    loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error)
+    loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     if (cpu->branch) {
         unimplemented(cpu->cp0.status.exl, "handling branch delay when exl == true")
         cpu->cp0.cause.branch_delay = true;
@@ -28,7 +28,7 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
         cpu->branch_delay = 0;
         cpu->branch_pc = 0;
         logwarn("Exception thrown in a branch delay slot! make sure this is being handled correctly. "
-                 "EPC is supposed to be set to the address of the branch preceding the slot.")
+                 "EPC is supposed to be set to the address of the branch preceding the slot.");
         pc -= 4;
     } else {
         cpu->cp0.cause.branch_delay = false;
@@ -45,11 +45,11 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     if (cpu->cp0.status.bev) {
         switch (code) {
             case EXCEPTION_COPROCESSOR_UNUSABLE:
-                logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.")
+                logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.");
                 cpu->pc = 0x80000180;
                 break;
             default:
-                logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code)
+                logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
         }
     } else {
         switch (code) {
@@ -60,7 +60,7 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
                 cpu->pc = 0x80000180;
                 break;
             default:
-                logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code)
+                logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
         }
     }
 }
@@ -76,7 +76,7 @@ mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instructi
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
-                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf)
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
             }
         }
     } else {
@@ -86,7 +86,7 @@ mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instructi
             case COP_FUNCT_TLBP:
                 return MIPS_TLBP;
             case COP_FUNCT_TLBR_SUB:
-                logfatal("tlbr")
+                logfatal("tlbr");
                 return MIPS_TLBR;
             case COP_FUNCT_ERET:
                 return MIPS_ERET;
@@ -94,7 +94,7 @@ mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instructi
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
             }
         }
     }
@@ -129,7 +129,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 default: {
                     char buf[50];
                     disassemble(pc, instr.raw, buf, 50);
-                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf)
+                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
                 }
             }
     }
@@ -141,7 +141,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_ADD_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_TLBR_SUB: {
             switch (instr.fr.fmt) {
@@ -150,7 +150,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_SUB_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         }
         case COP_FUNCT_TLBWI_MULT:
@@ -160,7 +160,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_MUL_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_DIV:
             switch (instr.fr.fmt) {
@@ -169,7 +169,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_DIV_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_TRUNC_L:
             switch (instr.fr.fmt) {
@@ -178,7 +178,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_TRUNC_L_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_TRUNC_W:
             switch (instr.fr.fmt) {
@@ -187,7 +187,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_TRUNC_W_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_D:
             switch (instr.fr.fmt) {
@@ -198,7 +198,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_L:
                     return MIPS_CP_CVT_D_L;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_L:
             switch (instr.fr.fmt) {
@@ -207,7 +207,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_CVT_L_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_S:
             switch (instr.fr.fmt) {
@@ -218,7 +218,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_L:
                     return MIPS_CP_CVT_S_L;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_W:
             switch (instr.fr.fmt) {
@@ -227,7 +227,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_CVT_W_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_SQRT:
             switch (instr.fr.fmt) {
@@ -236,7 +236,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_SQRT_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
 
         case COP_FUNCT_MOV:
@@ -246,7 +246,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_MOV_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_NEG:
             switch (instr.fr.fmt) {
@@ -255,12 +255,12 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_NEG_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_C_F:
-            logfatal("COP_FUNCT_C_F unimplemented")
+            logfatal("COP_FUNCT_C_F unimplemented");
         case COP_FUNCT_C_UN:
-            logfatal("COP_FUNCT_C_UN unimplemented")
+            logfatal("COP_FUNCT_C_UN unimplemented");
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -268,26 +268,26 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_C_EQ_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_C_UEQ:
-            logfatal("COP_FUNCT_C_UEQ unimplemented")
+            logfatal("COP_FUNCT_C_UEQ unimplemented");
         case COP_FUNCT_C_OLT:
-            logfatal("COP_FUNCT_C_OLT unimplemented")
+            logfatal("COP_FUNCT_C_OLT unimplemented");
         case COP_FUNCT_C_ULT:
-            logfatal("COP_FUNCT_C_ULT unimplemented")
+            logfatal("COP_FUNCT_C_ULT unimplemented");
         case COP_FUNCT_C_OLE:
-            logfatal("COP_FUNCT_C_OLE unimplemented")
+            logfatal("COP_FUNCT_C_OLE unimplemented");
         case COP_FUNCT_C_ULE:
-            logfatal("COP_FUNCT_C_ULE unimplemented")
+            logfatal("COP_FUNCT_C_ULE unimplemented");
         case COP_FUNCT_C_SF:
-            logfatal("COP_FUNCT_C_SF unimplemented")
+            logfatal("COP_FUNCT_C_SF unimplemented");
         case COP_FUNCT_C_NGLE:
-            logfatal("COP_FUNCT_C_NGLE unimplemented")
+            logfatal("COP_FUNCT_C_NGLE unimplemented");
         case COP_FUNCT_C_SEQ:
-            logfatal("COP_FUNCT_C_SEQ unimplemented")
+            logfatal("COP_FUNCT_C_SEQ unimplemented");
         case COP_FUNCT_C_NGL:
-            logfatal("COP_FUNCT_C_NGL unimplemented")
+            logfatal("COP_FUNCT_C_NGL unimplemented");
         case COP_FUNCT_C_LT:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -295,10 +295,10 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_C_LT_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
         case COP_FUNCT_C_NGE:
-            logfatal("COP_FUNCT_C_NGE unimplemented")
+            logfatal("COP_FUNCT_C_NGE unimplemented");
         case COP_FUNCT_C_LE:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -306,18 +306,18 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
                 case FP_FMT_SINGLE:
                     return MIPS_CP_C_LE_S;
                 default:
-                    logfatal("Undefined!")
+                    logfatal("Undefined!");
             }
-            logfatal("COP_FUNCT_C_LE unimplemented")
+            logfatal("COP_FUNCT_C_LE unimplemented");
         case COP_FUNCT_C_NGT:
-            logfatal("COP_FUNCT_C_NGT unimplemented")
+            logfatal("COP_FUNCT_C_NGT unimplemented");
     }
 
     char buf[50];
     disassemble(pc, instr.raw, buf, 50);
     logfatal("other/unknown MIPS CP1 0x%08X with rs: %d%d%d%d%d and FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
              instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4,
-             instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+             instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
 
 mips_instruction_type_t r4300i_special_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
@@ -360,7 +360,7 @@ mips_instruction_type_t r4300i_special_decode(r4300i_t* cpu, word pc, mips_instr
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
             logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf)
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
         }
     }
 }
@@ -376,7 +376,7 @@ mips_instruction_type_t r4300i_regimm_decode(r4300i_t* cpu, word pc, mips_instru
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
             logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
-                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf)
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
         }
     }
 }
@@ -385,7 +385,7 @@ mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_i
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
-        logdebug("[0x%08X]=0x%08X %s", pc, instr.raw, buf)
+        logdebug("[0x%08X]=0x%08X %s", pc, instr.raw, buf);
     }
     if (instr.raw == 0) {
         return MIPS_NOP;
@@ -445,14 +445,14 @@ mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_i
                 disassemble(pc, instr.raw, buf, 50);
             }
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
-                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf)
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
     }
 }
 
 void cp0_step(cp0_t* cp0) {
     if (cp0->count < cp0->compare && cp0->count + 2 >= cp0->compare) {
         cp0->cause.ip7 = true;
-        logwarn("Compare interrupt!")
+        logwarn("Compare interrupt!");
     }
     if (cp0->random <= cp0->wired) {
         cp0->random = 31;
@@ -659,16 +659,16 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_RI_BGEZ,   mips_ri_bgez)
         exec_instr(MIPS_RI_BGEZL,  mips_ri_bgezl)
         exec_instr(MIPS_RI_BGEZAL, mips_ri_bgezal)
-        default: logfatal("Unknown instruction type!")
+        default: logfatal("Unknown instruction type!");
     }
 
     if (cpu->branch) {
         if (cpu->branch_delay == 0) {
-            logtrace("[BRANCH DELAY] Branching to 0x%08X", cpu->branch_pc)
+            logtrace("[BRANCH DELAY] Branching to 0x%08X", cpu->branch_pc);
             cpu->pc = cpu->branch_pc;
             cpu->branch = false;
         } else {
-            logtrace("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay)
+            logtrace("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay);
             cpu->branch_delay--;
         }
     }

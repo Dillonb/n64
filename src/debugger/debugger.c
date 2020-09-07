@@ -195,7 +195,7 @@ ssize_t n64_debug_get_register_value(n64_system_t* system, char * buffer, size_t
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
         default:
-            logfatal("debug get register %d value", reg)
+            logfatal("debug get register %d value", reg);
     }
 }
 
@@ -204,7 +204,7 @@ ssize_t n64_debug_get_general_registers(n64_system_t* system, char * buffer, siz
     for (int i = 0; i < 32; i++) {
         int ofs = i * 16; // 64 bit regs take up 16 ascii chars to print in hex
         if (ofs + 16 > buffer_length) {
-            logfatal("Too big!")
+            logfatal("Too big!");
         }
         dword reg = system->cpu.gpr[i];
         printed += snprintf(buffer + ofs, buffer_length - ofs, "%016lx", reg);
@@ -237,7 +237,7 @@ void debugger_init(n64_system_t* system) {
 
     system->debugger_state.gdb = gdbstub_init(config);
     if (!system->debugger_state.gdb) {
-        logfatal("Failed to initialize GDB stub!")
+        logfatal("Failed to initialize GDB stub!");
     }
 }
 

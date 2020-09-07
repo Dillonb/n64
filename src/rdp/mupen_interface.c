@@ -53,7 +53,7 @@ EXPORT m64p_error CALL VidExt_SetVideoMode(int width, int height, int bits_per_p
 EXPORT void* CALL VidExt_GL_GetProcAddress(const char* proc) {
     void* pointer = SDL_GL_GetProcAddress(proc);
     if (pointer == NULL) {
-        logfatal("VidExt_GL_GetProcAddress: could not get address of %s!", proc)
+        logfatal("VidExt_GL_GetProcAddress: could not get address of %s!", proc);
     }
 
     return pointer;
@@ -68,11 +68,11 @@ EXPORT int CALL ConfigGetParamInt(m64p_handle handle, const char* param) {
     PARAM("DpCompat",        0)
 
 
-    logfatal("Unknown int param: %s", param)
+    logfatal("Unknown int param: %s", param);
 }
 
 EXPORT float CALL ConfigGetParamFloat(m64p_handle handle, const char* param) {
-    logfatal("Unknown float param: %s", param)
+    logfatal("Unknown float param: %s", param);
 }
 
 EXPORT int CALL ConfigGetParamBool(m64p_handle handle, const char* param) {
@@ -82,11 +82,11 @@ EXPORT int CALL ConfigGetParamBool(m64p_handle handle, const char* param) {
     PARAM("ViHideOverscan", false)
 
 
-    logfatal("Unknown bool param: %s", param)
+    logfatal("Unknown bool param: %s", param);
 }
 
 EXPORT const char * CALL ConfigGetParamString(m64p_handle handle, const char* param) {
-    logfatal("Unknown string param: %s", param)
+    logfatal("Unknown string param: %s", param);
 }
 
 EXPORT m64p_error CALL VidExt_Quit(void) {

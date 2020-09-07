@@ -57,7 +57,7 @@ void audio_init(n64_system_t* system) {
     unimplemented(request.format != audio_spec.format, "Request != got")
 
     if (audio_dev == 0) {
-        logfatal("Failed to initialize SDL audio: %s", SDL_GetError())
+        logfatal("Failed to initialize SDL audio: %s", SDL_GetError());
     }
 
     SDL_PauseAudioDevice(audio_dev, false);
@@ -72,7 +72,7 @@ void video_init() {
                               SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
     gl_context = SDL_GL_CreateContext(window);
     if (gl_context == NULL) {
-        logfatal("SDL couldn't create OpenGL context! %s", SDL_GetError())
+        logfatal("SDL couldn't create OpenGL context! %s", SDL_GetError());
     }
 
     int gl_version = gladLoadGLLoader(SDL_GL_GetProcAddress);
@@ -80,7 +80,7 @@ void video_init() {
 
 
     if (gl_version == 0) {
-        logfatal("Failed to initialize Glad context")
+        logfatal("Failed to initialize Glad context");
     }
 
     printf("OpenGL initialized.\n");
@@ -94,7 +94,7 @@ void video_init() {
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     if (renderer == NULL) {
-        logfatal("SDL couldn't create a renderer! %s", SDL_GetError())
+        logfatal("SDL couldn't create a renderer! %s", SDL_GetError());
     }
 }
 
@@ -109,7 +109,7 @@ void render_init(n64_system_t* system) {
 void handle_event(n64_system_t* system, SDL_Event* event) {
     switch (event->type) {
         case SDL_QUIT:
-            logwarn("User requested quit")
+            logwarn("User requested quit");
             n64_request_quit();
             break;
         case SDL_KEYDOWN: {

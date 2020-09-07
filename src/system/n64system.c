@@ -269,31 +269,31 @@ void on_interrupt_change(n64_system_t* system) {
 void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
-            logwarn("Raising VI interrupt")
+            logwarn("Raising VI interrupt");
             system->mi.intr.vi = true;
             break;
         case INTERRUPT_SI:
-            logwarn("Raising SI interrupt")
+            logwarn("Raising SI interrupt");
             system->mi.intr.si = true;
             break;
         case INTERRUPT_PI:
-            logwarn("Raising PI interrupt")
+            logwarn("Raising PI interrupt");
             system->mi.intr.pi = true;
             break;
         case INTERRUPT_AI:
-            logwarn("Raising AI interrupt")
+            logwarn("Raising AI interrupt");
             system->mi.intr.ai = true;
             break;
         case INTERRUPT_DP:
-            logwarn("Raising DP interrupt")
+            logwarn("Raising DP interrupt");
             system->mi.intr.dp = true;
             break;
         case INTERRUPT_SP:
-            logwarn("Raising SP interrupt")
+            logwarn("Raising SP interrupt");
             system->mi.intr.sp = true;
             break;
         default:
-            logfatal("Raising unimplemented interrupt: %d", interrupt)
+            logfatal("Raising unimplemented interrupt: %d", interrupt);
     }
 
     on_interrupt_change(system);
@@ -303,30 +303,30 @@ void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
             system->mi.intr.vi = false;
-            logwarn("Lowering VI interrupt")
+            logwarn("Lowering VI interrupt");
             break;
         case INTERRUPT_SI:
             system->mi.intr.si = false;
-            logwarn("Lowering SI interrupt")
+            logwarn("Lowering SI interrupt");
             break;
         case INTERRUPT_PI:
             system->mi.intr.pi = false;
-            logwarn("Lowering PI interrupt")
+            logwarn("Lowering PI interrupt");
             break;
         case INTERRUPT_DP:
             system->mi.intr.dp = false;
-            logwarn("Lowering DP interrupt")
+            logwarn("Lowering DP interrupt");
             break;
         case INTERRUPT_AI:
             system->mi.intr.ai = false;
-            logwarn("Lowering DP interrupt")
+            logwarn("Lowering DP interrupt");
             break;
         case INTERRUPT_SP:
             system->mi.intr.sp = false;
-            logwarn("Lowering SP interrupt")
+            logwarn("Lowering SP interrupt");
             break;
         default:
-            logfatal("Lowering unimplemented interrupt: %d", interrupt)
+            logfatal("Lowering unimplemented interrupt: %d", interrupt);
     }
 
     on_interrupt_change(system);

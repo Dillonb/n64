@@ -674,12 +674,12 @@ extern const char* register_names[];
 extern const char* cp0_register_names[];
 
 INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
-    logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value)
+    logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
     if (r != 0) {
         if (r < 64) {
             cpu->gpr[r] = value;
         } else {
-            logfatal("Write to invalid register: %d", r)
+            logfatal("Write to invalid register: %d", r);
         }
     }
 }
@@ -687,15 +687,15 @@ INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
 INLINE dword get_register(r4300i_t* cpu, byte r) {
     if (r < 64) {
         dword value = cpu->gpr[r];
-        logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value)
+        logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value);
         return value;
     } else {
-        logfatal("Attempted to read invalid register: %d", r)
+        logfatal("Attempted to read invalid register: %d", r);
     }
 }
 
 INLINE void on_change_fr(r4300i_t* cpu, cp0_status_t oldstatus) {
-    logfatal("FR changed from %d to %d!", oldstatus.fr, cpu->cp0.status.fr)
+    logfatal("FR changed from %d to %d!", oldstatus.fr, cpu->cp0.status.fr);
 }
 
 INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
@@ -736,22 +736,22 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
                 on_change_fr(cpu, oldstatus);
             }
 
-            loginfo("    CP0 status: ie:  %d", cpu->cp0.status.ie)
-            loginfo("    CP0 status: exl: %d", cpu->cp0.status.exl)
-            loginfo("    CP0 status: erl: %d", cpu->cp0.status.erl)
-            loginfo("    CP0 status: ksu: %d", cpu->cp0.status.ksu)
-            loginfo("    CP0 status: ux:  %d", cpu->cp0.status.ux)
-            loginfo("    CP0 status: sx:  %d", cpu->cp0.status.sx)
-            loginfo("    CP0 status: kx:  %d", cpu->cp0.status.kx)
-            loginfo("    CP0 status: im:  %d", cpu->cp0.status.im)
-            loginfo("    CP0 status: ds:  %d", cpu->cp0.status.ds)
-            loginfo("    CP0 status: re:  %d", cpu->cp0.status.re)
-            loginfo("    CP0 status: fr:  %d", cpu->cp0.status.fr)
-            loginfo("    CP0 status: rp:  %d", cpu->cp0.status.rp)
-            loginfo("    CP0 status: cu0: %d", cpu->cp0.status.cu0)
-            loginfo("    CP0 status: cu1: %d", cpu->cp0.status.cu1)
-            loginfo("    CP0 status: cu2: %d", cpu->cp0.status.cu2)
-            loginfo("    CP0 status: cu3: %d", cpu->cp0.status.cu3)
+            loginfo("    CP0 status: ie:  %d", cpu->cp0.status.ie);
+            loginfo("    CP0 status: exl: %d", cpu->cp0.status.exl);
+            loginfo("    CP0 status: erl: %d", cpu->cp0.status.erl);
+            loginfo("    CP0 status: ksu: %d", cpu->cp0.status.ksu);
+            loginfo("    CP0 status: ux:  %d", cpu->cp0.status.ux);
+            loginfo("    CP0 status: sx:  %d", cpu->cp0.status.sx);
+            loginfo("    CP0 status: kx:  %d", cpu->cp0.status.kx);
+            loginfo("    CP0 status: im:  %d", cpu->cp0.status.im);
+            loginfo("    CP0 status: ds:  %d", cpu->cp0.status.ds);
+            loginfo("    CP0 status: re:  %d", cpu->cp0.status.re);
+            loginfo("    CP0 status: fr:  %d", cpu->cp0.status.fr);
+            loginfo("    CP0 status: rp:  %d", cpu->cp0.status.rp);
+            loginfo("    CP0 status: cu0: %d", cpu->cp0.status.cu0);
+            loginfo("    CP0 status: cu1: %d", cpu->cp0.status.cu1);
+            loginfo("    CP0 status: cu2: %d", cpu->cp0.status.cu2);
+            loginfo("    CP0 status: cu3: %d", cpu->cp0.status.cu3);
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
@@ -772,10 +772,10 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.EPC = value;
             break;
         default:
-            logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value)
+            logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
     }
 
-    loginfo("CP0 $%s = 0x%08X", cp0_register_names[r], value)
+    loginfo("CP0 $%s = 0x%08X", cp0_register_names[r], value);
 }
 
 INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
@@ -805,7 +805,7 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_WIRED:
             return cpu->cp0.wired;
         default:
-            logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r)
+            logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
     }
 }
 
@@ -840,7 +840,7 @@ INLINE void set_fpu_register_word(r4300i_t* cpu, byte r, word value) {
             darr[r - 1] |= (dword)value << 32;
         }
     } else {
-        logfatal("Unimplemented!")
+        logfatal("Unimplemented!");
     }
 }
 
@@ -853,7 +853,7 @@ INLINE word get_fpu_register_word(r4300i_t* cpu, byte r) {
             return darr[r - 1] >> 32;
         }
     } else {
-        logfatal("Unimplemented!")
+        logfatal("Unimplemented!");
     }
 }
 

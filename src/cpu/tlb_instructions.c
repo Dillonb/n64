@@ -19,7 +19,7 @@ MIPS_INSTR(mips_tlbwi) {
     int index = cpu->cp0.index & 0x3F;
 
     if (index >= 32) {
-        logfatal("TLBWI to TLB index %d", index)
+        logfatal("TLBWI to TLB index %d", index);
     }
     cpu->cp0.tlb[index].entry_hi.raw  = entry_hi.raw;
     cpu->cp0.tlb[index].entry_lo0.raw = entry_lo0.raw;
@@ -47,7 +47,7 @@ MIPS_INSTR(mips_tlbp) {
 MIPS_INSTR(mips_tlbr) {
         int index = cpu->cp0.index & 0b111111;
         if (index >= 32) {
-            logfatal("TLBR from TLB index %d", index)
+            logfatal("TLBR from TLB index %d", index);
         }
 
         tlb_entry_t entry = cpu->cp0.tlb[index];
@@ -59,5 +59,5 @@ MIPS_INSTR(mips_tlbr) {
         cpu->cp0.entry_lo0.g = entry.entry_hi.g;
         cpu->cp0.entry_lo1.g = entry.entry_hi.g;
 
-        logfatal("tlbr")
+        logfatal("tlbr");
 }

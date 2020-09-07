@@ -68,22 +68,22 @@ void pif_rom_execute(n64_system_t* system) {
     system->cpu.cp0.error_epc     = 0;
     system->cpu.cp0.r31           = 0;
 
-    logwarn("CP0 status: ie:  %d", system->cpu.cp0.status.ie)
-    logwarn("CP0 status: exl: %d", system->cpu.cp0.status.exl)
-    logwarn("CP0 status: erl: %d", system->cpu.cp0.status.erl)
-    logwarn("CP0 status: ksu: %d", system->cpu.cp0.status.ksu)
-    logwarn("CP0 status: ux:  %d", system->cpu.cp0.status.ux)
-    logwarn("CP0 status: sx:  %d", system->cpu.cp0.status.sx)
-    logwarn("CP0 status: kx:  %d", system->cpu.cp0.status.kx)
-    logwarn("CP0 status: im:  %d", system->cpu.cp0.status.im)
-    logwarn("CP0 status: ds:  %d", system->cpu.cp0.status.ds)
-    logwarn("CP0 status: re:  %d", system->cpu.cp0.status.re)
-    logwarn("CP0 status: fr:  %d", system->cpu.cp0.status.fr)
-    logwarn("CP0 status: rp:  %d", system->cpu.cp0.status.rp)
-    logwarn("CP0 status: cu0: %d", system->cpu.cp0.status.cu0)
-    logwarn("CP0 status: cu1: %d", system->cpu.cp0.status.cu1)
-    logwarn("CP0 status: cu2: %d", system->cpu.cp0.status.cu2)
-    logwarn("CP0 status: cu3: %d", system->cpu.cp0.status.cu3)
+    logwarn("CP0 status: ie:  %d", system->cpu.cp0.status.ie);
+    logwarn("CP0 status: exl: %d", system->cpu.cp0.status.exl);
+    logwarn("CP0 status: erl: %d", system->cpu.cp0.status.erl);
+    logwarn("CP0 status: ksu: %d", system->cpu.cp0.status.ksu);
+    logwarn("CP0 status: ux:  %d", system->cpu.cp0.status.ux);
+    logwarn("CP0 status: sx:  %d", system->cpu.cp0.status.sx);
+    logwarn("CP0 status: kx:  %d", system->cpu.cp0.status.kx);
+    logwarn("CP0 status: im:  %d", system->cpu.cp0.status.im);
+    logwarn("CP0 status: ds:  %d", system->cpu.cp0.status.ds);
+    logwarn("CP0 status: re:  %d", system->cpu.cp0.status.re);
+    logwarn("CP0 status: fr:  %d", system->cpu.cp0.status.fr);
+    logwarn("CP0 status: rp:  %d", system->cpu.cp0.status.rp);
+    logwarn("CP0 status: cu0: %d", system->cpu.cp0.status.cu0);
+    logwarn("CP0 status: cu1: %d", system->cpu.cp0.status.cu1);
+    logwarn("CP0 status: cu2: %d", system->cpu.cp0.status.cu2);
+    logwarn("CP0 status: cu3: %d", system->cpu.cp0.status.cu3);
 
     //n64_write_word(system, 0x04300004, 0x01010101);
 
@@ -98,7 +98,7 @@ void pif_rom_execute(n64_system_t* system) {
         byte src = n64_read_byte(system, vatopa(src_address, &system->cpu.cp0));
         n64_write_byte(system, vatopa(dest_address, &system->cpu.cp0), src);
 
-        logtrace("PIF: Copied 0x%02X from 0x%08X ==> 0x%08X", src, src_address, dest_address)
+        logtrace("PIF: Copied 0x%02X from 0x%08X ==> 0x%08X", src, src_address, dest_address);
     }
 
     system->cpu.pc = 0xA4000040;
@@ -135,7 +135,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_READ_BUTTONS:
             unimplemented(cmdlen != 1, "Read button values with cmdlen != 1")
             if (reslen != 4) {
-                logfatal("Read button values with reslen != 4: %d", reslen)
+                logfatal("Read button values with reslen != 4: %d", reslen);
             }
             byte bytes[4];
             if (*channel < 4 && system->si.controllers[*channel].plugged_in) {
@@ -158,7 +158,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             (*channel)++;
             break;
         case PIF_COMMAND_MEMPACK_READ:
-            logfatal("PIF_COMMAND_MEMPACK_READ")
+            logfatal("PIF_COMMAND_MEMPACK_READ");
             break;
         case PIF_COMMAND_MEMPACK_WRITE:
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35")
@@ -168,11 +168,11 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             (*index) += 35; // NOOP
             break;
         case PIF_COMMAND_EEPROM_READ:
-            logfatal("PIF_COMMAND_EEPROM_READ")
+            logfatal("PIF_COMMAND_EEPROM_READ");
         case PIF_COMMAND_EEPROM_WRITE:
-            logfatal("PIF_COMMAND_EEPROM_WRITE")
+            logfatal("PIF_COMMAND_EEPROM_WRITE");
         default:
-            logfatal("Unknown PIF command: %d", command)
+            logfatal("Unknown PIF command: %d", command);
     }
 }
 

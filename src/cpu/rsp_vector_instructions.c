@@ -78,7 +78,7 @@ word rsq(sword sinput) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
-    logdebug("rsp_lwc2_lbv")
+    logdebug("rsp_lwc2_lbv");
     vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
@@ -86,7 +86,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
-    logdebug("rsp_lwc2_ldv")
+    logdebug("rsp_lwc2_ldv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
 
     for (int i = 0; i < 8; i++) {
@@ -99,7 +99,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
-    logdebug("rsp_lwc2_lfv")
+    logdebug("rsp_lwc2_lfv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
     int e = instruction.v.element;
     int start = e;
@@ -131,7 +131,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
-    logdebug("rsp_lwc2_lhv")
+    logdebug("rsp_lwc2_lhv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
 
     word in_addr_offset = address & 0x7;
@@ -148,7 +148,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_llv) {
-    logdebug("rsp_lwc2_llv")
+    logdebug("rsp_lwc2_llv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
 
@@ -162,7 +162,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_llv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
-    logdebug("rsp_lwc2_lpv")
+    logdebug("rsp_lwc2_lpv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
 
@@ -181,7 +181,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
-    logdebug("rsp_lwc2_lqv")
+    logdebug("rsp_lwc2_lqv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
     word end_address = ((address & ~15) + 15);
@@ -192,7 +192,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
-    logdebug("rsp_lwc2_lrv")
+    logdebug("rsp_lwc2_lrv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
     int start = 16 - ((address & 0xF) - e);
@@ -204,7 +204,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
-    logdebug("rsp_lwc2_lsv")
+    logdebug("rsp_lwc2_lsv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
     half val = rsp->read_half(address);
@@ -217,7 +217,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
-    logdebug("rsp_lwc2_ltv")
+    logdebug("rsp_lwc2_ltv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
 
     word start = get_rsp_register(rsp, instruction.v.vt);
@@ -236,7 +236,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_luv) {
-    logdebug("rsp_lwc2_luv")
+    logdebug("rsp_lwc2_luv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
 
     int e = instruction.v.element;
@@ -256,7 +256,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_luv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sbv) {
-    logdebug("rsp_swc2_sbv")
+    logdebug("rsp_swc2_sbv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
     int element = instruction.v.element;
@@ -264,7 +264,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sbv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sdv) {
-    logdebug("rsp_swc2_sdv")
+    logdebug("rsp_swc2_sdv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
 
     for (int i = 0; i < 8; i++) {
@@ -274,12 +274,12 @@ RSP_VECTOR_INSTR(rsp_swc2_sdv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sfv) {
-    logdebug("rsp_swc2_sfv")
-    logfatal("Unimplemented: rsp_swc2_sfv")
+    logdebug("rsp_swc2_sfv");
+    logfatal("Unimplemented: rsp_swc2_sfv");
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_shv) {
-    logdebug("rsp_swc2_shv")
+    logdebug("rsp_swc2_shv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
 
     word in_addr_offset = address & 0x7;
@@ -299,7 +299,7 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_slv) {
-    logdebug("rsp_swc2_slv")
+    logdebug("rsp_swc2_slv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
 
@@ -310,7 +310,7 @@ RSP_VECTOR_INSTR(rsp_swc2_slv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_spv) {
-    logdebug("rsp_swc2_spv")
+    logdebug("rsp_swc2_spv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
 
     int start = instruction.v.element;
@@ -326,7 +326,7 @@ RSP_VECTOR_INSTR(rsp_swc2_spv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sqv) {
-    logdebug("rsp_swc2_sqv")
+    logdebug("rsp_swc2_sqv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
     word end_address = ((address & ~15) + 15);
@@ -337,7 +337,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sqv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_srv) {
-    logdebug("rsp_swc2_srv")
+    logdebug("rsp_swc2_srv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
     int start = instruction.v.element;
     int end = start + (address & 15);
@@ -349,7 +349,7 @@ RSP_VECTOR_INSTR(rsp_swc2_srv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_ssv) {
-    logdebug("rsp_swc2_ssv")
+    logdebug("rsp_swc2_ssv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
 
     int element = instruction.v.element;
@@ -357,7 +357,7 @@ RSP_VECTOR_INSTR(rsp_swc2_ssv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {
-    logdebug("rsp_swc2_stv")
+    logdebug("rsp_swc2_stv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
     int start_vu_reg = instruction.v.vt & 0b11000;
 
@@ -388,7 +388,7 @@ RSP_VECTOR_INSTR(rsp_swc2_stv) {
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_suv) {
-    logdebug("rsp_swc2_suv")
+    logdebug("rsp_swc2_suv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
 
     int start = instruction.v.element;
@@ -403,7 +403,7 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 }
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
-    logdebug("rsp_cfc2")
+    logdebug("rsp_cfc2");
     shalf value = 0;
     switch (instruction.r.rd) {
         case 0: { // VCO
@@ -418,7 +418,7 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
             value = rsp_get_vce(rsp);
             break;
             default:
-                logfatal("CFC2 from unknown VU control register: %d", instruction.r.rd)
+                logfatal("CFC2 from unknown VU control register: %d", instruction.r.rd);
         }
     }
 
@@ -426,7 +426,7 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
 }
 
 RSP_VECTOR_INSTR(rsp_ctc2) {
-    logdebug("rsp_ctc2")
+    logdebug("rsp_ctc2");
     half value = get_rsp_register(rsp, instruction.r.rt) & 0xFFFF;
     switch (instruction.r.rd) {
         case 0: { // VCO
@@ -450,12 +450,12 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
             break;
         }
         default:
-            logfatal("CTC2 to unknown VU control register: %d", instruction.r.rd)
+            logfatal("CTC2 to unknown VU control register: %d", instruction.r.rd);
     }
 }
 
 RSP_VECTOR_INSTR(rsp_mfc2) {
-    logdebug("rsp_mfc2")
+    logdebug("rsp_mfc2");
     byte hi = rsp->vu_regs[instruction.cp2_regmove.rd].bytes[15 - (instruction.cp2_regmove.e)];
     byte lo = rsp->vu_regs[instruction.cp2_regmove.rd].bytes[15 - ((instruction.cp2_regmove.e + 1) & 0xF)];
     shalf element = hi << 8 | lo;
@@ -463,7 +463,7 @@ RSP_VECTOR_INSTR(rsp_mfc2) {
 }
 
 RSP_VECTOR_INSTR(rsp_mtc2) {
-    logdebug("rsp_mtc2")
+    logdebug("rsp_mtc2");
     half element = get_rsp_register(rsp, instruction.cp2_regmove.rt);
     byte lo = element & 0xFF;
     byte hi = (element >> 8) & 0xFF;
@@ -474,12 +474,12 @@ RSP_VECTOR_INSTR(rsp_mtc2) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vabs) {
-    logdebug("rsp_vec_vabs")
-    logfatal("Unimplemented: rsp_vec_vabs")
+    logdebug("rsp_vec_vabs");
+    logfatal("Unimplemented: rsp_vec_vabs");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vadd) {
-    logdebug("rsp_vec_vadd")
+    logdebug("rsp_vec_vadd");
     vsvtvd;
 
     // for i in 0..7
@@ -501,7 +501,7 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vaddc) {
-    logdebug("rsp_vec_vaddc")
+    logdebug("rsp_vec_vaddc");
     vsvtvd;
 
     //for i in 0..7
@@ -523,7 +523,7 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vand) {
-    logdebug("rsp_vec_vand")
+    logdebug("rsp_vec_vand");
     for (int i = 0; i < 8; i++) {
         half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] & rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
         rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
@@ -532,7 +532,7 @@ RSP_VECTOR_INSTR(rsp_vec_vand) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vch) {
-    logdebug("rsp_vec_vch")
+    logdebug("rsp_vec_vch");
     vsvtvd;
 
     for (int i = 0; i < 8; i++) {
@@ -551,7 +551,7 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vcl) {
-    logdebug("rsp_vec_vcl")
+    logdebug("rsp_vec_vcl");
     vsvtvd;
     for (int i = 0; i < 8; i++) {
         half vse = vs->elements[i];
@@ -581,17 +581,17 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vcr) {
-    logdebug("rsp_vec_vcr")
-    logfatal("Unimplemented: rsp_vec_vcr")
+    logdebug("rsp_vec_vcr");
+    logfatal("Unimplemented: rsp_vec_vcr");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_veq) {
-    logdebug("rsp_vec_veq")
-    logfatal("Unimplemented: rsp_vec_veq")
+    logdebug("rsp_vec_veq");
+    logfatal("Unimplemented: rsp_vec_veq");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vge) {
-    logdebug("rsp_vec_vge")
+    logdebug("rsp_vec_vge");
     vsvtvd;
 
     for (int i = 0; i < 8; i++) {
@@ -609,7 +609,7 @@ RSP_VECTOR_INSTR(rsp_vec_vge) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vlt) {
-    logdebug("rsp_vec_vlt")
+    logdebug("rsp_vec_vlt");
     vsvtvd;
     for (int i = 0; i < 8; i++) {
         bool eql = vs->elements[i] == vt->elements[i];
@@ -624,7 +624,7 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacf) {
-    logdebug("rsp_vec_vmacf")
+    logdebug("rsp_vec_vmacf");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -641,12 +641,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacq) {
-    logdebug("rsp_vec_vmacq")
+    logdebug("rsp_vec_vmacq");
     logfatal("Unimplemented: rsp_vec_vmacq");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacu) {
-    logdebug("rsp_vec_vmacu")
+    logdebug("rsp_vec_vmacu");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -663,7 +663,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadh) {
-    logdebug("rsp_vec_vmadh")
+    logdebug("rsp_vec_vmadh");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -681,7 +681,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadl) {
-    logdebug("rsp_vec_vmadl")
+    logdebug("rsp_vec_vmadl");
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -697,7 +697,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadm) {
-    logdebug("rsp_vec_vmadm")
+    logdebug("rsp_vec_vmadm");
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -715,7 +715,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadn) {
-    logdebug("rsp_vec_vmadn")
+    logdebug("rsp_vec_vmadn");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -731,12 +731,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmov) {
-    logdebug("rsp_vec_vmov")
-    logfatal("Unimplemented: rsp_vec_vmov")
+    logdebug("rsp_vec_vmov");
+    logfatal("Unimplemented: rsp_vec_vmov");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
-    logdebug("rsp_vec_vmrg")
+    logdebug("rsp_vec_vmrg");
     vsvtvd;
 
     for (int i = 0; i < 8; i++) {
@@ -749,7 +749,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudh) {
-    logdebug("rsp_vec_vmudh")
+    logdebug("rsp_vec_vmudh");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -767,7 +767,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudl) {
-    logdebug("rsp_vec_vmudl")
+    logdebug("rsp_vec_vmudl");
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -782,7 +782,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudm) {
-    logdebug("rsp_vec_vmudm")
+    logdebug("rsp_vec_vmudm");
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -798,7 +798,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudm) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudn) {
-    logdebug("rsp_vec_vmudn")
+    logdebug("rsp_vec_vmudn");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -813,7 +813,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulf) {
-    logdebug("rsp_vec_vmulf")
+    logdebug("rsp_vec_vmulf");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -829,12 +829,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulq) {
-    logdebug("rsp_vec_vmulq")
+    logdebug("rsp_vec_vmulq");
     logfatal("Unimplemented: rsp_vec_vmulq");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
-    logdebug("rsp_vec_vmulu")
+    logdebug("rsp_vec_vmulu");
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -878,14 +878,14 @@ INLINE vu_reg_t get_vte(vu_reg_t vt, byte e) {
             }
             break;
         default:
-            logfatal("vte where e > 15")
+            logfatal("vte where e > 15");
     }
 
     return vte;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
-    logdebug("rsp_vec_vnand")
+    logdebug("rsp_vec_vnand");
     unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] & rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
@@ -895,17 +895,17 @@ RSP_VECTOR_INSTR(rsp_vec_vnand) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vne) {
-    logdebug("rsp_vec_vne")
+    logdebug("rsp_vec_vne");
     logfatal("Unimplemented: rsp_vec_vne");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnop) {
-    logdebug("rsp_vec_vnop")
-    logfatal("Unimplemented: rsp_vec_vnop")
+    logdebug("rsp_vec_vnop");
+    logfatal("Unimplemented: rsp_vec_vnop");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
-    logdebug("rsp_vec_vnor")
+    logdebug("rsp_vec_vnor");
     unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
@@ -915,7 +915,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnxor) {
-    logdebug("rsp_vec_vnxor")
+    logdebug("rsp_vec_vnxor");
     unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] ^ rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
@@ -925,7 +925,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnxor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vor) {
-    logdebug("rsp_vec_vor")
+    logdebug("rsp_vec_vor");
     vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int i = 0; i < 8; i++) {
         half result =  vte.elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
@@ -935,7 +935,7 @@ RSP_VECTOR_INSTR(rsp_vec_vor) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcp) {
-    logdebug("rsp_vec_vrcp")
+    logdebug("rsp_vec_vrcp");
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
@@ -947,7 +947,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
-    logdebug("rsp_vec_vrcpl")
+    logdebug("rsp_vec_vrcpl");
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
@@ -965,17 +965,17 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
-    logdebug("rsp_vec_vrndn")
-    logfatal("Unimplemented: rsp_vec_vrndn")
+    logdebug("rsp_vec_vrndn");
+    logfatal("Unimplemented: rsp_vec_vrndn");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndp) {
-    logdebug("rsp_vec_vrndp")
-    logfatal("Unimplemented: rsp_vec_vrndp")
+    logdebug("rsp_vec_vrndp");
+    logfatal("Unimplemented: rsp_vec_vrndp");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
-    logdebug("rsp_vec_vrsq")
+    logdebug("rsp_vec_vrsq");
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
@@ -987,7 +987,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
-    logdebug("rsp_vec_vrcph_vrsqh")
+    logdebug("rsp_vec_vrcph_vrsqh");
     byte de = instruction.cp2_vec.vs;
 
     rsp->divin = rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - instruction.cp2_vec.e];
@@ -997,7 +997,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
-    logdebug("rsp_vec_vrsql")
+    logdebug("rsp_vec_vrsql");
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
@@ -1015,7 +1015,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
-    logdebug("rsp_vec_vsar")
+    logdebug("rsp_vec_vsar");
     switch (instruction.cp2_vec.e) {
         case 0x8:
             rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.h.single;
@@ -1035,7 +1035,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsub) {
-    logdebug("rsp_vec_vsub")
+    logdebug("rsp_vec_vsub");
     vsvtvd;
 
     for (int i = 0; i < 8; i++) {
@@ -1048,7 +1048,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsub) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsubc) {
-    logdebug("rsp_vec_vsubc")
+    logdebug("rsp_vec_vsubc");
     vsvtvd;
 
     for (int i = 0; i < 8; i++) {
@@ -1064,7 +1064,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vxor) {
-    logdebug("rsp_vec_vxor")
+    logdebug("rsp_vec_vxor");
     unimplemented(instruction.cp2_vec.e != 0, "Element != 0")
     for (int i = 0; i < 8; i++) {
         half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] ^ rsp->vu_regs[instruction.cp2_vec.vs].elements[i];

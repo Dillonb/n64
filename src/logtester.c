@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     }
 
     if (!log_file) {
-        logfatal("Must pass a log file with -f!")
+        logfatal("Must pass a log file with -f!");
     }
 
     FILE* fp = fopen(log_file, "r");
@@ -81,16 +81,16 @@ int main(int argc, char** argv) {
             break;
         }
 
-        loginfo_nonewline("Checking log line %ld | %s", line + 1, regline)
+        loginfo_nonewline("Checking log line %ld | %s", line + 1, regline);
         char* tok = strtok(regline, " ");
         for (int r = 0; r < 32; r++) {
             dword expected = strtol(tok, NULL, 16);
             tok = strtok(NULL, " ");
             dword actual = system->cpu.gpr[r] & 0xFFFFFFFF;
             if (expected != actual) {
-                logwarn("Failed running line: %s", lastinstr)
-                logwarn("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
-                logfatal("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual)
+                logwarn("Failed running line: %s", lastinstr);
+                logwarn("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual);
+                logfatal("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual);
             }
         }
 
@@ -98,14 +98,14 @@ int main(int argc, char** argv) {
             break;
         }
 
-        loginfo_nonewline("Checking log line %ld | %s", line + 1, instrline)
+        loginfo_nonewline("Checking log line %ld | %s", line + 1, instrline);
 
         strcpy(lastinstr, instrline);
 
         tok = strtok(instrline, " ");
         dword pc = strtol(tok, NULL, 16);
         if (pc != system->cpu.pc) {
-            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08X", line + 1, pc, system->cpu.pc)
+            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08X", line + 1, pc, system->cpu.pc);
         }
         n64_system_step(system);
     }
