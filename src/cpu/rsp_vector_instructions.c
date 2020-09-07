@@ -886,11 +886,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
-        sdword acc = (prod * 2) + 0x8000;
-
-        shalf result = clamp_signed(acc >> 16);
+        sdword acc = prod;
+        acc = (acc * 2) + 0x8000;
 
         set_rsp_accumulator(rsp, e, acc);
+
+        shalf result = clamp_signed(acc >> 16);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
