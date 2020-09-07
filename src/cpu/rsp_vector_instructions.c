@@ -16,6 +16,15 @@ INLINE shalf clamp_signed(sdword value) {
 
 #define clamp_unsigned(x) ((x) < 0 ? 0 : ((x) > 32767 ? 65535 : x))
 
+INLINE bool is_sign_extension(shalf high, shalf low) {
+    if (high == 0) {
+        return (low & 0x8000) == 0;
+    } else if (high == -1) {
+        return (low & 0x8000) == 0x8000;
+    }
+    return false;
+}
+
 #define SHIFT_AMOUNT_LBV_SBV 0
 #define SHIFT_AMOUNT_LSV_SSV 1
 #define SHIFT_AMOUNT_LLV_SLV 2
@@ -725,7 +734,17 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
         sdword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
         set_rsp_accumulator(rsp, e, acc);
-        half result = get_rsp_accumulator(rsp, e) & 0xFFFF; // TODO this isn't 100% correct, I think.
+
+        half result;
+
+        if (is_sign_extension(rsp->acc.h.signed_elements[e], rsp->acc.m.signed_elements[e])) {
+            result = rsp->acc.l.elements[e];
+        } else if (rsp->acc.h.signed_elements[e] < 0) {
+            result = 0;
+        } else {
+            result = 0xFFFF;
+        }
+
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
