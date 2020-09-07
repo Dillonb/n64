@@ -25,6 +25,42 @@ INLINE bool is_sign_extension(shalf high, shalf low) {
     return false;
 }
 
+INLINE vu_reg_t get_vte(vu_reg_t vt, byte e) {
+    vu_reg_t vte;
+    switch(e) {
+        case 0 ... 1:
+            return vt;
+        case 2:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11110101), 0b11110101);
+            break;
+        case 3:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10100000), 0b10100000);
+            break;
+        case 4:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11111111), 0b11111111);
+            break;
+        case 5:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10101010), 0b10101010);
+            break;
+        case 6:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b01010101), 0b01010101);
+            break;
+        case 7:
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b00000000), 0b00000000);
+            break;
+        case 8 ... 15:
+            for (int i = 0; i < 8; i++) {
+                vte.elements[i] = vt.elements[7 - (e - 8)];
+            }
+            break;
+        default:
+            logfatal("vte where e > 15");
+    }
+
+    return vte;
+}
+
+
 #define SHIFT_AMOUNT_LBV_SBV 0
 #define SHIFT_AMOUNT_LSV_SSV 1
 #define SHIFT_AMOUNT_LLV_SLV 2
@@ -634,8 +670,9 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmacf) {
     logdebug("rsp_vec_vmacf");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -652,12 +689,14 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
 RSP_VECTOR_INSTR(rsp_vec_vmacq) {
     logdebug("rsp_vec_vmacq");
     logfatal("Unimplemented: rsp_vec_vmacq");
+    unimplemented(instruction.cp2_vec.e != 0, "multiply with non-zero element")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacu) {
     logdebug("rsp_vec_vmacu");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -673,8 +712,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmadh) {
     logdebug("rsp_vec_vmadh");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
         word uprod = prod;
@@ -691,8 +731,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmadl) {
     logdebug("rsp_vec_vmadl");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        half multiplicand1 = vte.elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         word prod = multiplicand1 * multiplicand2;
 
@@ -707,8 +748,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmadm) {
     logdebug("rsp_vec_vmadm");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        half multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -725,8 +767,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmadn) {
     logdebug("rsp_vec_vmadn");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -769,8 +812,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmudh) {
     logdebug("rsp_vec_vmudh");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -787,8 +831,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmudl) {
     logdebug("rsp_vec_vmudl");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        half multiplicand1 = vte.elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         word prod = multiplicand1 * multiplicand2;
 
@@ -802,8 +847,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmudm) {
     logdebug("rsp_vec_vmudm");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        half multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -818,8 +864,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmudm) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmudn) {
     logdebug("rsp_vec_vmudn");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -833,8 +880,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmulf) {
     logdebug("rsp_vec_vmulf");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -854,8 +902,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmulq) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
     logdebug("rsp_vec_vmulu");
+    vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e);
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = rsp->vu_regs[instruction.cp2_vec.vt].elements[e];
+        shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
@@ -866,41 +915,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
         set_rsp_accumulator(rsp, e, acc);
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
-}
-
-INLINE vu_reg_t get_vte(vu_reg_t vt, byte e) {
-    vu_reg_t vte;
-    switch(e) {
-        case 0 ... 1:
-            return vt;
-        case 2:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11110101), 0b11110101);
-            break;
-        case 3:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10100000), 0b10100000);
-            break;
-        case 4:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11111111), 0b11111111);
-            break;
-        case 5:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10101010), 0b10101010);
-            break;
-        case 6:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b01010101), 0b01010101);
-            break;
-        case 7:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b00000000), 0b00000000);
-            break;
-        case 8 ... 15:
-            for (int i = 0; i < 8; i++) {
-                vte.elements[i] = vt.elements[7 - (e - 8)];
-            }
-            break;
-        default:
-            logfatal("vte where e > 15");
-    }
-
-    return vte;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
