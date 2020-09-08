@@ -742,7 +742,15 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
         dword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
         set_rsp_accumulator(rsp, e, acc);
-        half result = get_rsp_accumulator(rsp, e) & 0xFFFF; // TODO this isn't 100% correct, I think.
+        half result;
+        if (is_sign_extension(rsp->acc.h.signed_elements[e], rsp->acc.m.signed_elements[e])) {
+            result = rsp->acc.l.elements[e];
+        } else if (rsp->acc.h.signed_elements[e] < 0) {
+            result = 0;
+        } else {
+            result = 0xFFFF;
+        }
+
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -841,7 +849,15 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
         dword acc = prod >> 16;
 
         set_rsp_accumulator(rsp, e, acc);
-        half result = rsp->acc.l.elements[e]; // TODO this isn't 100% correct, I think.
+        half result;
+        if (is_sign_extension(rsp->acc.h.signed_elements[e], rsp->acc.m.signed_elements[e])) {
+            result = rsp->acc.l.elements[e];
+        } else if (rsp->acc.h.signed_elements[e] < 0) {
+            result = 0;
+        } else {
+            result = 0xFFFF;
+        }
+
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
@@ -874,7 +890,16 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
         sdword acc = prod;
 
         set_rsp_accumulator(rsp, e, acc);
-        half result = get_rsp_accumulator(rsp, e) & 0xFFFF; // TODO this isn't 100% correct, I think.
+
+        half result;
+        if (is_sign_extension(rsp->acc.h.signed_elements[e], rsp->acc.m.signed_elements[e])) {
+            result = rsp->acc.l.elements[e];
+        } else if (rsp->acc.h.signed_elements[e] < 0) {
+            result = 0;
+        } else {
+            result = 0xFFFF;
+        }
+
         rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
     }
 }
