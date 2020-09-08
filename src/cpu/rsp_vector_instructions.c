@@ -935,7 +935,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
-        sdword acc = (prod * 2) + 0x8000;
+        sdword acc = prod;
+        acc = (acc * 2) + 0x8000;
 
         half result = clamp_unsigned(acc >> 16);
 
