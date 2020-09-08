@@ -701,7 +701,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
-        sdword acc_delta = prod * 2;
+        sdword acc_delta = prod;
+        acc_delta *= 2;
         sdword acc = get_rsp_accumulator(rsp, e) + acc_delta;
 
         half result = clamp_unsigned(acc >> 16);
