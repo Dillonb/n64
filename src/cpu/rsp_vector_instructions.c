@@ -925,6 +925,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
 RSP_VECTOR_INSTR(rsp_vec_vmulq) {
     logdebug("rsp_vec_vmulq");
     logfatal("Unimplemented: rsp_vec_vmulq");
+    unimplemented(instruction.cp2_vec.e != 0, "multiply with non-zero element")
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
