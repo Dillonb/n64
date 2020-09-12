@@ -966,7 +966,18 @@ RSP_VECTOR_INSTR(rsp_vec_vnand) {
 
 RSP_VECTOR_INSTR(rsp_vec_vne) {
     logdebug("rsp_vec_vne");
-    logfatal("Unimplemented: rsp_vec_vne");
+    vsvtvd;
+    defvte;
+
+    for (int i = 0; i < 8; i++) {
+        rsp->vcc.l.elements[i] = (rsp->vco.h.elements[i] == 0) || (vs->elements[i] != vte.elements[i]);
+        rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
+        vd->elements[i] = rsp->acc.l.elements[i];
+
+        rsp->vcc.h.elements[i] = 0;
+        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = 0;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnop) {
