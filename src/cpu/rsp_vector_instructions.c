@@ -813,8 +813,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmov) {
     logdebug("rsp_vec_vmov");
-    logfatal("Unimplemented: rsp_vec_vmov");
-    elementzero;
+    vsvtvd;
+    defvte;
+    int de = instruction.cp2_vec.vs & 7;
+
+    rsp->acc.l.single = vte.single;
+    vd->elements[de] = vte.elements[de];
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
