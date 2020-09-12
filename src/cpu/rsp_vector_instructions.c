@@ -1036,7 +1036,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     logdebug("rsp_vec_vrcpl");
-    elementzero;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
@@ -1066,7 +1065,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrndp) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
-    elementzero;
     logdebug("rsp_vec_vrsq");
     sword input;
     int e  = instruction.cp2_vec.e & 7;
@@ -1079,7 +1077,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
-    elementzero;
     logdebug("rsp_vec_vrcph_vrsqh");
     byte de = instruction.cp2_vec.vs;
 
@@ -1109,7 +1106,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
-    elementzero;
     logdebug("rsp_vec_vsar");
     switch (instruction.cp2_vec.e) {
         case 0x8:
