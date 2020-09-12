@@ -662,12 +662,13 @@ RSP_VECTOR_INSTR(rsp_vec_vge) {
 RSP_VECTOR_INSTR(rsp_vec_vlt) {
     logdebug("rsp_vec_vlt");
     vsvtvd;
-    elementzero;
+    defvte;
+
     for (int i = 0; i < 8; i++) {
-        bool eql = vs->elements[i] == vt->elements[i];
+        bool eql = vs->elements[i] == vte.elements[i];
         bool neg = rsp->vco.h.elements[i] != 0 && rsp->vco.l.elements[i] != 0 && eql;
-        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] < vt->signed_elements[i]);
-        rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vt->elements[i];
+        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] < vte.signed_elements[i]);
+        rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
         rsp->vcc.h.elements[i] = 0;
         rsp->vco.h.elements[i] = 0;
