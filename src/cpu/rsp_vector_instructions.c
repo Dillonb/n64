@@ -685,7 +685,6 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
 RSP_VECTOR_INSTR(rsp_vec_vmacf) {
     logdebug("rsp_vec_vmacf");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -731,7 +730,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
 RSP_VECTOR_INSTR(rsp_vec_vmadh) {
     logdebug("rsp_vec_vmadh");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -776,7 +774,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
 RSP_VECTOR_INSTR(rsp_vec_vmadm) {
     logdebug("rsp_vec_vmadm");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -796,7 +793,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
 RSP_VECTOR_INSTR(rsp_vec_vmadn) {
     logdebug("rsp_vec_vmadn");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -844,7 +840,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
 RSP_VECTOR_INSTR(rsp_vec_vmudh) {
     logdebug("rsp_vec_vmudh");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -864,7 +859,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
 RSP_VECTOR_INSTR(rsp_vec_vmudl) {
     logdebug("rsp_vec_vmudl");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -889,7 +883,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
 RSP_VECTOR_INSTR(rsp_vec_vmudm) {
     logdebug("rsp_vec_vmudm");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -907,7 +900,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmudm) {
 RSP_VECTOR_INSTR(rsp_vec_vmudn) {
     logdebug("rsp_vec_vmudn");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
@@ -933,7 +925,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
 RSP_VECTOR_INSTR(rsp_vec_vmulf) {
     logdebug("rsp_vec_vmulf");
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
