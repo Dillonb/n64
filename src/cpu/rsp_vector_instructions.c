@@ -1134,10 +1134,10 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
 RSP_VECTOR_INSTR(rsp_vec_vsub) {
     logdebug("rsp_vec_vsub");
     vsvtvd;
-    elementzero;
+    defvte;
 
     for (int i = 0; i < 8; i++) {
-        sword result = vs->signed_elements[i] - vt->signed_elements[i] - (rsp->vco.l.elements[i] != 0);
+        sword result = vs->signed_elements[i] - vte.signed_elements[i] - (rsp->vco.l.elements[i] != 0);
         rsp->acc.l.signed_elements[i] = result;
         vd->signed_elements[i] = clamp_signed(result);
         rsp->vco.l.elements[i] = 0;
@@ -1148,10 +1148,10 @@ RSP_VECTOR_INSTR(rsp_vec_vsub) {
 RSP_VECTOR_INSTR(rsp_vec_vsubc) {
     logdebug("rsp_vec_vsubc");
     vsvtvd;
-    elementzero;
+    defvte;
 
     for (int i = 0; i < 8; i++) {
-        word result = vs->elements[i] - vt->elements[i];
+        word result = vs->elements[i] - vte.elements[i];
         half hresult = result & 0xFFFF;
         bool carry = (result >> 16) & 1;
 
