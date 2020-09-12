@@ -54,7 +54,7 @@ void audio_init(n64_system_t* system) {
     audio_dev = SDL_OpenAudioDevice(NULL, 0, &request, &audio_spec, 0);
 
     audio_dev = SDL_OpenAudioDevice(NULL, 0, &request, &audio_spec, 0);
-    unimplemented(request.format != audio_spec.format, "Request != got")
+    unimplemented(request.format != audio_spec.format, "Request != got");
 
     if (audio_dev == 0) {
         logfatal("Failed to initialize SDL audio: %s", SDL_GetError());

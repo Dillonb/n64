@@ -36,5 +36,5 @@ extern unsigned int n64_log_verbosity;
 #define logdebug(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {printf(COLOR_GREEN "[DEBUG] " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
 #define logtrace(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_TRACE) {printf("[TRACE] " message "\n", ##__VA_ARGS__);} } while(0)
 
-#define unimplemented(condition, message) if (condition) { logfatal("UNIMPLEMENTED CASE DETECTED: %s", message); }
+#define unimplemented(condition, message) do { if (condition) { logfatal("UNIMPLEMENTED CASE DETECTED: %s", message); } } while(0)
 #endif

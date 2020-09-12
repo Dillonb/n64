@@ -1004,7 +1004,7 @@ MIPS_INSTR(mips_spc_divu) {
     dword dividend = get_register(cpu, instruction.r.rs);
     dword divisor  = get_register(cpu, instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero exception")
+    unimplemented(divisor == 0, "Divide by zero exception");
 
     sword quotient  = dividend / divisor;
     sword remainder = dividend % divisor;
@@ -1030,7 +1030,7 @@ MIPS_INSTR(mips_spc_ddiv) {
     dword dividend = get_register(cpu, instruction.r.rs);
     dword divisor  = get_register(cpu, instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero exception")
+    unimplemented(divisor == 0, "Divide by zero exception");
 
     dword quotient  = dividend / divisor;
     dword remainder = dividend % divisor;
@@ -1043,7 +1043,7 @@ MIPS_INSTR(mips_spc_ddivu) {
     dword dividend = get_register(cpu, instruction.r.rs);
     dword divisor  = get_register(cpu, instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero exception")
+    unimplemented(divisor == 0, "Divide by zero exception");
 
     dword quotient  = dividend / divisor;
     dword remainder = dividend % divisor;

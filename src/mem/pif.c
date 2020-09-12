@@ -118,8 +118,8 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
     switch (command) {
         case PIF_COMMAND_RESET:
         case PIF_COMMAND_CONTROLLER_ID:
-            unimplemented(cmdlen != 1, "Controller ID with cmdlen != 1")
-            unimplemented(reslen != 3, "Controller ID with reslen != 3")
+            unimplemented(cmdlen != 1, "Controller ID with cmdlen != 1");
+            unimplemented(reslen != 3, "Controller ID with reslen != 3");
             bool plugged_in = (*channel) < 4 && system->si.controllers[*channel].plugged_in;
             if (plugged_in) {
                 system->mem.pif_ram[(*index)++] = 0x05;
@@ -133,7 +133,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             (*channel)++;
             break;
         case PIF_COMMAND_READ_BUTTONS:
-            unimplemented(cmdlen != 1, "Read button values with cmdlen != 1")
+            unimplemented(cmdlen != 1, "Read button values with cmdlen != 1");
             if (reslen != 4) {
                 logfatal("Read button values with reslen != 4: %d", reslen);
             }
@@ -161,8 +161,8 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             logfatal("PIF_COMMAND_MEMPACK_READ");
             break;
         case PIF_COMMAND_MEMPACK_WRITE:
-            unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35")
-            unimplemented(reslen != 1, "Mempack write with reslen != 1")
+            unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
+            unimplemented(reslen != 1, "Mempack write with reslen != 1");
             system->mem.pif_ram[r_index]   |= 0x80; // Device not present
             system->mem.pif_ram[(*index) + 34] = 0x00;
             (*index) += 35; // NOOP

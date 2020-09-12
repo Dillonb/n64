@@ -360,7 +360,7 @@ void pif_to_dram(n64_system_t* system, word pif_address, word dram_address) {
     if ((dram_address & 1) != 0) {
         logfatal("PIF to DRAM on unaligned address");
     }
-    unimplemented(pif_address != 0x1FC007C0, "SI DMA not from start of PIF RAM!")
+    unimplemented(pif_address != 0x1FC007C0, "SI DMA not from start of PIF RAM!");
     process_pif_command(system);
 
     for (int i = 0; i < 64; i++) {
@@ -374,7 +374,7 @@ void dram_to_pif(n64_system_t* system, word dram_address, word pif_address) {
     if ((dram_address & 1) != 0) {
         logfatal("DRAM to PIF on unaligned address");
     }
-    unimplemented(pif_address != 0x1FC007C0, "SI DMA not to start of PIF RAM!")
+    unimplemented(pif_address != 0x1FC007C0, "SI DMA not to start of PIF RAM!");
     for (int i = 0; i < 64; i++) {
         system->mem.pif_ram[i] = n64_read_byte(system, dram_address + i);
     }

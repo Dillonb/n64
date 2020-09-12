@@ -263,7 +263,6 @@ int main(int argc, char** argv) {
     snprintf(rsp_path, PATH_MAX, "%s.rsp", test_name);
 
     n64_system_t* system = load_test(rsp_path);
-    unimplemented(system == NULL, "asdf")
 
     for (int i = 4; i < argc; i++) {
         const char* subtest_name = argv[i];

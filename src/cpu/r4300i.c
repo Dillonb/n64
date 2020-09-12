@@ -22,7 +22,7 @@ const char* cp0_register_names[] = {
 void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     if (cpu->branch) {
-        unimplemented(cpu->cp0.status.exl, "handling branch delay when exl == true")
+        unimplemented(cpu->cp0.status.exl, "handling branch delay when exl == true");
         cpu->cp0.cause.branch_delay = true;
         cpu->branch = false;
         cpu->branch_delay = 0;
