@@ -3,6 +3,7 @@
 #include <emmintrin.h>
 
 #include <log.h>
+#include <tmmintrin.h>
 #include "rsp.h"
 #include "rsp_rom.h"
 
@@ -515,7 +516,13 @@ RSP_VECTOR_INSTR(rsp_mtc2) {
 
 RSP_VECTOR_INSTR(rsp_vec_vabs) {
     logdebug("rsp_vec_vabs");
-    logfatal("Unimplemented: rsp_vec_vabs");
+    vsvtvd;
+    defvte;
+
+    __m128i res = _mm_sign_epi16(vte.single, vs->single);
+    rsp->acc.l.single = res;
+    vd->single = res;
+
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vadd) {
