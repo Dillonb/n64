@@ -819,10 +819,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
     logdebug("rsp_vec_vmrg");
     vsvtvd;
-    elementzero;
+    defvte;
 
     for (int i = 0; i < 8; i++) {
-        rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vt->elements[i];
+        rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
         rsp->vco.l.elements[i] = 0;
