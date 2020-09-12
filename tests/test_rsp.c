@@ -44,15 +44,11 @@ bool compare_128(char* name, vu_reg_t reg, char* tok) {
 
         correct[byte_index] = expected == actual;
         all_correct &= correct[byte_index];
-
-        if (expected != actual) {
-            printf("%s byte index %d: Expected: %02X actual: %02X\n", name, byte_index, expected, actual);
-        }
     }
 
     if (!all_correct) {
-        printf("Expected: %s\n", tok);
-        printf("Actual:   ");
+        printf("%s Expected: %s\n", name, tok);
+        printf("%s Actual:   ", name);
         for (int i = 0; i < 16; i++) {
             if (!correct[i]) {
                 printf(COLOR_RED);
