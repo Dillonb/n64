@@ -1093,7 +1093,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
-    elementzero;
     logdebug("rsp_vec_vrsql");
     sword input;
     int e  = instruction.cp2_vec.e & 7;
