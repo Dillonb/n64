@@ -153,11 +153,11 @@
 #define FUNCT_ADD    0b100000
 #define FUNCT_ADDU   0b100001
 #define FUNCT_AND    0b100100
-#define FUNCT_NOR    0b100111
 #define FUNCT_SUB    0b100010
 #define FUNCT_SUBU   0b100011
 #define FUNCT_OR     0b100101
 #define FUNCT_XOR    0b100110
+#define FUNCT_NOR    0b100111
 #define FUNCT_SLT    0b101010
 #define FUNCT_SLTU   0b101011
 #define FUNCT_DADD   0b101100
