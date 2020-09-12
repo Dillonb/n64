@@ -28,6 +28,17 @@ INLINE bool is_sign_extension(shalf high, shalf low) {
     return false;
 }
 
+INLINE shalf to_twosc(half onesc) {
+    if ((onesc & 0x8000) == 0x8000) {
+        // back to positive
+        shalf converted = ~onesc;
+        // let the compiler do the fun part
+        return -converted;
+    } else {
+        return onesc; // positive ints are the same in one's complement and two's complement
+    }
+}
+
 INLINE vu_reg_t get_vte(vu_reg_t vt, byte e) {
     vu_reg_t vte;
     switch(e) {
@@ -622,8 +633,22 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
 
 RSP_VECTOR_INSTR(rsp_vec_vcr) {
     logdebug("rsp_vec_vcr");
-    logfatal("Unimplemented: rsp_vec_vcr");
-    elementzero;
+    vsvtvd;
+    defvte;
+
+    for (int i = 0; i < 8; i++) {
+        half vs_element = vs->elements[i];
+        half vte_element = vte.elements[i];
+        rsp->vco.l.elements[i] = (vs->elements[i] >> 15) != (vte.elements[i] >> 15);
+        half vt_abs = rsp->vco.l.elements[i] != 0 ? ~vte_element : vte_element;
+        rsp->vce.elements[i] = rsp->vco.l.elements[i] != 0 && (to_twosc(vs_element) == -to_twosc(vte_element) - 1);
+        rsp->vco.h.elements[i] = rsp->vce.elements[i] == 0 && (to_twosc(vs_element) != to_twosc(vt_abs)); // wrong
+        rsp->vcc.l.elements[i] = to_twosc(vs_element) <= to_twosc(~vte_element);
+        rsp->vcc.h.elements[i] = vs_element >= vte_element; // probably wrong
+        bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] != 0 : rsp->vcc.h.elements[i] != 0;
+        rsp->acc.l.elements[i] = clip ? vt_abs : vs->elements[i];
+        vd->elements[i] = rsp->acc.l.elements[i];
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_veq) {
