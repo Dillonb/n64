@@ -591,22 +591,22 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
 RSP_VECTOR_INSTR(rsp_vec_vcl) {
     logdebug("rsp_vec_vcl");
     vsvtvd;
-    unimplemented(instruction.cp2_vec.e != 0, "e != 0");
+    vu_reg_t vte = get_vte(*vt, instruction.cp2_vec.e);
     for (int i = 0; i < 8; i++) {
-        half vse = vs->elements[i];
-        half vte = vt->elements[i];
+        half vs_element = vs->elements[i];
+        half vte_element = vte.elements[i];
         if (rsp->vco.l.elements[i] == 0 && rsp->vco.h.elements[i] == 0) {
-            rsp->vcc.h.elements[i] = (shalf)vse >= (shalf)vte;
+            rsp->vcc.h.elements[i] = (shalf)vs_element >= (shalf)vte_element;
         }
 
         if (rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] == 0) {
-            bool lte = (shalf)vse <= -(shalf)vte;
-            bool eql = (shalf)vse == -(shalf)vte;
+            bool lte = (shalf)vs_element <= -(shalf)vte_element;
+            bool eql = (shalf)vs_element == -(shalf)vte_element;
             rsp->vcc.l.elements[i] = rsp->vce.elements[i] != 0 ? lte : eql;
         }
         bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] : rsp->vcc.h.elements[i];
-        half vtabs = rsp->vco.l.elements[i] != 0 ? -(half)vte : (half)vte;
-        half acc = clip ? vtabs : vse;
+        half vtabs = rsp->vco.l.elements[i] != 0 ? -(half)vte_element : (half)vte_element;
+        half acc = clip ? vtabs : vs_element;
         rsp->acc.l.elements[i] = acc;
         vd->elements[i] = acc;
 
