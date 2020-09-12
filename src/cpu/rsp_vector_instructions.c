@@ -403,32 +403,25 @@ RSP_VECTOR_INSTR(rsp_swc2_ssv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {
     logdebug("rsp_swc2_stv");
-    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
-    int start_vu_reg = instruction.v.vt & 0b11000;
+    word base = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
+    word in_addr_offset = base & 0x7;
+    base &= ~0x7;
 
-    int end_vu_reg = start_vu_reg + 8;
-    if (end_vu_reg > 32) {
-        end_vu_reg = 32;
-    }
+    byte e = instruction.v.element >> 1;
 
-    int element = 8 - (instruction.v.element >> 1);
-    word base = (address & 0xF) + (element << 1);
-    word wrap_point = (address + 0x10) & 0xFFFFFFF8;
-    base = (address & ~15) + (base & 0xF);
-    address = base;
-    for(int vu_reg = start_vu_reg; vu_reg < end_vu_reg; vu_reg++) {
-        half val = rsp->vu_regs[vu_reg].elements[7 - (element++ & 7)];
-        byte lo = val & 0xFF;
-        byte hi = (val >> 8) & 0xFF;
+    for (int i = 0; i < 8; i++) {
+        word address = base;
 
-        rsp->write_byte(address++, hi);
-        if (address >= wrap_point) {
-            address = base & ~0xF;
-        }
-        rsp->write_byte(address++, lo);
-        if (address >= wrap_point) {
-            address = base & ~0xF;
-        }
+        word offset = (i * 2) + in_addr_offset;
+
+        int reg = (instruction.v.vt & 0x18) | ((i + e) & 0x7);
+
+        half val = rsp->vu_regs[reg].elements[7 - (i & 0x7)];
+        half hi = (val >> 8) & 0xFF;
+        half lo = (val >> 0) & 0xFF;
+
+        rsp->write_byte(address + ((offset + 0) & 0xF), hi);
+        rsp->write_byte(address + ((offset + 1) & 0xF), lo);
     }
 }
 
