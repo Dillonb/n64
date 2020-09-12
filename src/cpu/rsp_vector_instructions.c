@@ -263,20 +263,20 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
     logdebug("rsp_lwc2_ltv");
-    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
+    word base = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
+    byte e = instruction.v.element;
 
-    word start = get_rsp_register(rsp, instruction.v.vt);
-    word end = start + 8;
-    if (end > 32) {
-        end = 32;
-    }
+    for (int i = 0; i < 8; i++) {
+        word address = base;
 
-    address = ((address + 8) & ~15) + (instruction.v.element & 1);
-    for(int i = start; i < end; i++) {
-        int byte_index = (8 - (instruction.v.element >> 1) + (i - start)) << 1;
+        word offset = (i * 2) + e;
 
-        rsp->vu_regs[i].bytes[(byte_index + 0) & 15] = rsp->read_byte(address++);
-        rsp->vu_regs[i].bytes[(byte_index + 1) & 15] = rsp->read_byte(address++);
+        half hi = rsp->read_byte(address + ((offset + 0) & 0xF));
+        half lo = rsp->read_byte(address + ((offset + 1) & 0xF));
+
+        int reg = (instruction.v.vt & 0x18) | ((i + (e >> 1)) & 0x7);
+
+        rsp->vu_regs[reg].elements[7 - (i & 0x7)] = (hi << 8) | lo;
     }
 }
 
