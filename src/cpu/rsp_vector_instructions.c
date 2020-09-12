@@ -1028,7 +1028,6 @@ RSP_VECTOR_INSTR(rsp_vec_vor) {
 
 RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     logdebug("rsp_vec_vrcp");
-    elementzero;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
