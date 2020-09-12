@@ -228,7 +228,7 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
             case OPC_JAL:   return MIPS_JAL;
             //case OPC_SLTI:  return MIPS_SLTI;
             //case OPC_SLTIU: return MIPS_SLTIU;
-            //case OPC_XORI:  return MIPS_XORI;
+            case OPC_XORI:  return MIPS_XORI;
             case OPC_LB:    return MIPS_LB;
             //case OPC_LWL:   return MIPS_LWL;
             //case OPC_LWR:   return MIPS_LWR;
@@ -268,6 +268,7 @@ void rsp_step(n64_system_t* system) {
     switch (rsp_instruction_decode(rsp, pc, instruction)) {
         case MIPS_NOP: break;
         exec_instr(MIPS_ORI,     rsp_ori)
+        exec_instr(MIPS_XORI,    rsp_xori)
         exec_instr(MIPS_LUI,     rsp_lui)
         exec_instr(MIPS_ADDI,    rsp_addi)
         exec_instr(MIPS_SPC_ADD, rsp_spc_add)

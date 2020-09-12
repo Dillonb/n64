@@ -5,6 +5,7 @@
 #define RSP_INSTR(NAME) void NAME(rsp_t* rsp, mips_instruction_t instruction)
 
 RSP_INSTR(rsp_ori);
+RSP_INSTR(rsp_xori);
 RSP_INSTR(rsp_lui);
 RSP_INSTR(rsp_addi);
 RSP_INSTR(rsp_spc_add);

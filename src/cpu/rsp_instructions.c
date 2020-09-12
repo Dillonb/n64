@@ -36,6 +36,10 @@ RSP_INSTR(rsp_ori) {
     set_rsp_register(rsp, instruction.i.rt, get_rsp_register(rsp, instruction.i.rs) | instruction.i.immediate);
 }
 
+RSP_INSTR(rsp_xori) {
+        set_rsp_register(rsp, instruction.i.rt, instruction.i.immediate ^ get_rsp_register(rsp, instruction.i.rs));
+}
+
 RSP_INSTR(rsp_lui) {
     word immediate = instruction.i.immediate << 16;
     set_rsp_register(rsp, instruction.i.rt, immediate);
