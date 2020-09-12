@@ -543,24 +543,17 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
 
 RSP_VECTOR_INSTR(rsp_vec_vaddc) {
     logdebug("rsp_vec_vaddc");
-    elementzero;
     vsvtvd;
+    defvte;
 
-    //for i in 0..7
     for (int i = 0; i < 8; i++) {
-        half vse = vs->elements[i];
-        half vte = vt->elements[i];
-        //result(16..0) = VS<i>(15..0) + VT<i>(15..0)
-        word result = vse + vte;
-        //ACC<i>(15..0) = result(15..0)
+        half vs_element = vs->elements[i];
+        half vte_element = vte.elements[i];
+        word result = vs_element + vte_element;
         rsp->acc.l.elements[i] = result & 0xFFFF;
-        //VD<i>(15..0) = result(15..0)
         vd->elements[i] = result & 0xFFFF;
-        //VCO(i) = result(16)
         rsp->vco.l.elements[i] = (result >> 16) & 1;
-        //VCO(i + 8) = 0
         rsp->vco.h.elements[i] = 0;
-        //endfor
     }
 }
 
