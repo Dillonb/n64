@@ -24,6 +24,7 @@ RSP_INSTR(rsp_lw);
 RSP_INSTR(rsp_j);
 RSP_INSTR(rsp_jal);
 RSP_INSTR(rsp_spc_jr);
+RSP_INSTR(rsp_spc_jalr);
 RSP_INSTR(rsp_spc_sll);
 RSP_INSTR(rsp_spc_srl);
 RSP_INSTR(rsp_spc_sra);
@@ -32,6 +33,7 @@ RSP_INSTR(rsp_spc_sllv);
 RSP_INSTR(rsp_spc_sub);
 RSP_INSTR(rsp_spc_or);
 RSP_INSTR(rsp_spc_xor);
+RSP_INSTR(rsp_spc_nor);
 RSP_INSTR(rsp_spc_slt);
 
 void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction);

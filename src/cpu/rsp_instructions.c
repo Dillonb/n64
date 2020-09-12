@@ -98,6 +98,10 @@ RSP_INSTR(rsp_spc_xor) {
     set_rsp_register(rsp, instruction.r.rd, get_rsp_register(rsp, instruction.r.rs) ^ get_rsp_register(rsp, instruction.r.rt));
 }
 
+RSP_INSTR(rsp_spc_nor) {
+    set_rsp_register(rsp, instruction.r.rd, ~(get_rsp_register(rsp, instruction.r.rs) | get_rsp_register(rsp, instruction.r.rt)));
+}
+
 RSP_INSTR(rsp_spc_slt) {
     sword op1 = get_rsp_register(rsp, instruction.r.rs);
     sword op2 = get_rsp_register(rsp, instruction.r.rt);
@@ -224,6 +228,11 @@ RSP_INSTR(rsp_jal) {
 }
 
 RSP_INSTR(rsp_spc_jr) {
+    rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs));
+}
+
+RSP_INSTR(rsp_spc_jalr) {
+    rsp_link(rsp);
     rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs));
 }
 
