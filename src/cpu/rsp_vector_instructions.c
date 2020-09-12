@@ -558,11 +558,13 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vand) {
-    elementzero;
     logdebug("rsp_vec_vand");
+    vsvtvd;
+    defvte;
+
     for (int i = 0; i < 8; i++) {
-        half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] & rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
+        half result = vte.elements[i] & vs->elements[i];
+        vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
 }
