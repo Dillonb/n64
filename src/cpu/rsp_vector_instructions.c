@@ -31,14 +31,7 @@ INLINE bool is_sign_extension(shalf high, shalf low) {
 }
 
 INLINE shalf to_twosc(half onesc) {
-    if ((onesc & 0x8000) == 0x8000) {
-        // back to positive
-        shalf converted = ~onesc;
-        // let the compiler do the fun part
-        return -converted;
-    } else {
-        return onesc; // positive ints are the same in one's complement and two's complement
-    }
+    return onesc + (onesc >> 15);
 }
 
 INLINE vu_reg_t get_vte(vu_reg_t vt, byte e) {
@@ -648,18 +641,30 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
     for (int i = 0; i < 8; i++) {
         half vs_element = vs->elements[i];
         half vte_element = vte.elements[i];
-        rsp->vco.l.elements[i] = (vs->elements[i] >> 15) != (vte.elements[i] >> 15);
-        half vt_abs = rsp->vco.l.elements[i] != 0 ? ~vte_element : vte_element;
-        rsp->vce.elements[i] = rsp->vco.l.elements[i] != 0 && (to_twosc(vs_element) == -to_twosc(vte_element) - 1);
-        rsp->vcc.l.elements[i] = to_twosc(vs_element) <= to_twosc(~vte_element);
-        rsp->vcc.h.elements[i] = vs_element >= vte_element; // probably wrong
-        bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] != 0 : rsp->vcc.h.elements[i] != 0;
-        rsp->acc.l.elements[i] = clip ? vt_abs : vs->elements[i];
-        vd->elements[i] = rsp->acc.l.elements[i];
 
-        for (int e = 0; e < 8; e++) {
-            rsp->vco.h.elements[e] = 0;
-        }
+        bool sign_different = (0x8000 & (vs_element ^ vte_element)) == 0x8000;
+
+        // If vte and vs have different signs, make this negative vte
+        half vt_abs = sign_different ? ~vte_element : vte_element;
+
+        // Compare using one's complement
+        bool gte = to_twosc(vs_element) >= to_twosc(vte_element);
+        bool lte = to_twosc(vs_element) <= -to_twosc(vte_element);
+
+        // If the sign is different, check LTE, otherwise, check GTE.
+        bool check = sign_different ? lte : gte;
+        half result = check ? vt_abs : vs_element;
+
+        rsp->acc.l.elements[i] = result;
+        vd->elements[i] = result;
+
+        rsp->vcc.h.elements[i] = gte;
+        rsp->vcc.l.elements[i] = lte;
+
+        rsp->vco.l.elements[i] = 0;
+        rsp->vco.h.elements[i] = 0;
+        rsp->vce.elements[i] = 0;
+
     }
 }
 
