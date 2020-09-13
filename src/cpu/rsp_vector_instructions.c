@@ -7,7 +7,9 @@
 #include "rsp.h"
 #include "rsp_rom.h"
 
-#define vsvtvd vu_reg_t* vs = &rsp->vu_regs[instruction.cp2_vec.vs]; vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt]; vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd]
+#define defvs vu_reg_t* vs = &rsp->vu_regs[instruction.cp2_vec.vs]
+#define defvt vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt]
+#define defvd vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd]
 #define defvte vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
 #define elementzero unimplemented(instruction.cp2_vec.e != 0, "element was not zero!")
 
@@ -527,7 +529,8 @@ RSP_VECTOR_INSTR(rsp_mtc2) {
 
 RSP_VECTOR_INSTR(rsp_vec_vabs) {
     logdebug("rsp_vec_vabs");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     __m128i res = _mm_sign_epi16(vte.single, vs->single);
@@ -538,7 +541,8 @@ RSP_VECTOR_INSTR(rsp_vec_vabs) {
 
 RSP_VECTOR_INSTR(rsp_vec_vadd) {
     logdebug("rsp_vec_vadd");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -554,7 +558,8 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
 
 RSP_VECTOR_INSTR(rsp_vec_vaddc) {
     logdebug("rsp_vec_vaddc");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -570,7 +575,8 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
 
 RSP_VECTOR_INSTR(rsp_vec_vand) {
     logdebug("rsp_vec_vand");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -582,7 +588,8 @@ RSP_VECTOR_INSTR(rsp_vec_vand) {
 
 RSP_VECTOR_INSTR(rsp_vec_vch) {
     logdebug("rsp_vec_vch");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -602,7 +609,8 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
 
 RSP_VECTOR_INSTR(rsp_vec_vcl) {
     logdebug("rsp_vec_vcl");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
         half vs_element = vs->elements[i];
@@ -633,7 +641,8 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
 
 RSP_VECTOR_INSTR(rsp_vec_vcr) {
     logdebug("rsp_vec_vcr");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -653,7 +662,8 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
 
 RSP_VECTOR_INSTR(rsp_vec_veq) {
     logdebug("rsp_vec_veq");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -669,7 +679,8 @@ RSP_VECTOR_INSTR(rsp_vec_veq) {
 
 RSP_VECTOR_INSTR(rsp_vec_vge) {
     logdebug("rsp_vec_vge");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -688,7 +699,8 @@ RSP_VECTOR_INSTR(rsp_vec_vge) {
 
 RSP_VECTOR_INSTR(rsp_vec_vlt) {
     logdebug("rsp_vec_vlt");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -705,10 +717,12 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmacf) {
     logdebug("rsp_vec_vmacf");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod;
@@ -718,7 +732,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
         shalf result = clamp_signed(acc >> 16);
 
         set_rsp_accumulator(rsp, e, acc);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
@@ -730,11 +744,13 @@ RSP_VECTOR_INSTR(rsp_vec_vmacq) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmacu) {
     logdebug("rsp_vec_vmacu");
+    defvs;
+    defvd;
     defvte;
     elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod;
@@ -744,16 +760,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
         half result = clamp_unsigned(acc >> 16);
 
         set_rsp_accumulator(rsp, e, acc);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadh) {
     logdebug("rsp_vec_vmadh");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
         word uprod = prod;
 
@@ -763,16 +781,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
         shalf result = clamp_signed((sword)(acc >> 16));
 
         set_rsp_accumulator(rsp, e, acc);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadl) {
     logdebug("rsp_vec_vmadl");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
-        half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        half multiplicand2 = vs->elements[e];
         word prod = multiplicand1 * multiplicand2;
 
         dword acc_delta = prod >> 16;
@@ -788,16 +808,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
             result = 0xFFFF;
         }
 
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadm) {
     logdebug("rsp_vec_vmadm");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod;
@@ -807,16 +829,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
         shalf result = clamp_signed(acc >> 16);
 
         set_rsp_accumulator(rsp, e, acc);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadn) {
     logdebug("rsp_vec_vmadn");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        half multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc_delta = prod;
@@ -834,13 +858,13 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
             result = 0xFFFF;
         }
 
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmov) {
     logdebug("rsp_vec_vmov");
-    vsvtvd;
+    defvd;
     defvte;
     int de = instruction.cp2_vec.vs & 7;
 
@@ -850,7 +874,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
     logdebug("rsp_vec_vmrg");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -864,10 +889,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmudh) {
     logdebug("rsp_vec_vmudh");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc = prod;
@@ -877,16 +904,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
         acc <<= 16;
         set_rsp_accumulator(rsp, e, acc);
 
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudl) {
     logdebug("rsp_vec_vmudl");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
-        half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        half multiplicand2 = vs->elements[e];
         word prod = multiplicand1 * multiplicand2;
 
         dword acc = prod >> 16;
@@ -901,16 +930,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
             result = 0xFFFF;
         }
 
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudm) {
     logdebug("rsp_vec_vmudm");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc = prod;
@@ -918,16 +949,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmudm) {
         shalf result = clamp_signed(acc >> 16);
 
         set_rsp_accumulator(rsp, e, acc);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmudn) {
     logdebug("rsp_vec_vmudn");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        half multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        half multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc = prod;
@@ -943,16 +976,18 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
             result = 0xFFFF;
         }
 
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulf) {
     logdebug("rsp_vec_vmulf");
+    defvs;
+    defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc = prod;
@@ -961,7 +996,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
         set_rsp_accumulator(rsp, e, acc);
 
         shalf result = clamp_signed(acc >> 16);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
@@ -973,11 +1008,13 @@ RSP_VECTOR_INSTR(rsp_vec_vmulq) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
     logdebug("rsp_vec_vmulu");
+    defvs;
+    defvd;
     defvte;
     elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = rsp->vu_regs[instruction.cp2_vec.vs].elements[e];
+        shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
         sdword acc = prod;
@@ -986,23 +1023,27 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
         half result = clamp_unsigned(acc >> 16);
 
         set_rsp_accumulator(rsp, e, acc);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[e] = result;
+        vd->elements[e] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
     logdebug("rsp_vec_vnand");
     elementzero;
+    defvs;
+    defvd;
+    defvt;
     for (int i = 0; i < 8; i++) {
-        half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] & rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
+        half result = ~(vt->elements[i] & vs->elements[i]);
+        vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vne) {
     logdebug("rsp_vec_vne");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -1025,16 +1066,20 @@ RSP_VECTOR_INSTR(rsp_vec_vnop) {
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
     logdebug("rsp_vec_vnor");
     elementzero;
+    defvs;
+    defvd;
+    defvt;
     for (int i = 0; i < 8; i++) {
-        half result = ~(rsp->vu_regs[instruction.cp2_vec.vt].elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i]);
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
+        half result = ~(vt->elements[i] | vs->elements[i]);
+        vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vnxor) {
     logdebug("rsp_vec_vnxor");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
         half result = ~(vte.elements[i] ^ vs->elements[i]);
@@ -1045,42 +1090,48 @@ RSP_VECTOR_INSTR(rsp_vec_vnxor) {
 
 RSP_VECTOR_INSTR(rsp_vec_vor) {
     logdebug("rsp_vec_vor");
+    defvs;
+    defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
-        half result =  vte.elements[i] | rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
+        half result =  vte.elements[i] | vs->elements[i];
+        vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     logdebug("rsp_vec_vrcp");
+    defvd;
+    defvt;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
-    input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
+    input = vt->signed_elements[7 - e];
     word result = rcp(input);
-    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
-    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
+    rsp->acc.l.single = vt->single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     logdebug("rsp_vec_vrcpl");
+    defvd;
+    defvt;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     if (rsp->divin_loaded) {
-        input = (rsp->divin << 16) | rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - e];
+        input = (rsp->divin << 16) | vt->elements[7 - e];
     } else {
-        input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
+        input = vt->signed_elements[7 - e];
     }
     word result = rcp(input);
-    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
     rsp->divin = 0;
     rsp->divin_loaded = false;
-    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
+    rsp->acc.l.single = vt->single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
@@ -1098,58 +1149,65 @@ RSP_VECTOR_INSTR(rsp_vec_vrndp) {
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     logdebug("rsp_vec_vrsq");
     sword input;
+    defvd;
+    defvt;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
-    input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
+    input = vt->signed_elements[7 - e];
     word result = rsq(input);
-    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
-    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
+    rsp->acc.l.single = vt->single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     logdebug("rsp_vec_vrcph_vrsqh");
+    defvt;
+    defvd;
     byte de = instruction.cp2_vec.vs;
 
-    rsp->divin = rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - instruction.cp2_vec.e];
+    rsp->divin = vt->elements[7 - instruction.cp2_vec.e];
     rsp->divin_loaded = true;
-    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
-    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = rsp->divout;
+    rsp->acc.l.single = vt->single;
+    vd->elements[7 - de] = rsp->divout;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     logdebug("rsp_vec_vrsql");
+    defvt;
+    defvd;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     if (rsp->divin_loaded) {
-        input = (rsp->divin << 16) | rsp->vu_regs[instruction.cp2_vec.vt].elements[7 - e];
+        input = (rsp->divin << 16) | vt->elements[7 - e];
     } else {
-        input = rsp->vu_regs[instruction.cp2_vec.vt].signed_elements[7 - e];
+        input = vt->signed_elements[7 - e];
     }
     word result = rsq(input);
-    rsp->vu_regs[instruction.cp2_vec.vd].elements[7 - de] = result & 0xFFFF;
+    vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
     rsp->divin = 0;
     rsp->divin_loaded = false;
-    rsp->acc.l.single = rsp->vu_regs[instruction.cp2_vec.vt].single;
+    rsp->acc.l.single = vt->single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
     logdebug("rsp_vec_vsar");
+    defvd;
     switch (instruction.cp2_vec.e) {
         case 0x8:
-            rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.h.single;
+            vd->single = rsp->acc.h.single;
             break;
         case 0x9:
-            rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.m.single;
+            vd->single = rsp->acc.m.single;
             break;
         case 0xA:
-            rsp->vu_regs[instruction.cp2_vec.vd].single = rsp->acc.l.single;
+            vd->single = rsp->acc.l.single;
             break;
         default: // Not actually sure what the default behavior is here
             for (int i = 0; i < 8; i++) {
-                rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = 0x0000;
+                vd->elements[i] = 0x0000;
             }
             break;
     }
@@ -1157,7 +1215,8 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
 
 RSP_VECTOR_INSTR(rsp_vec_vsub) {
     logdebug("rsp_vec_vsub");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -1171,7 +1230,8 @@ RSP_VECTOR_INSTR(rsp_vec_vsub) {
 
 RSP_VECTOR_INSTR(rsp_vec_vsubc) {
     logdebug("rsp_vec_vsubc");
-    vsvtvd;
+    defvs;
+    defvd;
     defvte;
 
     for (int i = 0; i < 8; i++) {
@@ -1189,9 +1249,12 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
 RSP_VECTOR_INSTR(rsp_vec_vxor) {
     logdebug("rsp_vec_vxor");
     elementzero;
+    defvs;
+    defvt;
+    defvd;
     for (int i = 0; i < 8; i++) {
-        half result = rsp->vu_regs[instruction.cp2_vec.vt].elements[i] ^ rsp->vu_regs[instruction.cp2_vec.vs].elements[i];
-        rsp->vu_regs[instruction.cp2_vec.vd].elements[i] = result;
+        half result = vt->elements[i] ^ vs->elements[i];
+        vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
 }
