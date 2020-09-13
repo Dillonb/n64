@@ -651,12 +651,15 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
         rsp->vco.l.elements[i] = (vs->elements[i] >> 15) != (vte.elements[i] >> 15);
         half vt_abs = rsp->vco.l.elements[i] != 0 ? ~vte_element : vte_element;
         rsp->vce.elements[i] = rsp->vco.l.elements[i] != 0 && (to_twosc(vs_element) == -to_twosc(vte_element) - 1);
-        rsp->vco.h.elements[i] = rsp->vce.elements[i] == 0 && (to_twosc(vs_element) != to_twosc(vt_abs)); // wrong
         rsp->vcc.l.elements[i] = to_twosc(vs_element) <= to_twosc(~vte_element);
         rsp->vcc.h.elements[i] = vs_element >= vte_element; // probably wrong
         bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] != 0 : rsp->vcc.h.elements[i] != 0;
         rsp->acc.l.elements[i] = clip ? vt_abs : vs->elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
+
+        for (int e = 0; e < 8; e++) {
+            rsp->vco.h.elements[e] = 0;
+        }
     }
 }
 
