@@ -616,7 +616,7 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
         half vs_element = vs->elements[i];
         half vte_element = vte.elements[i];
         if (rsp->vco.l.elements[i] == 0 && rsp->vco.h.elements[i] == 0) {
-            rsp->vcc.h.elements[i] = (shalf)vs_element >= (shalf)vte_element;
+            rsp->vcc.h.elements[i] = vs_element >= vte_element;
         }
 
         if (rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] == 0) {
