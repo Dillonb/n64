@@ -1073,7 +1073,7 @@ RSP_VECTOR_INSTR(rsp_vec_vne) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        rsp->vcc.l.elements[i] = (rsp->vco.h.elements[i] == 0) || (vs->elements[i] != vte.elements[i]);
+        rsp->vcc.l.elements[i] = (rsp->vco.h.elements[i] != 0) || (vs->elements[i] != vte.elements[i]);
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
