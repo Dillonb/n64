@@ -869,10 +869,33 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
     logdebug("rsp_vec_vmov");
     defvd;
     defvte;
-    int de = instruction.cp2_vec.vs & 7;
 
-    rsp->acc.l.single = vte.single;
-    vd->elements[de] = vte.elements[de];
+    byte se;
+
+    switch (instruction.cp2_vec.e) {
+        case 0 ... 1:
+            se = (instruction.cp2_vec.e & 0b000) | (instruction.cp2_vec.vs & 0b111);
+            break;
+        case 2 ... 3:
+            se = (instruction.cp2_vec.e & 0b001) | (instruction.cp2_vec.vs & 0b110);
+            break;
+        case 4 ... 7:
+            se = (instruction.cp2_vec.e & 0b011) | (instruction.cp2_vec.vs & 0b100);
+            break;
+        case 8 ... 15:
+            se = (instruction.cp2_vec.e & 0b111) | (instruction.cp2_vec.vs & 0b000);
+            break;
+        default:
+            logfatal("This should be unreachable!");
+    }
+
+    byte de = instruction.cp2_vec.vs & 7;
+
+    half vte_elem = vte.elements[7 - se];
+    vecr vte_single = vte.single;
+
+    vd->elements[7 - de] = vte_elem;
+    rsp->acc.l.single = vte_single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
