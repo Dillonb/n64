@@ -198,7 +198,9 @@ INLINE void _n64_system_step(n64_system_t* system) {
         if (++system->rsp.sync >= 3) {
             system->rsp.sync -= 3;
             rsp_step(system);
-            rsp_step(system);
+            if (!system->rsp.status.halt) {
+                rsp_step(system);
+            }
         }
     }
 }
