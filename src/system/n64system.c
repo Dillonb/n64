@@ -230,20 +230,18 @@ void n64_system_loop(n64_system_t* system) {
             check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += CYCLES_PER_INSTR + system->debugger_state.steps;
+                cycles += CYCLES_PER_INSTR;
                 system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
             ai_step(system, SHORTLINE_CYCLES);
         }
-        check_vi_interrupt(system);
-        check_vsync(system);
         for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
                 _n64_system_step(system);
-                cycles += CYCLES_PER_INSTR + system->debugger_state.steps;
+                cycles += CYCLES_PER_INSTR;
                 system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;
