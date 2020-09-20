@@ -613,7 +613,7 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
         }
 
         if (rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] == 0) {
-            bool lte = (shalf)vs_element <= -(shalf)vte_element;
+            bool lte = vs_element + vte_element <= 0xFFFF;
             bool eql = (shalf)vs_element == -(shalf)vte_element;
             rsp->vcc.l.elements[i] = rsp->vce.elements[i] != 0 ? lte : eql;
         }
