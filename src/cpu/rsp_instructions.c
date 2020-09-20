@@ -3,7 +3,7 @@
 
 #define RSP_REG_LR 31
 
-void rsp_branch_abs(rsp_t* rsp, word address) {
+INLINE void rsp_branch_abs(rsp_t* rsp, word address) {
     rsp->branch_pc = address;
 
     // Execute one instruction before taking the branch_offset
@@ -13,7 +13,7 @@ void rsp_branch_abs(rsp_t* rsp, word address) {
     logtrace("[RSP] Setting up a branch_offset (delayed by 1 instruction) to 0x%08X", rsp->branch_pc);
 }
 
-void rsp_branch_offset(rsp_t* rsp, shalf offset) {
+INLINE void rsp_branch_offset(rsp_t* rsp, shalf offset) {
     sword soffset = offset;
     soffset <<= 2;
     // This is taking advantage of the fact that we add 4 to the PC after each instruction.
@@ -22,7 +22,7 @@ void rsp_branch_offset(rsp_t* rsp, shalf offset) {
     rsp_branch_abs(rsp, rsp->pc + soffset);
 }
 
-void rsp_conditional_branch(rsp_t* rsp, word offset, bool condition) {
+INLINE void rsp_conditional_branch(rsp_t* rsp, word offset, bool condition) {
     if (condition) {
         rsp_branch_offset(rsp, offset);
     }
