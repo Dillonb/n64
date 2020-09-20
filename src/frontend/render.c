@@ -128,22 +128,26 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
 
                 case SDLK_UP:
                 case SDLK_w:
-                    update_button(system, 0, DPAD_UP, true);
+                    update_joyaxis_y(system, 0, INT8_MAX);
+                    //update_button(system, 0, DPAD_UP, true);
                     break;
 
                 case SDLK_DOWN:
                 case SDLK_s:
-                    update_button(system, 0, DPAD_DOWN, true);
+                    update_joyaxis_y(system, 0, INT8_MIN);
+                    //update_button(system, 0, DPAD_DOWN, true);
                     break;
 
                 case SDLK_LEFT:
                 case SDLK_a:
-                    update_button(system, 0, DPAD_LEFT, true);
+                    update_joyaxis_x(system, 0, INT8_MIN);
+                    //update_button(system, 0, DPAD_LEFT, true);
                     break;
 
                 case SDLK_RIGHT:
                 case SDLK_d:
-                    update_button(system, 0, DPAD_RIGHT, true);
+                    update_joyaxis_x(system, 0, INT8_MAX);
+                    //update_button(system, 0, DPAD_RIGHT, true);
                     break;
 
                 case SDLK_RETURN:
@@ -164,22 +168,26 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
 
                 case SDLK_UP:
                 case SDLK_w:
-                    update_button(system, 0, DPAD_UP, false);
+                    update_joyaxis_y(system, 0, 0);
+                    //update_button(system, 0, DPAD_UP, false);
                     break;
 
                 case SDLK_DOWN:
                 case SDLK_s:
-                    update_button(system, 0, DPAD_DOWN, false);
+                    update_joyaxis_y(system, 0, 0);
+                    //update_button(system, 0, DPAD_DOWN, false);
                     break;
 
                 case SDLK_LEFT:
                 case SDLK_a:
-                    update_button(system, 0, DPAD_LEFT, false);
+                    update_joyaxis_x(system, 0, 0);
+                    //update_button(system, 0, DPAD_LEFT, false);
                     break;
 
                 case SDLK_RIGHT:
                 case SDLK_d:
-                    update_button(system, 0, DPAD_RIGHT, false);
+                    update_joyaxis_x(system, 0, 0);
+                    //update_button(system, 0, DPAD_RIGHT, false);
                     break;
 
                 case SDLK_RETURN:

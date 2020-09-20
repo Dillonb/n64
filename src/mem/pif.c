@@ -230,3 +230,16 @@ void update_button(n64_system_t* system, int controller, n64_button_t button, bo
             break;
     }
 }
+
+void update_joyaxis(n64_system_t* system, int controller, sbyte x, sbyte y) {
+    system->si.controllers[controller].joy_x = x;
+    system->si.controllers[controller].joy_y = y;
+}
+
+void update_joyaxis_x(n64_system_t* system, int controller, sbyte x) {
+    system->si.controllers[controller].joy_x = x;
+}
+
+void update_joyaxis_y(n64_system_t* system, int controller, sbyte y) {
+    system->si.controllers[controller].joy_y = y;
+}

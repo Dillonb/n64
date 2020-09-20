@@ -16,4 +16,7 @@ typedef enum n64_button {
 void pif_rom_execute(n64_system_t* system);
 void process_pif_command(n64_system_t* system);
 void update_button(n64_system_t* system, int controller, n64_button_t button, bool held);
+void update_joyaxis(n64_system_t* system, int controller, sbyte x, sbyte y);
+void update_joyaxis_x(n64_system_t* system, int controller, sbyte x);
+void update_joyaxis_y(n64_system_t* system, int controller, sbyte y);
 #endif //N64_PIF_H
