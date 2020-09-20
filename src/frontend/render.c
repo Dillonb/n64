@@ -150,6 +150,10 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                     //update_button(system, 0, DPAD_RIGHT, true);
                     break;
 
+                case SDLK_q:
+                    update_button(system, 0, Z, true);
+                    break;
+
                 case SDLK_RETURN:
                     update_button(system, 0, START, true);
                     break;
@@ -188,6 +192,10 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                 case SDLK_d:
                     update_joyaxis_x(system, 0, 0);
                     //update_button(system, 0, DPAD_RIGHT, false);
+                    break;
+
+                case SDLK_q:
+                    update_button(system, 0, Z, false);
                     break;
 
                 case SDLK_RETURN:

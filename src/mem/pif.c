@@ -209,6 +209,10 @@ void update_button(n64_system_t* system, int controller, n64_button_t button, bo
             system->si.controllers[controller].b = held;
             break;
 
+        case Z:
+            system->si.controllers[controller].z = held;
+            break;
+
         case DPAD_UP:
             system->si.controllers[controller].dp_up = held;
             break;

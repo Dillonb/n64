@@ -6,6 +6,7 @@
 typedef enum n64_button {
     A,
     B,
+    Z,
     START,
     DPAD_UP,
     DPAD_DOWN,
