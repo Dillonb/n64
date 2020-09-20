@@ -427,6 +427,18 @@ word read_unused(word address) {
     return 0;
 }
 
+INLINE void invalidate_rsp_icache(n64_system_t* system, word address) {
+    if (address >= SREGION_SP_IMEM) {
+        address -= SREGION_SP_IMEM;
+    }
+    address -= (address % 4);
+
+    int index = address / 4;
+
+    system->rsp.icache[index].type = MIPS_UNKNOWN;
+    system->rsp.icache[index].instruction.raw = 0;
+}
+
 void n64_write_dword(n64_system_t* system, word address, dword value) {
     logdebug("Writing 0x%016lX to [0x%08X]", value, address);
     switch (address) {
@@ -443,6 +455,8 @@ void n64_write_dword(n64_system_t* system, word address, dword value) {
             break;
         case REGION_SP_IMEM:
             dword_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
+            invalidate_rsp_icache(system, address);
+            invalidate_rsp_icache(system, address + 4);
             break;
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address);
         case REGION_SP_UNUSED:
@@ -580,6 +594,7 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             break;
         case REGION_SP_IMEM:
             word_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
+            invalidate_rsp_icache(system, address);
             break;
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address);
         case REGION_SP_UNUSED:
@@ -720,6 +735,7 @@ void n64_write_half(n64_system_t* system, word address, half value) {
             break;
         case REGION_SP_IMEM:
             half_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
+            invalidate_rsp_icache(system, address);
             break;
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address);
         case REGION_SP_UNUSED:
@@ -855,6 +871,7 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
         }
         case REGION_SP_IMEM: {
             system->mem.sp_imem[address - SREGION_SP_IMEM] = value;
+            invalidate_rsp_icache(system, address);
             break;
         }
         case REGION_SP_REGS:

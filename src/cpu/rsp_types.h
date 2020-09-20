@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <emmintrin.h>
 #include <util.h>
+#include "mips_instruction_decode.h"
 
 #define vecr __m128i
 
@@ -41,6 +42,11 @@ typedef union rsp_types {
         unsigned:17;
     };
 } rsp_status_t;
+
+typedef struct rsp_icache_entry {
+    mips_instruction_t instruction;
+    mips_instruction_type_t type;
+} rsp_icache_entry_t;
 
 typedef struct rsp {
     word gpr[32];
@@ -88,6 +94,8 @@ typedef struct rsp {
             word raw;
         } dma_write;
     } io;
+
+    rsp_icache_entry_t icache[0x1000 / 4];
 
     vu_reg_t vu_regs[32];
 

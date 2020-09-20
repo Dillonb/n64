@@ -6,7 +6,7 @@
 
 #include <mem/mem_util.h>
 
-#define exec_instr(key, fn) case key: fn(rsp, instruction); break;
+#define exec_instr(key, fn) case key: fn(rsp, cache.instruction); break;
 
 bool rsp_acquire_semaphore(n64_system_t* system) {
     if (system->rsp.semaphore_held) {
@@ -254,18 +254,23 @@ mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruc
 
 void rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
-    dword pc = rsp->pc & 0xFFFFFF;
+    word pc = rsp->pc & 0xFFF;
     if (pc % 4 != 0) {
         logfatal("RSP PC at misaligned address!");
     }
+    rsp_icache_entry_t cache = system->rsp.icache[pc / 4];
 
-    mips_instruction_t instruction;
-    // RSP can only read from IMEM.
-    instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, pc & 0xFFF);
+    if (cache.type == MIPS_UNKNOWN) {
+        // RSP can only read from IMEM.
+        cache.instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, pc);
+        cache.type = rsp_instruction_decode(rsp, pc, cache.instruction);
+        system->rsp.icache[pc / 4] = cache;
+
+    }
 
     rsp->pc += 4;
 
-    switch (rsp_instruction_decode(rsp, pc, instruction)) {
+    switch (cache.type) {
         case MIPS_NOP: break;
         exec_instr(MIPS_ORI,     rsp_ori)
         exec_instr(MIPS_XORI,    rsp_xori)
@@ -299,7 +304,7 @@ void rsp_step(n64_system_t* system) {
         exec_instr(MIPS_SPC_NOR,  rsp_spc_nor)
         exec_instr(MIPS_SPC_SLT,  rsp_spc_slt)
 
-        case MIPS_SPC_BREAK: rsp_spc_break(system, instruction);
+        case MIPS_SPC_BREAK: rsp_spc_break(system, cache.instruction);
 
         exec_instr(MIPS_BNE,  rsp_bne)
         exec_instr(MIPS_BEQ,  rsp_beq)
@@ -383,8 +388,8 @@ void rsp_step(n64_system_t* system) {
         exec_instr(RSP_VEC_VSUBC, rsp_vec_vsubc)
         exec_instr(RSP_VEC_VXOR,  rsp_vec_vxor)
 
-        case MIPS_CP_MTC0: rsp_mtc0(system, instruction); break;
-        case MIPS_CP_MFC0: rsp_mfc0(system, instruction); break;
+        case MIPS_CP_MTC0: rsp_mtc0(system, cache.instruction); break;
+        case MIPS_CP_MFC0: rsp_mfc0(system, cache.instruction); break;
         default:
             logfatal("[RSP] Unknown instruction!");
     }
