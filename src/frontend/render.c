@@ -91,7 +91,7 @@ void video_init() {
     glViewport(0, 0, N64_SCREEN_X * SCREEN_SCALE, N64_SCREEN_Y * SCREEN_SCALE);
     glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     if (renderer == NULL) {
         logfatal("SDL couldn't create a renderer! %s", SDL_GetError());
