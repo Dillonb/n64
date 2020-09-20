@@ -226,7 +226,7 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             break;
         case RSP_CP0_CMD_END:
             system->dpc.end = value & 0xFFFFFF;
-            rdp_run_command();
+            rdp_run_command(system);
             break;
         case RSP_CP0_CMD_CURRENT:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r);

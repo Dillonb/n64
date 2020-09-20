@@ -140,7 +140,7 @@ void write_word_dpcreg(n64_system_t* system, word address, word value) {
             break;
         case ADDR_DPC_END_REG:
             system->dpc.end = value & 0xFFFFFF;
-            rdp_run_command();
+            rdp_run_command(system);
             break;
         case ADDR_DPC_CURRENT_REG:
             logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG");
@@ -187,7 +187,8 @@ void rdp_cleanup() {
     graphics_plugin.RomClosed();
 }
 
-void rdp_run_command() {
+void rdp_run_command(n64_system_t* system) {
+    //printf("Running commands from 0x%08X to 0x%08X\n", system->dpc.current, system->dpc.end);
     graphics_plugin.ProcessRDPList();
 }
 
