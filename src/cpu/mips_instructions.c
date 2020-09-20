@@ -30,7 +30,7 @@ INLINE void link(r4300i_t* cpu) {
     set_register(cpu, R4300I_REG_LR, cpu->pc + 4); // Skips the instruction in the delay slot on return
 }
 
-void branch_abs(r4300i_t* cpu, word address) {
+INLINE void branch_abs(r4300i_t* cpu, word address) {
     cpu->branch_pc = address;
 
     // Execute one instruction before taking the branch_offset
@@ -40,7 +40,7 @@ void branch_abs(r4300i_t* cpu, word address) {
     logtrace("Setting up a branch_offset (delayed by 1 instruction) to 0x%08X", cpu->branch_pc);
 }
 
-void branch_offset(r4300i_t* cpu, shalf offset) {
+INLINE void branch_offset(r4300i_t* cpu, shalf offset) {
     sword soffset = offset;
     soffset <<= 2;
     // This is taking advantage of the fact that we add 4 to the PC after each instruction.
@@ -49,7 +49,7 @@ void branch_offset(r4300i_t* cpu, shalf offset) {
     branch_abs(cpu, cpu->pc + soffset);
 }
 
-void conditional_branch_likely(r4300i_t* cpu, word offset, bool condition) {
+INLINE void conditional_branch_likely(r4300i_t* cpu, word offset, bool condition) {
     if (condition) {
         branch_offset(cpu, offset);
     } else {
@@ -57,7 +57,7 @@ void conditional_branch_likely(r4300i_t* cpu, word offset, bool condition) {
     }
 }
 
-void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
+INLINE void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
     if (condition) {
         branch_offset(cpu, offset);
     }
