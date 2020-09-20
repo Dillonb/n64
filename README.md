@@ -42,7 +42,8 @@ Not started. There is verbose logging with -v (repeatable) that provides some de
 Reasonably complete. Not all instructions are there yet, but enough for now. I'm implementing instructions as I come across them in games, so this will slowly progress as time goes on.
 
 ## RSP
-Very early. Very few vector instructions are supported, and no known RSP microcode currently works yet. Tests have been adapted from another emulation project, and only a few are passing.
+Reasonably complete. Fast3d (Super Mario 64) seems to work. There are still bugs in the VRCP family of instructions.
+
 
 ## RDP
 Not started. [My fork of Angrylion](https://github.com/Dillonb/angrylion-rdp-plus) can (and must!) be loaded to provide this functionality in the meantime, however.
