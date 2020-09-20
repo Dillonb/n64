@@ -168,7 +168,7 @@ ssize_t n64_debug_get_memory(n64_system_t* system, char* buffer, size_t length, 
     printf("Checking memory at address 0x%08X\n", address);
     int printed = 0;
     for (int i = 0; i < bytes; i++) {
-        byte value = n64_read_byte(system, vatopa(address + i, &system->cpu.cp0));
+        byte value = n64_read_byte(system, resolve_virtual_address(address + i, &system->cpu.cp0));
         printed += snprintf(buffer + (i*2), length, "%02X", value);
     }
     printf("Get memory: %ld bytes from 0x%08X: %d\n", bytes, address, printed);
