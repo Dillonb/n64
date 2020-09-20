@@ -17,7 +17,7 @@ bool rsp_acquire_semaphore(n64_system_t* system) {
     }
 }
 
-mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MT: return MIPS_CP_MTC0;
@@ -41,7 +41,7 @@ mips_instruction_type_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t i
     }
 }
 
-mips_instruction_type_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.cp2_vec.is_vec) {
         switch (instr.cp2_vec.funct) {
             case FUNCT_RSP_VEC_VABS:  return RSP_VEC_VABS;
@@ -109,7 +109,7 @@ mips_instruction_type_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t i
     }
 }
 
-mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return MIPS_SPC_SLL;
         case FUNCT_SRL:    return MIPS_SPC_SRL;
@@ -144,7 +144,7 @@ mips_instruction_type_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction
     }
 }
 
-mips_instruction_type_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:   return MIPS_RI_BLTZ;
         case RT_BGEZ:   return MIPS_RI_BGEZ;
@@ -158,7 +158,7 @@ mips_instruction_type_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instruction_
     }
 }
 
-mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     switch (instr.v.funct) {
         case LWC2_LBV: return RSP_LWC2_LBV;
         case LWC2_LDV: return RSP_LWC2_LDV;
@@ -176,7 +176,7 @@ mips_instruction_type_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
     }
 }
 
-mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     switch (instr.v.funct) {
         case LWC2_LBV: return RSP_SWC2_SBV;
         case LWC2_LDV: return RSP_SWC2_SDV;
@@ -194,7 +194,7 @@ mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t 
     }
 }
 
-mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
         char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
             disassemble(pc, instr.raw, buf, 50);
