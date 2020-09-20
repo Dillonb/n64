@@ -65,7 +65,7 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     }
 }
 
-mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MF:
@@ -100,7 +100,7 @@ mips_instruction_type_t r4300i_cp0_decode(r4300i_t* cpu, word pc, mips_instructi
     }
 }
 
-mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if (!cpu->cp0.status.cu1) {
         exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
     }
@@ -320,7 +320,7 @@ mips_instruction_type_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instructi
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
 
-mips_instruction_type_t r4300i_special_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t r4300i_special_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return MIPS_SPC_SLL;
         case FUNCT_SRL:    return MIPS_SPC_SRL;
@@ -365,7 +365,7 @@ mips_instruction_type_t r4300i_special_decode(r4300i_t* cpu, word pc, mips_instr
     }
 }
 
-mips_instruction_type_t r4300i_regimm_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t r4300i_regimm_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:   return MIPS_RI_BLTZ;
         case RT_BLTZL:  return MIPS_RI_BLTZL;
@@ -381,7 +381,7 @@ mips_instruction_type_t r4300i_regimm_decode(r4300i_t* cpu, word pc, mips_instru
     }
 }
 
-mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
