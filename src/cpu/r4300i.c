@@ -449,7 +449,7 @@ INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc,
     }
 }
 
-void cp0_step(cp0_t* cp0) {
+INLINE void cp0_step(cp0_t* cp0) {
     if (cp0->count < cp0->compare && cp0->count + 2 >= cp0->compare) {
         cp0->cause.ip7 = true;
         logwarn("Compare interrupt!");
