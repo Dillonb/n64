@@ -25,6 +25,8 @@ extern unsigned int n64_log_verbosity;
     fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
     exit(EXIT_FAILURE);} while(0)
 
+#ifdef LOG_ENABLED
+
 #define logdie(message,...) do { \
     fprintf(stderr, COLOR_RED "[FATAL] ");\
     fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
@@ -37,4 +39,18 @@ extern unsigned int n64_log_verbosity;
 #define logtrace(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_TRACE) {printf("[TRACE] " message "\n", ##__VA_ARGS__);} } while(0)
 
 #define unimplemented(condition, message) do { if (condition) { logfatal("UNIMPLEMENTED CASE DETECTED: %s", message); } } while(0)
+
+#else
+
+#define logdie(message,...) do {} while(0)
+
+#define logwarn(message,...) do {} while(0)
+#define loginfo(message,...) do {} while(0)
+#define loginfo_nonewline(message,...) do {} while(0)
+#define logdebug(message,...) do {} while(0)
+#define logtrace(message,...) do {} while(0)
+
+#define unimplemented(condition, message) do {} while(0)
+
+#endif
 #endif
