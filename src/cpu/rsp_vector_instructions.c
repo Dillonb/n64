@@ -1157,7 +1157,8 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     word result = rcp(input);
     vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
-    rsp->acc.l.single = vt->single;
+    defvte;
+    rsp->acc.l.single = vte.single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
@@ -1177,7 +1178,8 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     rsp->divout = (result >> 16) & 0xFFFF;
     rsp->divin = 0;
     rsp->divin_loaded = false;
-    rsp->acc.l.single = vt->single;
+    defvte;
+    rsp->acc.l.single = vte.single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
@@ -1210,12 +1212,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     logdebug("rsp_vec_vrcph_vrsqh");
     defvt;
     defvd;
+    defvte;
     byte de = instruction.cp2_vec.vs;
 
-    rsp->divin = vt->elements[7 - instruction.cp2_vec.e];
+    rsp->acc.l.single = vte.single;
     rsp->divin_loaded = true;
-    rsp->acc.l.single = vt->single;
-    vd->elements[7 - de] = rsp->divout;
+    rsp->divin = vt->elements[7 - (instruction.cp2_vec.e & 7)];
+    vd->elements[7 - (de & 7)] = rsp->divout;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
