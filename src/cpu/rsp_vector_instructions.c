@@ -10,7 +10,7 @@
 #define defvs vu_reg_t* vs = &rsp->vu_regs[instruction.cp2_vec.vs]
 #define defvt vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt]
 #define defvd vu_reg_t* vd = &rsp->vu_regs[instruction.cp2_vec.vd]
-#define defvte vu_reg_t vte = get_vte(rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
+#define defvte vu_reg_t vte = get_vte(&rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
 #define elementzero unimplemented(instruction.cp2_vec.e != 0, "element was not zero!")
 
 INLINE shalf clamp_signed(sdword value) {
@@ -34,32 +34,34 @@ INLINE shalf to_twosc(half onesc) {
     return onesc + (onesc >> 15);
 }
 
-INLINE vu_reg_t get_vte(vu_reg_t vt, byte e) {
+INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
     vu_reg_t vte;
     switch(e) {
         case 0 ... 1:
-            return vt;
+            return *vt;
         case 2:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11110101), 0b11110101);
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11110101), 0b11110101);
             break;
         case 3:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10100000), 0b10100000);
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10100000), 0b10100000);
             break;
         case 4:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b11111111), 0b11111111);
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11111111), 0b11111111);
             break;
         case 5:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b10101010), 0b10101010);
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10101010), 0b10101010);
             break;
         case 6:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b01010101), 0b01010101);
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b01010101), 0b01010101);
             break;
         case 7:
-            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt.single, 0b00000000), 0b00000000);
+            vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b00000000), 0b00000000);
             break;
         case 8 ... 15:
             for (int i = 0; i < 8; i++) {
-                vte.elements[i] = vt.elements[7 - (e - 8)];
+                int index = 7 - (e - 8);
+                half val = vt->elements[index];
+                vte.elements[i] = val;
             }
             break;
         default:
