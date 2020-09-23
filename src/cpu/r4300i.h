@@ -511,6 +511,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.entry_lo1.raw = value;
             break;
         case 7:
+            logfatal("CP0 Reg 7 write?");
             break;
         case R4300I_CP0_REG_ENTRYHI:
             cpu->cp0.entry_hi.raw = value;
