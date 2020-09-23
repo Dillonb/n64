@@ -382,11 +382,13 @@ INLINE mips_instruction_type_t r4300i_regimm_decode(r4300i_t* cpu, word pc, mips
 }
 
 INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+#ifdef LOG_ENABLED
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
         logdebug("[0x%08X]=0x%08X %s", pc, instr.raw, buf);
     }
+#endif
     if (instr.raw == 0) {
         return MIPS_NOP;
     }
@@ -441,11 +443,16 @@ INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc,
         case OPC_SDL:    return MIPS_SDL;
         case OPC_SDR:    return MIPS_SDR;
         default:
+#ifdef LOG_ENABLED
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(pc, instr.raw, buf, 50);
             }
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+#else
+            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d]",
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
+#endif
     }
 }
 

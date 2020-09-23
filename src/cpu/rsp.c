@@ -195,11 +195,13 @@ INLINE mips_instruction_type_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruc
 }
 
 INLINE mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+#ifdef LOG_ENABLED
         char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
             disassemble(pc, instr.raw, buf, 50);
             logdebug("RSP [0x%08X]=0x%08X %s", pc, instr.raw, buf);
         }
+#endif
         if (instr.raw == 0) {
             return MIPS_NOP;
         }
@@ -244,11 +246,16 @@ INLINE mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_
             case RSP_OPC_SWC2: return rsp_swc2_decode(rsp, pc, instr);
 
             default:
+#ifdef LOG_ENABLED
                 if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                     disassemble(pc, instr.raw, buf, 50);
                 }
                 logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                          instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+#else
+                logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [UNKNOWN]",
+                         instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
+#endif
         }
 }
 
