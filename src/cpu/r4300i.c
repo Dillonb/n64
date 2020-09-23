@@ -450,7 +450,8 @@ INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc,
 }
 
 INLINE void cp0_step(cp0_t* cp0) {
-    if (cp0->count < cp0->compare && cp0->count + 2 >= cp0->compare) {
+    cp0->count++;
+    if (cp0->count >> 1 == cp0->compare) {
         cp0->cause.ip7 = true;
         logwarn("Compare interrupt!");
     }
@@ -459,7 +460,6 @@ INLINE void cp0_step(cp0_t* cp0) {
     } else {
         cp0->random--;
     }
-    cp0->count += 2;
 }
 
 #define exec_instr(key, fn) case key: fn(cpu, instruction); break;

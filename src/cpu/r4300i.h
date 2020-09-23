@@ -328,7 +328,7 @@ typedef struct cp0 {
     word wired;
     word r7;
     word bad_vaddr;
-    word count;
+    dword count;
     cp0_entry_hi_t entry_hi;
     word compare;
     cp0_status_t status;
@@ -472,7 +472,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.tag_hi = value;
             break;
         case R4300I_CP0_REG_COMPARE:
-            logwarn("$Compare written with 0x%08X (count is now 0x%08X)", value, cpu->cp0.count);
+            logwarn("$Compare written with 0x%08X (count is now 0x%08lX)", value, cpu->cp0.count);
             cpu->cp0.cause.ip7 = false;
             cpu->cp0.compare = value;
             break;
@@ -542,8 +542,10 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
             return cpu->cp0.cause.raw;
         case R4300I_CP0_REG_EPC:
             return cpu->cp0.EPC;
-        case R4300I_CP0_REG_COUNT:
-            return cpu->cp0.count;
+        case R4300I_CP0_REG_COUNT: {
+            dword shifted = cpu->cp0.count >> 1;
+            return (word)shifted;
+        }
         case R4300I_CP0_REG_COMPARE:
             return cpu->cp0.compare;
         case R4300I_CP0_REG_INDEX:
