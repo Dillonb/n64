@@ -473,7 +473,7 @@ INLINE void cp0_step(cp0_t* cp0) {
 
 void r4300i_step(r4300i_t* cpu) {
     cp0_step(&cpu->cp0);
-    dword pc = cpu->pc;
+    word pc = cpu->pc;
     mips_instruction_t instruction;
     instruction.raw = cpu->read_word(pc);
 
