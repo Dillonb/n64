@@ -21,14 +21,12 @@ const char* cp0_register_names[] = {
 
 void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
+    // In a branch delay slot, set EPC to the branch PRECEDING the slot.
+    // This is so the exception handler can re-execute the branch on return.
     if (cpu->branch) {
         unimplemented(cpu->cp0.status.exl, "handling branch delay when exl == true");
         cpu->cp0.cause.branch_delay = true;
         cpu->branch = false;
-        cpu->branch_delay = 0;
-        cpu->branch_pc = 0;
-        logwarn("Exception thrown in a branch delay slot! make sure this is being handled correctly. "
-                 "EPC is supposed to be set to the address of the branch preceding the slot.");
         pc -= 4;
     } else {
         cpu->cp0.cause.branch_delay = false;
@@ -46,7 +44,7 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
         switch (code) {
             case EXCEPTION_COPROCESSOR_UNUSABLE:
                 logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.");
-                cpu->pc = 0x80000180;
+                set_pc_r4300i(cpu, 0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
@@ -54,10 +52,10 @@ void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     } else {
         switch (code) {
             case EXCEPTION_INTERRUPT:
-                cpu->pc = 0x80000180;
+                set_pc_r4300i(cpu, 0x80000180);
                 break;
             case EXCEPTION_COPROCESSOR_UNUSABLE:
-                cpu->pc = 0x80000180;
+                set_pc_r4300i(cpu, 0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
@@ -481,13 +479,15 @@ void r4300i_step(r4300i_t* cpu) {
     if (interrupts > 0) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
             cpu->cp0.cause.interrupt_pending = interrupts;
-            exception(cpu, cpu->pc, 0, interrupts);
+            exception(cpu, pc, 0, interrupts);
             return;
         }
     }
 
 
-    cpu->pc += 4;
+    cpu->pc = cpu->next_pc;
+    cpu->next_pc += 4;
+    cpu->branch = false;
 
     switch (r4300i_instruction_decode(cpu, pc, instruction)) {
         case MIPS_NOP: break;
@@ -668,16 +668,4 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_RI_BGEZAL, mips_ri_bgezal)
         default: logfatal("Unknown instruction type!");
     }
-
-    if (cpu->branch) {
-        if (cpu->branch_delay == 0) {
-            logtrace("[BRANCH DELAY] Branching to 0x%08X", cpu->branch_pc);
-            cpu->pc = cpu->branch_pc;
-            cpu->branch = false;
-        } else {
-            logtrace("[BRANCH DELAY] Need to execute %d more instruction(s).", cpu->branch_delay);
-            cpu->branch_delay--;
-        }
-    }
-
 }

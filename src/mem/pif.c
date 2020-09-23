@@ -102,6 +102,7 @@ void pif_rom_execute(n64_system_t* system) {
     }
 
     system->cpu.pc = 0xA4000040;
+    system->cpu.next_pc = system->cpu.pc + 4;
 }
 
 #define PIF_COMMAND_CONTROLLER_ID 0x00

@@ -389,7 +389,10 @@ typedef union fcr31 {
 
 typedef struct r4300i {
     dword gpr[32];
+
     word pc;
+    word next_pc;
+
     dword mult_hi;
     dword mult_lo;
 
@@ -400,10 +403,8 @@ typedef struct r4300i {
 
     cp0_t cp0;
 
-    // Branch delay
+    // In a branch delay slot?
     bool branch;
-    int branch_delay;
-    word branch_pc;
 
     byte (*read_byte)(word);
     void (*write_byte)(word, byte);

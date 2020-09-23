@@ -31,13 +31,8 @@ INLINE void link(r4300i_t* cpu) {
 }
 
 INLINE void branch_abs(r4300i_t* cpu, word address) {
-    cpu->branch_pc = address;
-
-    // Execute one instruction before taking the branch_offset
+    cpu->next_pc = address;
     cpu->branch = true;
-    cpu->branch_delay = 1;
-
-    logtrace("Setting up a branch_offset (delayed by 1 instruction) to 0x%08X", cpu->branch_pc);
 }
 
 INLINE void branch_offset(r4300i_t* cpu, shalf offset) {
@@ -53,7 +48,8 @@ INLINE void conditional_branch_likely(r4300i_t* cpu, word offset, bool condition
     if (condition) {
         branch_offset(cpu, offset);
     } else {
-        cpu->pc += 4; // Skip instruction in delay slot
+        // Skip instruction in delay slot
+        set_pc_r4300i(cpu, cpu->pc + 4);
     }
 }
 
@@ -203,10 +199,10 @@ MIPS_INSTR(mips_mtc1) {
 
 MIPS_INSTR(mips_eret) {
     if (cpu->cp0.status.erl) {
-        cpu->pc = cpu->cp0.error_epc;
+        set_pc_r4300i(cpu, cpu->cp0.error_epc);
         cpu->cp0.status.erl = false;
     } else {
-        cpu->pc = cpu->cp0.EPC;
+        set_pc_r4300i(cpu, cpu->cp0.EPC);
         cpu->cp0.status.exl = false;
     }
 }
