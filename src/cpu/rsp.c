@@ -261,12 +261,15 @@ INLINE mips_instruction_type_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_
 
 void rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
-    word pc = rsp->pc & 0xFFF;
+    half pc = rsp->pc & 0xFFF;
+#ifdef N64_DEBUG_MODE
     if (pc % 4 != 0) {
         logfatal("RSP PC at misaligned address!");
     }
+#endif
     rsp_icache_entry_t cache = system->rsp.icache[pc / 4];
 
+    // Need to decode the instruction?
     if (cache.type == MIPS_UNKNOWN) {
         // RSP can only read from IMEM.
         cache.instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, pc);
@@ -275,7 +278,8 @@ void rsp_step(n64_system_t* system) {
 
     }
 
-    rsp->pc += 4;
+    rsp->pc = rsp->next_pc;
+    rsp->next_pc += 4;
 
     switch (cache.type) {
         case MIPS_NOP: break;
@@ -399,16 +403,5 @@ void rsp_step(n64_system_t* system) {
         case MIPS_CP_MFC0: rsp_mfc0(system, cache.instruction); break;
         default:
             logfatal("[RSP] Unknown instruction!");
-    }
-
-    if (rsp->branch) {
-        if (rsp->branch_delay == 0) {
-            logtrace("[RSP] [BRANCH DELAY] Branching to 0x%08X", rsp->branch_pc);
-            rsp->pc = rsp->branch_pc;
-            rsp->branch = false;
-        } else {
-            logtrace("[RSP] [BRANCH DELAY] Need to execute %d more instruction(s).", rsp->branch_delay);
-            rsp->branch_delay--;
-        }
     }
 }

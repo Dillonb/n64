@@ -51,15 +51,11 @@ typedef struct rsp_icache_entry {
 typedef struct rsp {
     word gpr[32];
     half pc;
+    half next_pc;
     //dword mult_hi;
     //dword mult_lo;
 
     rsp_status_t status;
-
-    // Branch delay
-    bool branch;
-    int branch_delay;
-    word branch_pc;
 
     struct {
         union {
@@ -143,5 +139,10 @@ typedef struct rsp {
     //dword (*read_dword)(word);
     //void (*write_dword)(word, dword);
 } rsp_t;
+
+INLINE void set_rsp_pc(rsp_t* rsp, half pc) {
+    rsp->pc = pc;
+    rsp->next_pc = rsp->pc + 4;
+}
 
 #endif //N64_RSP_TYPES_H

@@ -4,13 +4,8 @@
 #define RSP_REG_LR 31
 
 INLINE void rsp_branch_abs(rsp_t* rsp, word address) {
-    rsp->branch_pc = address;
-
-    // Execute one instruction before taking the branch_offset
-    rsp->branch = true;
-    rsp->branch_delay = 1;
-
-    logtrace("[RSP] Setting up a branch_offset (delayed by 1 instruction) to 0x%08X", rsp->branch_pc);
+    rsp->next_pc = address;
+    logtrace("[RSP] Setting up a branch to 0x%08X", rsp->branch_pc);
 }
 
 INLINE void rsp_branch_offset(rsp_t* rsp, shalf offset) {

@@ -98,7 +98,7 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
         case ADDR_SP_SEMAPHORE_REG:
             logfatal("Write to unsupported SP reg: ADDR_SP_SEMAPHORE_REG");
         case ADDR_SP_PC_REG:
-            system->rsp.pc = value;
+            set_rsp_pc(&system->rsp, value);
             break;
         case ADDR_SP_IBIST_REG:
             logfatal("Write to unsupported SP reg: ADDR_SP_IBIST_REG");
