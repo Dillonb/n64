@@ -13,9 +13,6 @@ void usage(cflags_t* flags) {
                        "https://github.com/Dillonb/n64");
 }
 
-
-#define CYCLES_PER_INSTR 2
-
 void load_vecr(char *tok, vu_reg_t* v) {
     for (int e = 0; e < 8; e++) {
         half elem = strtol(tok + e * (5), NULL, 16);
