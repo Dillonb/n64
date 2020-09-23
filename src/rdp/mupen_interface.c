@@ -94,6 +94,5 @@ EXPORT m64p_error CALL VidExt_Quit(void) {
 }
 
 EXPORT m64p_error CALL VidExt_GL_SwapBuffers(void) {
-    render_screen(mupen_interface_global_system);
     return M64ERR_SUCCESS;
 }
