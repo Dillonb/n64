@@ -1,5 +1,6 @@
 #include "r4300i.h"
 #include <log.h>
+#include <system/n64system.h>
 #include "disassemble.h"
 #include "mips_instructions.h"
 #include "tlb_instructions.h"
@@ -459,7 +460,7 @@ INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc,
 }
 
 INLINE void cp0_step(cp0_t* cp0) {
-    cp0->count++;
+    cp0->count += CYCLES_PER_INSTR;
     if (cp0->count >> 1 == cp0->compare) {
         cp0->cause.ip7 = true;
         logwarn("Compare interrupt!");

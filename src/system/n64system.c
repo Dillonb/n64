@@ -209,8 +209,6 @@ void n64_system_step(n64_system_t* system) {
     _n64_system_step(system);
 }
 
-#define CYCLES_PER_INSTR 1
-
 INLINE void check_vsync(n64_system_t* system) {
     if (system->vi.v_current == system->vi.vsync >> 1) {
         rdp_update_screen();

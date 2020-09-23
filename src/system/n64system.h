@@ -10,6 +10,7 @@
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
+#define CYCLES_PER_INSTR 1
 
 typedef enum n64_interrupt {
     INTERRUPT_VI,
