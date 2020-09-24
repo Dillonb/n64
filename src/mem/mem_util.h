@@ -3,6 +3,7 @@
 
 #include <endian.h>
 #include <util.h>
+#include <string.h>
 
 INLINE dword dword_from_byte_array(byte* arr, word index) {
     dword* dwarr = (dword*)arr;
@@ -10,8 +11,9 @@ INLINE dword dword_from_byte_array(byte* arr, word index) {
 }
 
 INLINE word word_from_byte_array(byte* arr, word index) {
-    word* warr = (word*)arr;
-    return be32toh(warr[index / sizeof(word)]);
+    word val;
+    memcpy(&val, (word*)(arr + index), sizeof(word));
+    return be32toh(val);
 }
 
 INLINE word word_from_byte_array_unaligned(byte* arr, word index) {
