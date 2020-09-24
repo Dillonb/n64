@@ -188,7 +188,8 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     return system;
 }
 
-INLINE void _n64_system_step(n64_system_t* system) {
+INLINE int _n64_system_step(n64_system_t* system) {
+#ifdef N64_DEBUG_MODE
     if (system->debugger_state.enabled && check_breakpoint(&system->debugger_state, system->cpu.pc)) {
         debugger_breakpoint_hit(system);
     }
@@ -196,15 +197,25 @@ INLINE void _n64_system_step(n64_system_t* system) {
         usleep(1000);
         debugger_tick(system);
     }
+#endif
+    r4300i_step(&system->cpu);
+    r4300i_step(&system->cpu);
     r4300i_step(&system->cpu);
 
     if (!system->rsp.status.halt) {
         rsp_step(system);
     }
+    if (!system->rsp.status.halt) {
+        rsp_step(system);
+    }
+
+    return CYCLES_PER_INSTR * 3;
 }
 
+// This is used for debugging tools, it's fine for now if timing is a little off.
 void n64_system_step(n64_system_t* system) {
-    _n64_system_step(system);
+    r4300i_step(&system->cpu);
+    rsp_step(system);
 }
 
 INLINE void check_vsync(n64_system_t* system) {
@@ -220,8 +231,7 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
-                _n64_system_step(system);
-                cycles += CYCLES_PER_INSTR;
+                cycles += _n64_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
@@ -231,8 +241,7 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
-                _n64_system_step(system);
-                cycles += CYCLES_PER_INSTR;
+                cycles += _n64_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;
@@ -240,9 +249,11 @@ void n64_system_loop(n64_system_t* system) {
         }
         check_vi_interrupt(system);
         check_vsync(system);
+#ifdef N64_DEBUG_MODE
         if (system->debugger_state.enabled) {
             debugger_tick(system);
         }
+#endif
     }
 }
 
