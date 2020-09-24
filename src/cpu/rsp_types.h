@@ -43,9 +43,13 @@ typedef union rsp_types {
     };
 } rsp_status_t;
 
+typedef struct rsp rsp_t;
+
+typedef void(*rspinstr_handler_t)(rsp_t*, mips_instruction_t);
+
 typedef struct rsp_icache_entry {
     mips_instruction_t instruction;
-    mips_instruction_type_t type;
+    rspinstr_handler_t handler;
 } rsp_icache_entry_t;
 
 typedef struct rsp {

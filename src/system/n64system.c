@@ -158,7 +158,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
         system->rsp.icache[i].instruction.raw = 0;
-        system->rsp.icache[i].type = MIPS_UNKNOWN;
+        system->rsp.icache[i].handler = NULL;
     }
 
     system->rsp.status.halt = true; // RSP starts halted
@@ -274,37 +274,37 @@ void on_interrupt_change(n64_system_t* system) {
     r4300i_interrupt_update(&system->cpu);
 }
 
-void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {
+void interrupt_raise(n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
             logwarn("Raising VI interrupt");
-            system->mi.intr.vi = true;
+            global_system->mi.intr.vi = true;
             break;
         case INTERRUPT_SI:
             logwarn("Raising SI interrupt");
-            system->mi.intr.si = true;
+            global_system->mi.intr.si = true;
             break;
         case INTERRUPT_PI:
             logwarn("Raising PI interrupt");
-            system->mi.intr.pi = true;
+            global_system->mi.intr.pi = true;
             break;
         case INTERRUPT_AI:
             logwarn("Raising AI interrupt");
-            system->mi.intr.ai = true;
+            global_system->mi.intr.ai = true;
             break;
         case INTERRUPT_DP:
             logwarn("Raising DP interrupt");
-            system->mi.intr.dp = true;
+            global_system->mi.intr.dp = true;
             break;
         case INTERRUPT_SP:
             logwarn("Raising SP interrupt");
-            system->mi.intr.sp = true;
+            global_system->mi.intr.sp = true;
             break;
         default:
             logfatal("Raising unimplemented interrupt: %d", interrupt);
     }
 
-    on_interrupt_change(system);
+    on_interrupt_change(global_system);
 }
 
 void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {

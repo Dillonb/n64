@@ -4,6 +4,8 @@
 #include "mips_instruction_decode.h"
 #define RSP_INSTR(NAME) void NAME(rsp_t* rsp, mips_instruction_t instruction)
 
+RSP_INSTR(rsp_nop);
+
 RSP_INSTR(rsp_ori);
 RSP_INSTR(rsp_xori);
 RSP_INSTR(rsp_lui);
@@ -36,7 +38,7 @@ RSP_INSTR(rsp_spc_xor);
 RSP_INSTR(rsp_spc_nor);
 RSP_INSTR(rsp_spc_slt);
 
-void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction);
+RSP_INSTR(rsp_spc_break);
 
 RSP_INSTR(rsp_bne);
 RSP_INSTR(rsp_beq);
@@ -47,7 +49,7 @@ RSP_INSTR(rsp_ri_bltz);
 RSP_INSTR(rsp_ri_bgez);
 RSP_INSTR(rsp_ri_bgezal);
 
-void rsp_mfc0(n64_system_t* system, mips_instruction_t instruction);
-void rsp_mtc0(n64_system_t* system, mips_instruction_t instruction);
+RSP_INSTR(rsp_mfc0);
+RSP_INSTR(rsp_mtc0);
 
 #endif //N64_RSP_INSTRUCTIONS_H

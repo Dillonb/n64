@@ -154,14 +154,14 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             word length = ((value & 0x00FFFFFF) | 7) + 1;
             system->mem.pi_reg[PI_RD_LEN_REG] = length;
             run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
-            interrupt_raise(system, INTERRUPT_PI);
+            interrupt_raise(INTERRUPT_PI);
             break;
         }
         case ADDR_PI_WR_LEN_REG: {
             word length = ((value & 0x00FFFFFF) | 7) + 1;
             system->mem.pi_reg[PI_WR_LEN_REG] = length;
             run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], length, "CART to DRAM");
-            interrupt_raise(system, INTERRUPT_PI);
+            interrupt_raise(INTERRUPT_PI);
             break;
         }
         case ADDR_PI_STATUS_REG: {
@@ -336,7 +336,7 @@ void pif_to_dram(n64_system_t* system, word pif_address, word dram_address) {
         byte value = system->mem.pif_ram[i];
         n64_write_byte(system, dram_address + i, value);
     }
-    interrupt_raise(system, INTERRUPT_SI);
+    interrupt_raise(INTERRUPT_SI);
 }
 
 void dram_to_pif(n64_system_t* system, word dram_address, word pif_address) {
@@ -348,7 +348,7 @@ void dram_to_pif(n64_system_t* system, word dram_address, word pif_address) {
         system->mem.pif_ram[i] = n64_read_byte(system, dram_address + i);
     }
     process_pif_command(system);
-    interrupt_raise(system, INTERRUPT_SI);
+    interrupt_raise(INTERRUPT_SI);
 }
 
 void write_word_sireg(n64_system_t* system, word address, word value) {
@@ -404,7 +404,7 @@ INLINE void invalidate_rsp_icache(n64_system_t* system, word address) {
 
     int index = address / 4;
 
-    system->rsp.icache[index].type = MIPS_UNKNOWN;
+    system->rsp.icache[index].handler = NULL;
     system->rsp.icache[index].instruction.raw = 0;
 }
 

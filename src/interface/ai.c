@@ -88,7 +88,7 @@ void sample(n64_system_t* system) {
     system->ai.dma_address[0] += 4;
     system->ai.dma_length[0]  -= 4;
     if(!system->ai.dma_length[0]) {
-        interrupt_raise(system, INTERRUPT_AI);
+        interrupt_raise(INTERRUPT_AI);
         if(--system->ai.dma_count > 0) { // If we have another DMA pending, start on that one.
             system->ai.dma_address[0] = system->ai.dma_address[1];
             system->ai.dma_length[0]  = system->ai.dma_length[1];

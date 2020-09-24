@@ -27,6 +27,8 @@ INLINE void rsp_link(rsp_t* rsp) {
     set_rsp_register(rsp, RSP_REG_LR, rsp->pc + 4); // Skips the instruction in the delay slot on return
 }
 
+RSP_INSTR(rsp_nop) {}
+
 RSP_INSTR(rsp_ori) {
     set_rsp_register(rsp, instruction.i.rt, get_rsp_register(rsp, instruction.i.rs) | instruction.i.immediate);
 }
@@ -126,12 +128,12 @@ RSP_INSTR(rsp_spc_and) {
     set_rsp_register(rsp, instruction.r.rd, get_rsp_register(rsp, instruction.r.rs) & get_rsp_register(rsp, instruction.r.rt));
 }
 
-void rsp_spc_break(n64_system_t* system, mips_instruction_t instruction) {
-    system->rsp.status.halt = true;
-    system->rsp.status.broke = true;
+RSP_INSTR(rsp_spc_break) {
+    rsp->status.halt = true;
+    rsp->status.broke = true;
 
-    if (system->rsp.status.intr_on_break) {
-        interrupt_raise(system, INTERRUPT_SP);
+    if (rsp->status.intr_on_break) {
+        interrupt_raise(INTERRUPT_SP);
     }
 }
 
@@ -231,14 +233,14 @@ RSP_INSTR(rsp_spc_jalr) {
     rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs));
 }
 
-void rsp_mfc0(n64_system_t* system, mips_instruction_t instruction) {
-    sword value = get_rsp_cp0_register(system, instruction.r.rd);
-    set_rsp_register(&system->rsp, instruction.r.rt, value);
+RSP_INSTR(rsp_mfc0) {
+    sword value = get_rsp_cp0_register(global_system, instruction.r.rd);
+    set_rsp_register(rsp, instruction.r.rt, value);
 }
 
-void rsp_mtc0(n64_system_t* system, mips_instruction_t instruction) {
-    word value = get_rsp_register(&system->rsp, instruction.r.rt);
-    set_rsp_cp0_register(system, instruction.r.rd, value);
+RSP_INSTR(rsp_mtc0) {
+    word value = get_rsp_register(rsp, instruction.r.rt);
+    set_rsp_cp0_register(global_system, instruction.r.rd, value);
 }
 
 RSP_INSTR(rsp_bne) {

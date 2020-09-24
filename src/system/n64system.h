@@ -165,7 +165,7 @@ void n64_system_step(n64_system_t* system);
 void n64_system_loop(n64_system_t* system);
 void n64_system_cleanup(n64_system_t* system);
 void n64_request_quit();
-void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt);
+void interrupt_raise(n64_interrupt_t interrupt);
 void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt);
 void on_interrupt_change(n64_system_t* system);
 extern n64_system_t* global_system;

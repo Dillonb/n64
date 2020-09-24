@@ -45,7 +45,7 @@ void rsp_status_reg_write(n64_system_t* system, word value) {
         interrupt_lower(system, INTERRUPT_SP);
     }
     if (write.set_intr) {
-        interrupt_raise(system, INTERRUPT_SP);
+        interrupt_raise(INTERRUPT_SP);
     }
     CLEAR_SET(system->rsp.status.single_step,   write.clear_sstep,         write.set_sstep)
     CLEAR_SET(system->rsp.status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break)
