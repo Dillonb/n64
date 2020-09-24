@@ -60,7 +60,7 @@ INLINE void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
     }
 }
 
-
+MIPS_INSTR(mips_nop) {}
 
 MIPS_INSTR(mips_addi) {
     sword reg_addend = get_register(cpu, instruction.i.rs);

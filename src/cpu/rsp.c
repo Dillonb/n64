@@ -6,8 +6,6 @@
 
 #include <mem/mem_util.h>
 
-#define exec_instr(key, fn) case key: fn(rsp, cache.instruction); break;
-
 bool rsp_acquire_semaphore(n64_system_t* system) {
     if (system->rsp.semaphore_held) {
         return false; // Semaphore is already held
