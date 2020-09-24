@@ -1,6 +1,7 @@
 #include "mips_instructions.h"
 
 #include <math.h>
+#include <mem/n64bus.h>
 
 void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
@@ -688,7 +689,7 @@ MIPS_INSTR(mips_lw) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
 
-    sword value = cpu->read_word(address);
+    sword value = n64_read_word(address);
     set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
@@ -699,7 +700,7 @@ MIPS_INSTR(mips_lwu) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
 
-    word value = cpu->read_word(address);
+    word value = n64_read_word(address);
     set_register(cpu, instruction.i.rt, value);
 }
 
@@ -779,7 +780,7 @@ MIPS_INSTR(mips_sdc1) {
 MIPS_INSTR(mips_lwc1) {
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
-    word value   = cpu->read_word(address);
+    word value   = n64_read_word(address);
 
     set_fpu_register_word(cpu, instruction.fi.ft, value);
 }
@@ -798,7 +799,7 @@ MIPS_INSTR(mips_lwl) {
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF << shift;
-    word data = cpu->read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data << shift;
     set_register(cpu, instruction.i.rt, (sdword)result);
 }
@@ -810,7 +811,7 @@ MIPS_INSTR(mips_lwr) {
     word shift = 8 * ((address ^ 3) & 3);
 
     word mask = 0xFFFFFFFF >> shift;
-    word data = cpu->read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data >> shift;
     set_register(cpu, instruction.i.rt, (sdword)result);
 }
@@ -821,7 +822,7 @@ MIPS_INSTR(mips_swl) {
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF >> shift;
-    word data = cpu->read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     word oldreg = get_register(cpu, instruction.i.rt);
     cpu->write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
 }
@@ -832,7 +833,7 @@ MIPS_INSTR(mips_swr) {
 
     word shift = 8 * ((address ^ 3) & 3);
     word mask = 0xFFFFFFFF << shift;
-    word data = cpu->read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     word oldreg = get_register(cpu, instruction.i.rt);
     cpu->write_word(address & ~3, (data & ~mask) | oldreg << shift);
 }

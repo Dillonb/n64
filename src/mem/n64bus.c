@@ -624,40 +624,40 @@ void n64_write_word(n64_system_t* system, word address, word value) {
     }
 }
 
-word n64_read_word(n64_system_t* system, word address) {
+INLINE word _n64_read_word(word address) {
     switch (address) {
         case REGION_RDRAM:
-            return word_from_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM);
+            return word_from_byte_array((byte*) &global_system->mem.rdram, address - SREGION_RDRAM);
         case REGION_RDRAM_UNUSED:
             return read_unused(address);
         case REGION_RDRAM_REGS:
-            return read_word_rdramreg(system, address);
+            return read_word_rdramreg(global_system, address);
         case REGION_SP_DMEM:
-            return word_from_byte_array((byte*) &system->mem.sp_dmem, address - SREGION_SP_DMEM);
+            return word_from_byte_array((byte*) &global_system->mem.sp_dmem, address - SREGION_SP_DMEM);
         case REGION_SP_IMEM:
-            return word_from_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM);
+            return word_from_byte_array((byte*) &global_system->mem.sp_imem, address - SREGION_SP_IMEM);
         case REGION_SP_UNUSED:
             return read_unused(address);
         case REGION_SP_REGS:
-            return read_word_spreg(system, address);
+            return read_word_spreg(global_system, address);
         case REGION_DP_COMMAND_REGS:
-            return read_word_dpcreg(system, address);
+            return read_word_dpcreg(global_system, address);
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address);
         case REGION_DP_SPAN_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", address);
         case REGION_MI_REGS:
-            return read_word_mireg(system, address);
+            return read_word_mireg(global_system, address);
         case REGION_VI_REGS:
-            return read_word_vireg(system, address);
+            return read_word_vireg(global_system, address);
         case REGION_AI_REGS:
-            return read_word_aireg(system, address);
+            return read_word_aireg(global_system, address);
         case REGION_PI_REGS:
-            return read_word_pireg(system, address);
+            return read_word_pireg(global_system, address);
         case REGION_RI_REGS:
-            return read_word_rireg(system, address);
+            return read_word_rireg(global_system, address);
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RI_REGS", address);
         case REGION_SI_REGS:
-            return read_word_sireg(system, address);
+            return read_word_sireg(global_system, address);
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
@@ -669,16 +669,16 @@ word n64_read_word(n64_system_t* system, word address) {
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
 #ifdef N64_DEBUG_MODE
-            if (index > system->mem.rom.size - 3) { // -3 because we're reading an entire word
+            if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
                 logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
             }
 #endif
-            return word_from_byte_array(system->mem.rom.rom, index);
+            return word_from_byte_array(global_system->mem.rom.rom, index);
         }
         case REGION_PIF_BOOT:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
         case REGION_PIF_RAM:
-            return word_from_byte_array(system->mem.pif_ram, address - SREGION_PIF_RAM);
+            return word_from_byte_array(global_system->mem.pif_ram, address - SREGION_PIF_RAM);
         case REGION_RESERVED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RESERVED", address);
         case REGION_CART_1_3:
@@ -688,6 +688,14 @@ word n64_read_word(n64_system_t* system, word address) {
         default:
             logfatal("Reading word from unknown address: 0x%08X", address);
     }
+}
+
+word n64_read_word(word address) {
+    return _n64_read_word(resolve_virtual_address(address, &global_system->cpu.cp0));
+}
+
+word n64_read_physical_word(word address) {
+    return _n64_read_word(address);
 }
 
 void n64_write_half(n64_system_t* system, word address, half value) {

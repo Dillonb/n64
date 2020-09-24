@@ -412,7 +412,7 @@ typedef struct r4300i {
     half (*read_half)(word);
     void (*write_half)(word, half);
 
-    word (*read_word)(word);
+    //word (*read_word)(word);
     void (*write_word)(word, word);
 
     dword (*read_dword)(word);

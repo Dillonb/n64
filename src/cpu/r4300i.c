@@ -1,6 +1,7 @@
 #include "r4300i.h"
 #include <log.h>
 #include <system/n64system.h>
+#include <mem/n64bus.h>
 #include "disassemble.h"
 #include "mips_instructions.h"
 #include "tlb_instructions.h"
@@ -478,7 +479,7 @@ void r4300i_step(r4300i_t* cpu) {
     cp0_step(&cpu->cp0);
     word pc = cpu->pc;
     mips_instruction_t instruction;
-    instruction.raw = cpu->read_word(pc);
+    instruction.raw = n64_read_word(pc);
 
     byte interrupts = cpu->cp0.cause.interrupt_pending & cpu->cp0.status.im;
     if (interrupts > 0) {
