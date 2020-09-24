@@ -393,7 +393,7 @@ INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc,
         logdebug("[0x%08X]=0x%08X %s", pc, instr.raw, buf);
     }
 #endif
-    if (instr.raw == 0) {
+    if (unlikely(instr.raw == 0)) {
         return MIPS_NOP;
     }
     switch (instr.op) {
@@ -462,7 +462,7 @@ INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc,
 
 INLINE void cp0_step(cp0_t* cp0) {
     cp0->count += CYCLES_PER_INSTR;
-    if (cp0->count >> 1 == cp0->compare) {
+    if (unlikely(cp0->count >> 1 == cp0->compare)) {
         cp0->cause.ip7 = true;
         logwarn("Compare interrupt!");
     }
@@ -481,11 +481,10 @@ void r4300i_step(r4300i_t* cpu) {
     mips_instruction_t instruction;
     instruction.raw = n64_read_word(pc);
 
-    byte interrupts = cpu->cp0.cause.interrupt_pending & cpu->cp0.status.im;
-    if (interrupts > 0) {
+    if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            cpu->cp0.cause.interrupt_pending = interrupts;
-            exception(cpu, pc, 0, interrupts);
+            cpu->cp0.cause.interrupt_pending = cpu->interrupts;
+            exception(cpu, pc, 0, cpu->interrupts);
             return;
         }
     }
@@ -674,4 +673,8 @@ void r4300i_step(r4300i_t* cpu) {
         exec_instr(MIPS_RI_BGEZAL, mips_ri_bgezal)
         default: logfatal("Unknown instruction type!");
     }
+}
+
+void r4300i_interrupt_update(r4300i_t* cpu) {
+    cpu->interrupts = cpu->cp0.cause.interrupt_pending & cpu->cp0.status.im;
 }

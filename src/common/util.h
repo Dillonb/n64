@@ -25,4 +25,7 @@
 
 #define INLINE static inline __attribute__((always_inline))
 
+#define unlikely(exp) __builtin_expect(exp, 0)
+#define likely(exp) __builtin_expect(exp, 1)
+
 #endif

@@ -271,6 +271,7 @@ void on_interrupt_change(n64_system_t* system) {
     bool interrupt = system->mi.intr.raw & system->mi.intr_mask.raw;
     logwarn("ip2 is now: %d", interrupt);
     system->cpu.cp0.cause.ip2 = interrupt;
+    r4300i_interrupt_update(&system->cpu);
 }
 
 void interrupt_raise(n64_system_t* system, n64_interrupt_t interrupt) {

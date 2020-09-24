@@ -403,6 +403,9 @@ typedef struct r4300i {
 
     cp0_t cp0;
 
+    // Cached value of `cp0.cause.interrupt_pending & cp0.status.im`
+    byte interrupts;
+
     // In a branch delay slot?
     bool branch;
 
@@ -420,6 +423,7 @@ typedef struct r4300i {
 } r4300i_t;
 
 void r4300i_step(r4300i_t* cpu);
+void r4300i_interrupt_update(r4300i_t* cpu);
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
@@ -503,6 +507,8 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             loginfo("    CP0 status: cu1: %d", cpu->cp0.status.cu1);
             loginfo("    CP0 status: cu2: %d", cpu->cp0.status.cu2);
             loginfo("    CP0 status: cu3: %d", cpu->cp0.status.cu3);
+
+            r4300i_interrupt_update(cpu);
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
