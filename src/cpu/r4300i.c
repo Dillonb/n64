@@ -460,23 +460,24 @@ INLINE mips_instruction_type_t r4300i_instruction_decode(r4300i_t* cpu, word pc,
     }
 }
 
-INLINE void cp0_step(cp0_t* cp0) {
-    cp0->count += CYCLES_PER_INSTR;
-    if (unlikely(cp0->count >> 1 == cp0->compare)) {
-        cp0->cause.ip7 = true;
-        logwarn("Compare interrupt!");
-    }
-    if (cp0->random <= cp0->wired) {
-        cp0->random = 31;
-    } else {
-        cp0->random--;
-    }
-}
-
 #define exec_instr(key, fn) case key: fn(cpu, instruction); break;
 
 void r4300i_step(r4300i_t* cpu) {
-    cp0_step(&cpu->cp0);
+    cpu->cp0.count += CYCLES_PER_INSTR;
+    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
+        cpu->cp0.cause.ip7 = true;
+        logwarn("Compare interrupt!");
+        r4300i_interrupt_update(cpu);
+    }
+
+    /* Commented out for now since the game never actually reads cp0.random
+    if (cpu->cp0.random <= cpu->cp0.wired) {
+        cpu->cp0.random = 31;
+    } else {
+        cpu->cp0.random--;
+    }
+     */
+
     word pc = cpu->pc;
     mips_instruction_t instruction;
     instruction.raw = n64_read_word(pc);
