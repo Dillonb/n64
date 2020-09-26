@@ -12,7 +12,7 @@
 
 typedef struct n64_dynarec_block {
     word start_address;
-    word end_address;
+    word length;
     void (*run)(r4300i_t* cpu);
 } n64_dynarec_block_t;
 
@@ -26,5 +26,6 @@ typedef struct n64_dynarec {
 
 int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec);
 n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size);
+void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address);
 
 #endif //N64_DYNAREC_H

@@ -225,7 +225,57 @@ INLINE int _n64_system_step(n64_system_t* system) {
     }
     return CYCLES_PER_INSTR * 3;
 #else
+
+    /*
+    n64_system_t* reference = malloc(sizeof(n64_system_t));
+    memcpy(reference, system, sizeof(n64_system_t));
+    r4300i_step(&reference->cpu);
+     */
+
+    r4300i_t* cpu = &system->cpu;
+    cpu->cp0.count += CYCLES_PER_INSTR;
+    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
+        cpu->cp0.cause.ip7 = true;
+        logwarn("Compare interrupt!");
+        r4300i_interrupt_update(cpu);
+    }
+
+    /* Commented out for now since the game never actually reads cp0.random
+    if (cpu->cp0.random <= cpu->cp0.wired) {
+        cpu->cp0.random = 31;
+    } else {
+        cpu->cp0.random--;
+    }
+     */
+
+    if (unlikely(cpu->interrupts > 0)) {
+        if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
+            cpu->cp0.cause.interrupt_pending = cpu->interrupts;
+            //logfatal("Exception in dynarec.");
+            r4300i_handle_exception(cpu, cpu->pc, 0, cpu->interrupts);
+            return 0;
+        }
+    }
+
     int taken = n64_dynarec_step(system, system->dynarec);
+
+    /*
+    if (system->cpu.pc != reference->cpu.pc) {
+        logfatal("system CPU: 0x%08X reference CPU: 0x%08X", system->cpu.pc, reference->cpu.pc);
+    }
+
+    for (int i = 0; i < 32; i++) {
+        if (system->cpu.gpr[i] != reference->cpu.gpr[i]) {
+            logfatal("System r%d: 0x%016lX reference r%d: 0x%016lX", i, system->cpu.gpr[i], i, reference->cpu.gpr[i]);
+        }
+    }
+
+
+    free(reference);
+    reference = NULL;
+     */
+
+
     system->stepcount += taken;
     while (system->stepcount >= 3) {
         if (!system->rsp.status.halt) {

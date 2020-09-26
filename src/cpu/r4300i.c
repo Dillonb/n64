@@ -6,10 +6,6 @@
 #include "mips_instructions.h"
 #include "tlb_instructions.h"
 
-#ifdef N64_DEBUG_MODE
-#define LOG_ENABLED
-#endif
-
 const char* register_names[] = {
         "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
         "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"
@@ -25,7 +21,7 @@ const char* cp0_register_names[] = {
 #define EXCEPTION_INTERRUPT            0
 #define EXCEPTION_COPROCESSOR_UNUSABLE 11
 
-void exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
+void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
@@ -106,7 +102,7 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) 
 
 INLINE mipsinstr_handler_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
     if (!cpu->cp0.status.cu1) {
-        exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
+        r4300i_handle_exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
     }
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
@@ -483,7 +479,7 @@ void r4300i_step(r4300i_t* cpu) {
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
             cpu->cp0.cause.interrupt_pending = cpu->interrupts;
-            exception(cpu, pc, 0, cpu->interrupts);
+            r4300i_handle_exception(cpu, pc, 0, cpu->interrupts);
             return;
         }
     }

@@ -5,7 +5,6 @@
 
 INLINE void rsp_branch_abs(rsp_t* rsp, word address) {
     rsp->next_pc = address;
-    logtrace("[RSP] Setting up a branch to 0x%08X", rsp->branch_pc);
 }
 
 INLINE void rsp_branch_offset(rsp_t* rsp, shalf offset) {

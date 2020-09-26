@@ -17,6 +17,10 @@ extern unsigned int n64_log_verbosity;
 #define LOG_VERBOSITY_DEBUG 3
 #define LOG_VERBOSITY_TRACE 4
 
+#ifdef N64_DEBUG_MODE
+#define LOG_ENABLED
+#endif
+
 
 #define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity;} while(0);
 

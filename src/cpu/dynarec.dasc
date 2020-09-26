@@ -19,11 +19,12 @@ void* bumpalloc(n64_dynarec_t* dynarec, size_t size) {
 
     dynarec->codecache_used += size;
 
+    printf("bumpalloc: %ld used of %ld\n", dynarec->codecache_used, dynarec->codecache_size);
+
     return ptr;
 }
 
 void* bumpalloc_zero(n64_dynarec_t* dynarec, size_t size) {
-    printf("bumpalloc\n");
     byte* ptr = bumpalloc(dynarec, size);
 
     for (int i = 0; i < size; i++) {
@@ -43,7 +44,7 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
     return buf;
 }
 
-void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word address) {
+void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
 
     dasm_State* d;
 
@@ -101,12 +102,9 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
 
 
     mips_instruction_t instr;
-    instr.raw = n64_read_physical_word(address);
+    instr.raw = n64_read_physical_word(physical_address);
 
-    mipsinstr_handler_t handler = r4300i_instruction_decode(cpu, address, instr);
-    dword handler2 = (dword)handler;
-
-    printf("handler address: 0x%lX\n", (uint64_t) handler);
+    uintptr_t handler = (uintptr_t)r4300i_instruction_decode(cpu, virtual_address, instr);
 
     |.type cpu_state, r4300i_t, cpuState
     //|.type instruction, mips_instruction_t instr
@@ -116,7 +114,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     |->compiled_block:
     | prologue
     | prepcall2 cpuState, instr
-    | mov64 rax, handler2
+    // x86_64 cannot call a 64 bit immediate, put it in rax first
+    | mov64 rax, handler
     | call rax
     | postcall 2
     | epilogue
@@ -124,8 +123,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     void* compiled = link_and_encode(dynarec, &d);
     dasm_free(&d);
 
-    block->start_address = address;
-    block->end_address = address; // TODO (maybe we don't even need this?)
+    block->start_address = virtual_address;
+    block->length = 1;
     block->run = compiled;
 }
 
@@ -135,27 +134,31 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     n64_dynarec_block_t* block_list = dynarec->blockcache[outer_index];
 
     if (block_list == NULL) {
-        block_list = bumpalloc_zero(dynarec, BLOCKCACHE_INNER_SIZE);
+        printf("Sizeof block: %ld\n", sizeof(n64_dynarec_block_t));
+        block_list = bumpalloc_zero(dynarec, BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         dynarec->blockcache[outer_index] = block_list;
     }
 
-    word inner_index = (physical & (BLOCKCACHE_INNER_SIZE - 1)) >> 2;
+    word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
+    //printf("Physical: 0x%08X page: 0x%05X Inner index: %d size: %d\n", physical, outer_index, inner_index, BLOCKCACHE_INNER_SIZE);
 
     n64_dynarec_block_t* block = &block_list[inner_index];
 
     if (block->run == NULL) {
-        printf("Compilin'\n");
-        compile_new_block(dynarec, &system->cpu, block, physical);
-    }
-    if (block->run == NULL) {
-        logfatal("block run is STILL NULL");
+        printf("Compilin' new block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
+        compile_new_block(dynarec, &system->cpu, block, system->cpu.pc, physical);
+    } else {
+        //printf("Already have a block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
     }
 
-    printf("About to run the block...\n");
+    //printf("About to run the block... (0x%08X)\n", system->cpu.pc);
+    //fflush(stdout);
+    system->cpu.branch = false;
+    system->cpu.pc = system->cpu.next_pc;
+    system->cpu.next_pc += 4;
     block->run(&system->cpu);
-    printf("Ran the block!\n");
 
-    return 1;
+    return block->length * CYCLES_PER_INSTR;
 }
 
 n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size) {
@@ -175,4 +178,9 @@ n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t co
 
     dynarec->codecache = codecache;
     return dynarec;
+}
+
+void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address) {
+    word outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
+    dynarec->blockcache[outer_index] = NULL;
 }
