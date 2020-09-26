@@ -11,6 +11,7 @@
 #include <interface/ai.h>
 #include <mem/n64_rsp_bus.h>
 #include <cpu/rsp.h>
+#include <cpu/dynarec.h>
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.
@@ -29,6 +30,10 @@ bool should_quit = false;
 
 
 n64_system_t* global_system;
+
+// 100MB codecache
+#define CODECACHE_SIZE (1 << 20)
+byte codecache[CODECACHE_SIZE];
 
 /* TODO I'm 99% sure the RSP can't read/write DWORDs
 dword read_rsp_dword_wrapper(word address) {
@@ -177,6 +182,10 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->si.controllers[2].plugged_in = false;
     system->si.controllers[3].plugged_in = false;
 
+    system->stepcount = 0;
+
+    system->dynarec = n64_dynarec_init(system, codecache, CODECACHE_SIZE);
+
     global_system = system;
     if (enable_frontend) {
         render_init(system);
@@ -198,18 +207,31 @@ INLINE int _n64_system_step(n64_system_t* system) {
         debugger_tick(system);
     }
 #endif
+#ifdef N64_USE_INTERPRETER
     r4300i_step(&system->cpu);
     r4300i_step(&system->cpu);
     r4300i_step(&system->cpu);
-
     if (!system->rsp.status.halt) {
         rsp_step(system);
     }
     if (!system->rsp.status.halt) {
         rsp_step(system);
     }
-
     return CYCLES_PER_INSTR * 3;
+#else
+    int taken = n64_dynarec_step(system, system->dynarec);
+    system->stepcount += taken;
+    while (system->stepcount >= 3) {
+        if (!system->rsp.status.halt) {
+            rsp_step(system);
+        }
+        if (!system->rsp.status.halt) {
+            rsp_step(system);
+        }
+        system->stepcount -= 3;
+    }
+    return taken;
+#endif
 }
 
 // This is used for debugging tools, it's fine for now if timing is a little off.

@@ -12,6 +12,8 @@
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
 #define CYCLES_PER_INSTR 1
 
+typedef struct n64_dynarec n64_dynarec_t;
+
 typedef enum n64_interrupt {
     INTERRUPT_VI,
     INTERRUPT_SI,
@@ -157,6 +159,8 @@ typedef struct n64_system {
         word tmem;
     } dpc;
     n64_debugger_state_t debugger_state;
+    n64_dynarec_t *dynarec;
+    int stepcount;
 } n64_system_t;
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug);

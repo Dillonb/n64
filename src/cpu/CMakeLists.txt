@@ -6,7 +6,8 @@ add_library(r4300i
         mips_instructions.c mips_instructions.h
         tlb_instructions.c tlb_instructions.h
         rsp_interface.c rsp_interface.h
-        mips_instruction_decode.h)
+        mips_instruction_decode.h
+        dynarec.c dynarec.h)
 
 add_library(rsp
         rsp_types.h rsp_rom.h
