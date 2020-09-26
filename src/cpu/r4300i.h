@@ -4,6 +4,7 @@
 
 #include <util.h>
 #include <log.h>
+#include "mips_instruction_decode.h"
 
 #define R4300I_REG_LR 31
 
@@ -422,7 +423,10 @@ typedef struct r4300i {
     void (*write_dword)(word, dword);
 } r4300i_t;
 
+typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
+
 void r4300i_step(r4300i_t* cpu);
+mipsinstr_handler_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr);
 void r4300i_interrupt_update(r4300i_t* cpu);
 
 extern const char* register_names[];

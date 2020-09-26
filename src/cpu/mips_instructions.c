@@ -1011,10 +1011,10 @@ MIPS_INSTR(mips_spc_divu) {
 }
 
 MIPS_INSTR(mips_spc_dmultu) {
-    qword multiplicand_1 = get_register(cpu, instruction.r.rs) & 0xFFFFFFFFFFFFFFFF;
-    qword multiplicand_2 = get_register(cpu, instruction.r.rt) & 0xFFFFFFFFFFFFFFFF;
+    __uint128_t multiplicand_1 = get_register(cpu, instruction.r.rs) & 0xFFFFFFFFFFFFFFFF;
+    __uint128_t multiplicand_2 = get_register(cpu, instruction.r.rt) & 0xFFFFFFFFFFFFFFFF;
 
-    qword result = multiplicand_1 * multiplicand_2;
+    __uint128_t result = multiplicand_1 * multiplicand_2;
 
     sdword result_lower = result         & 0xFFFFFFFFFFFFFFFF;
     sdword result_upper = (result >> 64) & 0xFFFFFFFFFFFFFFFF;

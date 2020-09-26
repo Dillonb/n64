@@ -6,20 +6,9 @@
 
 #include <mem/n64bus.h>
 
-void compile_new_block(n64_dynarec_t* dynarec, word address) {
-    /*
-    n64_dynarec_block_t block;
-    block.start_address = address;
-     */
-
-    |.if X64
-    |.arch x64
-    |.else
-    |.arch x86
-    |.endif
-
-    logfatal("Compiling new block at 0x%08X", address);
-}
+||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
+#error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
+#endif
 
 void* bumpalloc(n64_dynarec_t* dynarec, size_t size) {
     if (dynarec->codecache_used + size >= dynarec->codecache_size) {
@@ -44,6 +33,102 @@ void* bumpalloc_zero(n64_dynarec_t* dynarec, size_t size) {
     return ptr;
 }
 
+void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
+    size_t code_size;
+    dasm_link(d, &code_size);
+    printf("Generated %ld bytes of code\n", code_size);
+    void* buf = bumpalloc(dynarec, code_size);
+    dasm_encode(d, buf);
+
+    return buf;
+}
+
+void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word address) {
+
+    dasm_State* d;
+
+    |.if X64
+    |.arch x64
+    |.else
+    |.arch x86
+    |.endif
+
+    |.section code
+    dasm_init(&d, DASM_MAXSECTION);
+
+    |.globals lbl_
+
+    void* labels[lbl__MAX];
+    dasm_setupglobal(&d, labels, lbl__MAX);
+
+    |.actionlist actions
+    dasm_setup(&d, actions);
+
+    |.if X64
+      |.define cpuState, r12
+      |.define instrArg, r13
+      |.if WIN
+        |.define rArg1, rcx
+        |.define rArg2, rdx
+      |.else
+        |.define rArg1, rdi
+        |.define rArg2, rsi
+      |.endif
+      |.macro prepcall2, arg1, arg2
+        | mov rArg1, arg1
+        | mov rArg2, arg2
+      |.endmacro
+      |.define postcall, .nop
+      // Called before our block
+      |.macro prologue
+        // Push callee-saved registers onto the stack so we don't trample them
+        | push cpuState
+        | push instrArg
+        | push rax
+        // The CPU's state is passed in as argument 1
+        | mov cpuState, rArg1
+      |.endmacro
+      // Called at the end of our block
+      |.macro epilogue
+        // Pop callee-saved registers off the stack and then return
+        | pop rax
+        | pop instrArg
+        | pop cpuState
+        | ret
+      |.endmacro
+    |.endif // TODO x86 version? ARM version?
+
+
+
+    mips_instruction_t instr;
+    instr.raw = n64_read_physical_word(address);
+
+    mipsinstr_handler_t handler = r4300i_instruction_decode(cpu, address, instr);
+    dword handler2 = (dword)handler;
+
+    printf("handler address: 0x%lX\n", (uint64_t) handler);
+
+    |.type cpu_state, r4300i_t, cpuState
+    //|.type instruction, mips_instruction_t instr
+    dasm_State** Dst = &d;
+
+    |.code
+    |->compiled_block:
+    | prologue
+    | prepcall2 cpuState, instr
+    | mov64 rax, handler2
+    | call rax
+    | postcall 2
+    | epilogue
+
+    void* compiled = link_and_encode(dynarec, &d);
+    dasm_free(&d);
+
+    block->start_address = address;
+    block->end_address = address; // TODO (maybe we don't even need this?)
+    block->run = compiled;
+}
+
 int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     word physical = resolve_virtual_address(system->cpu.pc, &system->cpu.cp0);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
@@ -56,15 +141,21 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
 
     word inner_index = (physical & (BLOCKCACHE_INNER_SIZE - 1)) >> 2;
 
-    n64_dynarec_block_t block = block_list[inner_index];
+    n64_dynarec_block_t* block = &block_list[inner_index];
 
-    if (block.run != NULL) {
-        block.run(&system->cpu);
-    } else {
-        compile_new_block(dynarec, physical);
+    if (block->run == NULL) {
+        printf("Compilin'\n");
+        compile_new_block(dynarec, &system->cpu, block, physical);
+    }
+    if (block->run == NULL) {
+        logfatal("block run is STILL NULL");
     }
 
-    return 0;
+    printf("About to run the block...\n");
+    block->run(&system->cpu);
+    printf("Ran the block!\n");
+
+    return 1;
 }
 
 n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size) {

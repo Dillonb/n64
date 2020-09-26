@@ -21,8 +21,6 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
 };
 
-typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
-
 // Exceptions
 #define EXCEPTION_INTERRUPT            0
 #define EXCEPTION_COPROCESSOR_UNUSABLE 11
@@ -387,7 +385,7 @@ INLINE mipsinstr_handler_t r4300i_regimm_decode(word pc, mips_instruction_t inst
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+mipsinstr_handler_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
