@@ -110,6 +110,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     dasm_State** Dst = &d;
 
     bool should_continue_block = true;
+    int block_length = 0;
 
     |.code
     |->compiled_block:
@@ -117,6 +118,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     do {
         word next_physical_address = physical_address + 4;
         bool instr_ends_block = emit_instruction(Dst, instr, physical_address);
+        block_length++;
         bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) != 0;
 
         if (instr_ends_block || page_boundary_ends_block) {
@@ -131,7 +133,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     dasm_free(&d);
 
     block->start_address = physical_address;
-    block->length = 1;
+    block->length = block_length;
     block->run = compiled;
 }
 
