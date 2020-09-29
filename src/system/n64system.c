@@ -33,8 +33,11 @@ bool should_quit = false;
 
 n64_system_t* global_system;
 
+#define selected_n64_system_step jit_system_step
+
 // 100MB codecache
-#define CODECACHE_SIZE (1 << 20)
+//#define CODECACHE_SIZE (1 << 20)
+#define CODECACHE_SIZE (1 << 30)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 
 /* TODO I'm 99% sure the RSP can't read/write DWORDs
@@ -93,12 +96,10 @@ void virtual_write_dword_wrapper(word address, dword value) {
     n64_write_dword(global_system, address, value);
 }
 
-/*
 word virtual_read_word_wrapper(word address) {
     address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_word(address);
+    return n64_read_physical_word(address);
 }
- */
 
 void virtual_write_word_wrapper(word address, word value) {
     address = resolve_virtual_address(address, &global_system->cpu.cp0);
@@ -136,7 +137,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->cpu.read_dword = &virtual_read_dword_wrapper;
     system->cpu.write_dword = &virtual_write_dword_wrapper;
 
-    //system->cpu.read_word = &virtual_read_word_wrapper;
+    system->cpu.read_word = &virtual_read_word_wrapper;
     system->cpu.write_word = &virtual_write_word_wrapper;
 
     system->cpu.read_half = &virtual_read_half_wrapper;
@@ -203,35 +204,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     return system;
 }
 
-INLINE int _n64_system_step(n64_system_t* system) {
-#ifdef N64_DEBUG_MODE
-    if (system->debugger_state.enabled && check_breakpoint(&system->debugger_state, system->cpu.pc)) {
-        debugger_breakpoint_hit(system);
-    }
-    while (system->debugger_state.broken) {
-        usleep(1000);
-        debugger_tick(system);
-    }
-#endif
-#ifdef N64_USE_INTERPRETER
-    r4300i_step(&system->cpu);
-    r4300i_step(&system->cpu);
-    r4300i_step(&system->cpu);
-    if (!system->rsp.status.halt) {
-        rsp_step(system);
-    }
-    if (!system->rsp.status.halt) {
-        rsp_step(system);
-    }
-    return CYCLES_PER_INSTR * 3;
-#else
-
-    /*
-    n64_system_t* reference = malloc(sizeof(n64_system_t));
-    memcpy(reference, system, sizeof(n64_system_t));
-    r4300i_step(&reference->cpu);
-     */
-
+INLINE int jit_system_step(n64_system_t* system) {
     r4300i_t* cpu = &system->cpu;
     cpu->cp0.count += CYCLES_PER_INSTR;
     if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
@@ -251,30 +224,12 @@ INLINE int _n64_system_step(n64_system_t* system) {
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
             cpu->cp0.cause.interrupt_pending = cpu->interrupts;
-            //logfatal("Exception in dynarec.");
             r4300i_handle_exception(cpu, cpu->pc, 0, cpu->interrupts);
-            return 0;
+            return CYCLES_PER_INSTR;
         }
     }
 
     int taken = n64_dynarec_step(system, system->dynarec);
-
-    /*
-    if (system->cpu.pc != reference->cpu.pc) {
-        logfatal("system CPU: 0x%08X reference CPU: 0x%08X", system->cpu.pc, reference->cpu.pc);
-    }
-
-    for (int i = 0; i < 32; i++) {
-        if (system->cpu.gpr[i] != reference->cpu.gpr[i]) {
-            logfatal("System r%d: 0x%016lX reference r%d: 0x%016lX", i, system->cpu.gpr[i], i, reference->cpu.gpr[i]);
-        }
-    }
-
-
-    free(reference);
-    reference = NULL;
-     */
-
 
     system->stepcount += taken;
     while (system->stepcount >= 3) {
@@ -287,7 +242,32 @@ INLINE int _n64_system_step(n64_system_t* system) {
         system->stepcount -= 3;
     }
     return taken;
+}
+
+INLINE int interpreter_system_step(n64_system_t* system) {
+#ifdef N64_DEBUG_MODE
+    if (system->debugger_state.enabled && check_breakpoint(&system->debugger_state, system->cpu.pc)) {
+        debugger_breakpoint_hit(system);
+    }
+    while (system->debugger_state.broken) {
+        usleep(1000);
+        debugger_tick(system);
+    }
 #endif
+    int taken = CYCLES_PER_INSTR;
+    r4300i_step(&system->cpu);
+
+    system->stepcount += taken;
+    while (system->stepcount >= 3) {
+        if (!system->rsp.status.halt) {
+            rsp_step(system);
+        }
+        if (!system->rsp.status.halt) {
+            rsp_step(system);
+        }
+        system->stepcount -= 3;
+    }
+    return taken;
 }
 
 // This is used for debugging tools, it's fine for now if timing is a little off.
@@ -309,7 +289,7 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
-                cycles += _n64_system_step(system);
+                cycles += selected_n64_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
@@ -319,7 +299,7 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
-                cycles += _n64_system_step(system);
+                cycles += selected_n64_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;

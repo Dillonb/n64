@@ -134,7 +134,7 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     n64_dynarec_block_t* block_list = dynarec->blockcache[outer_index];
 
     if (block_list == NULL) {
-        printf("Sizeof block: %ld\n", sizeof(n64_dynarec_block_t));
+        printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical, system->cpu.pc);
         block_list = bumpalloc_zero(dynarec, BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         dynarec->blockcache[outer_index] = block_list;
     }
@@ -147,13 +147,10 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     if (block->run == NULL) {
         printf("Compilin' new block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
         compile_new_block(dynarec, &system->cpu, block, system->cpu.pc, physical);
-    } else {
-        //printf("Already have a block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
     }
 
-    //printf("About to run the block... (0x%08X)\n", system->cpu.pc);
-    //fflush(stdout);
     system->cpu.branch = false;
+    system->cpu.prev_pc = system->cpu.pc;
     system->cpu.pc = system->cpu.next_pc;
     system->cpu.next_pc += 4;
     block->run(&system->cpu);

@@ -17,10 +17,6 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
 };
 
-// Exceptions
-#define EXCEPTION_INTERRUPT            0
-#define EXCEPTION_COPROCESSOR_UNUSABLE 11
-
 void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
@@ -101,9 +97,6 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) 
 }
 
 INLINE mipsinstr_handler_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
-    if (!cpu->cp0.status.cu1) {
-        r4300i_handle_exception(cpu, pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1);
-    }
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
@@ -474,7 +467,7 @@ void r4300i_step(r4300i_t* cpu) {
 
     word pc = cpu->pc;
     mips_instruction_t instruction;
-    instruction.raw = n64_read_word(pc);
+    instruction.raw = cpu->read_word(pc);
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
@@ -485,6 +478,7 @@ void r4300i_step(r4300i_t* cpu) {
     }
 
 
+    cpu->prev_pc = cpu->pc;
     cpu->pc = cpu->next_pc;
     cpu->next_pc += 4;
     cpu->branch = false;

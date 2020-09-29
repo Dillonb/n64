@@ -188,12 +188,16 @@ MIPS_INSTR(mips_mtc0) {
     set_cp0_register(cpu, instruction.r.rd, value);
 }
 
+#define checkcp1 do { if (!cpu->cp0.status.cu1) { r4300i_handle_exception(cpu, cpu->prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); } } while(0)
+
 MIPS_INSTR(mips_mfc1) {
+    checkcp1;
     sword value = get_fpu_register_word(cpu, instruction.fr.fs);
     set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_mtc1) {
+    checkcp1;
     word value = get_register(cpu, instruction.r.rt);
     set_fpu_register_word(cpu, instruction.r.rd, value);
 }
@@ -209,6 +213,7 @@ MIPS_INSTR(mips_eret) {
 }
 
 MIPS_INSTR(mips_cfc1) {
+    checkcp1;
     byte fs = instruction.r.rd;
     sword value;
     switch (fs) {
@@ -226,6 +231,7 @@ MIPS_INSTR(mips_cfc1) {
 }
 
 MIPS_INSTR(mips_ctc1) {
+    checkcp1;
     byte fs = instruction.r.rd;
     word value = get_register(cpu, instruction.r.rt);
     switch (fs) {
@@ -242,21 +248,26 @@ MIPS_INSTR(mips_ctc1) {
 }
 
 MIPS_INSTR(mips_cp_bc1f) {
+    checkcp1;
     conditional_branch(cpu, instruction.i.immediate, !cpu->fcr31.compare);
 }
 
 MIPS_INSTR(mips_cp_bc1fl) {
+    checkcp1;
     conditional_branch_likely(cpu, instruction.i.immediate, !cpu->fcr31.compare);
 }
 
 MIPS_INSTR(mips_cp_bc1t) {
+    checkcp1;
     conditional_branch(cpu, instruction.i.immediate, cpu->fcr31.compare);
 }
 MIPS_INSTR(mips_cp_bc1tl) {
+    checkcp1;
     conditional_branch_likely(cpu, instruction.i.immediate, cpu->fcr31.compare);
 }
 
 MIPS_INSTR(mips_cp_mul_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     double result = fs * ft;
@@ -265,6 +276,7 @@ MIPS_INSTR(mips_cp_mul_d) {
 }
 
 MIPS_INSTR(mips_cp_mul_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     float result = fs * ft;
@@ -273,6 +285,7 @@ MIPS_INSTR(mips_cp_mul_s) {
 }
 
 MIPS_INSTR(mips_cp_div_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     double result = fs / ft;
@@ -280,6 +293,7 @@ MIPS_INSTR(mips_cp_div_d) {
 }
 
 MIPS_INSTR(mips_cp_div_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     float result = fs / ft;
@@ -287,6 +301,7 @@ MIPS_INSTR(mips_cp_div_s) {
 }
 
 MIPS_INSTR(mips_cp_add_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     double result = fs + ft;
@@ -294,6 +309,7 @@ MIPS_INSTR(mips_cp_add_d) {
 }
 
 MIPS_INSTR(mips_cp_add_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     float result = fs + ft;
@@ -301,6 +317,7 @@ MIPS_INSTR(mips_cp_add_s) {
 }
 
 MIPS_INSTR(mips_cp_sub_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     double result = fs - ft;
@@ -308,6 +325,7 @@ MIPS_INSTR(mips_cp_sub_d) {
 }
 
 MIPS_INSTR(mips_cp_sub_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     float result = fs - ft;
@@ -315,102 +333,119 @@ MIPS_INSTR(mips_cp_sub_s) {
 }
 
 MIPS_INSTR(mips_cp_trunc_l_d) {
+    checkcp1;
     double value = get_fpu_register_double(cpu, instruction.fr.fs);
     dword truncated = value;
     set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_trunc_l_s) {
+    checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
     dword truncated = value;
     set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_d) {
+    checkcp1;
     double value = get_fpu_register_double(cpu, instruction.fr.fs);
     word truncated = value;
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_s) {
+    checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
     word truncated = value;
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     double converted = fs;
     set_fpu_register_double(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_w) {
+    checkcp1;
     sword fs = get_fpu_register_word(cpu, instruction.fr.fs);
     double converted = fs;
     set_fpu_register_double(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_l) {
+    checkcp1;
     sdword fs = get_fpu_register_dword(cpu, instruction.fr.fs);
     double converted = fs;
     set_fpu_register_double(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_l_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     sdword converted = fs;
     set_fpu_register_dword(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_l_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     sdword converted = fs;
     set_fpu_register_dword(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     float converted = fs;
     set_fpu_register_float(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_w) {
+    checkcp1;
     sword fs = get_fpu_register_word(cpu, instruction.fr.fs);
     float converted = fs;
     set_fpu_register_float(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_l) {
+    checkcp1;
     sdword fs = get_fpu_register_dword(cpu, instruction.fr.fs);
     float converted = fs;
     set_fpu_register_float(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_w_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     sword converted = fs;
     set_fpu_register_word(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_w_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     sword converted = fs;
     set_fpu_register_word(cpu, instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_sqrt_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float root = sqrt(fs);
     set_fpu_register_float(cpu, instruction.fr.fd, root);
 }
 
 MIPS_INSTR(mips_cp_sqrt_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double root = sqrt(fs);
     set_fpu_register_double(cpu, instruction.fr.fd, root);
 }
 
 MIPS_INSTR(mips_cp_c_f_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -418,6 +453,7 @@ MIPS_INSTR(mips_cp_c_f_s) {
     logfatal("Unimplemented: mips_cp_c_f_s");
 }
 MIPS_INSTR(mips_cp_c_un_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -425,11 +461,13 @@ MIPS_INSTR(mips_cp_c_un_s) {
     logfatal("Unimplemented: mips_cp_c_un_s");
 }
 MIPS_INSTR(mips_cp_c_eq_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -437,6 +475,7 @@ MIPS_INSTR(mips_cp_c_ueq_s) {
     logfatal("Unimplemented: mips_cp_c_ueq_s");
 }
 MIPS_INSTR(mips_cp_c_olt_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -444,6 +483,7 @@ MIPS_INSTR(mips_cp_c_olt_s) {
     logfatal("Unimplemented: mips_cp_c_olt_s");
 }
 MIPS_INSTR(mips_cp_c_ult_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -451,6 +491,7 @@ MIPS_INSTR(mips_cp_c_ult_s) {
     logfatal("Unimplemented: mips_cp_c_ult_s");
 }
 MIPS_INSTR(mips_cp_c_ole_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -458,6 +499,7 @@ MIPS_INSTR(mips_cp_c_ole_s) {
     logfatal("Unimplemented: mips_cp_c_ole_s");
 }
 MIPS_INSTR(mips_cp_c_ule_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -465,6 +507,7 @@ MIPS_INSTR(mips_cp_c_ule_s) {
     logfatal("Unimplemented: mips_cp_c_ule_s");
 }
 MIPS_INSTR(mips_cp_c_sf_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -472,6 +515,7 @@ MIPS_INSTR(mips_cp_c_sf_s) {
     logfatal("Unimplemented: mips_cp_c_sf_s");
 }
 MIPS_INSTR(mips_cp_c_ngle_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -479,6 +523,7 @@ MIPS_INSTR(mips_cp_c_ngle_s) {
     logfatal("Unimplemented: mips_cp_c_ngle_s");
 }
 MIPS_INSTR(mips_cp_c_seq_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -486,6 +531,7 @@ MIPS_INSTR(mips_cp_c_seq_s) {
     logfatal("Unimplemented: mips_cp_c_seq_s");
 }
 MIPS_INSTR(mips_cp_c_ngl_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -493,11 +539,13 @@ MIPS_INSTR(mips_cp_c_ngl_s) {
     logfatal("Unimplemented: mips_cp_c_ngl_s");
 }
 MIPS_INSTR(mips_cp_c_lt_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -505,11 +553,13 @@ MIPS_INSTR(mips_cp_c_nge_s) {
     logfatal("Unimplemented: mips_cp_c_nge_s");
 }
 MIPS_INSTR(mips_cp_c_le_s) {
+    checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_s) {
+    checkcp1;
     /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
@@ -518,6 +568,7 @@ MIPS_INSTR(mips_cp_c_ngt_s) {
 }
 
 MIPS_INSTR(mips_cp_c_f_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -525,6 +576,7 @@ MIPS_INSTR(mips_cp_c_f_d) {
     logfatal("Unimplemented: mips_cp_c_f_d");
 }
 MIPS_INSTR(mips_cp_c_un_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -532,11 +584,13 @@ MIPS_INSTR(mips_cp_c_un_d) {
     logfatal("Unimplemented: mips_cp_c_un_d");
 }
 MIPS_INSTR(mips_cp_c_eq_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -544,6 +598,7 @@ MIPS_INSTR(mips_cp_c_ueq_d) {
     logfatal("Unimplemented: mips_cp_c_ueq_d");
 }
 MIPS_INSTR(mips_cp_c_olt_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -551,6 +606,7 @@ MIPS_INSTR(mips_cp_c_olt_d) {
     logfatal("Unimplemented: mips_cp_c_olt_d");
 }
 MIPS_INSTR(mips_cp_c_ult_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -558,6 +614,7 @@ MIPS_INSTR(mips_cp_c_ult_d) {
     logfatal("Unimplemented: mips_cp_c_ult_d");
 }
 MIPS_INSTR(mips_cp_c_ole_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -565,6 +622,7 @@ MIPS_INSTR(mips_cp_c_ole_d) {
     logfatal("Unimplemented: mips_cp_c_ole_d");
 }
 MIPS_INSTR(mips_cp_c_ule_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -572,6 +630,7 @@ MIPS_INSTR(mips_cp_c_ule_d) {
     logfatal("Unimplemented: mips_cp_c_ule_d");
 }
 MIPS_INSTR(mips_cp_c_sf_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -579,6 +638,7 @@ MIPS_INSTR(mips_cp_c_sf_d) {
     logfatal("Unimplemented: mips_cp_c_sf_d");
 }
 MIPS_INSTR(mips_cp_c_ngle_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -586,6 +646,7 @@ MIPS_INSTR(mips_cp_c_ngle_d) {
     logfatal("Unimplemented: mips_cp_c_ngle_d");
 }
 MIPS_INSTR(mips_cp_c_seq_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -593,6 +654,7 @@ MIPS_INSTR(mips_cp_c_seq_d) {
     logfatal("Unimplemented: mips_cp_c_seq_d");
 }
 MIPS_INSTR(mips_cp_c_ngl_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -600,11 +662,13 @@ MIPS_INSTR(mips_cp_c_ngl_d) {
     logfatal("Unimplemented: mips_cp_c_ngl_d");
 }
 MIPS_INSTR(mips_cp_c_lt_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -612,11 +676,13 @@ MIPS_INSTR(mips_cp_c_nge_d) {
     logfatal("Unimplemented: mips_cp_c_nge_d");
 }
 MIPS_INSTR(mips_cp_c_le_d) {
+    checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_d) {
+    checkcp1;
     /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
@@ -625,21 +691,25 @@ MIPS_INSTR(mips_cp_c_ngt_d) {
 }
 
 MIPS_INSTR(mips_cp_mov_s) {
+    checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
     set_fpu_register_float(cpu, instruction.fr.fd, value);
 }
 
 MIPS_INSTR(mips_cp_mov_d) {
+    checkcp1;
     double value = get_fpu_register_double(cpu, instruction.fr.fs);
     set_fpu_register_double(cpu, instruction.fr.fd, value);
 }
 
 MIPS_INSTR(mips_cp_neg_s) {
+    checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
     set_fpu_register_float(cpu, instruction.fr.fd, -value);
 }
 
 MIPS_INSTR(mips_cp_neg_d) {
+    checkcp1;
     double value = get_fpu_register_double(cpu, instruction.fr.fs);
     set_fpu_register_double(cpu, instruction.fr.fd, -value);
 }
@@ -689,7 +759,7 @@ MIPS_INSTR(mips_lw) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
 
-    sword value = n64_read_word(address);
+    sword value = cpu->read_word(address);
     set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
@@ -700,7 +770,7 @@ MIPS_INSTR(mips_lwu) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
 
-    word value = n64_read_word(address);
+    word value = cpu->read_word(address);
     set_register(cpu, instruction.i.rt, value);
 }
 
@@ -780,7 +850,7 @@ MIPS_INSTR(mips_sdc1) {
 MIPS_INSTR(mips_lwc1) {
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
-    word value   = n64_read_word(address);
+    word value   = cpu->read_word(address);
 
     set_fpu_register_word(cpu, instruction.fi.ft, value);
 }
@@ -799,7 +869,7 @@ MIPS_INSTR(mips_lwl) {
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF << shift;
-    word data = n64_read_word(address & ~3);
+    word data = cpu->read_word(address & ~3);
     sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data << shift;
     set_register(cpu, instruction.i.rt, (sdword)result);
 }
@@ -811,7 +881,7 @@ MIPS_INSTR(mips_lwr) {
     word shift = 8 * ((address ^ 3) & 3);
 
     word mask = 0xFFFFFFFF >> shift;
-    word data = n64_read_word(address & ~3);
+    word data = cpu->read_word(address & ~3);
     sword result = (get_register(cpu, instruction.i.rt) & ~mask) | data >> shift;
     set_register(cpu, instruction.i.rt, (sdword)result);
 }
@@ -822,7 +892,7 @@ MIPS_INSTR(mips_swl) {
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF >> shift;
-    word data = n64_read_word(address & ~3);
+    word data = cpu->read_word(address & ~3);
     word oldreg = get_register(cpu, instruction.i.rt);
     cpu->write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
 }
@@ -833,7 +903,7 @@ MIPS_INSTR(mips_swr) {
 
     word shift = 8 * ((address ^ 3) & 3);
     word mask = 0xFFFFFFFF << shift;
-    word data = n64_read_word(address & ~3);
+    word data = cpu->read_word(address & ~3);
     word oldreg = get_register(cpu, instruction.i.rt);
     cpu->write_word(address & ~3, (data & ~mask) | oldreg << shift);
 }
