@@ -96,7 +96,7 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) 
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_cp1_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
@@ -374,7 +374,7 @@ INLINE mipsinstr_handler_t r4300i_regimm_decode(word pc, mips_instruction_t inst
     }
 }
 
-mipsinstr_handler_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instruction_t instr) {
+mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
@@ -387,7 +387,7 @@ mipsinstr_handler_t r4300i_instruction_decode(r4300i_t* cpu, word pc, mips_instr
     }
     switch (instr.op) {
         case OPC_CP0:    return r4300i_cp0_decode(pc, instr);
-        case OPC_CP1:    return r4300i_cp1_decode(cpu, pc, instr);
+        case OPC_CP1:    return r4300i_cp1_decode(pc, instr);
         case OPC_SPCL:   return r4300i_special_decode(pc, instr);
         case OPC_REGIMM: return r4300i_regimm_decode(pc, instr);
 
@@ -483,7 +483,7 @@ void r4300i_step(r4300i_t* cpu) {
     cpu->next_pc += 4;
     cpu->branch = false;
 
-    r4300i_instruction_decode(cpu, pc, instruction)(cpu, instruction);
+    r4300i_instruction_decode(pc, instruction)(cpu, instruction);
 }
 
 void r4300i_interrupt_update(r4300i_t* cpu) {

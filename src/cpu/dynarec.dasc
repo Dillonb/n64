@@ -44,6 +44,8 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
     return buf;
 }
 
+bool emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address);
+
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
 
     dasm_State* d;
@@ -104,28 +106,47 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     mips_instruction_t instr;
     instr.raw = n64_read_physical_word(physical_address);
 
-    uintptr_t handler = (uintptr_t)r4300i_instruction_decode(cpu, virtual_address, instr);
-
     |.type cpu_state, r4300i_t, cpuState
     dasm_State** Dst = &d;
+
+    bool should_continue_block = true;
 
     |.code
     |->compiled_block:
     | prologue
-    | prepcall2 cpuState, instr
-    // x86_64 cannot call a 64 bit immediate, put it in rax first
-    | mov64 rax, handler
-    | call rax
-    | postcall 2
+    do {
+        word next_physical_address = physical_address + 4;
+        bool instr_ends_block = emit_instruction(Dst, instr, physical_address);
+        bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) != 0;
+
+        if (instr_ends_block || page_boundary_ends_block) {
+            should_continue_block = false;
+        }
+
+        physical_address = next_physical_address;
+    } while (should_continue_block);
     | epilogue
 
     void* compiled = link_and_encode(dynarec, &d);
     dasm_free(&d);
 
-    block->start_address = virtual_address;
+    block->start_address = physical_address;
     block->length = 1;
     block->run = compiled;
 }
+
+// returns true when the block should end
+bool emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    uintptr_t handler = (uintptr_t)r4300i_instruction_decode(address, instr);
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it in rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+
+    return true;
+}
+
 
 int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     word physical = resolve_virtual_address(system->cpu.pc, &system->cpu.cp0);
