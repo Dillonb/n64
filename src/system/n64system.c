@@ -35,9 +35,8 @@ n64_system_t* global_system;
 
 #define selected_n64_system_step jit_system_step
 
-// 100MB codecache
-//#define CODECACHE_SIZE (1 << 20)
-#define CODECACHE_SIZE (1 << 30)
+// 128MiB codecache
+#define CODECACHE_SIZE (1 << 27)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 
 /* TODO I'm 99% sure the RSP can't read/write DWORDs

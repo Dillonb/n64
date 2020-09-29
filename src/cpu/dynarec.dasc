@@ -107,7 +107,6 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     uintptr_t handler = (uintptr_t)r4300i_instruction_decode(cpu, virtual_address, instr);
 
     |.type cpu_state, r4300i_t, cpuState
-    //|.type instruction, mips_instruction_t instr
     dasm_State** Dst = &d;
 
     |.code
