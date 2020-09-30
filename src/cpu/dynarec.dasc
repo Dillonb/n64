@@ -6,6 +6,8 @@
 
 #include <mem/n64bus.h>
 #include "mips_instructions.h"
+#include "disassemble.h"
+#include "tlb_instructions.h"
 
 ||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
 #error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
@@ -529,14 +531,98 @@ COMPILER(compile_mips_sdr) {
     return false;
 }
 
+COMPILER(compile_mips_mfc0) {
+    uintptr_t handler = (uintptr_t) mips_mfc0;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_mtc0) {
+    uintptr_t handler = (uintptr_t) mips_mtc0;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_tlbwi) {
+    uintptr_t handler = (uintptr_t) mips_tlbwi;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_tlbp) {
+    uintptr_t handler = (uintptr_t) mips_tlbp;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_eret) {
+    uintptr_t handler = (uintptr_t) mips_eret;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+bool emit_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            case COP_MF:
+                return compile_mips_mfc0(Dst, instr, address);
+            case COP_MT: // Last 11 bits are 0
+                return compile_mips_mtc0(Dst, instr, address);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+            }
+        }
+    } else {
+        switch (instr.fr.funct) {
+            case COP_FUNCT_TLBWI_MULT:
+                return compile_mips_tlbwi(Dst, instr, address);
+            case COP_FUNCT_TLBP:
+                return compile_mips_tlbp(Dst, instr, address);
+            case COP_FUNCT_TLBR_SUB:
+                logfatal("tlbr");
+                //return compile_mips_tlbr(Dst, instr, address);
+            case COP_FUNCT_ERET:
+                return compile_mips_eret(Dst, instr, address);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    }
+}
+
 // returns true when the block should end
 bool emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
     if (unlikely(instr.raw == 0)) {
         return compile_mips_nop(Dst, instr, address);
     }
     switch (instr.op) {
-        case OPC_CP0:    //return r4300i_cp0_decode(pc, instr);
-        logfatal("emit cp0");
+        case OPC_CP0:    return emit_cp0_instruction(Dst, instr, address);
         case OPC_CP1:    //return r4300i_cp1_decode(pc, instr);
             logfatal("emit cp1");
         case OPC_SPCL:   //return r4300i_special_decode(pc, instr);
@@ -591,7 +677,7 @@ bool emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) 
         default:
 #ifdef LOG_ENABLED
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
-                disassemble(pc, instr.raw, buf, 50);
+                disassemble(address, instr.raw, buf, 50);
             }
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
