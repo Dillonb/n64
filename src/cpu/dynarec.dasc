@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 
 #include <mem/n64bus.h>
+#include "mips_instructions.h"
 
 ||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
 #error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
@@ -88,9 +89,517 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
     return buf;
 }
 
+#define COMPILER(name) bool name(dasm_State** Dst, mips_instruction_t instr, word address)
+
+COMPILER(compile_mips_nop) {
+    return false;
+}
+
+COMPILER(compile_mips_ld) {
+    uintptr_t handler = (uintptr_t)mips_ld;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lui) {
+    uintptr_t handler = (uintptr_t)mips_lui;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_addiu) {
+    uintptr_t handler = (uintptr_t)mips_addiu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_addi) {
+    uintptr_t handler = (uintptr_t)mips_addi;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_daddi) {
+    uintptr_t handler = (uintptr_t)mips_daddi;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_andi) {
+    uintptr_t handler = (uintptr_t)mips_andi;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lbu) {
+    uintptr_t handler = (uintptr_t)mips_lbu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lhu) {
+    uintptr_t handler = (uintptr_t)mips_lhu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lh) {
+    uintptr_t handler = (uintptr_t)mips_lh;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lw) {
+    uintptr_t handler = (uintptr_t)mips_lw;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lwu) {
+    uintptr_t handler = (uintptr_t)mips_lwu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_beq) {
+    uintptr_t handler = (uintptr_t)mips_beq;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_beql) {
+    uintptr_t handler = (uintptr_t)mips_beql;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_bgtz) {
+    uintptr_t handler = (uintptr_t)mips_bgtz;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_bgtzl) {
+    uintptr_t handler = (uintptr_t)mips_bgtzl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_blez) {
+    uintptr_t handler = (uintptr_t)mips_blez;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_blezl) {
+    uintptr_t handler = (uintptr_t)mips_blezl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_bne) {
+    uintptr_t handler = (uintptr_t)mips_bne;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_bnel) {
+    uintptr_t handler = (uintptr_t)mips_bnel;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_cache) {
+    return false;
+}
+
+COMPILER(compile_mips_sb) {
+    uintptr_t handler = (uintptr_t)mips_sb;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_sh) {
+    uintptr_t handler = (uintptr_t)mips_sh;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_sw) {
+    uintptr_t handler = (uintptr_t)mips_sw;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_sd) {
+    uintptr_t handler = (uintptr_t)mips_sd;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_ori) {
+    uintptr_t handler = (uintptr_t)mips_ori;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_j) {
+    uintptr_t handler = (uintptr_t)mips_j;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_jal) {
+    uintptr_t handler = (uintptr_t)mips_jal;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return true;
+}
+
+COMPILER(compile_mips_slti) {
+    uintptr_t handler = (uintptr_t)mips_slti;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_sltiu) {
+    uintptr_t handler = (uintptr_t)mips_sltiu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_xori) {
+    uintptr_t handler = (uintptr_t)mips_xori;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_daddiu) {
+    uintptr_t handler = (uintptr_t)mips_daddiu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lb) {
+    uintptr_t handler = (uintptr_t)mips_lb;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_ldc1) {
+    uintptr_t handler = (uintptr_t)mips_ldc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_sdc1) {
+    uintptr_t handler = (uintptr_t)mips_sdc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lwc1) {
+    uintptr_t handler = (uintptr_t)mips_lwc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_swc1) {
+    uintptr_t handler = (uintptr_t)mips_swc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lwl) {
+    uintptr_t handler = (uintptr_t)mips_lwl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_lwr) {
+    uintptr_t handler = (uintptr_t)mips_lwr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_swl) {
+    uintptr_t handler = (uintptr_t)mips_swl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_swr) {
+    uintptr_t handler = (uintptr_t)mips_swr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_ldl) {
+    uintptr_t handler = (uintptr_t)mips_ldl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_ldr) {
+    uintptr_t handler = (uintptr_t)mips_ldr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_sdl) {
+    uintptr_t handler = (uintptr_t)mips_sdl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
+
+COMPILER(compile_mips_sdr) {
+    uintptr_t handler = (uintptr_t)mips_sdr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return false;
+}
 
 // returns true when the block should end
 bool emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    if (unlikely(instr.raw == 0)) {
+        return compile_mips_nop(Dst, instr, address);
+    }
+    switch (instr.op) {
+        case OPC_CP0:    //return r4300i_cp0_decode(pc, instr);
+        logfatal("emit cp0");
+        case OPC_CP1:    //return r4300i_cp1_decode(pc, instr);
+            logfatal("emit cp1");
+        case OPC_SPCL:   //return r4300i_special_decode(pc, instr);
+            logfatal("emit spcl");
+        case OPC_REGIMM: //return r4300i_regimm_decode(pc, instr);
+            logfatal("emit regimm");
+
+        case OPC_LD:     return compile_mips_ld(Dst, instr, address);
+        case OPC_LUI:    return compile_mips_lui(Dst, instr, address);
+        case OPC_ADDIU:  return compile_mips_addiu(Dst, instr, address);
+        case OPC_ADDI:   return compile_mips_addi(Dst, instr, address);
+        case OPC_DADDI:  return compile_mips_daddi(Dst, instr, address);
+        case OPC_ANDI:   return compile_mips_andi(Dst, instr, address);
+        case OPC_LBU:    return compile_mips_lbu(Dst, instr, address);
+        case OPC_LHU:    return compile_mips_lhu(Dst, instr, address);
+        case OPC_LH:     return compile_mips_lh(Dst, instr, address);
+        case OPC_LW:     return compile_mips_lw(Dst, instr, address);
+        case OPC_LWU:    return compile_mips_lwu(Dst, instr, address);
+        case OPC_BEQ:    return compile_mips_beq(Dst, instr, address);
+        case OPC_BEQL:   return compile_mips_beql(Dst, instr, address);
+        case OPC_BGTZ:   return compile_mips_bgtz(Dst, instr, address);
+        case OPC_BGTZL:  return compile_mips_bgtzl(Dst, instr, address);
+        case OPC_BLEZ:   return compile_mips_blez(Dst, instr, address);
+        case OPC_BLEZL:  return compile_mips_blezl(Dst, instr, address);
+        case OPC_BNE:    return compile_mips_bne(Dst, instr, address);
+        case OPC_BNEL:   return compile_mips_bnel(Dst, instr, address);
+        case OPC_CACHE:  return compile_mips_cache(Dst, instr, address);
+        case OPC_SB:     return compile_mips_sb(Dst, instr, address);
+        case OPC_SH:     return compile_mips_sh(Dst, instr, address);
+        case OPC_SW:     return compile_mips_sw(Dst, instr, address);
+        case OPC_SD:     return compile_mips_sd(Dst, instr, address);
+        case OPC_ORI:    return compile_mips_ori(Dst, instr, address);
+        case OPC_J:      return compile_mips_j(Dst, instr, address);
+        case OPC_JAL:    return compile_mips_jal(Dst, instr, address);
+        case OPC_SLTI:   return compile_mips_slti(Dst, instr, address);
+        case OPC_SLTIU:  return compile_mips_sltiu(Dst, instr, address);
+        case OPC_XORI:   return compile_mips_xori(Dst, instr, address);
+        case OPC_DADDIU: return compile_mips_daddiu(Dst, instr, address);
+        case OPC_LB:     return compile_mips_lb(Dst, instr, address);
+        case OPC_LDC1:   return compile_mips_ldc1(Dst, instr, address);
+        case OPC_SDC1:   return compile_mips_sdc1(Dst, instr, address);
+        case OPC_LWC1:   return compile_mips_lwc1(Dst, instr, address);
+        case OPC_SWC1:   return compile_mips_swc1(Dst, instr, address);
+        case OPC_LWL:    return compile_mips_lwl(Dst, instr, address);
+        case OPC_LWR:    return compile_mips_lwr(Dst, instr, address);
+        case OPC_SWL:    return compile_mips_swl(Dst, instr, address);
+        case OPC_SWR:    return compile_mips_swr(Dst, instr, address);
+        case OPC_LDL:    return compile_mips_ldl(Dst, instr, address);
+        case OPC_LDR:    return compile_mips_ldr(Dst, instr, address);
+        case OPC_SDL:    return compile_mips_sdl(Dst, instr, address);
+        case OPC_SDR:    return compile_mips_sdr(Dst, instr, address);
+        default:
+#ifdef LOG_ENABLED
+            if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
+                disassemble(pc, instr.raw, buf, 50);
+            }
+            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+#else
+            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d]",
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
+#endif
+    }
     uintptr_t handler = (uintptr_t)r4300i_instruction_decode(address, instr);
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it in rax first
