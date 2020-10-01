@@ -1163,8 +1163,12 @@ dynarec_instruction_category_t emit_instruction(dasm_State** Dst, mips_instructi
     return true;
 }
 
-void pre_instruction(r4300i_t* cpu) {
-    printf("0x%08X\n", cpu->pc);
+void pre_instruction(r4300i_t* cpu, word expected_address) {
+    printf("0x%08X expected 0x%08X\n", cpu->pc, expected_address);
+    word actual_address = resolve_virtual_address(cpu->pc, &cpu->cp0);
+    if (actual_address != expected_address) {
+        logfatal("Executing at 0x%08X when we should be at 0x%08X!\n", actual_address, expected_address);
+    }
     cpu->branch = false;
     cpu->prev_pc = cpu->pc;
     cpu->pc = cpu->next_pc;
@@ -1206,11 +1210,11 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
 
         word next_physical_address = physical_address + 4;
 
-        | prepcall1 cpuState
+        | prepcall2 cpuState, physical_address
         // x86 cannot call a 64 bit immediate, put it into rax first
         | mov64 rax, pre_instruction_ptr
         | call rax
-        | postcall 1
+        | postcall 2
 
         instructions_left_in_block--;
         bool instr_ends_block;
