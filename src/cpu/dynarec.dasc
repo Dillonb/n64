@@ -1322,6 +1322,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
                 // If the previous instruction was a branch, exit the block early if
 
                 // If the previous instruction was a branch LIKELY, exit the block early if the _previous branch_
+                instr_ends_block = false;
                 instructions_left_in_block = 1; // emit delay slot
                 break;
 
@@ -1342,6 +1343,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
                     |1:
                 }
 
+                instr_ends_block = false;
                 instructions_left_in_block = 1; // emit delay slot
                 break;
             case ERET:
