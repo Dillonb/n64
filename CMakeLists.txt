@@ -1,6 +1,21 @@
 cmake_minimum_required (VERSION 3.10)
+
+message("Detecting system: ${CMAKE_HOST_SYSTEM_NAME}")
+if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
+    set(MACOSX TRUE)
+endif()
+
 ADD_COMPILE_OPTIONS(-Wall -march=native) # TODO: just add required arch extensions instead of doing =native
-ADD_LINK_OPTIONS(-export-dynamic)
+
+if (MACOSX)
+    message("Building on MacOS")
+    ADD_COMPILE_DEFINITIONS(N64_MACOS)
+else()
+    message("Building on Linux? TODO: detect windows")
+    ADD_LINK_OPTIONS(-export-dynamic) # TODO this works on GCC, need to figure out something for clang on Linux
+endif()
+# Uncomment me if building on a big endian system (good luck!)
+# ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
 project (N64)
 set(N64_TARGET n64)
 set(CMAKE_BUILD_TYPE Debug)

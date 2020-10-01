@@ -1,7 +1,12 @@
 #include "rdp.h"
 
 #include <dlfcn.h>
+#ifdef N64_MACOS
+#include <limits.h>
+#else
 #include <linux/limits.h>
+
+#endif
 #include <stdbool.h>
 
 #include "mupen_interface.h"

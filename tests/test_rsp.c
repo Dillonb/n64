@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#ifdef N64_MACOS
+#include <limits.h>
+#else
 #include <linux/limits.h>
+#endif
 #include <bzlib.h>
 #include <system/n64system.h>
 #include <cpu/rsp.h>

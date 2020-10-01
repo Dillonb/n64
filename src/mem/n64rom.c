@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <log.h>
 #include "n64rom.h"
+#include "mem_util.h"
 
 void load_n64rom(n64_rom_t* rom, const char* path) {
     FILE *fp = fopen(path, "rb");
