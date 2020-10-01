@@ -29,6 +29,9 @@
     |.define rArg1, rdi
     |.define rArg2, rsi
   |.endif
+  |.macro prepcall1, arg1
+    | mov rArg1, arg1
+  |.endmacro
   |.macro prepcall2, arg1, arg2
     | mov rArg1, arg1
     | mov rArg2, arg2
@@ -94,10 +97,12 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
 #define COMPILER(name) bool name(dasm_State** Dst, mips_instruction_t instr, word address)
 
 COMPILER(compile_mips_nop) {
+    printf("Compiling compile_mips_nop\n");
     return false;
 }
 
 COMPILER(compile_mips_ld) {
+    printf("Compiling compile_mips_ld\n");
     uintptr_t handler = (uintptr_t)mips_ld;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -108,6 +113,7 @@ COMPILER(compile_mips_ld) {
 }
 
 COMPILER(compile_mips_lui) {
+    printf("Compiling compile_mips_lui\n");
     uintptr_t handler = (uintptr_t)mips_lui;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -118,6 +124,7 @@ COMPILER(compile_mips_lui) {
 }
 
 COMPILER(compile_mips_addiu) {
+    printf("Compiling compile_mips_addiu\n");
     uintptr_t handler = (uintptr_t)mips_addiu;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -128,6 +135,7 @@ COMPILER(compile_mips_addiu) {
 }
 
 COMPILER(compile_mips_addi) {
+    printf("Compiling compile_mips_addi\n");
     uintptr_t handler = (uintptr_t)mips_addi;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -138,6 +146,7 @@ COMPILER(compile_mips_addi) {
 }
 
 COMPILER(compile_mips_daddi) {
+    printf("Compiling compile_mips_daddi\n");
     uintptr_t handler = (uintptr_t)mips_daddi;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -148,6 +157,7 @@ COMPILER(compile_mips_daddi) {
 }
 
 COMPILER(compile_mips_andi) {
+    printf("Compiling compile_mips_andi\n");
     uintptr_t handler = (uintptr_t)mips_andi;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -158,6 +168,7 @@ COMPILER(compile_mips_andi) {
 }
 
 COMPILER(compile_mips_lbu) {
+    printf("Compiling compile_mips_lbu\n");
     uintptr_t handler = (uintptr_t)mips_lbu;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -168,6 +179,7 @@ COMPILER(compile_mips_lbu) {
 }
 
 COMPILER(compile_mips_lhu) {
+    printf("Compiling compile_mips_lhu\n");
     uintptr_t handler = (uintptr_t)mips_lhu;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -178,6 +190,7 @@ COMPILER(compile_mips_lhu) {
 }
 
 COMPILER(compile_mips_lh) {
+    printf("Compiling compile_mips_lh\n");
     uintptr_t handler = (uintptr_t)mips_lh;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -188,6 +201,7 @@ COMPILER(compile_mips_lh) {
 }
 
 COMPILER(compile_mips_lw) {
+    printf("Compiling compile_mips_lw\n");
     uintptr_t handler = (uintptr_t)mips_lw;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -198,6 +212,7 @@ COMPILER(compile_mips_lw) {
 }
 
 COMPILER(compile_mips_lwu) {
+    printf("Compiling compile_mips_lwu\n");
     uintptr_t handler = (uintptr_t)mips_lwu;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -208,6 +223,7 @@ COMPILER(compile_mips_lwu) {
 }
 
 COMPILER(compile_mips_beq) {
+    printf("Compiling compile_mips_beq\n");
     uintptr_t handler = (uintptr_t)mips_beq;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -218,6 +234,7 @@ COMPILER(compile_mips_beq) {
 }
 
 COMPILER(compile_mips_beql) {
+    printf("Compiling compile_mips_beql\n");
     uintptr_t handler = (uintptr_t)mips_beql;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -228,6 +245,7 @@ COMPILER(compile_mips_beql) {
 }
 
 COMPILER(compile_mips_bgtz) {
+    printf("Compiling compile_mips_bgtz\n");
     uintptr_t handler = (uintptr_t)mips_bgtz;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -238,6 +256,7 @@ COMPILER(compile_mips_bgtz) {
 }
 
 COMPILER(compile_mips_bgtzl) {
+    printf("Compiling compile_mips_bgtzl\n");
     uintptr_t handler = (uintptr_t)mips_bgtzl;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -248,6 +267,7 @@ COMPILER(compile_mips_bgtzl) {
 }
 
 COMPILER(compile_mips_blez) {
+    printf("Compiling compile_mips_blez\n");
     uintptr_t handler = (uintptr_t)mips_blez;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -258,6 +278,7 @@ COMPILER(compile_mips_blez) {
 }
 
 COMPILER(compile_mips_blezl) {
+    printf("Compiling compile_mips_blezl\n");
     uintptr_t handler = (uintptr_t)mips_blezl;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -268,6 +289,7 @@ COMPILER(compile_mips_blezl) {
 }
 
 COMPILER(compile_mips_bne) {
+    printf("Compiling compile_mips_bne\n");
     uintptr_t handler = (uintptr_t)mips_bne;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -278,6 +300,7 @@ COMPILER(compile_mips_bne) {
 }
 
 COMPILER(compile_mips_bnel) {
+    printf("Compiling compile_mips_bnel\n");
     uintptr_t handler = (uintptr_t)mips_bnel;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -288,10 +311,12 @@ COMPILER(compile_mips_bnel) {
 }
 
 COMPILER(compile_mips_cache) {
+    printf("Compiling compile_mips_cache\n");
     return false;
 }
 
 COMPILER(compile_mips_sb) {
+    printf("Compiling compile_mips_sb\n");
     uintptr_t handler = (uintptr_t)mips_sb;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -302,6 +327,7 @@ COMPILER(compile_mips_sb) {
 }
 
 COMPILER(compile_mips_sh) {
+    printf("Compiling compile_mips_sh\n");
     uintptr_t handler = (uintptr_t)mips_sh;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -312,6 +338,7 @@ COMPILER(compile_mips_sh) {
 }
 
 COMPILER(compile_mips_sw) {
+    printf("Compiling compile_mips_sw\n");
     uintptr_t handler = (uintptr_t)mips_sw;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -322,6 +349,7 @@ COMPILER(compile_mips_sw) {
 }
 
 COMPILER(compile_mips_sd) {
+    printf("Compiling compile_mips_sd\n");
     uintptr_t handler = (uintptr_t)mips_sd;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -332,6 +360,7 @@ COMPILER(compile_mips_sd) {
 }
 
 COMPILER(compile_mips_ori) {
+    printf("Compiling compile_mips_ori\n");
     uintptr_t handler = (uintptr_t)mips_ori;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -342,6 +371,7 @@ COMPILER(compile_mips_ori) {
 }
 
 COMPILER(compile_mips_j) {
+    printf("Compiling compile_mips_j\n");
     uintptr_t handler = (uintptr_t)mips_j;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -352,6 +382,7 @@ COMPILER(compile_mips_j) {
 }
 
 COMPILER(compile_mips_jal) {
+    printf("Compiling compile_mips_jal\n");
     uintptr_t handler = (uintptr_t)mips_jal;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -362,6 +393,7 @@ COMPILER(compile_mips_jal) {
 }
 
 COMPILER(compile_mips_slti) {
+    printf("Compiling compile_mips_slti\n");
     uintptr_t handler = (uintptr_t)mips_slti;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -372,6 +404,7 @@ COMPILER(compile_mips_slti) {
 }
 
 COMPILER(compile_mips_sltiu) {
+    printf("Compiling compile_mips_sltiu\n");
     uintptr_t handler = (uintptr_t)mips_sltiu;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -382,6 +415,7 @@ COMPILER(compile_mips_sltiu) {
 }
 
 COMPILER(compile_mips_xori) {
+    printf("Compiling compile_mips_xori\n");
     uintptr_t handler = (uintptr_t)mips_xori;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -392,6 +426,7 @@ COMPILER(compile_mips_xori) {
 }
 
 COMPILER(compile_mips_daddiu) {
+    printf("Compiling compile_mips_daddiu\n");
     uintptr_t handler = (uintptr_t)mips_daddiu;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -402,6 +437,7 @@ COMPILER(compile_mips_daddiu) {
 }
 
 COMPILER(compile_mips_lb) {
+    printf("Compiling compile_mips_lb\n");
     uintptr_t handler = (uintptr_t)mips_lb;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -412,6 +448,7 @@ COMPILER(compile_mips_lb) {
 }
 
 COMPILER(compile_mips_ldc1) {
+    printf("Compiling compile_mips_ldc1\n");
     uintptr_t handler = (uintptr_t)mips_ldc1;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -422,6 +459,7 @@ COMPILER(compile_mips_ldc1) {
 }
 
 COMPILER(compile_mips_sdc1) {
+    printf("Compiling compile_mips_sdc1\n");
     uintptr_t handler = (uintptr_t)mips_sdc1;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -432,6 +470,7 @@ COMPILER(compile_mips_sdc1) {
 }
 
 COMPILER(compile_mips_lwc1) {
+    printf("Compiling compile_mips_lwc1\n");
     uintptr_t handler = (uintptr_t)mips_lwc1;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -442,6 +481,7 @@ COMPILER(compile_mips_lwc1) {
 }
 
 COMPILER(compile_mips_swc1) {
+    printf("Compiling compile_mips_swc1\n");
     uintptr_t handler = (uintptr_t)mips_swc1;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -452,6 +492,7 @@ COMPILER(compile_mips_swc1) {
 }
 
 COMPILER(compile_mips_lwl) {
+    printf("Compiling compile_mips_lwl\n");
     uintptr_t handler = (uintptr_t)mips_lwl;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -462,6 +503,7 @@ COMPILER(compile_mips_lwl) {
 }
 
 COMPILER(compile_mips_lwr) {
+    printf("Compiling compile_mips_lwr\n");
     uintptr_t handler = (uintptr_t)mips_lwr;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -472,6 +514,7 @@ COMPILER(compile_mips_lwr) {
 }
 
 COMPILER(compile_mips_swl) {
+    printf("Compiling compile_mips_swl\n");
     uintptr_t handler = (uintptr_t)mips_swl;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -482,6 +525,7 @@ COMPILER(compile_mips_swl) {
 }
 
 COMPILER(compile_mips_swr) {
+    printf("Compiling compile_mips_swr\n");
     uintptr_t handler = (uintptr_t)mips_swr;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -492,6 +536,7 @@ COMPILER(compile_mips_swr) {
 }
 
 COMPILER(compile_mips_ldl) {
+    printf("Compiling compile_mips_ldl\n");
     uintptr_t handler = (uintptr_t)mips_ldl;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -502,6 +547,7 @@ COMPILER(compile_mips_ldl) {
 }
 
 COMPILER(compile_mips_ldr) {
+    printf("Compiling compile_mips_ldr\n");
     uintptr_t handler = (uintptr_t)mips_ldr;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -512,6 +558,7 @@ COMPILER(compile_mips_ldr) {
 }
 
 COMPILER(compile_mips_sdl) {
+    printf("Compiling compile_mips_sdl\n");
     uintptr_t handler = (uintptr_t)mips_sdl;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -522,6 +569,7 @@ COMPILER(compile_mips_sdl) {
 }
 
 COMPILER(compile_mips_sdr) {
+    printf("Compiling compile_mips_sdr\n");
     uintptr_t handler = (uintptr_t)mips_sdr;
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -532,6 +580,7 @@ COMPILER(compile_mips_sdr) {
 }
 
 COMPILER(compile_mips_mfc0) {
+    printf("Compiling compile_mips_mfc0\n");
     uintptr_t handler = (uintptr_t) mips_mfc0;
     | prepcall2 cpuState, instr
     // x86 cannot call a 64 bit immediate, put it into rax first
@@ -542,6 +591,7 @@ COMPILER(compile_mips_mfc0) {
 }
 
 COMPILER(compile_mips_mtc0) {
+    printf("Compiling compile_mips_mtc0\n");
     uintptr_t handler = (uintptr_t) mips_mtc0;
     | prepcall2 cpuState, instr
     // x86 cannot call a 64 bit immediate, put it into rax first
@@ -552,6 +602,7 @@ COMPILER(compile_mips_mtc0) {
 }
 
 COMPILER(compile_mips_tlbwi) {
+    printf("Compiling compile_mips_tlbwi\n");
     uintptr_t handler = (uintptr_t) mips_tlbwi;
     | prepcall2 cpuState, instr
     // x86 cannot call a 64 bit immediate, put it into rax first
@@ -562,6 +613,7 @@ COMPILER(compile_mips_tlbwi) {
 }
 
 COMPILER(compile_mips_tlbp) {
+    printf("Compiling compile_mips_tlbp\n");
     uintptr_t handler = (uintptr_t) mips_tlbp;
     | prepcall2 cpuState, instr
     // x86 cannot call a 64 bit immediate, put it into rax first
@@ -572,6 +624,7 @@ COMPILER(compile_mips_tlbp) {
 }
 
 COMPILER(compile_mips_eret) {
+    printf("Compiling compile_mips_eret\n");
     uintptr_t handler = (uintptr_t) mips_eret;
     | prepcall2 cpuState, instr
     // x86 cannot call a 64 bit immediate, put it into rax first
@@ -695,6 +748,14 @@ bool emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) 
     return true;
 }
 
+void pre_instruction(r4300i_t* cpu) {
+    printf("0x%08X\n", cpu->pc);
+    cpu->branch = false;
+    cpu->prev_pc = cpu->pc;
+    cpu->pc = cpu->next_pc;
+    cpu->next_pc += 4;
+}
+
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
 
     dasm_State* d;
@@ -710,25 +771,36 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     |.actionlist actions
     dasm_setup(&d, actions);
 
-    mips_instruction_t instr;
-    instr.raw = n64_read_physical_word(physical_address);
-
     |.type cpu_state, r4300i_t, cpuState
     dasm_State** Dst = &d;
 
     bool should_continue_block = true;
     int block_length = 0;
 
+    uintptr_t pre_instruction_ptr = (uintptr_t)pre_instruction;
+
+    printf("Startin' ta emit\n");
     |.code
     |->compiled_block:
     | prologue
     do {
+        mips_instruction_t instr;
+        instr.raw = n64_read_physical_word(physical_address);
+
         word next_physical_address = physical_address + 4;
+
+        | prepcall1 cpuState
+        // x86 cannot call a 64 bit immediate, put it into rax first
+        | mov64 rax, pre_instruction_ptr
+        | call rax
+        | postcall 1
+
         bool instr_ends_block = emit_instruction(Dst, instr, physical_address);
         block_length++;
-        bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) != 0;
+        bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0;
 
         if (instr_ends_block || page_boundary_ends_block) {
+            printf("Ending block. instr: %d pb: %d (0x%08X)\n", instr_ends_block, page_boundary_ends_block, next_physical_address);
             should_continue_block = false;
         }
 
@@ -766,11 +838,9 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
         compile_new_block(dynarec, &system->cpu, block, system->cpu.pc, physical);
     }
 
-    system->cpu.branch = false;
-    system->cpu.prev_pc = system->cpu.pc;
-    system->cpu.pc = system->cpu.next_pc;
-    system->cpu.next_pc += 4;
+    printf("Running block 0x%08X\n", system->cpu.pc);
     block->run(&system->cpu);
+    printf("Done running block 0x%08X\n", system->cpu.pc);
 
     return block->length * CYCLES_PER_INSTR;
 }
