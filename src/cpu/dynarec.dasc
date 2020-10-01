@@ -1004,8 +1004,63 @@ COMPILER(compile_mips_spc_dsra32) {
     return NORMAL;
 }
 
+COMPILER(compile_mips_ri_bltz) {
+    printf("Compiling mips_ri_bltz\n");
+    uintptr_t handler = (uintptr_t)mips_ri_bltz;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
 
-dynarec_instruction_category_t emit_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+COMPILER(compile_mips_ri_bltzl) {
+    printf("Compiling mips_ri_bltzl\n");
+    uintptr_t handler = (uintptr_t)mips_ri_bltz;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_ri_bgez) {
+    printf("Compiling mips_ri_bgez\n");
+    uintptr_t handler = (uintptr_t)mips_ri_bgez;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_ri_bgezl) {
+    printf("Compiling mips_ri_bgezl\n");
+    uintptr_t handler = (uintptr_t)mips_ri_bgezl;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_ri_bgezal) {
+    printf("Compiling mips_ri_bgezal\n");
+    uintptr_t handler = (uintptr_t)mips_ri_bgezal;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+
+dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MF:
@@ -1040,7 +1095,7 @@ dynarec_instruction_category_t emit_cp0_instruction(dasm_State** Dst, mips_instr
     }
 }
 
-INLINE dynarec_instruction_category_t emit_special_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return compile_mips_spc_sll(Dst, instr, address);
         case FUNCT_SRL:    return compile_mips_spc_srl(Dst, instr, address);
@@ -1085,18 +1140,33 @@ INLINE dynarec_instruction_category_t emit_special_instruction(dasm_State** Dst,
     }
 }
 
+INLINE dynarec_instruction_category_t compile_regimm_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    switch (instr.i.rt) {
+        case RT_BLTZ:   return compile_mips_ri_bltz(Dst, instr, address);
+        case RT_BLTZL:  return compile_mips_ri_bltzl(Dst, instr, address);
+        case RT_BGEZ:   return compile_mips_ri_bgez(Dst, instr, address);
+        case RT_BGEZL:  return compile_mips_ri_bgezl(Dst, instr, address);
+        case RT_BGEZAL: return compile_mips_ri_bgezal(Dst, instr, address);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
+        }
+    }
+}
+
 // returns true when the block should end
-dynarec_instruction_category_t emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
     if (unlikely(instr.raw == 0)) {
         return compile_mips_nop(Dst, instr, address);
     }
     switch (instr.op) {
-        case OPC_CP0:    return emit_cp0_instruction(Dst, instr, address);
+        case OPC_CP0:    return compile_cp0_instruction(Dst, instr, address);
         case OPC_CP1:    //return r4300i_cp1_decode(pc, instr);
             logfatal("emit cp1");
-        case OPC_SPCL:   return emit_special_instruction(Dst, instr, address);
-        case OPC_REGIMM: //return r4300i_regimm_decode(pc, instr);
-            logfatal("emit regimm");
+        case OPC_SPCL:   return compile_special_instruction(Dst, instr, address);
+        case OPC_REGIMM: return compile_regimm_instruction(Dst, instr, address);
 
         case OPC_LD:     return compile_mips_ld(Dst, instr, address);
         case OPC_LUI:    return compile_mips_lui(Dst, instr, address);
@@ -1223,7 +1293,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
         instructions_left_in_block--;
         bool instr_ends_block;
 
-        dynarec_instruction_category_t category = emit_instruction(Dst, instr, physical_address);
+        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address);
         block_length++;
 
         switch (category) {
