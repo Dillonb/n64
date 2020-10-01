@@ -874,7 +874,7 @@ COMPILER(compile_mips_spc_addu) {
 
 COMPILER(compile_mips_spc_and) {
     printf("Compiling mips_spc_and\n");
-    uintptr_t handler = (uintptr_t)mips_spc_addu;
+    uintptr_t handler = (uintptr_t)mips_spc_and;
     | prepcall2 cpuState, instr
     // x86 cannot call a 64 bit immediate, put it into rax first
     | mov64 rax, handler
@@ -885,7 +885,7 @@ COMPILER(compile_mips_spc_and) {
 
 COMPILER(compile_mips_spc_nor) {
     printf("Compiling mips_spc_nor\n");
-    uintptr_t handler = (uintptr_t)mips_spc_addu;
+    uintptr_t handler = (uintptr_t)mips_spc_nor;
     | prepcall2 cpuState, instr
     // x86 cannot call a 64 bit immediate, put it into rax first
     | mov64 rax, handler
