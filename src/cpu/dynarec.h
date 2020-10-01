@@ -10,6 +10,19 @@
 // word aligned instructions
 #define BLOCKCACHE_INNER_SIZE (BLOCKCACHE_PAGE_SIZE >> 2)
 
+typedef enum dynarec_instruction_category {
+    NORMAL,
+    // Might cause an interrupt, so end the block
+    STORE,
+    // emit the delay slot, always, then end the block.
+    BRANCH,
+    // emit the delay slot wrapped in a conditional, then end the block.
+    BRANCH_LIKELY,
+    // Special cases
+    TLB_WRITE,
+    ERET
+} dynarec_instruction_category_t;
+
 typedef struct n64_dynarec_block {
     word start_address;
     word length;

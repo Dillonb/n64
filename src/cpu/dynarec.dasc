@@ -56,10 +56,6 @@
     |.endmacro
 |.endif // TODO x86 version? ARM version?
 
-
-
-
-
 void* bumpalloc(n64_dynarec_t* dynarec, size_t size) {
     if (dynarec->codecache_used + size >= dynarec->codecache_size) {
         logfatal("Exhausted code cache!");
@@ -94,11 +90,11 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
     return buf;
 }
 
-#define COMPILER(name) bool name(dasm_State** Dst, mips_instruction_t instr, word address)
+#define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
 
 COMPILER(compile_mips_nop) {
     printf("Compiling mips_nop\n");
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_ld) {
@@ -109,7 +105,7 @@ COMPILER(compile_mips_ld) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lui) {
@@ -120,7 +116,7 @@ COMPILER(compile_mips_lui) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_addiu) {
@@ -131,7 +127,7 @@ COMPILER(compile_mips_addiu) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_addi) {
@@ -142,7 +138,7 @@ COMPILER(compile_mips_addi) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_daddi) {
@@ -153,7 +149,7 @@ COMPILER(compile_mips_daddi) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_andi) {
@@ -164,7 +160,7 @@ COMPILER(compile_mips_andi) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lbu) {
@@ -175,7 +171,7 @@ COMPILER(compile_mips_lbu) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lhu) {
@@ -186,7 +182,7 @@ COMPILER(compile_mips_lhu) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lh) {
@@ -197,7 +193,7 @@ COMPILER(compile_mips_lh) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lw) {
@@ -208,7 +204,7 @@ COMPILER(compile_mips_lw) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lwu) {
@@ -219,7 +215,7 @@ COMPILER(compile_mips_lwu) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_beq) {
@@ -230,7 +226,7 @@ COMPILER(compile_mips_beq) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH;
 }
 
 COMPILER(compile_mips_beql) {
@@ -241,7 +237,7 @@ COMPILER(compile_mips_beql) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH_LIKELY;
 }
 
 COMPILER(compile_mips_bgtz) {
@@ -252,7 +248,7 @@ COMPILER(compile_mips_bgtz) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH;
 }
 
 COMPILER(compile_mips_bgtzl) {
@@ -263,7 +259,7 @@ COMPILER(compile_mips_bgtzl) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH_LIKELY;
 }
 
 COMPILER(compile_mips_blez) {
@@ -274,7 +270,7 @@ COMPILER(compile_mips_blez) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH;
 }
 
 COMPILER(compile_mips_blezl) {
@@ -285,7 +281,7 @@ COMPILER(compile_mips_blezl) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH_LIKELY;
 }
 
 COMPILER(compile_mips_bne) {
@@ -296,7 +292,7 @@ COMPILER(compile_mips_bne) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH;
 }
 
 COMPILER(compile_mips_bnel) {
@@ -307,12 +303,12 @@ COMPILER(compile_mips_bnel) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH_LIKELY;
 }
 
 COMPILER(compile_mips_cache) {
     printf("Compiling mips_cache\n");
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_sb) {
@@ -323,7 +319,7 @@ COMPILER(compile_mips_sb) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_sh) {
@@ -334,7 +330,7 @@ COMPILER(compile_mips_sh) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_sw) {
@@ -345,7 +341,7 @@ COMPILER(compile_mips_sw) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_sd) {
@@ -356,7 +352,7 @@ COMPILER(compile_mips_sd) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_ori) {
@@ -367,7 +363,7 @@ COMPILER(compile_mips_ori) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_j) {
@@ -378,7 +374,7 @@ COMPILER(compile_mips_j) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH;
 }
 
 COMPILER(compile_mips_jal) {
@@ -389,7 +385,7 @@ COMPILER(compile_mips_jal) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return BRANCH;
 }
 
 COMPILER(compile_mips_slti) {
@@ -400,7 +396,7 @@ COMPILER(compile_mips_slti) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_sltiu) {
@@ -411,7 +407,7 @@ COMPILER(compile_mips_sltiu) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_xori) {
@@ -422,7 +418,7 @@ COMPILER(compile_mips_xori) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_daddiu) {
@@ -433,7 +429,7 @@ COMPILER(compile_mips_daddiu) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lb) {
@@ -444,7 +440,7 @@ COMPILER(compile_mips_lb) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_ldc1) {
@@ -455,7 +451,7 @@ COMPILER(compile_mips_ldc1) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_sdc1) {
@@ -466,7 +462,7 @@ COMPILER(compile_mips_sdc1) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_lwc1) {
@@ -477,7 +473,7 @@ COMPILER(compile_mips_lwc1) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_swc1) {
@@ -488,7 +484,7 @@ COMPILER(compile_mips_swc1) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_lwl) {
@@ -499,7 +495,7 @@ COMPILER(compile_mips_lwl) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_lwr) {
@@ -510,7 +506,7 @@ COMPILER(compile_mips_lwr) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_swl) {
@@ -521,7 +517,7 @@ COMPILER(compile_mips_swl) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_swr) {
@@ -532,7 +528,7 @@ COMPILER(compile_mips_swr) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_ldl) {
@@ -543,7 +539,7 @@ COMPILER(compile_mips_ldl) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_ldr) {
@@ -554,7 +550,7 @@ COMPILER(compile_mips_ldr) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_sdl) {
@@ -565,7 +561,7 @@ COMPILER(compile_mips_sdl) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_sdr) {
@@ -576,7 +572,7 @@ COMPILER(compile_mips_sdr) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return STORE;
 }
 
 COMPILER(compile_mips_mfc0) {
@@ -587,7 +583,7 @@ COMPILER(compile_mips_mfc0) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_mtc0) {
@@ -598,7 +594,7 @@ COMPILER(compile_mips_mtc0) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_tlbwi) {
@@ -609,7 +605,7 @@ COMPILER(compile_mips_tlbwi) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return TLB_WRITE;
 }
 
 COMPILER(compile_mips_tlbp) {
@@ -620,7 +616,7 @@ COMPILER(compile_mips_tlbp) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return false;
+    return NORMAL;
 }
 
 COMPILER(compile_mips_eret) {
@@ -631,7 +627,7 @@ COMPILER(compile_mips_eret) {
     | mov64 rax, handler
     | call rax
     | postcall 2
-    return true;
+    return ERET;
 }
 
 bool emit_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
@@ -670,7 +666,7 @@ bool emit_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word addre
 }
 
 // returns true when the block should end
-bool emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+dynarec_instruction_category_t emit_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
     if (unlikely(instr.raw == 0)) {
         return compile_mips_nop(Dst, instr, address);
     }
@@ -779,6 +775,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
 
     uintptr_t pre_instruction_ptr = (uintptr_t)pre_instruction;
 
+    int instructions_left_in_block = -1;
+
     printf("Startin' ta emit\n");
     |.code
     |->compiled_block:
@@ -795,7 +793,29 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
         | call rax
         | postcall 1
 
-        bool instr_ends_block = emit_instruction(Dst, instr, physical_address);
+        instructions_left_in_block--;
+        bool instr_ends_block;
+
+        switch (emit_instruction(Dst, instr, physical_address)) {
+            case NORMAL:
+                instr_ends_block = instructions_left_in_block == 0;
+                break; // the "instructions_left_in_block" check got
+            case BRANCH:
+                instructions_left_in_block = 1; // emit delay slot
+                break;
+
+            case BRANCH_LIKELY:
+                logfatal("oh god help me");
+
+            case ERET:
+            case TLB_WRITE:
+            case STORE:
+                instr_ends_block = true;
+                break;
+
+            default:
+                logfatal("Unknown dynarec instruction type");
+        }
         block_length++;
         bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0;
 
