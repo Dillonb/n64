@@ -1281,9 +1281,11 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
         compile_new_block(dynarec, &system->cpu, block, system->cpu.pc, physical);
     }
 
-    printf("Running block 0x%08X\n", system->cpu.pc);
+    static int total_blocks_run = 0;
+
+    printf("Running block at 0x%08X (block run #%d)\n", system->cpu.pc, ++total_blocks_run);
     block->run(&system->cpu);
-    printf("Done running block 0x%08X\n", system->cpu.pc);
+    printf("Done running block - pc is now 0x%08X\n", system->cpu.pc);
 
     return block->length * CYCLES_PER_INSTR;
 }
