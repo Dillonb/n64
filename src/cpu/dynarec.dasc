@@ -1164,8 +1164,8 @@ dynarec_instruction_category_t emit_instruction(dasm_State** Dst, mips_instructi
 }
 
 void pre_instruction(r4300i_t* cpu, word expected_address) {
-    printf("0x%08X expected 0x%08X\n", cpu->pc, expected_address);
     word actual_address = resolve_virtual_address(cpu->pc, &cpu->cp0);
+    printf("0x%08X expected 0x%08X\n", actual_address, expected_address);
     if (actual_address != expected_address) {
         logfatal("Executing at 0x%08X when we should be at 0x%08X!\n", actual_address, expected_address);
     }
@@ -1178,6 +1178,7 @@ void pre_instruction(r4300i_t* cpu, word expected_address) {
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
 
     dasm_State* d;
+    unsigned npc = 8; // number of dynamic labels
 
     |.section code
     dasm_init(&d, DASM_MAXSECTION);
@@ -1189,6 +1190,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
 
     |.actionlist actions
     dasm_setup(&d, actions);
+    dasm_growpc(&d, npc);
 
     |.type cpu_state, r4300i_t, cpuState
     dasm_State** Dst = &d;
@@ -1199,6 +1201,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     uintptr_t pre_instruction_ptr = (uintptr_t)pre_instruction;
 
     int instructions_left_in_block = -1;
+
+    dynarec_instruction_category_t prev_instr_category = NORMAL;
 
     printf("Startin' ta emit\n");
     |.code
@@ -1219,17 +1223,57 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
         instructions_left_in_block--;
         bool instr_ends_block;
 
-        switch (emit_instruction(Dst, instr, physical_address)) {
+        dynarec_instruction_category_t category = emit_instruction(Dst, instr, physical_address);
+        block_length++;
+
+        switch (category) {
             case NORMAL:
                 instr_ends_block = instructions_left_in_block == 0;
                 break; // the "instructions_left_in_block" check got
             case BRANCH:
+                // If the
+                if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
+                    // Check if the previous branch was taken.
+
+                    // If the last branch wasn't taken, we can treat this the same as if the previous instruction wasn't a branch
+                    // just set the cpu->last_branch_taken to cpu->branch_taken and execute the next instruction.
+
+
+                    // emit:
+                    // if (!cpu->last_branch_taken) cpu->last_branch_taken = cpu->branch_taken;
+                    logfatal("unimp");
+                } else {
+                    // If the last instruction wasn't a branch, no special behavior is needed. Just set up some state in case the next one is.
+                    // emit:
+                    // cpu->last_branch_taken = cpu->branch_taken;
+                    //logfatal("unimp");
+                }
+
+                // If the previous instruction was a branch, exit the block early if
+
+                // If the previous instruction was a branch LIKELY, exit the block early if the _previous branch_
                 instructions_left_in_block = 1; // emit delay slot
                 break;
 
             case BRANCH_LIKELY:
-                logfatal("oh god help me");
+                // If the previous instruction was a branch:
+                //
+                if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
+                    logfatal("oh god help me");
+                } else {
+                    static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1 by this generated code!");
+                    // If it wasn't taken, end the block.
+                    // If it was taken, don't end the block, need to execute delay slot
+                    | mov al, cpu_state->branch
+                    | cmp al, 0 // if (branch == true)
+                    | jne >1
+                    | mov rax, block_length
+                    | epilogue // return block_length
+                    |1:
+                }
 
+                instructions_left_in_block = 1; // emit delay slot
+                break;
             case ERET:
             case TLB_WRITE:
             case STORE:
@@ -1239,7 +1283,6 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
             default:
                 logfatal("Unknown dynarec instruction type");
         }
-        block_length++;
         bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0;
 
         if (instr_ends_block || page_boundary_ends_block) {
@@ -1248,6 +1291,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
         }
 
         physical_address = next_physical_address;
+        prev_instr_category = category;
     } while (should_continue_block);
     | epilogue
 
