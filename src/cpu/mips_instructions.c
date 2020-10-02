@@ -74,7 +74,6 @@ MIPS_INSTR(mips_addiu) {
     word reg_addend = get_register(cpu, instruction.i.rs);
     shalf addend = instruction.i.immediate;
     sword result = reg_addend + addend;
-    printf("r%d %d + %d = r%d %d\n", instruction.i.rs, reg_addend, addend, instruction.i.rt, result);
 
     set_register(cpu, instruction.i.rt, (sdword)result);
 }
@@ -123,7 +122,6 @@ MIPS_INSTR(mips_blezl) {
 }
 
 MIPS_INSTR(mips_bne) {
-    printf("Branch if: 0x%08lX != 0x%08lX\n", get_register(cpu, instruction.i.rs), get_register(cpu, instruction.i.rt));
     conditional_branch(cpu, instruction.i.immediate, get_register(cpu, instruction.i.rs) != get_register(cpu, instruction.i.rt));
 }
 

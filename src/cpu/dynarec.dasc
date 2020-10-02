@@ -1931,7 +1931,7 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
 
 void pre_instruction(r4300i_t* cpu, word expected_address) {
     word actual_address = resolve_virtual_address(cpu->pc, &cpu->cp0);
-    printf("0x%08X expected 0x%08X\n", actual_address, expected_address);
+    //printf("pc 0x%08X\n", cpu->pc);
     if (actual_address != expected_address) {
         logfatal("Executing at 0x%08X when we should be at 0x%08X!\n", actual_address, expected_address);
     }
@@ -2050,7 +2050,16 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
             default:
                 logfatal("Unknown dynarec instruction type");
         }
+
         bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0;
+        // !!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!
+        // If the first instruction in the new page is a delay slot, INCLUDE IT IN THE BLOCK ANYWAY.
+        // This DOES BREAK a corner case!
+        // If the game overwrites the delay slot but does not overwrite the branch or anything in the other page,
+        // THIS BLOCK WILL NOT GET MARKED DIRTY.
+        // I highly doubt any games do it, but THIS NEEDS TO GET FIXED AT SOME POINT
+        // !!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!
+        if (instructions_left_in_block == 1) { page_boundary_ends_block = false; } // FIXME, TODO, BAD, EVIL, etc
 
         if (instr_ends_block || page_boundary_ends_block) {
             printf("Ending block. instr: %d pb: %d (0x%08X)\n", instr_ends_block, page_boundary_ends_block, next_physical_address);
@@ -2094,9 +2103,9 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
 
     static int total_blocks_run = 0;
 
-    printf("Running block at 0x%08X (block run #%d)\n", system->cpu.pc, ++total_blocks_run);
+    //printf("Running block at 0x%08X (block run #%d)\n", system->cpu.pc, ++total_blocks_run);
     block->run(&system->cpu);
-    printf("Done running block - pc is now 0x%08X\n", system->cpu.pc);
+    //printf("Done running block - pc is now 0x%08X\n", system->cpu.pc);
 
     return block->length * CYCLES_PER_INSTR;
 }
