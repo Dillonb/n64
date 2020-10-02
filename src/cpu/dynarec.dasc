@@ -42,19 +42,18 @@
       // Push callee-saved registers onto the stack so we don't trample them
       | push cpuState
       | push instrArg
-      | push rax
       // The CPU's state is passed in as argument 1
       | mov cpuState, rArg1
     |.endmacro
     // Called at the end of our block
     |.macro epilogue
       // Pop callee-saved registers off the stack and then return
-      | pop rax
       | pop instrArg
       | pop cpuState
       | ret
     |.endmacro
 |.endif // TODO x86 version? ARM version?
+|.type cpu_state, r4300i_t, cpuState
 
 void* bumpalloc(n64_dynarec_t* dynarec, size_t size) {
     if (dynarec->codecache_used + size >= dynarec->codecache_size) {
@@ -1939,7 +1938,6 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
     dasm_setup(&d, actions);
     dasm_growpc(&d, npc);
 
-    |.type cpu_state, r4300i_t, cpuState
     dasm_State** Dst = &d;
 
     bool should_continue_block = true;
