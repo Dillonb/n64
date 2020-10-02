@@ -2254,9 +2254,6 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
 
     dynarec_instruction_category_t prev_instr_category = NORMAL;
 
-#ifdef N64_LOG_COMPILATIONS
-    printf("Startin' ta emit\n");
-#endif
     |.code
     |->compiled_block:
     | prologue
@@ -2409,12 +2406,12 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
         compile_new_block(dynarec, &system->cpu, block, system->cpu.pc, physical);
     }
 
-#ifdef N64_LOG_COMPILATIONS
+#ifdef N64_LOG_BLOCK_RUNS
     static int total_blocks_run = 0;
     printf("Running block at 0x%08X (block run #%d)\n", system->cpu.pc, ++total_blocks_run);
 #endif
     int taken = block->run(&system->cpu);
-#ifdef N64_LOG_COMPILATIONS
+#ifdef N64_LOG_BLOCK_RUNS
     printf("Done running block - pc is now 0x%08X\n", system->cpu.pc);
 #endif
 
