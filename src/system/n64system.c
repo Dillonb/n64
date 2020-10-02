@@ -234,15 +234,13 @@ INLINE int jit_system_step(n64_system_t* system) {
     int taken = n64_dynarec_step(system, system->dynarec);
 
     system->stepcount += taken;
-    while (system->stepcount >= 3) {
-        if (!system->rsp.status.halt) {
-            rsp_step(system);
-        }
-        if (!system->rsp.status.halt) {
-            rsp_step(system);
-        }
-        system->stepcount -= 3;
+
+    if (system->stepcount >= 3) {
+        int rsp_steps = (system->stepcount * 2) / 3;
+        rsp_run(system, rsp_steps);
+        system->stepcount %= 3;
     }
+
     return taken;
 }
 

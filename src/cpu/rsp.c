@@ -257,7 +257,7 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
         }
 }
 
-void rsp_step(n64_system_t* system) {
+void _rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
     half pc = rsp->pc & 0xFFF;
 #ifdef N64_DEBUG_MODE
@@ -280,4 +280,14 @@ void rsp_step(n64_system_t* system) {
     rsp->next_pc += 4;
 
     cache.handler(rsp, cache.instruction);
+}
+
+void rsp_step(n64_system_t* system) {
+    _rsp_step(system);
+}
+
+void rsp_run(n64_system_t* system, int steps) {
+    for (int i = 0; i < steps && !system->rsp.status.halt; i++) {
+        _rsp_step(system);
+    }
 }
