@@ -147,12 +147,21 @@ COMPILER(compile_mips_addi) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Compiling mips_addi\n");
 #endif
-    uintptr_t handler = (uintptr_t)mips_addi;
-    | prepcall2 cpuState, instr
-    // x86_64 cannot call a 64 bit immediate, put it into rax first
-    | mov64 rax, handler
-    | call rax
-    | postcall 2
+    // This is actually a load-immediate
+    if (instr.i.rs == 0) {
+        uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
+        shalf imm = instr.i.immediate;
+        sdword ext_imm = imm;
+        | mov rax, ext_imm
+        | mov64 [dest], rax
+    } else {
+        uintptr_t handler = (uintptr_t)mips_addi;
+        | prepcall2 cpuState, instr
+        // x86_64 cannot call a 64 bit immediate, put it into rax first
+        | mov64 rax, handler
+        | call rax
+        | postcall 2
+    }
     return NORMAL;
 }
 
