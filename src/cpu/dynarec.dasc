@@ -2281,17 +2281,15 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
                 instr_ends_block = instructions_left_in_block == 0;
                 break; // the "instructions_left_in_block" check got
             case BRANCH:
-                // If the
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
                     // Check if the previous branch was taken.
 
                     // If the last branch wasn't taken, we can treat this the same as if the previous instruction wasn't a branch
                     // just set the cpu->last_branch_taken to cpu->branch_taken and execute the next instruction.
 
-
                     // emit:
                     // if (!cpu->last_branch_taken) cpu->last_branch_taken = cpu->branch_taken;
-                    logfatal("unimp");
+                    logfatal("Branch in a branch delay slot");
                 } else {
                     // If the last instruction wasn't a branch, no special behavior is needed. Just set up some state in case the next one is.
                     // emit:
@@ -2310,7 +2308,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
                 // If the previous instruction was a branch:
                 //
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
-                    logfatal("oh god help me");
+                    logfatal("Branch in a branch likely delay slot");
                 } else {
                     // If it wasn't taken, end the block.
                     // If it was taken, don't end the block, need to execute delay slot
