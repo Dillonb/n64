@@ -24,9 +24,7 @@ typedef enum dynarec_instruction_category {
 } dynarec_instruction_category_t;
 
 typedef struct n64_dynarec_block {
-    word start_address;
-    word length;
-    void (*run)(r4300i_t* cpu);
+    int (*run)(r4300i_t* cpu);
 } n64_dynarec_block_t;
 
 typedef struct n64_dynarec {

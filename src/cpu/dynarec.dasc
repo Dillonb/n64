@@ -2355,13 +2355,11 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
         physical_address = next_physical_address;
         prev_instr_category = category;
     } while (should_continue_block);
+    | mov eax, block_length
     | epilogue
-
     void* compiled = link_and_encode(dynarec, &d);
     dasm_free(&d);
 
-    block->start_address = physical_address;
-    block->length = block_length;
     block->run = compiled;
 }
 
@@ -2394,12 +2392,12 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     static int total_blocks_run = 0;
     printf("Running block at 0x%08X (block run #%d)\n", system->cpu.pc, ++total_blocks_run);
 #endif
-    block->run(&system->cpu);
+    int taken = block->run(&system->cpu);
 #ifdef N64_LOG_COMPILATIONS
     printf("Done running block - pc is now 0x%08X\n", system->cpu.pc);
 #endif
 
-    return block->length * CYCLES_PER_INSTR;
+    return taken * CYCLES_PER_INSTR;
 }
 
 n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size) {
