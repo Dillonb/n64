@@ -1921,13 +1921,6 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
 #endif
     }
-    uintptr_t handler = (uintptr_t)r4300i_instruction_decode(address, instr);
-    | prepcall2 cpuState, instr
-    // x86_64 cannot call a 64 bit immediate, put it in rax first
-    | mov64 rax, handler
-    | call rax
-    | postcall 2
-    return true;
 }
 
 void pre_instruction(r4300i_t* cpu, word expected_address) {
