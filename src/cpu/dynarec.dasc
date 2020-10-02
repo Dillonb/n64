@@ -251,13 +251,27 @@ COMPILER(compile_mips_beq) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Compiling mips_beq\n");
 #endif
-    uintptr_t handler = (uintptr_t)mips_beq;
-    | prepcall2 cpuState, instr
-    // x86_64 cannot call a 64 bit immediate, put it into rax first
-    | mov64 rax, handler
-    | call rax
-    | postcall 2
-    return BRANCH;
+    // Compile as an unconditional branch
+    if (instr.i.rs == 0 && instr.i.rt == 0) {
+        // TODO macro this for other branch types
+        shalf offset = instr.i.immediate;
+        sword soffset = offset;
+        soffset <<= 2;
+        | mov eax, cpu_state->pc
+        | add eax, soffset
+        | mov cpu_state->next_pc, eax
+        | mov al, 1
+        | mov cpu_state->branch, al
+    } else {
+        // handle normally
+        uintptr_t handler = (uintptr_t)mips_beq;
+        | prepcall2 cpuState, instr
+        // x86_64 cannot call a 64 bit immediate, put it into rax first
+        | mov64 rax, handler
+        | call rax
+        | postcall 2
+   }
+   return BRANCH;
 }
 
 COMPILER(compile_mips_beql) {
