@@ -13,6 +13,8 @@
 #error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
 #endif
 
+static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
+
 |.if X64
 |.arch x64
 |.else
@@ -1842,7 +1844,6 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
         case OPC_CP0:    return compile_cp0_instruction(Dst, instr, address);
         case OPC_CP1: {
             dynarec_instruction_category_t category = compile_cp1_instruction(Dst, instr, address);
-            static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1 by this generated code!");
             // If an exception was triggered, end the block.
             // otherwise, don't end the block.
             | mov al, cpu_state->exception
@@ -1979,11 +1980,32 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
 
         word next_physical_address = physical_address + 4;
 
+        /* I'm keeping this around for debugging because pre_instruction() does the actual vs. expected pc check.
         | prepcall2 cpuState, physical_address
         // x86 cannot call a 64 bit immediate, put it into rax first
         | mov64 rax, pre_instruction_ptr
         | call rax
         | postcall 2
+         */
+
+        static_assert(sizeof(cpu->pc) == 4, "PC must be 32 bits for this to work");
+        static_assert(sizeof(cpu->next_pc) == 4, "Next PC must be 32 bits for this to work");
+
+        // cpu->branch = false;
+        | mov al, 0
+        | mov cpu_state->branch, al
+
+        // cpu->prev_pc = cpu->pc;
+        | mov eax, cpu->pc
+        | mov cpu_state->prev_pc, eax
+
+        // cpu->pc = cpu->next_pc;
+        | mov eax, cpu_state->next_pc
+        | mov cpu_state->pc, eax
+
+        // cpu->next_pc += 4;
+        | add eax, 4
+        | mov cpu_state->next_pc, eax
 
         instructions_left_in_block--;
         bool instr_ends_block;
@@ -2027,7 +2049,6 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
                     logfatal("oh god help me");
                 } else {
-                    static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1 by this generated code!");
                     // If it wasn't taken, end the block.
                     // If it was taken, don't end the block, need to execute delay slot
                     | mov al, cpu_state->branch
