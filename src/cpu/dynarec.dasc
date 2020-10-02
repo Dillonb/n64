@@ -1834,13 +1834,33 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
 }
 
 // returns true when the block should end
-dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word block_length) {
     if (unlikely(instr.raw == 0)) {
         return compile_mips_nop(Dst, instr, address);
     }
     switch (instr.op) {
         case OPC_CP0:    return compile_cp0_instruction(Dst, instr, address);
-        case OPC_CP1:    return compile_cp1_instruction(Dst, instr, address);
+        case OPC_CP1: {
+            dynarec_instruction_category_t category = compile_cp1_instruction(Dst, instr, address);
+            static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1 by this generated code!");
+            // If an exception was triggered, end the block.
+            // otherwise, don't end the block.
+            | mov al, cpu_state->exception
+            // if (cpu_state->exception) {
+            | cmp al, 0
+            | je >1
+
+            // cpu_state->exception = false
+            | mov al, 0
+            | mov cpu_state->exception, al
+
+            // return block_length
+            | mov rax, block_length
+            | epilogue
+            // }
+            |1:
+            return category;
+        }
         case OPC_SPCL:   return compile_special_instruction(Dst, instr, address);
         case OPC_REGIMM: return compile_regimm_instruction(Dst, instr, address);
 
@@ -1968,8 +1988,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_
         instructions_left_in_block--;
         bool instr_ends_block;
 
-        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address);
-        block_length++;
+        block_length++; // Needs to happen before we compile since we use the incremented value inside the compiler
+        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address, block_length);
 
         switch (category) {
             case NORMAL:

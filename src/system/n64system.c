@@ -133,6 +133,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
         load_n64rom(&system->mem.rom, rom_path);
     }
 
+    system->cpu.branch = false;
+    system->cpu.exception = false;
+
     system->cpu.read_dword = &virtual_read_dword_wrapper;
     system->cpu.write_dword = &virtual_write_dword_wrapper;
 

@@ -59,6 +59,7 @@ void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
         }
     }
+    cpu->exception = true;
 }
 
 INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) {
@@ -484,6 +485,7 @@ void r4300i_step(r4300i_t* cpu) {
     cpu->branch = false;
 
     r4300i_instruction_decode(pc, instruction)(cpu, instruction);
+    cpu->exception = false; // only used in dynarec
 }
 
 void r4300i_interrupt_update(r4300i_t* cpu) {

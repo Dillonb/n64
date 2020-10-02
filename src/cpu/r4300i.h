@@ -415,6 +415,9 @@ typedef struct r4300i {
     // In a branch delay slot?
     bool branch;
 
+    // Did an exception just happen?
+    bool exception;
+
     byte (*read_byte)(word);
     void (*write_byte)(word, byte);
 
