@@ -664,7 +664,8 @@ INLINE word _n64_read_word(word address) {
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1", address);
+            return 0;
         case REGION_CART_1_1:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1", address);
         case REGION_CART_2_2:
