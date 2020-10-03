@@ -444,22 +444,14 @@ extern const char* cp0_register_names[];
 INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
     logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
     if (r != 0) {
-        if (r < 64) {
-            cpu->gpr[r] = value;
-        } else {
-            logfatal("Write to invalid register: %d", r);
-        }
+        cpu->gpr[r] = value;
     }
 }
 
 INLINE dword get_register(r4300i_t* cpu, byte r) {
-    if (r < 64) {
-        dword value = cpu->gpr[r];
-        logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value);
-        return value;
-    } else {
-        logfatal("Attempted to read invalid register: %d", r);
-    }
+    dword value = cpu->gpr[r];
+    logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value);
+    return value;
 }
 
 INLINE void on_change_fr(r4300i_t* cpu, cp0_status_t oldstatus) {
