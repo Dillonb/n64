@@ -30,7 +30,6 @@ This is a project I am working on to learn about the N64 and more advanced emula
 - RDRAM is stored internally as big-endian and translated on every read/write.
 
 # Progress
-Currently, the only known commercial game that this will run is Namco Museum, as everything else that I know of needs a more complete RSP.
 
 ## UI
 Basically nonexistent. Runs a simple SDL window and configured with command-line parameters.
