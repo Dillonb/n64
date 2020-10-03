@@ -39,16 +39,6 @@ n64_system_t* global_system;
 #define CODECACHE_SIZE (1 << 27)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 
-/* TODO I'm 99% sure the RSP can't read/write DWORDs
-dword read_rsp_dword_wrapper(word address) {
-    return n64_rsp_read_dword(global_system, address);
-}
-
-void write_rsp_dword_wrapper(word address, dword value) {
-    n64_rsp_write_dword(global_system, address, value);
-}
- */
-
 word read_rsp_word_wrapper(word address) {
     return n64_rsp_read_word(global_system, address);
 }
