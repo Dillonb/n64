@@ -159,7 +159,10 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             (*channel)++;
             break;
         case PIF_COMMAND_MEMPACK_READ:
-            logfatal("PIF_COMMAND_MEMPACK_READ");
+            unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
+            unimplemented(reslen != 33, "Mempack read with reslen != 33");
+            //logfatal("PIF_COMMAND_MEMPACK_READ");
+            (*index) += 33; // NOOP
             break;
         case PIF_COMMAND_MEMPACK_WRITE:
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
