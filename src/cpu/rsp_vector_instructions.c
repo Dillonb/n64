@@ -1297,12 +1297,11 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
 
 RSP_VECTOR_INSTR(rsp_vec_vxor) {
     logdebug("rsp_vec_vxor");
-    elementzero;
     defvs;
-    defvt;
+    defvte;
     defvd;
     for (int i = 0; i < 8; i++) {
-        half result = vt->elements[i] ^ vs->elements[i];
+        half result = vte.elements[i] ^ vs->elements[i];
         vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
