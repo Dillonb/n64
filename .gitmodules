@@ -1,0 +1,3 @@
+[submodule "src/contrib/parallel-rdp-standalone"]
+	path = src/contrib/parallel-rdp-standalone
+	url = git@github.com:Dillonb/parallel-rdp-standalone.git
