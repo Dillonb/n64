@@ -11,6 +11,9 @@
 #include <interface/ai.h>
 #include <mem/n64_rsp_bus.h>
 #include <cpu/rsp.h>
+#include <cpu/dynarec.h>
+#include <sys/mman.h>
+#include <errno.h>
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
 // There are 1562500 cycles per frame.
@@ -29,6 +32,12 @@ bool should_quit = false;
 
 
 n64_system_t* global_system;
+
+#define selected_n64_system_step jit_system_step
+
+// 128MiB codecache
+#define CODECACHE_SIZE (1 << 27)
+static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 
 /* TODO I'm 99% sure the RSP can't read/write DWORDs
 dword read_rsp_dword_wrapper(word address) {
@@ -86,12 +95,10 @@ void virtual_write_dword_wrapper(word address, dword value) {
     n64_write_dword(global_system, address, value);
 }
 
-/*
 word virtual_read_word_wrapper(word address) {
     address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_word(address);
+    return n64_read_physical_word(address);
 }
- */
 
 void virtual_write_word_wrapper(word address, word value) {
     address = resolve_virtual_address(address, &global_system->cpu.cp0);
@@ -126,10 +133,13 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
         load_n64rom(&system->mem.rom, rom_path);
     }
 
+    system->cpu.branch = false;
+    system->cpu.exception = false;
+
     system->cpu.read_dword = &virtual_read_dword_wrapper;
     system->cpu.write_dword = &virtual_write_dword_wrapper;
 
-    //system->cpu.read_word = &virtual_read_word_wrapper;
+    system->cpu.read_word = &virtual_read_word_wrapper;
     system->cpu.write_word = &virtual_write_word_wrapper;
 
     system->cpu.read_half = &virtual_read_half_wrapper;
@@ -177,6 +187,14 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->si.controllers[2].plugged_in = false;
     system->si.controllers[3].plugged_in = false;
 
+    system->stepcount = 0;
+
+    if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        printf("Page size: %ld\n", sysconf(_SC_PAGESIZE));
+        logfatal("mprotect codecache failed! %s", strerror(errno));
+    }
+    system->dynarec = n64_dynarec_init(system, codecache, CODECACHE_SIZE);
+
     global_system = system;
     if (enable_frontend) {
         render_init(system);
@@ -188,7 +206,45 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     return system;
 }
 
-INLINE int _n64_system_step(n64_system_t* system) {
+INLINE int jit_system_step(n64_system_t* system) {
+    r4300i_t* cpu = &system->cpu;
+    cpu->cp0.count += CYCLES_PER_INSTR;
+    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
+        cpu->cp0.cause.ip7 = true;
+        logwarn("Compare interrupt!");
+        r4300i_interrupt_update(cpu);
+    }
+
+    /* Commented out for now since the game never actually reads cp0.random
+    if (cpu->cp0.random <= cpu->cp0.wired) {
+        cpu->cp0.random = 31;
+    } else {
+        cpu->cp0.random--;
+    }
+     */
+
+    if (unlikely(cpu->interrupts > 0)) {
+        if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
+            cpu->cp0.cause.interrupt_pending = cpu->interrupts;
+            r4300i_handle_exception(cpu, cpu->pc, 0, cpu->interrupts);
+            return CYCLES_PER_INSTR;
+        }
+    }
+
+    int taken = n64_dynarec_step(system, system->dynarec);
+
+    system->stepcount += taken;
+
+    if (system->stepcount >= 3) {
+        int rsp_steps = (system->stepcount * 2) / 3;
+        rsp_run(system, rsp_steps);
+        system->stepcount %= 3;
+    }
+
+    return taken;
+}
+
+INLINE int interpreter_system_step(n64_system_t* system) {
 #ifdef N64_DEBUG_MODE
     if (system->debugger_state.enabled && check_breakpoint(&system->debugger_state, system->cpu.pc)) {
         debugger_breakpoint_hit(system);
@@ -198,18 +254,20 @@ INLINE int _n64_system_step(n64_system_t* system) {
         debugger_tick(system);
     }
 #endif
-    r4300i_step(&system->cpu);
-    r4300i_step(&system->cpu);
+    int taken = CYCLES_PER_INSTR;
     r4300i_step(&system->cpu);
 
-    if (!system->rsp.status.halt) {
-        rsp_step(system);
+    system->stepcount += taken;
+    while (system->stepcount >= 3) {
+        if (!system->rsp.status.halt) {
+            rsp_step(system);
+        }
+        if (!system->rsp.status.halt) {
+            rsp_step(system);
+        }
+        system->stepcount -= 3;
     }
-    if (!system->rsp.status.halt) {
-        rsp_step(system);
-    }
-
-    return CYCLES_PER_INSTR * 3;
+    return taken;
 }
 
 // This is used for debugging tools, it's fine for now if timing is a little off.
@@ -231,7 +289,7 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
-                cycles += _n64_system_step(system);
+                cycles += selected_n64_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
@@ -241,7 +299,7 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
-                cycles += _n64_system_step(system);
+                cycles += selected_n64_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;

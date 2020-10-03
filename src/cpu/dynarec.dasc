@@ -1,0 +1,2445 @@
+#include <cpu/dynarec.h>
+
+#include <dynasm/dasm_proto.h>
+#include <dynasm/dasm_x86.h>
+#include <sys/mman.h>
+
+#include <mem/n64bus.h>
+#include "mips_instructions.h"
+#include "disassemble.h"
+#include "tlb_instructions.h"
+
+||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
+#error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
+#endif
+
+static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
+
+|.if X64
+|.arch x64
+|.else
+|.arch x86
+|.endif
+
+|.if X64
+  |.define cpuState, r12
+  |.define instrArg, r13
+  |.if WIN
+    |.define rArg1, rcx
+    |.define rArg2, rdx
+  |.else
+    |.define rArg1, rdi
+    |.define rArg2, rsi
+  |.endif
+  |.macro prepcall1, arg1
+    | mov rArg1, arg1
+  |.endmacro
+  |.macro prepcall2, arg1, arg2
+    | mov rArg1, arg1
+    | mov rArg2, arg2
+  |.endmacro
+  |.define postcall, .nop
+    // Called before our block
+    |.macro prologue
+      // Push callee-saved registers onto the stack so we don't trample them
+      | push cpuState
+      | push instrArg
+      // The CPU's state is passed in as argument 1
+      | mov cpuState, rArg1
+    |.endmacro
+    // Called at the end of our block
+    |.macro epilogue
+      // Pop callee-saved registers off the stack and then return
+      | pop instrArg
+      | pop cpuState
+      | ret
+    |.endmacro
+|.endif // TODO x86 version? ARM version?
+|.type cpu_state, r4300i_t, cpuState
+
+void* bumpalloc(n64_dynarec_t* dynarec, size_t size) {
+    if (dynarec->codecache_used + size >= dynarec->codecache_size) {
+        logfatal("Exhausted code cache!");
+    }
+
+    void* ptr = &dynarec->codecache[dynarec->codecache_used];
+
+    dynarec->codecache_used += size;
+
+#ifdef N64_LOG_COMPILATIONS
+    printf("bumpalloc: %ld used of %ld\n", dynarec->codecache_used, dynarec->codecache_size);
+#endif
+
+    return ptr;
+}
+
+void* bumpalloc_zero(n64_dynarec_t* dynarec, size_t size) {
+    byte* ptr = bumpalloc(dynarec, size);
+
+    for (int i = 0; i < size; i++) {
+        ptr[i] = 0;
+    }
+
+    return ptr;
+}
+
+void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
+    size_t code_size;
+    dasm_link(d, &code_size);
+#ifdef N64_LOG_COMPILATIONS
+    printf("Generated %ld bytes of code\n", code_size);
+#endif
+    void* buf = bumpalloc(dynarec, code_size);
+    dasm_encode(d, buf);
+
+    return buf;
+}
+
+#define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
+
+COMPILER(compile_mips_nop) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_nop\n");
+#endif
+    return NORMAL;
+}
+
+COMPILER(compile_mips_ld) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ld\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ld;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lui) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lui\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lui;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_addiu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_addiu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_addiu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_addi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_addi\n");
+#endif
+    // This is actually a load-immediate
+    if (instr.i.rs == 0) {
+        uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
+        shalf imm = instr.i.immediate;
+        sdword ext_imm = imm;
+        | mov rax, ext_imm
+        | mov64 [dest], rax
+    } else {
+        uintptr_t handler = (uintptr_t)mips_addi;
+        | prepcall2 cpuState, instr
+        // x86_64 cannot call a 64 bit immediate, put it into rax first
+        | mov64 rax, handler
+        | call rax
+        | postcall 2
+    }
+    return NORMAL;
+}
+
+COMPILER(compile_mips_daddi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_daddi\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_daddi;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_andi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_andi\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_andi;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lbu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lbu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lbu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lhu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lhu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lhu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lh) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lh\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lh;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lw) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lw\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lw;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lwu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lwu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lwu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_beq) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_beq\n");
+#endif
+    // Compile as an unconditional branch
+    if (instr.i.rs == 0 && instr.i.rt == 0) {
+        // TODO macro this for other branch types
+        shalf offset = instr.i.immediate;
+        sword soffset = offset;
+        soffset <<= 2;
+        | mov eax, cpu_state->pc
+        | add eax, soffset
+        | mov cpu_state->next_pc, eax
+        | mov al, 1
+        | mov cpu_state->branch, al
+    } else {
+        // handle normally
+        uintptr_t handler = (uintptr_t)mips_beq;
+        | prepcall2 cpuState, instr
+        // x86_64 cannot call a 64 bit immediate, put it into rax first
+        | mov64 rax, handler
+        | call rax
+        | postcall 2
+   }
+   return BRANCH;
+}
+
+COMPILER(compile_mips_beql) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_beql\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_beql;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_bgtz) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_bgtz\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_bgtz;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_bgtzl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_bgtzl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_bgtzl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_blez) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_blez\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_blez;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_blezl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_blezl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_blezl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_bne) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_bne\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_bne;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_bnel) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_bnel\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_bnel;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_cache) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_cache\n");
+#endif
+    return NORMAL;
+}
+
+COMPILER(compile_mips_sb) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sb\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sb;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_sh) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sh\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sh;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_sw) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sw\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sw;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_sd) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sd\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sd;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_ori) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ori\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ori;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_j) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_j\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_j;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_jal) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_jal\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_jal;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_slti) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_slti\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_slti;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_sltiu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sltiu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sltiu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_xori) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_xori\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_xori;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_daddiu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_daddiu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_daddiu;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lb) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lb\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lb;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_ldc1) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ldc1\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ldc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_sdc1) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sdc1\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sdc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_lwc1) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lwc1\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lwc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_swc1) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_swc1\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_swc1;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_lwl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lwl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lwl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_lwr) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_lwr\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_lwr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_swl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_swl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_swl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_swr) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_swr\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_swr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_ldl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ldl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ldl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_ldr) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ldr\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ldr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_sdl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sdl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sdl;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_sdr) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_sdr\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_sdr;
+    | prepcall2 cpuState, instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return STORE;
+}
+
+COMPILER(compile_mips_mfc0) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_mfc0\n");
+#endif
+    uintptr_t handler = (uintptr_t) mips_mfc0;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_mtc0) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_mtc0\n");
+#endif
+    uintptr_t handler = (uintptr_t) mips_mtc0;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_tlbwi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_tlbwi\n");
+#endif
+    uintptr_t handler = (uintptr_t) mips_tlbwi;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return TLB_WRITE;
+}
+
+COMPILER(compile_mips_tlbp) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_tlbp\n");
+#endif
+    uintptr_t handler = (uintptr_t) mips_tlbp;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_eret) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_eret\n");
+#endif
+    uintptr_t handler = (uintptr_t) mips_eret;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return ERET;
+}
+
+COMPILER(compile_mips_spc_sll) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_sll\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_sll;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_srl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_srl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_srl;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_sra) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_sra\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_sra;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_srav) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_srav\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_srav;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_sllv) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_sllv\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_sllv;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_srlv) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_srlv\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_srlv;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_jr) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_jr\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_jr;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return BRANCH;
+}
+
+COMPILER(compile_mips_spc_jalr) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_jalr\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_jalr;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return BRANCH;
+}
+
+COMPILER(compile_mips_spc_mfhi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_mfhi\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_mfhi;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mthi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_mthi\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_mthi;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mflo) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_mflo\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_mflo;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mtlo) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_mtlo\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_mtlo;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_dsllv) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dsllv\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dsllv;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mult) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_mult\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_mult;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_multu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_multu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_multu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_div) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_div\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_div;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_divu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_divu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_divu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_dmultu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dmultu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dmultu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_ddiv) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_ddiv\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_ddiv;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_ddivu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_ddivu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_ddivu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_add) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_add\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_add;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_addu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_addu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_addu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_and) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_and\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_and;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_nor) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_nor\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_nor;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_sub) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_sub\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_sub;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_subu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_subu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_subu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_or) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_or\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_or;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_xor) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_xor\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_xor;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_slt) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_slt\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_slt;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_sltu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_sltu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_sltu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_dadd) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dadd\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dadd;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_dsll) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dsll\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dsll;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_dsll32) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dsll32\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dsll32;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_dsra32) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dsra32\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dsra32;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
+COMPILER(compile_mips_ri_bltz) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ri_bltz\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ri_bltz;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_ri_bltzl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ri_bltzl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ri_bltz;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_ri_bgez) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ri_bgez\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ri_bgez;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_ri_bgezl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ri_bgezl\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ri_bgezl;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_ri_bgezal) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ri_bgezal\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_ri_bgezal;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return BRANCH;
+}
+
+COMPILER(compile_mips_cfc1) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cfc1\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cfc1;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_mfc1) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_mfc1\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_mfc1;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_mtc1) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_mtc1\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_mtc1;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_ctc1) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_ctc1\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_ctc1;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_bc1t) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_bc1t\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_bc1t;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return BRANCH;
+}
+
+COMPILER(compile_mips_cp_bc1f) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_bc1f\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_bc1f;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return BRANCH;
+}
+
+COMPILER(compile_mips_cp_bc1tl) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_bc1tl\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_bc1tl;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_cp_bc1fl) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_bc1fl\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_bc1fl;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return BRANCH_LIKELY;
+}
+
+COMPILER(compile_mips_cp_add_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_add_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_add_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_add_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_add_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_add_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_sub_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_sub_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_sub_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_sub_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_sub_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_sub_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_mul_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_mul_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_mul_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_mul_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_mul_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_mul_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_div_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_div_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_div_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_div_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_div_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_div_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_trunc_l_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_trunc_l_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_trunc_l_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_trunc_l_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_trunc_l_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_trunc_l_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_trunc_w_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_trunc_w_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_trunc_w_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_trunc_w_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_trunc_w_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_trunc_w_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_d_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_d_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_d_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_d_w) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_d_w\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_d_w;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_d_l) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_d_l\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_d_l;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_l_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_l_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_l_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_l_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_l_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_l_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_s_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_s_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_s_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_s_w) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_s_w\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_s_w;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_s_l) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_s_l\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_s_l;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_w_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_w_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_w_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_cvt_w_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_cvt_w_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_cvt_w_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_sqrt_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_sqrt_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_sqrt_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_sqrt_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_sqrt_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_sqrt_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_mov_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_mov_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_mov_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_mov_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_mov_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_mov_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_neg_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_neg_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_neg_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_neg_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_neg_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_neg_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_c_eq_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_c_eq_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_c_eq_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_c_eq_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_c_eq_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_c_eq_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_c_lt_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_c_lt_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_c_lt_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_c_lt_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_c_lt_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_c_lt_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_c_le_d) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_c_le_d\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_c_le_d;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+COMPILER(compile_mips_cp_c_le_s) {
+#ifdef N64_LOG_COMPILATIONS
+   printf("Compiling compile_mips_cp_c_le_s\n");
+#endif
+   uintptr_t handler = (uintptr_t)mips_cp_c_le_s;
+   | prepcall2 cpuState, instr
+   // x86 cannot call a 64 bit immediate, put it into rax first
+   | mov64 rax, handler
+   | call rax
+   | postcall 2
+   return NORMAL;
+}
+
+dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            case COP_MF:
+                return compile_mips_mfc0(Dst, instr, address);
+            case COP_MT: // Last 11 bits are 0
+                return compile_mips_mtc0(Dst, instr, address);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+            }
+        }
+    } else {
+        switch (instr.fr.funct) {
+            case COP_FUNCT_TLBWI_MULT:
+                return compile_mips_tlbwi(Dst, instr, address);
+            case COP_FUNCT_TLBP:
+                return compile_mips_tlbp(Dst, instr, address);
+            case COP_FUNCT_TLBR_SUB:
+                logfatal("tlbr");
+                //return compile_mips_tlbr(Dst, instr, address);
+            case COP_FUNCT_ERET:
+                return compile_mips_eret(Dst, instr, address);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    }
+}
+
+INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    switch (instr.r.funct) {
+        case FUNCT_SLL:    return compile_mips_spc_sll(Dst, instr, address);
+        case FUNCT_SRL:    return compile_mips_spc_srl(Dst, instr, address);
+        case FUNCT_SRA:    return compile_mips_spc_sra(Dst, instr, address);
+        case FUNCT_SRAV:   return compile_mips_spc_srav(Dst, instr, address);
+        case FUNCT_SLLV:   return compile_mips_spc_sllv(Dst, instr, address);
+        case FUNCT_SRLV:   return compile_mips_spc_srlv(Dst, instr, address);
+        case FUNCT_JR:     return compile_mips_spc_jr(Dst, instr, address);
+        case FUNCT_JALR:   return compile_mips_spc_jalr(Dst, instr, address);
+        case FUNCT_MFHI:   return compile_mips_spc_mfhi(Dst, instr, address);
+        case FUNCT_MTHI:   return compile_mips_spc_mthi(Dst, instr, address);
+        case FUNCT_MFLO:   return compile_mips_spc_mflo(Dst, instr, address);
+        case FUNCT_MTLO:   return compile_mips_spc_mtlo(Dst, instr, address);
+        case FUNCT_DSLLV:  return compile_mips_spc_dsllv(Dst, instr, address);
+        case FUNCT_MULT:   return compile_mips_spc_mult(Dst, instr, address);
+        case FUNCT_MULTU:  return compile_mips_spc_multu(Dst, instr, address);
+        case FUNCT_DIV:    return compile_mips_spc_div(Dst, instr, address);
+        case FUNCT_DIVU:   return compile_mips_spc_divu(Dst, instr, address);
+        case FUNCT_DMULTU: return compile_mips_spc_dmultu(Dst, instr, address);
+        case FUNCT_DDIV:   return compile_mips_spc_ddiv(Dst, instr, address);
+        case FUNCT_DDIVU:  return compile_mips_spc_ddivu(Dst, instr, address);
+        case FUNCT_ADD:    return compile_mips_spc_add(Dst, instr, address);
+        case FUNCT_ADDU:   return compile_mips_spc_addu(Dst, instr, address);
+        case FUNCT_AND:    return compile_mips_spc_and(Dst, instr, address);
+        case FUNCT_NOR:    return compile_mips_spc_nor(Dst, instr, address);
+        case FUNCT_SUB:    return compile_mips_spc_sub(Dst, instr, address);
+        case FUNCT_SUBU:   return compile_mips_spc_subu(Dst, instr, address);
+        case FUNCT_OR:     return compile_mips_spc_or(Dst, instr, address);
+        case FUNCT_XOR:    return compile_mips_spc_xor(Dst, instr, address);
+        case FUNCT_SLT:    return compile_mips_spc_slt(Dst, instr, address);
+        case FUNCT_SLTU:   return compile_mips_spc_sltu(Dst, instr, address);
+        case FUNCT_DADD:   return compile_mips_spc_dadd(Dst, instr, address);
+        case FUNCT_DSLL:   return compile_mips_spc_dsll(Dst, instr, address);
+        case FUNCT_DSLL32: return compile_mips_spc_dsll32(Dst, instr, address);
+        case FUNCT_DSRA32: return compile_mips_spc_dsra32(Dst, instr, address);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+        }
+    }
+}
+
+INLINE dynarec_instruction_category_t compile_regimm_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    switch (instr.i.rt) {
+        case RT_BLTZ:   return compile_mips_ri_bltz(Dst, instr, address);
+        case RT_BLTZL:  return compile_mips_ri_bltzl(Dst, instr, address);
+        case RT_BGEZ:   return compile_mips_ri_bgez(Dst, instr, address);
+        case RT_BGEZL:  return compile_mips_ri_bgezl(Dst, instr, address);
+        case RT_BGEZAL: return compile_mips_ri_bgezal(Dst, instr, address);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
+        }
+    }
+}
+
+INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+    // This function uses a series of two switch statements.
+    // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
+    // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
+    switch (instr.r.rs) {
+        case COP_CF:
+            return compile_mips_cfc1(Dst, instr, address);
+        case COP_MF:
+            return compile_mips_mfc1(Dst, instr, address);
+        case COP_MT:
+            return compile_mips_mtc1(Dst, instr, address);
+        case COP_CT:
+            return compile_mips_ctc1(Dst, instr, address);
+        case COP_BC:
+            switch (instr.r.rt) {
+                case COP_BC_BCT:
+                    return compile_mips_cp_bc1t(Dst, instr, address);
+                case COP_BC_BCF:
+                    return compile_mips_cp_bc1f(Dst, instr, address);
+                case COP_BC_BCTL:
+                    return compile_mips_cp_bc1tl(Dst, instr, address);
+                case COP_BC_BCFL:
+                    return compile_mips_cp_bc1fl(Dst, instr, address);
+                default: {
+                    char buf[50];
+                    disassemble(address, instr.raw, buf, 50);
+                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+                }
+            }
+    }
+    switch (instr.fr.funct) {
+        case COP_FUNCT_ADD:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_add_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_add_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_TLBR_SUB: {
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_sub_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_sub_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        }
+        case COP_FUNCT_TLBWI_MULT:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_mul_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_mul_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_DIV:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_div_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_div_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_TRUNC_L:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_trunc_l_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_trunc_l_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_TRUNC_W:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_trunc_w_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_trunc_w_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_D:
+            switch (instr.fr.fmt) {
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_cvt_d_s(Dst, instr, address);
+                case FP_FMT_W:
+                    return compile_mips_cp_cvt_d_w(Dst, instr, address);
+                case FP_FMT_L:
+                    return compile_mips_cp_cvt_d_l(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_L:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_cvt_l_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_cvt_l_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_S:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_cvt_s_d(Dst, instr, address);
+                case FP_FMT_W:
+                    return compile_mips_cp_cvt_s_w(Dst, instr, address);
+                case FP_FMT_L:
+                    return compile_mips_cp_cvt_s_l(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_W:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_cvt_w_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_cvt_w_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_SQRT:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_sqrt_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_sqrt_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+
+        case COP_FUNCT_MOV:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_mov_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_mov_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_NEG:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_neg_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_neg_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_F:
+            logfatal("COP_FUNCT_C_F unimplemented");
+        case COP_FUNCT_C_UN:
+            logfatal("COP_FUNCT_C_UN unimplemented");
+        case COP_FUNCT_C_EQ:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_c_eq_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_c_eq_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_UEQ:
+            logfatal("COP_FUNCT_C_UEQ unimplemented");
+        case COP_FUNCT_C_OLT:
+            logfatal("COP_FUNCT_C_OLT unimplemented");
+        case COP_FUNCT_C_ULT:
+            logfatal("COP_FUNCT_C_ULT unimplemented");
+        case COP_FUNCT_C_OLE:
+            logfatal("COP_FUNCT_C_OLE unimplemented");
+        case COP_FUNCT_C_ULE:
+            logfatal("COP_FUNCT_C_ULE unimplemented");
+        case COP_FUNCT_C_SF:
+            logfatal("COP_FUNCT_C_SF unimplemented");
+        case COP_FUNCT_C_NGLE:
+            logfatal("COP_FUNCT_C_NGLE unimplemented");
+        case COP_FUNCT_C_SEQ:
+            logfatal("COP_FUNCT_C_SEQ unimplemented");
+        case COP_FUNCT_C_NGL:
+            logfatal("COP_FUNCT_C_NGL unimplemented");
+        case COP_FUNCT_C_LT:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_c_lt_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_c_lt_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_NGE:
+            logfatal("COP_FUNCT_C_NGE unimplemented");
+        case COP_FUNCT_C_LE:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_c_le_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_c_le_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+            logfatal("COP_FUNCT_C_LE unimplemented");
+        case COP_FUNCT_C_NGT:
+            logfatal("COP_FUNCT_C_NGT unimplemented");
+    }
+
+    char buf[50];
+    disassemble(address, instr.raw, buf, 50);
+    logfatal("other/unknown MIPS CP1 0x%08X with rs: %d%d%d%d%d and FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+             instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4,
+             instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+}
+
+// returns true when the block should end
+dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word block_length) {
+    if (unlikely(instr.raw == 0)) {
+        return compile_mips_nop(Dst, instr, address);
+    }
+    switch (instr.op) {
+        case OPC_CP0:    return compile_cp0_instruction(Dst, instr, address);
+        case OPC_CP1: {
+            dynarec_instruction_category_t category = compile_cp1_instruction(Dst, instr, address);
+            // If an exception was triggered, end the block.
+            // otherwise, don't end the block.
+            | mov al, cpu_state->exception
+            // if (cpu_state->exception) {
+            | cmp al, 0
+            | je >1
+
+            // cpu_state->exception = false
+            | mov al, 0
+            | mov cpu_state->exception, al
+
+            // return block_length
+            | mov rax, block_length
+            | epilogue
+            // }
+            |1:
+            return category;
+        }
+        case OPC_SPCL:   return compile_special_instruction(Dst, instr, address);
+        case OPC_REGIMM: return compile_regimm_instruction(Dst, instr, address);
+
+        case OPC_LD:     return compile_mips_ld(Dst, instr, address);
+        case OPC_LUI:    return compile_mips_lui(Dst, instr, address);
+        case OPC_ADDIU:  return compile_mips_addiu(Dst, instr, address);
+        case OPC_ADDI:   return compile_mips_addi(Dst, instr, address);
+        case OPC_DADDI:  return compile_mips_daddi(Dst, instr, address);
+        case OPC_ANDI:   return compile_mips_andi(Dst, instr, address);
+        case OPC_LBU:    return compile_mips_lbu(Dst, instr, address);
+        case OPC_LHU:    return compile_mips_lhu(Dst, instr, address);
+        case OPC_LH:     return compile_mips_lh(Dst, instr, address);
+        case OPC_LW:     return compile_mips_lw(Dst, instr, address);
+        case OPC_LWU:    return compile_mips_lwu(Dst, instr, address);
+        case OPC_BEQ:    return compile_mips_beq(Dst, instr, address);
+        case OPC_BEQL:   return compile_mips_beql(Dst, instr, address);
+        case OPC_BGTZ:   return compile_mips_bgtz(Dst, instr, address);
+        case OPC_BGTZL:  return compile_mips_bgtzl(Dst, instr, address);
+        case OPC_BLEZ:   return compile_mips_blez(Dst, instr, address);
+        case OPC_BLEZL:  return compile_mips_blezl(Dst, instr, address);
+        case OPC_BNE:    return compile_mips_bne(Dst, instr, address);
+        case OPC_BNEL:   return compile_mips_bnel(Dst, instr, address);
+        case OPC_CACHE:  return compile_mips_cache(Dst, instr, address);
+        case OPC_SB:     return compile_mips_sb(Dst, instr, address);
+        case OPC_SH:     return compile_mips_sh(Dst, instr, address);
+        case OPC_SW:     return compile_mips_sw(Dst, instr, address);
+        case OPC_SD:     return compile_mips_sd(Dst, instr, address);
+        case OPC_ORI:    return compile_mips_ori(Dst, instr, address);
+        case OPC_J:      return compile_mips_j(Dst, instr, address);
+        case OPC_JAL:    return compile_mips_jal(Dst, instr, address);
+        case OPC_SLTI:   return compile_mips_slti(Dst, instr, address);
+        case OPC_SLTIU:  return compile_mips_sltiu(Dst, instr, address);
+        case OPC_XORI:   return compile_mips_xori(Dst, instr, address);
+        case OPC_DADDIU: return compile_mips_daddiu(Dst, instr, address);
+        case OPC_LB:     return compile_mips_lb(Dst, instr, address);
+        case OPC_LDC1:   return compile_mips_ldc1(Dst, instr, address);
+        case OPC_SDC1:   return compile_mips_sdc1(Dst, instr, address);
+        case OPC_LWC1:   return compile_mips_lwc1(Dst, instr, address);
+        case OPC_SWC1:   return compile_mips_swc1(Dst, instr, address);
+        case OPC_LWL:    return compile_mips_lwl(Dst, instr, address);
+        case OPC_LWR:    return compile_mips_lwr(Dst, instr, address);
+        case OPC_SWL:    return compile_mips_swl(Dst, instr, address);
+        case OPC_SWR:    return compile_mips_swr(Dst, instr, address);
+        case OPC_LDL:    return compile_mips_ldl(Dst, instr, address);
+        case OPC_LDR:    return compile_mips_ldr(Dst, instr, address);
+        case OPC_SDL:    return compile_mips_sdl(Dst, instr, address);
+        case OPC_SDR:    return compile_mips_sdr(Dst, instr, address);
+        default:
+#ifdef LOG_ENABLED
+            if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
+                disassemble(address, instr.raw, buf, 50);
+            }
+            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+#else
+            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d]",
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
+#endif
+    }
+}
+
+void pre_instruction(r4300i_t* cpu, word expected_address) {
+    word actual_address = resolve_virtual_address(cpu->pc, &cpu->cp0);
+#ifdef N64_LOG_COMPILATIONS
+    printf("pc 0x%08X\n", cpu->pc);
+#endif
+    if (actual_address != expected_address) {
+        logfatal("Executing at 0x%08X when we should be at 0x%08X!\n", actual_address, expected_address);
+    }
+    cpu->branch = false;
+    cpu->prev_pc = cpu->pc;
+    cpu->pc = cpu->next_pc;
+    cpu->next_pc += 4;
+}
+
+void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
+
+    dasm_State* d;
+    unsigned npc = 8; // number of dynamic labels
+
+    |.section code
+    dasm_init(&d, DASM_MAXSECTION);
+
+    |.globals lbl_
+
+    void* labels[lbl__MAX];
+    dasm_setupglobal(&d, labels, lbl__MAX);
+
+    |.actionlist actions
+    dasm_setup(&d, actions);
+    dasm_growpc(&d, npc);
+
+    dasm_State** Dst = &d;
+
+    bool should_continue_block = true;
+    int block_length = 0;
+
+    //uintptr_t pre_instruction_ptr = (uintptr_t)pre_instruction;
+
+    int instructions_left_in_block = -1;
+
+    dynarec_instruction_category_t prev_instr_category = NORMAL;
+
+    |.code
+    |->compiled_block:
+    | prologue
+    do {
+        mips_instruction_t instr;
+        instr.raw = n64_read_physical_word(physical_address);
+
+        word next_physical_address = physical_address + 4;
+
+        /* I'm keeping this around for debugging because pre_instruction() does the actual vs. expected pc check.
+        | prepcall2 cpuState, physical_address
+        // x86 cannot call a 64 bit immediate, put it into rax first
+        | mov64 rax, pre_instruction_ptr
+        | call rax
+        | postcall 2
+         */
+
+        static_assert(sizeof(cpu->pc) == 4, "PC must be 32 bits for this to work");
+        static_assert(sizeof(cpu->next_pc) == 4, "Next PC must be 32 bits for this to work");
+
+        // cpu->branch = false;
+        | mov al, 0
+        | mov cpu_state->branch, al
+
+        // cpu->prev_pc = cpu->pc;
+        | mov eax, cpu->pc
+        | mov cpu_state->prev_pc, eax
+
+        // cpu->pc = cpu->next_pc;
+        | mov eax, cpu_state->next_pc
+        | mov cpu_state->pc, eax
+
+        // cpu->next_pc += 4;
+        | add eax, 4
+        | mov cpu_state->next_pc, eax
+
+        instructions_left_in_block--;
+        bool instr_ends_block;
+
+        block_length++; // Needs to happen before we compile since we use the incremented value inside the compiler
+        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address, block_length);
+
+        switch (category) {
+            case NORMAL:
+                instr_ends_block = instructions_left_in_block == 0;
+                break; // the "instructions_left_in_block" check got
+            case BRANCH:
+                if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
+                    // Check if the previous branch was taken.
+
+                    // If the last branch wasn't taken, we can treat this the same as if the previous instruction wasn't a branch
+                    // just set the cpu->last_branch_taken to cpu->branch_taken and execute the next instruction.
+
+                    // emit:
+                    // if (!cpu->last_branch_taken) cpu->last_branch_taken = cpu->branch_taken;
+                    logfatal("Branch in a branch delay slot");
+                } else {
+                    // If the last instruction wasn't a branch, no special behavior is needed. Just set up some state in case the next one is.
+                    // emit:
+                    // cpu->last_branch_taken = cpu->branch_taken;
+                    //logfatal("unimp");
+                }
+
+                // If the previous instruction was a branch, exit the block early if
+
+                // If the previous instruction was a branch LIKELY, exit the block early if the _previous branch_
+                instr_ends_block = false;
+                instructions_left_in_block = 1; // emit delay slot
+                break;
+
+            case BRANCH_LIKELY:
+                // If the previous instruction was a branch:
+                //
+                if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
+                    logfatal("Branch in a branch likely delay slot");
+                } else {
+                    // If it wasn't taken, end the block.
+                    // If it was taken, don't end the block, need to execute delay slot
+                    | mov al, cpu_state->branch
+                    | cmp al, 0 // if (branch == true)
+                    | jne >1
+                    | mov rax, block_length
+                    | epilogue // return block_length
+                    |1:
+                }
+
+                instr_ends_block = false;
+                instructions_left_in_block = 1; // emit delay slot
+                break;
+            case ERET:
+            case TLB_WRITE:
+            case STORE:
+                instr_ends_block = true;
+                break;
+
+            default:
+                logfatal("Unknown dynarec instruction type");
+        }
+
+        bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0;
+        // !!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!
+        // If the first instruction in the new page is a delay slot, INCLUDE IT IN THE BLOCK ANYWAY.
+        // This DOES BREAK a corner case!
+        // If the game overwrites the delay slot but does not overwrite the branch or anything in the other page,
+        // THIS BLOCK WILL NOT GET MARKED DIRTY.
+        // I highly doubt any games do it, but THIS NEEDS TO GET FIXED AT SOME POINT
+        // !!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!
+        if (instructions_left_in_block == 1) { page_boundary_ends_block = false; } // FIXME, TODO, BAD, EVIL, etc
+
+        if (instr_ends_block || page_boundary_ends_block) {
+#ifdef N64_LOG_COMPILATIONS
+            printf("Ending block. instr: %d pb: %d (0x%08X)\n", instr_ends_block, page_boundary_ends_block, next_physical_address);
+#endif
+            should_continue_block = false;
+        }
+
+        physical_address = next_physical_address;
+        prev_instr_category = category;
+    } while (should_continue_block);
+    | mov eax, block_length
+    | epilogue
+    void* compiled = link_and_encode(dynarec, &d);
+    dasm_free(&d);
+
+    block->run = compiled;
+}
+
+
+int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
+    word physical = resolve_virtual_address(system->cpu.pc, &system->cpu.cp0);
+    word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
+    n64_dynarec_block_t* block_list = dynarec->blockcache[outer_index];
+
+    if (block_list == NULL) {
+#ifdef N64_LOG_COMPILATIONS
+        printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical, system->cpu.pc);
+#endif
+        block_list = bumpalloc_zero(dynarec, BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
+        dynarec->blockcache[outer_index] = block_list;
+    }
+
+    word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
+
+    n64_dynarec_block_t* block = &block_list[inner_index];
+
+    if (block->run == NULL) {
+#ifdef N64_LOG_COMPILATIONS
+        printf("Compilin' new block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
+#endif
+        compile_new_block(dynarec, &system->cpu, block, system->cpu.pc, physical);
+    }
+
+#ifdef N64_LOG_BLOCK_RUNS
+    static int total_blocks_run = 0;
+    printf("Running block at 0x%08X (block run #%d)\n", system->cpu.pc, ++total_blocks_run);
+#endif
+    int taken = block->run(&system->cpu);
+#ifdef N64_LOG_BLOCK_RUNS
+    printf("Done running block - pc is now 0x%08X\n", system->cpu.pc);
+#endif
+
+    return taken * CYCLES_PER_INSTR;
+}
+
+n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Trying to malloc %ld bytes\n", sizeof(n64_dynarec_t));
+#endif
+    n64_dynarec_t* dynarec = calloc(1, sizeof(n64_dynarec_t));
+
+    dynarec->codecache_size = codecache_size;
+    dynarec->codecache_used = 0;
+
+    for (int i = 0; i < codecache_size; i++) {
+        codecache[i] = 0;
+    }
+
+    for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
+        dynarec->blockcache[i] = 0;
+    }
+
+    dynarec->codecache = codecache;
+    return dynarec;
+}
+
+void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address) {
+    word outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
+    dynarec->blockcache[outer_index] = NULL;
+}

@@ -4,6 +4,7 @@
 #include <interface/ai.h>
 #include <cpu/rsp_interface.h>
 #include <rdp/rdp.h>
+#include <cpu/dynarec.h>
 
 #include "dma.h"
 #include "addresses.h"
@@ -410,6 +411,7 @@ INLINE void invalidate_rsp_icache(n64_system_t* system, word address) {
 
 void n64_write_dword(n64_system_t* system, word address, dword value) {
     logdebug("Writing 0x%016lX to [0x%08X]", value, address);
+    invalidate_dynarec_page(system->dynarec, address);
     switch (address) {
         case REGION_RDRAM:
             dword_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
@@ -549,6 +551,7 @@ dword n64_read_dword(n64_system_t* system, word address) {
 
 void n64_write_word(n64_system_t* system, word address, word value) {
     logdebug("Writing 0x%08X to [0x%08X]", value, address);
+    invalidate_dynarec_page(system->dynarec, address);
     switch (address) {
         case REGION_RDRAM:
             word_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
@@ -700,6 +703,7 @@ word n64_read_physical_word(word address) {
 
 void n64_write_half(n64_system_t* system, word address, half value) {
     logdebug("Writing 0x%04X to [0x%08X]", value, address);
+    invalidate_dynarec_page(system->dynarec, address);
     switch (address) {
         case REGION_RDRAM:
             half_to_byte_array((byte*) &system->mem.rdram, address - SREGION_RDRAM, value);
@@ -838,6 +842,7 @@ half n64_read_half(n64_system_t* system, word address) {
 
 void n64_write_byte(n64_system_t* system, word address, byte value) {
     logdebug("Writing 0x%02X to [0x%08X]", value, address);
+    invalidate_dynarec_page(system->dynarec, address);
     switch (address) {
         case REGION_RDRAM:
             system->mem.rdram[address] = value;

@@ -4,6 +4,11 @@
 
 #include <util.h>
 #include <log.h>
+#include "mips_instruction_decode.h"
+
+// Exceptions
+#define EXCEPTION_INTERRUPT            0
+#define EXCEPTION_COPROCESSOR_UNUSABLE 11
 
 #define R4300I_REG_LR 31
 
@@ -392,6 +397,7 @@ typedef struct r4300i {
 
     word pc;
     word next_pc;
+    word prev_pc;
 
     dword mult_hi;
     dword mult_lo;
@@ -409,20 +415,27 @@ typedef struct r4300i {
     // In a branch delay slot?
     bool branch;
 
+    // Did an exception just happen?
+    bool exception;
+
     byte (*read_byte)(word);
     void (*write_byte)(word, byte);
 
     half (*read_half)(word);
     void (*write_half)(word, half);
 
-    //word (*read_word)(word);
+    word (*read_word)(word);
     void (*write_word)(word, word);
 
     dword (*read_dword)(word);
     void (*write_dword)(word, dword);
 } r4300i_t;
 
+typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
+
 void r4300i_step(r4300i_t* cpu);
+void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor_error);
+mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr);
 void r4300i_interrupt_update(r4300i_t* cpu);
 
 extern const char* register_names[];
