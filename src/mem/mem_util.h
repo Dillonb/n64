@@ -52,19 +52,43 @@
 
 #ifdef N64_BIG_ENDIAN
 // No need to bswap anything on a big endian system
+#ifndef be64toh
 #define be64toh(x) x
+#endif
+#ifndef be32toh
 #define be32toh(x) x
+#endif
+#ifndef be16toh
 #define be16toh(x) x
+#endif
+#ifndef htobe64
 #define htobe64(x) x
+#endif
+#ifndef htobe32
 #define htobe32(x) x
+#endif
+#ifndef htobe16
 #define htobe16(x) x
+#endif
 #else
+#ifndef be64toh
 #define be64toh(x) bswap_64(x)
+#endif
+#ifndef be32toh
 #define be32toh(x) bswap_32(x)
+#endif
+#ifndef be16toh
 #define be16toh(x) bswap_16(x)
+#endif
+#ifndef htobe64
 #define htobe64(x) bswap_64(x)
+#endif
+#ifndef htobe32
 #define htobe32(x) bswap_32(x)
+#endif
+#ifndef htobe16
 #define htobe16(x) bswap_16(x)
+#endif
 #endif
 
 
