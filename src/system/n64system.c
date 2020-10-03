@@ -225,7 +225,11 @@ INLINE int jit_system_step(n64_system_t* system) {
     stepcount += taken;
 
     if (stepcount >= 3) {
-        stepcount = rsp_run(system, stepcount);
+        if (system->rsp.status.halt) {
+            stepcount = 0;
+        } else {
+            stepcount = rsp_run(system, stepcount);
+        }
     }
 
     return taken;
