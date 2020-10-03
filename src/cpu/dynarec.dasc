@@ -2200,11 +2200,14 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
         case OPC_SDR:    return compile_mips_sdr(Dst, instr, address);
         default:
 #ifdef LOG_ENABLED
+        {
+            char buf[50];
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
                 disassemble(address, instr.raw, buf, 50);
             }
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+        }
 #else
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
