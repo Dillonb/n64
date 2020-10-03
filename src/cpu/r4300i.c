@@ -454,7 +454,7 @@ void r4300i_step(r4300i_t* cpu) {
     cpu->cp0.count += CYCLES_PER_INSTR;
     if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
         cpu->cp0.cause.ip7 = true;
-        logwarn("Compare interrupt!");
+        loginfo("Compare interrupt!");
         r4300i_interrupt_update(cpu);
     }
 

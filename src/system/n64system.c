@@ -201,7 +201,7 @@ INLINE int jit_system_step(n64_system_t* system) {
     cpu->cp0.count += CYCLES_PER_INSTR;
     if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
         cpu->cp0.cause.ip7 = true;
-        logwarn("Compare interrupt!");
+        loginfo("Compare interrupt!");
         r4300i_interrupt_update(cpu);
     }
 
@@ -317,7 +317,7 @@ void n64_request_quit() {
 
 void on_interrupt_change(n64_system_t* system) {
     bool interrupt = system->mi.intr.raw & system->mi.intr_mask.raw;
-    logwarn("ip2 is now: %d", interrupt);
+    loginfo("ip2 is now: %d", interrupt);
     system->cpu.cp0.cause.ip2 = interrupt;
     r4300i_interrupt_update(&system->cpu);
 }
@@ -325,27 +325,27 @@ void on_interrupt_change(n64_system_t* system) {
 void interrupt_raise(n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
-            logwarn("Raising VI interrupt");
+            loginfo("Raising VI interrupt");
             global_system->mi.intr.vi = true;
             break;
         case INTERRUPT_SI:
-            logwarn("Raising SI interrupt");
+            loginfo("Raising SI interrupt");
             global_system->mi.intr.si = true;
             break;
         case INTERRUPT_PI:
-            logwarn("Raising PI interrupt");
+            loginfo("Raising PI interrupt");
             global_system->mi.intr.pi = true;
             break;
         case INTERRUPT_AI:
-            logwarn("Raising AI interrupt");
+            loginfo("Raising AI interrupt");
             global_system->mi.intr.ai = true;
             break;
         case INTERRUPT_DP:
-            logwarn("Raising DP interrupt");
+            loginfo("Raising DP interrupt");
             global_system->mi.intr.dp = true;
             break;
         case INTERRUPT_SP:
-            logwarn("Raising SP interrupt");
+            loginfo("Raising SP interrupt");
             global_system->mi.intr.sp = true;
             break;
         default:
@@ -359,27 +359,27 @@ void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
             system->mi.intr.vi = false;
-            logwarn("Lowering VI interrupt");
+            loginfo("Lowering VI interrupt");
             break;
         case INTERRUPT_SI:
             system->mi.intr.si = false;
-            logwarn("Lowering SI interrupt");
+            loginfo("Lowering SI interrupt");
             break;
         case INTERRUPT_PI:
             system->mi.intr.pi = false;
-            logwarn("Lowering PI interrupt");
+            loginfo("Lowering PI interrupt");
             break;
         case INTERRUPT_DP:
             system->mi.intr.dp = false;
-            logwarn("Lowering DP interrupt");
+            loginfo("Lowering DP interrupt");
             break;
         case INTERRUPT_AI:
             system->mi.intr.ai = false;
-            logwarn("Lowering DP interrupt");
+            loginfo("Lowering DP interrupt");
             break;
         case INTERRUPT_SP:
             system->mi.intr.sp = false;
-            logwarn("Lowering SP interrupt");
+            loginfo("Lowering SP interrupt");
             break;
         default:
             logfatal("Lowering unimplemented interrupt: %d", interrupt);

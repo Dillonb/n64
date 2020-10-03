@@ -482,7 +482,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.tag_hi = value;
             break;
         case R4300I_CP0_REG_COMPARE:
-            logwarn("$Compare written with 0x%08X (count is now 0x%08lX)", value, cpu->cp0.count);
+            loginfo("$Compare written with 0x%08X (count is now 0x%08lX)", value, cpu->cp0.count);
             cpu->cp0.cause.ip7 = false;
             cpu->cp0.compare = value;
             break;
