@@ -57,9 +57,19 @@ static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
 |.endif // TODO x86 version? ARM version?
 |.type cpu_state, r4300i_t, cpuState
 
+void flush_code_cache(n64_dynarec_t* dynarec) {
+    // Just set the pointer back to the beginning, no need to clear the actual data.
+    dynarec->codecache_used = 0;
+
+    // However, the block cache needs to be fully invalidated.
+    for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
+        dynarec->blockcache[i] = NULL;
+    }
+}
+
 void* bumpalloc(n64_dynarec_t* dynarec, size_t size) {
     if (dynarec->codecache_used + size >= dynarec->codecache_size) {
-        logfatal("Exhausted code cache!");
+        flush_code_cache(dynarec);
     }
 
     void* ptr = &dynarec->codecache[dynarec->codecache_used];
@@ -2430,12 +2440,8 @@ n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t co
     dynarec->codecache_size = codecache_size;
     dynarec->codecache_used = 0;
 
-    for (int i = 0; i < codecache_size; i++) {
-        codecache[i] = 0;
-    }
-
     for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
-        dynarec->blockcache[i] = 0;
+        dynarec->blockcache[i] = NULL;
     }
 
     dynarec->codecache = codecache;
