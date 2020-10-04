@@ -1,9 +1,12 @@
 #include "render.h"
 
 #include <SDL.h>
+#include <SDL_vulkan.h>
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
+#define GLAD_VULKAN_IMPLEMENTATION
+#include <glad/vulkan.h>
 
 #include <mem/pif.h>
 
@@ -12,6 +15,18 @@ static SDL_GLContext gl_context;
 static SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
 static n64_video_type_t n64_video_type = UNKNOWN;
+
+// Vulkan stuff
+VkInstance vk_instance;
+VkSurfaceKHR vk_surface;
+VkPhysicalDevice vk_physical_device;
+const char* required_device_extensions[64];
+uint32_t num_required_extensions = sizeof(required_device_extensions) / sizeof(required_device_extensions[0]);
+
+const char* required_device_layers[64];
+uint32_t num_required_device_layers = sizeof(required_device_layers) / sizeof(required_device_layers[0]);
+
+const VkPhysicalDeviceFeatures* required_features;
 
 #define AUDIO_SAMPLE_RATE 48000
 static SDL_AudioStream* audio_stream = NULL;
@@ -23,7 +38,7 @@ word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
 word sdl_numframes = 0;
 word sdl_fps = 0;
-char sdl_wintitle[100] = "dgb n64 00 FPS";
+char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
     int gotten = 0;
@@ -67,7 +82,7 @@ void audio_init(n64_system_t* system) {
 }
 
 void video_init_opengl() {
-    window = SDL_CreateWindow("dgb n64",
+    window = SDL_CreateWindow(N64_APP_NAME,
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
                               N64_SCREEN_X * SCREEN_SCALE,
@@ -100,16 +115,55 @@ void video_init_opengl() {
 }
 
 void video_init_vulkan() {
-    window = SDL_CreateWindow("dgb n64",
+    window = SDL_CreateWindow(N64_APP_NAME,
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
                               N64_SCREEN_X * SCREEN_SCALE,
                               N64_SCREEN_Y * SCREEN_SCALE,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
 
-    logfatal("Init vulkan here");
-}
+    int vk_version = gladLoaderLoadVulkan(NULL, NULL, NULL);
 
+    if (!vk_version) {
+        logfatal("Failed to load Vulkan! Does your GPU and driver support Vulkan 1.1?");
+    }
+
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &num_required_extensions, required_device_extensions)) {
+        logfatal("SDL_Vulkan_GetInstanceExtensions failed: %s", SDL_GetError());
+    }
+
+    for (int i = 0; i < num_required_extensions; i++) {
+        printf("Extension: %s\n", required_device_extensions[i]);
+    }
+
+    printf("Loaded Vulkan %d.%d\n", GLAD_VERSION_MAJOR(vk_version), GLAD_VERSION_MINOR(vk_version));
+
+    VkApplicationInfo app_info = {};
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pEngineName = N64_APP_NAME;
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pApplicationName = N64_APP_NAME;
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.apiVersion = VK_API_VERSION_1_1;
+
+    VkInstanceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &app_info;
+    createInfo.enabledExtensionCount = num_required_extensions;
+    createInfo.ppEnabledExtensionNames = required_device_extensions;
+
+    if (vkCreateInstance(&createInfo, NULL, &vk_instance) != VK_SUCCESS) {
+        logfatal("Failed to create Vulkan instance.");
+    }
+
+    if (!SDL_Vulkan_CreateSurface(window, vk_instance, &vk_surface)) {
+        logfatal("Failed to create Vulkan window surface: %s", SDL_GetError());
+    }
+
+    logfatal("Need to initialize required_device_layers and num_required_device_layers");
+    logfatal("Need to initialize required_features");
+    logfatal("Need a vulkan physical device here");
+}
 
 void render_init(n64_system_t* system, n64_video_type_t video_type) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
@@ -248,7 +302,7 @@ void render_screen(n64_system_t* system) {
         sdl_lastframe = ticks;
         sdl_fps = sdl_numframes;
         sdl_numframes = 0;
-        snprintf(sdl_wintitle, sizeof(sdl_wintitle), "dgb n64 [%s] %02d FPS", system->mem.rom.header.image_name, sdl_fps);
+        snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d FPS", system->mem.rom.header.image_name, sdl_fps);
         SDL_SetWindowTitle(window, sdl_wintitle);
     }
 }

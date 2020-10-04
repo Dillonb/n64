@@ -4,6 +4,7 @@
 #include <system/n64system.h>
 #include <mem/pif.h>
 #include <rdp/rdp.h>
+#include <rdp/parallel_rdp_wrapper.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -34,7 +35,7 @@ int main(int argc, char** argv) {
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
         system = init_n64system(flags->argv[0], true, debug, VULKAN);
-        init_parallel_rdp(system);
+        load_parallel_rdp(system);
     }
     pif_rom_execute(system);
     if (debug) {

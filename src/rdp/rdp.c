@@ -137,10 +137,6 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
     printf("Loaded RDP plugin %s\n", plugin_name);
 }
 
-void init_parallel_rdp(n64_system_t* system) {
-    logfatal("init_parallel_rdp");
-}
-
 void write_word_dpcreg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_DPC_START_REG:
