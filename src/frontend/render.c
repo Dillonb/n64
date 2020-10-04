@@ -1,7 +1,9 @@
 #include "render.h"
 
 #include <SDL.h>
-#include <glad/glad.h>
+
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
 
 #include <mem/pif.h>
 
@@ -76,9 +78,7 @@ void video_init_opengl() {
         logfatal("SDL couldn't create OpenGL context! %s", SDL_GetError());
     }
 
-    int gl_version = gladLoadGLLoader(SDL_GL_GetProcAddress);
-
-
+    int gl_version = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
     if (gl_version == 0) {
         logfatal("Failed to initialize Glad context");

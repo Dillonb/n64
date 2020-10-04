@@ -22,12 +22,7 @@ add_library(core
         mem/n64_rsp_bus.c mem/n64_rsp_bus.h
         mem/mem_util.h)
 
-add_library(glad
-        contrib/src/glad.c)
-
-target_link_libraries(glad dl)
-
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger glad ${SDL2_LIBRARY})
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY})
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)
