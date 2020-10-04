@@ -177,8 +177,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->si.controllers[2].plugged_in = false;
     system->si.controllers[3].plugged_in = false;
 
-    system->stepcount = 0;
-
     if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
         printf("Page size: %ld\n", sysconf(_SC_PAGESIZE));
         logfatal("mprotect codecache failed! %s", strerror(errno));
@@ -223,12 +221,15 @@ INLINE int jit_system_step(n64_system_t* system) {
 
     int taken = n64_dynarec_step(system, system->dynarec);
 
-    system->stepcount += taken;
+    static int stepcount = 0;
+    stepcount += taken;
 
-    if (system->stepcount >= 3) {
-        int rsp_steps = (system->stepcount * 2) / 3;
-        rsp_run(system, rsp_steps);
-        system->stepcount %= 3;
+    if (stepcount >= 3) {
+        if (system->rsp.status.halt) {
+            stepcount = 0;
+        } else {
+            stepcount = rsp_run(system, stepcount);
+        }
     }
 
     return taken;
@@ -246,16 +247,16 @@ INLINE int interpreter_system_step(n64_system_t* system) {
 #endif
     int taken = CYCLES_PER_INSTR;
     r4300i_step(&system->cpu);
-
-    system->stepcount += taken;
-    while (system->stepcount >= 3) {
+    static int stepcount = 0;
+    stepcount += taken;
+    while (stepcount >= 3) {
         if (!system->rsp.status.halt) {
             rsp_step(system);
         }
         if (!system->rsp.status.halt) {
             rsp_step(system);
         }
-        system->stepcount -= 3;
+        stepcount -= 3;
     }
     return taken;
 }

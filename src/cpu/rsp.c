@@ -257,37 +257,39 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
         }
 }
 
-void _rsp_step(n64_system_t* system) {
+INLINE void _rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
-    half pc = rsp->pc & 0xFFF;
-#ifdef N64_DEBUG_MODE
-    if (pc % 4 != 0) {
-        logfatal("RSP PC at misaligned address!");
-    }
-#endif
-    rsp_icache_entry_t cache = system->rsp.icache[pc / 4];
+    half pc = rsp->pc & 0x3FF;
+    rsp_icache_entry_t* cache = &system->rsp.icache[pc];
 
     // Need to decode the instruction?
-    if (cache.handler == NULL) {
+    if (cache->handler == NULL) {
+        half fullsize_pc = pc << 2;
         // RSP can only read from IMEM.
-        cache.instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, pc);
-        cache.handler = rsp_instruction_decode(rsp, pc, cache.instruction);
-        system->rsp.icache[pc / 4] = cache;
-
+        cache->instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, fullsize_pc);
+        cache->handler = rsp_instruction_decode(rsp, fullsize_pc, cache->instruction);
     }
 
     rsp->pc = rsp->next_pc;
-    rsp->next_pc += 4;
+    rsp->next_pc++;
 
-    cache.handler(rsp, cache.instruction);
+    cache->handler(rsp, cache->instruction);
 }
 
 void rsp_step(n64_system_t* system) {
     _rsp_step(system);
 }
 
-void rsp_run(n64_system_t* system, int steps) {
-    for (int i = 0; i < steps && !system->rsp.status.halt; i++) {
-        _rsp_step(system);
+int rsp_run(n64_system_t* system, int steps) {
+    // 2 RSP steps per CPU step
+    while (steps >= 3) {
+        for (int i = 0; i < 2; i++) {
+            if (system->rsp.status.halt) {
+                return 0;
+            } else {
+                _rsp_step(system);
+            }
+        }
     }
+    return steps;
 }

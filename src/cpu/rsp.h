@@ -292,6 +292,6 @@ INLINE byte rsp_get_vce(rsp_t* rsp) {
 }
 
 void rsp_step(n64_system_t* system);
-void rsp_run(n64_system_t* system, int steps);
+int rsp_run(n64_system_t* system, int steps);
 
 #endif //N64_RSP_H
