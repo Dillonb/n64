@@ -257,24 +257,23 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
         }
 }
 
-void _rsp_step(n64_system_t* system) {
+INLINE void _rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
     half pc = rsp->pc & 0x3FF;
-    rsp_icache_entry_t cache = system->rsp.icache[pc];
+    rsp_icache_entry_t* cache = &system->rsp.icache[pc];
 
     // Need to decode the instruction?
-    if (cache.handler == NULL) {
+    if (cache->handler == NULL) {
         half fullsize_pc = pc << 2;
         // RSP can only read from IMEM.
-        cache.instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, fullsize_pc);
-        cache.handler = rsp_instruction_decode(rsp, fullsize_pc, cache.instruction);
-        system->rsp.icache[pc] = cache;
+        cache->instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, fullsize_pc);
+        cache->handler = rsp_instruction_decode(rsp, fullsize_pc, cache->instruction);
     }
 
     rsp->pc = rsp->next_pc;
     rsp->next_pc++;
 
-    cache.handler(rsp, cache.instruction);
+    cache->handler(rsp, cache->instruction);
 }
 
 void rsp_step(n64_system_t* system) {
