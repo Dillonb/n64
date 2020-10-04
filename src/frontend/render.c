@@ -9,6 +9,7 @@ int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;
 static SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
+static n64_video_type_t n64_video_type = UNKNOWN;
 
 #define AUDIO_SAMPLE_RATE 48000
 static SDL_AudioStream* audio_stream = NULL;
@@ -63,7 +64,7 @@ void audio_init(n64_system_t* system) {
     SDL_PauseAudioDevice(audio_dev, false);
 }
 
-void video_init() {
+void video_init_opengl() {
     window = SDL_CreateWindow("dgb n64",
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
@@ -98,11 +99,28 @@ void video_init() {
     }
 }
 
-void render_init(n64_system_t* system) {
+void video_init_vulkan() {
+    window = SDL_CreateWindow("dgb n64",
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              N64_SCREEN_X * SCREEN_SCALE,
+                              N64_SCREEN_Y * SCREEN_SCALE,
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
+
+    logfatal("Init vulkan here");
+}
+
+
+void render_init(n64_system_t* system, n64_video_type_t video_type) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
-    video_init();
+    if (video_type == OPENGL) {
+        video_init_opengl();
+    } else if (video_type == VULKAN) {
+        video_init_vulkan();
+    }
+    n64_video_type = video_type;
     audio_init(system);
 }
 
@@ -214,7 +232,15 @@ void render_screen(n64_system_t* system) {
         handle_event(system, &event);
     }
 
-    SDL_RenderPresent(renderer);
+    switch (n64_video_type) {
+        case OPENGL:
+            SDL_RenderPresent(renderer);
+            break;
+        case VULKAN:
+            logfatal("Unsupported video type VULKAN!");
+        case UNKNOWN:
+            logfatal("Unknown video type!");
+    }
 
     sdl_numframes++;
     uint32_t ticks = SDL_GetTicks();
