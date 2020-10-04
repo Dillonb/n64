@@ -8,12 +8,7 @@ INLINE void rsp_branch_abs(rsp_t* rsp, word address) {
 }
 
 INLINE void rsp_branch_offset(rsp_t* rsp, shalf offset) {
-    sword soffset = offset;
-    soffset <<= 2;
-    // This is taking advantage of the fact that we add 4 to the PC after each instruction.
-    // Due to the compiler expecting pipelining, the address we get here will be 4 _too early_
-
-    rsp_branch_abs(rsp, rsp->pc + soffset);
+    rsp_branch_abs(rsp, rsp->pc + offset);
 }
 
 INLINE void rsp_conditional_branch(rsp_t* rsp, word offset, bool condition) {
@@ -23,7 +18,7 @@ INLINE void rsp_conditional_branch(rsp_t* rsp, word offset, bool condition) {
 }
 
 INLINE void rsp_link(rsp_t* rsp) {
-    set_rsp_register(rsp, RSP_REG_LR, rsp->pc + 4); // Skips the instruction in the delay slot on return
+    set_rsp_register(rsp, RSP_REG_LR, (rsp->pc << 2) + 4); // Skips the instruction in the delay slot on return
 }
 
 RSP_INSTR(rsp_nop) {}
@@ -207,29 +202,21 @@ RSP_INSTR(rsp_lw) {
 }
 
 RSP_INSTR(rsp_j) {
-    word target = instruction.j.target;
-    target <<= 2;
-    target |= ((rsp->pc - 4) & 0xF0000000); // PC is 4 ahead
-
-    rsp_branch_abs(rsp, target);
+    rsp_branch_abs(rsp, instruction.j.target);
 }
 
 RSP_INSTR(rsp_jal) {
     rsp_link(rsp);
-    word target = instruction.j.target;
-    target <<= 2;
-    target |= ((rsp->pc - 4) & 0xF0000000); // PC is 4 ahead
-
-    rsp_branch_abs(rsp, target);
+    rsp_branch_abs(rsp, instruction.j.target);
 }
 
 RSP_INSTR(rsp_spc_jr) {
-    rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs));
+    rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs) >> 2);
 }
 
 RSP_INSTR(rsp_spc_jalr) {
     rsp_link(rsp);
-    rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs));
+    rsp_branch_abs(rsp, get_rsp_register(rsp, instruction.r.rs) >> 2);
 }
 
 RSP_INSTR(rsp_mfc0) {
