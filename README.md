@@ -40,6 +40,8 @@ Not started. There is verbose logging with -v (repeatable) that provides some de
 ## CPU
 Reasonably complete. Not all instructions are there yet, but enough for now. I'm implementing instructions as I come across them in games, so this will slowly progress as time goes on.
 
+An interpreter and a basic cached interpreter are available, able to be switched at compile time by editing a `#define` in n64system.c.
+
 ## RSP
 Reasonably complete. Fast3d (Super Mario 64) seems to work. There are still bugs in the VRCP family of instructions.
 
