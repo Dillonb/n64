@@ -26,7 +26,7 @@ Virtual-to-Physical Address Translation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For the direct mapped segments (KSEG0 and KSEG1), the translation is easy. Simply subtract the start of the segment the address is in from the address itself.
 
-For example, both virtual address 0x80001000 (in KSEG0) and virtual address 0xA0001000 would translate to the physical address 0x00001000.
+For example, both virtual address 0x80001000 (in KSEG0) and virtual address 0xA0001000 (in KSEG1) would translate to the physical address 0x00001000.
 
 For TLB-mapped segments, things are a bit more complicated. See the :ref:`TLB section<TLB>` for more details.
 
