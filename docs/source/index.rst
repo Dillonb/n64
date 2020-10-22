@@ -7,7 +7,7 @@ I aim to document the sharp edges I hurt myself on along the way, as well as col
 
 This guide is intended to be used by emulator developers, but homebrew authors might find the information presented here useful as well.
 
-I'm by no means the leading expert on the N64. If you have any corrections for me, please feel free to open an issue or pull request on my `GitHub repo <https://github.com/Dillonb/n64-docs>`_.
+I'm by no means the leading expert on the N64. If you have any corrections for me, please feel free to open an issue or pull request on my `GitHub repo <https://github.com/Dillonb/n64/tree/master/docs>`_.
 
 Assumed Prior Knowledge
 -----------------------
