@@ -2,6 +2,7 @@
 Nintendo 64 emulation research project
 
 ![Build](https://github.com/Dillonb/n64/workflows/Build/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/n64/badge/?version=latest)](https://n64.readthedocs.io/en/latest/?badge=latest)
 
 # What is this?
 This is a project I am working on to learn about the N64 and more advanced emulation techniques.
