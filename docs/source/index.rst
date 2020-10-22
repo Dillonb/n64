@@ -18,12 +18,3 @@ While my goal is to be as clear and accessible as possible, I expect readers to 
    :maxdepth: 2
 
    overview
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

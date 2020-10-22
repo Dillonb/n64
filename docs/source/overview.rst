@@ -6,6 +6,12 @@ The Nintendo 64 is an early 3D console with some interesting quirks. Let's get r
 
 The system is often thought of as having two main components - the CPU, and the Reality Coprocessor (RCP), with the RCP again being divided into two components, the Reality Signal Processor (RSP) and the Reality Display Processor (RDP.)
 
+The system has 4MiB of RDRAM, expandable with an add-on (Expansion Pak) to 8MiB. The system is designed in such a way that all 3 processors (CPU, RSP, RDP) can access the same memory. Thus, this RAM acts as both normal system RAM and VRAM at the same time.
+
+Interestingly, each byte in RDRAM is actually 9 bits. In other computer systems with RDRAM, this 9th bit is normally used as a parity bit for data integrity checking, but it has been repurposed in the N64 as extra storage for the RDP. The RDP uses it for depth buffering and anti-aliasing, usually.
+
+The 9th bits are usually implemented in emulators as an entirely separate structure from the main RDRAM array.
+
 CPU Overview
 ------------
 
@@ -40,13 +46,11 @@ It has 32 *32-bit* registers. Note that this is different than the main CPU, whi
 
 The RSP has no CP0 in the same way the CPU does. Instead, the CP0 registers are used to communicate with the DMA engine, RDP, and various other things. It also does not have a floating point unit available on CP1.
 
-It, however, does have a Vector Unit (VU) available as CP2. The VU has quite a few registers which are discussed in the RSP section below.
-
-The RSP is on a separate memory bus from the CPU. Instructions can only be executed from Signal Processor Instruction Memory (SP IMEM) and data can only be read/written from/to Signal Processor Data Memory (SP DMEM) through load/store instructions. It can load/store 8, 16, and 32 bit values this way. Accessing address 0x000 accesses the lowest value in SP DMEM.
+It, however, does have a Vector Unit (VU) available as CP2. The VU has quite a few registers which are discussed in the RSP section below. Sometimes, the normal operations of this CPU are referred to as the Scalar Unit (SU) to differentiate them from the vector unit.
 
 All memory accesses use a physical address, there is no virtual memory involved here.
 
-Unlike the CPU, the RSP is capable of reading and writing unaligned values. Not only will these accesses not throw exceptions, they'll work perfectly!
+Unlike the CPU, the RSP is capable of reading and writing unaligned values. Not only will these accesses not throw exceptions, they'll work perfectly! Again, note that memory accesses can only be to DMEM.
 
 SP IMEM is only 0x1000 bytes in size and the bottom 12 bits of the program counter are used to address it. Because of this, the program counter can be thought of as being a simple 12 bit value.
 
@@ -59,5 +63,5 @@ The RDP is a rasterizer used to display images on-screen.
 .. toctree::
    :maxdepth: 2
 
-   cpu
    memory_map
+   cpu
