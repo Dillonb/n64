@@ -11,8 +11,13 @@ if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/n64-tests)
     add_executable(test_rom test_rom.c unit.h)
     target_link_libraries(test_rom r4300i common core)
 
-    add_test(NAME test_basic COMMAND test_rom ./n64-tests/src/basic.z64)
-    add_dependencies(test_rom assemble_test_rom_basic)
+    file(GLOB asmfiles ${CMAKE_CURRENT_LIST_DIR}/n64-tests/src/*.asm)
+    foreach(asmfile ${asmfiles})
+        get_filename_component(name ${asmfile} NAME_WLE)
+
+        add_test(NAME test_${name} COMMAND test_rom ./n64-tests/src/${name}.z64)
+        add_dependencies(test_rom assemble_test_rom_${name})
+    endforeach()
 endif()
 
 add_executable(test_rsp test_rsp.c unit.h)
