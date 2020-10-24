@@ -3,7 +3,7 @@ n64docs
 
 It is my hope that this document will make Nintendo 64 emulation a more approachable and accessible project for as many people as possible.
 
-I aim to document the sharp edges I hurt myself on along the way, as well as collect as much of the information scattered around as possible into one document.
+I aim to document the sharp edges I hurt myself on along the way, as well as collect as much of the information scattered around as possible into one document. Currently it is *VERY MUCH* a work in progress, and nowhere near complete.
 
 This guide is intended to be used by emulator developers, but homebrew authors might find the information presented here useful as well.
 
