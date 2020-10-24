@@ -39,7 +39,6 @@ int main(int argc, char** argv) {
     loginfo("Initial PC: 0x%08X\n", system->cpu.pc);
 
     for (int steps = 0; steps < MAX_STEPS && !test_complete(system); steps++) {
-        printf("pc: 0x%08X\n", system->cpu.pc);
         n64_system_step(system);
     }
 
