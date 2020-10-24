@@ -51,3 +51,7 @@ configure_file(testcases/cpu/bltzl.testcase bltzl.testcase COPYONLY)
 configure_file(testcases/cpu/multu.testcase multu.testcase COPYONLY)
 configure_file(testcases/cpu/slt.testcase slt.testcase COPYONLY)
 configure_file(testcases/cpu/xor.testcase xor.testcase COPYONLY)
+
+if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/n64-tests)
+    add_subdirectory(n64-tests/src)
+endif()
