@@ -22,7 +22,7 @@ extern unsigned int n64_log_verbosity;
 #endif
 
 
-#define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity;} while(0);
+#define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity;} while(0)
 
 #define logfatal(message,...) do { \
     fprintf(stderr, COLOR_RED "[FATAL] at %s:%d ", __FILE__, __LINE__);\
