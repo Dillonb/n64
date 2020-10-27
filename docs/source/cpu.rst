@@ -164,6 +164,7 @@ These registers are used to query and control the TLB. Please see the TLB sectio
 * EntryLo1
 * EntryHi
 * PageMask
+* Context
 
 CP0 Random Number Registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -181,22 +182,35 @@ Since the N64 has no timers, these registers are the only way the system can tel
 * Count
 * Compare
 
-CP0 Registers To Be Categorized
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+CP0 Cache Registers
+^^^^^^^^^^^^^^^^^^^
 
-* Context
+These registers are used for the cache, which is not documented here yet.
+
+* TagLo
+* TagHi
+
+CP0 Exception/Interrupt Registers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These registers are used for exceptions and interrupts.
+
 * BadVAddr
-* Status
 * Cause
 * EPC
-* PRId
-* Config
-* LLAddr
+* ErrorEPC
 * WatchLo
 * WatchHi
 * XContext
 * Parity Error
 * Cache Error
-* TagLo
-* TagHi
-* ErrorEPC
+
+CP0 Other Registers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These registers don't fit cleanly into any other category.
+
+* PRId
+* Config
+* LLAddr
+* Status
