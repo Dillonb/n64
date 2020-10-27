@@ -224,7 +224,7 @@ These registers are used for exceptions and interrupts.
 * Cache Error
 
 CP0 Other Registers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 These registers don't fit cleanly into any other category.
 

@@ -12,6 +12,8 @@ Interestingly, each byte in RDRAM is actually 9 bits. In other computer systems 
 
 The 9th bits are usually implemented in emulators as an entirely separate structure from the main RDRAM array.
 
+All memory is accessed using big-endian.
+
 CPU Overview
 ------------
 
