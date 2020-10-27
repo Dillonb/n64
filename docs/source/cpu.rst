@@ -191,7 +191,14 @@ CP0 Timing Registers
 Since the N64 has no timers, these registers are the only way the system can tell how much time has passed.
 
 * Count
+
+This value is incremented every cycle, and compared to the value in Compare. As noted below, fire an interrupt when Count == Compare.
+
 * Compare
+
+Fire an interrupt when Count equals this value. This interrupt sets the ip7 bit in Cause to 1.
+
+Writes to this register clear said interrupt, and sets the ip7 bit in Cause to 0.
 
 CP0 Cache Registers
 ^^^^^^^^^^^^^^^^^^^
