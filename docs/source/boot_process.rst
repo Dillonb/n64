@@ -49,3 +49,4 @@ The first 0x1000 bytes from the cartridge are then copied to the first 0x1000 by
 
 The program counter is then set to 0xA4000040. Note that this skips the first 0x40 bytes of the ROM, as this is where the header is stored.
 
+The ROM now begins to execute! In practice, this is the Bootcode. A reverse-engineering and analysis of this bootcode can be found `Here <https://www.retroreversing.com/n64bootcode>`_.
