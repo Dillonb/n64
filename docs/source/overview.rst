@@ -59,9 +59,3 @@ Reality Display Processor Overview
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The RDP is a rasterizer used to display images on-screen.
-
-.. toctree::
-   :maxdepth: 2
-
-   memory_map
-   cpu
