@@ -21,7 +21,8 @@ The CPU is a fairly standard 64 bit MIPS r4300i chip.
 
 It has 32 *64-bit* registers. The first register, r0 or $zero, is hardwired to a value of 0, at all times. There are also special-purpose registers for things like multiplication.
 
-It has a 32 bit program counter and uses 32 bit addresses to access memory. It can load and store 8, 16, 32, and 64 bit values. All memory accesses must be aligned, and load/stores with unaligned addresses will throw exceptions.
+It has a 64 bit program counter and can be configured to use 32 bit or 64 bit addresses to access memory, though in practice the vast majority of software uses 32 bit addressing. It can load and store 8, 16, 32, and 64 bit values. All memory accesses must be aligned, and loads/stores with unaligned addresses will throw exceptions.
+
 
 All memory accesses, including instruction fetches, use virtual memory. There are segments of the address space that use fixed translation, and segments that are configurable.
 
