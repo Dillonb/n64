@@ -72,23 +72,6 @@ void gen_imm32(char* name, mipsinstr_handler_t handler) {
     }
 }
 
-// 00
-// 00
-// 00
-// 00
-// 10
-// 9a
-// af
-// be
-// 00
-// 00
-// 23
-// c6
-// 00
-// 00
-// 48
-// 73
-
 int main(int argc, char** argv) {
     if (argc != 2) {
         logdie("Usage: %s <instruction>", argv[0]);
