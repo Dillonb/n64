@@ -6,6 +6,7 @@ add_subdirectory(common)
 add_subdirectory(cpu)
 add_subdirectory(rdp)
 add_subdirectory(debugger)
+add_subdirectory(tools)
 
 add_library(core
         system/n64system.c system/n64system.h
@@ -30,6 +31,3 @@ target_link_libraries(core r4300i rsp rdp debugger glad ${SDL2_LIBRARY})
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)
-
-add_executable(logtester logtester.c)
-target_link_libraries(logtester common core)

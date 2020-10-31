@@ -3,7 +3,6 @@
 #define LOG_ENABLED
 #include <log.h>
 #include <system/n64system.h>
-#include <mem/pif.h>
 #include <cpu/mips_instructions.h>
 #include <mem/dma.h>
 
