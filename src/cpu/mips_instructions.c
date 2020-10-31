@@ -717,6 +717,9 @@ MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     word address = get_register(cpu, instruction.i.rs) + offset;
     dword result = cpu->read_dword(address);
+    if ((address & 0b111) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+    }
     set_register(cpu, instruction.i.rt, result);
 }
 
@@ -739,6 +742,9 @@ MIPS_INSTR(mips_lhu) {
     logtrace("LHU offset: %d", offset);
     word address = get_register(cpu, instruction.i.rs) + offset;
     half value   = cpu->read_half(address);
+    if ((address & 0b1) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+    }
 
     set_register(cpu, instruction.i.rt, value); // zero extend
 }
