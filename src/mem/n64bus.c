@@ -819,7 +819,7 @@ half n64_read_half(n64_system_t* system, word address) {
         case REGION_CART_2_2:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_2_2", address);
         case REGION_CART_1_2: {
-            half index = address - SREGION_CART_1_2;
+            word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size - 1) { // -1 because we're reading an entire half
                 logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
             }
