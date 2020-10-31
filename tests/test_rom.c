@@ -6,7 +6,7 @@
 #include <cpu/mips_instructions.h>
 #include <mem/dma.h>
 
-#define MAX_STEPS 1000000
+#define MAX_STEPS 10000000
 #define TEST_FAILED_REGISTER 30
 
 bool test_complete(n64_system_t* system) {
