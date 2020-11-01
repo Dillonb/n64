@@ -10,6 +10,10 @@ This is a project I am working on to learn about the N64 and more advanced emula
 # What is this not?
 - This is NOT intended to be your "daily driver" N64 emulator for gaming, at least it is currently not planned to be.
 
+# Links
+- [My Test Suite](https://github.com/dillonb/n64-tests)
+- [My Documentation](https://n64.readthedocs.io/)
+
 # Goals
 ## Personal development
 - Learn about JIT dynamic recompilers
