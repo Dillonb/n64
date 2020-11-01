@@ -37,7 +37,8 @@ int main(int argc, char** argv) {
 
     loginfo("Initial PC: 0x%08X\n", system->cpu.pc);
 
-    for (int steps = 0; steps < MAX_STEPS && !test_complete(system); steps++) {
+    int steps = 0;
+    for (; steps < MAX_STEPS && !test_complete(system); steps++) {
         n64_system_step(system);
     }
 
@@ -45,5 +46,5 @@ int main(int argc, char** argv) {
         logfatal("Test timed out after %d steps\n", MAX_STEPS);
     }
 
-    printf("SUCCESS: all tests passed!\n");
+    printf("SUCCESS: all tests passed! Took %d steps.\n", steps);
 }
