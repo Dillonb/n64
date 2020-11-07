@@ -959,7 +959,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_1_3:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_3", address);
         case REGION_SYSAD_DEVICE:
-            logfatal("This is a virtual address!");
+            logfatal("This (0x%08X) is a virtual address!", address);
         default:
             logfatal("Reading byte from unknown address: 0x%08X", address);
     }
