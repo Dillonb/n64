@@ -152,14 +152,20 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             //system->mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
             break;
         case ADDR_PI_RD_LEN_REG: {
-            word length = ((value & 0x00FFFFFF) | 7) + 1;
+            word length = (value & 0x00FFFFFF) + 1;
+            if (length & 0x7) {
+                length = (length + 0x7) & ~0x7;
+            }
             system->mem.pi_reg[PI_RD_LEN_REG] = length;
             run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
             interrupt_raise(INTERRUPT_PI);
             break;
         }
         case ADDR_PI_WR_LEN_REG: {
-            word length = ((value & 0x00FFFFFF) | 7) + 1;
+            word length = (value & 0x00FFFFFF) + 1;
+            if (length & 0x7) {
+                length = (length + 0x7) & ~0x7;
+            }
             system->mem.pi_reg[PI_WR_LEN_REG] = length;
             run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], length, "CART to DRAM");
             interrupt_raise(INTERRUPT_PI);
