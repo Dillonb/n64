@@ -1,3 +1,3 @@
 [submodule "tests/n64-tests"]
 	path = tests/n64-tests
-	url = git@github.com:Dillonb/n64-tests.git
+	url = https://github.com/Dillonb/n64-tests.git
