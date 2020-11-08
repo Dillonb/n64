@@ -1,5 +1,5 @@
 # n64
-Nintendo 64 emulation research project
+Experimental low-level N64 emulator
 
 ![Build](https://github.com/Dillonb/n64/workflows/Build/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/n64/badge/?version=latest)](https://n64.readthedocs.io/en/latest/?badge=latest)
