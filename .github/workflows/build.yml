@@ -37,6 +37,8 @@ jobs:
           make
 
       - name: Run tests on N64
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
         run: |
           cd build
           make test
