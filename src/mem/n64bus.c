@@ -944,7 +944,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size) {
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, system->mem.rom.size, system->mem.rom.size);
             }
             return system->mem.rom.rom[index];
         }
