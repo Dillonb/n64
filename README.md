@@ -35,6 +35,7 @@ This is a project I am working on to learn about the N64 and more advanced emula
 - Only gcc is supported for now, but this is for sure planned to be fixed. The binary built with gcc will export symbols for the RDP plugin (loaded as a shared library) to call back into, but the binary built with clang will not.
 - Only gcc and clang will be supported. I unapologetically use extensions like case ranges and binary literals.
 - RDRAM is stored internally as big-endian and translated on every read/write.
+- Only software that uses NTSC video modes is currently supported. This is planned to be fixed.
 
 # Progress
 
