@@ -7,15 +7,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
-
-      - name: Setup submodules
-        run: git submodule update --init
+      - name: Checkout
+        uses: actions/checkout@master
+        with:
+          submodules: true
 
       - name: Setup SDL2
         run: |
           sudo apt-get update -y -qq
           sudo apt-get install libsdl2-dev
+
+      - name: Setup chksum64 and bass
+        run: |
+          mkdir -p tmp
+          cd tmp
+          wget https://raw.githubusercontent.com/DragonMinded/libdragon/trunk/tools/chksum64.c
+          gcc chksum64.c -o chksum64
+          sudo mv chksum64 /bin/
+          git clone https://github.com/ARM9/bass.git
+          cd bass/bass
+          make
+          sudo mv bass /bin/
 
       - name: Build N64
         run: |
@@ -25,6 +37,8 @@ jobs:
           make
 
       - name: Run tests on N64
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
         run: |
           cd build
           make test

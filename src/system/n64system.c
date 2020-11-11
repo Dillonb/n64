@@ -264,7 +264,9 @@ INLINE int interpreter_system_step(n64_system_t* system) {
 // This is used for debugging tools, it's fine for now if timing is a little off.
 void n64_system_step(n64_system_t* system) {
     r4300i_step(&system->cpu);
-    rsp_step(system);
+    if (!system->rsp.status.halt) {
+        rsp_step(system);
+    }
 }
 
 INLINE void check_vsync(n64_system_t* system) {

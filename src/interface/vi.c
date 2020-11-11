@@ -44,6 +44,13 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
             break;
         case ADDR_VI_V_SYNC_REG:
             system->vi.vsync = value & 0x3FF;
+            if (system->vi.vsync != 0x20D) {
+                if (system->vi.vsync == 0x271) {
+                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D.) This looks like a PAL ROM. These are currently not supported.", system->vi.vsync);
+                } else {
+                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D)", system->vi.vsync);
+                }
+            }
             loginfo("VI vsync is now 0x%X (wrote 0x%08X)", value & 0x3FF, value);
             break;
         case ADDR_VI_H_SYNC_REG:

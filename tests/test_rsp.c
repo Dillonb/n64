@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
         logfatal("Not enough arguments");
     }
 
-    log_set_verbosity(LOG_VERBOSITY_DEBUG)
+    log_set_verbosity(LOG_VERBOSITY_DEBUG);
 
     const char* test_name = argv[1];
     int input_size = atoi(argv[2]);

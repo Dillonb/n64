@@ -152,14 +152,20 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             //system->mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
             break;
         case ADDR_PI_RD_LEN_REG: {
-            word length = ((value & 0x00FFFFFF) | 7) + 1;
+            word length = (value & 0x00FFFFFF) + 1;
+            if (length & 0x7) {
+                length = (length + 0x7) & ~0x7;
+            }
             system->mem.pi_reg[PI_RD_LEN_REG] = length;
             run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
             interrupt_raise(INTERRUPT_PI);
             break;
         }
         case ADDR_PI_WR_LEN_REG: {
-            word length = ((value & 0x00FFFFFF) | 7) + 1;
+            word length = (value & 0x00FFFFFF) + 1;
+            if (length & 0x7) {
+                length = (length + 0x7) & ~0x7;
+            }
             system->mem.pi_reg[PI_WR_LEN_REG] = length;
             run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], length, "CART to DRAM");
             interrupt_raise(INTERRUPT_PI);
@@ -819,7 +825,7 @@ half n64_read_half(n64_system_t* system, word address) {
         case REGION_CART_2_2:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_2_2", address);
         case REGION_CART_1_2: {
-            half index = address - SREGION_CART_1_2;
+            word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size - 1) { // -1 because we're reading an entire half
                 logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
             }
@@ -944,7 +950,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size) {
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, system->mem.rom.size, system->mem.rom.size);
             }
             return system->mem.rom.rom[index];
         }
@@ -959,7 +965,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_1_3:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_3", address);
         case REGION_SYSAD_DEVICE:
-            logfatal("This is a virtual address!");
+            logfatal("This (0x%08X) is a virtual address!", address);
         default:
             logfatal("Reading byte from unknown address: 0x%08X", address);
     }

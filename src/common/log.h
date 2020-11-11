@@ -22,7 +22,7 @@ extern unsigned int n64_log_verbosity;
 #endif
 
 
-#define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity;} while(0);
+#define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity;} while(0)
 
 #define logfatal(message,...) do { \
     fprintf(stderr, COLOR_RED "[FATAL] at %s:%d ", __FILE__, __LINE__);\
@@ -35,7 +35,6 @@ extern unsigned int n64_log_verbosity;
     exit(EXIT_FAILURE);} while(0)
 
 #ifdef LOG_ENABLED
-
 #define logwarn(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_WARN) {printf(COLOR_YELLOW "[WARN]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
 #define loginfo(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
 #define loginfo_nonewline(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message COLOR_END, ##__VA_ARGS__);} } while(0)
