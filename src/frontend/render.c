@@ -251,8 +251,8 @@ void render_screen(n64_system_t* system) {
         case OPENGL:
             SDL_RenderPresent(renderer);
             break;
-        case VULKAN:
-            logfatal("Unsupported video type VULKAN!");
+        case VULKAN: // frame pushing handled elsewhere
+            break;
         case UNKNOWN:
             logfatal("Unknown video type!");
     }

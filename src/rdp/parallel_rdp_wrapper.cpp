@@ -5,11 +5,13 @@
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
 #include <rdp_device.hpp>
+#include <frontend/render.h>
 
 using namespace Vulkan;
 using std::unique_ptr;
 using RDP::CommandProcessor;
 using RDP::CommandProcessorFlags;
+using RDP::VIRegister;
 
 static unique_ptr<Device> vk_device;
 static unique_ptr<Context> vk_context;
@@ -116,5 +118,44 @@ void load_parallel_rdp(struct n64_system* system) {
 }
 
 void update_screen_parallel_rdp() {
-    logfatal("parallel rdp update screen");
+    if (!command_processor) {
+        logfatal("Update screen without an initialized command processor");
+    }
+
+    command_processor->set_vi_register(VIRegister::Control,      *parallel_rdp_gfx_info.VI_STATUS_REG);
+    command_processor->set_vi_register(VIRegister::Origin,       *parallel_rdp_gfx_info.VI_ORIGIN_REG);
+    command_processor->set_vi_register(VIRegister::Width,        *parallel_rdp_gfx_info.VI_WIDTH_REG);
+    command_processor->set_vi_register(VIRegister::Intr,         *parallel_rdp_gfx_info.VI_INTR_REG);
+    command_processor->set_vi_register(VIRegister::VCurrentLine, *parallel_rdp_gfx_info.VI_V_CURRENT_LINE_REG);
+    command_processor->set_vi_register(VIRegister::Timing,       *parallel_rdp_gfx_info.VI_V_BURST_REG);
+    command_processor->set_vi_register(VIRegister::VSync,        *parallel_rdp_gfx_info.VI_V_SYNC_REG);
+    command_processor->set_vi_register(VIRegister::HSync,        *parallel_rdp_gfx_info.VI_H_SYNC_REG);
+    command_processor->set_vi_register(VIRegister::Leap,         *parallel_rdp_gfx_info.VI_LEAP_REG);
+    command_processor->set_vi_register(VIRegister::HStart,       *parallel_rdp_gfx_info.VI_H_START_REG);
+    command_processor->set_vi_register(VIRegister::VStart,       *parallel_rdp_gfx_info.VI_V_START_REG);
+    command_processor->set_vi_register(VIRegister::VBurst,       *parallel_rdp_gfx_info.VI_V_BURST_REG);
+    command_processor->set_vi_register(VIRegister::XScale,       *parallel_rdp_gfx_info.VI_X_SCALE_REG);
+    command_processor->set_vi_register(VIRegister::YScale,       *parallel_rdp_gfx_info.VI_Y_SCALE_REG);
+
+    RDP::ScanoutOptions opts;
+    opts.persist_frame_on_invalid_input = true;
+    opts.vi.aa = true;
+    opts.vi.scale = true;
+    opts.vi.dither_filter = true;
+    opts.vi.divot_filter = true;
+    opts.vi.gamma_dither = true;
+    opts.downscale_steps = true;
+    opts.crop_overscan_pixels = true;
+    auto image = command_processor->scanout(opts);
+
+    if (image) {
+        printf("image is true\n");
+        logfatal("display VkImage");
+    } else {
+        printf("image is false\n");
+    }
+
+    //unsigned index = vulkan->get_sync_index(vulkan->handle);
+
+    //logfatal("parallel rdp update screen");
 }
