@@ -1,12 +1,13 @@
 #include "parallel_rdp_wrapper.h"
-
 #include <device.hpp>
 #include <memory>
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
 
-static std::unique_ptr<Vulkan::Device> vk_device;
-static std::unique_ptr<Vulkan::Context> vk_context;
+using namespace Vulkan;
+
+static std::unique_ptr<Device> vk_device;
+static std::unique_ptr<Context> vk_context;
 
 extern VkInstance vk_instance;
 extern VkSurfaceKHR vk_surface;
@@ -23,7 +24,7 @@ extern "C" {
 
 
 void load_parallel_rdp(struct n64_system* system) {
-    vk_context = std::make_unique<Vulkan::Context>();
+    vk_context = std::make_unique<Context>();
 
     vk_context->init_loader(nullptr);
     if (!SDL_Vulkan_GetInstanceExtensions(window, &num_required_extensions, required_device_extensions)) {
@@ -65,9 +66,9 @@ void load_parallel_rdp(struct n64_system* system) {
 
     vk_context->init_device_from_instance(vk_instance, nullptr, vk_surface, required_device_extensions,
                                           0, required_device_layers, num_required_device_layers,
-                                          &features, Vulkan::CONTEXT_CREATION_DISABLE_BINDLESS_BIT);
+                                          &features, CONTEXT_CREATION_DISABLE_BINDLESS_BIT);
 
-    vk_device = std::make_unique<Vulkan::Device>();
+    vk_device = std::make_unique<Device>();
     vk_device->set_context(*vk_context);
 
     unsigned mask = 1;
