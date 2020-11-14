@@ -207,6 +207,9 @@ void rdp_run_command(n64_system_t* system) {
             break;
         case VULKAN:
             logfatal("Vulkan run commands");
+            break;
+        default:
+            logfatal("Unknown video type");
     }
 }
 
@@ -218,6 +221,8 @@ void rdp_update_screen(n64_system_t* system) {
         case VULKAN:
             update_screen_parallel_rdp();
             break;
+        default:
+            logfatal("Unknown video type");
     }
 }
 
