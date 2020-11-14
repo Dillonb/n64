@@ -92,6 +92,7 @@ typedef struct n64_system {
     n64_mem_t mem;
     r4300i_t cpu;
     rsp_t rsp;
+    n64_video_type_t video_type;
     struct {
         word init_mode;
         mi_intr_mask_t intr_mask;

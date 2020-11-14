@@ -123,6 +123,8 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
         load_n64rom(&system->mem.rom, rom_path);
     }
 
+    system->video_type = video_type;
+
     system->cpu.branch = false;
     system->cpu.exception = false;
 
@@ -271,7 +273,7 @@ void n64_system_step(n64_system_t* system) {
 
 INLINE void check_vsync(n64_system_t* system) {
     if (system->vi.v_current == system->vi.vsync >> 1) {
-        rdp_update_screen();
+        rdp_update_screen(system);
     }
 }
 

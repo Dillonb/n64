@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 #include "mupen_interface.h"
+#include "parallel_rdp_wrapper.h"
 #include <log.h>
 #include <frontend/render.h>
 
@@ -38,6 +39,49 @@ void rdp_rendering_callback(int redrawn) {
 
 void rdp_check_interrupts() {
     on_interrupt_change(mupen_interface_global_system);
+}
+
+GFX_INFO get_gfx_info(n64_system_t* system) {
+    GFX_INFO gfx_info;
+    gfx_info.HEADER = system->mem.rom.rom;
+    gfx_info.RDRAM = system->mem.rdram;
+    gfx_info.DMEM = system->mem.sp_dmem;
+    gfx_info.IMEM = system->mem.sp_imem;
+
+    gfx_info.MI_INTR_REG = &system->mi.intr.raw;
+
+    gfx_info.DPC_START_REG    = &system->dpc.start;
+    gfx_info.DPC_END_REG      = &system->dpc.end;
+    gfx_info.DPC_CURRENT_REG  = &system->dpc.current;
+    gfx_info.DPC_STATUS_REG   = &system->dpc.status.raw;
+    gfx_info.DPC_CLOCK_REG    = &system->dpc.clock;
+    gfx_info.DPC_BUFBUSY_REG  = &system->dpc.bufbusy;
+    gfx_info.DPC_PIPEBUSY_REG = &system->dpc.pipebusy;
+    gfx_info.DPC_TMEM_REG     = &system->dpc.tmem;
+
+    gfx_info.VI_STATUS_REG         = &system->vi.status.raw;
+    gfx_info.VI_ORIGIN_REG         = &system->vi.vi_origin;
+    gfx_info.VI_WIDTH_REG          = &system->vi.vi_width;
+    gfx_info.VI_INTR_REG           = &system->vi.vi_v_intr;
+    gfx_info.VI_V_CURRENT_LINE_REG = &system->vi.v_current;
+    gfx_info.VI_TIMING_REG         = &system->vi.vi_burst.raw;
+    gfx_info.VI_V_SYNC_REG         = &system->vi.vsync;
+    gfx_info.VI_H_SYNC_REG         = &system->vi.hsync;
+    gfx_info.VI_LEAP_REG           = &system->vi.leap;
+    gfx_info.VI_H_START_REG        = &system->vi.hstart;
+    gfx_info.VI_V_START_REG        = &system->vi.vstart.raw;
+    gfx_info.VI_V_BURST_REG        = &system->vi.vburst;
+    gfx_info.VI_X_SCALE_REG        = &system->vi.xscale;
+    gfx_info.VI_Y_SCALE_REG        = &system->vi.yscale;
+
+    gfx_info.CheckInterrupts = &rdp_check_interrupts;
+
+    gfx_info.version = 2;
+
+    gfx_info.SP_STATUS_REG = &system->rsp.status.raw;
+    gfx_info.RDRAM_SIZE = &rdram_size_word;
+
+    return gfx_info;
 }
 
 void load_rdp_plugin(n64_system_t* system, const char* filename) {
@@ -88,44 +132,7 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
 
     graphics_plugin.PluginStartup(NULL, NULL, NULL); // Null handle, null debug callbacks.
 
-    GFX_INFO gfx_info;
-    gfx_info.HEADER = system->mem.rom.rom;
-    gfx_info.RDRAM = system->mem.rdram;
-    gfx_info.DMEM = system->mem.sp_dmem;
-    gfx_info.IMEM = system->mem.sp_imem;
-
-    gfx_info.MI_INTR_REG = &system->mi.intr.raw;
-
-    gfx_info.DPC_START_REG    = &system->dpc.start;
-    gfx_info.DPC_END_REG      = &system->dpc.end;
-    gfx_info.DPC_CURRENT_REG  = &system->dpc.current;
-    gfx_info.DPC_STATUS_REG   = &system->dpc.status.raw;
-    gfx_info.DPC_CLOCK_REG    = &system->dpc.clock;
-    gfx_info.DPC_BUFBUSY_REG  = &system->dpc.bufbusy;
-    gfx_info.DPC_PIPEBUSY_REG = &system->dpc.pipebusy;
-    gfx_info.DPC_TMEM_REG     = &system->dpc.tmem;
-
-    gfx_info.VI_STATUS_REG         = &system->vi.status.raw;
-    gfx_info.VI_ORIGIN_REG         = &system->vi.vi_origin;
-    gfx_info.VI_WIDTH_REG          = &system->vi.vi_width;
-    gfx_info.VI_INTR_REG           = &system->vi.vi_v_intr;
-    gfx_info.VI_V_CURRENT_LINE_REG = &system->vi.v_current;
-    gfx_info.VI_TIMING_REG         = &system->vi.vi_burst.raw;
-    gfx_info.VI_V_SYNC_REG         = &system->vi.vsync;
-    gfx_info.VI_H_SYNC_REG         = &system->vi.hsync;
-    gfx_info.VI_LEAP_REG           = &system->vi.leap;
-    gfx_info.VI_H_START_REG        = &system->vi.hstart;
-    gfx_info.VI_V_START_REG        = &system->vi.vstart.raw;
-    gfx_info.VI_V_BURST_REG        = &system->vi.vburst;
-    gfx_info.VI_X_SCALE_REG        = &system->vi.xscale;
-    gfx_info.VI_Y_SCALE_REG        = &system->vi.yscale;
-
-    gfx_info.CheckInterrupts = &rdp_check_interrupts;
-
-    gfx_info.version = 2;
-
-    gfx_info.SP_STATUS_REG = &system->rsp.status.raw;
-    gfx_info.RDRAM_SIZE = &rdram_size_word;
+    GFX_INFO gfx_info = get_gfx_info(system);
 
     graphics_plugin.InitiateGFX(gfx_info);
     graphics_plugin.RomOpen();
@@ -194,11 +201,24 @@ void rdp_cleanup() {
 
 void rdp_run_command(n64_system_t* system) {
     //printf("Running commands from 0x%08X to 0x%08X\n", system->dpc.current, system->dpc.end);
-    graphics_plugin.ProcessRDPList();
+    switch (system->video_type) {
+        case OPENGL:
+            graphics_plugin.ProcessRDPList();
+            break;
+        case VULKAN:
+            logfatal("Vulkan run commands");
+    }
 }
 
-void rdp_update_screen() {
-    graphics_plugin.UpdateScreen();
+void rdp_update_screen(n64_system_t* system) {
+    switch (system->video_type) {
+        case OPENGL:
+            graphics_plugin.UpdateScreen();
+            break;
+        case VULKAN:
+            update_screen_parallel_rdp();
+            break;
+    }
 }
 
 void rdp_status_reg_write(n64_system_t* system, word value) {

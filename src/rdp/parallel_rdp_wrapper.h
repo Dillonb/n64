@@ -7,6 +7,7 @@
 extern "C" {
 #endif
     void load_parallel_rdp(struct n64_system* system);
+    void update_screen_parallel_rdp();
 #ifdef __cplusplus
 };
 #endif

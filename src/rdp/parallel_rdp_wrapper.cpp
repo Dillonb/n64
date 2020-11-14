@@ -1,13 +1,21 @@
 #include "parallel_rdp_wrapper.h"
+#include "rdp.h"
 #include <device.hpp>
 #include <memory>
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
+#include <rdp_device.hpp>
 
 using namespace Vulkan;
+using std::unique_ptr;
+using RDP::CommandProcessor;
+using RDP::CommandProcessorFlags;
 
-static std::unique_ptr<Device> vk_device;
-static std::unique_ptr<Context> vk_context;
+static unique_ptr<Device> vk_device;
+static unique_ptr<Context> vk_context;
+static unique_ptr<CommandProcessor> command_processor;
+
+GFX_INFO parallel_rdp_gfx_info;
 
 extern VkInstance vk_instance;
 extern VkSurfaceKHR vk_surface;
@@ -82,5 +90,31 @@ void load_parallel_rdp(struct n64_system* system) {
     printf("num sync frames: %d\n", num_sync_frames);
 
     vk_device->init_frame_contexts(num_sync_frames);
-    logfatal("init_parallel_rdp");
+
+    parallel_rdp_gfx_info = get_gfx_info(system);
+
+    auto aligned_rdram = reinterpret_cast<uintptr_t>(parallel_rdp_gfx_info.RDRAM);
+    uintptr_t offset = 0;
+
+    if (vk_device->get_device_features().supports_external_memory_host)
+    {
+        size_t align = vk_device->get_device_features().host_memory_properties.minImportedHostPointerAlignment;
+        offset = aligned_rdram & (align - 1);
+        aligned_rdram -= offset;
+    } else {
+        logwarn("VK_EXT_external_memory_host is not supported by this device. Application might run slower because of this.");
+    }
+
+    CommandProcessorFlags flags = 0; // TODO setup scaling in here later
+
+    command_processor = std::make_unique<CommandProcessor>(*vk_device, reinterpret_cast<void *>(aligned_rdram),
+                                        offset, 8 * 1024 * 1024, 4 * 1024 * 1024, flags);
+
+    if (!command_processor->device_is_supported()) {
+        logfatal("This device probably does not support 8/16-bit storage. Make sure you're using up-to-date drivers!");
+    }
+}
+
+void update_screen_parallel_rdp() {
+    logfatal("parallel rdp update screen");
 }
