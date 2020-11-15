@@ -19,7 +19,8 @@ static mupen_graphics_plugin_t graphics_plugin;
 static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
 
 void rdp_rendering_callback(int redrawn) {
-    render_screen(mupen_interface_global_system);
+    n64_poll_input(mupen_interface_global_system);
+    n64_render_screen(mupen_interface_global_system);
 }
 
 #define ADDR_DPC_START_REG    0x04100000

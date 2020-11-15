@@ -15,18 +15,6 @@ SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
 static n64_video_type_t n64_video_type = UNKNOWN;
 
-// Vulkan stuff
-VkInstance vk_instance;
-VkSurfaceKHR vk_surface;
-VkPhysicalDevice vk_physical_device;
-const char* required_device_extensions[64];
-uint32_t num_required_extensions = sizeof(required_device_extensions) / sizeof(required_device_extensions[0]);
-
-const char* required_device_layers[64];
-uint32_t num_required_device_layers = sizeof(required_device_layers) / sizeof(required_device_layers[0]);
-
-const VkPhysicalDeviceFeatures* required_features;
-
 #define AUDIO_SAMPLE_RATE 48000
 static SDL_AudioStream* audio_stream = NULL;
 SDL_AudioSpec audio_spec;
@@ -241,12 +229,14 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
     }
 }
 
-void render_screen(n64_system_t* system) {
+void n64_poll_input(n64_system_t* system) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         handle_event(system, &event);
     }
+}
 
+void n64_render_screen(n64_system_t* system) {
     switch (n64_video_type) {
         case OPENGL:
             SDL_RenderPresent(renderer);
