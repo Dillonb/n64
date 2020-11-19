@@ -106,7 +106,7 @@ void load_parallel_rdp(struct n64_system* system) {
 }
 
 void update_screen_parallel_rdp() {
-    if (!command_processor) {
+    if (unlikely(!command_processor)) {
         logfatal("Update screen without an initialized command processor");
     }
 
@@ -145,6 +145,10 @@ void update_screen_parallel_rdp() {
         Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
         VkOffset3D dst_extent = {int(swapchain_image.get_width()), int(swapchain_image.get_height()), 1};
         VkOffset3D src_extent = {int(image->get_width()),          int(image->get_height()),          1};
+
+        cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                          VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 
         cmd->blit_image(swapchain_image, image->get_view().get_image(),
                         {}, dst_extent,
