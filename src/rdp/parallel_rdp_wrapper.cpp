@@ -143,13 +143,14 @@ void update_screen_parallel_rdp() {
     if (image) {
         auto cmd = wsi->get_device().request_command_buffer();
         Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
-        const VkOffset3D origin = { 0, 0, 0 };
         VkOffset3D dst_extent = {int(swapchain_image.get_width()), int(swapchain_image.get_height()), 1};
-        VkOffset3D src_extent = {int(image->get_width()), int(image->get_height()), 1};
+        VkOffset3D src_extent = {int(image->get_width()),          int(image->get_height()),          1};
+
         cmd->blit_image(swapchain_image, image->get_view().get_image(),
-                        origin, dst_extent,
-                        origin, src_extent,
+                        {}, dst_extent,
+                        {}, src_extent,
                         0, 0);
+
         cmd->uses_swapchain = true;
         wsi->get_device().submit(cmd);
 
