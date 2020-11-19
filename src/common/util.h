@@ -26,4 +26,6 @@
 #define unlikely(exp) __builtin_expect(exp, 0)
 #define likely(exp) __builtin_expect(exp, 1)
 
+#define N64_APP_NAME "dgb n64"
+
 #endif

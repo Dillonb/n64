@@ -1,14 +1,19 @@
 #include "render.h"
 
 #include <SDL.h>
-#include <glad/glad.h>
+#include <SDL_vulkan.h>
+
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#include <volk.h>
 
 #include <mem/pif.h>
 
 int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;
-static SDL_Window* window = NULL;
+SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
+static n64_video_type_t n64_video_type = UNKNOWN;
 
 #define AUDIO_SAMPLE_RATE 48000
 static SDL_AudioStream* audio_stream = NULL;
@@ -20,7 +25,7 @@ word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
 word sdl_numframes = 0;
 word sdl_fps = 0;
-char sdl_wintitle[100] = "dgb n64 00 FPS";
+char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
     int gotten = 0;
@@ -63,8 +68,8 @@ void audio_init(n64_system_t* system) {
     SDL_PauseAudioDevice(audio_dev, false);
 }
 
-void video_init() {
-    window = SDL_CreateWindow("dgb n64",
+void video_init_opengl() {
+    window = SDL_CreateWindow(N64_APP_NAME,
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
                               N64_SCREEN_X * SCREEN_SCALE,
@@ -75,9 +80,7 @@ void video_init() {
         logfatal("SDL couldn't create OpenGL context! %s", SDL_GetError());
     }
 
-    int gl_version = gladLoadGLLoader(SDL_GL_GetProcAddress);
-
-
+    int gl_version = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
     if (gl_version == 0) {
         logfatal("Failed to initialize Glad context");
@@ -98,11 +101,29 @@ void video_init() {
     }
 }
 
-void render_init(n64_system_t* system) {
+void video_init_vulkan() {
+    window = SDL_CreateWindow(N64_APP_NAME,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              N64_SCREEN_X * SCREEN_SCALE,
+                              N64_SCREEN_Y * SCREEN_SCALE,
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
+    if (volkInitialize() != VK_SUCCESS) {
+        logfatal("Failed to load Volk");
+    }
+
+}
+
+void render_init(n64_system_t* system, n64_video_type_t video_type) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
-    video_init();
+    if (video_type == OPENGL) {
+        video_init_opengl();
+    } else if (video_type == VULKAN) {
+        video_init_vulkan();
+    }
+    n64_video_type = video_type;
     audio_init(system);
 }
 
@@ -208,13 +229,23 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
     }
 }
 
-void render_screen(n64_system_t* system) {
+void n64_poll_input(n64_system_t* system) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         handle_event(system, &event);
     }
+}
 
-    SDL_RenderPresent(renderer);
+void n64_render_screen(n64_system_t* system) {
+    switch (n64_video_type) {
+        case OPENGL:
+            SDL_RenderPresent(renderer);
+            break;
+        case VULKAN: // frame pushing handled elsewhere
+            break;
+        case UNKNOWN:
+            logfatal("Unknown video type!");
+    }
 
     sdl_numframes++;
     uint32_t ticks = SDL_GetTicks();
@@ -222,7 +253,7 @@ void render_screen(n64_system_t* system) {
         sdl_lastframe = ticks;
         sdl_fps = sdl_numframes;
         sdl_numframes = 0;
-        snprintf(sdl_wintitle, sizeof(sdl_wintitle), "dgb n64 [%s] %02d FPS", system->mem.rom.header.image_name, sdl_fps);
+        snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d FPS", system->mem.rom.header.image_name, sdl_fps);
         SDL_SetWindowTitle(window, sdl_wintitle);
     }
 }

@@ -4,6 +4,7 @@
 #include <system/n64system.h>
 #include <mem/pif.h>
 #include <rdp/rdp.h>
+#include <rdp/parallel_rdp_wrapper.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -28,12 +29,13 @@ int main(int argc, char** argv) {
         return 1;
     }
     log_set_verbosity(verbose->count);
-    n64_system_t* system = init_n64system(flags->argv[0], true, debug);
+    n64_system_t* system;
     if (rdp_plugin_path != NULL) {
+        system = init_n64system(flags->argv[0], true, debug, OPENGL);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
-        usage(flags);
-        logdie("Running without loading an RDP plugin is not currently supported.");
+        system = init_n64system(flags->argv[0], true, debug, VULKAN);
+        load_parallel_rdp(system);
     }
     pif_rom_execute(system);
     if (debug) {

@@ -115,13 +115,15 @@ void virtual_write_byte_wrapper(word address, byte value) {
     n64_write_byte(global_system, address, value);
 }
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug) {
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
     if (rom_path != NULL) {
         load_n64rom(&system->mem.rom, rom_path);
     }
+
+    system->video_type = video_type;
 
     system->cpu.branch = false;
     system->cpu.exception = false;
@@ -185,7 +187,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     global_system = system;
     if (enable_frontend) {
-        render_init(system);
+        render_init(system, video_type);
     }
     system->debugger_state.enabled = enable_debug;
     if (enable_debug) {
@@ -271,7 +273,7 @@ void n64_system_step(n64_system_t* system) {
 
 INLINE void check_vsync(n64_system_t* system) {
     if (system->vi.v_current == system->vi.vsync >> 1) {
-        rdp_update_screen();
+        rdp_update_screen(system);
     }
 }
 

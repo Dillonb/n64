@@ -12,6 +12,13 @@
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
 #define CYCLES_PER_INSTR 1
 
+typedef enum n64_video_type {
+    UNKNOWN,
+    OPENGL,
+    VULKAN
+} n64_video_type_t;
+
+
 typedef struct n64_dynarec n64_dynarec_t;
 
 typedef enum n64_interrupt {
@@ -85,6 +92,7 @@ typedef struct n64_system {
     n64_mem_t mem;
     r4300i_t cpu;
     rsp_t rsp;
+    n64_video_type_t video_type;
     struct {
         word init_mode;
         mi_intr_mask_t intr_mask;
@@ -162,7 +170,7 @@ typedef struct n64_system {
     n64_dynarec_t *dynarec;
 } n64_system_t;
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug);
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type);
 
 void n64_system_step(n64_system_t* system);
 void n64_system_loop(n64_system_t* system);

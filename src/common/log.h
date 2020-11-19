@@ -34,7 +34,6 @@ extern unsigned int n64_log_verbosity;
     fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
     exit(EXIT_FAILURE);} while(0)
 
-
 #ifdef LOG_ENABLED
 #define logwarn(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_WARN) {printf(COLOR_YELLOW "[WARN]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
 #define loginfo(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
