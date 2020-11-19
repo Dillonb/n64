@@ -59,12 +59,10 @@ public:
     }
 
     bool alive(Vulkan::WSI &wsi) override {
-        logfatal("alive() called, wtf does this do");
-        return false;
+        return true;
     }
 
     void poll_input() override {
-        printf("Polling input\n");
         n64_poll_input(global_system);
     }
 
@@ -77,7 +75,6 @@ public:
      */
 
     void event_frame_tick(double frame, double elapsed) override {
-        printf("Frame tick!\n");
         n64_render_screen(global_system);
     }
 
