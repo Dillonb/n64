@@ -100,7 +100,9 @@ static unique_ptr<WSI> wsi;
 void load_parallel_rdp(struct n64_system* system) {
     wsi = std::make_unique<WSI>();
     wsi->set_platform(new SDLWSIPlatform());
-    wsi->init(1);
+    if (!wsi->init(1)) {
+        logfatal("Failed to initialize WSI!");
+    }
 
     parallel_rdp_gfx_info = get_gfx_info(system);
 
@@ -160,15 +162,21 @@ void update_screen_parallel_rdp() {
     opts.crop_overscan_pixels = true;
     Util::IntrusivePtr<Image> image = command_processor->scanout(opts);
 
-    wsi->end_frame();
-
+    wsi->begin_frame();
     if (image) {
-        printf("image is true\n");
-    } else {
-        printf("image is false\n");
+        auto cmd = wsi->get_device().request_command_buffer();
+        Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
+        const VkOffset3D origin = { 0, 0, 0 };
+        VkOffset3D dst_extent = {int(swapchain_image.get_width()), int(swapchain_image.get_height()), 1};
+        VkOffset3D src_extent = {int(image->get_width()), int(image->get_height()), 1};
+        cmd->blit_image(swapchain_image, image->get_view().get_image(),
+                        origin, dst_extent,
+                        origin, src_extent,
+                        0, 0);
+        cmd->uses_swapchain = true;
+        wsi->get_device().submit(cmd);
+
     }
-
-    //unsigned index = vulkan->get_sync_index(vulkan->handle);
-
-    //logfatal("parallel rdp update screen");
+    wsi->end_frame();
+    command_processor->begin_frame_context();
 }
