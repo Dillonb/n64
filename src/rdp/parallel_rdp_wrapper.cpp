@@ -66,29 +66,9 @@ public:
         n64_poll_input(global_system);
     }
 
-    /*
-    virtual void event_device_created(Device *device);
-    virtual void event_device_destroyed();
-    virtual void event_swapchain_created(Device *device, unsigned width, unsigned height,
-                                         float aspect_ratio, size_t num_swapchain_images, VkFormat format, VkSurfaceTransformFlagBitsKHR pre_rotate);
-    virtual void event_swapchain_destroyed();
-     */
-
     void event_frame_tick(double frame, double elapsed) override {
         n64_render_screen(global_system);
     }
-
-    /*
-    virtual void event_swapchain_index(Device *device, unsigned index);
-    virtual void event_display_timing_stutter(uint32_t current_serial, uint32_t observed_serial,
-                                              unsigned dropped_frames);
-
-    virtual float get_estimated_frame_presentation_duration();
-
-    virtual void set_window_title(const std::string &title);
-
-    virtual uintptr_t get_fullscreen_monitor();
-     */
 };
 
 
