@@ -13,6 +13,7 @@ This is a project I am working on to learn about the N64 and more advanced emula
 - This is NOT intended to be your "daily driver" N64 emulator for gaming, at least it is currently not planned to be.
 
 # Links
+- [Compatibility List](https://github.com/Dillonb/n64/projects/2)
 - [My Test Suite](https://github.com/dillonb/n64-tests)
 - [My Documentation](https://n64.readthedocs.io/)
 
