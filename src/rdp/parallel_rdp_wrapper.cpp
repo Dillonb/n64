@@ -164,6 +164,7 @@ void update_screen_parallel_rdp(n64_system_t* system) {
 }
 
 #define FROM_RDRAM(system, address) word_from_byte_array(system->mem.rdram, address)
+#define FROM_DMEM(system, address) word_from_byte_array(system->mem.sp_dmem, address)
 
 static const int command_lengths[64] = {
         2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,
@@ -194,16 +195,23 @@ void process_commands_parallel_rdp(n64_system_t* system) {
         logfatal("Got a command of display_list_length %d / 0x%X - this overflows our buffer of size %d / 0x%X!", display_list_length, display_list_length, RDP_COMMAND_BUFFER_SIZE, RDP_COMMAND_BUFFER_SIZE);
     }
 
+    // read the commands into a buffer, 32 bits at a time.
+    // we need to read the whole thing into a buffer before sending each command to the RDP
+    // because commands have variable lengths
     if (dpc->status.xbus_dmem_dma) {
-        logfatal("parallel RDP xbus dmem commands");
+        if (end > 0x1FFF || current > 0x1FFF) {
+            logwarn("Not running RDP commands, wanted to read past end of DMEM! current: 0x%08X end: 0x%08X", current, end);
+            return;
+        }
+        for (int i = 0; i < display_list_length; i += 4) {
+            word command_word = FROM_DMEM(system, (current & 0xFF8) + i);
+            parallel_rdp_command_buffer[i >> 2] = command_word;
+        }
     } else {
         if (end > 0x7FFFFFF || current > 0x7FFFFFF) {
             logwarn("Not running RDP commands, wanted to read past end of RDRAM!");
             return;
         }
-        // read the commands into a buffer, 32 bits at a time.
-        // we need to read the whole thing into a buffer before sending each command to the RDP
-        // because commands have variable lengths
         for (int i = 0; i < display_list_length; i += 4) {
             word command_word = FROM_RDRAM(system, current + i);
             parallel_rdp_command_buffer[i >> 2] = command_word;
