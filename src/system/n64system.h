@@ -1,5 +1,8 @@
 #ifndef N64_N64SYSTEM_H
 #define N64_N64SYSTEM_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <stdbool.h>
 #include <mem/n64mem.h>
 #include <cpu/r4300i.h>
@@ -88,6 +91,33 @@ typedef struct n64_controller {
     sbyte joy_y;
 } n64_controller_t;
 
+typedef struct n64_dpc {
+    word start;
+    word end;
+    word current;
+    union {
+        word raw;
+        struct {
+            bool xbus_dmem_dma;
+            bool freeze;
+            bool flush;
+            bool start_gclk;
+            bool tmem_busy;
+            bool pipe_busy;
+            bool cmd_busy;
+            bool cbuf_ready;
+            bool dma_busy;
+            bool end_valid;
+            bool start_valid;
+            unsigned:21;
+        };
+    } status;
+    word clock;
+    word bufbusy;
+    word pipebusy;
+    word tmem;
+} n64_dpc_t;
+
 typedef struct n64_system {
     n64_mem_t mem;
     r4300i_t cpu;
@@ -140,32 +170,7 @@ typedef struct n64_system {
     struct {
         n64_controller_t controllers[4];
     } si;
-    struct {
-        word start;
-        word end;
-        word current;
-        union {
-            word raw;
-            struct {
-                bool xbus_dmem_dma;
-                bool freeze;
-                bool flush;
-                bool start_gclk;
-                bool tmem_busy;
-                bool pipe_busy;
-                bool cmd_busy;
-                bool cbuf_ready;
-                bool dma_busy;
-                bool end_valid;
-                bool start_valid;
-                unsigned:21;
-            };
-        } status;
-        word clock;
-        word bufbusy;
-        word pipebusy;
-        word tmem;
-    } dpc;
+    n64_dpc_t dpc;
     n64_debugger_state_t debugger_state;
     n64_dynarec_t *dynarec;
 } n64_system_t;
@@ -180,4 +185,7 @@ void interrupt_raise(n64_interrupt_t interrupt);
 void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt);
 void on_interrupt_change(n64_system_t* system);
 extern n64_system_t* global_system;
+#ifdef __cplusplus
+}
+#endif
 #endif //N64_N64SYSTEM_H

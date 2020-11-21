@@ -207,7 +207,7 @@ void rdp_run_command(n64_system_t* system) {
             graphics_plugin.ProcessRDPList();
             break;
         case VULKAN:
-            logfatal("Vulkan run commands");
+            process_commands_parallel_rdp(system);
             break;
         default:
             logfatal("Unknown video type");

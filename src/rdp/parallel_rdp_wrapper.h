@@ -8,6 +8,7 @@ extern "C" {
 #endif
     void load_parallel_rdp(n64_system_t* system);
     void update_screen_parallel_rdp(n64_system_t* system);
+    void process_commands_parallel_rdp(n64_system_t* system);
 #ifdef __cplusplus
 };
 #endif

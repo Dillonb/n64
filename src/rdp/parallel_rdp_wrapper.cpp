@@ -6,6 +6,7 @@
 #include <wsi.hpp>
 #include <frontend/render.h>
 #include <SDL_vulkan.h>
+#include <mem/mem_util.h>
 
 using namespace Vulkan;
 using std::unique_ptr;
@@ -15,6 +16,9 @@ using RDP::VIRegister;
 
 static unique_ptr<CommandProcessor> command_processor;
 std::vector<Semaphore> acquire_semaphore;
+
+#define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
+word parallel_rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
 
 extern "C" {
     extern SDL_Window* window;
@@ -157,4 +161,83 @@ void update_screen_parallel_rdp(n64_system_t* system) {
     }
     wsi->end_frame();
     command_processor->begin_frame_context();
+}
+
+#define FROM_RDRAM(system, address) word_from_byte_array(system->mem.rdram, address)
+
+static const int command_lengths[64] = {
+        2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2,
+        2, 2, 2, 2, 4, 4, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2
+};
+
+void process_commands_parallel_rdp(n64_system_t* system) {
+    n64_dpc_t* dpc = &system->dpc;
+
+    // tell the game to not touch RDP stuff while we work
+    dpc->status.freeze = true;
+
+    // force align to 8 byte boundaries
+    const word current = dpc->current & 0x00FFFFF8;
+    const word end = dpc->end & 0x00FFFFF8;
+
+    // How many bytes do we need to process?
+    int display_list_length = end - current;
+
+    if (display_list_length <= 0) {
+        // No commands to run
+        return;
+    }
+
+    if (display_list_length > RDP_COMMAND_BUFFER_SIZE) {
+        logfatal("Got a command of display_list_length %d / 0x%X - this overflows our buffer of size %d / 0x%X!", display_list_length, display_list_length, RDP_COMMAND_BUFFER_SIZE, RDP_COMMAND_BUFFER_SIZE);
+    }
+
+    if (dpc->status.xbus_dmem_dma) {
+        logfatal("parallel RDP xbus dmem commands");
+    } else {
+        if (end > 0x7FFFFFF || current > 0x7FFFFFF) {
+            logwarn("Not running RDP commands, wanted to read past end of RDRAM!");
+            return;
+        }
+        // read the commands into a buffer, 32 bits at a time.
+        // we need to read the whole thing into a buffer before sending each command to the RDP
+        // because commands have variable lengths
+        for (int i = 0; i < display_list_length; i += 4) {
+            word command_word = FROM_RDRAM(system, current + i);
+            parallel_rdp_command_buffer[i >> 2] = command_word;
+        }
+    }
+
+    int length_words = display_list_length >> 2;
+    int buf_index = 0;
+
+    while (buf_index < length_words) {
+        word command = (parallel_rdp_command_buffer[buf_index] >> 24) & 0x3F;
+
+        int command_length = command_lengths[command];
+
+        // Check we actually have enough bytes left in the display list for this command, and skip the rest of the display list if we do not.
+        if ((buf_index + command_length) * 4 > display_list_length) {
+            break;
+        }
+
+
+        // Don't need to process commands under 8
+        if (command >= 8) {
+            command_processor->enqueue_command(command_length, &parallel_rdp_command_buffer[buf_index]);
+        }
+
+        if (RDP::Op(command) == RDP::Op::SyncFull) {
+            command_processor->wait_for_timeline(command_processor->signal_timeline());
+            interrupt_raise(INTERRUPT_DP);
+        }
+
+        buf_index += command_length;
+    }
+
+    dpc->start = end;
+    dpc->current = end;
+
 }
