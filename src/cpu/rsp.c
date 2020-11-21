@@ -290,6 +290,7 @@ int rsp_run(n64_system_t* system, int steps) {
                 _rsp_step(system);
             }
         }
+        steps -= 3;
     }
     return steps;
 }
