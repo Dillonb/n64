@@ -239,7 +239,7 @@ MIPS_INSTR(mips_ctc1) {
             break;
         case 31:
             cpu->fcr31.raw = value;
-            logwarn("TODO: possible exception here. See manual for CTC1");
+            loginfo("TODO: possible exception here. See manual for CTC1");
             break;
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");

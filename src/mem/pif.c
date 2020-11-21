@@ -68,22 +68,22 @@ void pif_rom_execute(n64_system_t* system) {
     system->cpu.cp0.error_epc     = 0;
     system->cpu.cp0.r31           = 0;
 
-    logwarn("CP0 status: ie:  %d", system->cpu.cp0.status.ie);
-    logwarn("CP0 status: exl: %d", system->cpu.cp0.status.exl);
-    logwarn("CP0 status: erl: %d", system->cpu.cp0.status.erl);
-    logwarn("CP0 status: ksu: %d", system->cpu.cp0.status.ksu);
-    logwarn("CP0 status: ux:  %d", system->cpu.cp0.status.ux);
-    logwarn("CP0 status: sx:  %d", system->cpu.cp0.status.sx);
-    logwarn("CP0 status: kx:  %d", system->cpu.cp0.status.kx);
-    logwarn("CP0 status: im:  %d", system->cpu.cp0.status.im);
-    logwarn("CP0 status: ds:  %d", system->cpu.cp0.status.ds);
-    logwarn("CP0 status: re:  %d", system->cpu.cp0.status.re);
-    logwarn("CP0 status: fr:  %d", system->cpu.cp0.status.fr);
-    logwarn("CP0 status: rp:  %d", system->cpu.cp0.status.rp);
-    logwarn("CP0 status: cu0: %d", system->cpu.cp0.status.cu0);
-    logwarn("CP0 status: cu1: %d", system->cpu.cp0.status.cu1);
-    logwarn("CP0 status: cu2: %d", system->cpu.cp0.status.cu2);
-    logwarn("CP0 status: cu3: %d", system->cpu.cp0.status.cu3);
+    loginfo("CP0 status: ie:  %d", system->cpu.cp0.status.ie);
+    loginfo("CP0 status: exl: %d", system->cpu.cp0.status.exl);
+    loginfo("CP0 status: erl: %d", system->cpu.cp0.status.erl);
+    loginfo("CP0 status: ksu: %d", system->cpu.cp0.status.ksu);
+    loginfo("CP0 status: ux:  %d", system->cpu.cp0.status.ux);
+    loginfo("CP0 status: sx:  %d", system->cpu.cp0.status.sx);
+    loginfo("CP0 status: kx:  %d", system->cpu.cp0.status.kx);
+    loginfo("CP0 status: im:  %d", system->cpu.cp0.status.im);
+    loginfo("CP0 status: ds:  %d", system->cpu.cp0.status.ds);
+    loginfo("CP0 status: re:  %d", system->cpu.cp0.status.re);
+    loginfo("CP0 status: fr:  %d", system->cpu.cp0.status.fr);
+    loginfo("CP0 status: rp:  %d", system->cpu.cp0.status.rp);
+    loginfo("CP0 status: cu0: %d", system->cpu.cp0.status.cu0);
+    loginfo("CP0 status: cu1: %d", system->cpu.cp0.status.cu1);
+    loginfo("CP0 status: cu2: %d", system->cpu.cp0.status.cu2);
+    loginfo("CP0 status: cu3: %d", system->cpu.cp0.status.cu3);
 
     //n64_write_word(system, 0x04300004, 0x01010101);
 
