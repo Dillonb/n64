@@ -197,7 +197,9 @@ word read_word_dpcreg(n64_system_t* system, word address) {
 }
 
 void rdp_cleanup() {
-    graphics_plugin.RomClosed();
+    if (graphics_plugin.RomClosed) {
+        graphics_plugin.RomClosed();
+    }
 }
 
 void rdp_run_command(n64_system_t* system) {
