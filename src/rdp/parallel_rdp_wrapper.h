@@ -6,8 +6,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    void load_parallel_rdp(struct n64_system* system);
-    void update_screen_parallel_rdp();
+    void load_parallel_rdp(n64_system_t* system);
+    void update_screen_parallel_rdp(n64_system_t* system);
 #ifdef __cplusplus
 };
 #endif

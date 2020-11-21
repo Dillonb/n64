@@ -16,8 +16,6 @@ using RDP::VIRegister;
 static unique_ptr<CommandProcessor> command_processor;
 std::vector<Semaphore> acquire_semaphore;
 
-GFX_INFO parallel_rdp_gfx_info;
-
 extern "C" {
     extern SDL_Window* window;
 }
@@ -74,16 +72,14 @@ public:
 
 static unique_ptr<WSI> wsi;
 
-void load_parallel_rdp(struct n64_system* system) {
+void load_parallel_rdp(n64_system_t* system) {
     wsi = std::make_unique<WSI>();
     wsi->set_platform(new SDLWSIPlatform());
     if (!wsi->init(1)) {
         logfatal("Failed to initialize WSI!");
     }
 
-    parallel_rdp_gfx_info = get_gfx_info(system);
-
-    auto aligned_rdram = reinterpret_cast<uintptr_t>(parallel_rdp_gfx_info.RDRAM);
+    auto aligned_rdram = reinterpret_cast<uintptr_t>(system->mem.rdram);
     uintptr_t offset = 0;
 
     if (wsi->get_device().get_device_features().supports_external_memory_host)
@@ -105,7 +101,7 @@ void load_parallel_rdp(struct n64_system* system) {
     }
 }
 
-void update_screen_parallel_rdp() {
+void update_screen_parallel_rdp(n64_system_t* system) {
     if (unlikely(!command_processor)) {
         logfatal("Update screen without an initialized command processor");
     }
@@ -113,20 +109,20 @@ void update_screen_parallel_rdp() {
 
     wsi->begin_frame();
 
-    command_processor->set_vi_register(VIRegister::Control,      *parallel_rdp_gfx_info.VI_STATUS_REG);
-    command_processor->set_vi_register(VIRegister::Origin,       *parallel_rdp_gfx_info.VI_ORIGIN_REG);
-    command_processor->set_vi_register(VIRegister::Width,        *parallel_rdp_gfx_info.VI_WIDTH_REG);
-    command_processor->set_vi_register(VIRegister::Intr,         *parallel_rdp_gfx_info.VI_INTR_REG);
-    command_processor->set_vi_register(VIRegister::VCurrentLine, *parallel_rdp_gfx_info.VI_V_CURRENT_LINE_REG);
-    command_processor->set_vi_register(VIRegister::Timing,       *parallel_rdp_gfx_info.VI_V_BURST_REG);
-    command_processor->set_vi_register(VIRegister::VSync,        *parallel_rdp_gfx_info.VI_V_SYNC_REG);
-    command_processor->set_vi_register(VIRegister::HSync,        *parallel_rdp_gfx_info.VI_H_SYNC_REG);
-    command_processor->set_vi_register(VIRegister::Leap,         *parallel_rdp_gfx_info.VI_LEAP_REG);
-    command_processor->set_vi_register(VIRegister::HStart,       *parallel_rdp_gfx_info.VI_H_START_REG);
-    command_processor->set_vi_register(VIRegister::VStart,       *parallel_rdp_gfx_info.VI_V_START_REG);
-    command_processor->set_vi_register(VIRegister::VBurst,       *parallel_rdp_gfx_info.VI_V_BURST_REG);
-    command_processor->set_vi_register(VIRegister::XScale,       *parallel_rdp_gfx_info.VI_X_SCALE_REG);
-    command_processor->set_vi_register(VIRegister::YScale,       *parallel_rdp_gfx_info.VI_Y_SCALE_REG);
+    command_processor->set_vi_register(VIRegister::Control,      system->vi.status.raw);
+    command_processor->set_vi_register(VIRegister::Origin,       system->vi.vi_origin);
+    command_processor->set_vi_register(VIRegister::Width,        system->vi.vi_width);
+    command_processor->set_vi_register(VIRegister::Intr,         system->vi.vi_v_intr);
+    command_processor->set_vi_register(VIRegister::VCurrentLine, system->vi.v_current);
+    command_processor->set_vi_register(VIRegister::Timing,       system->vi.vi_burst.raw);
+    command_processor->set_vi_register(VIRegister::VSync,        system->vi.vsync);
+    command_processor->set_vi_register(VIRegister::HSync,        system->vi.hsync);
+    command_processor->set_vi_register(VIRegister::Leap,         system->vi.leap);
+    command_processor->set_vi_register(VIRegister::HStart,       system->vi.hstart);
+    command_processor->set_vi_register(VIRegister::VStart,       system->vi.vstart.raw);
+    command_processor->set_vi_register(VIRegister::VBurst,       system->vi.vburst);
+    command_processor->set_vi_register(VIRegister::XScale,       system->vi.xscale);
+    command_processor->set_vi_register(VIRegister::YScale,       system->vi.yscale);
 
     RDP::ScanoutOptions opts;
     opts.persist_frame_on_invalid_input = true;

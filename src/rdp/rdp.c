@@ -220,7 +220,7 @@ void rdp_update_screen(n64_system_t* system) {
             graphics_plugin.UpdateScreen();
             break;
         case VULKAN:
-            update_screen_parallel_rdp();
+            update_screen_parallel_rdp(system);
             break;
         default:
             logfatal("Unknown video type");
