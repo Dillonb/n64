@@ -5,7 +5,7 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
-ADD_COMPILE_OPTIONS(-Wall -O3 -march=native) # TODO: just add required arch extensions instead of doing =native
+ADD_COMPILE_OPTIONS(-Wall -O3 -mssse3)
 
 if (MACOSX)
     message("Building on MacOS")
