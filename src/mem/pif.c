@@ -32,7 +32,7 @@ void pif_rom_execute_hle(n64_system_t* system) {
     system->cpu.gpr[26] = 0;
     system->cpu.gpr[27] = 0;
     system->cpu.gpr[28] = 0;
-    system->cpu.gpr[29] = 0xA4001FF0;
+    system->cpu.gpr[29] = 0xFFFFFFFFA4001FF0;
     system->cpu.gpr[30] = 0;
     system->cpu.gpr[31] = 0;
 
