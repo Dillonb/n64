@@ -98,17 +98,17 @@ typedef struct n64_dpc {
     union {
         word raw;
         struct {
-            bool xbus_dmem_dma;
-            bool freeze;
-            bool flush;
-            bool start_gclk;
-            bool tmem_busy;
-            bool pipe_busy;
-            bool cmd_busy;
-            bool cbuf_ready;
-            bool dma_busy;
-            bool end_valid;
-            bool start_valid;
+            bool xbus_dmem_dma:1;
+            bool freeze:1;
+            bool flush:1;
+            bool start_gclk:1;
+            bool tmem_busy:1;
+            bool pipe_busy:1;
+            bool cmd_busy:1;
+            bool cbuf_ready:1;
+            bool dma_busy:1;
+            bool end_valid:1;
+            bool start_valid:1;
             unsigned:21;
         };
     } status;
