@@ -79,7 +79,7 @@ static unique_ptr<WSI> wsi;
 void load_parallel_rdp(n64_system_t* system) {
     wsi = std::make_unique<WSI>();
     wsi->set_platform(new SDLWSIPlatform());
-    if (!wsi->init(1)) {
+    if (!wsi->init(1, nullptr)) {
         logfatal("Failed to initialize WSI!");
     }
 
