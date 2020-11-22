@@ -65,6 +65,8 @@ word read_word_spreg(n64_system_t* system, word address) {
             return system->rsp.pc;
         case ADDR_SP_STATUS_REG:
             return system->rsp.status.raw;
+        case ADDR_SP_DMA_BUSY_REG:
+            return 0; // DMA not busy, since it's instant.
         default:
             logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address);
     }
