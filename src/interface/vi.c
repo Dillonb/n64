@@ -33,7 +33,7 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
         }
         case ADDR_VI_V_INTR_REG:
             system->vi.vi_v_intr = value & 0x3FF;
-            loginfo("VI interrupt is now 0x%X (wrote 0x%08X)", value & 0x3FF, value);
+            loginfo("VI interrupt is now 0x%X (wrote 0x%08X) will VI interrupt when v_current == %d", value & 0x3FF, value, value >> 1);
             break;
         case ADDR_VI_V_CURRENT_REG:
             loginfo("V_CURRENT written, V Intr cleared");
@@ -51,7 +51,7 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
                     logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D)", system->vi.vsync);
                 }
             }
-            loginfo("VI vsync is now 0x%X (wrote 0x%08X)", value & 0x3FF, value);
+            loginfo("VI vsync is now 0x%X / %d. VSYNC happens on halfline %d (wrote 0x%08X)", value & 0x3FF, value & 0x3FF, (value & 0x3FF) >> 1, value);
             break;
         case ADDR_VI_H_SYNC_REG:
             system->vi.hsync = value & 0x3FF;
