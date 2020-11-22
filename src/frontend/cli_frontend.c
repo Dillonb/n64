@@ -37,6 +37,12 @@ int main(int argc, char** argv) {
         return 1;
     }
     log_set_verbosity(verbose->count);
+    // In debug builds, always log at least warnings.
+#ifdef N64_DEBUG_MODE
+    if (log_get_verbosity() < LOG_VERBOSITY_WARN) {
+        log_set_verbosity(LOG_VERBOSITY_WARN);
+    }
+#endif
     n64_system_t* system;
     if (rdp_plugin_path != NULL) {
         system = init_n64system(flags->argv[0], true, debug, OPENGL);
