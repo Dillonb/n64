@@ -110,9 +110,6 @@ void update_screen_parallel_rdp(n64_system_t* system) {
         logfatal("Update screen without an initialized command processor");
     }
 
-
-    wsi->begin_frame();
-
     command_processor->set_vi_register(VIRegister::Control,      system->vi.status.raw);
     command_processor->set_vi_register(VIRegister::Origin,       system->vi.vi_origin);
     command_processor->set_vi_register(VIRegister::Width,        system->vi.vi_width);
@@ -140,6 +137,7 @@ void update_screen_parallel_rdp(n64_system_t* system) {
     Util::IntrusivePtr<Image> image = command_processor->scanout(opts);
 
     wsi->begin_frame();
+
     if (image) {
         auto cmd = wsi->get_device().request_command_buffer();
         Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
@@ -199,12 +197,8 @@ void process_commands_parallel_rdp(n64_system_t* system) {
     // we need to read the whole thing into a buffer before sending each command to the RDP
     // because commands have variable lengths
     if (dpc->status.xbus_dmem_dma) {
-        if (end > 0x1FFF || current > 0x1FFF) {
-            logwarn("Not running RDP commands, wanted to read past end of DMEM! current: 0x%08X end: 0x%08X", current, end);
-            return;
-        }
         for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_DMEM(system, (current & 0xFF8) + i);
+            word command_word = FROM_DMEM(system, (current + i) & 0xFF8);
             parallel_rdp_command_buffer[i >> 2] = command_word;
         }
     } else {
