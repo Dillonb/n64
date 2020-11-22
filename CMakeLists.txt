@@ -7,6 +7,9 @@ endif()
 
 ADD_COMPILE_OPTIONS(-Wall -O3 -mssse3)
 
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DN64_DEBUG_MODE")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DN64_DEBUG_MODE")
+
 if (MACOSX)
     message("Building on MacOS")
     ADD_COMPILE_DEFINITIONS(N64_MACOS)
@@ -18,7 +21,6 @@ endif()
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
 project (N64)
 set(N64_TARGET n64)
-set(CMAKE_BUILD_TYPE Debug)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 include(CTest)
 add_subdirectory(src)
