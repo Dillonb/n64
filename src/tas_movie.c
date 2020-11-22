@@ -190,41 +190,5 @@ n64_controller_t tas_next_inputs() {
     controller.joy_x = movie_cdata.analog_x;
     controller.joy_y = movie_cdata.analog_y;
 
-    if (movie_cdata.raw != 0) {
-        logalways(
-                "c_right: %d "
-                "c_left: %d "
-                "c_down: %d "
-                "c_up: %d "
-                "r: %d "
-                "l: %d "
-                "dpad_right: %d "
-                "dpad_left: %d "
-                "dpad_down: %d "
-                "dpad_up: %d "
-                "start: %d "
-                "z: %d "
-                "b: %d "
-                "a: %d "
-                "analog_x: %d "
-                "analog_y: %d",
-                movie_cdata.c_right,
-                movie_cdata.c_left,
-                movie_cdata.c_down,
-                movie_cdata.c_up,
-                movie_cdata.r,
-                movie_cdata.l,
-                movie_cdata.dpad_right,
-                movie_cdata.dpad_left,
-                movie_cdata.dpad_down,
-                movie_cdata.dpad_up,
-                movie_cdata.start,
-                movie_cdata.z,
-                movie_cdata.b,
-                movie_cdata.a,
-                movie_cdata.analog_x,
-                movie_cdata.analog_y);
-    }
-
     return controller;
 }
