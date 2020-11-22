@@ -26,6 +26,7 @@
 #define R4300I_CP0_REG_STATUS   12
 #define R4300I_CP0_REG_CAUSE    13
 #define R4300I_CP0_REG_EPC      14
+#define R4300I_CP0_REG_CONFIG   16
 #define R4300I_CP0_REG_TAGLO    28
 #define R4300I_CP0_REG_TAGHI    29
 
@@ -533,6 +534,9 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             break;
         case R4300I_CP0_REG_EPC:
             cpu->cp0.EPC = value;
+            break;
+        case R4300I_CP0_REG_CONFIG:
+            cpu->cp0.config = value;
             break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
