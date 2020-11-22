@@ -22,6 +22,8 @@ typedef struct n64_header {
 typedef struct n64_rom {
     byte* rom;
     size_t size;
+    byte* pif_rom;
+    size_t pif_rom_size;
     n64_header_t header;
 } n64_rom_t;
 

@@ -20,4 +20,5 @@ void update_button(n64_system_t* system, int controller, n64_button_t button, bo
 void update_joyaxis(n64_system_t* system, int controller, sbyte x, sbyte y);
 void update_joyaxis_x(n64_system_t* system, int controller, sbyte x);
 void update_joyaxis_y(n64_system_t* system, int controller, sbyte y);
+void load_pif_rom(n64_system_t* system, const char* pif_rom_path);
 #endif //N64_PIF_H

@@ -2,7 +2,7 @@
 #include "pif.h"
 #include "n64bus.h"
 
-void pif_rom_execute(n64_system_t* system) {
+void pif_rom_execute_hle(n64_system_t* system) {
     system->cpu.gpr[0] = 0;
     system->cpu.gpr[1] = 0;
     system->cpu.gpr[2] = 0;
@@ -104,6 +104,21 @@ void pif_rom_execute(n64_system_t* system) {
 
     system->cpu.pc = 0xA4000040;
     system->cpu.next_pc = system->cpu.pc + 4;
+}
+
+void pif_rom_execute_lle(n64_system_t* system) {
+    system->cpu.pc = 0x1FC00000 + SVREGION_KSEG1;
+    system->cpu.next_pc = system->cpu.pc + 4;
+}
+
+void pif_rom_execute(n64_system_t* system) {
+    if (system->mem.rom.pif_rom == NULL) {
+        logalways("No PIF rom loaded, HLEing...");
+        pif_rom_execute_hle(system);
+    } else {
+        logalways("PIF rom loaded, executing it...");
+        pif_rom_execute_lle(system);
+    }
 }
 
 #define PIF_COMMAND_CONTROLLER_ID 0x00
@@ -261,4 +276,22 @@ void update_joyaxis_x(n64_system_t* system, int controller, sbyte x) {
 
 void update_joyaxis_y(n64_system_t* system, int controller, sbyte y) {
     system->si.controllers[controller].joy_y = y;
+}
+
+void load_pif_rom(n64_system_t* system, const char* pif_rom_path) {
+    FILE *fp = fopen(pif_rom_path, "rb");
+
+    if (fp == NULL) {
+        logfatal("Error opening the PIF ROM file! Are you sure this is a correct path?");
+    }
+
+    fseek(fp, 0, SEEK_END);
+    size_t size = ftell(fp);
+
+    fseek(fp, 0, SEEK_SET);
+    byte *buf = malloc(size);
+    fread(buf, size, 1, fp);
+
+    system->mem.rom.pif_rom = buf;
+    system->mem.rom.pif_rom_size = size;
 }

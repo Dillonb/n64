@@ -34,10 +34,10 @@ INLINE word resolve_virtual_address(word address, cp0_t* cp0) {
         }
         // KSSEG
         case 0x6:
-            logfatal("Unimplemented: translating virtual address in VREGION_KSSEG");
+            logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", address);
         // KSEG3
         case 0x7:
-            logfatal("Unimplemented: translating virtual address in VREGION_KSEG3");
+            logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSEG3", address);
         default:
             logfatal("PANIC! should never end up here.");
     }

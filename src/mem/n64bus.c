@@ -685,8 +685,14 @@ INLINE word _n64_read_word(word address) {
 #endif
             return word_from_byte_array(global_system->mem.rom.rom, index);
         }
-        case REGION_PIF_BOOT:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
+        case REGION_PIF_BOOT: {
+            word index = address - SREGION_PIF_BOOT;
+            if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+            } else {
+                return word_from_byte_array(global_system->mem.rom.pif_rom, index);
+            }
+        }
         case REGION_PIF_RAM:
             return word_from_byte_array(global_system->mem.pif_ram, address - SREGION_PIF_RAM);
         case REGION_RESERVED:

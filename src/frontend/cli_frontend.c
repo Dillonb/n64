@@ -28,6 +28,9 @@ int main(int argc, char** argv) {
     const char* tas_movie_path = NULL;
     cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
 
+    const char* pif_rom_path = NULL;
+    cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
+
     cflags_parse(flags, argc, argv);
     if (flags->argc != 1) {
         usage(flags);
@@ -44,6 +47,9 @@ int main(int argc, char** argv) {
     }
     if (tas_movie_path != NULL) {
         load_tas_movie(tas_movie_path);
+    }
+    if (pif_rom_path) {
+        load_pif_rom(system, pif_rom_path);
     }
     pif_rom_execute(system);
     if (debug) {
