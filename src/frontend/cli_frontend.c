@@ -5,6 +5,7 @@
 #include <mem/pif.h>
 #include <rdp/rdp.h>
 #include <rdp/parallel_rdp_wrapper.h>
+#include <tas_movie.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -20,9 +21,13 @@ int main(int argc, char** argv) {
     char description[100];
     snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port %d for gdb.", GDB_CPU_PORT);
     cflags_add_bool(flags, 'd', "debug", &debug, description);
-    const char* rdp_plugin_path = NULL;
 
+    const char* rdp_plugin_path = NULL;
     cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible)");
+
+    const char* tas_movie_path = NULL;
+    cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
+
     cflags_parse(flags, argc, argv);
     if (flags->argc != 1) {
         usage(flags);
@@ -36,6 +41,9 @@ int main(int argc, char** argv) {
     } else {
         system = init_n64system(flags->argv[0], true, debug, VULKAN);
         load_parallel_rdp(system);
+    }
+    if (tas_movie_path != NULL) {
+        load_tas_movie(tas_movie_path);
     }
     pif_rom_execute(system);
     if (debug) {

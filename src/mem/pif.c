@@ -1,3 +1,4 @@
+#include <tas_movie.h>
 #include "pif.h"
 #include "n64bus.h"
 
@@ -140,10 +141,20 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             }
             byte bytes[4];
             if (*channel < 4 && system->si.controllers[*channel].plugged_in) {
-                bytes[0] = system->si.controllers[*channel].byte1;
-                bytes[1] = system->si.controllers[*channel].byte2;
-                bytes[2] = system->si.controllers[*channel].joy_x;
-                bytes[3] = system->si.controllers[*channel].joy_y;
+                if (tas_movie_loaded()) {
+                    // Load inputs from TAS movie
+                    n64_controller_t controller = tas_next_inputs();
+                    bytes[0] = controller.byte1;
+                    bytes[1] = controller.byte2;
+                    bytes[2] = controller.joy_x;
+                    bytes[3] = controller.joy_y;
+                } else {
+                    // Load inputs normally
+                    bytes[0] = system->si.controllers[*channel].byte1;
+                    bytes[1] = system->si.controllers[*channel].byte2;
+                    bytes[2] = system->si.controllers[*channel].joy_x;
+                    bytes[3] = system->si.controllers[*channel].joy_y;
+                }
                 system->mem.pif_ram[r_index]   |= 0x00; // Success!
                 system->mem.pif_ram[(*index)++] = bytes[0];
                 system->mem.pif_ram[(*index)++] = bytes[1];

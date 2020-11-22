@@ -21,6 +21,7 @@ add_library(core
         interface/ai.c interface/ai.h
         mem/addresses.h
         mem/n64_rsp_bus.c mem/n64_rsp_bus.h
+        tas_movie.c tas_movie.h
         mem/mem_util.h)
 
 target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY})
