@@ -156,7 +156,10 @@ bool tas_movie_loaded() {
 
 n64_controller_t tas_next_inputs() {
     if (loaded_tas_movie_index + sizeof(tas_movie_controller_data_t) > loaded_tas_movie_size) {
-        logfatal("Ran out of movie! Should probably give control back to the player here?\n");
+        loaded_tas_movie = NULL;
+        n64_controller_t empty_controller;
+        memset(&empty_controller, 0, sizeof(n64_controller_t));
+        return empty_controller;
     }
 
     tas_movie_controller_data_t movie_cdata;
