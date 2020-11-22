@@ -172,9 +172,6 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             break;
         }
         case ADDR_PI_STATUS_REG: {
-            if (value & 0b01) {
-                logfatal("TODO: Set PI error to 0");
-            }
             if (value & 0b10) {
                 interrupt_lower(system, INTERRUPT_PI);
             }
