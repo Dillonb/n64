@@ -1,4 +1,5 @@
 #include "render.h"
+#include "audio.h"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -15,58 +16,11 @@ SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
 static n64_video_type_t n64_video_type = UNKNOWN;
 
-#define AUDIO_SAMPLE_RATE 48000
-static SDL_AudioStream* audio_stream = NULL;
-SDL_AudioSpec audio_spec;
-SDL_AudioSpec request;
-SDL_AudioDeviceID audio_dev;
-
 word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
 word sdl_numframes = 0;
 word sdl_fps = 0;
 char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
-
-void audio_callback(void* userdata, Uint8* stream, int length) {
-    int gotten = 0;
-    if (SDL_AudioStreamAvailable(audio_stream) > 0) {
-        gotten = SDL_AudioStreamGet(audio_stream, stream, length);
-    }
-
-    if (gotten < length) {
-        int gotten_samples = gotten / sizeof(float);
-        float* out = (float*)stream;
-        out += gotten_samples;
-
-        for (int i = gotten_samples; i < length / sizeof(float); i++) {
-            float sample = 0;
-            *out++ = sample;
-        }
-    }
-}
-
-void audio_init(n64_system_t* system) {
-    adjust_audio_sample_rate(AUDIO_SAMPLE_RATE);
-    memset(&request, 0, sizeof(request));
-
-    request.freq = AUDIO_SAMPLE_RATE;
-    request.format = AUDIO_F32SYS;
-    request.channels = 2;
-    request.samples = 1024;
-    request.callback = audio_callback;
-    request.userdata = NULL;
-
-    audio_dev = SDL_OpenAudioDevice(NULL, 0, &request, &audio_spec, 0);
-
-    audio_dev = SDL_OpenAudioDevice(NULL, 0, &request, &audio_spec, 0);
-    unimplemented(request.format != audio_spec.format, "Request != got");
-
-    if (audio_dev == 0) {
-        logfatal("Failed to initialize SDL audio: %s", SDL_GetError());
-    }
-
-    SDL_PauseAudioDevice(audio_dev, false);
-}
 
 void video_init_opengl() {
     window = SDL_CreateWindow(N64_APP_NAME,
@@ -256,21 +210,4 @@ void n64_render_screen(n64_system_t* system) {
         snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d FPS", system->mem.rom.header.image_name, sdl_fps);
         SDL_SetWindowTitle(window, sdl_wintitle);
     }
-}
-
-void adjust_audio_sample_rate(int sample_rate) {
-    if (audio_stream != NULL) {
-        SDL_FreeAudioStream(audio_stream);
-    }
-
-    audio_stream = SDL_NewAudioStream(AUDIO_S16SYS, 2, sample_rate, AUDIO_F32SYS, 2, AUDIO_SAMPLE_RATE);
-}
-
-void audio_push_sample(shalf left, shalf right) {
-    shalf samples[2] = {
-            left,
-            right
-    };
-
-    SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
 }

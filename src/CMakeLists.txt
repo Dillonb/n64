@@ -10,6 +10,7 @@ add_subdirectory(contrib/parallel-rdp-standalone)
 add_subdirectory(tools)
 
 add_library(core
+        mem/mem_util.h
         system/n64system.c system/n64system.h
         mem/n64rom.c mem/n64rom.h
         mem/n64mem.c mem/n64mem.h
@@ -22,7 +23,7 @@ add_library(core
         mem/addresses.h
         mem/n64_rsp_bus.c mem/n64_rsp_bus.h
         tas_movie.c tas_movie.h
-        mem/mem_util.h)
+        frontend/audio.c frontend/audio.h)
 
 target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY})
 

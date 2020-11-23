@@ -1,6 +1,6 @@
 #include "ai.h"
 #include <mem/addresses.h>
-#include <frontend/render.h>
+#include <frontend/audio.h>
 #include <mem/n64bus.h>
 
 INLINE int max(int x, int y) {
