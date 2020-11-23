@@ -690,8 +690,15 @@ INLINE word _n64_read_word(word address) {
                 return word_from_byte_array(global_system->mem.rom.pif_rom, index);
             }
         }
-        case REGION_PIF_RAM:
+        case REGION_PIF_RAM: {
+            if (address == 0x1FC007FC && global_system->mem.pif_ram[63] == 0x30) {
+                // TODO Hack to get PIF ROM booting
+                // TODO I'm pretty sure this is where the CIC is also supposed to write the checksum out.
+                logwarn("Applying hack to get the PIF rom to boot, if you see this message in the middle of a game, something's wrong!");
+                global_system->mem.pif_ram[63] = 0x80;
+            }
             return word_from_byte_array(global_system->mem.pif_ram, address - SREGION_PIF_RAM);
+        }
         case REGION_RESERVED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RESERVED", address);
         case REGION_CART_1_3:
