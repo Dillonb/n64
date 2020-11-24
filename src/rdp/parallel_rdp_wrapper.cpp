@@ -158,7 +158,6 @@ void update_screen_parallel_rdp(n64_system_t* system) {
         info.num_color_attachments = 1;
 
         cmd->begin_render_pass(info);
-        cmd->swapchain_touched()
 
         wsi->get_device().submit(cmd);
 
