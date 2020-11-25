@@ -153,12 +153,7 @@ void update_screen_parallel_rdp(n64_system_t* system) {
                         {}, src_extent,
                         0, 0);
 
-        RenderPassInfo info;
-        info.color_attachments[0] = &swapchain_image.get_view();
-        info.num_color_attachments = 1;
-
-        cmd->begin_render_pass(info);
-
+        cmd->uses_swapchain = true;
         wsi->get_device().submit(cmd);
 
     }
