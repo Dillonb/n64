@@ -35,6 +35,7 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
           make
+          strip n64
 
       - name: Run tests on N64
         env:
