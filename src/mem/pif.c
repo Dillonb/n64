@@ -102,6 +102,16 @@ void pif_rom_execute_hle(n64_system_t* system) {
         logtrace("PIF: Copied 0x%016lX from 0x%08X ==> 0x%08X", src, src_address, dest_address);
     }
 
+    system->cpu.pc = 0xA4000040;
+    system->cpu.next_pc = system->cpu.pc + 4;
+}
+
+void pif_rom_execute_lle(n64_system_t* system) {
+    system->cpu.pc = 0x1FC00000 + SVREGION_KSEG1;
+    system->cpu.next_pc = system->cpu.pc + 4;
+}
+
+void pif_rom_execute(n64_system_t* system) {
     switch (system->mem.rom.cic_type) {
         case CIC_NUS_6101_7102:
             n64_write_word(system, SREGION_PIF_RAM + 0x24, 0x00043F3F);
@@ -122,16 +132,6 @@ void pif_rom_execute_hle(n64_system_t* system) {
             logwarn("Unknown CIC type, not writing seed to PIF RAM! The game may not boot!");
     }
 
-    system->cpu.pc = 0xA4000040;
-    system->cpu.next_pc = system->cpu.pc + 4;
-}
-
-void pif_rom_execute_lle(n64_system_t* system) {
-    system->cpu.pc = 0x1FC00000 + SVREGION_KSEG1;
-    system->cpu.next_pc = system->cpu.pc + 4;
-}
-
-void pif_rom_execute(n64_system_t* system) {
     if (system->mem.rom.pif_rom == NULL) {
         logalways("No PIF rom loaded, HLEing...");
         pif_rom_execute_hle(system);
