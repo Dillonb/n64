@@ -456,7 +456,7 @@ INLINE dword get_register(r4300i_t* cpu, byte r) {
 }
 
 INLINE void on_change_fr(r4300i_t* cpu, cp0_status_t oldstatus) {
-    logfatal("FR changed from %d to %d!", oldstatus.fr, cpu->cp0.status.fr);
+    //logfatal("FR changed from %d to %d!", oldstatus.fr, cpu->cp0.status.fr);
 }
 
 INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
