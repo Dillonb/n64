@@ -93,13 +93,13 @@ void pif_rom_execute_hle(n64_system_t* system) {
     word src_ptr  = 0xB0000000;
     word dest_ptr = 0xA4000000;
 
-    for (int i = 0; i < 0x1000; i++) {
-        word src_address = src_ptr + i;
-        word dest_address = dest_ptr + i;
-        byte src = n64_read_byte(system, resolve_virtual_address(src_address, &system->cpu.cp0));
-        n64_write_byte(system, resolve_virtual_address(dest_address, &system->cpu.cp0), src);
+    for (int i = 0; i < (0x1000 >> 3); i++) {
+        word src_address = src_ptr + (i << 3);
+        word dest_address = dest_ptr + (i << 3);
+        dword src = n64_read_dword(system, resolve_virtual_address(src_address, &system->cpu.cp0));
+        n64_write_dword(system, resolve_virtual_address(dest_address, &system->cpu.cp0), src);
 
-        logtrace("PIF: Copied 0x%02X from 0x%08X ==> 0x%08X", src, src_address, dest_address);
+        logtrace("PIF: Copied 0x%016lX from 0x%08X ==> 0x%08X", src, src_address, dest_address);
     }
 
     system->cpu.pc = 0xA4000040;
