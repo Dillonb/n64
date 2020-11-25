@@ -14,6 +14,10 @@ typedef enum n64_button {
     N64_BUTTON_DPAD_RIGHT,
     N64_BUTTON_L,
     N64_BUTTON_R,
+    N64_BUTTON_C_UP,
+    N64_BUTTON_C_DOWN,
+    N64_BUTTON_C_LEFT,
+    N64_BUTTON_C_RIGHT,
 
 } n64_button_t;
 

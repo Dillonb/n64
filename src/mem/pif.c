@@ -290,6 +290,22 @@ void update_button(n64_system_t* system, int controller, n64_button_t button, bo
         case N64_BUTTON_R:
             system->si.controllers[controller].r = held;
             break;
+
+        case N64_BUTTON_C_UP:
+            system->si.controllers[controller].c_up = held;
+            break;
+
+        case N64_BUTTON_C_DOWN:
+            system->si.controllers[controller].c_down = held;
+            break;
+
+        case N64_BUTTON_C_LEFT:
+            system->si.controllers[controller].c_left = held;
+            break;
+
+        case N64_BUTTON_C_RIGHT:
+            system->si.controllers[controller].c_right = held;
+            break;
     }
 }
 
