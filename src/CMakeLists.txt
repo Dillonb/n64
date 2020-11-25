@@ -23,7 +23,8 @@ add_library(core
         mem/addresses.h
         mem/n64_rsp_bus.c mem/n64_rsp_bus.h
         tas_movie.c tas_movie.h
-        frontend/audio.c frontend/audio.h)
+        frontend/audio.c frontend/audio.h
+        frontend/gamepad.c frontend/gamepad.h)
 
 target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} z)
 

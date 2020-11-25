@@ -251,35 +251,35 @@ void process_pif_command(n64_system_t* system) {
 
 void update_button(n64_system_t* system, int controller, n64_button_t button, bool held) {
     switch(button) {
-        case A:
+        case N64_BUTTON_A:
             system->si.controllers[controller].a = held;
             break;
 
-        case B:
+        case N64_BUTTON_B:
             system->si.controllers[controller].b = held;
             break;
 
-        case Z:
+        case N64_BUTTON_Z:
             system->si.controllers[controller].z = held;
             break;
 
-        case DPAD_UP:
+        case N64_BUTTON_DPAD_UP:
             system->si.controllers[controller].dp_up = held;
             break;
 
-        case DPAD_DOWN:
+        case N64_BUTTON_DPAD_DOWN:
             system->si.controllers[controller].dp_down = held;
             break;
 
-        case DPAD_LEFT:
+        case N64_BUTTON_DPAD_LEFT:
             system->si.controllers[controller].dp_left = held;
             break;
 
-        case DPAD_RIGHT:
+        case N64_BUTTON_DPAD_RIGHT:
             system->si.controllers[controller].dp_right = held;
             break;
 
-        case START:
+        case N64_BUTTON_START:
             system->si.controllers[controller].start = held;
             break;
     }

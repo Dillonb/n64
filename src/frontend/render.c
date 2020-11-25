@@ -1,5 +1,6 @@
 #include "render.h"
 #include "audio.h"
+#include "gamepad.h"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -79,6 +80,7 @@ void render_init(n64_system_t* system, n64_video_type_t video_type) {
     }
     n64_video_type = video_type;
     audio_init(system);
+    gamepad_init(system);
 }
 
 void handle_event(n64_system_t* system, SDL_Event* event) {
@@ -94,11 +96,11 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                     break;
 
                 case SDLK_j:
-                    update_button(system, 0, A, true);
+                    update_button(system, 0, N64_BUTTON_A, true);
                     break;
 
                 case SDLK_k:
-                    update_button(system, 0, B, true);
+                    update_button(system, 0, N64_BUTTON_B, true);
                     break;
 
                 case SDLK_UP:
@@ -126,11 +128,11 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                     break;
 
                 case SDLK_q:
-                    update_button(system, 0, Z, true);
+                    update_button(system, 0, N64_BUTTON_Z, true);
                     break;
 
                 case SDLK_RETURN:
-                    update_button(system, 0, START, true);
+                    update_button(system, 0, N64_BUTTON_START, true);
                     break;
             }
             break;
@@ -138,11 +140,11 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
         case SDL_KEYUP: {
             switch (event->key.keysym.sym) {
                 case SDLK_j:
-                    update_button(system, 0, A, false);
+                    update_button(system, 0, N64_BUTTON_A, false);
                     break;
 
                 case SDLK_k:
-                    update_button(system, 0, B, false);
+                    update_button(system, 0, N64_BUTTON_B, false);
                     break;
 
                 case SDLK_UP:
@@ -170,16 +172,30 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                     break;
 
                 case SDLK_q:
-                    update_button(system, 0, Z, false);
+                    update_button(system, 0, N64_BUTTON_Z, false);
                     break;
 
                 case SDLK_RETURN:
-                    update_button(system, 0, START, false);
+                    update_button(system, 0, N64_BUTTON_START, false);
                     break;
             }
             break;
         }
 
+        case SDL_CONTROLLERDEVICEADDED:
+        case SDL_CONTROLLERDEVICEREMOVED:
+        case SDL_CONTROLLERDEVICEREMAPPED:
+            gamepad_refresh();
+            break;
+        case SDL_CONTROLLERBUTTONDOWN:
+            gamepad_update_button(system, event->cbutton.button, true);
+            break;
+        case SDL_CONTROLLERBUTTONUP:
+            gamepad_update_button(system, event->cbutton.button, false);
+            break;
+        case SDL_CONTROLLERAXISMOTION:
+            gamepad_update_axis(system, event->caxis.axis, event->caxis.value);
+            break;
     }
 }
 

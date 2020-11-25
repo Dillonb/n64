@@ -4,14 +4,17 @@
 #include <system/n64system.h>
 
 typedef enum n64_button {
-    A,
-    B,
-    Z,
-    START,
-    DPAD_UP,
-    DPAD_DOWN,
-    DPAD_LEFT,
-    DPAD_RIGHT,
+    N64_BUTTON_A,
+    N64_BUTTON_B,
+    N64_BUTTON_Z,
+    N64_BUTTON_START,
+    N64_BUTTON_DPAD_UP,
+    N64_BUTTON_DPAD_DOWN,
+    N64_BUTTON_DPAD_LEFT,
+    N64_BUTTON_DPAD_RIGHT,
+    N64_BUTTON_L,
+    N64_BUTTON_R,
+
 } n64_button_t;
 
 void pif_rom_execute(n64_system_t* system);
