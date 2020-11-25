@@ -1,6 +1,7 @@
 #ifndef N64_R4300I_H
 #define N64_R4300I_H
 #include <stdbool.h>
+#include <assert.h>
 
 #include <util.h>
 #include <log.h>
@@ -27,6 +28,8 @@
 #define R4300I_CP0_REG_CAUSE    13
 #define R4300I_CP0_REG_EPC      14
 #define R4300I_CP0_REG_CONFIG   16
+#define R4300I_CP0_REG_WATCHLO  18
+#define R4300I_CP0_REG_WATCHHI  19
 #define R4300I_CP0_REG_TAGLO    28
 #define R4300I_CP0_REG_TAGHI    29
 
@@ -324,6 +327,18 @@ typedef struct tlb_entry {
 
 } tlb_entry_t;
 
+typedef union watch_lo {
+    word raw;
+    struct {
+        bool w:1;
+        bool r:1;
+        bool:1;
+        unsigned paddr0:29;
+    };
+} watch_lo_t;
+
+static_assert(sizeof(watch_lo_t) == 4, "watch_lo_t wrong size!");
+
 typedef struct cp0 {
     word index;
     word random;
@@ -343,7 +358,7 @@ typedef struct cp0 {
     word PRId;
     word config;
     word lladdr;
-    word watch_lo;
+    watch_lo_t watch_lo;
     word watch_hi;
     word x_context;
     word r21;
@@ -537,6 +552,14 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             break;
         case R4300I_CP0_REG_CONFIG:
             cpu->cp0.config = value;
+            break;
+        case R4300I_CP0_REG_WATCHLO:
+            cpu->cp0.watch_lo.raw = value;
+            unimplemented(cpu->cp0.watch_lo.r, "Read exception enabled in CP0 watch_lo!");
+            unimplemented(cpu->cp0.watch_lo.w, "Write exception enabled in CP0 watch_lo!");
+            break;
+        case R4300I_CP0_REG_WATCHHI:
+            cpu->cp0.watch_hi = value;
             break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
