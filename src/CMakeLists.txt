@@ -25,7 +25,7 @@ add_library(core
         tas_movie.c tas_movie.h
         frontend/audio.c frontend/audio.h)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY})
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} z)
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)

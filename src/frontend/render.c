@@ -14,7 +14,7 @@ int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;
 SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
-static n64_video_type_t n64_video_type = UNKNOWN;
+static n64_video_type_t n64_video_type = UNKNOWN_VIDEO_TYPE;
 
 word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
@@ -197,7 +197,7 @@ void n64_render_screen(n64_system_t* system) {
             break;
         case VULKAN: // frame pushing handled elsewhere
             break;
-        case UNKNOWN:
+        case UNKNOWN_VIDEO_TYPE:
             logfatal("Unknown video type!");
     }
 

@@ -16,7 +16,7 @@ extern "C" {
 #define CYCLES_PER_INSTR 1
 
 typedef enum n64_video_type {
-    UNKNOWN,
+    UNKNOWN_VIDEO_TYPE,
     OPENGL,
     VULKAN
 } n64_video_type_t;
