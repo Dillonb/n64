@@ -1216,6 +1216,13 @@ MIPS_INSTR(mips_spc_dadd) {
     set_register(cpu, instruction.r.rd, result);
 }
 
+MIPS_INSTR(mips_spc_daddu) {
+    sdword addend1 = get_register(cpu, instruction.r.rs);
+    sdword addend2 = get_register(cpu, instruction.r.rt);
+    sdword result = addend1 + addend2;
+    set_register(cpu, instruction.r.rd, result);
+}
+
 MIPS_INSTR(mips_spc_dsll) {
     dword value = get_register(cpu, instruction.r.rt);
     value <<= instruction.r.sa;

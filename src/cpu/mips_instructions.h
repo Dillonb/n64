@@ -182,6 +182,7 @@ MIPS_INSTR(mips_spc_xor);
 MIPS_INSTR(mips_spc_slt);
 MIPS_INSTR(mips_spc_sltu);
 MIPS_INSTR(mips_spc_dadd);
+MIPS_INSTR(mips_spc_daddu);
 MIPS_INSTR(mips_spc_dsll);
 MIPS_INSTR(mips_spc_dsll32);
 MIPS_INSTR(mips_spc_dsra32);
