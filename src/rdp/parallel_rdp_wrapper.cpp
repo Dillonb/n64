@@ -173,6 +173,8 @@ static const int command_lengths[64] = {
 };
 
 void process_commands_parallel_rdp(n64_system_t* system) {
+    static int last_run_unprocessed_words = 0;
+
     n64_dpc_t* dpc = &system->dpc;
 
     // tell the game to not touch RDP stuff while we work
@@ -190,8 +192,9 @@ void process_commands_parallel_rdp(n64_system_t* system) {
         return;
     }
 
-    if (display_list_length > RDP_COMMAND_BUFFER_SIZE) {
-        logfatal("Got a command of display_list_length %d / 0x%X - this overflows our buffer of size %d / 0x%X!", display_list_length, display_list_length, RDP_COMMAND_BUFFER_SIZE, RDP_COMMAND_BUFFER_SIZE);
+    if (display_list_length + (last_run_unprocessed_words * 4) > RDP_COMMAND_BUFFER_SIZE) {
+        logfatal("Got a command of display_list_length %d / 0x%X (with %d unprocessed words from last run) - this overflows our buffer of size %d / 0x%X!",
+                 display_list_length, display_list_length, last_run_unprocessed_words, RDP_COMMAND_BUFFER_SIZE, RDP_COMMAND_BUFFER_SIZE);
     }
 
     // read the commands into a buffer, 32 bits at a time.
@@ -200,7 +203,7 @@ void process_commands_parallel_rdp(n64_system_t* system) {
     if (dpc->status.xbus_dmem_dma) {
         for (int i = 0; i < display_list_length; i += 4) {
             word command_word = FROM_DMEM(system, (current + i) & 0xFF8);
-            parallel_rdp_command_buffer[i >> 2] = command_word;
+            parallel_rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
         }
     } else {
         if (end > 0x7FFFFFF || current > 0x7FFFFFF) {
@@ -209,20 +212,41 @@ void process_commands_parallel_rdp(n64_system_t* system) {
         }
         for (int i = 0; i < display_list_length; i += 4) {
             word command_word = FROM_RDRAM(system, current + i);
-            parallel_rdp_command_buffer[i >> 2] = command_word;
+            parallel_rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
         }
     }
 
-    int length_words = display_list_length >> 2;
+    int length_words = (display_list_length >> 2) + last_run_unprocessed_words;
     int buf_index = 0;
+
+    bool processed_all = true;
 
     while (buf_index < length_words) {
         word command = (parallel_rdp_command_buffer[buf_index] >> 24) & 0x3F;
 
         int command_length = command_lengths[command];
 
-        // Check we actually have enough bytes left in the display list for this command, and skip the rest of the display list if we do not.
-        if ((buf_index + command_length) * 4 > display_list_length) {
+        if (command == 36) {
+            command_length = 4;
+        }
+
+        // Check we actually have enough bytes left in the display list for this command, and save the remainder of the display list for the next run, if not.
+        if ((buf_index + command_length) * 4 > display_list_length + (last_run_unprocessed_words * 4)) {
+            // Copy remaining bytes back to the beginning of the display list, and save them for next run.
+            last_run_unprocessed_words = length_words - buf_index;
+
+            // Safe to allocate this on the stack because we'll only have a partial command left, and that _has_ to be pretty small.
+            word temp[last_run_unprocessed_words];
+            for (int i = 0; i < last_run_unprocessed_words; i++) {
+                temp[i] = parallel_rdp_command_buffer[buf_index + i];
+            }
+
+            for (int i = 0; i < last_run_unprocessed_words; i++) {
+                parallel_rdp_command_buffer[i] = temp[i];
+            }
+
+            processed_all = false;
+
             break;
         }
 
@@ -238,6 +262,10 @@ void process_commands_parallel_rdp(n64_system_t* system) {
         }
 
         buf_index += command_length;
+    }
+
+    if (processed_all) {
+        last_run_unprocessed_words = 0;
     }
 
     dpc->start = end;
