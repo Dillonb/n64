@@ -37,6 +37,7 @@ extern unsigned int n64_log_verbosity;
 
 #define logwarn(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_WARN) {printf(COLOR_YELLOW "[WARN]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
 #define logalways(message,...) do { printf(COLOR_CYAN "[LOG]  " message "\n" COLOR_END, ##__VA_ARGS__); } while(0)
+#define unimplemented(condition, message) do { if (condition) { logfatal("UNIMPLEMENTED CASE DETECTED: %s", message); } } while(0)
 
 #ifdef LOG_ENABLED
 #define loginfo(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_INFO) {printf(COLOR_CYAN "[INFO]  " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
@@ -44,7 +45,6 @@ extern unsigned int n64_log_verbosity;
 #define logdebug(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {printf(COLOR_GREEN "[DEBUG] " message "\n" COLOR_END, ##__VA_ARGS__);} } while(0)
 #define logtrace(message,...) do { if (n64_log_verbosity >= LOG_VERBOSITY_TRACE) {printf("[TRACE] " message "\n", ##__VA_ARGS__);} } while(0)
 
-#define unimplemented(condition, message) do { if (condition) { logfatal("UNIMPLEMENTED CASE DETECTED: %s", message); } } while(0)
 
 #else
 
@@ -52,8 +52,6 @@ extern unsigned int n64_log_verbosity;
 #define loginfo_nonewline(message,...) do {} while(0)
 #define logdebug(message,...) do {} while(0)
 #define logtrace(message,...) do {} while(0)
-
-#define unimplemented(condition, message) do {} while(0)
 
 #endif
 #endif
