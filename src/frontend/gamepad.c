@@ -79,6 +79,7 @@ void gamepad_update_button(n64_system_t* system, byte button, bool state) {
 
         case SDL_CONTROLLER_BUTTON_GUIDE:
         case SDL_CONTROLLER_BUTTON_BACK:
+        case SDL_CONTROLLER_BUTTON_START:
             update_button(system, 0, N64_BUTTON_START, state);
             break;
 
