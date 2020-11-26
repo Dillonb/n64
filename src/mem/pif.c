@@ -154,9 +154,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
     (*index)++;
     switch (command) {
         case PIF_COMMAND_RESET:
-        case PIF_COMMAND_CONTROLLER_ID:
-            unimplemented(cmdlen != 1, "Controller ID with cmdlen != 1");
-            unimplemented(reslen != 3, "Controller ID with reslen != 3");
+        case PIF_COMMAND_CONTROLLER_ID: {
             bool plugged_in = (*channel) < 4 && system->si.controllers[*channel].plugged_in;
             if (plugged_in) {
                 system->mem.pif_ram[(*index)++] = 0x05;
@@ -169,11 +167,8 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             }
             (*channel)++;
             break;
-        case PIF_COMMAND_READ_BUTTONS:
-            unimplemented(cmdlen != 1, "Read button values with cmdlen != 1");
-            if (reslen != 4) {
-                logfatal("Read button values with reslen != 4: %d", reslen);
-            }
+        }
+        case PIF_COMMAND_READ_BUTTONS: {
             byte bytes[4];
             if (*channel < 4 && system->si.controllers[*channel].plugged_in) {
                 if (tas_movie_loaded()) {
@@ -204,6 +199,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             }
             (*channel)++;
             break;
+        }
         case PIF_COMMAND_MEMPACK_READ:
             unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
             unimplemented(reslen != 33, "Mempack read with reslen != 33");
