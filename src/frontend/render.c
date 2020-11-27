@@ -214,6 +214,7 @@ void n64_render_screen(n64_system_t* system) {
         case VULKAN: // frame pushing handled elsewhere
             break;
         case UNKNOWN_VIDEO_TYPE:
+        default:
             logfatal("Unknown video type!");
     }
 
