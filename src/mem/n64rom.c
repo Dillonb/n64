@@ -25,6 +25,14 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     rom->rom = buf;
     rom->size = size;
     memcpy(&rom->header, buf, sizeof(n64_header_t));
+    memcpy(rom->game_name, rom->header.image_name, sizeof(rom->header.image_name));
+
+    // Strip trailing spaces
+    for (int i = sizeof(rom->header.image_name) - 1; rom->game_name[i] == ' '; i--) {
+        rom->game_name[i] = '\0';
+    }
+
+    printf("'%s'\n", rom->game_name);
 
     rom->header.program_counter = be32toh(rom->header.program_counter);
 
@@ -59,6 +67,6 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
 
 
 
-    loginfo("Loaded %s", rom->header.image_name);
+    loginfo("Loaded %s", rom->game_name);
     logdebug("The program counter starts at: " PRINTF_WORD, rom->header.program_counter);
 }
