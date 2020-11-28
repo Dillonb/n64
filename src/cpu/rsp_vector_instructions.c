@@ -7,6 +7,7 @@
 #include <log.h>
 #ifdef N64_USE_SIMD
 #include <tmmintrin.h>
+#include <immintrin.h>
 #endif
 #include "rsp.h"
 #include "rsp_rom.h"
@@ -825,6 +826,20 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
     defvs;
     defvd;
     defvte;
+#ifdef N64_USE_SIMD
+    vecr lo, hi, omask;
+    lo                 = _mm_mullo_epi16(vs->single, vte.single);
+    hi                 = _mm_mulhi_epi16(vs->single, vte.single);
+    omask              = _mm_adds_epu16(rsp->acc.m.single, lo);
+    rsp->acc.m.single  = _mm_add_epi16(rsp->acc.m.single, lo);
+    omask              = _mm_cmpeq_epi16(rsp->acc.m.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_sub_epi16(hi, omask);
+    rsp->acc.h.single  = _mm_add_epi16(rsp->acc.h.single, hi);
+    lo                 = _mm_unpacklo_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    hi                 = _mm_unpackhi_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    vd->single         = _mm_packs_epi32(lo, hi);
+#else
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -839,6 +854,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
         set_rsp_accumulator(rsp, e, acc);
         vd->elements[e] = result;
     }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadl) {
@@ -873,6 +889,29 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
     defvs;
     defvd;
     defvte;
+#ifdef N64_USE_SIMD
+    vecr lo, hi, sign, vta, omask;
+    lo                 = _mm_mullo_epi16(vs->single, vte.single);
+    hi                 = _mm_mulhi_epu16(vs->single, vte.single);
+    sign               = _mm_srai_epi16(vs->single, 15);
+    vta                = _mm_and_si128(vte.single, sign);
+    hi                 = _mm_sub_epi16(hi, vta);
+    omask              = _mm_adds_epu16(rsp->acc.l.single, lo);
+    rsp->acc.l.single  = _mm_add_epi16(rsp->acc.l.single, lo);
+    omask              = _mm_cmpeq_epi16(rsp->acc.l.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_sub_epi16(hi, omask);
+    omask              = _mm_adds_epu16(rsp->acc.m.single, hi);
+    rsp->acc.m.single  = _mm_add_epi16(rsp->acc.m.single, hi);
+    omask              = _mm_cmpeq_epi16(rsp->acc.m.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_srai_epi16(hi, 15);
+    rsp->acc.h.single  = _mm_add_epi16(rsp->acc.h.single, hi);
+    rsp->acc.h.single  = _mm_sub_epi16(rsp->acc.h.single, omask);
+    lo                 = _mm_unpacklo_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    hi                 = _mm_unpackhi_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    vd->single         = _mm_packs_epi32(lo, hi);
+#else
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -887,6 +926,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
         set_rsp_accumulator(rsp, e, acc);
         vd->elements[e] = result;
     }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadn) {
@@ -894,6 +934,33 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
     defvs;
     defvd;
     defvte;
+#ifdef N64_USE_SIMD
+    vecr lo, hi, sign, vsa, omask, nhi, nmd, shi, smd, cmask, cval;
+    lo                 = _mm_mullo_epi16(vs->single, vte.single);
+    hi                 = _mm_mulhi_epu16(vs->single, vte.single);
+    sign               = _mm_srai_epi16(vte.single, 15);
+    vsa                = _mm_and_si128(vs->single, sign);
+    hi                 = _mm_sub_epi16(hi, vsa);
+    omask              = _mm_adds_epu16(rsp->acc.l.single, lo);
+    rsp->acc.l.single  = _mm_add_epi16(rsp->acc.l.single, lo);
+    omask              = _mm_cmpeq_epi16(rsp->acc.l.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_sub_epi16(hi, omask);
+    omask              = _mm_adds_epu16(rsp->acc.m.single, hi);
+    rsp->acc.m.single  = _mm_add_epi16(rsp->acc.m.single, hi);
+    omask              = _mm_cmpeq_epi16(rsp->acc.m.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_srai_epi16(hi, 15);
+    rsp->acc.h.single  = _mm_add_epi16(rsp->acc.h.single, hi);
+    rsp->acc.h.single  = _mm_sub_epi16(rsp->acc.h.single, omask);
+    nhi                = _mm_srai_epi16(rsp->acc.h.single, 15);
+    nmd                = _mm_srai_epi16(rsp->acc.m.single, 15);
+    shi                = _mm_cmpeq_epi16(nhi, rsp->acc.h.single);
+    smd                = _mm_cmpeq_epi16(nhi, nmd);
+    cmask              = _mm_and_si128(smd, shi);
+    cval               = _mm_cmpeq_epi16(nhi, rsp->zero);
+    vd->single         = _mm_blendv_epi8(cval, rsp->acc.l.single, cmask);
+#else
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         half multiplicand2 = vs->elements[e];
@@ -916,6 +983,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
 
         vd->elements[e] = result;
     }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmov) {

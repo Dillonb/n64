@@ -63,6 +63,8 @@ typedef struct rsp {
     //dword mult_hi;
     //dword mult_lo;
 
+    vecr zero;
+
     rsp_status_t status;
 
     struct {
