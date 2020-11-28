@@ -1,9 +1,13 @@
 #include "rsp_vector_instructions.h"
 
+#ifdef N64_USE_SIMD
 #include <emmintrin.h>
+#endif
 
 #include <log.h>
+#ifdef N64_USE_SIMD
 #include <tmmintrin.h>
+#endif
 #include "rsp.h"
 #include "rsp_rom.h"
 
@@ -40,22 +44,46 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
         case 0 ... 1:
             return *vt;
         case 2:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11110101), 0b11110101);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 3:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10100000), 0b10100000);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 4:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11111111), 0b11111111);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 5:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10101010), 0b10101010);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 6:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b01010101), 0b01010101);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 7:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b00000000), 0b00000000);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 8 ... 15:
             for (int i = 0; i < 8; i++) {
@@ -528,10 +556,13 @@ RSP_VECTOR_INSTR(rsp_vec_vabs) {
     defvd;
     defvte;
 
+#ifdef N64_USE_SIMD
     __m128i res = _mm_sign_epi16(vte.single, vs->single);
     rsp->acc.l.single = res;
     vd->single = res;
-
+#else
+    logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vadd) {
@@ -912,10 +943,21 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
     byte de = instruction.cp2_vec.vs & 7;
 
     half vte_elem = vte.elements[7 - se];
+#ifdef N64_USE_SIMD
     vecr vte_single = vte.single;
-
     vd->elements[7 - de] = vte_elem;
     rsp->acc.l.single = vte_single;
+#else
+    half vte_temp[8];
+    for (int i = 0; i < 8; i++) {
+        vte_temp[i] = vte.elements[i];
+    }
+    vd->elements[7 - de] = vte_elem;
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vte_temp[i];
+    }
+
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
@@ -1158,7 +1200,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
     defvte;
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vte.elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
@@ -1179,7 +1227,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     rsp->divin = 0;
     rsp->divin_loaded = false;
     defvte;
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vte.elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
@@ -1205,7 +1259,14 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     word result = rsq(input);
     vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
+
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vt->single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vt->elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
@@ -1215,7 +1276,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     defvte;
     byte de = instruction.cp2_vec.vs;
 
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vt->elements[i];
+    }
+#endif
     rsp->divin_loaded = true;
     rsp->divin = vt->elements[7 - (instruction.cp2_vec.e & 7)];
     vd->elements[7 - (de & 7)] = rsp->divout;
@@ -1238,7 +1305,14 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     rsp->divout = (result >> 16) & 0xFFFF;
     rsp->divin = 0;
     rsp->divin_loaded = false;
+
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vt->single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vt->elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
@@ -1246,13 +1320,31 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
     defvd;
     switch (instruction.cp2_vec.e) {
         case 0x8:
+#ifdef N64_USE_SIMD
             vd->single = rsp->acc.h.single;
+#else
+            for (int i = 0; i < 8; i++) {
+                vd->elements[i] = rsp->acc.h.elements[i];
+            }
+#endif
             break;
         case 0x9:
+#ifdef N64_USE_SIMD
             vd->single = rsp->acc.m.single;
+#else
+            for (int i = 0; i < 8; i++) {
+                vd->elements[i] = rsp->acc.m.elements[i];
+            }
+#endif
             break;
         case 0xA:
+#ifdef N64_USE_SIMD
             vd->single = rsp->acc.l.single;
+#else
+            for (int i = 0; i < 8; i++) {
+                vd->elements[i] = rsp->acc.l.elements[i];
+            }
+#endif
             break;
         default: // Not actually sure what the default behavior is here
             for (int i = 0; i < 8; i++) {

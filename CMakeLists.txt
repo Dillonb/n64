@@ -19,6 +19,9 @@ else()
 endif()
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
+
+ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
+
 project (N64)
 set(N64_TARGET n64)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")

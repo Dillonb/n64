@@ -3,7 +3,9 @@
 
 #include <stdbool.h>
 #include <assert.h>
+#ifdef N64_USE_SIMD
 #include <emmintrin.h>
+#endif
 #include <util.h>
 #include "mips_instruction_decode.h"
 
@@ -14,7 +16,9 @@ typedef union vu_reg {
     byte bytes[16];
     shalf signed_elements[8];
     half elements[8];
+#ifdef N64_USE_SIMD
     vecr single;
+#endif
     // Only used for loading
     word words[4];
 } vu_reg_t;
