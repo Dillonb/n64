@@ -24,5 +24,5 @@ ADD_CUSTOM_COMMAND(
 )
 
 add_executable(${N64_GTK_TARGET} gtk_frontend.c ${resource_header} ${resource_source})
-target_link_libraries(${N64_GTK_TARGET} PUBLIC ${GTK_LIBRARIES} common core)
+target_link_libraries(${N64_GTK_TARGET} PUBLIC ${GTK_LIBRARIES} core common)
 target_include_directories(${N64_GTK_TARGET} PUBLIC ${GTK_INCLUDE_DIRS})

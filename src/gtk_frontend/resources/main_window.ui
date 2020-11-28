@@ -64,7 +64,7 @@
     <property name="can-focus">False</property>
     <property name="show-menubar">False</property>
     <child>
-      <object class="GtkDrawingArea">
+      <object class="GtkDrawingArea" id="drawingarea">
         <property name="width-request">1280</property>
         <property name="height-request">960</property>
         <property name="visible">True</property>
