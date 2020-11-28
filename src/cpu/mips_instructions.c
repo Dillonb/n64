@@ -1223,6 +1223,13 @@ MIPS_INSTR(mips_spc_daddu) {
     set_register(cpu, instruction.r.rd, result);
 }
 
+MIPS_INSTR(mips_spc_dsubu) {
+    sdword minuend = get_register(cpu, instruction.r.rs);
+    sdword subtrahend = get_register(cpu, instruction.r.rt);
+    sdword difference = minuend - subtrahend;
+    set_register(cpu, instruction.r.rd, difference);
+}
+
 MIPS_INSTR(mips_spc_dsll) {
     dword value = get_register(cpu, instruction.r.rt);
     value <<= instruction.r.sa;

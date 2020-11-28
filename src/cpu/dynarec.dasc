@@ -1183,6 +1183,18 @@ COMPILER(compile_mips_spc_daddu) {
     | postcall 2;
     return NORMAL;
 }
+COMPILER(compile_mips_spc_dsubu) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dsubu\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dsubu;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
 
 COMPILER(compile_mips_spc_dsll) {
 #ifdef N64_LOG_COMPILATIONS
@@ -1929,6 +1941,7 @@ INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** D
         case FUNCT_SLTU:   return compile_mips_spc_sltu(Dst, instr, address);
         case FUNCT_DADD:   return compile_mips_spc_dadd(Dst, instr, address);
         case FUNCT_DADDU:  return compile_mips_spc_daddu(Dst, instr, address);
+        case FUNCT_DSUBU:  return compile_mips_spc_dsubu(Dst, instr, address);
         case FUNCT_DSLL:   return compile_mips_spc_dsll(Dst, instr, address);
         case FUNCT_DSRL:   return compile_mips_spc_dsrl(Dst, instr, address);
         case FUNCT_DSLL32: return compile_mips_spc_dsll32(Dst, instr, address);
