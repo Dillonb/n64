@@ -17,6 +17,8 @@
 #define defvte vu_reg_t vte = get_vte(&rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
 #define elementzero unimplemented(instruction.cp2_vec.e != 0, "element was not zero!")
 
+#define FLAGREG_BOOL(x) ((x) ? 0xFFFF : 0)
+
 INLINE shalf clamp_signed(sdword value) {
     if (value < -32768) return -32768;
     if (value > 32767) return 32767;
@@ -508,21 +510,21 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
     switch (instruction.r.rd) {
         case 0: { // VCO
             for (int i = 0; i < 8; i++) {
-                rsp->vco.h.elements[7 - i] = ((value >> (i + 8)) & 1) == 1;
-                rsp->vco.l.elements[7 - i] = ((value >> i) & 1) == 1;
+                rsp->vco.h.elements[7 - i] = FLAGREG_BOOL(((value >> (i + 8)) & 1) == 1);
+                rsp->vco.l.elements[7 - i] = FLAGREG_BOOL(((value >> i) & 1) == 1);
             }
             break;
         }
         case 1: { // VCC
             for (int i = 0; i < 8; i++) {
-                rsp->vcc.h.elements[7 - i] = ((value >> (i + 8)) & 1) == 1;
-                rsp->vcc.l.elements[7 - i] = ((value >> i) & 1) == 1;
+                rsp->vcc.h.elements[7 - i] = FLAGREG_BOOL(((value >> (i + 8)) & 1) == 1);
+                rsp->vcc.l.elements[7 - i] = FLAGREG_BOOL(((value >> i) & 1) == 1);
             }
             break;
         }
         case 2: { // VCE
             for (int i = 0; i < 8; i++) {
-                rsp->vce.elements[7 - i] = ((value >> i) & 1) == 1;
+                rsp->vce.elements[7 - i] = FLAGREG_BOOL(((value >> i) & 1) == 1);
             }
             break;
         }
@@ -577,8 +579,8 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
         sword result = vs_element + vte_element + (rsp->vco.l.elements[i] != 0);
         rsp->acc.l.elements[i] = result;
         vd->elements[i] = clamp_signed(result);
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -594,8 +596,8 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
         word result = vs_element + vte_element;
         rsp->acc.l.elements[i] = result & 0xFFFF;
         vd->elements[i] = result & 0xFFFF;
-        rsp->vco.l.elements[i] = (result >> 16) & 1;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL((result >> 16) & 1);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -626,20 +628,20 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
             shalf result = vs_element + vte_element;
 
             rsp->acc.l.signed_elements[i] = (result <= 0 ? -vte_element : vs_element);
-            rsp->vcc.l.elements[i] = result <= 0;
-            rsp->vcc.h.elements[i] = vte_element < 0;
-            rsp->vco.l.elements[i] = 1;
-            rsp->vco.h.elements[i] = result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF);
-            rsp->vce.elements[i] = result == -1;
+            rsp->vcc.l.elements[i] = FLAGREG_BOOL(result <= 0);
+            rsp->vcc.h.elements[i] = FLAGREG_BOOL(vte_element < 0);
+            rsp->vco.l.elements[i] = FLAGREG_BOOL(1);
+            rsp->vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF));
+            rsp->vce.elements[i]   = FLAGREG_BOOL(result == -1);
         } else {
             shalf result = vs_element - vte_element;
 
             rsp->acc.l.elements[i] = (result >= 0 ? vte_element : vs_element);
-            rsp->vcc.l.elements[i] = vte_element < 0;
-            rsp->vcc.h.elements[i] = result >= 0;
-            rsp->vco.l.elements[i] = 0;
-            rsp->vco.h.elements[i] = result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF);
-            rsp->vce.elements[i] = 0;
+            rsp->vcc.l.elements[i] = FLAGREG_BOOL(vte_element < 0);
+            rsp->vcc.h.elements[i] = FLAGREG_BOOL(result >= 0);
+            rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+            rsp->vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF));
+            rsp->vce.elements[i]   = FLAGREG_BOOL(0);
         }
 
         vd->elements[i] = rsp->acc.l.elements[i];
@@ -655,13 +657,13 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
         half vs_element = vs->elements[i];
         half vte_element = vte.elements[i];
         if (rsp->vco.l.elements[i] == 0 && rsp->vco.h.elements[i] == 0) {
-            rsp->vcc.h.elements[i] = vs_element >= vte_element;
+            rsp->vcc.h.elements[i] = FLAGREG_BOOL(vs_element >= vte_element);
         }
 
         if (rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] == 0) {
             bool lte = vs_element + vte_element <= 0xFFFF;
             bool eql = (shalf)vs_element == -(shalf)vte_element;
-            rsp->vcc.l.elements[i] = rsp->vce.elements[i] != 0 ? lte : eql;
+            rsp->vcc.l.elements[i] = FLAGREG_BOOL(rsp->vce.elements[i] != 0 ? lte : eql);
         }
         bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] : rsp->vcc.h.elements[i];
         half vtabs = rsp->vco.l.elements[i] != 0 ? -(half)vte_element : (half)vte_element;
@@ -671,10 +673,10 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
 
     }
     for (int i = 0; i < 8; i++) {
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
 
-        rsp->vce.elements[i] = 0;
+        rsp->vce.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -704,12 +706,12 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
         rsp->acc.l.elements[i] = result;
         vd->elements[i] = result;
 
-        rsp->vcc.h.elements[i] = gte;
-        rsp->vcc.l.elements[i] = lte;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(gte);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL(lte);
 
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vce.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vce.elements[i] = FLAGREG_BOOL(0);
 
     }
 }
@@ -721,13 +723,13 @@ RSP_VECTOR_INSTR(rsp_vec_veq) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        rsp->vcc.l.elements[i] = (rsp->vco.h.elements[i] == 0) && (vs->elements[i] == vte.elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL((rsp->vco.h.elements[i] == 0) && (vs->elements[i] == vte.elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -741,12 +743,12 @@ RSP_VECTOR_INSTR(rsp_vec_vge) {
         bool eql = vs->signed_elements[i] == vte.signed_elements[i];
         bool neg = !(rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] != 0) && eql;
 
-        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] > vte.signed_elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL(neg || (vs->signed_elements[i] > vte.signed_elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
 
     }
 }
@@ -760,12 +762,12 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
     for (int i = 0; i < 8; i++) {
         bool eql = vs->elements[i] == vte.elements[i];
         bool neg = rsp->vco.h.elements[i] != 0 && rsp->vco.l.elements[i] != 0 && eql;
-        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] < vte.signed_elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL(neg || (vs->signed_elements[i] < vte.signed_elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -970,8 +972,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -1135,13 +1137,13 @@ RSP_VECTOR_INSTR(rsp_vec_vne) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        rsp->vcc.l.elements[i] = (rsp->vco.h.elements[i] != 0) || (vs->elements[i] != vte.elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL((rsp->vco.h.elements[i] != 0) || (vs->elements[i] != vte.elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -1364,8 +1366,8 @@ RSP_VECTOR_INSTR(rsp_vec_vsub) {
         sword result = vs->signed_elements[i] - vte.signed_elements[i] - (rsp->vco.l.elements[i] != 0);
         rsp->acc.l.signed_elements[i] = result;
         vd->signed_elements[i] = clamp_signed(result);
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -1382,8 +1384,8 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
 
         vd->elements[i] = hresult;
         rsp->acc.l.elements[i] = hresult;
-        rsp->vco.l.elements[i] = carry;
-        rsp->vco.h.elements[i] = result != 0; // not hresult, but I bet that'd also work
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(carry);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(result != 0); // not hresult, but I bet that'd also work
     }
 }
 
