@@ -1229,15 +1229,27 @@ MIPS_INSTR(mips_spc_dsll) {
     set_register(cpu, instruction.r.rd, value);
 }
 
+MIPS_INSTR(mips_spc_dsrl) {
+    dword value = get_register(cpu, instruction.r.rt);
+    value >>= instruction.r.sa;
+    set_register(cpu, instruction.r.rd, value);
+}
+
 MIPS_INSTR(mips_spc_dsll32) {
     dword value = get_register(cpu, instruction.r.rt);
-    value <<= instruction.r.sa + 32;
+    value <<= (instruction.r.sa + 32);
+    set_register(cpu, instruction.r.rd, value);
+}
+
+MIPS_INSTR(mips_spc_dsrl32) {
+    dword value = get_register(cpu, instruction.r.rt);
+    value >>= (instruction.r.sa + 32);
     set_register(cpu, instruction.r.rd, value);
 }
 
 MIPS_INSTR(mips_spc_dsra32) {
     sdword value = get_register(cpu, instruction.r.rt);
-    value >>= instruction.r.sa + 32;
+    value >>= (instruction.r.sa + 32);
     set_register(cpu, instruction.r.rd, value);
 }
 
