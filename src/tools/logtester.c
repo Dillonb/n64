@@ -335,7 +335,7 @@ int main(int argc, char** argv) {
     const char* rom = flags->argv[0];
 
     log_set_verbosity(verbose->count);
-    n64_system_t* system = init_n64system(rom, true, false, UNKNOWN_VIDEO_TYPE);
+    n64_system_t* system = init_n64system(rom, true, false, UNKNOWN_VIDEO_TYPE, NULL);
 
     if (rdp_plugin_path != NULL) {
         load_rdp_plugin(system, rdp_plugin_path);

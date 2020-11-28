@@ -175,7 +175,7 @@ typedef struct n64_system {
     n64_dynarec_t *dynarec;
 } n64_system_t;
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type);
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, const void* window_handle);
 
 void n64_system_step(n64_system_t* system);
 void n64_system_loop(n64_system_t* system);

@@ -45,10 +45,10 @@ int main(int argc, char** argv) {
 #endif
     n64_system_t* system;
     if (rdp_plugin_path != NULL) {
-        system = init_n64system(flags->argv[0], true, debug, OPENGL);
+        system = init_n64system(flags->argv[0], true, debug, OPENGL, NULL);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
-        system = init_n64system(flags->argv[0], true, debug, VULKAN);
+        system = init_n64system(flags->argv[0], true, debug, VULKAN, NULL);
         load_parallel_rdp(system);
     }
     if (tas_movie_path != NULL) {

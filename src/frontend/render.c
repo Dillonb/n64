@@ -56,27 +56,32 @@ void video_init_opengl() {
     }
 }
 
-void video_init_vulkan() {
-    window = SDL_CreateWindow(N64_APP_NAME,
-                              SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED,
-                              N64_SCREEN_X * SCREEN_SCALE,
-                              N64_SCREEN_Y * SCREEN_SCALE,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
+void video_init_vulkan(const void* window_handle) {
+    if (window_handle == NULL) {
+        window = SDL_CreateWindow(N64_APP_NAME,
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  N64_SCREEN_X * SCREEN_SCALE,
+                                  N64_SCREEN_Y * SCREEN_SCALE,
+                                  SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
+    } else {
+        window = SDL_CreateWindowFrom(window_handle);
+    }
     if (volkInitialize() != VK_SUCCESS) {
         logfatal("Failed to load Volk");
     }
 
 }
 
-void render_init(n64_system_t* system, n64_video_type_t video_type) {
+void render_init(n64_system_t* system, n64_video_type_t video_type, const void* window_handle) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
     if (video_type == OPENGL) {
+        unimplemented(window_handle != NULL, "Creating OpenGL renderer from an existing window!\n");
         video_init_opengl();
     } else if (video_type == VULKAN) {
-        video_init_vulkan();
+        video_init_vulkan(window_handle);
     }
     n64_video_type = video_type;
     audio_init(system);

@@ -115,7 +115,7 @@ void virtual_write_byte_wrapper(word address, byte value) {
     n64_write_byte(global_system, address, value);
 }
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type) {
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, const void* window_handle) {
     n64_system_t* system = malloc(sizeof(n64_system_t));
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
@@ -187,7 +187,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     global_system = system;
     if (enable_frontend) {
-        render_init(system, video_type);
+        render_init(system, video_type, window_handle);
     }
     system->debugger_state.enabled = enable_debug;
     if (enable_debug) {

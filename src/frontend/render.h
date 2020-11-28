@@ -11,7 +11,7 @@ extern "C" {
 #define N64_SCREEN_Y 480
 extern int SCREEN_SCALE;
 
-void render_init(n64_system_t* system, n64_video_type_t video_type);
+void render_init(n64_system_t* system, n64_video_type_t video_type, const void* window_handle);
 void n64_render_screen(n64_system_t* system);
 void n64_poll_input(n64_system_t* system);
 
