@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+    <gresource prefix="/n64/">
+        <!-- <file preprocess="xml-stripblanks">main_window.ui</file> -->
+        <file>main_window.ui</file>
+    </gresource>
+</gresources>

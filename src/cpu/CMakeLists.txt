@@ -40,6 +40,7 @@ TARGET_LINK_LIBRARIES(r4300i disassemble m)
 find_package(Capstone)
 
 IF(Capstone_FOUND)
+    message("Found Capstone, linking it to debug builds!")
     TARGET_LINK_LIBRARIES(disassemble debug Capstone::Capstone)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DHAVE_CAPSTONE")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DHAVE_CAPSTONE")

@@ -30,3 +30,28 @@ target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} 
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)
+
+find_package(PkgConfig)
+
+find_program(GLIB_COMPILE_RESOURCES_PROGRAM
+        NAMES glib-compile-resources
+        PATHS /bin /usr/bin
+        PATH_SUFFIXES bin)
+
+if(PKG_CONFIG_FOUND) # Needed to configure GTK
+    message("Found pkg-config, looking for GTK")
+    pkg_check_modules(GTK gtk+-3.0)
+    if (GTK_FOUND)
+        if (GLIB_COMPILE_RESOURCES_PROGRAM)
+            message("glib-compile-resources found at: ${GLIB_COMPILE_RESOURCES_PROGRAM}")
+            message("We have GTK and glib-compile-resources, building GTK frontend!")
+            add_subdirectory(gtk_frontend)
+        else()
+            message("Couldn't find glib-compile-resources. Not building GTK frontend.")
+        endif()
+    else()
+        message("Did not find gtk3, not building GTK frontend!")
+    endif()
+else()
+    message("Did not find pkg-config, not building GTK frontend!")
+endif()
