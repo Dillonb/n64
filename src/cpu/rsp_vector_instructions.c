@@ -88,13 +88,18 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
             logfatal("UNIMPLEMENTED: SISD version of this");
 #endif
             break;
-        case 8 ... 15:
+        case 8 ... 15: {
+            int index = 7 - (e - 8);
+#ifdef N64_USE_SIMD
+            vte.single = _mm_set1_epi16(vt->elements[index]);
+#else
             for (int i = 0; i < 8; i++) {
-                int index = 7 - (e - 8);
                 half val = vt->elements[index];
                 vte.elements[i] = val;
             }
+#endif
             break;
+        }
         default:
             logfatal("vte where e > 15");
     }
