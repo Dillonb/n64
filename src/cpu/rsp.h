@@ -95,7 +95,7 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
 
     word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
     if (dram_address != rsp->io.dram_addr.address) {
-        logfatal("Misaligned DRAM RSP DMA READ!");
+        logwarn("Misaligned DRAM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", rsp->io.dram_addr.address, dram_address);
     }
     word mem_address = rsp->io.mem_addr.address & 0xFFC;
     if (mem_address != rsp->io.mem_addr.address) {
