@@ -186,6 +186,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
+    printf("LFV used: warning, this instruction doesn't work!\n");
     logdebug("rsp_lwc2_lfv");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
     int e = instruction.v.element;
