@@ -39,41 +39,60 @@ INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t
     }
 }
 
+#define DECODE_RSP_VECTOR_INSTR_VTE(NAME, E) switch((E)) { \
+case 0: return NAME##_0;                                    \
+case 1: return NAME##_1;                                    \
+case 2: return NAME##_2;                                    \
+case 3: return NAME##_3;                                    \
+case 4: return NAME##_4;                                    \
+case 5: return NAME##_5;                                    \
+case 6: return NAME##_6;                                    \
+case 7: return NAME##_7;                                    \
+case 8: return NAME##_8;                                    \
+case 9: return NAME##_9;                                    \
+case 10: return NAME##_10;                                    \
+case 11: return NAME##_11;                                    \
+case 12: return NAME##_12;                                    \
+case 13: return NAME##_13;                                    \
+case 14: return NAME##_14;                                    \
+case 15: return NAME##_15;                                    \
+}
+
 INLINE rspinstr_handler_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.cp2_vec.is_vec) {
         switch (instr.cp2_vec.funct) {
-            case FUNCT_RSP_VEC_VABS:  return rsp_vec_vabs;
-            case FUNCT_RSP_VEC_VADD:  return rsp_vec_vadd;
-            case FUNCT_RSP_VEC_VADDC: return rsp_vec_vaddc;
-            case FUNCT_RSP_VEC_VAND:  return rsp_vec_vand;
-            case FUNCT_RSP_VEC_VCH:   return rsp_vec_vch;
-            case FUNCT_RSP_VEC_VCL:   return rsp_vec_vcl;
-            case FUNCT_RSP_VEC_VCR:   return rsp_vec_vcr;
-            case FUNCT_RSP_VEC_VEQ:   return rsp_vec_veq;
-            case FUNCT_RSP_VEC_VGE:   return rsp_vec_vge;
-            case FUNCT_RSP_VEC_VLT:   return rsp_vec_vlt;
-            case FUNCT_RSP_VEC_VMACF: return rsp_vec_vmacf;
-            case FUNCT_RSP_VEC_VMACQ: return rsp_vec_vmacq;
-            case FUNCT_RSP_VEC_VMACU: return rsp_vec_vmacu;
-            case FUNCT_RSP_VEC_VMADH: return rsp_vec_vmadh;
-            case FUNCT_RSP_VEC_VMADL: return rsp_vec_vmadl;
-            case FUNCT_RSP_VEC_VMADM: return rsp_vec_vmadm;
-            case FUNCT_RSP_VEC_VMADN: return rsp_vec_vmadn;
-            case FUNCT_RSP_VEC_VMOV:  return rsp_vec_vmov;
-            case FUNCT_RSP_VEC_VMRG:  return rsp_vec_vmrg;
-            case FUNCT_RSP_VEC_VMUDH: return rsp_vec_vmudh;
-            case FUNCT_RSP_VEC_VMUDL: return rsp_vec_vmudl;
-            case FUNCT_RSP_VEC_VMUDM: return rsp_vec_vmudm;
-            case FUNCT_RSP_VEC_VMUDN: return rsp_vec_vmudn;
-            case FUNCT_RSP_VEC_VMULF: return rsp_vec_vmulf;
+            case FUNCT_RSP_VEC_VABS:  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vabs, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VADD:  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vadd, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VADDC: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vaddc, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VAND:  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vand, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VCH:   DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vch, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VCL:   DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vcl, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VCR:   DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vcr, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VEQ:   DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_veq, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VGE:   DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vge, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VLT:   DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vlt, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMACF: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacf, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMACQ: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacq, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMACU: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacu, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMADH: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadh, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMADL: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadl, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMADM: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadm, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMADN: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadn, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMOV:  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmov, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMRG:  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmrg, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMUDH: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudh, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMUDL: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudl, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMUDM: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudm, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMUDN: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudn, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VMULF: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmulf, instr.cp2_vec.e);
             case FUNCT_RSP_VEC_VMULQ: return rsp_vec_vmulq;
             case FUNCT_RSP_VEC_VMULU: return rsp_vec_vmulu;
             case FUNCT_RSP_VEC_VNAND: return rsp_vec_vnand;
-            case FUNCT_RSP_VEC_VNE:   return rsp_vec_vne;
+            case FUNCT_RSP_VEC_VNE:   DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vne, instr.cp2_vec.e);
             case FUNCT_RSP_VEC_VNOP:  return rsp_vec_vnop;
             case FUNCT_RSP_VEC_VNOR:  return rsp_vec_vnor;
-            case FUNCT_RSP_VEC_VNXOR: return rsp_vec_vnxor;
-            case FUNCT_RSP_VEC_VOR :  return rsp_vec_vor;
+            case FUNCT_RSP_VEC_VNXOR: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vnxor, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VOR :  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vor, instr.cp2_vec.e);
             case FUNCT_RSP_VEC_VRCP:  return rsp_vec_vrcp;
             case FUNCT_RSP_VEC_VRCPH: return rsp_vec_vrcph_vrsqh;
             case FUNCT_RSP_VEC_VRCPL: return rsp_vec_vrcpl;
@@ -83,9 +102,9 @@ INLINE rspinstr_handler_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t
             case FUNCT_RSP_VEC_VRSQH: return rsp_vec_vrcph_vrsqh;
             case FUNCT_RSP_VEC_VRSQL: return rsp_vec_vrsql;
             case FUNCT_RSP_VEC_VSAR:  return rsp_vec_vsar;
-            case FUNCT_RSP_VEC_VSUB:  return rsp_vec_vsub;
-            case FUNCT_RSP_VEC_VSUBC: return rsp_vec_vsubc;
-            case FUNCT_RSP_VEC_VXOR:  return rsp_vec_vxor;
+            case FUNCT_RSP_VEC_VSUB:  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vsub, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VSUBC: DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vsubc, instr.cp2_vec.e);
+            case FUNCT_RSP_VEC_VXOR:  DECODE_RSP_VECTOR_INSTR_VTE(rsp_vec_vxor, instr.cp2_vec.e);
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);

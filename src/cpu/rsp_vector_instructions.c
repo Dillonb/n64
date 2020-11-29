@@ -20,6 +20,60 @@
 
 #define FLAGREG_BOOL(x) ((x) ? 0xFFFF : 0)
 
+#ifdef N64_USE_SIMD
+#define DEFINITION_RSP_VECTOR_INSTR_VTE(NAME)                                                                   \
+INLINE void NAME##_vte(rsp_t* rsp, mips_instruction_t instruction, vu_reg_t vte);                               \
+RSP_VECTOR_INSTR(NAME##_0) {                                                                                    \
+defvt; NAME##_vte(rsp, instruction, *vt);}                                                                      \
+RSP_VECTOR_INSTR(NAME##_1) {                                                                                    \
+defvt; NAME##_vte(rsp, instruction, *vt);}                                                                      \
+RSP_VECTOR_INSTR(NAME##_2) {                                                                                    \
+defvt; vu_reg_t vte; vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11110101), 0b11110101); \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_3) {                                                                                    \
+defvt; vu_reg_t vte; vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10100000), 0b10100000); \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_4) {                                                                                    \
+defvt; vu_reg_t vte; vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11111111), 0b11111111); \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_5){                                                                                     \
+defvt; vu_reg_t vte; vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10101010), 0b10101010); \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_6) {                                                                                    \
+defvt; vu_reg_t vte; vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b01010101), 0b01010101); \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_7) {                                                                                    \
+defvt; vu_reg_t vte; vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b00000000), 0b00000000); \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_8) {                                                                                    \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[7]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_9) {                                                                                    \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[6]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_10) {                                                                                   \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[5]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_11) {                                                                                   \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[4]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_12) {                                                                                   \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[3]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_13) {                                                                                   \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[2]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_14) {                                                                                   \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[1]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+RSP_VECTOR_INSTR(NAME##_15) {                                                                                   \
+defvt; vu_reg_t vte; vte.single = _mm_set1_epi16(vt->elements[0]);                                              \
+NAME##_vte(rsp, instruction, vte);}                                                                             \
+INLINE void NAME##_vte(rsp_t* rsp, mips_instruction_t instruction, vu_reg_t vte)
+#else
+#error Need SIMD support to build this
+#endif
+
 INLINE shalf clamp_signed(sdword value) {
     if (value < -32768) return -32768;
     if (value > 32767) return 32767;
@@ -559,11 +613,10 @@ RSP_VECTOR_INSTR(rsp_mtc2) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vabs) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vabs) {
     logdebug("rsp_vec_vabs");
     defvs;
     defvd;
-    defvte;
 
 #ifdef N64_USE_SIMD
     __m128i res = _mm_sign_epi16(vte.single, vs->single);
@@ -574,11 +627,10 @@ RSP_VECTOR_INSTR(rsp_vec_vabs) {
 #endif
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vadd) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vadd) {
     logdebug("rsp_vec_vadd");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         shalf vs_element = vs->signed_elements[i];
@@ -591,11 +643,10 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vaddc) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vaddc) {
     logdebug("rsp_vec_vaddc");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         half vs_element = vs->elements[i];
@@ -608,11 +659,10 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vand) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vand) {
     logdebug("rsp_vec_vand");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         half result = vte.elements[i] & vs->elements[i];
@@ -621,11 +671,10 @@ RSP_VECTOR_INSTR(rsp_vec_vand) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vch) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vch) {
     logdebug("rsp_vec_vch");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         shalf vs_element = vs->signed_elements[i];
@@ -655,11 +704,10 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vcl) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vcl) {
     logdebug("rsp_vec_vcl");
     defvs;
     defvd;
-    defvte;
     for (int i = 0; i < 8; i++) {
         half vs_element = vs->elements[i];
         half vte_element = vte.elements[i];
@@ -687,11 +735,10 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vcr) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vcr) {
     logdebug("rsp_vec_vcr");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         half vs_element = vs->elements[i];
@@ -723,11 +770,10 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_veq) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_veq) {
     logdebug("rsp_vec_veq");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         rsp->vcc.l.elements[i] = FLAGREG_BOOL((rsp->vco.h.elements[i] == 0) && (vs->elements[i] == vte.elements[i]));
@@ -740,11 +786,10 @@ RSP_VECTOR_INSTR(rsp_vec_veq) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vge) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vge) {
     logdebug("rsp_vec_vge");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         bool eql = vs->signed_elements[i] == vte.signed_elements[i];
@@ -760,11 +805,10 @@ RSP_VECTOR_INSTR(rsp_vec_vge) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vlt) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vlt) {
     logdebug("rsp_vec_vlt");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         bool eql = vs->elements[i] == vte.elements[i];
@@ -778,11 +822,10 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmacf) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacf) {
     logdebug("rsp_vec_vmacf");
     defvs;
     defvd;
-    defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -799,17 +842,16 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmacq) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacq) {
     logdebug("rsp_vec_vmacq");
     logfatal("Unimplemented: rsp_vec_vmacq");
     elementzero;
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmacu) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacu) {
     logdebug("rsp_vec_vmacu");
     defvs;
     defvd;
-    defvte;
     elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
@@ -827,11 +869,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmadh) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadh) {
     logdebug("rsp_vec_vmadh");
     defvs;
     defvd;
-    defvte;
 #ifdef N64_USE_SIMD
     vecr lo, hi, omask;
     lo                 = _mm_mullo_epi16(vs->single, vte.single);
@@ -863,11 +904,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
 #endif
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmadl) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadl) {
     logdebug("rsp_vec_vmadl");
     defvs;
     defvd;
-    defvte;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         half multiplicand2 = vs->elements[e];
@@ -890,11 +930,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmadm) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadm) {
     logdebug("rsp_vec_vmadm");
     defvs;
     defvd;
-    defvte;
 #ifdef N64_USE_SIMD
     vecr lo, hi, sign, vta, omask;
     lo                 = _mm_mullo_epi16(vs->single, vte.single);
@@ -935,11 +974,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
 #endif
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmadn) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadn) {
     logdebug("rsp_vec_vmadn");
     defvs;
     defvd;
-    defvte;
 #ifdef N64_USE_SIMD
     vecr lo, hi, sign, vsa, omask, nhi, nmd, shi, smd, cmask, cval;
     lo                 = _mm_mullo_epi16(vs->single, vte.single);
@@ -992,10 +1030,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
 #endif
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmov) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmov) {
     logdebug("rsp_vec_vmov");
     defvd;
-    defvte;
 
     byte se;
 
@@ -1036,11 +1073,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
 #endif
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmrg) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmrg) {
     logdebug("rsp_vec_vmrg");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
@@ -1051,11 +1087,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmudh) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudh) {
     logdebug("rsp_vec_vmudh");
     defvs;
     defvd;
-    defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -1072,11 +1107,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmudl) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudl) {
     logdebug("rsp_vec_vmudl");
     defvs;
     defvd;
-    defvte;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         half multiplicand2 = vs->elements[e];
@@ -1098,11 +1132,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmudm) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudm) {
     logdebug("rsp_vec_vmudm");
     defvs;
     defvd;
-    defvte;
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -1117,11 +1150,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmudm) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmudn) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudn) {
     logdebug("rsp_vec_vmudn");
     defvs;
     defvd;
-    defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         half multiplicand2 = vs->elements[e];
@@ -1144,11 +1176,10 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vmulf) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vmulf) {
     logdebug("rsp_vec_vmulf");
     defvs;
     defvd;
-    defvte;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -1204,11 +1235,10 @@ RSP_VECTOR_INSTR(rsp_vec_vnand) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vne) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vne) {
     logdebug("rsp_vec_vne");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         rsp->vcc.l.elements[i] = FLAGREG_BOOL((rsp->vco.h.elements[i] != 0) || (vs->elements[i] != vte.elements[i]));
@@ -1240,11 +1270,10 @@ RSP_VECTOR_INSTR(rsp_vec_vnor) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vnxor) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vnxor) {
     logdebug("rsp_vec_vnxor");
     defvs;
     defvd;
-    defvte;
     for (int i = 0; i < 8; i++) {
         half result = ~(vte.elements[i] ^ vs->elements[i]);
         vd->elements[i] = result;
@@ -1252,11 +1281,10 @@ RSP_VECTOR_INSTR(rsp_vec_vnxor) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vor) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vor) {
     logdebug("rsp_vec_vor");
     defvs;
     defvd;
-    defvte;
     for (int i = 0; i < 8; i++) {
         half result =  vte.elements[i] | vs->elements[i];
         vd->elements[i] = result;
@@ -1430,11 +1458,10 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vsub) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vsub) {
     logdebug("rsp_vec_vsub");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         sword result = vs->signed_elements[i] - vte.signed_elements[i] - (rsp->vco.l.elements[i] != 0);
@@ -1445,11 +1472,10 @@ RSP_VECTOR_INSTR(rsp_vec_vsub) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vsubc) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vsubc) {
     logdebug("rsp_vec_vsubc");
     defvs;
     defvd;
-    defvte;
 
     for (int i = 0; i < 8; i++) {
         word result = vs->elements[i] - vte.elements[i];
@@ -1463,10 +1489,9 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vxor) {
+DEFINITION_RSP_VECTOR_INSTR_VTE(rsp_vec_vxor) {
     logdebug("rsp_vec_vxor");
     defvs;
-    defvte;
     defvd;
     for (int i = 0; i < 8; i++) {
         half result = vte.elements[i] ^ vs->elements[i];

@@ -5,6 +5,23 @@
 #include "rsp_types.h"
 
 #define RSP_VECTOR_INSTR(NAME) void NAME(rsp_t* rsp, mips_instruction_t instruction)
+#define PROTOTYPE_RSP_VECTOR_INSTR_VTE(NAME) \
+RSP_VECTOR_INSTR(NAME##_0); \
+RSP_VECTOR_INSTR(NAME##_1); \
+RSP_VECTOR_INSTR(NAME##_2); \
+RSP_VECTOR_INSTR(NAME##_3); \
+RSP_VECTOR_INSTR(NAME##_4); \
+RSP_VECTOR_INSTR(NAME##_5); \
+RSP_VECTOR_INSTR(NAME##_6); \
+RSP_VECTOR_INSTR(NAME##_7); \
+RSP_VECTOR_INSTR(NAME##_8); \
+RSP_VECTOR_INSTR(NAME##_9); \
+RSP_VECTOR_INSTR(NAME##_10); \
+RSP_VECTOR_INSTR(NAME##_11); \
+RSP_VECTOR_INSTR(NAME##_12); \
+RSP_VECTOR_INSTR(NAME##_13); \
+RSP_VECTOR_INSTR(NAME##_14); \
+RSP_VECTOR_INSTR(NAME##_15)
 
 RSP_VECTOR_INSTR(rsp_lwc2_lbv);
 RSP_VECTOR_INSTR(rsp_lwc2_ldv);
@@ -35,38 +52,38 @@ RSP_VECTOR_INSTR(rsp_ctc2);
 RSP_VECTOR_INSTR(rsp_mfc2);
 RSP_VECTOR_INSTR(rsp_mtc2);
 
-RSP_VECTOR_INSTR(rsp_vec_vabs);
-RSP_VECTOR_INSTR(rsp_vec_vadd);
-RSP_VECTOR_INSTR(rsp_vec_vaddc);
-RSP_VECTOR_INSTR(rsp_vec_vand);
-RSP_VECTOR_INSTR(rsp_vec_vch);
-RSP_VECTOR_INSTR(rsp_vec_vcl);
-RSP_VECTOR_INSTR(rsp_vec_vcr);
-RSP_VECTOR_INSTR(rsp_vec_veq);
-RSP_VECTOR_INSTR(rsp_vec_vge);
-RSP_VECTOR_INSTR(rsp_vec_vlt);
-RSP_VECTOR_INSTR(rsp_vec_vmacf);
-RSP_VECTOR_INSTR(rsp_vec_vmacq);
-RSP_VECTOR_INSTR(rsp_vec_vmacu);
-RSP_VECTOR_INSTR(rsp_vec_vmadh);
-RSP_VECTOR_INSTR(rsp_vec_vmadl);
-RSP_VECTOR_INSTR(rsp_vec_vmadm);
-RSP_VECTOR_INSTR(rsp_vec_vmadn);
-RSP_VECTOR_INSTR(rsp_vec_vmov);
-RSP_VECTOR_INSTR(rsp_vec_vmrg);
-RSP_VECTOR_INSTR(rsp_vec_vmudh);
-RSP_VECTOR_INSTR(rsp_vec_vmudl);
-RSP_VECTOR_INSTR(rsp_vec_vmudm);
-RSP_VECTOR_INSTR(rsp_vec_vmudn);
-RSP_VECTOR_INSTR(rsp_vec_vmulf);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vabs);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vadd);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vaddc);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vand);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vch);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vcl);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vcr);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_veq);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vge);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vlt);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacf);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacq);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmacu);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadh);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadl);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadm);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmadn);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmov);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmrg);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudh);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudl);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudm);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmudn);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vmulf);
 RSP_VECTOR_INSTR(rsp_vec_vmulq);
 RSP_VECTOR_INSTR(rsp_vec_vmulu);
 RSP_VECTOR_INSTR(rsp_vec_vnand);
-RSP_VECTOR_INSTR(rsp_vec_vne);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vne);
 RSP_VECTOR_INSTR(rsp_vec_vnop);
 RSP_VECTOR_INSTR(rsp_vec_vnor);
-RSP_VECTOR_INSTR(rsp_vec_vnxor);
-RSP_VECTOR_INSTR(rsp_vec_vor);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vnxor);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vor);
 RSP_VECTOR_INSTR(rsp_vec_vrcp);
 RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh);
 RSP_VECTOR_INSTR(rsp_vec_vrcpl);
@@ -75,8 +92,8 @@ RSP_VECTOR_INSTR(rsp_vec_vrndp);
 RSP_VECTOR_INSTR(rsp_vec_vrsq);
 RSP_VECTOR_INSTR(rsp_vec_vrsql);
 RSP_VECTOR_INSTR(rsp_vec_vsar);
-RSP_VECTOR_INSTR(rsp_vec_vsub);
-RSP_VECTOR_INSTR(rsp_vec_vsubc);
-RSP_VECTOR_INSTR(rsp_vec_vxor);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vsub);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vsubc);
+PROTOTYPE_RSP_VECTOR_INSTR_VTE(rsp_vec_vxor);
 
 #endif //N64_RSP_VECTOR_INSTRUCTIONS_H
