@@ -22,7 +22,7 @@ add_library(core
         interface/ai.c interface/ai.h
         mem/addresses.h
         mem/n64_rsp_bus.c mem/n64_rsp_bus.h
-        tas_movie.c tas_movie.h
+        frontend/tas_movie.c frontend/tas_movie.h
         frontend/audio.c frontend/audio.h
         frontend/gamepad.c frontend/gamepad.h)
 

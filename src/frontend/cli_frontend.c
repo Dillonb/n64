@@ -5,7 +5,7 @@
 #include <mem/pif.h>
 #include <rdp/rdp.h>
 #include <rdp/parallel_rdp_wrapper.h>
-#include <tas_movie.h>
+#include <frontend/tas_movie.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
