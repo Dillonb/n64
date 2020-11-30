@@ -93,6 +93,10 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
 
     length = (length + 0x7) & ~0x7;
 
+    if (rsp->io.mem_addr.address + length > 0x1000) {
+        logfatal("RSP DMA READ would read off the end of memory!\n");
+    }
+
     word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
     if (dram_address != rsp->io.dram_addr.address) {
         logwarn("Misaligned DRAM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", rsp->io.dram_addr.address, dram_address);
@@ -112,12 +116,19 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
         dram_address += length + rsp->io.dma_read.skip;
         mem_address += length;
     }
+
+    rsp->io.dram_addr.address = dram_address;
+    rsp->io.mem_addr.address = mem_address;
 }
 
 INLINE void rsp_dma_write(rsp_t* rsp) {
     word length = rsp->io.dma_write.length + 1;
 
     length = (length + 0x7) & ~0x7;
+
+    if (rsp->io.mem_addr.address + length > 0x1000) {
+        logfatal("RSP DMA WRITE would write off the end of memory!\n");
+    }
 
     word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
     if (dram_address != rsp->io.dram_addr.address) {
@@ -138,6 +149,9 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
         dram_address += length + rsp->io.dma_write.skip;
         mem_address += length;
     }
+
+    rsp->io.dram_addr.address = dram_address;
+    rsp->io.mem_addr.address = mem_address;
 }
 
 INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {

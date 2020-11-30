@@ -157,6 +157,14 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
                 length = (length + 0x7) & ~0x7;
             }
             system->mem.pi_reg[PI_RD_LEN_REG] = length;
+            word cart_addr = system->mem.pi_reg[PI_CART_ADDR_REG];
+            word dram_addr = system->mem.pi_reg[PI_DRAM_ADDR_REG];
+            if (cart_addr < SREGION_CART_2_1) {
+                logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", system->mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
+            }
+            if (dram_addr >= SREGION_RDRAM_UNUSED) {
+                logfatal("DRAM address too high!");
+            }
             run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
             interrupt_raise(INTERRUPT_PI);
             break;
@@ -167,7 +175,12 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
                 length = (length + 0x7) & ~0x7;
             }
             system->mem.pi_reg[PI_WR_LEN_REG] = length;
-            run_dma(system, system->mem.pi_reg[PI_CART_ADDR_REG], system->mem.pi_reg[PI_DRAM_ADDR_REG], length, "CART to DRAM");
+            word cart_addr = system->mem.pi_reg[PI_CART_ADDR_REG];
+            word dram_addr = system->mem.pi_reg[PI_DRAM_ADDR_REG] & 0x7FFFFF;
+            if (cart_addr < SREGION_CART_2_1) {
+                logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", system->mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
+            }
+            run_dma(system, cart_addr, dram_addr, length, "CART to DRAM");
             interrupt_raise(INTERRUPT_PI);
             break;
         }
