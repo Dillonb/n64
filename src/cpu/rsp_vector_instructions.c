@@ -1175,7 +1175,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
     defvs;
     defvd;
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
