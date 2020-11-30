@@ -445,7 +445,6 @@ void n64_write_dword(n64_system_t* system, word address, dword value) {
             invalidate_rsp_icache(system, address);
             invalidate_rsp_icache(system, address + 4);
             break;
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address);
         case REGION_SP_UNUSED:
             return;
         case REGION_SP_REGS:
@@ -470,7 +469,6 @@ void n64_write_dword(n64_system_t* system, word address, dword value) {
         case REGION_RI_REGS:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
             break;
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
         case REGION_SI_REGS:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SI_REGS", value, address);
             break;
@@ -584,7 +582,6 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             word_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
             invalidate_rsp_icache(system, address);
             break;
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address);
         case REGION_SP_UNUSED:
             return;
         case REGION_SP_REGS:
@@ -610,7 +607,6 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_RI_REGS:
             write_word_rireg(system, address, value);
             break;
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
         case REGION_SI_REGS:
             write_word_sireg(system, address, value);
             break;
@@ -752,7 +748,6 @@ void n64_write_half(n64_system_t* system, word address, half value) {
             half_to_byte_array((byte*) &system->mem.sp_imem, address - SREGION_SP_IMEM, value);
             invalidate_rsp_icache(system, address);
             break;
-            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_SP_IMEM", value, address);
         case REGION_SP_UNUSED:
             return;
         case REGION_SP_REGS:
