@@ -177,7 +177,7 @@ bool rsp_acquire_semaphore(n64_system_t* system);
 
 INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE:
+        case RSP_CP0_DMA_CACHE: return system->rsp.io.mem_addr.raw;
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
         case RSP_CP0_DMA_DRAM:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_DRAM", r);
