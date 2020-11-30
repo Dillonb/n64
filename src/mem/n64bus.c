@@ -683,9 +683,11 @@ INLINE word _n64_read_word(word address) {
             logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1", address);
             return 0;
         case REGION_CART_1_1:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1", address);
+            return 0;
         case REGION_CART_2_2:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_2_2", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_2", address);
+            return 0;
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
 #ifdef N64_DEBUG_MODE
@@ -972,7 +974,8 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_1_1:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1", address);
         case REGION_CART_2_2:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_2", address);
+            logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_2", address);
+            return 0;
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size) {
