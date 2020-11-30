@@ -1195,9 +1195,9 @@ RSP_VECTOR_INSTR(rsp_vec_vnand) {
     elementzero;
     defvs;
     defvd;
-    defvt;
+    defvte;
     for (int i = 0; i < 8; i++) {
-        half result = ~(vt->elements[i] & vs->elements[i]);
+        half result = ~(vte.elements[i] & vs->elements[i]);
         vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
@@ -1231,9 +1231,9 @@ RSP_VECTOR_INSTR(rsp_vec_vnor) {
     elementzero;
     defvs;
     defvd;
-    defvt;
+    defvte;
     for (int i = 0; i < 8; i++) {
-        half result = ~(vt->elements[i] | vs->elements[i]);
+        half result = ~(vte.elements[i] | vs->elements[i]);
         vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
