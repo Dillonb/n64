@@ -941,8 +941,11 @@ byte n64_read_byte(n64_system_t* system, word address) {
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_MI_REGS", address);
         case REGION_VI_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_VI_REGS", address);
-        case REGION_AI_REGS:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_AI_REGS", address);
+        case REGION_AI_REGS: {
+            word w = read_word_aireg(system, address & (~3));
+            int offset = 3 - (address & 3);
+            return (w >> (offset * 8)) & 0xFF;
+        }
         case REGION_PI_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_PI_REGS", address);
         case REGION_RI_REGS:
