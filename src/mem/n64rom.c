@@ -6,6 +6,45 @@
 #include "n64rom.h"
 #include "mem_util.h"
 
+#define Z64_IDENTIFIER 0x80371240
+#define N64_IDENTIFIER 0x40123780
+#define V64_IDENTIFIER 0x37804012
+
+void byteswap(byte* rom, size_t rom_size) {
+    word identifier;
+    memcpy(&identifier, rom, 4); // first 4 bytes
+    identifier = be32toh(identifier);
+
+    switch(identifier) {
+        case Z64_IDENTIFIER:
+            loginfo("This is a .z64 ROM, no byte swapping is needed.");
+            return;
+        case N64_IDENTIFIER:
+            for (int i = 0; i < rom_size / 4; i++) {
+                word w;
+                memcpy(&w, rom + (i * 4), 4);
+                word swapped = __bswap_32(w);
+                memcpy(rom + (i * 4), &swapped, 4);
+            }
+            loginfo("This is a .n64 file, byte swapping it!");
+            break;
+        case V64_IDENTIFIER:
+            for (int i = 0; i < rom_size / 4; i++) {
+                word w;
+                memcpy(&w, rom + (i * 4), 4);
+                word swapped = (0xFF000000 & (w << 8)) |
+                        (0x00FF0000 & (w >> 8)) |
+                        (0x0000FF00 & (w << 8)) |
+                        (0x000000FF & (w >> 8));
+                memcpy(rom + (i * 4), &swapped, 4);
+            }
+            loginfo("This is a .v64 file, byte swapping it!");
+            return;
+        default:
+            logfatal("Invalid cartridge header! This does not look like a valid N64 ROM.\n");
+    }
+}
+
 void load_n64rom(n64_rom_t* rom, const char* path) {
     FILE *fp = fopen(path, "rb");
 
@@ -21,6 +60,8 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     fseek(fp, 0, SEEK_SET);
     byte *buf = malloc(size);
     fread(buf, size, 1, fp);
+
+    byteswap(buf, size);
 
     rom->rom = buf;
     rom->size = size;
