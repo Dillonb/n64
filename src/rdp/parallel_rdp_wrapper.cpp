@@ -14,7 +14,9 @@ using RDP::CommandProcessor;
 using RDP::CommandProcessorFlags;
 using RDP::VIRegister;
 
-static unique_ptr<CommandProcessor> command_processor;
+static CommandProcessor* command_processor;
+static WSI* wsi;
+
 std::vector<Semaphore> acquire_semaphore;
 
 #define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
@@ -73,11 +75,8 @@ public:
     }
 };
 
-
-static unique_ptr<WSI> wsi;
-
 void load_parallel_rdp(n64_system_t* system) {
-    wsi = std::make_unique<WSI>();
+    wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(new SDLWSIPlatform());
     if (!wsi->init(1, nullptr)) {
@@ -98,7 +97,7 @@ void load_parallel_rdp(n64_system_t* system) {
 
     CommandProcessorFlags flags = 0; // TODO setup scaling in here later
 
-    command_processor = std::make_unique<CommandProcessor>(wsi->get_device(), reinterpret_cast<void *>(aligned_rdram),
+    command_processor = new CommandProcessor(wsi->get_device(), reinterpret_cast<void *>(aligned_rdram),
                                         offset, 8 * 1024 * 1024, 4 * 1024 * 1024, flags);
 
     if (!command_processor->device_is_supported()) {
