@@ -20,6 +20,18 @@ endif()
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
 
+#add_compile_options(-fsanitize=undefined)
+#add_link_options(-fsanitize=undefined)
+
+#add_compile_options(-fsanitize=address)
+#add_link_options(-fsanitize=address)
+
+#add_compile_options(-fsanitize=memory)
+#add_link_options(-fsanitize=memory)
+
+#add_compile_options(-fsanitize=thread)
+#add_link_options(-fsanitize=thread)
+
 ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
 
 project (N64)
