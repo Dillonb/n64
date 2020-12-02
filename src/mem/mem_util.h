@@ -93,54 +93,58 @@
 
 
 INLINE dword dword_from_byte_array(byte* arr, word index) {
-    dword* dwarr = (dword*)arr;
-    return be64toh(dwarr[index / sizeof(dword)]);
+    dword d;
+    memcpy(&d, arr + index, sizeof(dword));
+    return be64toh(d);
 }
 
 INLINE word word_from_byte_array(byte* arr, word index) {
     word val;
-    memcpy(&val, (word*)(arr + index), sizeof(word));
+    memcpy(&val, arr + index, sizeof(word));
     return be32toh(val);
 }
 
 INLINE word word_from_byte_array_unaligned(byte* arr, word index) {
-    word* warr = (word*)(arr + index);
-    return be32toh(warr[0]);
+    word w;
+    memcpy(&w, arr + index, sizeof(word));
+    return be32toh(w);
 }
 
 INLINE half half_from_byte_array(byte* arr, word index) {
-    half* warr = (half*)arr;
-    return be16toh(warr[index / sizeof(half)]);
+    half h;
+    memcpy(&h, arr + index, sizeof(half));
+    return be16toh(h);
 }
 
 INLINE half half_from_byte_array_unaligned(byte* arr, word index) {
-    half* harr = (half*)(arr + index);
-    return be16toh(harr[0]);
+    half h;
+    memcpy(&h, arr + index, sizeof(half));
+    return be16toh(h);
 }
 
 INLINE void dword_to_byte_array(byte* arr, word index, dword value) {
-    dword* dwarr = (dword*)arr;
-    dwarr[index / sizeof(dword)] = htobe64(value);
+    dword d = htobe64(value);
+    memcpy(arr + index, &d, sizeof(dword));
 }
 
 INLINE void word_to_byte_array(byte* arr, word index, word value) {
-    word* warr = (word*)arr;
-    warr[index / sizeof(word)] = htobe32(value);
+    word w = htobe32(value);
+    memcpy(arr + index, &w, sizeof(word));
 }
 
 INLINE void word_to_byte_array_unaligned(byte* arr, word index, word value) {
-    word* warr = (word*)(arr + index);
-    warr[0] = htobe32(value);
+    word w = htobe32(value);
+    memcpy(arr + index, &w, sizeof(word));
 }
 
 INLINE void half_to_byte_array(byte* arr, word index, half value) {
-    half* warr = (half*)arr;
-    warr[index / sizeof(half)] = htobe16(value);
+    half h = htobe16(value);
+    memcpy(arr + index, &h, sizeof(half));
 }
 
 INLINE void half_to_byte_array_unaligned(byte* arr, word index, half value) {
-    half* warr = (half*)(arr + index);
-    warr[0] = htobe16(value);
+    half h = htobe16(value);
+    memcpy(arr + index, &h, sizeof(half));
 }
 
 #endif //N64_MEM_UTIL_H
