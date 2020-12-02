@@ -123,8 +123,9 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
 INLINE int sign_extend_7bit_offset(byte offset, int shift_amount) {
     sbyte soffset = ((offset << 1) & 0x80) | offset;
 
-    int ofs = soffset;
-    return ofs << shift_amount;
+    sword ofs = soffset;
+    word uofs = ofs;
+    return uofs << shift_amount;
 }
 
 word rcp(sword sinput) {
@@ -869,9 +870,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = vte.elements[e];
-        half multiplicand2 = vs->elements[e];
-        word prod = multiplicand1 * multiplicand2;
+        dword multiplicand1 = vte.elements[e];
+        dword multiplicand2 = vs->elements[e];
+        dword prod = multiplicand1 * multiplicand2;
 
         dword acc_delta = prod >> 16;
         dword acc = get_rsp_accumulator(rsp, e) + acc_delta;
@@ -1061,7 +1062,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
         shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
-        sdword acc = prod;
+        dword acc = (sdword)prod;
 
         shalf result = clamp_signed(acc);
 
@@ -1078,9 +1079,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = vte.elements[e];
-        half multiplicand2 = vs->elements[e];
-        word prod = multiplicand1 * multiplicand2;
+        dword multiplicand1 = vte.elements[e];
+        dword multiplicand2 = vs->elements[e];
+        dword prod = multiplicand1 * multiplicand2;
 
         dword acc = prod >> 16;
 
