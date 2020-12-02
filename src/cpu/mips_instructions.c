@@ -38,7 +38,7 @@ INLINE void branch_abs(r4300i_t* cpu, word address) {
 
 INLINE void branch_offset(r4300i_t* cpu, shalf offset) {
     sword soffset = offset;
-    soffset <<= 2;
+    soffset *= 4;
     // This is taking advantage of the fact that we add 4 to the PC after each instruction.
     // Due to the compiler expecting pipelining, the address we get here will be 4 _too early_
 
@@ -355,7 +355,7 @@ MIPS_INSTR(mips_cp_trunc_w_d) {
 MIPS_INSTR(mips_cp_trunc_w_s) {
     checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
-    word truncated = value;
+    sword truncated = truncf(value);
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 

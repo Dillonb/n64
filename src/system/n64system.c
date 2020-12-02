@@ -313,6 +313,13 @@ void n64_system_loop(n64_system_t* system) {
 void n64_system_cleanup(n64_system_t* system) {
     rdp_cleanup();
     debugger_cleanup(system);
+
+    free(system->mem.rom.rom);
+    system->mem.rom.rom = NULL;
+
+    free(system->mem.rom.pif_rom);
+    system->mem.rom.pif_rom = NULL;
+
     free(system);
 }
 
