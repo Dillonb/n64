@@ -36,6 +36,11 @@ void gamepad_refresh() {
 }
 
 void gamepad_init(n64_system_t* system) {
+    if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") == -1) {
+        logalways("Failed to load game controller DB!");
+    } else {
+        logalways("Loaded game controller DB!");
+    }
     if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
         logfatal("Failed to initialize SDL Gamecontroller!");
     }
