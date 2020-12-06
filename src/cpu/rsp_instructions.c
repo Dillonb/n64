@@ -61,6 +61,12 @@ RSP_INSTR(rsp_spc_sra) {
     set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+RSP_INSTR(rsp_spc_srav) {
+    sword value = get_rsp_register(rsp, instruction.r.rt);
+    sword result = value >> (get_rsp_register(rsp, instruction.r.rs) & 0b11111);
+    set_rsp_register(rsp, instruction.r.rd, result);
+}
+
 RSP_INSTR(rsp_spc_srlv) {
     word value = get_rsp_register(rsp, instruction.r.rt);
     sword result = value >> (get_rsp_register(rsp, instruction.r.rs) & 0b11111);
@@ -209,6 +215,17 @@ RSP_INSTR(rsp_j) {
 RSP_INSTR(rsp_jal) {
     rsp_link(rsp);
     rsp_branch_abs(rsp, instruction.j.target);
+}
+
+RSP_INSTR(rsp_slti) {
+        shalf immediate = instruction.i.immediate;
+        logtrace("Set if %d < %d", get_rsp_register(rsp, instruction.i.rs), immediate);
+        sword reg = get_rsp_register(rsp, instruction.i.rs);
+        if (reg < immediate) {
+            set_rsp_register(rsp, instruction.i.rt, 1);
+        } else {
+            set_rsp_register(rsp, instruction.i.rt, 0);
+        }
 }
 
 RSP_INSTR(rsp_spc_jr) {

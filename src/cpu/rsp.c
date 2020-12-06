@@ -110,7 +110,7 @@ INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instructi
         case FUNCT_SLL:    return rsp_spc_sll;
         case FUNCT_SRL:    return rsp_spc_srl;
         case FUNCT_SRA:    return rsp_spc_sra;
-        //case FUNCT_SRAV:   return rsp_spc_srav;
+        case FUNCT_SRAV:   return rsp_spc_srav;
         case FUNCT_SLLV:   return rsp_spc_sllv;
         case FUNCT_SRLV:   return rsp_spc_srlv;
         case FUNCT_JR:     return rsp_spc_jr;
@@ -123,7 +123,7 @@ INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instructi
         case FUNCT_ADDU:   return rsp_spc_add;
         case FUNCT_AND:    return rsp_spc_and;
         case FUNCT_SUB:    return rsp_spc_sub;
-        //case FUNCT_SUBU:   return rsp_spc_subu;
+        case FUNCT_SUBU:   return rsp_spc_sub;
         case FUNCT_OR:     return rsp_spc_or;
         case FUNCT_XOR:    return rsp_spc_xor;
         case FUNCT_NOR:    return rsp_spc_nor;
@@ -144,7 +144,7 @@ INLINE rspinstr_handler_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instructio
     switch (instr.i.rt) {
         case RT_BLTZ:   return rsp_ri_bltz;
         case RT_BGEZ:   return rsp_ri_bgez;
-        //case RT_BGEZAL: return rsp_ri_bgezAL;
+        case RT_BGEZAL: return rsp_ri_bgezal;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -224,7 +224,7 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
             case OPC_ORI:   return rsp_ori;
             case OPC_J:     return rsp_j;
             case OPC_JAL:   return rsp_jal;
-            //case OPC_SLTI:  return rsp_slti;
+            case OPC_SLTI:  return rsp_slti;
             //case OPC_SLTIU: return rsp_sltiu;
             case OPC_XORI:  return rsp_xori;
             case OPC_LB:    return rsp_lb;
