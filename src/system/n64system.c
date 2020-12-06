@@ -114,7 +114,10 @@ void virtual_write_byte_wrapper(word address, byte value) {
 }
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type) {
-    n64_system_t* system = malloc(sizeof(n64_system_t));
+    // align to page boundary
+    n64_system_t* system;
+    posix_memalign((void **) &system, sysconf(_SC_PAGESIZE), sizeof(n64_system_t));
+
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
     if (rom_path != NULL) {

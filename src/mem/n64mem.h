@@ -39,8 +39,8 @@ typedef struct si_reg {
 } si_reg_t;
 
 typedef struct n64_mem {
-    n64_rom_t rom;
     byte rdram[N64_RDRAM_SIZE];
+    n64_rom_t rom;
     byte sp_dmem[SP_DMEM_SIZE];
     byte sp_imem[SP_IMEM_SIZE];
     word rdram_reg[10];
