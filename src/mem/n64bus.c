@@ -421,8 +421,8 @@ INLINE void invalidate_rsp_icache(n64_system_t* system, word address) {
 
     int index = address / 4;
 
-    system->rsp.icache[index].handler = NULL;
-    system->rsp.icache[index].instruction.raw = 0;
+    system->rsp.icache[index].handler = cache_rsp_instruction;
+    system->rsp.icache[index].instruction.raw = word_from_byte_array(system->mem.sp_imem, address);
 }
 
 void n64_write_dword(n64_system_t* system, word address, dword value) {

@@ -49,6 +49,8 @@ typedef union rsp_types {
 
 typedef struct rsp rsp_t;
 
+void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr);
+
 typedef void(*rspinstr_handler_t)(rsp_t*, mips_instruction_t);
 
 typedef struct rsp_icache_entry {
@@ -58,6 +60,7 @@ typedef struct rsp_icache_entry {
 
 typedef struct rsp {
     word gpr[32];
+    half prev_pc;
     half pc;
     half next_pc;
     //dword mult_hi;

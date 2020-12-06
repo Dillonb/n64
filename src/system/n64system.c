@@ -158,7 +158,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
         system->rsp.icache[i].instruction.raw = 0;
-        system->rsp.icache[i].handler = NULL;
+        system->rsp.icache[i].handler = cache_rsp_instruction;
     }
 
     system->rsp.status.halt = true; // RSP starts halted
