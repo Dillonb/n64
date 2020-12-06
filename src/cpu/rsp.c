@@ -4,8 +4,6 @@
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
 
-#include <mem/mem_util.h>
-
 bool rsp_acquire_semaphore(n64_system_t* system) {
     if (system->rsp.semaphore_held) {
         return false; // Semaphore is already held
