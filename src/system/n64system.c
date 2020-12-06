@@ -1,9 +1,7 @@
 #include "n64system.h"
 
 #include <string.h>
-#include <gdbstub.h>
 #include <unistd.h>
-#include <time.h>
 
 #include <mem/n64bus.h>
 #include <frontend/render.h>
