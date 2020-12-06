@@ -280,17 +280,9 @@ void rsp_step(n64_system_t* system) {
     _rsp_step(system);
 }
 
-int rsp_run(n64_system_t* system, int steps) {
-    // 2 RSP steps per CPU step
-    while (steps >= 3) {
-        for (int i = 0; i < 2; i++) {
-            if (system->rsp.status.halt) {
-                return 0;
-            } else {
-                _rsp_step(system);
-            }
-        }
-        steps -= 3;
+void rsp_run(n64_system_t* system) {
+    while (system->rsp.steps > 0) {
+        system->rsp.steps--;
+        _rsp_step(system);
     }
-    return steps;
 }

@@ -40,6 +40,10 @@ void rsp_status_reg_write(n64_system_t* system, word value) {
     write.raw = value;
 
     CLEAR_SET(system->rsp.status.halt,          write.clear_halt,          write.set_halt)
+    if (system->rsp.status.halt) {
+        system->rsp.steps = 0;
+    }
+
     CLEAR_SET(system->rsp.status.broke,         write.clear_broke,         false)
     if (write.clear_intr) {
         interrupt_lower(system, INTERRUPT_SP);

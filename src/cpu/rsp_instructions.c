@@ -124,6 +124,7 @@ RSP_INSTR(rsp_spc_and) {
 
 RSP_INSTR(rsp_spc_break) {
     rsp->status.halt = true;
+    rsp->steps = 0;
     rsp->status.broke = true;
 
     if (rsp->status.intr_on_break) {

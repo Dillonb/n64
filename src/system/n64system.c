@@ -220,18 +220,16 @@ INLINE int jit_system_step(n64_system_t* system) {
             return CYCLES_PER_INSTR;
         }
     }
-
+    static int cpu_steps = 0;
     int taken = n64_dynarec_step(system, system->dynarec);
+    cpu_steps += taken;
 
-    static int stepcount = 0;
-    stepcount += taken;
+    if (!system->rsp.status.halt) {
+        // 2 RSP steps per 3 CPU steps
+        system->rsp.steps += (cpu_steps / 3) * 2;
+        cpu_steps -= cpu_steps % 3;
 
-    if (stepcount >= 3) {
-        if (system->rsp.status.halt) {
-            stepcount = 0;
-        } else {
-            stepcount = rsp_run(system, stepcount);
-        }
+        rsp_run(system);
     }
 
     return taken;
