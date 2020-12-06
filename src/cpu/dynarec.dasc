@@ -2450,28 +2450,42 @@ INLINE void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec
 }
 
 
+int missing_block_handler(r4300i_t* cpu) {
+    word physical = resolve_virtual_address(cpu->pc, &cpu->cp0);
+    word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
+    // TODO: put the dynarec object inside the r4300i_t object to get rid of this need for global_system
+    n64_dynarec_block_t* block_list = global_system->dynarec->blockcache[outer_index];
+    word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
+
+    n64_dynarec_block_t* block = &block_list[inner_index];
+
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compilin' new block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
+#endif
+
+    compile_new_block(global_system->dynarec, cpu, block, cpu->pc, physical);
+
+    return block->run(cpu);
+}
+
 int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     word physical = resolve_virtual_address(system->cpu.pc, &system->cpu.cp0);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = dynarec->blockcache[outer_index];
     word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
-    if (block_list == NULL) {
+    if (unlikely(block_list == NULL)) {
 #ifdef N64_LOG_COMPILATIONS
         printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical, system->cpu.pc);
 #endif
         block_list = bumpalloc_zero(dynarec, BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
+        for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
+            block_list[i].run = missing_block_handler;
+        }
         dynarec->blockcache[outer_index] = block_list;
     }
 
     n64_dynarec_block_t* block = &block_list[inner_index];
-
-    if (block->run == NULL) {
-#ifdef N64_LOG_COMPILATIONS
-        printf("Compilin' new block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
-#endif
-        compile_new_block(dynarec, &system->cpu, block, system->cpu.pc, physical);
-    }
 
 #ifdef N64_LOG_BLOCK_RUNS
     static int total_blocks_run = 0;
