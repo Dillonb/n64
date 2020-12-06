@@ -148,10 +148,20 @@ void update_screen_parallel_rdp(n64_system_t* system) {
                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 
-        cmd->blit_image(swapchain_image, image->get_view().get_image(),
+        Image& image_ref = image->get_view().get_image();
+
+        cmd->image_barrier(image_ref, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+
+        cmd->blit_image(swapchain_image, image_ref,
                         {}, dst_extent,
                         {}, src_extent,
                         0, 0);
+
+        cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
 
         cmd->uses_swapchain = true;
         wsi->get_device().submit(cmd);
