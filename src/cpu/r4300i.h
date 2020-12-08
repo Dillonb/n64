@@ -619,34 +619,44 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
 }
 
 INLINE void set_fpu_register_dword(r4300i_t* cpu, byte r, dword value) {
+    if (!cpu->cp0.status.fr) {
+        // When this bit is not set, accessing odd registers is not allowed.
+        r &= ~1;
+    }
+
     cpu->f[r].raw = value;
 }
 
 INLINE dword get_fpu_register_dword(r4300i_t* cpu, byte r) {
+    if (!cpu->cp0.status.fr) {
+        // When this bit is not set, accessing odd registers is not allowed.
+        r &= ~1;
+    }
+
     return cpu->f[r].raw;
 }
 
 INLINE void set_fpu_register_word(r4300i_t* cpu, byte r, word value) {
-    if (!cpu->cp0.status.fr) {
-        if ((r & 1) == 0) {
-            cpu->f[r].lo = value;
-        } else {
-            cpu->f[r - 1].hi = value;
-        }
+    if (cpu->cp0.status.fr) {
+        cpu->f[r].lo = value;
     } else {
-        logfatal("Unimplemented!");
+        if (r & 1) {
+            cpu->f[r & ~1].hi = value;
+        } else {
+            cpu->f[r].lo = value;
+        }
     }
 }
 
 INLINE word get_fpu_register_word(r4300i_t* cpu, byte r) {
-    if (!cpu->cp0.status.fr) {
-        if ((r & 1) == 0) {
-            return cpu->f[r].lo;
-        } else {
-            return cpu->f[r - 1].hi;
-        }
+    if (cpu->cp0.status.fr) {
+        return cpu->f[r].lo;
     } else {
-        logfatal("Unimplemented!");
+        if (r & 1) {
+            return cpu->f[r & ~1].hi;
+        } else {
+            return cpu->f[r].lo;
+        }
     }
 }
 
