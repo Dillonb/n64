@@ -415,6 +415,16 @@ typedef union fcr31 {
     };
 } fcr31_t;
 
+typedef union fgr {
+    dword raw;
+    struct {
+        word lo:32;
+        word hi:32;
+    } __attribute__((packed));
+} fgr_t;
+
+static_assert(sizeof(fgr_t) == sizeof(dword), "fgr_t must be 64 bits");
+
 typedef struct r4300i {
     dword gpr[32];
 
@@ -428,7 +438,7 @@ typedef struct r4300i {
     fcr0_t  fcr0;
     fcr31_t fcr31;
 
-    byte f[256];
+    fgr_t f[32];
 
     cp0_t cp0;
 
@@ -609,24 +619,19 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
 }
 
 INLINE void set_fpu_register_dword(r4300i_t* cpu, byte r, dword value) {
-    dword* darr = (dword*)cpu->f;
-    darr[r] = value;
+    cpu->f[r].raw = value;
 }
 
 INLINE dword get_fpu_register_dword(r4300i_t* cpu, byte r) {
-    dword* darr = (dword*)cpu->f;
-    return darr[r];
+    return cpu->f[r].raw;
 }
 
 INLINE void set_fpu_register_word(r4300i_t* cpu, byte r, word value) {
-    dword* darr = (dword*)cpu->f;
     if (!cpu->cp0.status.fr) {
         if ((r & 1) == 0) {
-            darr[r] &= 0xFFFFFFFF00000000;
-            darr[r] |= value;
+            cpu->f[r].lo = value;
         } else {
-            darr[r - 1] &= 0x00000000FFFFFFFF;
-            darr[r - 1] |= (dword)value << 32;
+            cpu->f[r - 1].hi = value;
         }
     } else {
         logfatal("Unimplemented!");
@@ -634,12 +639,11 @@ INLINE void set_fpu_register_word(r4300i_t* cpu, byte r, word value) {
 }
 
 INLINE word get_fpu_register_word(r4300i_t* cpu, byte r) {
-    dword* darr = (dword*)cpu->f;
     if (!cpu->cp0.status.fr) {
         if ((r & 1) == 0) {
-            return darr[r] & 0xFFFFFFFF;
+            return cpu->f[r].lo;
         } else {
-            return darr[r - 1] >> 32;
+            return cpu->f[r - 1].hi;
         }
     } else {
         logfatal("Unimplemented!");
