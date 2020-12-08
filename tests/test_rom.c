@@ -4,6 +4,7 @@
 #include <log.h>
 #include <system/n64system.h>
 #include <cpu/mips_instructions.h>
+#include <cpu/r4300i_register_access.h>
 #include <mem/dma.h>
 
 #define MAX_STEPS 10000000
