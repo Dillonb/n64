@@ -248,17 +248,17 @@ INLINE int interpreter_system_step(n64_system_t* system) {
 #endif
     int taken = CYCLES_PER_INSTR;
     r4300i_step(&system->cpu);
-    static int stepcount = 0;
-    stepcount += taken;
-    while (stepcount >= 3) {
-        if (!system->rsp.status.halt) {
-            rsp_step(system);
-        }
-        if (!system->rsp.status.halt) {
-            rsp_step(system);
-        }
-        stepcount -= 3;
+    static int cpu_steps = 0;
+    cpu_steps += taken;
+
+    if (!system->rsp.status.halt) {
+        // 2 RSP steps per 3 CPU steps
+        system->rsp.steps += (cpu_steps / 3) * 2;
+        cpu_steps -= cpu_steps % 3;
+
+        rsp_run(system);
     }
+
     return taken;
 }
 
