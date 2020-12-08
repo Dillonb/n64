@@ -2,6 +2,7 @@
 #define N64_R4300I_H
 #include <stdbool.h>
 #include <assert.h>
+#include <string.h>
 
 #include <util.h>
 #include <log.h>
@@ -612,18 +613,8 @@ INLINE void set_fpu_register_dword(r4300i_t* cpu, byte r, dword value) {
     darr[r] = value;
 }
 
-INLINE void set_fpu_register_double(r4300i_t* cpu, byte r, double value) {
-    double* darr = (double*)cpu->f;
-    darr[r] = value;
-}
-
 INLINE dword get_fpu_register_dword(r4300i_t* cpu, byte r) {
     dword* darr = (dword*)cpu->f;
-    return darr[r];
-}
-
-INLINE double get_fpu_register_double(r4300i_t* cpu, byte r) {
-    double* darr = (double*)cpu->f;
     return darr[r];
 }
 
@@ -655,24 +646,36 @@ INLINE word get_fpu_register_word(r4300i_t* cpu, byte r) {
     }
 }
 
-INLINE void set_fpu_register_float(r4300i_t* cpu, byte r, float value) {
-    union {
-        float f;
-        word w;
-    } conv;
+INLINE void set_fpu_register_double(r4300i_t* cpu, byte r, double value) {
+    static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
 
-    conv.f = value;
-    set_fpu_register_word(cpu, r, conv.w);
+    dword rawvalue;
+    memcpy(&rawvalue, &value, sizeof(double));
+    set_fpu_register_dword(cpu, r, rawvalue);
+}
+
+INLINE double get_fpu_register_double(r4300i_t* cpu, byte r) {
+    static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
+    double doublevalue;
+    dword rawvalue = get_fpu_register_dword(cpu, r);
+    memcpy(&doublevalue, &rawvalue, sizeof(double));
+    return doublevalue;
+}
+
+INLINE void set_fpu_register_float(r4300i_t* cpu, byte r, float value) {
+    static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
+
+    word rawvalue;
+    memcpy(&rawvalue, &value, sizeof(float));
+    set_fpu_register_word(cpu, r, rawvalue);
 }
 
 INLINE float get_fpu_register_float(r4300i_t* cpu, byte r) {
-    union {
-        float f;
-        word w;
-    } conv;
-
-    conv.w = get_fpu_register_word(cpu, r);
-    return conv.f;
+    static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
+    word rawvalue = get_fpu_register_word(cpu, r);
+    float floatvalue;
+    memcpy(&floatvalue, &rawvalue, sizeof(float));
+    return floatvalue;
 }
 
 #endif //N64_R4300I_H
