@@ -20,7 +20,7 @@ add_custom_command(OUTPUT dynarec.c
         )
 
 add_library(r4300i
-        r4300i.c r4300i.h
+        r4300i.c r4300i.h r4300i_register_access.h
         mips_instructions.c mips_instructions.h
         tlb_instructions.c tlb_instructions.h
         rsp_interface.c rsp_interface.h

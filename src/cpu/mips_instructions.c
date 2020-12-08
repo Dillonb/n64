@@ -1,7 +1,7 @@
 #include "mips_instructions.h"
+#include "r4300i_register_access.h"
 
 #include <math.h>
-#include <mem/n64bus.h>
 
 void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
