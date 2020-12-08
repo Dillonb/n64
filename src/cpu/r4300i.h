@@ -525,6 +525,12 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.status.raw &= value & ~CP0_STATUS_WRITE_MASK;
             cpu->cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
 
+            unimplemented(cpu->cp0.status.re, "Reverse endian bit set in CP0");
+            unimplemented(cpu->cp0.status.kx, "KX bit set in CP0 - 64 bit addressing in kernel mode enabled");
+            unimplemented(cpu->cp0.status.sx, "SX bit set in CP0 - 64 bit addressing in supervisor mode enabled");
+            unimplemented(cpu->cp0.status.ux, "UX bit set in CP0 - 64 bit addressing in user mode enabled");
+            unimplemented(cpu->cp0.status.ksu, "KSU != 0, leaving kernel mode!");
+
             if (oldstatus.fr != cpu->cp0.status.fr) {
                 on_change_fr(cpu, oldstatus);
             }
