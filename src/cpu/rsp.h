@@ -180,7 +180,7 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
         case RSP_CP0_DMA_CACHE: return system->rsp.io.mem_addr.raw;
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
         case RSP_CP0_DMA_DRAM:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_DRAM", r);
+            return system->rsp.io.dram_addr.raw;
         case RSP_CP0_DMA_READ_LENGTH:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r);
         case RSP_CP0_DMA_WRITE_LENGTH:
@@ -195,7 +195,8 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
         case RSP_CP0_CMD_CURRENT: return system->dpc.current;
         case RSP_CP0_CMD_STATUS:  return system->dpc.status.raw;
         case RSP_CP0_CMD_CLOCK:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);
+            logwarn("Read from RDP clock: returning 0.");
+            return 0;
         case RSP_CP0_CMD_BUSY:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
         case RSP_CP0_CMD_PIPE_BUSY:

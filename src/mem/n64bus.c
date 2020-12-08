@@ -910,7 +910,8 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
         case REGION_CART_1_1:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
         case REGION_CART_2_2:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+            return;
         case REGION_CART_1_2:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
         case REGION_PIF_BOOT:
