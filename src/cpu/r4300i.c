@@ -136,8 +136,12 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) 
             return mips_cfc1;
         case COP_MF:
             return mips_mfc1;
+        case COP_DMF:
+            return mips_dmfc1;
         case COP_MT:
             return mips_mtc1;
+        case COP_DMT:
+            return mips_dmtc1;
         case COP_CT:
             return mips_ctc1;
         case COP_BC:

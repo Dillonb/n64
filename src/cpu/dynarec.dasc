@@ -1352,6 +1352,19 @@ COMPILER(compile_mips_mfc1) {
    return NORMAL;
 }
 
+COMPILER(compile_mips_dmfc1) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling compile_mips_dmfc1\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_dmfc1;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
 COMPILER(compile_mips_mtc1) {
 #ifdef N64_LOG_COMPILATIONS
    printf("Compiling compile_mips_mtc1\n");
@@ -1363,6 +1376,19 @@ COMPILER(compile_mips_mtc1) {
    | call rax
    | postcall 2
    return NORMAL;
+}
+
+COMPILER(compile_mips_dmtc1) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling compile_mips_dmtc1\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_dmtc1;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
 }
 
 COMPILER(compile_mips_ctc1) {
@@ -1981,8 +2007,12 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
             return compile_mips_cfc1(Dst, instr, address);
         case COP_MF:
             return compile_mips_mfc1(Dst, instr, address);
+        case COP_DMF:
+            return compile_mips_dmfc1(Dst, instr, address);
         case COP_MT:
             return compile_mips_mtc1(Dst, instr, address);
+        case COP_DMT:
+            return compile_mips_dmtc1(Dst, instr, address);
         case COP_CT:
             return compile_mips_ctc1(Dst, instr, address);
         case COP_BC:

@@ -39,7 +39,9 @@ MIPS_INSTR(mips_sltiu);
 MIPS_INSTR(mips_mfc0);
 MIPS_INSTR(mips_mtc0);
 MIPS_INSTR(mips_mfc1);
+MIPS_INSTR(mips_dmfc1);
 MIPS_INSTR(mips_mtc1);
+MIPS_INSTR(mips_dmtc1);
 
 MIPS_INSTR(mips_eret);
 

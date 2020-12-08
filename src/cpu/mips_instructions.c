@@ -195,10 +195,22 @@ MIPS_INSTR(mips_mfc1) {
     set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
+MIPS_INSTR(mips_dmfc1) {
+    checkcp1;
+    dword value = get_fpu_register_dword(cpu, instruction.fr.fs);
+    set_register(cpu, instruction.r.rt, value);
+}
+
 MIPS_INSTR(mips_mtc1) {
     checkcp1;
     word value = get_register(cpu, instruction.r.rt);
     set_fpu_register_word(cpu, instruction.r.rd, value);
+}
+
+MIPS_INSTR(mips_dmtc1) {
+    checkcp1;
+    dword value = get_register(cpu, instruction.r.rt);
+    set_fpu_register_dword(cpu, instruction.r.rd, value);
 }
 
 MIPS_INSTR(mips_eret) {

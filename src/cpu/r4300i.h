@@ -87,8 +87,10 @@
 
 // Coprocessor
 #define COP_MF    0b00000
+#define COP_DMF   0b00001
 #define COP_CF    0b00010
 #define COP_MT    0b00100
+#define COP_DMT   0b00101
 #define COP_CT    0b00110
 #define COP_BC    0b01000
 
