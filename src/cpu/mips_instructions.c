@@ -28,7 +28,8 @@ void check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
 }
 
 INLINE void link(r4300i_t* cpu) {
-    set_register(cpu, R4300I_REG_LR, cpu->pc + 4); // Skips the instruction in the delay slot on return
+    sword pc = cpu->pc + 4;
+    set_register(cpu, R4300I_REG_LR, (sdword)pc); // Skips the instruction in the delay slot on return
 }
 
 INLINE void branch_abs(r4300i_t* cpu, word address) {
