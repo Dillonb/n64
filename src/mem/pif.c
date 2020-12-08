@@ -48,7 +48,7 @@ void pif_rom_execute_hle(n64_system_t* system) {
     system->cpu.cp0.count         = 0;
     system->cpu.cp0.entry_hi.raw  = 0;
     system->cpu.cp0.compare       = 0;
-    system->cpu.cp0.status.raw    = 0x70400004;
+    system->cpu.cp0.status.raw    = 0x34000000;
     system->cpu.cp0.cause.raw     = 0;
     system->cpu.cp0.EPC           = 0;
     system->cpu.cp0.PRId          = 0x00000B00;

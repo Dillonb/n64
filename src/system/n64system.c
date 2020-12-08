@@ -164,8 +164,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
         system->rsp.icache[i].handler = cache_rsp_instruction;
     }
 
-    system->cpu.cp0.status.fr = 1;
-
     system->rsp.status.halt = true; // RSP starts halted
 
     system->vi.vi_v_intr = 256;
