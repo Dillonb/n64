@@ -16,10 +16,6 @@ INLINE dword get_register(r4300i_t* cpu, byte r) {
     return value;
 }
 
-INLINE void on_change_fr(r4300i_t* cpu, cp0_status_t oldstatus) {
-    //logfatal("FR changed from %d to %d!", oldstatus.fr, cpu->cp0.status.fr);
-}
-
 INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
@@ -49,8 +45,6 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.compare = value;
             break;
         case R4300I_CP0_REG_STATUS: {
-            cp0_status_t oldstatus = cpu->cp0.status;
-
             cpu->cp0.status.raw &= value & ~CP0_STATUS_WRITE_MASK;
             cpu->cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
 
@@ -59,10 +53,6 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             unimplemented(cpu->cp0.status.sx, "SX bit set in CP0 - 64 bit addressing in supervisor mode enabled");
             unimplemented(cpu->cp0.status.ux, "UX bit set in CP0 - 64 bit addressing in user mode enabled");
             unimplemented(cpu->cp0.status.ksu, "KSU != 0, leaving kernel mode!");
-
-            if (oldstatus.fr != cpu->cp0.status.fr) {
-                on_change_fr(cpu, oldstatus);
-            }
 
             loginfo("    CP0 status: ie:  %d", cpu->cp0.status.ie);
             loginfo("    CP0 status: exl: %d", cpu->cp0.status.exl);
