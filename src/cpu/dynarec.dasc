@@ -1768,6 +1768,32 @@ COMPILER(compile_mips_cp_sqrt_s) {
    return NORMAL;
 }
 
+COMPILER(compile_mips_cp_abs_d) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling compile_mips_cp_abs_d\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_cp_abs_d;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
+COMPILER(compile_mips_cp_abs_s) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling compile_mips_cp_abs_s\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_cp_abs_s;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2
+    return NORMAL;
+}
+
 COMPILER(compile_mips_cp_mov_d) {
 #ifdef N64_LOG_COMPILATIONS
    printf("Compiling compile_mips_cp_mov_d\n");
@@ -2134,6 +2160,16 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
                     return compile_mips_cp_sqrt_d(Dst, instr, address);
                 case FP_FMT_SINGLE:
                     return compile_mips_cp_sqrt_s(Dst, instr, address);
+                default:
+                    logfatal("Undefined!");
+            }
+
+        case COP_FUNCT_ABS:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return compile_mips_cp_abs_d(Dst, instr, address);
+                case FP_FMT_SINGLE:
+                    return compile_mips_cp_abs_s(Dst, instr, address);
                 default:
                     logfatal("Undefined!");
             }

@@ -107,6 +107,7 @@
 #define COP_FUNCT_TLBWI_MULT 0b000010
 #define COP_FUNCT_DIV        0b000011
 #define COP_FUNCT_SQRT       0b000100
+#define COP_FUNCT_ABS        0b000101
 #define COP_FUNCT_MOV        0b000110
 #define COP_FUNCT_TLBP       0b001000
 #define COP_FUNCT_TRUNC_L    0b001001

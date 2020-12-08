@@ -456,6 +456,24 @@ MIPS_INSTR(mips_cp_sqrt_d) {
     set_fpu_register_double(cpu, instruction.fr.fd, root);
 }
 
+MIPS_INSTR(mips_cp_abs_s) {
+    checkcp1;
+    float fs = get_fpu_register_float(cpu, instruction.fr.fs);
+    if (fs < 0) {
+        fs = -fs;
+    }
+    set_fpu_register_float(cpu, instruction.fr.fd, fs);
+}
+
+MIPS_INSTR(mips_cp_abs_d) {
+    checkcp1;
+    double fs = get_fpu_register_double(cpu, instruction.fr.fs);
+    if (fs < 0) {
+        fs = -fs;
+    }
+    set_fpu_register_double(cpu, instruction.fr.fd, fs);
+}
+
 MIPS_INSTR(mips_cp_c_f_s) {
     checkcp1;
     /*

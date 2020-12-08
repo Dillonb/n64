@@ -267,6 +267,17 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) 
                     logfatal("Undefined!");
             }
 
+        case COP_FUNCT_ABS:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_abs_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_abs_s;
+                default:
+                    logfatal("Undefined!");
+            }
+
+
         case COP_FUNCT_MOV:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
