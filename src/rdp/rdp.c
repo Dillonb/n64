@@ -1,11 +1,14 @@
 #include "rdp.h"
 
+#ifndef N64_WIN
 #include <dlfcn.h>
+#endif
 #ifdef N64_MACOS
 #include <limits.h>
 #else
+#ifndef N64_WIN
 #include <linux/limits.h>
-
+#endif
 #endif
 #include <stdbool.h>
 
@@ -32,11 +35,12 @@ void rdp_rendering_callback(int redrawn) {
 #define ADDR_DPC_PIPEBUSY_REG 0x04100018
 #define ADDR_DPC_TMEM_REG     0x0410001C
 
-
+#ifndef N64_WIN
 #define LOAD_SYM(var, name) do { \
     var = dlsym(plugin_handle, name); \
         if (var == NULL) { logfatal("Failed to load RDP plugin! Missing symbol: %s", name); } \
     } while(false)
+#endif
 
 void rdp_check_interrupts() {
     on_interrupt_change(mupen_interface_global_system);
@@ -86,6 +90,7 @@ GFX_INFO get_gfx_info(n64_system_t* system) {
 }
 
 void load_rdp_plugin(n64_system_t* system, const char* filename) {
+#ifndef N64_WIN
     char path[PATH_MAX] = "";
     if (filename[0] == '.' || filename[0] == '/') {
         snprintf(path, sizeof(path), "%s", filename);
@@ -143,6 +148,9 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
     // TODO: check plugin version, API version, etc for compatibility
 
     printf("Loaded RDP plugin %s\n", plugin_name);
+#else
+    logfatal("Loading RDP plugins from shared libraries is unsupported on Windows.");
+#endif
 }
 
 void write_word_dpcreg(n64_system_t* system, word address, word value) {

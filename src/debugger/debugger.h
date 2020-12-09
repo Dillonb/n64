@@ -1,7 +1,9 @@
 #ifndef N64_DEBUGGER_H
 #define N64_DEBUGGER_H
 
+#ifndef N64_WIN
 #include <gdbstub.h>
+#endif
 #include <system/n64system.h>
 
 #define GDB_CPU_PORT 1337

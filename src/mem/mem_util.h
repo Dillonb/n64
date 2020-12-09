@@ -6,6 +6,7 @@
 #ifdef _MSC_VER
 
 #include <stdlib.h>
+#define bswap_16(x) ((((x) & 0xff) << 8) | ((x) >> 8))
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
 

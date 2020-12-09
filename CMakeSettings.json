@@ -1,0 +1,290 @@
+﻿{
+  "environments": [
+    {
+      "BuildPath": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build",
+      "InstallPath": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install",
+      "clangcl": "clang-cl.exe"
+    },
+    {
+      "name": "clang_test",
+      "namespace": "cl",
+      "inheritEnvironments": [ "clang_cl_x64" ],
+      "cc": "clang",
+      "cxx": "clang++"
+    }
+  ],
+  "configurations": [
+    {
+      "name": "x64-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${env.BuildPath}\\${name}",
+      "installRoot": "${env.InstallPath}\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "CMAKE_CXX_STANDARD",
+          "value": "17",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_FLAGS",
+          "value": "-std:c++17",
+          "type": "STRING"
+        },
+        {
+          "name": "_Z_",
+          "value": "True",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
+      "name": "clang-debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "clang_test" ],
+      "buildCommandArgs": "-v",
+      "variables": [
+        {
+          "name": "CMAKE_CXX_STANDARD",
+          "value": "17",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_FLAGS",
+          "value": "-std=c++20",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "${cl.cc}",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "${cl.cxx}",
+          "type": "STRING"
+        },
+        {
+          "name": "USE_PCH",
+          "value": "OFF",
+          "type": "BOOL"
+        }
+      ],
+      "intelliSenseMode": "windows-clang-x64",
+      "cmakeCommandArgs": ""
+    },
+    {
+      "name": "win-x64-Clang-Debug",
+      "generator": "Ninja",
+      "description": "TemplateDescription_Localize_x64Release",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${env.BuildPath}\\${name}",
+      "installRoot": "${env.InstallPath}\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "CMAKE_CXX_STANDARD",
+          "value": "17",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        }
+      ],
+      "intelliSenseMode": "windows-clang-x64",
+      "cmakeToolchain": "C:/Users/dillo/Documents/GitHub/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    },
+    {
+      "name": "win-x64-Clang-RelWithDebInfo",
+      "generator": "Ninja",
+      "description": "TemplateDescription_Localize_x64Release",
+      "configurationType": "RelWithDebInfo",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${env.BuildPath}\\${name}",
+      "installRoot": "${env.InstallPath}\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "CMAKE_CXX_STANDARD",
+          "value": "17",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_FLAGS",
+          "value": "-std=c++17",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        }
+      ],
+      "clangTidyChecks": "",
+      "intelliSenseMode": "windows-clang-x64"
+    },
+    {
+      "name": "win-x64-Clang-RelDbgProfile",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${env.BuildPath}\\${name}",
+      "installRoot": "${env.InstallPath}\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "_PROFILE_",
+          "value": "On",
+          "type": "STRING"
+        }
+      ],
+      "intelliSenseMode": "windows-clang-x64"
+    },
+    {
+      "name": "win-x64-Clang-DebugProf",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "buildRoot": "${env.BuildPath}\\${name}",
+      "installRoot": "${env.InstallPath}\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "_PROFILE_",
+          "value": "On",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "name": "win-x64-Clang-Debug-Z",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "buildRoot": "${env.BuildPath}\\${name}",
+      "installRoot": "${env.InstallPath}\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "clang_cl_x64" ],
+      "variables": [
+        {
+          "name": "CMAKE_CXX_STANDARD",
+          "value": "17",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "_PROFILE_",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "_NO_GNM_",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "_Z_",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "SDL2_PATH",
+          "value": "c:/dev/libs/SDL",
+          "type": "STRING"
+        }
+      ],
+      "intelliSenseMode": "windows-msvc-x64",
+      "cmakeToolchain": ""
+    },
+    {
+      "name": "win-x64-Clang-RelDbg-Z",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${env.BuildPath}\\${name}",
+      "installRoot": "${env.InstallPath}\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "clang_cl_x64" ],
+      "variables": [
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "${env.clangcl}",
+          "type": "STRING"
+        },
+        {
+          "name": "_PROFILE_",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "_Z_",
+          "value": "True",
+          "type": "BOOL"
+        }
+      ],
+      "intelliSenseMode": "windows-msvc-x64"
+    }
+  ]
+}

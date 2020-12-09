@@ -1,6 +1,6 @@
+#ifndef N64_WIN
 #include "debugger.h"
 #include <mem/n64bus.h>
-
 #define GDBSTUB_IMPLEMENTATION
 #include <gdbstub.h>
 
@@ -255,3 +255,4 @@ void debugger_cleanup(n64_system_t* system) {
         gdbstub_term(system->debugger_state.gdb);
     }
 }
+#endif
