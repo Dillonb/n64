@@ -1,20 +1,32 @@
 #include <SDL_audio.h>
+#ifndef N64_WIN
 #include <pthread.h>
+#endif
 #include "audio.h"
 
 #define AUDIO_SAMPLE_RATE 48000
 static SDL_AudioStream* audio_stream = NULL;
+#ifndef N64_WIN
 static pthread_mutex_t audio_stream_mutex;
+#endif
 SDL_AudioSpec audio_spec;
 SDL_AudioSpec request;
 SDL_AudioDeviceID audio_dev;
 
 INLINE void acquire_audiostream_mutex() {
+#ifndef N64_WIN
     pthread_mutex_lock(&audio_stream_mutex);
+#else
+    logwarn("TODO: implement mutexes in Windows");
+#endif
 }
 
 INLINE void release_audiostream_mutex() {
+#ifndef N64_WIN
     pthread_mutex_unlock(&audio_stream_mutex);
+#else
+    logwarn("TODO: implement mutexes in Windows");
+#endif
 }
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
@@ -59,9 +71,13 @@ void audio_init(n64_system_t* system) {
 
     SDL_PauseAudioDevice(audio_dev, false);
 
+#ifndef N64_WIN
     if (pthread_mutex_init(&audio_stream_mutex, NULL) != 0) {
         logfatal("Unable to initialize mutex");
     }
+#else
+    logwarn("TODO: implement mutexes in Windows");
+#endif
 }
 
 void adjust_audio_sample_rate(int sample_rate) {

@@ -23,7 +23,7 @@ typedef struct m64_movie_controller_flags {
     unsigned:20;
 } m64_movie_controller_flags_t;
 
-static_assert(sizeof(m64_movie_controller_flags_t) == 4, "Incorrect size!");
+//static_assert(sizeof(m64_movie_controller_flags_t) == 4, "Incorrect size!");
 
 typedef struct m64_movie_header {
     byte signature[4];
@@ -88,10 +88,10 @@ typedef union tas_movie_controller_data {
     word raw;
 } __attribute__((__packed__)) tas_movie_controller_data_t;
 
-static_assert(sizeof(tas_movie_controller_data_t) == 4, "Incorrect size for tas_movie_controller_data_t!");
+//static_assert(sizeof(tas_movie_controller_data_t) == 4, "Incorrect size for tas_movie_controller_data_t!");
 
 
-static_assert(sizeof(m64_movie_header_t) == 1024, "Incorrect size!");
+//static_assert(sizeof(m64_movie_header_t) == 1024, "Incorrect size!");
 
 static byte* loaded_tas_movie = NULL;
 static size_t loaded_tas_movie_size = 0;

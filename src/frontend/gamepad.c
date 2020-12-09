@@ -120,7 +120,7 @@ void update_right_joyaxis(n64_system_t* system, byte axis, shalf value) {
         double adjusted_joyy = (double)right_joyy / -32768; // y axis is reversed from what you'd expect, so flip it back with this division
 
         // what direction are we pointing?
-        double degrees = atan2(adjusted_joyy, adjusted_joyx) * 180 / M_PI;
+        double degrees = atan2(adjusted_joyy, adjusted_joyx) * 180 / 3.141592;
 
         // atan2 returns negative numbers for values > 180
         if (degrees < 0) {

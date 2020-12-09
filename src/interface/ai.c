@@ -3,7 +3,7 @@
 #include <frontend/audio.h>
 #include <mem/n64bus.h>
 
-INLINE int max(int x, int y) {
+INLINE int inline_max(int x, int y) {
     if (x > y) return x;
     return y;
 }
@@ -32,7 +32,7 @@ void write_word_aireg(n64_system_t* system, word address, word value) {
         case ADDR_AI_DACRATE_REG: {
             word old_dac_frequency = system->ai.dac.frequency;
             system->ai.dac_rate = value & 0b11111111111111;
-            system->ai.dac.frequency = max(1, CPU_HERTZ / 2 / (system->ai.dac_rate + 1)) * 1.037;
+            system->ai.dac.frequency = inline_max(1, CPU_HERTZ / 2 / (system->ai.dac_rate + 1)) * 1.037;
             system->ai.dac.period = CPU_HERTZ / system->ai.dac.frequency;
             if (old_dac_frequency != system->ai.dac.frequency) {
                 adjust_audio_sample_rate(system->ai.dac.frequency);

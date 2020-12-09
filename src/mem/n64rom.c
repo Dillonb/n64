@@ -2,7 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <log.h>
+#ifndef N64_WIN
 #include <zlib.h>
+#endif
 #include "n64rom.h"
 #include "mem_util.h"
 
@@ -23,7 +25,7 @@ void byteswap(byte* rom, size_t rom_size) {
             for (int i = 0; i < rom_size / 4; i++) {
                 word w;
                 memcpy(&w, rom + (i * 4), 4);
-                word swapped = __bswap_32(w);
+                word swapped = bswap_32(w);
                 memcpy(rom + (i * 4), &swapped, 4);
             }
             loginfo("This is a .n64 file, byte swapping it!");
@@ -75,7 +77,12 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
 
     rom->header.program_counter = be32toh(rom->header.program_counter);
 
+#ifdef N64_WIN
+    logwarn("TODO: crc32 in windows! Won't be able to use CIC type.");
+    word checksum = 0;
+#else
     word checksum = crc32(0, &rom->rom[0x40], 0x9c0);
+#endif
 
     switch (checksum) {
         case 0x1DEB51A9:

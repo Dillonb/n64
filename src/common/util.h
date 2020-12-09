@@ -1,12 +1,14 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 #include <stdint.h>
+
 #ifdef N64_WIN
 #include <Windows.h>
+#undef min
+#undef max
 #else
 #define byte uint8_t
 #endif
-
 #define half uint16_t
 #define word uint32_t
 #define dword uint64_t

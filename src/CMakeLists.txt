@@ -26,7 +26,10 @@ add_library(core
         frontend/audio.c frontend/audio.h
         frontend/gamepad.c frontend/gamepad.h)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} z)
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY})
+if (NOT WIN32)
+target_link_libraries(core z)
+endif()
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core)

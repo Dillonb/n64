@@ -1,7 +1,9 @@
 #include "n64system.h"
 
 #include <string.h>
+#ifndef N64_WIN
 #include <unistd.h>
+#endif
 
 #include <mem/n64bus.h>
 #include <frontend/render.h>
@@ -10,7 +12,9 @@
 #include <mem/n64_rsp_bus.h>
 #include <cpu/rsp.h>
 #include <cpu/dynarec.h>
+#ifndef N64_WIN
 #include <sys/mman.h>
+#endif
 #include <errno.h>
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
@@ -33,9 +37,17 @@ n64_system_t* global_system;
 
 #define selected_n64_system_step jit_system_step
 
+// Always use interpreter in Windows, for now
+#ifdef N64_WIN
+#undef selected_n64_system_step
+#define selected_n64_system_step interpreter_system_step
+#endif
+
 // 128MiB codecache
+#ifndef N64_WIN
 #define CODECACHE_SIZE (1 << 27)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
+#endif
 
 word read_rsp_word_wrapper(word address) {
     return n64_rsp_read_word(global_system, address);
@@ -114,9 +126,13 @@ void virtual_write_byte_wrapper(word address, byte value) {
 }
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type) {
-    // align to page boundary
     n64_system_t* system;
+#ifndef N64_WIN
+    // align to page boundary
     posix_memalign((void **) &system, sysconf(_SC_PAGESIZE), sizeof(n64_system_t));
+#else
+    system = malloc(sizeof(n64_system_t));
+#endif
 
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
@@ -180,23 +196,28 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->si.controllers[2].plugged_in = false;
     system->si.controllers[3].plugged_in = false;
 
+#ifndef N64_WIN
     if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
         printf("Page size: %ld\n", sysconf(_SC_PAGESIZE));
         logfatal("mprotect codecache failed! %s", strerror(errno));
     }
     system->dynarec = n64_dynarec_init(system, codecache, CODECACHE_SIZE);
+#endif
 
     global_system = system;
     if (enable_frontend) {
         render_init(system, video_type);
     }
+#ifndef N64_WIN
     system->debugger_state.enabled = enable_debug;
     if (enable_debug) {
         debugger_init(system);
     }
+#endif
     return system;
 }
 
+#ifndef N64_WIN
 INLINE int jit_system_step(n64_system_t* system) {
     r4300i_t* cpu = &system->cpu;
     cpu->cp0.count += CYCLES_PER_INSTR;
@@ -235,9 +256,11 @@ INLINE int jit_system_step(n64_system_t* system) {
 
     return taken;
 }
+#endif
 
 INLINE int interpreter_system_step(n64_system_t* system) {
 #ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
     if (system->debugger_state.enabled && check_breakpoint(&system->debugger_state, system->cpu.pc)) {
         debugger_breakpoint_hit(system);
     }
@@ -245,6 +268,7 @@ INLINE int interpreter_system_step(n64_system_t* system) {
         usleep(1000);
         debugger_tick(system);
     }
+#endif
 #endif
     int taken = CYCLES_PER_INSTR;
     r4300i_step(&system->cpu);
@@ -284,7 +308,11 @@ void n64_system_loop(n64_system_t* system) {
             check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
                 cycles += selected_n64_system_step(system);
+#ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
                 system->debugger_state.steps = 0;
+#endif
+#endif
             }
             cycles -= SHORTLINE_CYCLES;
             ai_step(system, SHORTLINE_CYCLES);
@@ -294,7 +322,11 @@ void n64_system_loop(n64_system_t* system) {
             check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
                 cycles += selected_n64_system_step(system);
+#ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
                 system->debugger_state.steps = 0;
+#endif
+#endif
             }
             cycles -= LONGLINE_CYCLES;
             ai_step(system, LONGLINE_CYCLES);
@@ -302,16 +334,22 @@ void n64_system_loop(n64_system_t* system) {
         check_vi_interrupt(system);
         check_vsync(system);
 #ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
         if (system->debugger_state.enabled) {
             debugger_tick(system);
         }
+#endif
 #endif
     }
 }
 
 void n64_system_cleanup(n64_system_t* system) {
     rdp_cleanup();
+#ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
     debugger_cleanup(system);
+#endif
+#endif
 
     free(system->mem.rom.rom);
     system->mem.rom.rom = NULL;

@@ -2,7 +2,9 @@
 
 #include <dynasm/dasm_proto.h>
 #include <dynasm/dasm_x86.h>
+#ifndef N64_WIN
 #include <sys/mman.h>
+#endif
 
 #include <mem/n64bus.h>
 #include "mips_instructions.h"

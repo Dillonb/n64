@@ -345,7 +345,7 @@ typedef union watch_lo {
     };
 } watch_lo_t;
 
-static_assert(sizeof(watch_lo_t) == 4, "watch_lo_t wrong size!");
+//static_assert(sizeof(watch_lo_t) == 4, "watch_lo_t wrong size!");
 
 typedef struct cp0 {
     word index;
@@ -424,7 +424,7 @@ typedef union fgr {
     } __attribute__((packed));
 } fgr_t;
 
-static_assert(sizeof(fgr_t) == sizeof(dword), "fgr_t must be 64 bits");
+static_assert(sizeof(fgr_t) == 8, "fgr_t must be 64 bits");
 
 typedef struct r4300i {
     dword gpr[32];

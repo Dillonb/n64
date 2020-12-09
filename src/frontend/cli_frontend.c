@@ -58,10 +58,14 @@ int main(int argc, char** argv) {
         load_pif_rom(system, pif_rom_path);
     }
     pif_rom_execute(system);
+#ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
     if (debug) {
         printf("Listening on 0.0.0.0:%d - Waiting for GDB to connect...\n", GDB_CPU_PORT);
         system->debugger_state.broken = true;
     }
+#endif
+#endif
     n64_system_loop(system);
     n64_system_cleanup(system);
 }

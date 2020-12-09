@@ -20,4 +20,6 @@ target_compile_definitions(parallel_rdp_wrapper PUBLIC GRANITE_VULKAN_MT)
 
 target_link_libraries(rdp parallel_rdp_wrapper)
 
+if (NOT WIN32)
 target_link_libraries(rdp dl)
+endif()
