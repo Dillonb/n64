@@ -374,6 +374,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t ins
         case FUNCT_MFLO:   return mips_spc_mflo;
         case FUNCT_MTLO:   return mips_spc_mtlo;
         case FUNCT_DSLLV:  return mips_spc_dsllv;
+        case FUNCT_DSRLV:  return mips_spc_dsrlv;
         case FUNCT_MULT:   return mips_spc_mult;
         case FUNCT_MULTU:  return mips_spc_multu;
         case FUNCT_DIV:    return mips_spc_div;

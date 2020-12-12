@@ -937,6 +937,19 @@ COMPILER(compile_mips_spc_dsllv) {
     return NORMAL;
 }
 
+COMPILER(compile_mips_spc_dsrlv) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_dsrlv\n");
+#endif
+    uintptr_t handler = (uintptr_t)mips_spc_dsrlv;
+    | prepcall2 cpuState, instr
+    // x86 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 2;
+    return NORMAL;
+}
+
 COMPILER(compile_mips_spc_mult) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Compiling mips_spc_mult\n");
@@ -1974,6 +1987,7 @@ INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** D
         case FUNCT_MFLO:   return compile_mips_spc_mflo(Dst, instr, address);
         case FUNCT_MTLO:   return compile_mips_spc_mtlo(Dst, instr, address);
         case FUNCT_DSLLV:  return compile_mips_spc_dsllv(Dst, instr, address);
+        case FUNCT_DSRLV:  return compile_mips_spc_dsrlv(Dst, instr, address);
         case FUNCT_MULT:   return compile_mips_spc_mult(Dst, instr, address);
         case FUNCT_MULTU:  return compile_mips_spc_multu(Dst, instr, address);
         case FUNCT_DIV:    return compile_mips_spc_div(Dst, instr, address);

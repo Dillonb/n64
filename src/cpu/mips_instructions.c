@@ -1059,6 +1059,12 @@ MIPS_INSTR(mips_spc_dsllv) {
     set_register(cpu, instruction.r.rd, val);
 }
 
+MIPS_INSTR(mips_spc_dsrlv) {
+    dword val = get_register(cpu, instruction.r.rt);
+    val >>= (get_register(cpu, instruction.r.rs) & 0b111111);
+    set_register(cpu, instruction.r.rd, val);
+}
+
 MIPS_INSTR(mips_spc_mult) {
     sword multiplicand_1 = get_register(cpu, instruction.r.rs);
     sword multiplicand_2 = get_register(cpu, instruction.r.rt);
