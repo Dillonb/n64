@@ -22,8 +22,10 @@ int main(int argc, char** argv) {
     snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port %d for gdb.", GDB_CPU_PORT);
     cflags_add_bool(flags, 'd', "debug", &debug, description);
 
+#ifndef N64_WIN
     const char* rdp_plugin_path = NULL;
     cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible)");
+#endif
 
     const char* tas_movie_path = NULL;
     cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
@@ -44,13 +46,17 @@ int main(int argc, char** argv) {
     }
 #endif
     n64_system_t* system;
+#ifndef N64_WIN
     if (rdp_plugin_path != NULL) {
         system = init_n64system(flags->argv[0], true, debug, OPENGL);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
+#endif
         system = init_n64system(flags->argv[0], true, debug, VULKAN);
         load_parallel_rdp(system);
+#ifndef N64_WIN
     }
+#endif
     if (tas_movie_path != NULL) {
         load_tas_movie(tas_movie_path);
     }
