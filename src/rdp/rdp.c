@@ -259,15 +259,15 @@ void rdp_status_reg_write(n64_system_t* system, word value) {
     if (status_write.set_flush) system->dpc.status.flush = true;
 
     if (status_write.clear_tmem_ctr) {
-        logwarn("Clear tmem ctr - deferring to RDP plugin");
+        //logwarn("Clear tmem ctr - deferring to RDP plugin");
     }
     if (status_write.clear_pipe_ctr) {
-        logwarn("Clear pipe ctr - deferring to RDP plugin");
+        //logwarn("Clear pipe ctr - deferring to RDP plugin");
     }
     if (status_write.clear_cmd_ctr) {
-        logwarn("Clear cmd ctr - deferring to RDP plugin");
+        //logwarn("Clear cmd ctr - deferring to RDP plugin");
     }
     if (status_write.clear_clock_ctr) {
-        logwarn("Clear clock ctr - deferring to RDP plugin");
+        //logwarn("Clear clock ctr - deferring to RDP plugin");
     }
 }
