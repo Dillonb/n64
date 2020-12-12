@@ -21,6 +21,13 @@ if (MACOS)
 elseif(WIN32)
     message("Building on Windows")
     ADD_COMPILE_DEFINITIONS(N64_WIN NOMINMAX)
+
+    if (MSVC)
+        ADD_COMPILE_OPTIONS(/EHa)
+    else()
+        ADD_COMPILE_OPTIONS(-fexceptions)
+    endif()
+
     set(SDL2_PATH "${_VCPKG_ROOT_DIR}\\packages\\sdl2_x64-windows")
 else()
     message("Building on Linux or other unix")
