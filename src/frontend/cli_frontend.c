@@ -68,4 +68,5 @@ int main(int argc, char** argv) {
 #endif
     n64_system_loop(system);
     n64_system_cleanup(system);
+    return 0;
 }
