@@ -6,7 +6,7 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOS TRUE)
 endif()
 
-ADD_COMPILE_OPTIONS(-Wall -mssse3 -msse4.1)
+ADD_COMPILE_OPTIONS(-mssse3 -msse4.1)
 #ADD_COMPILE_OPTIONS(-DVULKAN_DEBUG)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DN64_DEBUG_MODE")
@@ -21,7 +21,7 @@ if (MACOS)
 elseif(WIN32)
     message("Building on Windows")
     ADD_COMPILE_DEFINITIONS(N64_WIN NOMINMAX)
-    set(SDL2_PATH "${_VCPKG_ROOT_DIR}\\packages\\sdl2_x86-windows")
+    set(SDL2_PATH "${_VCPKG_ROOT_DIR}\\packages\\sdl2_x64-windows")
 else()
     message("Building on Linux or other unix")
     ADD_LINK_OPTIONS(-export-dynamic) # TODO this works on GCC, need to figure out something for clang on Linux
