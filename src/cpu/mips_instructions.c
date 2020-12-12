@@ -1125,6 +1125,19 @@ MIPS_INSTR(mips_spc_divu) {
     cpu->mult_hi = remainder;
 }
 
+MIPS_INSTR(mips_spc_dmult) {
+    __int128_t multiplicand_1 = get_register(cpu, instruction.r.rs) & 0xFFFFFFFFFFFFFFFF;
+    __int128_t multiplicand_2 = get_register(cpu, instruction.r.rt) & 0xFFFFFFFFFFFFFFFF;
+
+    __int128_t result = multiplicand_1 * multiplicand_2;
+
+    sdword result_lower = result         & 0xFFFFFFFFFFFFFFFF;
+    sdword result_upper = (result >> 64) & 0xFFFFFFFFFFFFFFFF;
+
+    cpu->mult_lo = result_lower;
+    cpu->mult_hi = result_upper;
+}
+
 MIPS_INSTR(mips_spc_dmultu) {
     __uint128_t multiplicand_1 = get_register(cpu, instruction.r.rs) & 0xFFFFFFFFFFFFFFFF;
     __uint128_t multiplicand_2 = get_register(cpu, instruction.r.rt) & 0xFFFFFFFFFFFFFFFF;
@@ -1279,6 +1292,12 @@ MIPS_INSTR(mips_spc_dsrl) {
     set_register(cpu, instruction.r.rd, value);
 }
 
+MIPS_INSTR(mips_spc_dsra) {
+    sdword value = get_register(cpu, instruction.r.rt);
+    value >>= instruction.r.sa;
+    set_register(cpu, instruction.r.rd, value);
+}
+
 MIPS_INSTR(mips_spc_dsll32) {
     dword value = get_register(cpu, instruction.r.rt);
     value <<= (instruction.r.sa + 32);
@@ -1315,6 +1334,12 @@ MIPS_INSTR(mips_ri_bgez) {
 MIPS_INSTR(mips_ri_bgezl) {
     sdword reg = get_register(cpu, instruction.i.rs);
     conditional_branch_likely(cpu, instruction.i.immediate, reg >= 0);
+}
+
+MIPS_INSTR(mips_ri_bltzal) {
+    link(cpu);
+    sdword reg = get_register(cpu, instruction.i.rs);
+    conditional_branch(cpu, instruction.i.immediate, reg < 0);
 }
 
 MIPS_INSTR(mips_ri_bgezal) {
