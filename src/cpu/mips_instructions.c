@@ -188,7 +188,7 @@ MIPS_INSTR(mips_mtc0) {
     set_cp0_register(cpu, instruction.r.rd, value);
 }
 
-#define checkcp1 do { if (!cpu->cp0.status.cu1) { r4300i_handle_exception(cpu, cpu->prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); } } while(0)
+#define checkcp1 do { if (!cpu->cp0.status.cu1) { r4300i_handle_exception(cpu, cpu->prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
 
 MIPS_INSTR(mips_mfc1) {
     checkcp1;
