@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <cflags.h>
 #include <log.h>
 #include <system/n64system.h>
@@ -56,6 +57,9 @@ int main(int argc, char** argv) {
     }
     if (pif_rom_path) {
         load_pif_rom(system, pif_rom_path);
+    } else if (access("pif.rom", F_OK) == 0) {
+        logalways("Found PIF ROM at pif.rom, loading");
+        load_pif_rom(system, "pif.rom");
     }
     pif_rom_execute(system);
     if (debug) {
