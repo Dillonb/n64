@@ -946,7 +946,7 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
 #endif
     int taken = block->run(&system->cpu);
 #ifdef N64_LOG_JIT_SYNC_POINTS
-    printf("JITSYNC %d %08X", taken, system->cpu.pc);
+    printf("JITSYNC %d %08X ", taken, system->cpu.pc);
     for (int i = 0; i < 32; i++) {
         printf("%016lX", system->cpu.gpr[i]);
         if (i != 31) {
