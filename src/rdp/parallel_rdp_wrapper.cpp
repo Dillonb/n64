@@ -1,9 +1,10 @@
+#include <rdp_device.hpp>
+#include <wsi.hpp>
+
 #include "parallel_rdp_wrapper.h"
 #include "rdp.h"
 #include <memory>
 #include <SDL_video.h>
-#include <rdp_device.hpp>
-#include <wsi.hpp>
 #include <frontend/render.h>
 #include <SDL_vulkan.h>
 #include <mem/mem_util.h>
