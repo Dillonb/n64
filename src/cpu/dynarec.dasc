@@ -9,6 +9,9 @@
 #include "disassemble.h"
 #include "tlb_instructions.h"
 
+//#define N64_LOG_JIT_SYNC_POINTS
+//#define N64_LOG_COMPILATIONS
+
 ||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
 #error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
 #endif
