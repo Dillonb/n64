@@ -2540,7 +2540,7 @@ int missing_block_handler(r4300i_t* cpu) {
     n64_dynarec_block_t* block = &block_list[inner_index];
 
 #ifdef N64_LOG_COMPILATIONS
-    printf("Compilin' new block at 0x%08X / 0x%08X\n", system->cpu.pc, physical);
+    printf("Compilin' new block at 0x%08X / 0x%08X\n", global_system->cpu.pc, physical);
 #endif
 
     compile_new_block(global_system->dynarec, cpu, block, cpu->pc, physical);
