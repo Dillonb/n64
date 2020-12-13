@@ -384,7 +384,6 @@ int run_system_and_check(n64_system_t* system, long taken, char* line, long line
         }
         if (anybad) {
             logfatal("Encountered log differences.");
-
         }
 
     }
@@ -396,6 +395,8 @@ int run_system_and_check(n64_system_t* system, long taken, char* line, long line
         cpu_steps -= cpu_steps % 3;
 
         rsp_run(system);
+    } else {
+        cpu_steps = 0;
     }
 
     return taken;

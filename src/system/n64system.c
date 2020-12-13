@@ -218,6 +218,8 @@ INLINE int jit_system_step(n64_system_t* system) {
         cpu_steps -= cpu_steps % 3;
 
         rsp_run(system);
+    } else {
+        cpu_steps = 0;
     }
 
     return taken;
