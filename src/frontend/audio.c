@@ -76,10 +76,12 @@ void adjust_audio_sample_rate(int sample_rate) {
 }
 
 void audio_push_sample(shalf left, shalf right) {
-    shalf samples[2] = {
-            left,
-            right
-    };
+    if (SDL_AudioStreamAvailable(audio_stream) < (AUDIO_SAMPLE_RATE * 2 * 1)) {
+        shalf samples[2] = {
+                left,
+                right
+        };
 
-    SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+        SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+    }
 }
