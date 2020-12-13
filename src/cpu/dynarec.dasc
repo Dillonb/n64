@@ -747,7 +747,7 @@ void pre_instruction(r4300i_t* cpu, word expected_address) {
     cpu->next_pc += 4;
 }
 
-INLINE void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
+INLINE void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
 
     dasm_State* d;
     unsigned npc = 8; // number of dynamic labels
@@ -792,8 +792,8 @@ INLINE void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec
         | postcall 2
          */
 
-        static_assert(sizeof(cpu->pc) == 4, "PC must be 32 bits for this to work (using EAX)");
-        static_assert(sizeof(cpu->next_pc) == 4, "Next PC must be 32 bits for this to work (using EAX)");
+        static_assert(sizeof(compile_time_cpu->pc) == 4, "PC must be 32 bits for this to work (using EAX)");
+        static_assert(sizeof(compile_time_cpu->next_pc) == 4, "Next PC must be 32 bits for this to work (using EAX)");
 
         // cpu->branch = false;
         | mov al, 0
