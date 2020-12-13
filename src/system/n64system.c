@@ -13,19 +13,6 @@
 #include <sys/mman.h>
 #include <errno.h>
 
-// The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
-// There are 1562500 cycles per frame.
-// Because this doesn't divide nicely by 262, we have to run some lines for 1 more cycle than others.
-// We call these the "long" lines, and the others the "short" lines.
-
-// 5963*68+5964*194 == 1562500
-
-#define NUM_SHORTLINES 68
-#define NUM_LONGLINES  194
-
-#define SHORTLINE_CYCLES 5963
-#define LONGLINE_CYCLES  5964
-
 bool should_quit = false;
 
 
@@ -270,7 +257,7 @@ void n64_system_step(n64_system_t* system) {
     }
 }
 
-INLINE void check_vsync(n64_system_t* system) {
+void check_vsync(n64_system_t* system) {
     if (system->vi.v_current == system->vi.vsync >> 1) {
         rdp_update_screen(system);
     }
