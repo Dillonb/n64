@@ -409,18 +409,22 @@ void check_jit_sync_log(n64_system_t* system, FILE* fp) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
+                cycles += run_system_check_interrupt(system);
+                if (cycles > SHORTLINE_CYCLES) {
+                    break;
+                }
                 char *line = NULL;
                 size_t len = 0;
 
                 if (getline(&line, &len, fp) == -1) {
-                    break;
+                    logalways("End of file.");
+                    exit(0);
                 }
 
                 char* tok = strtok(line, " ");
                 tok = strtok(NULL, " ");
                 long steps = strtoul(tok, NULL, 10);
 
-                cycles += run_system_check_interrupt(system);
                 cycles += run_system_and_check(system, steps, line, linenum++);
             }
             cycles -= SHORTLINE_CYCLES;
@@ -430,18 +434,22 @@ void check_jit_sync_log(n64_system_t* system, FILE* fp) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
+                cycles += run_system_check_interrupt(system);
+                if (cycles > LONGLINE_CYCLES) {
+                    break;
+                }
                 char *line = NULL;
                 size_t len = 0;
 
                 if (getline(&line, &len, fp) == -1) {
-                    break;
+                    logalways("End of file.");
+                    exit(0);
                 }
 
                 char* tok = strtok(line, " ");
                 tok = strtok(NULL, " ");
                 long steps = strtoul(tok, NULL, 10);
 
-                cycles += run_system_check_interrupt(system);
                 cycles += run_system_and_check(system, steps, line, linenum++);
             }
             cycles -= LONGLINE_CYCLES;
