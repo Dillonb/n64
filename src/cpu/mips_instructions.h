@@ -169,10 +169,12 @@ MIPS_INSTR(mips_spc_mthi);
 MIPS_INSTR(mips_spc_mflo);
 MIPS_INSTR(mips_spc_mtlo);
 MIPS_INSTR(mips_spc_dsllv);
+MIPS_INSTR(mips_spc_dsrlv);
 MIPS_INSTR(mips_spc_mult);
 MIPS_INSTR(mips_spc_multu);
 MIPS_INSTR(mips_spc_div);
 MIPS_INSTR(mips_spc_divu);
+MIPS_INSTR(mips_spc_dmult);
 MIPS_INSTR(mips_spc_dmultu);
 MIPS_INSTR(mips_spc_ddiv);
 MIPS_INSTR(mips_spc_ddivu);
@@ -191,6 +193,7 @@ MIPS_INSTR(mips_spc_daddu);
 MIPS_INSTR(mips_spc_dsubu);
 MIPS_INSTR(mips_spc_dsll);
 MIPS_INSTR(mips_spc_dsrl);
+MIPS_INSTR(mips_spc_dsra);
 MIPS_INSTR(mips_spc_dsll32);
 MIPS_INSTR(mips_spc_dsrl32);
 MIPS_INSTR(mips_spc_dsra32);
@@ -200,6 +203,7 @@ MIPS_INSTR(mips_ri_bltz);
 MIPS_INSTR(mips_ri_bltzl);
 MIPS_INSTR(mips_ri_bgez);
 MIPS_INSTR(mips_ri_bgezl);
+MIPS_INSTR(mips_ri_bltzal);
 MIPS_INSTR(mips_ri_bgezal);
 
 #endif //N64_MIPS_INSTRUCTIONS_H

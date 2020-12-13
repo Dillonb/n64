@@ -374,10 +374,12 @@ INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t ins
         case FUNCT_MFLO:   return mips_spc_mflo;
         case FUNCT_MTLO:   return mips_spc_mtlo;
         case FUNCT_DSLLV:  return mips_spc_dsllv;
+        case FUNCT_DSRLV:  return mips_spc_dsrlv;
         case FUNCT_MULT:   return mips_spc_mult;
         case FUNCT_MULTU:  return mips_spc_multu;
         case FUNCT_DIV:    return mips_spc_div;
         case FUNCT_DIVU:   return mips_spc_divu;
+        case FUNCT_DMULT:  return mips_spc_dmult;
         case FUNCT_DMULTU: return mips_spc_dmultu;
         case FUNCT_DDIV:   return mips_spc_ddiv;
         case FUNCT_DDIVU:  return mips_spc_ddivu;
@@ -396,6 +398,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t ins
         case FUNCT_DSUBU:  return mips_spc_dsubu;
         case FUNCT_DSLL:   return mips_spc_dsll;
         case FUNCT_DSRL:   return mips_spc_dsrl;
+        case FUNCT_DSRA:   return mips_spc_dsra;
         case FUNCT_DSLL32: return mips_spc_dsll32;
         case FUNCT_DSRL32: return mips_spc_dsrl32;
         case FUNCT_DSRA32: return mips_spc_dsra32;
@@ -414,6 +417,7 @@ INLINE mipsinstr_handler_t r4300i_regimm_decode(word pc, mips_instruction_t inst
         case RT_BLTZL:  return mips_ri_bltzl;
         case RT_BGEZ:   return mips_ri_bgez;
         case RT_BGEZL:  return mips_ri_bgezl;
+        case RT_BLTZAL: return mips_ri_bltzal;
         case RT_BGEZAL: return mips_ri_bgezal;
         default: {
             char buf[50];

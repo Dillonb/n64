@@ -2,6 +2,9 @@
 #include <cflags.h>
 #include <rdp/rdp.h>
 #include <cpu/rsp.h>
+#include <rdp/parallel_rdp_wrapper.h>
+#include <interface/ai.h>
+#include <interface/vi.h>
 #include "log.h"
 #include "system/n64system.h"
 #include "mem/pif.h"
@@ -308,22 +311,181 @@ void check_cpu_log(n64_system_t* system, FILE* fp) {
     }
 }
 
+void cpu_step(r4300i_t* cpu) {
+    word pc = cpu->pc;
+    mips_instruction_t instruction;
+    instruction.raw = cpu->read_word(pc);
+
+    cpu->prev_pc = cpu->pc;
+    cpu->pc = cpu->next_pc;
+    cpu->next_pc += 4;
+    cpu->branch = false;
+
+    r4300i_instruction_decode(pc, instruction)(cpu, instruction);
+    cpu->exception = false; // only used in dynarec
+}
+
+int run_system_check_interrupt(n64_system_t* system) {
+    r4300i_t* cpu = &system->cpu;
+    cpu->cp0.count += CYCLES_PER_INSTR;
+    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
+        cpu->cp0.cause.ip7 = true;
+        loginfo("Compare interrupt!");
+        r4300i_interrupt_update(cpu);
+    }
+
+    /* Commented out for now since the game never actually reads cp0.random
+    if (cpu->cp0.random <= cpu->cp0.wired) {
+        cpu->cp0.random = 31;
+    } else {
+        cpu->cp0.random--;
+    }
+     */
+
+    if (unlikely(cpu->interrupts > 0)) {
+        if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
+            cpu->cp0.cause.interrupt_pending = cpu->interrupts;
+            r4300i_handle_exception(cpu, cpu->pc, 0, cpu->interrupts);
+            cpu->cp0.count += CYCLES_PER_INSTR;
+            printf("Interrupt!\n");
+            return CYCLES_PER_INSTR;
+        }
+    }
+    return 0;
+}
+
+int run_system_and_check(n64_system_t* system, long taken, char* line, long linenum) {
+    r4300i_t* cpu = &system->cpu;
+    printf("Running for %ld cycles on line %ld\n", taken, linenum);
+
+    char* tok = strtok(NULL, " ");
+    word expected_pc = strtol(tok, NULL, 16);
+
+    static int cpu_steps = 0;
+    for (int i = 0; i < taken /*&& cpu->pc != expected_pc*/; i++) {
+        cpu_step(cpu);
+    }
+    cpu_steps += taken;
+
+    if (expected_pc != cpu->pc) {
+        logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08X\n", linenum, taken, expected_pc, cpu->pc);
+    }
+
+    logalways("Synchronized at PC=0x%08X, checking registers", cpu->pc);
+
+    for (int r = 0; r < 32; r++) {
+        tok = strtok(NULL, " ");
+        dword expected = strtoul(tok, NULL, 16);
+        dword actual = system->cpu.gpr[r];
+        bool anybad = false;
+        if (expected != actual) {
+            logalways("RIP! on line %ld, after a block of size %ld, r%d (%s) expected 0x%016lX actual 0x%016lX\n", linenum, taken, r, register_names[r], expected, actual);
+            anybad = true;
+        }
+        if (anybad) {
+            logfatal("Encountered log differences.");
+        }
+
+    }
+
+
+    if (!system->rsp.status.halt) {
+        // 2 RSP steps per 3 CPU steps
+        system->rsp.steps += (cpu_steps / 3) * 2;
+        cpu_steps -= cpu_steps % 3;
+
+        rsp_run(system);
+    } else {
+        cpu_steps = 0;
+    }
+
+    return taken;
+}
+
+void check_jit_sync_log(n64_system_t* system, FILE* fp) {
+    int cycles = 0;
+    long linenum = 0;
+    for (int frame = 0; frame < 0xFFFFFFFF; frame++) {
+        for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
+            check_vi_interrupt(system);
+            check_vsync(system);
+            while (cycles <= SHORTLINE_CYCLES) {
+                cycles += run_system_check_interrupt(system);
+                if (cycles > SHORTLINE_CYCLES) {
+                    break;
+                }
+                char *line = NULL;
+                size_t len = 0;
+
+                if (getline(&line, &len, fp) == -1) {
+                    logalways("End of file.");
+                    exit(0);
+                }
+
+                char* tok = strtok(line, " ");
+                tok = strtok(NULL, " ");
+                long steps = strtoul(tok, NULL, 10);
+
+                cycles += run_system_and_check(system, steps, line, linenum++);
+            }
+            cycles -= SHORTLINE_CYCLES;
+            ai_step(system, SHORTLINE_CYCLES);
+        }
+        for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
+            check_vi_interrupt(system);
+            check_vsync(system);
+            while (cycles <= LONGLINE_CYCLES) {
+                cycles += run_system_check_interrupt(system);
+                if (cycles > LONGLINE_CYCLES) {
+                    break;
+                }
+                char *line = NULL;
+                size_t len = 0;
+
+                if (getline(&line, &len, fp) == -1) {
+                    logalways("End of file.");
+                    exit(0);
+                }
+
+                char* tok = strtok(line, " ");
+                tok = strtok(NULL, " ");
+                long steps = strtoul(tok, NULL, 10);
+
+                cycles += run_system_and_check(system, steps, line, linenum++);
+            }
+            cycles -= LONGLINE_CYCLES;
+            ai_step(system, LONGLINE_CYCLES);
+        }
+        check_vi_interrupt(system);
+        check_vsync(system);
+    }
+}
+
 int main(int argc, char** argv) {
     const char* log_file = NULL;
-    const char* rdp_plugin_path;
+    const char* rdp_plugin_path = NULL;
     bool test_rsp = false;
+    bool test_jit_sync = false;
 
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
     cflags_add_string(flags, 'f', "log-file", &log_file, "log file to check run against");
     cflags_add_bool(flags, 's', "rsp", &test_rsp, "check RSP log file instead of CPU log file");
+    cflags_add_bool(flags, 'j', "jitsync", &test_jit_sync, "check JIT sync point log file against interpreter instead of CPU log file");
     cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible)");
+
+    const char* pif_rom_path = NULL;
+    cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
 
     cflags_parse(flags, argc, argv);
 
     if (flags->argc != 1) {
         usage(flags);
         return 1;
+    }
+
+    if (test_rsp && test_jit_sync) {
+        logfatal("can't pass both -s and -j");
     }
 
     if (!log_file) {
@@ -335,18 +497,24 @@ int main(int argc, char** argv) {
     const char* rom = flags->argv[0];
 
     log_set_verbosity(verbose->count);
-    n64_system_t* system = init_n64system(rom, true, false, UNKNOWN_VIDEO_TYPE);
+    n64_system_t* system;
 
     if (rdp_plugin_path != NULL) {
+        system = init_n64system(rom, true, false, OPENGL);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
-        usage(flags);
-        logdie("Running without loading an RDP plugin is not currently supported.");
+        system = init_n64system(rom, true, false, VULKAN);
+        load_parallel_rdp(system);
+    }
+    if (pif_rom_path) {
+        load_pif_rom(system, pif_rom_path);
     }
     pif_rom_execute(system);
 
     if (test_rsp) {
         check_rsp_log(system, fp);
+    } else if (test_jit_sync) {
+        check_jit_sync_log(system, fp);
     } else {
         check_cpu_log(system, fp);
     }

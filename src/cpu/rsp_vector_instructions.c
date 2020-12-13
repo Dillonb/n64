@@ -192,34 +192,24 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
-    printf("LFV used: warning, this instruction doesn't work!\n");
     logdebug("rsp_lwc2_lfv");
+    logwarn("LFV executed, this instruction is known to be buggy!");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
     int e = instruction.v.element;
-    int start = e;
-    int end = (start + 8);
-    if (end > 15) {
-        end = 15;
-    }
+    int start = e >> 1;
+    int end = (start + 4);
 
-    printf("LFV 0x%08X e %d\n", address, e);
-    printf("%d -> %d (e = %d)\n", start, end, e);
-    for (int i = e; i < end; i += 2) {
-        printf("i: %d: ", i);
+    for (int i = e; i < end; i++) {
         half val = rsp->read_byte(address);
         int shift_amount = e & 7;
         if (shift_amount == 0) {
             shift_amount = 7;
         }
-        printf("%02X << %d == ", val, shift_amount);
         val <<= shift_amount;
-        printf("%04X\n", val);
         byte low = val & 0xFF;
         byte high = (val >> 8) & 0xFF;
         rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + 0) & 15)] = high;
-        printf("byte %d = 0x%02X\n", ((i + 0) & 15), high);
         rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + 1) & 15)] = low;
-        printf("byte %d = 0x%02X\n", ((i + 1) & 15), low);
         address += 4;
     }
 }
@@ -369,7 +359,20 @@ RSP_VECTOR_INSTR(rsp_swc2_sdv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_sfv) {
     logdebug("rsp_swc2_sfv");
-    logfatal("Unimplemented: rsp_swc2_sfv");
+    logwarn("SFV executed, this instruction is known to be buggy!");
+    defvt;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
+    int e = instruction.v.element;
+
+    int start = e >> 1;
+    int end = start + 4;
+    int base = address & 15;
+
+    address &= ~15;
+    for(int i = start; i < end; i++) {
+        rsp->write_byte(address + (base & 15), vt->elements[7 - (i & 7)] >> 7);
+        base += 4;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_shv) {
