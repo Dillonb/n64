@@ -11,11 +11,10 @@ configure_file(../contrib/tools/dynasm/dasm_x86.lua dynasm/dasm_x86.lua COPYONLY
 add_executable(minilua ../contrib/tools/minilua.c)
 target_link_libraries(minilua m)
 
-message("${CMAKE_CURRENT_SOURCE_DIR}")
-
 add_custom_command(OUTPUT dynarec.c
         COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 -o dynarec.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec.dasc
-        DEPENDS minilua dynarec.dasc
+        MAIN_DEPENDENCY dynarec.dasc
+        DEPENDS minilua
         )
 
 add_library(r4300i
