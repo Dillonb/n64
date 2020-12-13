@@ -800,7 +800,7 @@ INLINE void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* cpu, n64_dynarec
         | mov cpu_state->branch, al
 
         // cpu->prev_pc = cpu->pc;
-        | mov eax, cpu->pc
+        | mov eax, cpu_state->pc
         | mov cpu_state->prev_pc, eax
 
         // cpu->pc = cpu->next_pc;
