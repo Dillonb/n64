@@ -113,9 +113,9 @@ INLINE void compile_simple(dasm_State** Dst, mips_instruction_t instr, word addr
     | postcall 2
 }
 
-#define COMPSIMPLE(handler) compile_simple(Dst, instr, address, (uintptr_t)(handler))
-
+#define RUNHANDLER(handler) compile_simple(Dst, instr, address, (uintptr_t)(handler))
 #define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
+#define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
 
 COMPILER(compile_mips_nop) {
 #ifdef N64_LOG_COMPILATIONS
@@ -124,29 +124,7 @@ COMPILER(compile_mips_nop) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_ld) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ld\n");
-#endif
-    COMPSIMPLE(mips_ld);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lui) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lui\n");
-#endif
-    COMPSIMPLE(mips_lui);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_addiu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_addiu\n");
-#endif
-    COMPSIMPLE(mips_addiu);
-    return NORMAL;
-}
+COMP(mips_addiu, NORMAL);
 
 COMPILER(compile_mips_addi) {
 #ifdef N64_LOG_COMPILATIONS
@@ -160,66 +138,18 @@ COMPILER(compile_mips_addi) {
         | mov rax, ext_imm
         | mov64 [dest], rax
     } else {
-        COMPSIMPLE(mips_addi);
+        RUNHANDLER(mips_addi);
     }
     return NORMAL;
 }
 
-COMPILER(compile_mips_daddi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_daddi\n");
-#endif
-    COMPSIMPLE(mips_daddi);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_andi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_andi\n");
-#endif
-    COMPSIMPLE(mips_andi);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lbu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lbu\n");
-#endif
-    COMPSIMPLE(mips_lbu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lhu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lhu\n");
-#endif
-    COMPSIMPLE(mips_lhu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lh) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lh\n");
-#endif
-    COMPSIMPLE(mips_lh);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lw) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lw\n");
-#endif
-    COMPSIMPLE(mips_lw);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lwu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lwu\n");
-#endif
-    COMPSIMPLE(mips_lwu);
-    return NORMAL;
-}
+COMP(mips_daddi, NORMAL);
+COMP(mips_andi, NORMAL);
+COMP(mips_lbu, NORMAL);
+COMP(mips_lhu, NORMAL);
+COMP(mips_lh, NORMAL);
+COMP(mips_lw, NORMAL);
+COMP(mips_lwu, NORMAL);
 
 COMPILER(compile_mips_beq) {
 #ifdef N64_LOG_COMPILATIONS
@@ -238,66 +168,18 @@ COMPILER(compile_mips_beq) {
         | mov cpu_state->branch, al
     } else {
         // handle normally
-        COMPSIMPLE(mips_beq);
+        RUNHANDLER(mips_beq);
    }
    return BRANCH;
 }
 
-COMPILER(compile_mips_beql) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_beql\n");
-#endif
-    COMPSIMPLE(mips_beql);
-    return BRANCH_LIKELY;
-}
-
-COMPILER(compile_mips_bgtz) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_bgtz\n");
-#endif
-    COMPSIMPLE(mips_bgtz);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_bgtzl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_bgtzl\n");
-#endif
-    COMPSIMPLE(mips_bgtzl);
-    return BRANCH_LIKELY;
-}
-
-COMPILER(compile_mips_blez) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_blez\n");
-#endif
-    COMPSIMPLE(mips_blez);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_blezl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_blezl\n");
-#endif
-    COMPSIMPLE(mips_blezl);
-    return BRANCH_LIKELY;
-}
-
-COMPILER(compile_mips_bne) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_bne\n");
-#endif
-    COMPSIMPLE(mips_bne);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_bnel) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_bnel\n");
-#endif
-    COMPSIMPLE(mips_bnel);
-    return BRANCH_LIKELY;
-}
+COMP(mips_beql, BRANCH_LIKELY);
+COMP(mips_bgtz, BRANCH);
+COMP(mips_bgtzl, BRANCH_LIKELY);
+COMP(mips_blez, BRANCH);
+COMP(mips_blezl, BRANCH_LIKELY);
+COMP(mips_bne, BRANCH);
+COMP(mips_bnel, BRANCH_LIKELY);
 
 COMPILER(compile_mips_cache) {
 #ifdef N64_LOG_COMPILATIONS
@@ -306,956 +188,127 @@ COMPILER(compile_mips_cache) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_sb) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sb\n");
-#endif
-    COMPSIMPLE(mips_sb);
-    return STORE;
-}
-
-COMPILER(compile_mips_sh) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sh\n");
-#endif
-    COMPSIMPLE(mips_sh);
-    return STORE;
-}
-
-COMPILER(compile_mips_sw) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sw\n");
-#endif
-    COMPSIMPLE(mips_sw);
-    return STORE;
-}
-
-COMPILER(compile_mips_sd) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sd\n");
-#endif
-    COMPSIMPLE(mips_sd);
-    return STORE;
-}
-
-COMPILER(compile_mips_ori) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ori\n");
-#endif
-    COMPSIMPLE(mips_ori);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_j) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_j\n");
-#endif
-    COMPSIMPLE(mips_j);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_jal) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_jal\n");
-#endif
-    COMPSIMPLE(mips_jal);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_slti) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_slti\n");
-#endif
-    COMPSIMPLE(mips_slti);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_sltiu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sltiu\n");
-#endif
-    COMPSIMPLE(mips_sltiu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_xori) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_xori\n");
-#endif
-    COMPSIMPLE(mips_xori);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_daddiu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_daddiu\n");
-#endif
-    COMPSIMPLE(mips_daddiu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lb) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lb\n");
-#endif
-    COMPSIMPLE(mips_lb);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_ldc1) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ldc1\n");
-#endif
-    COMPSIMPLE(mips_ldc1);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_sdc1) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sdc1\n");
-#endif
-    COMPSIMPLE(mips_sdc1);
-    return STORE;
-}
-
-COMPILER(compile_mips_lwc1) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lwc1\n");
-#endif
-    COMPSIMPLE(mips_lwc1);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_swc1) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_swc1\n");
-#endif
-    COMPSIMPLE(mips_swc1);
-    return STORE;
-}
-
-COMPILER(compile_mips_lwl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lwl\n");
-#endif
-    COMPSIMPLE(mips_lwl);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_lwr) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_lwr\n");
-#endif
-    COMPSIMPLE(mips_lwr);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_swl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_swl\n");
-#endif
-    COMPSIMPLE(mips_swl);
-    return STORE;
-}
-
-COMPILER(compile_mips_swr) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_swr\n");
-#endif
-    COMPSIMPLE(mips_swr);
-    return STORE;
-}
-
-COMPILER(compile_mips_ldl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ldl\n");
-#endif
-    COMPSIMPLE(mips_ldl);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_ldr) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ldr\n");
-#endif
-    COMPSIMPLE(mips_ldr);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_sdl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sdl\n");
-#endif
-    COMPSIMPLE(mips_sdl);
-    return STORE;
-}
-
-COMPILER(compile_mips_sdr) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_sdr\n");
-#endif
-    COMPSIMPLE(mips_sdr);
-    return STORE;
-}
-
-COMPILER(compile_mips_mfc0) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_mfc0\n");
-#endif
-    COMPSIMPLE(mips_mfc0);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_mtc0) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_mtc0\n");
-#endif
-    COMPSIMPLE(mips_mtc0);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_tlbwi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_tlbwi\n");
-#endif
-    COMPSIMPLE(mips_tlbwi);
-    return TLB_WRITE;
-}
-
-COMPILER(compile_mips_tlbp) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_tlbp\n");
-#endif
-    COMPSIMPLE(mips_tlbp);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_eret) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_eret\n");
-#endif
-    COMPSIMPLE(mips_eret);
-    return ERET;
-}
-
-COMPILER(compile_mips_spc_sll) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_sll\n");
-#endif
-    COMPSIMPLE(mips_spc_sll);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_srl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_srl\n");
-#endif
-    COMPSIMPLE(mips_spc_srl);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_sra) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_sra\n");
-#endif
-    COMPSIMPLE(mips_spc_sra);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_srav) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_srav\n");
-#endif
-    COMPSIMPLE(mips_spc_srav);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_sllv) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_sllv\n");
-#endif
-    COMPSIMPLE(mips_spc_sllv);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_srlv) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_srlv\n");
-#endif
-    COMPSIMPLE(mips_spc_srlv);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_jr) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_jr\n");
-#endif
-    COMPSIMPLE(mips_spc_jr);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_spc_jalr) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_jalr\n");
-#endif
-    COMPSIMPLE(mips_spc_jalr);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_spc_mfhi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_mfhi\n");
-#endif
-    COMPSIMPLE(mips_spc_mfhi);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_mthi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_mthi\n");
-#endif
-    COMPSIMPLE(mips_spc_mthi);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_mflo) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_mflo\n");
-#endif
-    COMPSIMPLE(mips_spc_mflo);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_mtlo) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_mtlo\n");
-#endif
-    COMPSIMPLE(mips_spc_mtlo);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dsllv) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsllv\n");
-#endif
-    COMPSIMPLE(mips_spc_dsllv);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dsrlv) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsrlv\n");
-#endif
-    COMPSIMPLE(mips_spc_dsrlv);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_mult) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_mult\n");
-#endif
-    COMPSIMPLE(mips_spc_mult);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_multu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_multu\n");
-#endif
-    COMPSIMPLE(mips_spc_multu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_div) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_div\n");
-#endif
-    COMPSIMPLE(mips_spc_div);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_divu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_divu\n");
-#endif
-    COMPSIMPLE(mips_spc_divu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dmultu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dmultu\n");
-#endif
-    COMPSIMPLE(mips_spc_dmultu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_ddiv) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_ddiv\n");
-#endif
-    COMPSIMPLE(mips_spc_ddiv);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_ddivu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_ddivu\n");
-#endif
-    COMPSIMPLE(mips_spc_ddivu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_add) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_add\n");
-#endif
-    COMPSIMPLE(mips_spc_add);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_addu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_addu\n");
-#endif
-    COMPSIMPLE(mips_spc_addu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_and) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_and\n");
-#endif
-    COMPSIMPLE(mips_spc_and);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_nor) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_nor\n");
-#endif
-    COMPSIMPLE(mips_spc_nor);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_sub) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_sub\n");
-#endif
-    COMPSIMPLE(mips_spc_sub);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_subu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_subu\n");
-#endif
-    COMPSIMPLE(mips_spc_subu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_or) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_or\n");
-#endif
-    COMPSIMPLE(mips_spc_or);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_xor) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_xor\n");
-#endif
-    COMPSIMPLE(mips_spc_xor);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_slt) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_slt\n");
-#endif
-    COMPSIMPLE(mips_spc_slt);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_sltu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_sltu\n");
-#endif
-    COMPSIMPLE(mips_spc_sltu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dadd) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dadd\n");
-#endif
-    COMPSIMPLE(mips_spc_dadd);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_daddu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_daddu\n");
-#endif
-    COMPSIMPLE(mips_spc_daddu);
-    return NORMAL;
-}
-COMPILER(compile_mips_spc_dsubu) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsubu\n");
-#endif
-    COMPSIMPLE(mips_spc_dsubu);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dsll) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsll\n");
-#endif
-    COMPSIMPLE(mips_spc_dsll);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dsrl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsrl\n");
-#endif
-    COMPSIMPLE(mips_spc_dsrl);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dsll32) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsll32\n");
-#endif
-    COMPSIMPLE(mips_spc_dsll32);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dsrl32) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsrl32\n");
-#endif
-    COMPSIMPLE(mips_spc_dsrl32);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_spc_dsra32) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_dsra32\n");
-#endif
-    COMPSIMPLE(mips_spc_dsra32);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_ri_bltz) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ri_bltz\n");
-#endif
-    COMPSIMPLE(mips_ri_bltz);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_ri_bltzl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ri_bltzl\n");
-#endif
-    COMPSIMPLE(mips_ri_bltz);
-    return BRANCH_LIKELY;
-}
-
-COMPILER(compile_mips_ri_bgez) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ri_bgez\n");
-#endif
-    COMPSIMPLE(mips_ri_bgez);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_ri_bgezl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ri_bgezl\n");
-#endif
-    COMPSIMPLE(mips_ri_bgezl);
-    return BRANCH_LIKELY;
-}
-
-COMPILER(compile_mips_ri_bgezal) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ri_bgezal\n");
-#endif
-    COMPSIMPLE(mips_ri_bgezal);
-    return BRANCH;
-}
-
-COMPILER(compile_mips_cfc1) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cfc1\n");
-#endif
-   COMPSIMPLE(mips_cfc1);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_mfc1) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_mfc1\n");
-#endif
-   COMPSIMPLE(mips_mfc1);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_dmfc1) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling compile_mips_dmfc1\n");
-#endif
-    COMPSIMPLE(mips_dmfc1);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_mtc1) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_mtc1\n");
-#endif
-   COMPSIMPLE(mips_mtc1);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_dmtc1) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling compile_mips_dmtc1\n");
-#endif
-    COMPSIMPLE(mips_dmtc1);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_ctc1) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_ctc1\n");
-#endif
-   COMPSIMPLE(mips_ctc1);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_bc1t) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_bc1t\n");
-#endif
-   COMPSIMPLE(mips_cp_bc1t);
-   return BRANCH;
-}
-
-COMPILER(compile_mips_cp_bc1f) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_bc1f\n");
-#endif
-   COMPSIMPLE(mips_cp_bc1f);
-   return BRANCH;
-}
-
-COMPILER(compile_mips_cp_bc1tl) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_bc1tl\n");
-#endif
-   COMPSIMPLE(mips_cp_bc1tl);
-   return BRANCH_LIKELY;
-}
-
-COMPILER(compile_mips_cp_bc1fl) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_bc1fl\n");
-#endif
-   COMPSIMPLE(mips_cp_bc1fl);
-   return BRANCH_LIKELY;
-}
-
-COMPILER(compile_mips_cp_add_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_add_d\n");
-#endif
-   COMPSIMPLE(mips_cp_add_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_add_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_add_s\n");
-#endif
-   COMPSIMPLE(mips_cp_add_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_sub_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_sub_d\n");
-#endif
-   COMPSIMPLE(mips_cp_sub_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_sub_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_sub_s\n");
-#endif
-   COMPSIMPLE(mips_cp_sub_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_mul_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_mul_d\n");
-#endif
-   COMPSIMPLE(mips_cp_mul_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_mul_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_mul_s\n");
-#endif
-   COMPSIMPLE(mips_cp_mul_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_div_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_div_d\n");
-#endif
-   COMPSIMPLE(mips_cp_div_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_div_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_div_s\n");
-#endif
-   COMPSIMPLE(mips_cp_div_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_trunc_l_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_trunc_l_d\n");
-#endif
-   COMPSIMPLE(mips_cp_trunc_l_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_trunc_l_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_trunc_l_s\n");
-#endif
-   COMPSIMPLE(mips_cp_trunc_l_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_trunc_w_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_trunc_w_d\n");
-#endif
-   COMPSIMPLE(mips_cp_trunc_w_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_trunc_w_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_trunc_w_s\n");
-#endif
-   COMPSIMPLE(mips_cp_trunc_w_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_d_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_d_s\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_d_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_d_w) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_d_w\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_d_w);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_d_l) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_d_l\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_d_l);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_l_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_l_d\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_l_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_l_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_l_s\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_l_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_s_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_s_d\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_s_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_s_w) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_s_w\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_s_w);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_s_l) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_s_l\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_s_l);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_w_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_w_d\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_w_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_cvt_w_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_cvt_w_s\n");
-#endif
-   COMPSIMPLE(mips_cp_cvt_w_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_sqrt_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_sqrt_d\n");
-#endif
-   COMPSIMPLE(mips_cp_sqrt_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_sqrt_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_sqrt_s\n");
-#endif
-   COMPSIMPLE(mips_cp_sqrt_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_abs_d) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling compile_mips_cp_abs_d\n");
-#endif
-    COMPSIMPLE(mips_cp_abs_d);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_cp_abs_s) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling compile_mips_cp_abs_s\n");
-#endif
-    COMPSIMPLE(mips_cp_abs_s);
-    return NORMAL;
-}
-
-COMPILER(compile_mips_cp_mov_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_mov_d\n");
-#endif
-   COMPSIMPLE(mips_cp_mov_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_mov_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_mov_s\n");
-#endif
-   COMPSIMPLE(mips_cp_mov_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_neg_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_neg_d\n");
-#endif
-   COMPSIMPLE(mips_cp_neg_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_neg_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_neg_s\n");
-#endif
-   COMPSIMPLE(mips_cp_neg_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_c_eq_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_c_eq_d\n");
-#endif
-   COMPSIMPLE(mips_cp_c_eq_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_c_eq_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_c_eq_s\n");
-#endif
-   COMPSIMPLE(mips_cp_c_eq_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_c_lt_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_c_lt_d\n");
-#endif
-   COMPSIMPLE(mips_cp_c_lt_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_c_lt_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_c_lt_s\n");
-#endif
-   COMPSIMPLE(mips_cp_c_lt_s);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_c_le_d) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_c_le_d\n");
-#endif
-   COMPSIMPLE(mips_cp_c_le_d);
-   return NORMAL;
-}
-
-COMPILER(compile_mips_cp_c_le_s) {
-#ifdef N64_LOG_COMPILATIONS
-   printf("Compiling compile_mips_cp_c_le_s\n");
-#endif
-   COMPSIMPLE(mips_cp_c_le_s);
-   return NORMAL;
-}
+COMP(mips_sb, STORE);
+COMP(mips_sh, STORE);
+COMP(mips_sw, STORE);
+COMP(mips_sd, STORE);
+COMP(mips_ori, NORMAL);
+COMP(mips_j, BRANCH);
+COMP(mips_jal, BRANCH);
+COMP(mips_slti, NORMAL);
+COMP(mips_sltiu, NORMAL);
+COMP(mips_xori, NORMAL);
+COMP(mips_daddiu, NORMAL);
+COMP(mips_lb, NORMAL);
+COMP(mips_lui, NORMAL);
+COMP(mips_ld, NORMAL);
+COMP(mips_ldc1, NORMAL);
+COMP(mips_sdc1, STORE);
+COMP(mips_lwc1, NORMAL);
+COMP(mips_swc1, STORE);
+COMP(mips_lwl, NORMAL);
+COMP(mips_lwr, NORMAL);
+COMP(mips_swl, STORE);
+COMP(mips_swr, STORE);
+COMP(mips_ldl, NORMAL);
+COMP(mips_ldr, NORMAL);
+COMP(mips_sdl, STORE);
+COMP(mips_sdr, STORE);
+COMP(mips_mfc0, NORMAL);
+COMP(mips_mtc0, NORMAL);
+COMP(mips_tlbwi, TLB_WRITE);
+COMP(mips_tlbp, NORMAL);
+COMP(mips_eret, ERET);
+COMP(mips_spc_sll, NORMAL);
+COMP(mips_spc_srl, NORMAL);
+COMP(mips_spc_sra, NORMAL);
+COMP(mips_spc_srav, NORMAL);
+COMP(mips_spc_sllv, NORMAL);
+COMP(mips_spc_srlv, NORMAL);
+COMP(mips_spc_jr, BRANCH);
+COMP(mips_spc_jalr, BRANCH);
+COMP(mips_spc_mfhi, NORMAL);
+COMP(mips_spc_mthi, NORMAL);
+COMP(mips_spc_mflo, NORMAL);
+COMP(mips_spc_mtlo, NORMAL);
+COMP(mips_spc_dsllv, NORMAL);
+COMP(mips_spc_dsrlv, NORMAL);
+COMP(mips_spc_mult, NORMAL);
+COMP(mips_spc_multu, NORMAL);
+COMP(mips_spc_div, NORMAL);
+COMP(mips_spc_divu, NORMAL);
+COMP(mips_spc_dmultu, NORMAL);
+COMP(mips_spc_ddiv, NORMAL);
+COMP(mips_spc_ddivu, NORMAL);
+COMP(mips_spc_add, NORMAL);
+COMP(mips_spc_addu, NORMAL);
+COMP(mips_spc_and, NORMAL);
+COMP(mips_spc_nor, NORMAL);
+COMP(mips_spc_sub, NORMAL);
+COMP(mips_spc_subu, NORMAL);
+COMP(mips_spc_or, NORMAL);
+COMP(mips_spc_xor, NORMAL);
+COMP(mips_spc_slt, NORMAL);
+COMP(mips_spc_sltu, NORMAL);
+COMP(mips_spc_dadd, NORMAL);
+COMP(mips_spc_daddu, NORMAL);
+COMP(mips_spc_dsubu, NORMAL);
+COMP(mips_spc_dsll, NORMAL);
+COMP(mips_spc_dsrl, NORMAL);
+COMP(mips_spc_dsll32, NORMAL);
+COMP(mips_spc_dsrl32, NORMAL);
+COMP(mips_spc_dsra32, NORMAL);
+COMP(mips_ri_bltz, BRANCH);
+COMP(mips_ri_bltzl, BRANCH_LIKELY);
+COMP(mips_ri_bgez, BRANCH);
+COMP(mips_ri_bgezl, BRANCH_LIKELY);
+COMP(mips_ri_bgezal, BRANCH);
+COMP(mips_cfc1, NORMAL);
+COMP(mips_mfc1, NORMAL);
+COMP(mips_dmfc1, NORMAL);
+COMP(mips_mtc1, NORMAL);
+COMP(mips_dmtc1, NORMAL);
+COMP(mips_ctc1, NORMAL);
+COMP(mips_cp_bc1t, BRANCH);
+COMP(mips_cp_bc1f, BRANCH);
+COMP(mips_cp_bc1tl, BRANCH_LIKELY);
+COMP(mips_cp_bc1fl, BRANCH_LIKELY);
+COMP(mips_cp_add_d, NORMAL);
+COMP(mips_cp_add_s, NORMAL);
+COMP(mips_cp_sub_d, NORMAL);
+COMP(mips_cp_sub_s, NORMAL);
+COMP(mips_cp_mul_d, NORMAL);
+COMP(mips_cp_mul_s, NORMAL);
+COMP(mips_cp_div_d, NORMAL);
+COMP(mips_cp_div_s, NORMAL);
+COMP(mips_cp_trunc_l_d, NORMAL);
+COMP(mips_cp_trunc_l_s, NORMAL);
+COMP(mips_cp_trunc_w_d, NORMAL);
+COMP(mips_cp_trunc_w_s, NORMAL);
+COMP(mips_cp_cvt_d_s, NORMAL);
+COMP(mips_cp_cvt_d_w, NORMAL);
+COMP(mips_cp_cvt_d_l, NORMAL);
+COMP(mips_cp_cvt_l_d, NORMAL);
+COMP(mips_cp_cvt_l_s, NORMAL);
+COMP(mips_cp_cvt_s_d, NORMAL);
+COMP(mips_cp_cvt_s_w, NORMAL);
+COMP(mips_cp_cvt_s_l, NORMAL);
+COMP(mips_cp_cvt_w_d, NORMAL);
+COMP(mips_cp_cvt_w_s, NORMAL);
+COMP(mips_cp_sqrt_d, NORMAL);
+COMP(mips_cp_sqrt_s, NORMAL);
+COMP(mips_cp_abs_d, NORMAL);
+COMP(mips_cp_abs_s, NORMAL);
+COMP(mips_cp_mov_d, NORMAL);
+COMP(mips_cp_mov_s, NORMAL);
+COMP(mips_cp_neg_d, NORMAL);
+COMP(mips_cp_neg_s, NORMAL);
+COMP(mips_cp_c_eq_d, NORMAL);
+COMP(mips_cp_c_eq_s, NORMAL);
+COMP(mips_cp_c_lt_d, NORMAL);
+COMP(mips_cp_c_lt_s, NORMAL);
+COMP(mips_cp_c_le_d, NORMAL);
+COMP(mips_cp_c_le_s, NORMAL);
 
 dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
     if (instr.last11 == 0) {
