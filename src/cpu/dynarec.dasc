@@ -143,14 +143,6 @@ COMPILER(compile_mips_addi) {
     return NORMAL;
 }
 
-COMP(mips_daddi, NORMAL);
-COMP(mips_andi, NORMAL);
-COMP(mips_lbu, NORMAL);
-COMP(mips_lhu, NORMAL);
-COMP(mips_lh, NORMAL);
-COMP(mips_lw, NORMAL);
-COMP(mips_lwu, NORMAL);
-
 COMPILER(compile_mips_beq) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Compiling mips_beq\n");
@@ -173,14 +165,6 @@ COMPILER(compile_mips_beq) {
    return BRANCH;
 }
 
-COMP(mips_beql, BRANCH_LIKELY);
-COMP(mips_bgtz, BRANCH);
-COMP(mips_bgtzl, BRANCH_LIKELY);
-COMP(mips_blez, BRANCH);
-COMP(mips_blezl, BRANCH_LIKELY);
-COMP(mips_bne, BRANCH);
-COMP(mips_bnel, BRANCH_LIKELY);
-
 COMPILER(compile_mips_cache) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Compiling mips_cache\n");
@@ -188,6 +172,20 @@ COMPILER(compile_mips_cache) {
     return NORMAL;
 }
 
+COMP(mips_daddi, NORMAL);
+COMP(mips_andi, NORMAL);
+COMP(mips_lbu, NORMAL);
+COMP(mips_lhu, NORMAL);
+COMP(mips_lh, NORMAL);
+COMP(mips_lw, NORMAL);
+COMP(mips_lwu, NORMAL);
+COMP(mips_beql, BRANCH_LIKELY);
+COMP(mips_bgtz, BRANCH);
+COMP(mips_bgtzl, BRANCH_LIKELY);
+COMP(mips_blez, BRANCH);
+COMP(mips_blezl, BRANCH_LIKELY);
+COMP(mips_bne, BRANCH);
+COMP(mips_bnel, BRANCH_LIKELY);
 COMP(mips_sb, STORE);
 COMP(mips_sh, STORE);
 COMP(mips_sw, STORE);
