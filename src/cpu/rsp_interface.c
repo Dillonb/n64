@@ -103,7 +103,7 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             logfatal("Write to unsupported SP reg: ADDR_SP_DMA_BUSY_REG");
         case ADDR_SP_SEMAPHORE_REG:
             if (value == 0) {
-                system->rsp.semaphore_held = false;
+                rsp_release_semaphore(system);
             } else {
                 logfatal("Wrote non-zero value 0x%08X to SP reg ADDR_SP_SEMAPHORE_REG", value);
             }

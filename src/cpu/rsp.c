@@ -13,6 +13,10 @@ bool rsp_acquire_semaphore(n64_system_t* system) {
     }
 }
 
+void rsp_release_semaphore(n64_system_t* system) {
+    system->rsp.semaphore_held = false;
+}
+
 INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {

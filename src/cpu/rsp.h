@@ -174,6 +174,7 @@ INLINE word get_rsp_register(rsp_t* rsp, byte r) {
 }
 
 bool rsp_acquire_semaphore(n64_system_t* system);
+void rsp_release_semaphore(n64_system_t* system);
 
 INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     switch (r) {
@@ -229,7 +230,7 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r);
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
-                system->rsp.semaphore_held = false;
+                rsp_release_semaphore(system);
             } else {
                 logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value);
             }
