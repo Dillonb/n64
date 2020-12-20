@@ -150,16 +150,10 @@ INLINE void sign_extend_eax_rax(dasm_State** Dst) {
 #define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
 
 COMPILER(compile_mips_nop) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_nop\n");
-#endif
     return NORMAL;
 }
 
 COMPILER(compile_mips_addi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_addi\n");
-#endif
     if (instr.i.rt == 0) {
         return NORMAL;
     }
@@ -184,9 +178,6 @@ COMPILER(compile_mips_addiu) {
 }
 
 COMPILER(compile_mips_beq) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_beq\n");
-#endif
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
         TAKEBRANCH;
@@ -198,16 +189,10 @@ COMPILER(compile_mips_beq) {
 }
 
 COMPILER(compile_mips_cache) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_cache\n");
-#endif
     return NORMAL;
 }
 
 COMPILER(compile_mips_daddi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_daddi\n");
-#endif
     if (instr.i.rt == 0) {
         return NORMAL;
     }
@@ -230,9 +215,6 @@ COMPILER(compile_mips_daddiu) {
 }
 
 COMPILER(compile_mips_andi) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_andi\n");
-#endif
     if (instr.i.rt == 0) {
         return NORMAL;
     }
@@ -244,9 +226,6 @@ COMPILER(compile_mips_andi) {
 }
 
 COMPILER(compile_mips_ori) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_ori\n");
-#endif
     if (instr.i.rt == 0) {
         return NORMAL;
     }
@@ -261,9 +240,6 @@ COMP(mips_slti, NORMAL);
 COMP(mips_sltiu, NORMAL);
 
 COMPILER(compile_mips_xori) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_xori\n");
-#endif
     if (instr.i.rt == 0) {
         return NORMAL;
     }
@@ -275,9 +251,6 @@ COMPILER(compile_mips_xori) {
 }
 
 COMPILER(compile_mips_spc_sll) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_sll\n");
-#endif
     if (instr.r.rd == 0) {
         return NORMAL;
     }
@@ -290,9 +263,6 @@ COMPILER(compile_mips_spc_sll) {
 }
 
 COMPILER(compile_mips_spc_srl) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_srl\n");
-#endif
     if (instr.r.rd == 0) {
         return NORMAL;
     }
@@ -304,9 +274,6 @@ COMPILER(compile_mips_spc_srl) {
 }
 
 COMPILER(compile_mips_spc_sra) {
-#ifdef N64_LOG_COMPILATIONS
-    printf("Compiling mips_spc_sra\n");
-#endif
     if (instr.r.rd == 0) {
         return NORMAL;
     }
