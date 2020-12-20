@@ -166,7 +166,7 @@ COMPILER(compile_mips_addi) {
 }
 
 COMPILER(compile_mips_addiu) {
-    compile_mips_addi(Dst, instr, address);
+    return compile_mips_addi(Dst, instr, address);
 }
 
 COMPILER(compile_mips_beq) {
