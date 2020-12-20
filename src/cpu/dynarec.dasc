@@ -234,56 +234,16 @@ COMPILER(compile_mips_andi) {
     return NORMAL;
 }
 
-COMP(mips_lbu, NORMAL);
-COMP(mips_lhu, NORMAL);
-COMP(mips_lh, NORMAL);
-COMP(mips_lw, NORMAL);
-COMP(mips_lwu, NORMAL);
-COMP(mips_beql, BRANCH_LIKELY);
-COMP(mips_bgtz, BRANCH);
-COMP(mips_bgtzl, BRANCH_LIKELY);
-COMP(mips_blez, BRANCH);
-COMP(mips_blezl, BRANCH_LIKELY);
-COMP(mips_bne, BRANCH);
-COMP(mips_bnel, BRANCH_LIKELY);
-COMP(mips_sb, STORE);
-COMP(mips_sh, STORE);
-COMP(mips_sw, STORE);
-COMP(mips_sd, STORE);
 COMP(mips_ori, NORMAL);
-COMP(mips_j, BRANCH);
-COMP(mips_jal, BRANCH);
 COMP(mips_slti, NORMAL);
 COMP(mips_sltiu, NORMAL);
 COMP(mips_xori, NORMAL);
-COMP(mips_lb, NORMAL);
-COMP(mips_lui, NORMAL);
-COMP(mips_ld, NORMAL);
-COMP(mips_ldc1, NORMAL);
-COMP(mips_sdc1, STORE);
-COMP(mips_lwc1, NORMAL);
-COMP(mips_swc1, STORE);
-COMP(mips_lwl, NORMAL);
-COMP(mips_lwr, NORMAL);
-COMP(mips_swl, STORE);
-COMP(mips_swr, STORE);
-COMP(mips_ldl, NORMAL);
-COMP(mips_ldr, NORMAL);
-COMP(mips_sdl, STORE);
-COMP(mips_sdr, STORE);
-COMP(mips_mfc0, NORMAL);
-COMP(mips_mtc0, NORMAL);
-COMP(mips_tlbwi, TLB_WRITE);
-COMP(mips_tlbp, NORMAL);
-COMP(mips_eret, ERET);
 COMP(mips_spc_sll, NORMAL);
 COMP(mips_spc_srl, NORMAL);
 COMP(mips_spc_sra, NORMAL);
 COMP(mips_spc_srav, NORMAL);
 COMP(mips_spc_sllv, NORMAL);
 COMP(mips_spc_srlv, NORMAL);
-COMP(mips_spc_jr, BRANCH);
-COMP(mips_spc_jalr, BRANCH);
 COMP(mips_spc_mfhi, NORMAL);
 COMP(mips_spc_mthi, NORMAL);
 COMP(mips_spc_mflo, NORMAL);
@@ -315,11 +275,62 @@ COMP(mips_spc_dsrl, NORMAL);
 COMP(mips_spc_dsll32, NORMAL);
 COMP(mips_spc_dsrl32, NORMAL);
 COMP(mips_spc_dsra32, NORMAL);
+
+// Load-stores
+COMP(mips_lbu, NORMAL);
+COMP(mips_lhu, NORMAL);
+COMP(mips_lh, NORMAL);
+COMP(mips_lw, NORMAL);
+COMP(mips_lwu, NORMAL);
+COMP(mips_sb, STORE);
+COMP(mips_sh, STORE);
+COMP(mips_sw, STORE);
+COMP(mips_sd, STORE);
+COMP(mips_lb, NORMAL);
+COMP(mips_lui, NORMAL);
+COMP(mips_ld, NORMAL);
+COMP(mips_ldc1, NORMAL);
+COMP(mips_sdc1, STORE);
+COMP(mips_lwc1, NORMAL);
+COMP(mips_swc1, STORE);
+COMP(mips_lwl, NORMAL);
+COMP(mips_lwr, NORMAL);
+COMP(mips_swl, STORE);
+COMP(mips_swr, STORE);
+COMP(mips_ldl, NORMAL);
+COMP(mips_ldr, NORMAL);
+COMP(mips_sdl, STORE);
+COMP(mips_sdr, STORE);
+
+// Unoptimized branches
+COMP(mips_beql, BRANCH_LIKELY);
+COMP(mips_bgtz, BRANCH);
+COMP(mips_bgtzl, BRANCH_LIKELY);
+COMP(mips_blez, BRANCH);
+COMP(mips_blezl, BRANCH_LIKELY);
+COMP(mips_bne, BRANCH);
+COMP(mips_bnel, BRANCH_LIKELY);
+COMP(mips_j, BRANCH);
+COMP(mips_jal, BRANCH);
 COMP(mips_ri_bltz, BRANCH);
 COMP(mips_ri_bltzl, BRANCH_LIKELY);
 COMP(mips_ri_bgez, BRANCH);
 COMP(mips_ri_bgezl, BRANCH_LIKELY);
 COMP(mips_ri_bgezal, BRANCH);
+COMP(mips_spc_jr, BRANCH);
+COMP(mips_spc_jalr, BRANCH);
+COMP(mips_cp_bc1tl, BRANCH_LIKELY);
+COMP(mips_cp_bc1fl, BRANCH_LIKELY);
+
+// Instructions that don't make too much sense to optimize
+COMP(mips_mfc0, NORMAL);
+COMP(mips_mtc0, NORMAL);
+COMP(mips_tlbwi, TLB_WRITE);
+COMP(mips_tlbp, NORMAL);
+COMP(mips_eret, ERET);
+
+
+// CP1 stuff
 COMP(mips_cfc1, NORMAL);
 COMP(mips_mfc1, NORMAL);
 COMP(mips_dmfc1, NORMAL);
@@ -328,8 +339,6 @@ COMP(mips_dmtc1, NORMAL);
 COMP(mips_ctc1, NORMAL);
 COMP(mips_cp_bc1t, BRANCH);
 COMP(mips_cp_bc1f, BRANCH);
-COMP(mips_cp_bc1tl, BRANCH_LIKELY);
-COMP(mips_cp_bc1fl, BRANCH_LIKELY);
 COMP(mips_cp_add_d, NORMAL);
 COMP(mips_cp_add_s, NORMAL);
 COMP(mips_cp_sub_d, NORMAL);
