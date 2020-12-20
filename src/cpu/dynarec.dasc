@@ -142,6 +142,7 @@ COMPILER(compile_mips_addi) {
         uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
         | mov64 rax, [src]
         | add rax, ext_imm
+        | movsxd rax, eax
         | mov64 [dest], rax
     }
     return NORMAL;
