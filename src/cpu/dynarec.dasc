@@ -127,23 +127,28 @@ COMPILER(compile_mips_nop) {
     return NORMAL;
 }
 
-COMP(mips_addiu, NORMAL);
-
 COMPILER(compile_mips_addi) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Compiling mips_addi\n");
 #endif
+    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
     // This is actually a load-immediate
     if (instr.i.rs == 0) {
-        uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
-        shalf imm = instr.i.immediate;
-        sdword ext_imm = imm;
         | mov rax, ext_imm
         | mov64 [dest], rax
     } else {
-        RUNHANDLER(mips_addi);
+        uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
+        | mov64 rax, [src]
+        | add rax, ext_imm
+        | mov64 [dest], rax
     }
     return NORMAL;
+}
+
+COMPILER(compile_mips_addiu) {
+    compile_mips_addi(Dst, instr, address);
 }
 
 COMPILER(compile_mips_beq) {
