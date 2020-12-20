@@ -303,7 +303,21 @@ COMPILER(compile_mips_spc_srl) {
     return NORMAL;
 }
 
-COMP(mips_spc_sra, NORMAL);
+COMPILER(compile_mips_spc_sra) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_sra\n");
+#endif
+    if (instr.r.rd == 0) {
+        return NORMAL;
+    }
+
+    LOADRAX(instr.r.rt);
+    | sar eax, instr.r.sa
+    SEAX;
+    SAVERAX(instr.r.rd);
+    return NORMAL;
+}
+
 COMP(mips_spc_srav, NORMAL);
 COMP(mips_spc_sllv, NORMAL);
 COMP(mips_spc_srlv, NORMAL);
