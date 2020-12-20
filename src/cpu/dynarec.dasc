@@ -116,6 +116,19 @@ INLINE void run_handler(dasm_State** Dst, mips_instruction_t instr, word address
     | postcall 2
 }
 
+INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address) {
+    shalf offset = instr.i.immediate;
+    sword soffset = offset;
+    soffset <<= 2;
+    | mov eax, cpu_state->pc
+    | add eax, soffset
+    | mov cpu_state->next_pc, eax
+    | mov al, 1
+    | mov cpu_state->branch, al
+}
+
+#define TAKEBRANCH take_branch(Dst, instr, address)
+
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
 #define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
 #define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
@@ -131,6 +144,10 @@ COMPILER(compile_mips_addi) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Compiling mips_addi\n");
 #endif
+    if (instr.i.rt == 0) {
+        return NORMAL;
+    }
+
     uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
@@ -158,15 +175,7 @@ COMPILER(compile_mips_beq) {
 #endif
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
-        // TODO macro this for other branch types
-        shalf offset = instr.i.immediate;
-        sword soffset = offset;
-        soffset <<= 2;
-        | mov eax, cpu_state->pc
-        | add eax, soffset
-        | mov cpu_state->next_pc, eax
-        | mov al, 1
-        | mov cpu_state->branch, al
+        TAKEBRANCH;
     } else {
         // handle normally
         RUNHANDLER(mips_beq);
@@ -181,7 +190,33 @@ COMPILER(compile_mips_cache) {
     return NORMAL;
 }
 
-COMP(mips_daddi, NORMAL);
+COMPILER(compile_mips_daddi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_daddi\n");
+#endif
+    if (instr.i.rt == 0) {
+        return NORMAL;
+    }
+    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
+    // This is actually a load-immediate
+    if (instr.i.rs == 0) {
+        | mov rax, ext_imm
+        | mov64 [dest], rax
+    } else {
+        uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
+        | mov64 rax, [src]
+        | add rax, ext_imm
+        | mov64 [dest], rax
+    }
+    return NORMAL;
+}
+
+COMPILER(compile_mips_daddiu) {
+    return compile_mips_daddi(Dst, instr, address);
+}
+
 COMP(mips_andi, NORMAL);
 COMP(mips_lbu, NORMAL);
 COMP(mips_lhu, NORMAL);
@@ -205,7 +240,6 @@ COMP(mips_jal, BRANCH);
 COMP(mips_slti, NORMAL);
 COMP(mips_sltiu, NORMAL);
 COMP(mips_xori, NORMAL);
-COMP(mips_daddiu, NORMAL);
 COMP(mips_lb, NORMAL);
 COMP(mips_lui, NORMAL);
 COMP(mips_ld, NORMAL);
