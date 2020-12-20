@@ -234,10 +234,43 @@ COMPILER(compile_mips_andi) {
     return NORMAL;
 }
 
-COMP(mips_ori, NORMAL);
+COMPILER(compile_mips_ori) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_ori\n");
+#endif
+    if (instr.i.rt == 0) {
+        return NORMAL;
+    }
+
+    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
+    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
+
+    | mov64 rax, [src]
+    | or rax, instr.i.immediate
+    | mov64 [dest], rax
+    return NORMAL;
+}
+
 COMP(mips_slti, NORMAL);
 COMP(mips_sltiu, NORMAL);
-COMP(mips_xori, NORMAL);
+
+COMPILER(compile_mips_xori) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_xori\n");
+#endif
+    if (instr.i.rt == 0) {
+        return NORMAL;
+    }
+
+    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
+    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
+
+    | mov64 rax, [src]
+    | xor rax, instr.i.immediate
+    | mov64 [dest], rax
+    return NORMAL;
+}
+
 COMP(mips_spc_sll, NORMAL);
 COMP(mips_spc_srl, NORMAL);
 COMP(mips_spc_sra, NORMAL);
