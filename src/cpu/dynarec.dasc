@@ -137,9 +137,14 @@ INLINE void save_rax(dasm_State** Dst, word address, int r) {
     | mov64 [dst], rax
 }
 
+INLINE void sign_extend_eax_rax(dasm_State** Dst) {
+    | movsxd rax, eax
+}
+
 #define TAKEBRANCH take_branch(Dst, instr, address)
 #define LOADRAX(r) load_rax(Dst, address, r)
 #define SAVERAX(r) save_rax(Dst, address, r)
+#define SEAX sign_extend_eax_rax(Dst)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
 #define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
 #define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
@@ -168,7 +173,7 @@ COMPILER(compile_mips_addi) {
     } else {
         LOADRAX(instr.i.rs);
         | add rax, ext_imm
-        | movsxd rax, eax
+        SEAX;
         SAVERAX(instr.i.rt);
     }
     return NORMAL;
@@ -277,13 +282,10 @@ COMPILER(compile_mips_spc_sll) {
         return NORMAL;
     }
 
-    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.r.rd];
-    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.r.rt];
-
-    | mov64 rax, [src]
+    LOADRAX(instr.r.rt);
     | shl eax, instr.r.sa
-    | movsxd rax, eax
-    | mov64 [dest], rax
+    SEAX;
+    SAVERAX(instr.r.rd);
     return NORMAL;
 }
 
@@ -295,13 +297,9 @@ COMPILER(compile_mips_spc_srl) {
         return NORMAL;
     }
 
-    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.r.rd];
-    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.r.rt];
-
-    | mov64 rax, [src]
+    LOADRAX(instr.r.rt);
     | shr eax, instr.r.sa
-    | movsxd rax, eax
-    | mov64 [dest], rax
+    SAVERAX(instr.r.rd);
     return NORMAL;
 }
 
