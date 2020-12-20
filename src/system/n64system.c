@@ -252,10 +252,14 @@ INLINE int interpreter_system_step(n64_system_t* system) {
 }
 
 // This is used for debugging tools, it's fine for now if timing is a little off.
-void n64_system_step(n64_system_t* system) {
-    r4300i_step(&system->cpu);
-    if (!system->rsp.status.halt) {
-        rsp_step(system);
+void n64_system_step(n64_system_t* system, bool dynarec) {
+    if (dynarec) {
+        jit_system_step(system);
+    } else {
+        r4300i_step(&system->cpu);
+        if (!system->rsp.status.halt) {
+            rsp_step(system);
+        }
     }
 }
 

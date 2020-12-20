@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 
     int steps = 0;
     for (; steps < MAX_STEPS && !test_complete(system); steps++) {
-        n64_system_step(system);
+        n64_system_step(system, true);
     }
 
     if (!test_complete(system)) {

@@ -119,7 +119,7 @@ void n64_debug_stop(n64_system_t* system) {
 void n64_debug_step(n64_system_t* system) {
     bool old_broken = system->debugger_state.broken;
     system->debugger_state.broken = false;
-    n64_system_step(system);
+    n64_system_step(system, false);
     system->debugger_state.broken = old_broken;
     system->debugger_state.steps += 2;
 }
