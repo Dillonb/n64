@@ -148,16 +148,14 @@ INLINE void sign_extend_eax_rax(dasm_State** Dst) {
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
 #define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
 #define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
+#define BAILZERO(v) do { if ((v) == 0) { return NORMAL; } } while (0)
 
 COMPILER(compile_mips_nop) {
     return NORMAL;
 }
 
 COMPILER(compile_mips_addi) {
-    if (instr.i.rt == 0) {
-        return NORMAL;
-    }
-
+    BAILZERO(instr.i.rt);
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
     // This is actually a load-immediate
@@ -193,9 +191,7 @@ COMPILER(compile_mips_cache) {
 }
 
 COMPILER(compile_mips_daddi) {
-    if (instr.i.rt == 0) {
-        return NORMAL;
-    }
+    BAILZERO(instr.i.rt);
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
     // This is actually a load-immediate
@@ -215,10 +211,7 @@ COMPILER(compile_mips_daddiu) {
 }
 
 COMPILER(compile_mips_andi) {
-    if (instr.i.rt == 0) {
-        return NORMAL;
-    }
-
+    BAILZERO(instr.i.rt);
     LOADRAX(instr.i.rs);
     | and rax, instr.i.immediate
     SAVERAX(instr.i.rt);
@@ -226,10 +219,7 @@ COMPILER(compile_mips_andi) {
 }
 
 COMPILER(compile_mips_ori) {
-    if (instr.i.rt == 0) {
-        return NORMAL;
-    }
-
+    BAILZERO(instr.i.rt);
     LOADRAX(instr.i.rs);
     | or rax, instr.i.immediate
     SAVERAX(instr.i.rt);
@@ -240,10 +230,7 @@ COMP(mips_slti, NORMAL);
 COMP(mips_sltiu, NORMAL);
 
 COMPILER(compile_mips_xori) {
-    if (instr.i.rt == 0) {
-        return NORMAL;
-    }
-
+    BAILZERO(instr.i.rt);
     LOADRAX(instr.i.rs);
     | xor rax, instr.i.immediate
     SAVERAX(instr.i.rt);
@@ -251,10 +238,7 @@ COMPILER(compile_mips_xori) {
 }
 
 COMPILER(compile_mips_spc_sll) {
-    if (instr.r.rd == 0) {
-        return NORMAL;
-    }
-
+    BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rt);
     | shl eax, instr.r.sa
     SEAX;
@@ -263,10 +247,7 @@ COMPILER(compile_mips_spc_sll) {
 }
 
 COMPILER(compile_mips_spc_srl) {
-    if (instr.r.rd == 0) {
-        return NORMAL;
-    }
-
+    BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rt);
     | shr eax, instr.r.sa
     SAVERAX(instr.r.rd);
@@ -274,10 +255,7 @@ COMPILER(compile_mips_spc_srl) {
 }
 
 COMPILER(compile_mips_spc_sra) {
-    if (instr.r.rd == 0) {
-        return NORMAL;
-    }
-
+    BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rt);
     | sar eax, instr.r.sa
     SEAX;
