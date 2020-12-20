@@ -217,7 +217,23 @@ COMPILER(compile_mips_daddiu) {
     return compile_mips_daddi(Dst, instr, address);
 }
 
-COMP(mips_andi, NORMAL);
+COMPILER(compile_mips_andi) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_andi\n");
+#endif
+    if (instr.i.rt == 0) {
+        return NORMAL;
+    }
+
+    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
+    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
+
+    | mov64 rax, [src]
+    | and rax, instr.i.immediate
+    | mov64 [dest], rax
+    return NORMAL;
+}
+
 COMP(mips_lbu, NORMAL);
 COMP(mips_lhu, NORMAL);
 COMP(mips_lh, NORMAL);
