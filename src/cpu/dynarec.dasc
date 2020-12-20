@@ -271,8 +271,42 @@ COMPILER(compile_mips_xori) {
     return NORMAL;
 }
 
-COMP(mips_spc_sll, NORMAL);
-COMP(mips_spc_srl, NORMAL);
+COMPILER(compile_mips_spc_sll) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_sll\n");
+#endif
+    if (instr.r.rd == 0) {
+        return NORMAL;
+    }
+
+    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.r.rd];
+    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.r.rt];
+
+    | mov64 rax, [src]
+    | shl eax, instr.r.sa
+    | movsxd rax, eax
+    | mov64 [dest], rax
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_srl) {
+#ifdef N64_LOG_COMPILATIONS
+    printf("Compiling mips_spc_srl\n");
+#endif
+    if (instr.r.rd == 0) {
+        return NORMAL;
+    }
+
+    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.r.rd];
+    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.r.rt];
+
+    | mov64 rax, [src]
+    | shr eax, instr.r.sa
+    | movsxd rax, eax
+    | mov64 [dest], rax
+    return NORMAL;
+}
+
 COMP(mips_spc_sra, NORMAL);
 COMP(mips_spc_srav, NORMAL);
 COMP(mips_spc_sllv, NORMAL);
