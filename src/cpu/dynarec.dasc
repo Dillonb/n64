@@ -127,8 +127,19 @@ INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address
     | mov cpu_state->branch, al
 }
 
-#define TAKEBRANCH take_branch(Dst, instr, address)
+INLINE void load_rax(dasm_State** Dst, word address, int r) {
+    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[r];
+    | mov64 rax, [src]
+}
 
+INLINE void save_rax(dasm_State** Dst, word address, int r) {
+    uintptr_t dst = (uintptr_t) &global_system->cpu.gpr[r];
+    | mov64 [dst], rax
+}
+
+#define TAKEBRANCH take_branch(Dst, instr, address)
+#define LOADRAX(r) load_rax(Dst, address, r)
+#define SAVERAX(r) save_rax(Dst, address, r)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
 #define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
 #define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
@@ -148,19 +159,17 @@ COMPILER(compile_mips_addi) {
         return NORMAL;
     }
 
-    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
     // This is actually a load-immediate
     if (instr.i.rs == 0) {
         | mov rax, ext_imm
-        | mov64 [dest], rax
+        SAVERAX(instr.i.rt);
     } else {
-        uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
-        | mov64 rax, [src]
+        LOADRAX(instr.i.rs);
         | add rax, ext_imm
         | movsxd rax, eax
-        | mov64 [dest], rax
+        SAVERAX(instr.i.rt);
     }
     return NORMAL;
 }
@@ -197,18 +206,16 @@ COMPILER(compile_mips_daddi) {
     if (instr.i.rt == 0) {
         return NORMAL;
     }
-    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
     // This is actually a load-immediate
     if (instr.i.rs == 0) {
         | mov rax, ext_imm
-        | mov64 [dest], rax
+        SAVERAX(instr.i.rt);
     } else {
-        uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
-        | mov64 rax, [src]
+        LOADRAX(instr.i.rs);
         | add rax, ext_imm
-        | mov64 [dest], rax
+        SAVERAX(instr.i.rt);
     }
     return NORMAL;
 }
@@ -225,12 +232,9 @@ COMPILER(compile_mips_andi) {
         return NORMAL;
     }
 
-    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
-    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
-
-    | mov64 rax, [src]
+    LOADRAX(instr.i.rs);
     | and rax, instr.i.immediate
-    | mov64 [dest], rax
+    SAVERAX(instr.i.rt);
     return NORMAL;
 }
 
@@ -242,12 +246,9 @@ COMPILER(compile_mips_ori) {
         return NORMAL;
     }
 
-    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
-    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
-
-    | mov64 rax, [src]
+    LOADRAX(instr.i.rs);
     | or rax, instr.i.immediate
-    | mov64 [dest], rax
+    SAVERAX(instr.i.rt);
     return NORMAL;
 }
 
@@ -262,12 +263,9 @@ COMPILER(compile_mips_xori) {
         return NORMAL;
     }
 
-    uintptr_t dest = (uintptr_t) &global_system->cpu.gpr[instr.i.rt];
-    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[instr.i.rs];
-
-    | mov64 rax, [src]
+    LOADRAX(instr.i.rs);
     | xor rax, instr.i.immediate
-    | mov64 [dest], rax
+    SAVERAX(instr.i.rt);
     return NORMAL;
 }
 
