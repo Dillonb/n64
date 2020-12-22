@@ -187,13 +187,9 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 INLINE int jit_system_step(n64_system_t* system) {
     r4300i_t* cpu = &system->cpu;
     cpu->cp0.count += CYCLES_PER_INSTR;
-    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
-        cpu->cp0.cause.ip7 = true;
-        loginfo("Compare interrupt!");
-        r4300i_interrupt_update(cpu);
-    }
 
     /* Commented out for now since the game never actually reads cp0.random
+     * TODO: when a game does, consider generating a random number rather than updating this every cycle
     if (cpu->cp0.random <= cpu->cp0.wired) {
         cpu->cp0.random = 31;
     } else {
@@ -210,6 +206,16 @@ INLINE int jit_system_step(n64_system_t* system) {
     }
     static int cpu_steps = 0;
     int taken = n64_dynarec_step(system, system->dynarec);
+    {
+        uint64_t oldcount = cpu->cp0.count >> 1;
+        uint64_t newcount = (cpu->cp0.count + (taken * CYCLES_PER_INSTR)) >> 1;
+        if (unlikely(oldcount < cpu->cp0.compare && newcount >= cpu->cp0.compare)) {
+            cpu->cp0.cause.ip7 = true;
+            loginfo("Compare interrupt!");
+            r4300i_interrupt_update(cpu);
+        }
+        cpu->cp0.count += taken;
+    }
     cpu_steps += taken;
 
     if (!system->rsp.status.halt) {
