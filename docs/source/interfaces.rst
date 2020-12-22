@@ -35,7 +35,7 @@ Writes with "set" bits high will set the bits in the actual register to high. Wr
 
 Writes with "clear" bits high will clear the bits in the actual register. Writes with "clear" bits low will have no effect.
 
-If both the "set" and "clear" bits are high, the value is cleared (?? I think ??)
+If both the "set" and "clear" bits are high, the value is set (?? I think ??)
 
 Reads
 ^^^^^
@@ -72,6 +72,8 @@ This register can be mocked as returning 0x01010101 always (returning 0x01 for e
 0x0430008 - MI_INTR_REG (Read only)
 -----------------------------------
 
+Bits in this register are raised and lowered as interrupts are raised and lowered by other parts of the system.
+
 +-----+----------------------------------------------------------------------------------------------------------------------------+
 | Bit | Explanation                                                                                                                |
 +=====+============================================================================================================================+
@@ -88,10 +90,62 @@ This register can be mocked as returning 0x01010101 always (returning 0x01 for e
 | 5   | DP Interrupt - Set by the RDP, when a full sync completes.                                                                 |
 +-----+----------------------------------------------------------------------------------------------------------------------------+
 
-0x043000C - MI_INTR_MASK_REG
-----------------------------
+0x043000C - MI_INTR_MASK_REG (Read / Write)
+-------------------------------------------
 
-TODO
+This register sets up a mask. If (MI_INTR_REG & MI_INTR_MASK_REG) != 0, then a MIPS interrupt is raised.
+
+Writes
+^^^^^^
+
++-----+---------------+
+| Bit | Explanation   |
++=====+===============+
+| 0   | Clear SP Mask |
++-----+---------------+
+| 1   | Set SP Mask   |
++-----+---------------+
+| 2   | Clear SI Mask |
++-----+---------------+
+| 3   | Set SI Mask   |
++-----+---------------+
+| 4   | Clear AI Mask |
++-----+---------------+
+| 5   | Set AI Mask   |
++-----+---------------+
+| 6   | Clear VI Mask |
++-----+---------------+
+| 7   | Set VI Mask   |
++-----+---------------+
+| 8   | Clear PI Mask |
++-----+---------------+
+| 9   | Set PI Mask   |
++-----+---------------+
+| 10  | Clear DP Mask |
++-----+---------------+
+| 11  | Set DP Mask   |
++-----+---------------+
+
+See MI_MODE_REG for an explanation on set/clear bits.
+
+Reads
+^^^^^
+
++-----+---------------+
+| Bit | Explanation   |
++=====+===============+
+| 0   | SP Mask       |
++-----+---------------+
+| 1   | SI Mask       |
++-----+---------------+
+| 2   | AI Mask       |
++-----+---------------+
+| 3   | VI Mask       |
++-----+---------------+
+| 4   | PI Mask       |
++-----+---------------+
+| 5   | DP Mask       |
++-----+---------------+
 
 Video Interface
 ===============
