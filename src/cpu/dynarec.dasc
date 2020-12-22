@@ -276,6 +276,7 @@ COMP(mips_spc_mult, NORMAL);
 COMP(mips_spc_multu, NORMAL);
 COMP(mips_spc_div, NORMAL);
 COMP(mips_spc_divu, NORMAL);
+COMP(mips_spc_dmult, NORMAL);
 COMP(mips_spc_dmultu, NORMAL);
 COMP(mips_spc_ddiv, NORMAL);
 COMP(mips_spc_ddivu, NORMAL);
@@ -294,6 +295,7 @@ COMP(mips_spc_daddu, NORMAL);
 COMP(mips_spc_dsubu, NORMAL);
 COMP(mips_spc_dsll, NORMAL);
 COMP(mips_spc_dsrl, NORMAL);
+COMP(mips_spc_dsra, NORMAL);
 COMP(mips_spc_dsll32, NORMAL);
 COMP(mips_spc_dsrl32, NORMAL);
 COMP(mips_spc_dsra32, NORMAL);
@@ -336,6 +338,7 @@ COMP(mips_j, BRANCH);
 COMP(mips_jal, BRANCH);
 COMP(mips_ri_bltz, BRANCH);
 COMP(mips_ri_bltzl, BRANCH_LIKELY);
+COMP(mips_ri_bltzal, BRANCH);
 COMP(mips_ri_bgez, BRANCH);
 COMP(mips_ri_bgezl, BRANCH_LIKELY);
 COMP(mips_ri_bgezal, BRANCH);
@@ -453,6 +456,7 @@ INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** D
         case FUNCT_MULTU:  return compile_mips_spc_multu(Dst, instr, address);
         case FUNCT_DIV:    return compile_mips_spc_div(Dst, instr, address);
         case FUNCT_DIVU:   return compile_mips_spc_divu(Dst, instr, address);
+        case FUNCT_DMULT:  return compile_mips_spc_dmult(Dst, instr, address);
         case FUNCT_DMULTU: return compile_mips_spc_dmultu(Dst, instr, address);
         case FUNCT_DDIV:   return compile_mips_spc_ddiv(Dst, instr, address);
         case FUNCT_DDIVU:  return compile_mips_spc_ddivu(Dst, instr, address);
@@ -471,6 +475,7 @@ INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** D
         case FUNCT_DSUBU:  return compile_mips_spc_dsubu(Dst, instr, address);
         case FUNCT_DSLL:   return compile_mips_spc_dsll(Dst, instr, address);
         case FUNCT_DSRL:   return compile_mips_spc_dsrl(Dst, instr, address);
+        case FUNCT_DSRA:   return compile_mips_spc_dsra(Dst, instr, address);
         case FUNCT_DSLL32: return compile_mips_spc_dsll32(Dst, instr, address);
         case FUNCT_DSRL32: return compile_mips_spc_dsrl32(Dst, instr, address);
         case FUNCT_DSRA32: return compile_mips_spc_dsra32(Dst, instr, address);
@@ -487,6 +492,7 @@ INLINE dynarec_instruction_category_t compile_regimm_instruction(dasm_State** Ds
     switch (instr.i.rt) {
         case RT_BLTZ:   return compile_mips_ri_bltz(Dst, instr, address);
         case RT_BLTZL:  return compile_mips_ri_bltzl(Dst, instr, address);
+        case RT_BLTZAL: return compile_mips_ri_bltzal(Dst, instr, address);
         case RT_BGEZ:   return compile_mips_ri_bgez(Dst, instr, address);
         case RT_BGEZL:  return compile_mips_ri_bgezl(Dst, instr, address);
         case RT_BGEZAL: return compile_mips_ri_bgezal(Dst, instr, address);
