@@ -58,6 +58,23 @@ typedef struct rsp_icache_entry {
     rspinstr_handler_t handler;
 } rsp_icache_entry_t;
 
+typedef union mem_addr {
+    word raw;
+    struct {
+        unsigned address:12;
+        bool imem:1;
+        unsigned:19;
+    };
+} mem_addr_t;
+
+typedef union dram_addr {
+    word raw;
+    struct {
+        unsigned address:24;
+        unsigned:8;
+    };
+} dram_addr_t;
+
 typedef struct rsp {
     word gpr[32];
     half prev_pc;
@@ -73,21 +90,12 @@ typedef struct rsp {
     rsp_status_t status;
 
     struct {
-        union {
-            word raw;
-            struct {
-                unsigned address:12;
-                bool imem:1;
-                unsigned:19;
-            };
-        } mem_addr;
-        union {
-            word raw;
-            struct {
-                unsigned address:24;
-                unsigned:8;
-            };
-        } dram_addr;
+        mem_addr_t mem_addr;
+        dram_addr_t dram_addr;
+
+        // values are stored in shadow registers until the DMA actually runs
+        mem_addr_t shadow_mem_addr;
+        dram_addr_t shadow_dmem_addr;
         union {
             struct {
                 unsigned length: 12;

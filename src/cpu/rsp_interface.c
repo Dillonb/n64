@@ -87,10 +87,10 @@ word read_word_spreg(n64_system_t* system, word address) {
 void write_word_spreg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_SP_MEM_ADDR_REG:
-            system->rsp.io.mem_addr.raw = value;
+            system->rsp.io.shadow_mem_addr.raw = value;
             break;
         case ADDR_SP_DRAM_ADDR_REG:
-            system->rsp.io.dram_addr.raw = value;
+            system->rsp.io.shadow_dmem_addr.raw = value;
             break;
         case ADDR_SP_RD_LEN_REG: {
             system->rsp.io.dma.raw = value;
