@@ -164,6 +164,9 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
     rsp->io.dram_addr.address = dram_address;
     rsp->io.mem_addr.address = mem_address;
     rsp->io.mem_addr.imem = mem_addr.imem;
+
+    // Hardware seems to always return this value in the length register
+    rsp->io.dma.raw = 0xFF8;
 }
 
 INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
