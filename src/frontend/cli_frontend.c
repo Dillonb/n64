@@ -66,6 +66,7 @@ int main(int argc, char** argv) {
         printf("Listening on 0.0.0.0:%d - Waiting for GDB to connect...\n", GDB_CPU_PORT);
         system->debugger_state.broken = true;
     }
+    cflags_free(flags);
     n64_system_loop(system);
     n64_system_cleanup(system);
 }

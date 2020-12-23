@@ -310,6 +310,10 @@ void n64_system_loop(n64_system_t* system) {
 
 void n64_system_cleanup(n64_system_t* system) {
     rdp_cleanup();
+    if (system->dynarec != NULL) {
+        free(system->dynarec);
+        system->dynarec = NULL;
+    }
     debugger_cleanup(system);
 
     free(system->mem.rom.rom);
