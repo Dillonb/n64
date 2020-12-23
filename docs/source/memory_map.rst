@@ -7,7 +7,7 @@ Virtual Memory Map
 **ALL** memory accesses made by the main CPU, both instruction fetches and through load/store instructions, use virtual addresses. These addresses are translated to physical addresses by the Memory Management Unit (MMU) before they are actually used to access hardware.
 
 +--------------+------------+-------+--------------------------------------------+
-| Start        | End        | Name  | Description                                |
+| Address Range             | Name  | Description                                |
 +==============+============+=======+============================================+
 | 0x00000000   | 0x7FFFFFFF | KUSEG | User segment. TLB mapped                   |
 +--------------+------------+-------+--------------------------------------------+
@@ -34,7 +34,7 @@ Physical Memory Map
 -------------------
 
 +-------------------------+------------------------------+---------------------------------------------------------------+
-| Start      | End        | Name                         | Description                                                   |
+| Address Range           | Name                         | Description                                                   |
 +============+============+==============================+===============================================================+
 | 0x00000000 | 0x003FFFFF | RDRAM                        | RDRAM - built in                                              |
 +------------+------------+------------------------------+---------------------------------------------------------------+
