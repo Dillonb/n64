@@ -65,6 +65,14 @@ void rsp_status_reg_write(n64_system_t* system, word value) {
 
 word read_word_spreg(n64_system_t* system, word address) {
     switch (address) {
+        case ADDR_SP_MEM_ADDR_REG:
+            return system->rsp.io.mem_addr.raw;
+        case ADDR_SP_DRAM_ADDR_REG:
+            return system->rsp.io.dram_addr.raw;
+        case ADDR_SP_RD_LEN_REG:
+            return system->rsp.io.dma.raw;
+        case ADDR_SP_WR_LEN_REG:
+            return system->rsp.io.dma.raw;
         case ADDR_SP_PC_REG:
             return system->rsp.pc;
         case ADDR_SP_STATUS_REG:
@@ -85,12 +93,12 @@ void write_word_spreg(n64_system_t* system, word address, word value) {
             system->rsp.io.dram_addr.raw = value;
             break;
         case ADDR_SP_RD_LEN_REG: {
-            system->rsp.io.dma_read.raw = value;
+            system->rsp.io.dma.raw = value;
             rsp_dma_read(&system->rsp);
             break;
         }
         case ADDR_SP_WR_LEN_REG: {
-            system->rsp.io.dma_write.raw = value;
+            system->rsp.io.dma.raw = value;
             rsp_dma_write(&system->rsp);
             break;
         }

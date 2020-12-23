@@ -95,15 +95,7 @@ typedef struct rsp {
                 unsigned skip: 12;
             };
             word raw;
-        } dma_read;
-        union {
-            struct {
-                unsigned length: 12;
-                unsigned count: 8;
-                unsigned skip: 12;
-            };
-            word raw;
-        } dma_write;
+        } dma;
     } io;
 
     rsp_icache_entry_t icache[0x1000 / 4];

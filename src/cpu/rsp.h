@@ -89,7 +89,7 @@
 #define FUNCT_RSP_VEC_VXOR  0b101100
 
 INLINE void rsp_dma_read(rsp_t* rsp) {
-    word length = rsp->io.dma_read.length + 1;
+    word length = rsp->io.dma.length + 1;
 
     length = (length + 0x7) & ~0x7;
 
@@ -106,14 +106,14 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
         logfatal("Misaligned MEM RSP DMA READ!");
     }
 
-    for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
+    for (int i = 0; i < rsp->io.dma.count + 1; i++) {
         word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
         for (int j = 0; j < length; j += 4) {
             word val = rsp->read_physical_word(dram_address + j);
             rsp->write_physical_word(mem_addr + j, val);
         }
 
-        dram_address += length + rsp->io.dma_read.skip;
+        dram_address += length + rsp->io.dma.skip;
         mem_address += length;
     }
 
@@ -122,7 +122,7 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
 }
 
 INLINE void rsp_dma_write(rsp_t* rsp) {
-    word length = rsp->io.dma_write.length + 1;
+    word length = rsp->io.dma.length + 1;
 
     length = (length + 0x7) & ~0x7;
 
@@ -139,14 +139,14 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
         logfatal("Misaligned MEM RSP DMA WRITE!");
     }
 
-    for (int i = 0; i < rsp->io.dma_write.count + 1; i++) {
+    for (int i = 0; i < rsp->io.dma.count + 1; i++) {
         word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
         for (int j = 0; j < length; j += 4) {
             word val = rsp->read_physical_word(mem_addr + j);
             rsp->write_physical_word(dram_address + j, val);
         }
 
-        dram_address += length + rsp->io.dma_write.skip;
+        dram_address += length + rsp->io.dma.skip;
         mem_address += length;
     }
 
@@ -214,11 +214,11 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
         case RSP_CP0_DMA_CACHE: system->rsp.io.mem_addr.raw = value; break;
         case RSP_CP0_DMA_DRAM:  system->rsp.io.dram_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
-            system->rsp.io.dma_read.raw = value;
+            system->rsp.io.dma.raw = value;
             rsp_dma_read(&system->rsp);
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            system->rsp.io.dma_write.raw = value;
+            system->rsp.io.dma.raw = value;
             rsp_dma_write(&system->rsp);
             break;
         case RSP_CP0_SP_STATUS:
