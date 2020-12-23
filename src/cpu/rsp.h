@@ -104,9 +104,9 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
     if (dram_address != dram_addr_reg.address) {
         logwarn("Misaligned DRAM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", dram_addr_reg.address, dram_address);
     }
-    word mem_address = mem_addr_reg.address & 0xFFC;
+    word mem_address = mem_addr_reg.address & 0xFF8;
     if (mem_address != mem_addr_reg.address) {
-        logwarn("Misaligned MEM RSP DMA READ!");
+        logwarn("Misaligned MEM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", mem_addr_reg.address, mem_address);
     }
 
     for (int i = 0; i < rsp->io.dma.count + 1; i++) {
@@ -145,7 +145,7 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
     if (dram_address != dram_addr.address) {
         logwarn("Misaligned DRAM RSP DMA WRITE! 0x%08X", dram_addr.address);
     }
-    word mem_address = mem_addr.address & 0xFFC;
+    word mem_address = mem_addr.address & 0xFF8;
     if (mem_address != mem_addr.address) {
         logwarn("Misaligned MEM RSP DMA WRITE! 0x%08X", mem_addr.address);
     }
