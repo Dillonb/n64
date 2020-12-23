@@ -88,6 +88,9 @@
 #define FUNCT_RSP_VEC_VSUBC 0b010101
 #define FUNCT_RSP_VEC_VXOR  0b101100
 
+#define RSP_DRAM_ADDR_MASK 0xFFFFF8
+#define RSP_MEM_ADDR_MASK 0xFF8
+
 INLINE void rsp_dma_read(rsp_t* rsp) {
     word length = rsp->io.dma.length + 1;
 
@@ -100,11 +103,11 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
         logfatal("RSP DMA READ would read off the end of memory!\n");
     }
 
-    word dram_address = dram_addr_reg.address & 0xFFFFF8;
+    word dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
     if (dram_address != dram_addr_reg.address) {
         logwarn("Misaligned DRAM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", dram_addr_reg.address, dram_address);
     }
-    word mem_address = mem_addr_reg.address & 0xFF8;
+    word mem_address = mem_addr_reg.address & RSP_MEM_ADDR_MASK;
     if (mem_address != mem_addr_reg.address) {
         logwarn("Misaligned MEM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", mem_addr_reg.address, mem_address);
     }
@@ -116,7 +119,9 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
             rsp->write_physical_word(full_mem_addr + j, val);
         }
 
-        dram_address += length + rsp->io.dma.skip;
+        int skip = i == rsp->io.dma.count ? 0 : rsp->io.dma.skip;
+
+        dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
         mem_address += length;
     }
 
@@ -126,7 +131,8 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
     rsp->io.mem_addr.imem = mem_addr_reg.imem;
 
     // Hardware seems to always return this value in the length register
-    rsp->io.dma.raw = 0xFF8;
+    // No real idea why
+    rsp->io.dma.raw = 0xFF8 | (rsp->io.dma.skip << 20);
 }
 
 INLINE void rsp_dma_write(rsp_t* rsp) {
@@ -141,11 +147,11 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
         logfatal("RSP DMA WRITE would write off the end of memory!\n");
     }
 
-    word dram_address = dram_addr.address & 0xFFFFF8;
+    word dram_address = dram_addr.address & RSP_DRAM_ADDR_MASK;
     if (dram_address != dram_addr.address) {
         logwarn("Misaligned DRAM RSP DMA WRITE! 0x%08X", dram_addr.address);
     }
-    word mem_address = mem_addr.address & 0xFF8;
+    word mem_address = mem_addr.address & RSP_MEM_ADDR_MASK;
     if (mem_address != mem_addr.address) {
         logwarn("Misaligned MEM RSP DMA WRITE! 0x%08X", mem_addr.address);
     }
@@ -157,7 +163,9 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
             rsp->write_physical_word(dram_address + j, val);
         }
 
-        dram_address += length + rsp->io.dma.skip;
+        int skip = i == rsp->io.dma.count ? 0 : rsp->io.dma.skip;
+
+        dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
         mem_address += length;
     }
 
@@ -166,7 +174,8 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
     rsp->io.mem_addr.imem = mem_addr.imem;
 
     // Hardware seems to always return this value in the length register
-    rsp->io.dma.raw = 0xFF8;
+    // No real idea why
+    rsp->io.dma.raw = 0xFF8 | (rsp->io.dma.skip << 20);
 }
 
 INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
