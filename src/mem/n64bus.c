@@ -681,7 +681,7 @@ INLINE word _n64_read_word(word address) {
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1", address);
+            return sram_read_word(global_system, address - SREGION_CART_2_1);
         case REGION_CART_1_1:
             logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
             return 0;
