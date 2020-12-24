@@ -329,7 +329,6 @@ MIPS_INSTR(mips_cp_mul_d) {
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     double result = fs * ft;
     set_fpu_register_double(cpu, instruction.fr.fd, result);
-    loginfo("mul.d: 0x%08X with fmt %d: %f * %f = %f", instruction.raw, instruction.fr.fmt, fs, ft, result);
 }
 
 MIPS_INSTR(mips_cp_mul_s) {
@@ -338,7 +337,6 @@ MIPS_INSTR(mips_cp_mul_s) {
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     float result = fs * ft;
     set_fpu_register_float(cpu, instruction.fr.fd, result);
-    loginfo("mul.s: 0x%08X with fmt %d: %f * %f = %f", instruction.raw, instruction.fr.fmt, fs, ft, result);
 }
 
 MIPS_INSTR(mips_cp_div_d) {
