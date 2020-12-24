@@ -800,8 +800,12 @@ MIPS_INSTR(mips_ld) {
 }
 
 MIPS_INSTR(mips_lui) {
-    sword immediate = instruction.i.immediate << 16;
-    set_register(cpu, instruction.i.rt, (sdword)immediate);
+    // Done this way to avoid the undefined behavior of left shifting a signed integer
+    // Should compile to a left shift by 16.
+    sdword value = (shalf)instruction.i.immediate;
+    value *= 65536;
+
+    set_register(cpu, instruction.i.rt, value);
 }
 
 MIPS_INSTR(mips_lbu) {
