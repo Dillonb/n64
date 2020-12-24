@@ -764,20 +764,12 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
         CASECOMPILE(OPC_LDR, compile_mips_ldr);
         CASECOMPILE(OPC_SDL, compile_mips_sdl);
         CASECOMPILE(OPC_SDR, compile_mips_sdr);
-        default:
-#ifdef LOG_ENABLED
-        {
+        default: {
             char buf[50];
-            if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
-                disassemble(address, instr.raw, buf, 50);
-            }
+            disassemble(address, instr.raw, buf, 50);
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                      instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
         }
-#else
-            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d]",
-                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
-#endif
     }
 }
 
@@ -990,10 +982,8 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
 
     n64_dynarec_block_t* block = &block_list[inner_index];
 
-#ifdef N64_LOG_BLOCK_RUNS
-    static int total_blocks_run = 0;
-    printf("Running block at 0x%08X (block run #%d)\n", system->cpu.pc, ++total_blocks_run);
-#endif
+    static long total_blocks_run;
+    logdebug("Running block at 0x%08X - block run #%ld - block FP: 0x%016lX", system->cpu.pc, ++total_blocks_run, (uintptr_t)block->run);
     int taken = block->run(&system->cpu);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, system->cpu.pc);
@@ -1005,9 +995,7 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     }
     printf("\n");
 #endif
-#ifdef N64_LOG_BLOCK_RUNS
-    printf("Done running block - pc is now 0x%08X\n", system->cpu.pc);
-#endif
+    logdebug("Done running block - took %d cycles - pc is now 0x%08X", taken, system->cpu.pc);
 
     return taken * CYCLES_PER_INSTR;
 }
