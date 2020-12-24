@@ -352,6 +352,7 @@ COMP(mips_mfc0, NORMAL);
 COMP(mips_mtc0, NORMAL);
 COMP(mips_tlbwi, TLB_WRITE);
 COMP(mips_tlbp, NORMAL);
+COMP(mips_tlbr, NORMAL);
 COMP(mips_eret, ERET);
 
 
@@ -422,8 +423,7 @@ dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_in
             case COP_FUNCT_TLBP:
                 return compile_mips_tlbp(Dst, instr, address);
             case COP_FUNCT_TLBR_SUB:
-                logfatal("tlbr");
-                //return compile_mips_tlbr(Dst, instr, address);
+                return compile_mips_tlbr(Dst, instr, address);
             case COP_FUNCT_ERET:
                 return compile_mips_eret(Dst, instr, address);
             default: {
