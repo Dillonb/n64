@@ -81,5 +81,7 @@ void audio_push_sample(shalf left, shalf right) {
             right
     };
 
-    SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+    if (SDL_AudioStreamAvailable(audio_stream) < (AUDIO_SAMPLE_RATE / 2)) {
+        SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+    }
 }
