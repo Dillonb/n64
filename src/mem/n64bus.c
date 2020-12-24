@@ -10,6 +10,7 @@
 #include "addresses.h"
 #include "pif.h"
 #include "mem_util.h"
+#include "backup.h"
 
 word get_vpn(word address, word page_mask_raw) {
     word tmp = page_mask_raw | 0x1FFF;
@@ -618,7 +619,7 @@ void n64_write_word(n64_system_t* system, word address, word value) {
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
             return;
         case REGION_CART_2_2:
-            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+            sram_write_word(system, address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
@@ -684,8 +685,7 @@ INLINE word _n64_read_word(word address) {
             logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1", address);
             return 0;
         case REGION_CART_2_2:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_2", address);
-            return 0;
+            return sram_read_word(global_system, address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
             if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
@@ -912,8 +912,7 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
         case REGION_CART_1_1:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
         case REGION_CART_2_2:
-            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
-            return;
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
         case REGION_CART_1_2:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
         case REGION_PIF_BOOT:
@@ -972,8 +971,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_1_1:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1", address);
         case REGION_CART_2_2:
-            logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_2", address);
-            return 0;
+            return sram_read_byte(system, address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size) {
@@ -981,7 +979,6 @@ byte n64_read_byte(n64_system_t* system, word address) {
             }
             return system->mem.rom.rom[index];
         }
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_2", address);
         case REGION_PIF_BOOT:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
         case REGION_PIF_RAM:
