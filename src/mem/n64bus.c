@@ -689,7 +689,8 @@ INLINE word _n64_read_word(word address) {
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
             if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+                return 0;
             } else {
                 return word_from_byte_array(global_system->mem.rom.rom, index);
             }
