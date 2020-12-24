@@ -325,22 +325,22 @@ void cpu_step(r4300i_t* cpu) {
     cpu->exception = false; // only used in dynarec
 }
 
-int run_system_check_interrupt(n64_system_t* system) {
+void update_count(n64_system_t* system, int taken) {
     r4300i_t* cpu = &system->cpu;
-    cpu->cp0.count += CYCLES_PER_INSTR;
-    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
+
+    uint64_t oldcount = cpu->cp0.count >> 1;
+    uint64_t newcount = (cpu->cp0.count + (taken * CYCLES_PER_INSTR)) >> 1;
+    if (unlikely(oldcount < cpu->cp0.compare && newcount >= cpu->cp0.compare)) {
         cpu->cp0.cause.ip7 = true;
         loginfo("Compare interrupt!");
         r4300i_interrupt_update(cpu);
     }
+    cpu->cp0.count += taken;
 
-    /* Commented out for now since the game never actually reads cp0.random
-    if (cpu->cp0.random <= cpu->cp0.wired) {
-        cpu->cp0.random = 31;
-    } else {
-        cpu->cp0.random--;
-    }
-     */
+}
+
+int run_system_check_interrupt(n64_system_t* system) {
+    r4300i_t* cpu = &system->cpu;
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
@@ -399,6 +399,7 @@ int run_system_and_check(n64_system_t* system, long taken, char* line, long line
         cpu_steps = 0;
     }
 
+    update_count(system, taken);
     return taken;
 }
 
