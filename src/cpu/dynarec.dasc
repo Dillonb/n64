@@ -146,9 +146,11 @@ INLINE void sign_extend_eax_rax(dasm_State** Dst) {
 #define SAVERAX(r) save_rax(Dst, address, r)
 #define SEAX sign_extend_eax_rax(Dst)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
-#define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address)
+#define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles)
 #define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
 #define BAILZERO(v) do { if ((v) == 0) { return NORMAL; } } while (0)
+#define CALL_COMPILER(compiler) compiler(Dst, instr, address, extra_cycles)
+#define CASECOMPILE(pattern, compiler) case pattern: return CALL_COMPILER(compiler)
 
 COMPILER(compile_mips_nop) {
     return NORMAL;
@@ -172,12 +174,16 @@ COMPILER(compile_mips_addi) {
 }
 
 COMPILER(compile_mips_addiu) {
-    return compile_mips_addi(Dst, instr, address);
+    return CALL_COMPILER(compile_mips_addi);
 }
 
-COMPILER(compile_mips_beq) {
+dynarec_instruction_category_t compile_mips_beq(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles) {
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
+        // This is a branch-to-self, make it take extra cycles
+        if (instr.i.immediate == 0xFFFF) {
+            *extra_cycles = 63; // for a total of 64
+        }
         TAKEBRANCH;
     } else {
         // handle normally
@@ -207,7 +213,7 @@ COMPILER(compile_mips_daddi) {
 }
 
 COMPILER(compile_mips_daddiu) {
-    return compile_mips_daddi(Dst, instr, address);
+    return CALL_COMPILER(compile_mips_daddi);
 }
 
 COMPILER(compile_mips_andi) {
@@ -402,13 +408,12 @@ COMP(mips_cp_c_lt_s, NORMAL);
 COMP(mips_cp_c_le_d, NORMAL);
 COMP(mips_cp_c_le_s, NORMAL);
 
-dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
-            case COP_MF:
-                return compile_mips_mfc0(Dst, instr, address);
-            case COP_MT: // Last 11 bits are 0
-                return compile_mips_mtc0(Dst, instr, address);
+            CASECOMPILE(COP_MF, compile_mips_mfc0);
+            // Last 11 bits are 0
+            CASECOMPILE(COP_MT, compile_mips_mtc0);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);
@@ -418,14 +423,10 @@ dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_in
         }
     } else {
         switch (instr.fr.funct) {
-            case COP_FUNCT_TLBWI_MULT:
-                return compile_mips_tlbwi(Dst, instr, address);
-            case COP_FUNCT_TLBP:
-                return compile_mips_tlbp(Dst, instr, address);
-            case COP_FUNCT_TLBR_SUB:
-                return compile_mips_tlbr(Dst, instr, address);
-            case COP_FUNCT_ERET:
-                return compile_mips_eret(Dst, instr, address);
+            CASECOMPILE(COP_FUNCT_TLBWI_MULT, compile_mips_tlbwi);
+            CASECOMPILE(COP_FUNCT_TLBP,       compile_mips_tlbp);
+            CASECOMPILE(COP_FUNCT_TLBR_SUB,   compile_mips_tlbr);
+            CASECOMPILE(COP_FUNCT_ERET,       compile_mips_eret);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);
@@ -436,49 +437,49 @@ dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_in
     }
 }
 
-INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+INLINE COMPILER(compile_special_instruction) {
     switch (instr.r.funct) {
-        case FUNCT_SLL:    return compile_mips_spc_sll(Dst, instr, address);
-        case FUNCT_SRL:    return compile_mips_spc_srl(Dst, instr, address);
-        case FUNCT_SRA:    return compile_mips_spc_sra(Dst, instr, address);
-        case FUNCT_SRAV:   return compile_mips_spc_srav(Dst, instr, address);
-        case FUNCT_SLLV:   return compile_mips_spc_sllv(Dst, instr, address);
-        case FUNCT_SRLV:   return compile_mips_spc_srlv(Dst, instr, address);
-        case FUNCT_JR:     return compile_mips_spc_jr(Dst, instr, address);
-        case FUNCT_JALR:   return compile_mips_spc_jalr(Dst, instr, address);
-        case FUNCT_MFHI:   return compile_mips_spc_mfhi(Dst, instr, address);
-        case FUNCT_MTHI:   return compile_mips_spc_mthi(Dst, instr, address);
-        case FUNCT_MFLO:   return compile_mips_spc_mflo(Dst, instr, address);
-        case FUNCT_MTLO:   return compile_mips_spc_mtlo(Dst, instr, address);
-        case FUNCT_DSLLV:  return compile_mips_spc_dsllv(Dst, instr, address);
-        case FUNCT_DSRLV:  return compile_mips_spc_dsrlv(Dst, instr, address);
-        case FUNCT_MULT:   return compile_mips_spc_mult(Dst, instr, address);
-        case FUNCT_MULTU:  return compile_mips_spc_multu(Dst, instr, address);
-        case FUNCT_DIV:    return compile_mips_spc_div(Dst, instr, address);
-        case FUNCT_DIVU:   return compile_mips_spc_divu(Dst, instr, address);
-        case FUNCT_DMULT:  return compile_mips_spc_dmult(Dst, instr, address);
-        case FUNCT_DMULTU: return compile_mips_spc_dmultu(Dst, instr, address);
-        case FUNCT_DDIV:   return compile_mips_spc_ddiv(Dst, instr, address);
-        case FUNCT_DDIVU:  return compile_mips_spc_ddivu(Dst, instr, address);
-        case FUNCT_ADD:    return compile_mips_spc_add(Dst, instr, address);
-        case FUNCT_ADDU:   return compile_mips_spc_addu(Dst, instr, address);
-        case FUNCT_AND:    return compile_mips_spc_and(Dst, instr, address);
-        case FUNCT_NOR:    return compile_mips_spc_nor(Dst, instr, address);
-        case FUNCT_SUB:    return compile_mips_spc_sub(Dst, instr, address);
-        case FUNCT_SUBU:   return compile_mips_spc_subu(Dst, instr, address);
-        case FUNCT_OR:     return compile_mips_spc_or(Dst, instr, address);
-        case FUNCT_XOR:    return compile_mips_spc_xor(Dst, instr, address);
-        case FUNCT_SLT:    return compile_mips_spc_slt(Dst, instr, address);
-        case FUNCT_SLTU:   return compile_mips_spc_sltu(Dst, instr, address);
-        case FUNCT_DADD:   return compile_mips_spc_dadd(Dst, instr, address);
-        case FUNCT_DADDU:  return compile_mips_spc_daddu(Dst, instr, address);
-        case FUNCT_DSUBU:  return compile_mips_spc_dsubu(Dst, instr, address);
-        case FUNCT_DSLL:   return compile_mips_spc_dsll(Dst, instr, address);
-        case FUNCT_DSRL:   return compile_mips_spc_dsrl(Dst, instr, address);
-        case FUNCT_DSRA:   return compile_mips_spc_dsra(Dst, instr, address);
-        case FUNCT_DSLL32: return compile_mips_spc_dsll32(Dst, instr, address);
-        case FUNCT_DSRL32: return compile_mips_spc_dsrl32(Dst, instr, address);
-        case FUNCT_DSRA32: return compile_mips_spc_dsra32(Dst, instr, address);
+        CASECOMPILE(FUNCT_SLL, compile_mips_spc_sll);
+        CASECOMPILE(FUNCT_SRL, compile_mips_spc_srl);
+        CASECOMPILE(FUNCT_SRA, compile_mips_spc_sra);
+        CASECOMPILE(FUNCT_SRAV, compile_mips_spc_srav);
+        CASECOMPILE(FUNCT_SLLV, compile_mips_spc_sllv);
+        CASECOMPILE(FUNCT_SRLV, compile_mips_spc_srlv);
+        CASECOMPILE(FUNCT_JR, compile_mips_spc_jr);
+        CASECOMPILE(FUNCT_JALR, compile_mips_spc_jalr);
+        CASECOMPILE(FUNCT_MFHI, compile_mips_spc_mfhi);
+        CASECOMPILE(FUNCT_MTHI, compile_mips_spc_mthi);
+        CASECOMPILE(FUNCT_MFLO, compile_mips_spc_mflo);
+        CASECOMPILE(FUNCT_MTLO, compile_mips_spc_mtlo);
+        CASECOMPILE(FUNCT_DSLLV, compile_mips_spc_dsllv);
+        CASECOMPILE(FUNCT_DSRLV, compile_mips_spc_dsrlv);
+        CASECOMPILE(FUNCT_MULT, compile_mips_spc_mult);
+        CASECOMPILE(FUNCT_MULTU, compile_mips_spc_multu);
+        CASECOMPILE(FUNCT_DIV, compile_mips_spc_div);
+        CASECOMPILE(FUNCT_DIVU, compile_mips_spc_divu);
+        CASECOMPILE(FUNCT_DMULT, compile_mips_spc_dmult);
+        CASECOMPILE(FUNCT_DMULTU, compile_mips_spc_dmultu);
+        CASECOMPILE(FUNCT_DDIV, compile_mips_spc_ddiv);
+        CASECOMPILE(FUNCT_DDIVU, compile_mips_spc_ddivu);
+        CASECOMPILE(FUNCT_ADD, compile_mips_spc_add);
+        CASECOMPILE(FUNCT_ADDU, compile_mips_spc_addu);
+        CASECOMPILE(FUNCT_AND, compile_mips_spc_and);
+        CASECOMPILE(FUNCT_NOR, compile_mips_spc_nor);
+        CASECOMPILE(FUNCT_SUB, compile_mips_spc_sub);
+        CASECOMPILE(FUNCT_SUBU, compile_mips_spc_subu);
+        CASECOMPILE(FUNCT_OR, compile_mips_spc_or);
+        CASECOMPILE(FUNCT_XOR, compile_mips_spc_xor);
+        CASECOMPILE(FUNCT_SLT, compile_mips_spc_slt);
+        CASECOMPILE(FUNCT_SLTU, compile_mips_spc_sltu);
+        CASECOMPILE(FUNCT_DADD, compile_mips_spc_dadd);
+        CASECOMPILE(FUNCT_DADDU, compile_mips_spc_daddu);
+        CASECOMPILE(FUNCT_DSUBU, compile_mips_spc_dsubu);
+        CASECOMPILE(FUNCT_DSLL, compile_mips_spc_dsll);
+        CASECOMPILE(FUNCT_DSRL, compile_mips_spc_dsrl);
+        CASECOMPILE(FUNCT_DSRA, compile_mips_spc_dsra);
+        CASECOMPILE(FUNCT_DSLL32, compile_mips_spc_dsll32);
+        CASECOMPILE(FUNCT_DSRL32, compile_mips_spc_dsrl32);
+        CASECOMPILE(FUNCT_DSRA32, compile_mips_spc_dsra32);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -488,14 +489,14 @@ INLINE dynarec_instruction_category_t compile_special_instruction(dasm_State** D
     }
 }
 
-INLINE dynarec_instruction_category_t compile_regimm_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+INLINE COMPILER(compile_regimm_instruction) {
     switch (instr.i.rt) {
-        case RT_BLTZ:   return compile_mips_ri_bltz(Dst, instr, address);
-        case RT_BLTZL:  return compile_mips_ri_bltzl(Dst, instr, address);
-        case RT_BLTZAL: return compile_mips_ri_bltzal(Dst, instr, address);
-        case RT_BGEZ:   return compile_mips_ri_bgez(Dst, instr, address);
-        case RT_BGEZL:  return compile_mips_ri_bgezl(Dst, instr, address);
-        case RT_BGEZAL: return compile_mips_ri_bgezal(Dst, instr, address);
+        CASECOMPILE(RT_BLTZ, compile_mips_ri_bltz);
+        CASECOMPILE(RT_BLTZL, compile_mips_ri_bltzl);
+        CASECOMPILE(RT_BLTZAL, compile_mips_ri_bltzal);
+        CASECOMPILE(RT_BGEZ, compile_mips_ri_bgez);
+        CASECOMPILE(RT_BGEZL, compile_mips_ri_bgezl);
+        CASECOMPILE(RT_BGEZAL, compile_mips_ri_bgezal);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -505,33 +506,23 @@ INLINE dynarec_instruction_category_t compile_regimm_instruction(dasm_State** Ds
     }
 }
 
-INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, mips_instruction_t instr, word address) {
+INLINE COMPILER(compile_cp1_instruction) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
     switch (instr.r.rs) {
-        case COP_CF:
-            return compile_mips_cfc1(Dst, instr, address);
-        case COP_MF:
-            return compile_mips_mfc1(Dst, instr, address);
-        case COP_DMF:
-            return compile_mips_dmfc1(Dst, instr, address);
-        case COP_MT:
-            return compile_mips_mtc1(Dst, instr, address);
-        case COP_DMT:
-            return compile_mips_dmtc1(Dst, instr, address);
-        case COP_CT:
-            return compile_mips_ctc1(Dst, instr, address);
+        CASECOMPILE(COP_CF, compile_mips_cfc1);
+        CASECOMPILE(COP_MF, compile_mips_mfc1);
+        CASECOMPILE(COP_DMF, compile_mips_dmfc1);
+        CASECOMPILE(COP_MT, compile_mips_mtc1);
+        CASECOMPILE(COP_DMT, compile_mips_dmtc1);
+        CASECOMPILE(COP_CT, compile_mips_ctc1);
         case COP_BC:
             switch (instr.r.rt) {
-                case COP_BC_BCT:
-                    return compile_mips_cp_bc1t(Dst, instr, address);
-                case COP_BC_BCF:
-                    return compile_mips_cp_bc1f(Dst, instr, address);
-                case COP_BC_BCTL:
-                    return compile_mips_cp_bc1tl(Dst, instr, address);
-                case COP_BC_BCFL:
-                    return compile_mips_cp_bc1fl(Dst, instr, address);
+                CASECOMPILE(COP_BC_BCT, compile_mips_cp_bc1t);
+                CASECOMPILE(COP_BC_BCF, compile_mips_cp_bc1f);
+                CASECOMPILE(COP_BC_BCTL, compile_mips_cp_bc1tl);
+                CASECOMPILE(COP_BC_BCFL, compile_mips_cp_bc1fl);
                 default: {
                     char buf[50];
                     disassemble(address, instr.raw, buf, 50);
@@ -542,134 +533,104 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
     switch (instr.fr.funct) {
         case COP_FUNCT_ADD:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_add_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_add_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_add_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_add_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_TLBR_SUB: {
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_sub_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_sub_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_sub_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_sub_s);
                 default:
                     logfatal("Undefined!");
             }
         }
         case COP_FUNCT_TLBWI_MULT:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_mul_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_mul_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_mul_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_mul_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_DIV:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_div_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_div_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_div_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_div_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_TRUNC_L:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_trunc_l_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_trunc_l_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_trunc_l_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_trunc_l_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_TRUNC_W:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_trunc_w_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_trunc_w_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_trunc_w_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_trunc_w_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_D:
             switch (instr.fr.fmt) {
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_cvt_d_s(Dst, instr, address);
-                case FP_FMT_W:
-                    return compile_mips_cp_cvt_d_w(Dst, instr, address);
-                case FP_FMT_L:
-                    return compile_mips_cp_cvt_d_l(Dst, instr, address);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_cvt_d_s);
+                CASECOMPILE(FP_FMT_W, compile_mips_cp_cvt_d_w);
+                CASECOMPILE(FP_FMT_L, compile_mips_cp_cvt_d_l);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_L:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_cvt_l_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_cvt_l_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_cvt_l_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_cvt_l_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_S:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_cvt_s_d(Dst, instr, address);
-                case FP_FMT_W:
-                    return compile_mips_cp_cvt_s_w(Dst, instr, address);
-                case FP_FMT_L:
-                    return compile_mips_cp_cvt_s_l(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_cvt_s_d);
+                CASECOMPILE(FP_FMT_W, compile_mips_cp_cvt_s_w);
+                CASECOMPILE(FP_FMT_L, compile_mips_cp_cvt_s_l);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_W:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_cvt_w_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_cvt_w_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_cvt_w_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_cvt_w_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_SQRT:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_sqrt_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_sqrt_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_sqrt_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_sqrt_s);
                 default:
                     logfatal("Undefined!");
             }
 
         case COP_FUNCT_ABS:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_abs_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_abs_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_abs_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_abs_s);
                 default:
                     logfatal("Undefined!");
             }
 
         case COP_FUNCT_MOV:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_mov_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_mov_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_mov_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_mov_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_NEG:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_neg_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_neg_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_neg_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_neg_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -679,10 +640,8 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
             logfatal("COP_FUNCT_C_UN unimplemented");
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_c_eq_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_c_eq_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_c_eq_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_c_eq_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -706,10 +665,8 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
             logfatal("COP_FUNCT_C_NGL unimplemented");
         case COP_FUNCT_C_LT:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_c_lt_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_c_lt_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_c_lt_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_c_lt_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -717,10 +674,8 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
             logfatal("COP_FUNCT_C_NGE unimplemented");
         case COP_FUNCT_C_LE:
             switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return compile_mips_cp_c_le_d(Dst, instr, address);
-                case FP_FMT_SINGLE:
-                    return compile_mips_cp_c_le_s(Dst, instr, address);
+                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_c_le_d);
+                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_c_le_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -735,16 +690,15 @@ INLINE dynarec_instruction_category_t compile_cp1_instruction(dasm_State** Dst, 
              instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4,
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
-
 // returns true when the block should end
-dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word block_length) {
+dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word block_length, word* extra_cycles) {
     if (unlikely(instr.raw == 0)) {
-        return compile_mips_nop(Dst, instr, address);
+        return CALL_COMPILER(compile_mips_nop);
     }
     switch (instr.op) {
-        case OPC_CP0:    return compile_cp0_instruction(Dst, instr, address);
+        case OPC_CP0:    return CALL_COMPILER(compile_cp0_instruction);
         case OPC_CP1: {
-            dynarec_instruction_category_t category = compile_cp1_instruction(Dst, instr, address);
+            dynarec_instruction_category_t category = CALL_COMPILER(compile_cp1_instruction);
             // If an exception was triggered, end the block.
             // otherwise, don't end the block.
             | mov al, cpu_state->exception
@@ -763,53 +717,53 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
             |1:
             return category;
         }
-        case OPC_SPCL:   return compile_special_instruction(Dst, instr, address);
-        case OPC_REGIMM: return compile_regimm_instruction(Dst, instr, address);
+        CASECOMPILE(OPC_SPCL, compile_special_instruction);
+        CASECOMPILE(OPC_REGIMM, compile_regimm_instruction);
 
-        case OPC_LD:     return compile_mips_ld(Dst, instr, address);
-        case OPC_LUI:    return compile_mips_lui(Dst, instr, address);
-        case OPC_ADDIU:  return compile_mips_addiu(Dst, instr, address);
-        case OPC_ADDI:   return compile_mips_addi(Dst, instr, address);
-        case OPC_DADDI:  return compile_mips_daddi(Dst, instr, address);
-        case OPC_ANDI:   return compile_mips_andi(Dst, instr, address);
-        case OPC_LBU:    return compile_mips_lbu(Dst, instr, address);
-        case OPC_LHU:    return compile_mips_lhu(Dst, instr, address);
-        case OPC_LH:     return compile_mips_lh(Dst, instr, address);
-        case OPC_LW:     return compile_mips_lw(Dst, instr, address);
-        case OPC_LWU:    return compile_mips_lwu(Dst, instr, address);
-        case OPC_BEQ:    return compile_mips_beq(Dst, instr, address);
-        case OPC_BEQL:   return compile_mips_beql(Dst, instr, address);
-        case OPC_BGTZ:   return compile_mips_bgtz(Dst, instr, address);
-        case OPC_BGTZL:  return compile_mips_bgtzl(Dst, instr, address);
-        case OPC_BLEZ:   return compile_mips_blez(Dst, instr, address);
-        case OPC_BLEZL:  return compile_mips_blezl(Dst, instr, address);
-        case OPC_BNE:    return compile_mips_bne(Dst, instr, address);
-        case OPC_BNEL:   return compile_mips_bnel(Dst, instr, address);
-        case OPC_CACHE:  return compile_mips_cache(Dst, instr, address);
-        case OPC_SB:     return compile_mips_sb(Dst, instr, address);
-        case OPC_SH:     return compile_mips_sh(Dst, instr, address);
-        case OPC_SW:     return compile_mips_sw(Dst, instr, address);
-        case OPC_SD:     return compile_mips_sd(Dst, instr, address);
-        case OPC_ORI:    return compile_mips_ori(Dst, instr, address);
-        case OPC_J:      return compile_mips_j(Dst, instr, address);
-        case OPC_JAL:    return compile_mips_jal(Dst, instr, address);
-        case OPC_SLTI:   return compile_mips_slti(Dst, instr, address);
-        case OPC_SLTIU:  return compile_mips_sltiu(Dst, instr, address);
-        case OPC_XORI:   return compile_mips_xori(Dst, instr, address);
-        case OPC_DADDIU: return compile_mips_daddiu(Dst, instr, address);
-        case OPC_LB:     return compile_mips_lb(Dst, instr, address);
-        case OPC_LDC1:   return compile_mips_ldc1(Dst, instr, address);
-        case OPC_SDC1:   return compile_mips_sdc1(Dst, instr, address);
-        case OPC_LWC1:   return compile_mips_lwc1(Dst, instr, address);
-        case OPC_SWC1:   return compile_mips_swc1(Dst, instr, address);
-        case OPC_LWL:    return compile_mips_lwl(Dst, instr, address);
-        case OPC_LWR:    return compile_mips_lwr(Dst, instr, address);
-        case OPC_SWL:    return compile_mips_swl(Dst, instr, address);
-        case OPC_SWR:    return compile_mips_swr(Dst, instr, address);
-        case OPC_LDL:    return compile_mips_ldl(Dst, instr, address);
-        case OPC_LDR:    return compile_mips_ldr(Dst, instr, address);
-        case OPC_SDL:    return compile_mips_sdl(Dst, instr, address);
-        case OPC_SDR:    return compile_mips_sdr(Dst, instr, address);
+        CASECOMPILE(OPC_LD, compile_mips_ld);
+        CASECOMPILE(OPC_LUI, compile_mips_lui);
+        CASECOMPILE(OPC_ADDIU, compile_mips_addiu);
+        CASECOMPILE(OPC_ADDI, compile_mips_addi);
+        CASECOMPILE(OPC_DADDI, compile_mips_daddi);
+        CASECOMPILE(OPC_ANDI, compile_mips_andi);
+        CASECOMPILE(OPC_LBU, compile_mips_lbu);
+        CASECOMPILE(OPC_LHU, compile_mips_lhu);
+        CASECOMPILE(OPC_LH, compile_mips_lh);
+        CASECOMPILE(OPC_LW, compile_mips_lw);
+        CASECOMPILE(OPC_LWU, compile_mips_lwu);
+        CASECOMPILE(OPC_BEQ, compile_mips_beq);
+        CASECOMPILE(OPC_BEQL, compile_mips_beql);
+        CASECOMPILE(OPC_BGTZ, compile_mips_bgtz);
+        CASECOMPILE(OPC_BGTZL, compile_mips_bgtzl);
+        CASECOMPILE(OPC_BLEZ, compile_mips_blez);
+        CASECOMPILE(OPC_BLEZL, compile_mips_blezl);
+        CASECOMPILE(OPC_BNE, compile_mips_bne);
+        CASECOMPILE(OPC_BNEL, compile_mips_bnel);
+        CASECOMPILE(OPC_CACHE, compile_mips_cache);
+        CASECOMPILE(OPC_SB, compile_mips_sb);
+        CASECOMPILE(OPC_SH, compile_mips_sh);
+        CASECOMPILE(OPC_SW, compile_mips_sw);
+        CASECOMPILE(OPC_SD, compile_mips_sd);
+        CASECOMPILE(OPC_ORI, compile_mips_ori);
+        CASECOMPILE(OPC_J, compile_mips_j);
+        CASECOMPILE(OPC_JAL, compile_mips_jal);
+        CASECOMPILE(OPC_SLTI, compile_mips_slti);
+        CASECOMPILE(OPC_SLTIU, compile_mips_sltiu);
+        CASECOMPILE(OPC_XORI, compile_mips_xori);
+        CASECOMPILE(OPC_DADDIU, compile_mips_daddiu);
+        CASECOMPILE(OPC_LB, compile_mips_lb);
+        CASECOMPILE(OPC_LDC1, compile_mips_ldc1);
+        CASECOMPILE(OPC_SDC1, compile_mips_sdc1);
+        CASECOMPILE(OPC_LWC1, compile_mips_lwc1);
+        CASECOMPILE(OPC_SWC1, compile_mips_swc1);
+        CASECOMPILE(OPC_LWL, compile_mips_lwl);
+        CASECOMPILE(OPC_LWR, compile_mips_lwr);
+        CASECOMPILE(OPC_SWL, compile_mips_swl);
+        CASECOMPILE(OPC_SWR, compile_mips_swr);
+        CASECOMPILE(OPC_LDL, compile_mips_ldl);
+        CASECOMPILE(OPC_LDR, compile_mips_ldr);
+        CASECOMPILE(OPC_SDL, compile_mips_sdl);
+        CASECOMPILE(OPC_SDR, compile_mips_sdr);
         default:
 #ifdef LOG_ENABLED
         {
@@ -909,7 +863,9 @@ INLINE void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu
         bool instr_ends_block;
 
         block_length++; // Needs to happen before we compile since we use the incremented value inside the compiler
-        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address, block_length);
+        word extra_cycles = 0;
+        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address, block_length, &extra_cycles);
+        block_length += extra_cycles;
 
         switch (category) {
             case NORMAL:
