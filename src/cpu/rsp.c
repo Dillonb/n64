@@ -282,6 +282,7 @@ void rsp_step(n64_system_t* system) {
 }
 
 void rsp_run(n64_system_t* system) {
+    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
     while (system->rsp.steps > 0) {
         system->rsp.steps--;
         _rsp_step(system);

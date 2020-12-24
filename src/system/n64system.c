@@ -220,7 +220,7 @@ INLINE int jit_system_step(n64_system_t* system) {
     if (!system->rsp.status.halt) {
         // 2 RSP steps per 3 CPU steps
         system->rsp.steps += (cpu_steps / 3) * 2;
-        cpu_steps -= cpu_steps % 3;
+        cpu_steps -= cpu_steps - (cpu_steps % 3);
 
         rsp_run(system);
     } else {
@@ -245,11 +245,12 @@ INLINE int interpreter_system_step(n64_system_t* system) {
     static int cpu_steps = 0;
     cpu_steps += taken;
 
-    if (!system->rsp.status.halt) {
+    if (system->rsp.status.halt) {
+        cpu_steps = 0;
+    } else {
         // 2 RSP steps per 3 CPU steps
         system->rsp.steps += (cpu_steps / 3) * 2;
-        cpu_steps -= cpu_steps % 3;
-
+        cpu_steps -= cpu_steps - (cpu_steps % 3);
         rsp_run(system);
     }
 
