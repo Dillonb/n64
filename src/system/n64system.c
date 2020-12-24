@@ -304,6 +304,9 @@ void n64_system_loop(n64_system_t* system) {
             debugger_tick(system);
         }
 #endif
+#ifdef LOG_ENABLED
+update_delayed_log_verbosity();
+#endif
     }
 }
 

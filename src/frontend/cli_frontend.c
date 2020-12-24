@@ -7,6 +7,7 @@
 #include <rdp/rdp.h>
 #include <rdp/parallel_rdp_wrapper.h>
 #include <frontend/tas_movie.h>
+#include <signal.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -15,7 +16,16 @@ void usage(cflags_t* flags) {
                        "https://github.com/Dillonb/n64");
 }
 
+void sig_handler(int signum) {
+    if (signum == SIGUSR1) {
+        delayed_log_set_verbosity(LOG_VERBOSITY_DEBUG);
+    }
+}
+
 int main(int argc, char** argv) {
+
+    signal(SIGUSR1, sig_handler);
+
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
     bool debug = false;
