@@ -73,6 +73,7 @@ word read_word_rdramreg(n64_system_t* system, word address) {
         case ADDR_RDRAM_DELAY_REG:
             logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_DELAY_REG");
         case ADDR_RDRAM_MODE_REG:
+            logwarn("Read from RDRAM_MODE_REG, returning 0");
             return 0;
         case ADDR_RDRAM_REF_INTERVAL_REG:
             logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_REF_INTERVAL_REG");
@@ -229,6 +230,7 @@ word read_word_rireg(n64_system_t* system, word address) {
         logfatal("In RI read handler with out of bounds address 0x%08X", address);
     }
 
+    logwarn("Reading RI reg, returning 0.");
     return 0;
 }
 
@@ -679,10 +681,9 @@ INLINE word _n64_read_word(word address) {
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1", address);
-            return 0;
+            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1", address);
         case REGION_CART_1_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
             return 0;
         case REGION_CART_2_2:
             return sram_read_word(global_system, address - SREGION_CART_2_2);
