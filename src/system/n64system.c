@@ -186,7 +186,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
 INLINE int jit_system_step(n64_system_t* system) {
     r4300i_t* cpu = &system->cpu;
-    cpu->cp0.count += CYCLES_PER_INSTR;
 
     /* Commented out for now since the game never actually reads cp0.random
      * TODO: when a game does, consider generating a random number rather than updating this every cycle
