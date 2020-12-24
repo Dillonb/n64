@@ -113,7 +113,6 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) 
             case COP_FUNCT_TLBP:
                 return mips_tlbp;
             case COP_FUNCT_TLBR_SUB:
-                logfatal("tlbr");
                 return mips_tlbr;
             case COP_FUNCT_ERET:
                 return mips_eret;

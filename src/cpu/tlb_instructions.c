@@ -58,6 +58,4 @@ MIPS_INSTR(mips_tlbr) {
 
         cpu->cp0.entry_lo0.g = entry.entry_hi.g;
         cpu->cp0.entry_lo1.g = entry.entry_hi.g;
-
-        logfatal("tlbr");
 }
