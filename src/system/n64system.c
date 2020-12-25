@@ -18,8 +18,6 @@ bool should_quit = false;
 
 n64_system_t* global_system;
 
-#define selected_n64_system_step jit_system_step
-
 // 128MiB codecache
 #define CODECACHE_SIZE (1 << 27)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
@@ -100,7 +98,7 @@ void virtual_write_byte_wrapper(word address, byte value) {
     n64_write_byte(global_system, address, value);
 }
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type) {
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
     // align to page boundary
     n64_system_t* system;
     posix_memalign((void **) &system, sysconf(_SC_PAGESIZE), sizeof(n64_system_t));
@@ -181,6 +179,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     if (enable_debug) {
         debugger_init(system);
     }
+    system->use_interpreter = use_interpreter;
     return system;
 }
 
@@ -275,14 +274,14 @@ void check_vsync(n64_system_t* system) {
     }
 }
 
-void n64_system_loop(n64_system_t* system) {
+void jit_system_loop(n64_system_t* system) {
     int cycles = 0;
     while (!should_quit) {
         for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= SHORTLINE_CYCLES) {
-                cycles += selected_n64_system_step(system);
+                cycles += jit_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= SHORTLINE_CYCLES;
@@ -292,7 +291,7 @@ void n64_system_loop(n64_system_t* system) {
             check_vi_interrupt(system);
             check_vsync(system);
             while (cycles <= LONGLINE_CYCLES) {
-                cycles += selected_n64_system_step(system);
+                cycles += jit_system_step(system);
                 system->debugger_state.steps = 0;
             }
             cycles -= LONGLINE_CYCLES;
@@ -308,6 +307,50 @@ void n64_system_loop(n64_system_t* system) {
 #ifdef LOG_ENABLED
 update_delayed_log_verbosity();
 #endif
+    }
+}
+
+void interpreter_system_loop(n64_system_t* system) {
+    int cycles = 0;
+    while (!should_quit) {
+        for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
+            check_vi_interrupt(system);
+            check_vsync(system);
+            while (cycles <= SHORTLINE_CYCLES) {
+                cycles += interpreter_system_step(system);
+                system->debugger_state.steps = 0;
+            }
+            cycles -= SHORTLINE_CYCLES;
+            ai_step(system, SHORTLINE_CYCLES);
+        }
+        for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
+            check_vi_interrupt(system);
+            check_vsync(system);
+            while (cycles <= LONGLINE_CYCLES) {
+                cycles += interpreter_system_step(system);
+                system->debugger_state.steps = 0;
+            }
+            cycles -= LONGLINE_CYCLES;
+            ai_step(system, LONGLINE_CYCLES);
+        }
+        check_vi_interrupt(system);
+        check_vsync(system);
+#ifdef N64_DEBUG_MODE
+        if (system->debugger_state.enabled) {
+            debugger_tick(system);
+        }
+#endif
+#ifdef LOG_ENABLED
+        update_delayed_log_verbosity();
+#endif
+    }
+}
+
+void n64_system_loop(n64_system_t* system) {
+    if (system->use_interpreter) {
+        interpreter_system_loop(system);
+    } else {
+        jit_system_loop(system);
     }
 }
 

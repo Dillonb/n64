@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
     log_set_verbosity(LOG_VERBOSITY_DEBUG);
 
-    n64_system_t* system = init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE);
+    n64_system_t* system = init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE, false);
     // Normally handled by the bootcode, we gotta do it ourselves.
     run_dma(system, 0x10001000, 0x00001000, 1048576, "CART to DRAM");
 
