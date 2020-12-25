@@ -101,11 +101,13 @@ const char* memory_map =
     "<memory type=\"ram\" start=\"0xffffffff80000000\" length=\"0x800000\"/>" // RDRAM
     "<memory type=\"ram\" start=\"0xffffffff84000000\" length=\"0x1000\"/>" // RSP DMEM
     "<memory type=\"ram\" start=\"0xffffffff84001000\" length=\"0x1000\"/>" // RSP IMEM
+    "<memory type=\"rom\" start=\"0xffffffff9fc00000\" length=\"0x7c0\"/>" // PIF ROM
 
     "<!-- KSEG1 hardware mapped, full copy of the memory map goes here -->" // TODO finish
     "<memory type=\"ram\" start=\"0xffffffffa0000000\" length=\"0x800000\"/>" // RDRAM
     "<memory type=\"ram\" start=\"0xffffffffa4000000\" length=\"0x1000\"/>" // RSP DMEM
     "<memory type=\"ram\" start=\"0xffffffffa4001000\" length=\"0x1000\"/>" // RSP IMEM
+    "<memory type=\"rom\" start=\"0xffffffffbfc00000\" length=\"0x7c0\"/>" // PIF ROM
 "</memory-map>";
 
 void n64_debug_start(n64_system_t* system) {
@@ -190,7 +192,7 @@ ssize_t n64_debug_get_register_value(n64_system_t* system, char * buffer, size_t
         case 36:
             return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.cause.raw);
         case 37:
-            printf("Sending PC\n");
+            printf("Sending PC: 0x%08X\n", system->cpu.pc);
             return snprintf(buffer, buffer_length, "%08x", system->cpu.pc);
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
@@ -214,6 +216,7 @@ ssize_t n64_debug_get_general_registers(n64_system_t* system, char * buffer, siz
 
 void debugger_init(n64_system_t* system) {
     gdbstub_config_t config;
+    memset(&config, 0, sizeof(gdbstub_config_t));
     config.port                  = GDB_CPU_PORT;
     config.user_data             = system;
     config.start                 = (gdbstub_start_t) n64_debug_start;

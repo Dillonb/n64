@@ -697,11 +697,15 @@ INLINE word _n64_read_word(word address) {
             }
         }
         case REGION_PIF_BOOT: {
-            word index = address - SREGION_PIF_BOOT;
-            if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+            if (global_system->mem.rom.pif_rom == NULL) {
+                logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
             } else {
-                return word_from_byte_array(global_system->mem.rom.pif_rom, index);
+                word index = address - SREGION_PIF_BOOT;
+                if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
+                    logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+                } else {
+                    return word_from_byte_array(global_system->mem.rom.pif_rom, index);
+                }
             }
         }
         case REGION_PIF_RAM: {
@@ -981,8 +985,18 @@ byte n64_read_byte(n64_system_t* system, word address) {
             }
             return system->mem.rom.rom[index];
         }
-        case REGION_PIF_BOOT:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
+        case REGION_PIF_BOOT: {
+            if (global_system->mem.rom.pif_rom == NULL) {
+                logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
+            } else {
+                word index = address - SREGION_PIF_BOOT;
+                if (index > global_system->mem.rom.size) {
+                    logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+                } else {
+                    return system->mem.rom.pif_rom[index];
+                }
+            }
+        }
         case REGION_PIF_RAM:
             logfatal("Reading from PIF RAM\n");
             return system->mem.pif_ram[address - SREGION_PIF_RAM];
