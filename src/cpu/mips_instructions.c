@@ -275,6 +275,7 @@ MIPS_INSTR(mips_cfc1) {
     sword value;
     switch (fs) {
         case 0:
+            logfatal("cfc1 fcr0");
             value = cpu->fcr0.raw;
             break;
         case 31:
@@ -287,18 +288,25 @@ MIPS_INSTR(mips_cfc1) {
     set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
+INLINE void check_fpu_exception(r4300i_t* cpu) {
+    if (cpu->fcr31.cause & (0b100000 | cpu->fcr31.enable)) {
+        logfatal("FPU exception");
+    }
+}
+
 MIPS_INSTR(mips_ctc1) {
     checkcp1;
     byte fs = instruction.r.rd;
     word value = get_register(cpu, instruction.r.rt);
     switch (fs) {
         case 0:
-            cpu->fcr0.raw = value;
-            break;
-        case 31:
+            logfatal("CTC1 FCR0: FCR0 is read only!");
+        case 31: {
+            value &= 0x183ffff; // mask out bits held 0
             cpu->fcr31.raw = value;
-            loginfo("TODO: possible exception here. See manual for CTC1");
+            check_fpu_exception(cpu);
             break;
+        }
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
     }

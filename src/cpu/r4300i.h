@@ -418,7 +418,16 @@ typedef union fcr31 {
         bool fs:1;
         unsigned:7;
     };
+
+    struct {
+        unsigned:7;
+        byte enable:5;
+        byte cause:6;
+        unsigned:14;
+    } PACKED;
 } fcr31_t;
+
+static_assert(sizeof(fcr31_t) == sizeof(word), "fcr31_t must be 32 bits");
 
 typedef union fgr {
     dword raw;

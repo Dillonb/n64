@@ -22,6 +22,7 @@
 #define FAKELITTLE_WORD(w) (FAKELITTLE_HALF((w) >> 16u) | (FAKELITTLE_HALF((w) & 0xFFFFu)) << 16u)
 
 #define INLINE static inline __attribute__((always_inline))
+#define PACKED __attribute__((__packed__))
 
 #define unlikely(exp) __builtin_expect(exp, 0)
 #define likely(exp) __builtin_expect(exp, 1)
