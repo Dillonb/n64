@@ -276,6 +276,7 @@ COMPILER(compile_mips_spc_srl) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rt);
     | shr eax, instr.r.sa
+    SEAX;
     SAVERAX(instr.r.rd);
     return NORMAL;
 }
@@ -313,11 +314,48 @@ COMPILER(compile_mips_spc_sllv) {
     return NORMAL;
 }
 
-COMP(mips_spc_srlv, NORMAL);
-COMP(mips_spc_mfhi, NORMAL);
-COMP(mips_spc_mthi, NORMAL);
-COMP(mips_spc_mflo, NORMAL);
-COMP(mips_spc_mtlo, NORMAL);
+COMPILER(compile_mips_spc_srlv) {
+    BAILZERO(instr.r.rd);
+    LOADRAX(instr.r.rs);
+    | mov rcx, rax
+    LOADRAX(instr.r.rt);
+    | and cl, 0b11111
+    | shr eax, cl
+    SEAX;
+    SAVERAX(instr.r.rd);
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mfhi) {
+    BAILZERO(instr.r.rd);
+    uintptr_t src = (uintptr_t) &global_system->cpu.mult_hi;
+    | mov64 rax, [src]
+    SAVERAX(instr.r.rd);
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mthi) {
+    LOADRAX(instr.r.rs);
+    uintptr_t dst = (uintptr_t) &global_system->cpu.mult_hi;
+    | mov64 [dst], rax
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mflo) {
+    BAILZERO(instr.r.rd);
+    uintptr_t src = (uintptr_t) &global_system->cpu.mult_lo;
+    | mov64 rax, [src]
+    SAVERAX(instr.r.rd);
+    return NORMAL;
+}
+
+COMPILER(compile_mips_spc_mtlo) {
+    LOADRAX(instr.r.rs);
+    uintptr_t dst = (uintptr_t) &global_system->cpu.mult_lo;
+    | mov64 [dst], rax
+    return NORMAL;
+}
+
 COMP(mips_spc_dsllv, NORMAL);
 COMP(mips_spc_dsrlv, NORMAL);
 COMP(mips_spc_mult, NORMAL);
