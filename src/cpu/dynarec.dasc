@@ -289,7 +289,18 @@ COMPILER(compile_mips_spc_sra) {
     return NORMAL;
 }
 
-COMP(mips_spc_srav, NORMAL);
+COMPILER(compile_mips_spc_srav) {
+    BAILZERO(instr.r.rd);
+    LOADRAX(instr.r.rs);
+    | mov rcx, rax
+    LOADRAX(instr.r.rt);
+    | and cl, 0b11111
+    | sar eax, cl
+    SEAX;
+    SAVERAX(instr.r.rd);
+    return NORMAL;
+}
+
 COMP(mips_spc_sllv, NORMAL);
 COMP(mips_spc_srlv, NORMAL);
 COMP(mips_spc_mfhi, NORMAL);
