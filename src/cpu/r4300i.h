@@ -491,7 +491,7 @@ typedef struct r4300i {
 typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
 
 void r4300i_step(r4300i_t* cpu);
-void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor_error);
+void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, sword coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr);
 void r4300i_interrupt_update(r4300i_t* cpu);
 

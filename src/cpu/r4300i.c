@@ -47,7 +47,7 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
 };
 
-void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
+void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, sword coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
@@ -63,10 +63,14 @@ void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor
     if (!cpu->cp0.status.exl) {
         cpu->cp0.EPC = pc;
         cpu->cp0.status.exl = true;
+    } else {
+        logfatal("exception when EXL == 1!");
     }
 
     cpu->cp0.cause.exception_code = code;
-    cpu->cp0.cause.coprocessor_error = coprocessor_error;
+    if (coprocessor_error > 0) {
+        cpu->cp0.cause.coprocessor_error = coprocessor_error;
+    }
 
     if (cpu->cp0.status.bev) {
         switch (code) {
@@ -525,7 +529,7 @@ void r4300i_step(r4300i_t* cpu) {
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
             cpu->cp0.cause.interrupt_pending = cpu->interrupts;
-            r4300i_handle_exception(cpu, pc, 0, cpu->interrupts);
+            r4300i_handle_exception(cpu, pc, 0, -1);
             return;
         }
     }
