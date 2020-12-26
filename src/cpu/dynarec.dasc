@@ -166,17 +166,17 @@ INLINE void check_exception(dasm_State** Dst, word block_length) {
 #define SAVERAX(r) save_rax(Dst, address, r)
 #define SEAX sign_extend_eax_rax(Dst)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
-#define COMPILER(name) dynarec_instruction_category_t name(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles)
-#define COMP(name, type) COMPILER(compile_##name) { RUNHANDLER(name); return type; }
+#define COMPILER(name) dynarec_instruction_category_t compile_##name(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles)
+#define COMP(name, type) COMPILER(name) { RUNHANDLER(name); return type; }
 #define BAILZERO(v) do { if ((v) == 0) { return NORMAL; } } while (0)
 #define CALL_COMPILER(compiler) compiler(Dst, instr, address, extra_cycles)
 #define CASECOMPILE(pattern, compiler) case pattern: return CALL_COMPILER(compiler)
 
-COMPILER(compile_mips_nop) {
+COMPILER(mips_nop) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_addi) {
+COMPILER(mips_addi) {
     BAILZERO(instr.i.rt);
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
@@ -193,7 +193,7 @@ COMPILER(compile_mips_addi) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_addiu) {
+COMPILER(mips_addiu) {
     return CALL_COMPILER(compile_mips_addi);
 }
 
@@ -212,11 +212,11 @@ dynarec_instruction_category_t compile_mips_beq(dasm_State** Dst, mips_instructi
    return BRANCH;
 }
 
-COMPILER(compile_mips_cache) {
+COMPILER(mips_cache) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_daddi) {
+COMPILER(mips_daddi) {
     BAILZERO(instr.i.rt);
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
@@ -232,11 +232,11 @@ COMPILER(compile_mips_daddi) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_daddiu) {
+COMPILER(mips_daddiu) {
     return CALL_COMPILER(compile_mips_daddi);
 }
 
-COMPILER(compile_mips_andi) {
+COMPILER(mips_andi) {
     BAILZERO(instr.i.rt);
     LOADRAX(instr.i.rs);
     | and rax, instr.i.immediate
@@ -244,7 +244,7 @@ COMPILER(compile_mips_andi) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_ori) {
+COMPILER(mips_ori) {
     BAILZERO(instr.i.rt);
     LOADRAX(instr.i.rs);
     | or rax, instr.i.immediate
@@ -255,7 +255,7 @@ COMPILER(compile_mips_ori) {
 COMP(mips_slti, NORMAL);
 COMP(mips_sltiu, NORMAL);
 
-COMPILER(compile_mips_xori) {
+COMPILER(mips_xori) {
     BAILZERO(instr.i.rt);
     LOADRAX(instr.i.rs);
     | xor rax, instr.i.immediate
@@ -263,7 +263,7 @@ COMPILER(compile_mips_xori) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_sll) {
+COMPILER(mips_spc_sll) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rt);
     | shl eax, instr.r.sa
@@ -272,7 +272,7 @@ COMPILER(compile_mips_spc_sll) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_srl) {
+COMPILER(mips_spc_srl) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rt);
     | shr eax, instr.r.sa
@@ -281,7 +281,7 @@ COMPILER(compile_mips_spc_srl) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_sra) {
+COMPILER(mips_spc_sra) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rt);
     | sar eax, instr.r.sa
@@ -290,7 +290,7 @@ COMPILER(compile_mips_spc_sra) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_srav) {
+COMPILER(mips_spc_srav) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rs);
     | mov rcx, rax
@@ -302,7 +302,7 @@ COMPILER(compile_mips_spc_srav) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_sllv) {
+COMPILER(mips_spc_sllv) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rs);
     | mov rcx, rax
@@ -314,7 +314,7 @@ COMPILER(compile_mips_spc_sllv) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_srlv) {
+COMPILER(mips_spc_srlv) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rs);
     | mov rcx, rax
@@ -326,7 +326,7 @@ COMPILER(compile_mips_spc_srlv) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_mfhi) {
+COMPILER(mips_spc_mfhi) {
     BAILZERO(instr.r.rd);
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_hi;
     | mov64 rax, [src]
@@ -334,14 +334,14 @@ COMPILER(compile_mips_spc_mfhi) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_mthi) {
+COMPILER(mips_spc_mthi) {
     LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_hi;
     | mov64 [dst], rax
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_mflo) {
+COMPILER(mips_spc_mflo) {
     BAILZERO(instr.r.rd);
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_lo;
     | mov64 rax, [src]
@@ -349,7 +349,7 @@ COMPILER(compile_mips_spc_mflo) {
     return NORMAL;
 }
 
-COMPILER(compile_mips_spc_mtlo) {
+COMPILER(mips_spc_mtlo) {
     LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_lo;
     | mov64 [dst], rax
@@ -517,7 +517,7 @@ dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_in
     }
 }
 
-INLINE COMPILER(compile_special_instruction) {
+INLINE COMPILER(special_instruction) {
     switch (instr.r.funct) {
         CASECOMPILE(FUNCT_SLL, compile_mips_spc_sll);
         CASECOMPILE(FUNCT_SRL, compile_mips_spc_srl);
@@ -569,7 +569,7 @@ INLINE COMPILER(compile_special_instruction) {
     }
 }
 
-INLINE COMPILER(compile_regimm_instruction) {
+INLINE COMPILER(regimm_instruction) {
     switch (instr.i.rt) {
         CASECOMPILE(RT_BLTZ, compile_mips_ri_bltz);
         CASECOMPILE(RT_BLTZL, compile_mips_ri_bltzl);
@@ -586,7 +586,7 @@ INLINE COMPILER(compile_regimm_instruction) {
     }
 }
 
-INLINE COMPILER(compile_cp1_instruction) {
+INLINE COMPILER(cp1_instruction) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
