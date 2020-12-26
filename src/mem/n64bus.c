@@ -616,7 +616,8 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_UNUSED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
+            sram_write_word(system, address - SREGION_CART_2_1, value);
+            return;
         case REGION_CART_1_1:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
             return;
