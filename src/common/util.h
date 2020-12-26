@@ -29,4 +29,7 @@
 
 #define N64_APP_NAME "dgb n64"
 
+#define ASSERTWORD(type) static_assert(sizeof(type) == sizeof(word), #type " must be 32 bits");
+#define ASSERTDWORD(type) static_assert(sizeof(type) == sizeof(dword), #type " must be 64 bits");
+
 #endif

@@ -232,6 +232,8 @@ typedef union cp0_status {
     };
 } cp0_status_t;
 
+ASSERTWORD(cp0_status_t);
+
 typedef union cp0_cause {
     struct {
         byte:8;
@@ -258,6 +260,8 @@ typedef union cp0_cause {
     word raw;
 } cp0_cause_t;
 
+ASSERTWORD(cp0_cause_t);
+
 typedef union cp0_entry_lo {
     word raw;
     struct {
@@ -270,6 +274,8 @@ typedef union cp0_entry_lo {
     };
 } cp0_entry_lo_t;
 
+ASSERTWORD(cp0_entry_lo_t);
+
 typedef union cp0_page_mask {
     word raw;
     struct {
@@ -279,6 +285,8 @@ typedef union cp0_page_mask {
     };
 } cp0_page_mask_t;
 
+ASSERTWORD(cp0_page_mask_t);
+
 typedef union cp0_entry_hi {
     struct {
         unsigned asid:8;
@@ -287,6 +295,8 @@ typedef union cp0_entry_hi {
     };
     word raw;
 } cp0_entry_hi_t;
+
+ASSERTWORD(cp0_entry_hi_t);
 
 typedef struct tlb_entry {
     union {
@@ -349,7 +359,7 @@ typedef union watch_lo {
     };
 } watch_lo_t;
 
-static_assert(sizeof(watch_lo_t) == 4, "watch_lo_t wrong size!");
+ASSERTWORD(watch_lo_t);
 
 typedef struct cp0 {
     word index;
@@ -427,7 +437,7 @@ typedef union fcr31 {
     } PACKED;
 } fcr31_t;
 
-static_assert(sizeof(fcr31_t) == sizeof(word), "fcr31_t must be 32 bits");
+ASSERTWORD(fcr31_t);
 
 typedef union fgr {
     dword raw;
@@ -437,7 +447,7 @@ typedef union fgr {
     } __attribute__((packed));
 } fgr_t;
 
-static_assert(sizeof(fgr_t) == sizeof(dword), "fgr_t must be 64 bits");
+ASSERTDWORD(fgr_t);
 
 typedef struct r4300i {
     dword gpr[32];
