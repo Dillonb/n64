@@ -63,8 +63,6 @@ void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, sword coprocesso
     if (!cpu->cp0.status.exl) {
         cpu->cp0.EPC = pc;
         cpu->cp0.status.exl = true;
-    } else {
-        logfatal("exception when EXL == 1!");
     }
 
     cpu->cp0.cause.exception_code = code;

@@ -923,6 +923,7 @@ MIPS_INSTR(mips_lb) {
 }
 
 MIPS_INSTR(mips_ldc1) {
+    checkcp1;
     shalf offset    = instruction.i.immediate;
     word address    = get_register(cpu, instruction.i.rs) + offset;
     if (address & 0b111) {
@@ -934,6 +935,7 @@ MIPS_INSTR(mips_ldc1) {
 }
 
 MIPS_INSTR(mips_sdc1) {
+    checkcp1;
     shalf offset    = instruction.fi.offset;
     word address    = get_register(cpu, instruction.fi.base) + offset;
     dword value     = get_fpu_register_dword(cpu, instruction.fi.ft);
@@ -942,6 +944,7 @@ MIPS_INSTR(mips_sdc1) {
 }
 
 MIPS_INSTR(mips_lwc1) {
+    checkcp1;
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
     word value   = cpu->read_word(address);
@@ -950,6 +953,7 @@ MIPS_INSTR(mips_lwc1) {
 }
 
 MIPS_INSTR(mips_swc1) {
+    checkcp1;
     shalf offset = instruction.fi.offset;
     word address = get_register(cpu, instruction.fi.base) + offset;
     word value   = get_fpu_register_word(cpu, instruction.fi.ft);
