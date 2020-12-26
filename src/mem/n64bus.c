@@ -109,11 +109,11 @@ word read_word_pireg(n64_system_t* system, word address) {
         case ADDR_PI_DRAM_ADDR_REG:
             return system->mem.pi_reg[PI_DRAM_ADDR_REG];
         case ADDR_PI_CART_ADDR_REG:
-            logfatal("Reading word from unsupported PI register: PI_CART_ADDR_REG");
+            return system->mem.pi_reg[PI_CART_ADDR_REG];
         case ADDR_PI_RD_LEN_REG:
-            logfatal("Reading word from unsupported PI register: PI_RD_LEN_REG");
+            return system->mem.pi_reg[PI_RD_LEN_REG];
         case ADDR_PI_WR_LEN_REG:
-            logfatal("Reading word from unsupported PI register: PI_WR_LEN_REG");
+            return system->mem.pi_reg[PI_WR_LEN_REG];
         case ADDR_PI_STATUS_REG: {
             word value = 0;
             value |= is_dma_active();
