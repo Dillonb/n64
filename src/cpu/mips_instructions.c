@@ -1158,9 +1158,13 @@ MIPS_INSTR(mips_spc_div) {
     sdword divisor  = get_register(cpu, instruction.r.rt);
 
     if (divisor == 0) {
-        logwarn("Undefined behavior! No exception thrown, but a divide by zero happened.");
-        cpu->mult_lo = 0;
-        cpu->mult_hi = 0;
+        logwarn("Divide by zero");
+        cpu->mult_hi = dividend;
+        if (dividend >= 0) {
+            cpu->mult_lo = (sdword)-1;
+        } else {
+            cpu->mult_lo = (sdword)1;
+        }
     } else {
         sdword quotient  = dividend / divisor;
         sdword remainder = dividend % divisor;
