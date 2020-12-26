@@ -26,6 +26,7 @@ RSP_INSTR(rsp_lw);
 RSP_INSTR(rsp_j);
 RSP_INSTR(rsp_jal);
 RSP_INSTR(rsp_slti);
+RSP_INSTR(rsp_sltiu);
 RSP_INSTR(rsp_spc_jr);
 RSP_INSTR(rsp_spc_jalr);
 RSP_INSTR(rsp_spc_sll);
@@ -39,6 +40,7 @@ RSP_INSTR(rsp_spc_or);
 RSP_INSTR(rsp_spc_xor);
 RSP_INSTR(rsp_spc_nor);
 RSP_INSTR(rsp_spc_slt);
+RSP_INSTR(rsp_spc_sltu);
 
 RSP_INSTR(rsp_spc_break);
 

@@ -115,6 +115,17 @@ RSP_INSTR(rsp_spc_slt) {
     }
 }
 
+RSP_INSTR(rsp_spc_sltu) {
+    word op1 = get_rsp_register(rsp, instruction.r.rs);
+    word op2 = get_rsp_register(rsp, instruction.r.rt);
+
+    if (op1 < op2) {
+        set_rsp_register(rsp, instruction.r.rd, 1);
+    } else {
+        set_rsp_register(rsp, instruction.r.rd, 0);
+    }
+}
+
 RSP_INSTR(rsp_spc_add) {
     word addend1 = get_rsp_register(rsp, instruction.r.rs);
     word addend2 = get_rsp_register(rsp, instruction.r.rt);
@@ -219,13 +230,22 @@ RSP_INSTR(rsp_jal) {
 
 RSP_INSTR(rsp_slti) {
         shalf immediate = instruction.i.immediate;
-        logtrace("Set if %d < %d", get_rsp_register(rsp, instruction.i.rs), immediate);
         sword reg = get_rsp_register(rsp, instruction.i.rs);
         if (reg < immediate) {
             set_rsp_register(rsp, instruction.i.rt, 1);
         } else {
             set_rsp_register(rsp, instruction.i.rt, 0);
         }
+}
+
+RSP_INSTR(rsp_sltiu) {
+    shalf immediate = instruction.i.immediate;
+    word reg = get_rsp_register(rsp, instruction.i.rs);
+    if (reg < immediate) {
+        set_rsp_register(rsp, instruction.i.rt, 1);
+    } else {
+        set_rsp_register(rsp, instruction.i.rt, 0);
+    }
 }
 
 RSP_INSTR(rsp_spc_jr) {

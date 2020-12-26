@@ -132,7 +132,7 @@ INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instructi
         case FUNCT_XOR:    return rsp_spc_xor;
         case FUNCT_NOR:    return rsp_spc_nor;
         case FUNCT_SLT:    return rsp_spc_slt;
-        //case FUNCT_SLTU:   return rsp_spc_sltu;
+        case FUNCT_SLTU:   return rsp_spc_sltu;
 
         case FUNCT_BREAK: return rsp_spc_break;
         default: {
@@ -229,7 +229,7 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
             case OPC_J:     return rsp_j;
             case OPC_JAL:   return rsp_jal;
             case OPC_SLTI:  return rsp_slti;
-            //case OPC_SLTIU: return rsp_sltiu;
+            case OPC_SLTIU: return rsp_sltiu;
             case OPC_XORI:  return rsp_xori;
             case OPC_LB:    return rsp_lb;
             //case OPC_LWL:   return rsp_lwl;
