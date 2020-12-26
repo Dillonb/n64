@@ -141,6 +141,26 @@ INLINE void sign_extend_eax_rax(dasm_State** Dst) {
     | movsxd rax, eax
 }
 
+INLINE void check_exception(dasm_State** Dst, word block_length) {
+    // If an exception was triggered, end the block.
+    // otherwise, don't end the block.
+    | mov al, cpu_state->exception
+    // if (cpu_state->exception) {
+    | cmp al, 0
+    | je >1
+
+    // cpu_state->exception = false
+    | mov al, 0
+    | mov cpu_state->exception, al
+
+    // return block_length
+    | mov eax, block_length
+    | epilogue
+    // }
+    |1:
+}
+
+
 #define TAKEBRANCH take_branch(Dst, instr, address)
 #define LOADRAX(r) load_rax(Dst, address, r)
 #define SAVERAX(r) save_rax(Dst, address, r)
@@ -699,22 +719,7 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
         case OPC_CP0:    return CALL_COMPILER(compile_cp0_instruction);
         case OPC_CP1: {
             dynarec_instruction_category_t category = CALL_COMPILER(compile_cp1_instruction);
-            // If an exception was triggered, end the block.
-            // otherwise, don't end the block.
-            | mov al, cpu_state->exception
-            // if (cpu_state->exception) {
-            | cmp al, 0
-            | je >1
-
-            // cpu_state->exception = false
-            | mov al, 0
-            | mov cpu_state->exception, al
-
-            // return block_length
-            | mov eax, block_length
-            | epilogue
-            // }
-            |1:
+            check_exception(Dst, block_length);
             return category;
         }
         CASECOMPILE(OPC_SPCL, compile_special_instruction);
@@ -752,10 +757,26 @@ dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instru
         CASECOMPILE(OPC_XORI, compile_mips_xori);
         CASECOMPILE(OPC_DADDIU, compile_mips_daddiu);
         CASECOMPILE(OPC_LB, compile_mips_lb);
-        CASECOMPILE(OPC_LDC1, compile_mips_ldc1);
-        CASECOMPILE(OPC_SDC1, compile_mips_sdc1);
-        CASECOMPILE(OPC_LWC1, compile_mips_lwc1);
-        CASECOMPILE(OPC_SWC1, compile_mips_swc1);
+        case OPC_LDC1: {
+            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_ldc1);
+            check_exception(Dst, block_length);
+            return category;
+        }
+        case OPC_SDC1: {
+            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_sdc1);
+            check_exception(Dst, block_length);
+            return category;
+        }
+        case OPC_LWC1: {
+            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_lwc1);
+            check_exception(Dst, block_length);
+            return category;
+        }
+        case OPC_SWC1: {
+            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_swc1);
+            check_exception(Dst, block_length);
+            return category;
+        }
         CASECOMPILE(OPC_LWL, compile_mips_lwl);
         CASECOMPILE(OPC_LWR, compile_mips_lwr);
         CASECOMPILE(OPC_SWL, compile_mips_swl);
