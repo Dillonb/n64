@@ -103,6 +103,13 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
         case R4300I_CP0_REG_WATCHHI:
             cpu->cp0.watch_hi = value;
             break;
+        case R4300I_CP0_REG_WIRED:
+            cpu->cp0.wired = value;
+            break;
+        case R4300I_CP0_REG_CONTEXT:
+            unimplemented(value != 0, "cp0 context written with non-zero value");
+            cpu->cp0.context = value;
+            break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
     }
