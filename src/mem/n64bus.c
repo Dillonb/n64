@@ -168,6 +168,8 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
                 logfatal("DRAM address too high!");
             }
             run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] += length;
+            system->mem.pi_reg[PI_CART_ADDR_REG] += length;
             interrupt_raise(INTERRUPT_PI);
             break;
         }
@@ -183,6 +185,8 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", system->mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
             run_dma(system, cart_addr, dram_addr, length, "CART to DRAM");
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] += length;
+            system->mem.pi_reg[PI_CART_ADDR_REG] += length;
             interrupt_raise(INTERRUPT_PI);
             break;
         }
