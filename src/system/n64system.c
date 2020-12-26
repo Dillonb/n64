@@ -106,6 +106,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
     if (rom_path != NULL) {
+        logalways("Loading %s", rom_path);
         load_n64rom(&system->mem.rom, rom_path);
     }
 
