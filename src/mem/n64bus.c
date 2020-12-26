@@ -975,7 +975,8 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_2_1:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
         case REGION_CART_1_1:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
+            return 0;
         case REGION_CART_2_2:
             return sram_read_byte(system, address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
