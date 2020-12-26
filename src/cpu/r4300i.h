@@ -21,6 +21,7 @@
 #define R4300I_CP0_REG_CONTEXT  4
 #define R4300I_CP0_REG_PAGEMASK 5
 #define R4300I_CP0_REG_WIRED    6
+#define R4300I_CP0_REG_7        7
 #define R4300I_CP0_REG_BADVADDR 8
 #define R4300I_CP0_REG_COUNT    9
 #define R4300I_CP0_REG_ENTRYHI  10
@@ -28,13 +29,26 @@
 #define R4300I_CP0_REG_STATUS   12
 #define R4300I_CP0_REG_CAUSE    13
 #define R4300I_CP0_REG_EPC      14
+#define R4300I_CP0_REG_PRID     15
 #define R4300I_CP0_REG_CONFIG   16
+#define R4300I_CP0_REG_LLADDR   17
 #define R4300I_CP0_REG_WATCHLO  18
 #define R4300I_CP0_REG_WATCHHI  19
+#define R4300I_CP0_REG_XCONTEXT 20
+#define R4300I_CP0_REG_21       21
+#define R4300I_CP0_REG_22       22
+#define R4300I_CP0_REG_23       23
+#define R4300I_CP0_REG_24       24
+#define R4300I_CP0_REG_25       25
+#define R4300I_CP0_REG_PARITYER 26
+#define R4300I_CP0_REG_CACHEER  27
 #define R4300I_CP0_REG_TAGLO    28
 #define R4300I_CP0_REG_TAGHI    29
+#define R4300I_CP0_REG_ERR_EPC  30
+#define R4300I_CP0_REG_31       31
 
 #define CP0_STATUS_WRITE_MASK 0xFF57FFFF
+#define CP0_CONFIG_WRITE_MASK 0x0FFFFFFF
 
 #define OPC_CP0    0b010000
 #define OPC_CP1    0b010001
@@ -216,7 +230,7 @@ typedef union cp0_status {
         bool cu1:1;
         bool cu2:1;
         bool cu3:1;
-    };
+    } PACKED;
     struct {
         unsigned:16;
         bool de:1;
@@ -229,7 +243,7 @@ typedef union cp0_status {
         bool:1;
         bool its:1;
         unsigned:7;
-    };
+    } PACKED;
 } cp0_status_t;
 
 ASSERTWORD(cp0_status_t);

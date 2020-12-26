@@ -182,6 +182,11 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->use_interpreter = use_interpreter;
 
     system->cpu.cp0.status.bev = true;
+    system->cpu.cp0.cause.raw  = 0xB000007C;
+    system->cpu.cp0.EPC        = 0xFFFFFFFF;
+    system->cpu.cp0.PRId       = 0x00000B22;
+    system->cpu.cp0.config     = 0x70000000;
+    system->cpu.cp0.error_epc  = 0xFFFFFFFF;
 
     return system;
 }

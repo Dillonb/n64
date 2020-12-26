@@ -44,7 +44,7 @@ const char* register_names[] = {
 const char* cp0_register_names[] = {
         "Index", "Random", "EntryLo0", "EntryLo1", "Context", "PageMask", "Wired", "7", "BadVAddr", "Count", "EntryHi",
         "Compare", "Status", "Cause", "EPC", "PRId", "Config", "LLAddr", "WatchLo", "WatchHi", "XContext", "21", "22",
-        "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
+        "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi", "error_epc", "r31"
 };
 
 void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, sword coprocessor_error) {

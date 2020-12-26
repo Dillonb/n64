@@ -16,6 +16,25 @@ INLINE dword get_register(r4300i_t* cpu, byte r) {
     return value;
 }
 
+INLINE void log_status(cp0_status_t status) {
+    loginfo("    CP0 status: ie:  %d", status.ie);
+    loginfo("    CP0 status: exl: %d", status.exl);
+    loginfo("    CP0 status: erl: %d", status.erl);
+    loginfo("    CP0 status: ksu: %d", status.ksu);
+    loginfo("    CP0 status: ux:  %d", status.ux);
+    loginfo("    CP0 status: sx:  %d", status.sx);
+    loginfo("    CP0 status: kx:  %d", status.kx);
+    loginfo("    CP0 status: im:  %d", status.im);
+    loginfo("    CP0 status: ds:  %d", status.ds);
+    loginfo("    CP0 status: re:  %d", status.re);
+    loginfo("    CP0 status: fr:  %d", status.fr);
+    loginfo("    CP0 status: rp:  %d", status.rp);
+    loginfo("    CP0 status: cu0: %d", status.cu0);
+    loginfo("    CP0 status: cu1: %d", status.cu1);
+    loginfo("    CP0 status: cu2: %d", status.cu2);
+    loginfo("    CP0 status: cu3: %d", status.cu3);
+}
+
 INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
@@ -45,7 +64,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.compare = value;
             break;
         case R4300I_CP0_REG_STATUS: {
-            cpu->cp0.status.raw &= value & ~CP0_STATUS_WRITE_MASK;
+            cpu->cp0.status.raw &= ~CP0_STATUS_WRITE_MASK;
             cpu->cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
 
             unimplemented(cpu->cp0.status.re, "Reverse endian bit set in CP0");
@@ -54,22 +73,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             unimplemented(cpu->cp0.status.ux, "UX bit set in CP0 - 64 bit addressing in user mode enabled");
             unimplemented(cpu->cp0.status.ksu, "KSU != 0, leaving kernel mode!");
 
-            loginfo("    CP0 status: ie:  %d", cpu->cp0.status.ie);
-            loginfo("    CP0 status: exl: %d", cpu->cp0.status.exl);
-            loginfo("    CP0 status: erl: %d", cpu->cp0.status.erl);
-            loginfo("    CP0 status: ksu: %d", cpu->cp0.status.ksu);
-            loginfo("    CP0 status: ux:  %d", cpu->cp0.status.ux);
-            loginfo("    CP0 status: sx:  %d", cpu->cp0.status.sx);
-            loginfo("    CP0 status: kx:  %d", cpu->cp0.status.kx);
-            loginfo("    CP0 status: im:  %d", cpu->cp0.status.im);
-            loginfo("    CP0 status: ds:  %d", cpu->cp0.status.ds);
-            loginfo("    CP0 status: re:  %d", cpu->cp0.status.re);
-            loginfo("    CP0 status: fr:  %d", cpu->cp0.status.fr);
-            loginfo("    CP0 status: rp:  %d", cpu->cp0.status.rp);
-            loginfo("    CP0 status: cu0: %d", cpu->cp0.status.cu0);
-            loginfo("    CP0 status: cu1: %d", cpu->cp0.status.cu1);
-            loginfo("    CP0 status: cu2: %d", cpu->cp0.status.cu2);
-            loginfo("    CP0 status: cu3: %d", cpu->cp0.status.cu3);
+            log_status(cpu->cp0.status);
 
             r4300i_interrupt_update(cpu);
             break;
@@ -93,7 +97,8 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.EPC = value;
             break;
         case R4300I_CP0_REG_CONFIG:
-            cpu->cp0.config = value;
+            cpu->cp0.config &= ~CP0_CONFIG_WRITE_MASK;
+            cpu->cp0.config |= value & CP0_CONFIG_WRITE_MASK;
             break;
         case R4300I_CP0_REG_WATCHLO:
             cpu->cp0.watch_lo.raw = value;
@@ -119,32 +124,73 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
 
 INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
     switch (r) {
-        case R4300I_CP0_REG_ENTRYLO0:
-            return cpu->cp0.entry_lo0.raw;
-        case R4300I_CP0_REG_BADVADDR:
-            return cpu->cp0.bad_vaddr;
-        case R4300I_CP0_REG_STATUS:
-            return cpu->cp0.status.raw;
-        case R4300I_CP0_REG_ENTRYHI:
-            return cpu->cp0.entry_hi.raw;
-        case R4300I_CP0_REG_CAUSE:
-            return cpu->cp0.cause.raw;
-        case R4300I_CP0_REG_EPC:
-            return cpu->cp0.EPC;
-        case R4300I_CP0_REG_COUNT: {
-            dword shifted = cpu->cp0.count >> 1;
-            return (word)shifted;
-        }
-        case R4300I_CP0_REG_COMPARE:
-            return cpu->cp0.compare;
         case R4300I_CP0_REG_INDEX:
             return cpu->cp0.index & 0x8000003F;
+        case R4300I_CP0_REG_RANDOM:
+            logalways("WARNING! Stubbed read from Random!");
+            return 1;
+        case R4300I_CP0_REG_ENTRYLO0:
+            return cpu->cp0.entry_lo0.raw;
+        case R4300I_CP0_REG_ENTRYLO1:
+            return cpu->cp0.entry_lo1.raw;
         case R4300I_CP0_REG_CONTEXT:
             return cpu->cp0.context;
         case R4300I_CP0_REG_PAGEMASK:
             return cpu->cp0.page_mask.raw;
         case R4300I_CP0_REG_WIRED:
             return cpu->cp0.wired;
+        case R4300I_CP0_REG_7:
+            return cpu->cp0.r7;
+        case R4300I_CP0_REG_BADVADDR:
+            return cpu->cp0.bad_vaddr;
+        case R4300I_CP0_REG_COUNT: {
+            dword shifted = cpu->cp0.count >> 1;
+            return (word)shifted;
+        }
+        case R4300I_CP0_REG_ENTRYHI:
+            return cpu->cp0.entry_hi.raw;
+        case R4300I_CP0_REG_COMPARE:
+            return cpu->cp0.compare;
+        case R4300I_CP0_REG_STATUS:
+            return cpu->cp0.status.raw;
+        case R4300I_CP0_REG_CAUSE:
+            return cpu->cp0.cause.raw;
+        case R4300I_CP0_REG_EPC:
+            return cpu->cp0.EPC;
+        case R4300I_CP0_REG_PRID:
+            return cpu->cp0.PRId;
+        case R4300I_CP0_REG_CONFIG:
+            return cpu->cp0.config;
+        case R4300I_CP0_REG_LLADDR:
+            return cpu->cp0.lladdr;
+        case R4300I_CP0_REG_WATCHLO:
+            return cpu->cp0.watch_lo.raw;
+        case R4300I_CP0_REG_WATCHHI:
+            return cpu->cp0.watch_hi;
+        case R4300I_CP0_REG_XCONTEXT:
+            return cpu->cp0.x_context;
+        case R4300I_CP0_REG_21:
+            return cpu->cp0.r21;
+        case R4300I_CP0_REG_22:
+            return cpu->cp0.r22;
+        case R4300I_CP0_REG_23:
+            return cpu->cp0.r23;
+        case R4300I_CP0_REG_24:
+            return cpu->cp0.r24;
+        case R4300I_CP0_REG_25:
+            return cpu->cp0.r25;
+        case R4300I_CP0_REG_PARITYER:
+            return cpu->cp0.parity_error;
+        case R4300I_CP0_REG_CACHEER:
+            return cpu->cp0.cache_error;
+        case R4300I_CP0_REG_TAGLO:
+            return cpu->cp0.tag_lo;
+        case R4300I_CP0_REG_TAGHI:
+            return cpu->cp0.tag_hi;
+        case R4300I_CP0_REG_ERR_EPC:
+            return cpu->cp0.error_epc;
+        case R4300I_CP0_REG_31:
+            return cpu->cp0.r31;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
     }
