@@ -47,6 +47,8 @@ typedef union rsp_types {
     };
 } rsp_status_t;
 
+ASSERTWORD(rsp_status_t);
+
 typedef struct rsp rsp_t;
 
 void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr);

@@ -33,34 +33,36 @@ typedef union sp_status_write {
     };
 } sp_status_write_t;
 
-#define CLEAR_SET(VAL, CLEAR, SET) if (CLEAR) {VAL = false; } if (SET) { VAL = true; }
+ASSERTWORD(sp_status_write_t);
+
+#define CLEAR_SET(VAL, CLEAR, SET) do { unimplemented((CLEAR) && (SET), "Both clear and set are set"); if (CLEAR) {(VAL) = false; } if (SET) { (VAL) = true; } } while(0)
 
 void rsp_status_reg_write(n64_system_t* system, word value) {
     sp_status_write_t write;
     write.raw = value;
 
-    CLEAR_SET(system->rsp.status.halt,          write.clear_halt,          write.set_halt)
+    CLEAR_SET(system->rsp.status.halt,          write.clear_halt,          write.set_halt);
     if (system->rsp.status.halt) {
         system->rsp.steps = 0;
     }
 
-    CLEAR_SET(system->rsp.status.broke,         write.clear_broke,         false)
+    CLEAR_SET(system->rsp.status.broke,         write.clear_broke,         false);
     if (write.clear_intr) {
         interrupt_lower(system, INTERRUPT_SP);
     }
     if (write.set_intr) {
         interrupt_raise(INTERRUPT_SP);
     }
-    CLEAR_SET(system->rsp.status.single_step,   write.clear_sstep,         write.set_sstep)
-    CLEAR_SET(system->rsp.status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break)
-    CLEAR_SET(system->rsp.status.signal_0,      write.clear_signal_0,      write.set_signal_0)
-    CLEAR_SET(system->rsp.status.signal_1,      write.clear_signal_1,      write.set_signal_1)
-    CLEAR_SET(system->rsp.status.signal_2,      write.clear_signal_2,      write.set_signal_2)
-    CLEAR_SET(system->rsp.status.signal_3,      write.clear_signal_3,      write.set_signal_3)
-    CLEAR_SET(system->rsp.status.signal_4,      write.clear_signal_4,      write.set_signal_4)
-    CLEAR_SET(system->rsp.status.signal_5,      write.clear_signal_5,      write.set_signal_5)
-    CLEAR_SET(system->rsp.status.signal_6,      write.clear_signal_6,      write.set_signal_6)
-    CLEAR_SET(system->rsp.status.signal_7,      write.clear_signal_7,      write.set_signal_7)
+    CLEAR_SET(system->rsp.status.single_step,   write.clear_sstep,         write.set_sstep);
+    CLEAR_SET(system->rsp.status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break);
+    CLEAR_SET(system->rsp.status.signal_0,      write.clear_signal_0,      write.set_signal_0);
+    CLEAR_SET(system->rsp.status.signal_1,      write.clear_signal_1,      write.set_signal_1);
+    CLEAR_SET(system->rsp.status.signal_2,      write.clear_signal_2,      write.set_signal_2);
+    CLEAR_SET(system->rsp.status.signal_3,      write.clear_signal_3,      write.set_signal_3);
+    CLEAR_SET(system->rsp.status.signal_4,      write.clear_signal_4,      write.set_signal_4);
+    CLEAR_SET(system->rsp.status.signal_5,      write.clear_signal_5,      write.set_signal_5);
+    CLEAR_SET(system->rsp.status.signal_6,      write.clear_signal_6,      write.set_signal_6);
+    CLEAR_SET(system->rsp.status.signal_7,      write.clear_signal_7,      write.set_signal_7);
 }
 
 word read_word_spreg(n64_system_t* system, word address) {
@@ -70,7 +72,6 @@ word read_word_spreg(n64_system_t* system, word address) {
         case ADDR_SP_DRAM_ADDR_REG:
             return system->rsp.io.dram_addr.raw;
         case ADDR_SP_RD_LEN_REG:
-            return system->rsp.io.dma.raw;
         case ADDR_SP_WR_LEN_REG:
             return system->rsp.io.dma.raw;
         case ADDR_SP_PC_REG:
