@@ -69,6 +69,8 @@ typedef union mem_addr {
     };
 } mem_addr_t;
 
+ASSERTWORD(mem_addr_t);
+
 typedef union dram_addr {
     word raw;
     struct {
@@ -76,6 +78,8 @@ typedef union dram_addr {
         unsigned:8;
     };
 } dram_addr_t;
+
+ASSERTWORD(dram_addr_t);
 
 typedef struct rsp {
     word gpr[32];
