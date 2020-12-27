@@ -71,11 +71,7 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             // TODO: make sure to fix the CPU_MODE_SUPERVISOR and CPU_MODE_USER constants when this assertion gets hit
             unimplemented(cpu->cp0.status.ksu, "KSU != 0, leaving kernel mode!");
 
-            cpu->cp0.is_64bit_addressing =
-                    (cpu->cp0.status.ksu == CPU_MODE_KERNEL && cpu->cp0.status.kx)
-                    || (cpu->cp0.status.ksu == CPU_MODE_SUPERVISOR && cpu->cp0.status.sx)
-                    || (cpu->cp0.status.ksu == CPU_MODE_USER && cpu->cp0.status.ux);
-
+            cp0_status_updated(cpu);
             log_status(cpu->cp0.status);
 
             r4300i_interrupt_update(cpu);

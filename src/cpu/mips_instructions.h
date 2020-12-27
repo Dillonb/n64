@@ -5,11 +5,6 @@
 
 #define MIPS_INSTR(NAME) void NAME(r4300i_t* cpu, mips_instruction_t instruction)
 
-INLINE void set_pc_r4300i(r4300i_t* cpu, word new_pc) {
-    cpu->pc = new_pc;
-    cpu->next_pc = cpu->pc + 4;
-}
-
 MIPS_INSTR(mips_nop);
 
 MIPS_INSTR(mips_addi);

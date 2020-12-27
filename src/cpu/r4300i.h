@@ -414,6 +414,10 @@ typedef struct cp0 {
     word r31;
 
     tlb_entry_t tlb[32];
+
+    bool kernel_mode;
+    bool supervisor_mode;
+    bool user_mode;
     bool is_64bit_addressing;
 } cp0_t;
 
@@ -516,5 +520,27 @@ void r4300i_interrupt_update(r4300i_t* cpu);
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
+
+INLINE void set_pc_word_r4300i(r4300i_t* cpu, word new_pc) {
+    cpu->pc = (sdword)((sword)new_pc);
+    cpu->next_pc = cpu->pc + 4;
+}
+
+INLINE void set_pc_dword_r4300i(r4300i_t* cpu, dword new_pc) {
+    cpu->pc = new_pc;
+    cpu->next_pc = cpu->pc + 4;
+}
+
+INLINE void cp0_status_updated(r4300i_t* cpu) {
+    bool exception = cpu->cp0.status.exl || cpu->cp0.status.erl;
+
+    cpu->cp0.kernel_mode     =  exception || cpu->cp0.status.ksu == CPU_MODE_KERNEL;
+    cpu->cp0.supervisor_mode = !exception && cpu->cp0.status.ksu == CPU_MODE_SUPERVISOR;
+    cpu->cp0.user_mode       = !exception && cpu->cp0.status.ksu == CPU_MODE_USER;
+    cpu->cp0.is_64bit_addressing =
+            (cpu->cp0.kernel_mode && cpu->cp0.status.kx)
+            || (cpu->cp0.supervisor_mode && cpu->cp0.status.sx)
+               || (cpu->cp0.user_mode && cpu->cp0.status.ux);
+}
 
 #endif //N64_R4300I_H

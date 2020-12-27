@@ -74,7 +74,7 @@ void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocess
         switch (code) {
             case EXCEPTION_COPROCESSOR_UNUSABLE:
                 logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.");
-                set_pc_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(cpu, 0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
@@ -82,15 +82,16 @@ void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocess
     } else {
         switch (code) {
             case EXCEPTION_INTERRUPT:
-                set_pc_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(cpu, 0x80000180);
                 break;
             case EXCEPTION_COPROCESSOR_UNUSABLE:
-                set_pc_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(cpu, 0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
         }
     }
+    cp0_status_updated(cpu);
     cpu->exception = true;
 }
 

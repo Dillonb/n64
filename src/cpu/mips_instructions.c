@@ -28,13 +28,17 @@ void check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
 }
 
 INLINE void link(r4300i_t* cpu) {
-    sword pc = cpu->pc + 4;
-    set_register(cpu, R4300I_REG_LR, (sdword)pc); // Skips the instruction in the delay slot on return
+    dword pc = cpu->pc + 4;
+    set_register(cpu, R4300I_REG_LR, pc); // Skips the instruction in the delay slot on return
 }
 
 INLINE void branch_abs(r4300i_t* cpu, dword address) {
     cpu->next_pc = address;
     cpu->branch = true;
+}
+
+INLINE void branch_abs_word(r4300i_t* cpu, dword address) {
+    branch_abs(cpu, (sdword)((sword)address));
 }
 
 INLINE void branch_offset(r4300i_t* cpu, shalf offset) {
@@ -51,7 +55,7 @@ INLINE void conditional_branch_likely(r4300i_t* cpu, word offset, bool condition
         branch_offset(cpu, offset);
     } else {
         // Skip instruction in delay slot
-        set_pc_r4300i(cpu, cpu->pc + 4);
+        set_pc_dword_r4300i(cpu, cpu->pc + 4);
     }
 }
 
@@ -188,7 +192,7 @@ MIPS_INSTR(mips_j) {
     target <<= 2;
     target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
 
-    branch_abs(cpu, target);
+    branch_abs_word(cpu, target);
 }
 
 MIPS_INSTR(mips_jal) {
@@ -198,7 +202,7 @@ MIPS_INSTR(mips_jal) {
     target <<= 2;
     target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
 
-    branch_abs(cpu, target);
+    branch_abs_word(cpu, target);
 }
 
 MIPS_INSTR(mips_slti) {
@@ -261,12 +265,15 @@ MIPS_INSTR(mips_dmtc1) {
 
 MIPS_INSTR(mips_eret) {
     if (cpu->cp0.status.erl) {
-        set_pc_r4300i(cpu, cpu->cp0.error_epc);
+        ASSERTWORD(cpu->cp0.error_epc); // TODO: this is actually supposed to be a dword, just remember to update this code when it changes
+        set_pc_word_r4300i(cpu, cpu->cp0.error_epc);
         cpu->cp0.status.erl = false;
     } else {
-        set_pc_r4300i(cpu, cpu->cp0.EPC);
+        ASSERTWORD(cpu->cp0.EPC); // TODO: this is actually supposed to be a dword, just remember to update this code when it changes
+        set_pc_word_r4300i(cpu, cpu->cp0.EPC);
         cpu->cp0.status.exl = false;
     }
+    cp0_status_updated(cpu);
 }
 
 MIPS_INSTR(mips_cfc1) {

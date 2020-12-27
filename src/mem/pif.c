@@ -102,13 +102,11 @@ void pif_rom_execute_hle(n64_system_t* system) {
         logtrace("PIF: Copied 0x%016lX from 0x%08X ==> 0x%08X", src, src_address, dest_address);
     }
 
-    system->cpu.pc = 0xA4000040;
-    system->cpu.next_pc = system->cpu.pc + 4;
+    set_pc_word_r4300i(&system->cpu, 0xA4000040);
 }
 
 void pif_rom_execute_lle(n64_system_t* system) {
-    system->cpu.pc = 0x1FC00000 + SVREGION_KSEG1;
-    system->cpu.next_pc = system->cpu.pc + 4;
+    set_pc_word_r4300i(&system->cpu, 0x1FC00000 + SVREGION_KSEG1);
 }
 
 void pif_rom_execute(n64_system_t* system) {

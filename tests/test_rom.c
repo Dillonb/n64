@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     // Normally handled by the bootcode, we gotta do it ourselves.
     run_dma(system, 0x10001000, 0x00001000, 1048576, "CART to DRAM");
 
-    set_pc_r4300i(&system->cpu, system->mem.rom.header.program_counter);
+    set_pc_word_r4300i(&system->cpu, system->mem.rom.header.program_counter);
 
     loginfo("Initial PC: 0x%08X\n", system->cpu.pc);
 
