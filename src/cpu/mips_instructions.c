@@ -1364,6 +1364,15 @@ MIPS_INSTR(mips_spc_dsubu) {
     set_register(cpu, instruction.r.rd, difference);
 }
 
+MIPS_INSTR(mips_spc_teq) {
+    dword rs = get_register(cpu, instruction.r.rs);
+    dword rt = get_register(cpu, instruction.r.rt);
+
+    if (rs == rt) {
+        logfatal("teq trapped!");
+    }
+}
+
 MIPS_INSTR(mips_spc_dsll) {
     dword value = get_register(cpu, instruction.r.rt);
     value <<= instruction.r.sa;
