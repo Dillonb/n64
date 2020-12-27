@@ -223,10 +223,11 @@ INLINE int jit_system_step(n64_system_t* system) {
         uint64_t newcount = (cpu->cp0.count + (taken * CYCLES_PER_INSTR)) >> 1;
         if (unlikely(oldcount < cpu->cp0.compare && newcount >= cpu->cp0.compare)) {
             cpu->cp0.cause.ip7 = true;
-            loginfo("Compare interrupt!");
+            loginfo("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, cpu->cp0.compare);
             r4300i_interrupt_update(cpu);
         }
         cpu->cp0.count += taken;
+        cpu->cp0.count &= 0x1FFFFFFFF;
     }
     cpu_steps += taken;
 

@@ -508,6 +508,7 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
 
 void r4300i_step(r4300i_t* cpu) {
     cpu->cp0.count += CYCLES_PER_INSTR;
+    cpu->cp0.count &= 0x1FFFFFFFF;
     if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
         cpu->cp0.cause.ip7 = true;
         loginfo("Compare interrupt!");
