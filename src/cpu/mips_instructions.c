@@ -545,6 +545,10 @@ MIPS_INSTR(mips_cp_c_eq_s) {
     checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+
+    unimplemented(isnanf(fs), "fs is nan");
+    unimplemented(isnanf(ft), "ft is nan");
+
     cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_s) {
@@ -623,6 +627,10 @@ MIPS_INSTR(mips_cp_c_lt_s) {
     checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+
+    unimplemented(isnanf(fs), "fs is nan");
+    unimplemented(isnanf(ft), "ft is nan");
+
     cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_s) {
@@ -637,6 +645,10 @@ MIPS_INSTR(mips_cp_c_le_s) {
     checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+
+    unimplemented(isnanf(fs), "fs is nan");
+    unimplemented(isnanf(ft), "ft is nan");
+
     cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_s) {
@@ -668,6 +680,10 @@ MIPS_INSTR(mips_cp_c_eq_d) {
     checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+
+    unimplemented(isnan(fs), "fs is nan");
+    unimplemented(isnan(ft), "ft is nan");
+
     cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_d) {
@@ -746,6 +762,10 @@ MIPS_INSTR(mips_cp_c_lt_d) {
     checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+
+    unimplemented(isnan(fs), "fs is nan");
+    unimplemented(isnan(ft), "ft is nan");
+
     cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_d) {
@@ -760,6 +780,10 @@ MIPS_INSTR(mips_cp_c_le_d) {
     checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+
+    unimplemented(isnan(fs), "fs is nan");
+    unimplemented(isnan(ft), "ft is nan");
+
     cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_d) {
