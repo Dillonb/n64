@@ -63,8 +63,11 @@ INLINE word resolve_virtual_address_64bit(dword address, cp0_t* cp0) {
     word physical;
     switch (address) {
         case REGION_XKUSEG:
-            logfatal("Resolving virtual address 0x%016lX (REGION_XKUSEG) in 64 bit mode", address);
-        case REGION_XKSSEG:
+            if (!tlb_probe(address, &physical, NULL, cp0)) {
+                logfatal("Unimplemented: page miss translating virtual address 0x%016lX in REGION_XKUSEG", address);
+            }
+            break;
+    case REGION_XKSSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_XKSSEG) in 64 bit mode", address);
         case REGION_XKPHYS:
             logfatal("Resolving virtual address 0x%016lX (REGION_XKPHYS) in 64 bit mode", address);
