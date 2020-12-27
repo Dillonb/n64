@@ -67,11 +67,14 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.status.raw &= ~CP0_STATUS_WRITE_MASK;
             cpu->cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
 
-            unimplemented(cpu->cp0.status.re, "Reverse endian bit set in CP0");
-            unimplemented(cpu->cp0.status.kx, "KX bit set in CP0 - 64 bit addressing in kernel mode enabled");
-            unimplemented(cpu->cp0.status.sx, "SX bit set in CP0 - 64 bit addressing in supervisor mode enabled");
-            unimplemented(cpu->cp0.status.ux, "UX bit set in CP0 - 64 bit addressing in user mode enabled");
+            unimplemented(cpu->cp0.status.re, "Reverse endian bit set in CP0 (this probably ");
+            // TODO: make sure to fix the CPU_MODE_SUPERVISOR and CPU_MODE_USER constants when this assertion gets hit
             unimplemented(cpu->cp0.status.ksu, "KSU != 0, leaving kernel mode!");
+
+            cpu->cp0.is_64bit_addressing =
+                    (cpu->cp0.status.ksu == CPU_MODE_KERNEL && cpu->cp0.status.kx)
+                    || (cpu->cp0.status.ksu == CPU_MODE_SUPERVISOR && cpu->cp0.status.sx)
+                    || (cpu->cp0.status.ksu == CPU_MODE_USER && cpu->cp0.status.ux);
 
             log_status(cpu->cp0.status);
 

@@ -47,7 +47,7 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi", "error_epc", "r31"
 };
 
-void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, sword coprocessor_error) {
+void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
@@ -94,7 +94,7 @@ void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, sword coprocesso
     cpu->exception = true;
 }
 
-INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MF:
@@ -128,7 +128,7 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) 
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
@@ -360,7 +360,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) 
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
 
-INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return mips_spc_sll;
         case FUNCT_SRL:    return mips_spc_srl;
@@ -412,7 +412,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t ins
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_regimm_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_regimm_decode(dword pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:   return mips_ri_bltz;
         case RT_BLTZL:  return mips_ri_bltzl;
@@ -429,7 +429,7 @@ INLINE mipsinstr_handler_t r4300i_regimm_decode(word pc, mips_instruction_t inst
     }
 }
 
-mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr) {
+mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
@@ -520,7 +520,7 @@ void r4300i_step(r4300i_t* cpu) {
     }
      */
 
-    word pc = cpu->pc;
+    dword pc = cpu->pc;
     mips_instruction_t instruction;
     instruction.raw = cpu->read_word(pc);
 

@@ -58,44 +58,44 @@ void write_physical_byte_wrapper(word address, byte value) {
     n64_write_byte(global_system, address, value);
 }
 
-dword virtual_read_dword_wrapper(word address) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_dword(global_system, address);
+dword virtual_read_dword_wrapper(dword address) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    return n64_read_dword(global_system, physical);
 }
 
-void virtual_write_dword_wrapper(word address, dword value) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_dword(global_system, address, value);
+void virtual_write_dword_wrapper(dword address, dword value) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    n64_write_dword(global_system, physical, value);
 }
 
-word virtual_read_word_wrapper(word address) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_physical_word(address);
+word virtual_read_word_wrapper(dword address) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    return n64_read_physical_word(physical);
 }
 
-void virtual_write_word_wrapper(word address, word value) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_word(global_system, address, value);
+void virtual_write_word_wrapper(dword address, word value) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    n64_write_word(global_system, physical, value);
 }
 
-half virtual_read_half_wrapper(word address) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_half(global_system, address);
+half virtual_read_half_wrapper(dword address) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    return n64_read_half(global_system, physical);
 }
 
-void virtual_write_half_wrapper(word address, half value) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_half(global_system, address, value);
+void virtual_write_half_wrapper(dword address, half value) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    n64_write_half(global_system, physical, value);
 }
 
-byte virtual_read_byte_wrapper(word address) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_byte(global_system, address);
+byte virtual_read_byte_wrapper(dword address) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    return n64_read_byte(global_system, physical);
 }
 
-void virtual_write_byte_wrapper(word address, byte value) {
-    address = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_byte(global_system, address, value);
+void virtual_write_byte_wrapper(dword address, byte value) {
+    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
+    n64_write_byte(global_system, physical, value);
 }
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {

@@ -5,9 +5,9 @@
 #include <system/n64system.h>
 #include "addresses.h"
 
-bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0);
+bool tlb_probe(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0);
 
-INLINE word resolve_virtual_address(word address, cp0_t* cp0) {
+INLINE word resolve_virtual_address_32bit(word address, cp0_t* cp0) {
     word physical;
     switch (address >> 29) {
         // KSEG0
@@ -16,7 +16,7 @@ INLINE word resolve_virtual_address(word address, cp0_t* cp0) {
             physical = address - SVREGION_KSEG0;
             logtrace("KSEG0: Translated 0x%08X to 0x%08X", address, physical);
             break;
-            // KSEG1
+        // KSEG1
         case 0x5:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             physical = address - SVREGION_KSEG1;
@@ -45,6 +45,18 @@ INLINE word resolve_virtual_address(word address, cp0_t* cp0) {
             logfatal("PANIC! should never end up here.");
     }
     return physical;
+}
+
+INLINE word resolve_virtual_address_64bit(dword address, cp0_t* cp0) {
+    logfatal("Resolving virtual address 0x%016lX in 64 bit mode", address);
+}
+
+INLINE word resolve_virtual_address(dword address, cp0_t* cp0) {
+    if (cp0->is_64bit_addressing) {
+        return resolve_virtual_address_64bit(address, cp0);
+    } else {
+        return resolve_virtual_address_32bit(address, cp0);
+    }
 }
 
 

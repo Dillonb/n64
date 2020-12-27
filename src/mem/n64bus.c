@@ -12,14 +12,14 @@
 #include "mem_util.h"
 #include "backup.h"
 
-word get_vpn(word address, word page_mask_raw) {
+word get_vpn(dword address, word page_mask_raw) {
     word tmp = page_mask_raw | 0x1FFF;
     word vpn = address & ~tmp;
 
     return vpn;
 }
 
-bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
+bool tlb_probe(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = cp0->tlb[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;

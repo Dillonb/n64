@@ -312,7 +312,7 @@ void check_cpu_log(n64_system_t* system, FILE* fp) {
 }
 
 void cpu_step(r4300i_t* cpu) {
-    word pc = cpu->pc;
+    dword pc = cpu->pc;
     mips_instruction_t instruction;
     instruction.raw = cpu->read_word(pc);
 

@@ -50,6 +50,10 @@
 #define CP0_STATUS_WRITE_MASK 0xFF57FFFF
 #define CP0_CONFIG_WRITE_MASK 0x0FFFFFFF
 
+#define CPU_MODE_KERNEL 0
+#define CPU_MODE_SUPERVISOR 1 /* TODO this is probably wrong */
+#define CPU_MODE_USER 2 /* TODO this is probably wrong */
+
 #define OPC_CP0    0b010000
 #define OPC_CP1    0b010001
 #define OPC_CP2    0b010010
@@ -410,6 +414,7 @@ typedef struct cp0 {
     word r31;
 
     tlb_entry_t tlb[32];
+    bool is_64bit_addressing;
 } cp0_t;
 
 typedef union fcr0 {
@@ -466,9 +471,9 @@ ASSERTDWORD(fgr_t);
 typedef struct r4300i {
     dword gpr[32];
 
-    word pc;
-    word next_pc;
-    word prev_pc;
+    dword pc;
+    dword next_pc;
+    dword prev_pc;
 
     dword mult_hi;
     dword mult_lo;
@@ -489,24 +494,24 @@ typedef struct r4300i {
     // Did an exception just happen?
     bool exception;
 
-    byte (*read_byte)(word);
-    void (*write_byte)(word, byte);
+    byte (*read_byte)(dword);
+    void (*write_byte)(dword, byte);
 
-    half (*read_half)(word);
-    void (*write_half)(word, half);
+    half (*read_half)(dword);
+    void (*write_half)(dword, half);
 
-    word (*read_word)(word);
-    void (*write_word)(word, word);
+    word (*read_word)(dword);
+    void (*write_word)(dword, word);
 
-    dword (*read_dword)(word);
-    void (*write_dword)(word, dword);
+    dword (*read_dword)(dword);
+    void (*write_dword)(dword, dword);
 } r4300i_t;
 
 typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
 
 void r4300i_step(r4300i_t* cpu);
-void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, sword coprocessor_error);
-mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr);
+void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error);
+mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);
 void r4300i_interrupt_update(r4300i_t* cpu);
 
 extern const char* register_names[];

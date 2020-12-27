@@ -913,24 +913,24 @@ INLINE void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu
         | postcall 2
          */
 
-        static_assert(sizeof(compile_time_cpu->pc) == 4, "PC must be 32 bits for this to work (using EAX)");
-        static_assert(sizeof(compile_time_cpu->next_pc) == 4, "Next PC must be 32 bits for this to work (using EAX)");
+        static_assert(sizeof(compile_time_cpu->pc) == 8, "PC must be 64 bits for this to work (using RAX)");
+        static_assert(sizeof(compile_time_cpu->next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
 
         // cpu->branch = false;
         | mov al, 0
         | mov cpu_state->branch, al
 
         // cpu->prev_pc = cpu->pc;
-        | mov eax, cpu_state->pc
-        | mov cpu_state->prev_pc, eax
+        | mov rax, cpu_state->pc
+        | mov cpu_state->prev_pc, rax
 
         // cpu->pc = cpu->next_pc;
-        | mov eax, cpu_state->next_pc
-        | mov cpu_state->pc, eax
+        | mov rax, cpu_state->next_pc
+        | mov cpu_state->pc, rax
 
         // cpu->next_pc += 4;
-        | add eax, 4
-        | mov cpu_state->next_pc, eax
+        | add rax, 4
+        | mov cpu_state->next_pc, rax
 
         instructions_left_in_block--;
         bool instr_ends_block;

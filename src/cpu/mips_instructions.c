@@ -32,7 +32,7 @@ INLINE void link(r4300i_t* cpu) {
     set_register(cpu, R4300I_REG_LR, (sdword)pc); // Skips the instruction in the delay slot on return
 }
 
-INLINE void branch_abs(r4300i_t* cpu, word address) {
+INLINE void branch_abs(r4300i_t* cpu, dword address) {
     cpu->next_pc = address;
     cpu->branch = true;
 }
@@ -821,8 +821,8 @@ MIPS_INSTR(mips_cp_neg_d) {
 
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
-    dword result = cpu->read_dword(address);
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    dword result  = cpu->read_dword(address);
     if ((address & 0b111) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
@@ -841,8 +841,8 @@ MIPS_INSTR(mips_lui) {
 MIPS_INSTR(mips_lbu) {
     shalf offset = instruction.i.immediate;
     logtrace("LBU offset: %d", offset);
-    word address = get_register(cpu, instruction.i.rs) + offset;
-    byte value   = cpu->read_byte(address);
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    byte value    = cpu->read_byte(address);
 
     set_register(cpu, instruction.i.rt, value); // zero extend
 }
@@ -850,8 +850,8 @@ MIPS_INSTR(mips_lbu) {
 MIPS_INSTR(mips_lhu) {
     shalf offset = instruction.i.immediate;
     logtrace("LHU offset: %d", offset);
-    word address = get_register(cpu, instruction.i.rs) + offset;
-    half value   = cpu->read_half(address);
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    half value    = cpu->read_half(address);
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
@@ -861,7 +861,7 @@ MIPS_INSTR(mips_lhu) {
 
 MIPS_INSTR(mips_lh) {
     shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     shalf value   = cpu->read_half(address);
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
@@ -871,8 +871,8 @@ MIPS_INSTR(mips_lh) {
 }
 
 MIPS_INSTR(mips_lw) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
@@ -882,8 +882,8 @@ MIPS_INSTR(mips_lw) {
 }
 
 MIPS_INSTR(mips_lwu) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
     }
@@ -893,31 +893,31 @@ MIPS_INSTR(mips_lwu) {
 }
 
 MIPS_INSTR(mips_sb) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs);
     address += offset;
     byte value = get_register(cpu, instruction.i.rt) & 0xFF;
     cpu->write_byte(address, value);
 }
 
 MIPS_INSTR(mips_sh) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs);
     address += offset;
     half value = get_register(cpu, instruction.i.rt);
     cpu->write_half(address, value);
 }
 
 MIPS_INSTR(mips_sw) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs);
     address += offset;
     cpu->write_word(address, get_register(cpu, instruction.i.rt));
 }
 
 MIPS_INSTR(mips_sd) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     dword value = get_register(cpu, instruction.i.rt);
     cpu->write_dword(address, value);
 }
@@ -939,17 +939,17 @@ MIPS_INSTR(mips_daddiu) {
 }
 
 MIPS_INSTR(mips_lb) {
-    shalf offset    = instruction.i.immediate;
-    word address    = get_register(cpu, instruction.i.rs) + offset;
-    sbyte value     = cpu->read_byte(address);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    sbyte value   = cpu->read_byte(address);
 
     set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_ldc1) {
     checkcp1;
-    shalf offset    = instruction.i.immediate;
-    word address    = get_register(cpu, instruction.i.rs) + offset;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     if (address & 0b111) {
         logfatal("Address error exception: misaligned dword read!");
     }
@@ -960,34 +960,34 @@ MIPS_INSTR(mips_ldc1) {
 
 MIPS_INSTR(mips_sdc1) {
     checkcp1;
-    shalf offset    = instruction.fi.offset;
-    word address    = get_register(cpu, instruction.fi.base) + offset;
-    dword value     = get_fpu_register_dword(cpu, instruction.fi.ft);
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
+    dword value   = get_fpu_register_dword(cpu, instruction.fi.ft);
 
     cpu->write_dword(address, value);
 }
 
 MIPS_INSTR(mips_lwc1) {
     checkcp1;
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
-    word value   = cpu->read_word(address);
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
+    word value    = cpu->read_word(address);
 
     set_fpu_register_word(cpu, instruction.fi.ft, value);
 }
 
 MIPS_INSTR(mips_swc1) {
     checkcp1;
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
-    word value   = get_fpu_register_word(cpu, instruction.fi.ft);
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
+    word value    = get_fpu_register_word(cpu, instruction.fi.ft);
 
     cpu->write_word(address, value);
 }
 
 MIPS_INSTR(mips_lwl) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF << shift;
@@ -997,8 +997,8 @@ MIPS_INSTR(mips_lwl) {
 }
 
 MIPS_INSTR(mips_lwr) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 3) & 3);
 
@@ -1009,8 +1009,8 @@ MIPS_INSTR(mips_lwr) {
 }
 
 MIPS_INSTR(mips_swl) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF >> shift;
@@ -1020,8 +1020,8 @@ MIPS_INSTR(mips_swl) {
 }
 
 MIPS_INSTR(mips_swr) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 3) & 3);
     word mask = 0xFFFFFFFF << shift;
@@ -1032,7 +1032,7 @@ MIPS_INSTR(mips_swr) {
 
 MIPS_INSTR(mips_ldl) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
     int shift = 8 * ((address ^ 0) & 7);
     dword mask = (dword)0xFFFFFFFFFFFFFFFF << shift;
     dword data = cpu->read_dword(address & ~7);
@@ -1043,7 +1043,7 @@ MIPS_INSTR(mips_ldl) {
 
 MIPS_INSTR(mips_ldr) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
     int shift = 8 * ((address ^ 7) & 7);
     dword mask = (dword)0xFFFFFFFFFFFFFFFF >> shift;
     dword data = cpu->read_dword(address & ~7);
@@ -1054,7 +1054,7 @@ MIPS_INSTR(mips_ldr) {
 
 MIPS_INSTR(mips_sdl) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     int shift = 8 * ((address ^ 0) & 7);
     dword mask = 0xFFFFFFFFFFFFFFFF;
@@ -1066,7 +1066,7 @@ MIPS_INSTR(mips_sdl) {
 
 MIPS_INSTR(mips_sdr) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     int shift = 8 * ((address ^ 7) & 7);
     dword mask = 0xFFFFFFFFFFFFFFFF ;
