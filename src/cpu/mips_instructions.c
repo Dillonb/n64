@@ -1369,6 +1369,7 @@ MIPS_INSTR(mips_spc_teq) {
     dword rt = get_register(cpu, instruction.r.rt);
 
     if (rs == rt) {
+        // TODO mark this instruction as TRAP in the dynarec, and add special logic to the emitted code to handle it
         logfatal("teq trapped!");
     }
 }

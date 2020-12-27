@@ -379,6 +379,7 @@ COMP(mips_spc_sltu, NORMAL);
 COMP(mips_spc_dadd, NORMAL);
 COMP(mips_spc_daddu, NORMAL);
 COMP(mips_spc_dsubu, NORMAL);
+COMP(mips_spc_teq, NORMAL); // TODO this needs to be marked as TRAP and special logic added to the emitted code
 COMP(mips_spc_dsll, NORMAL);
 COMP(mips_spc_dsrl, NORMAL);
 COMP(mips_spc_dsra, NORMAL);
@@ -554,6 +555,7 @@ INLINE COMPILER(special_instruction) {
         CASECOMPILE(FUNCT_DADD, compile_mips_spc_dadd);
         CASECOMPILE(FUNCT_DADDU, compile_mips_spc_daddu);
         CASECOMPILE(FUNCT_DSUBU, compile_mips_spc_dsubu);
+        CASECOMPILE(FUNCT_TEQ, compile_mips_spc_teq);
         CASECOMPILE(FUNCT_DSLL, compile_mips_spc_dsll);
         CASECOMPILE(FUNCT_DSRL, compile_mips_spc_dsrl);
         CASECOMPILE(FUNCT_DSRA, compile_mips_spc_dsra);
