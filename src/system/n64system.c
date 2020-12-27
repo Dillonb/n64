@@ -211,7 +211,6 @@ INLINE int jit_system_step(n64_system_t* system) {
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            cpu->cp0.cause.interrupt_pending = cpu->interrupts;
             r4300i_handle_exception(cpu, cpu->pc, 0, -1);
             return CYCLES_PER_INSTR;
         }

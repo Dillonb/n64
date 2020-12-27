@@ -529,7 +529,6 @@ void r4300i_step(r4300i_t* cpu) {
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            cpu->cp0.cause.interrupt_pending = cpu->interrupts;
             r4300i_handle_exception(cpu, pc, 0, -1);
             return;
         }
