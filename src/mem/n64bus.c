@@ -388,10 +388,10 @@ void write_word_sireg(n64_system_t* system, word address, word value) {
             system->mem.si_reg.dram_address = value;
             break;
         case ADDR_SI_PIF_ADDR_RD64B_REG:
-            pif_to_dram(system, value, system->mem.si_reg.dram_address);
+            pif_to_dram(system, value, system->mem.si_reg.dram_address & 0x1FFFFFFF);
             break;
         case ADDR_SI_PIF_ADDR_WR64B_REG:
-            dram_to_pif(system, system->mem.si_reg.dram_address, value);
+            dram_to_pif(system, system->mem.si_reg.dram_address & 0x1FFFFFFF, value);
             break;
         case ADDR_SI_STATUS_REG:
             interrupt_lower(system, INTERRUPT_SI);
