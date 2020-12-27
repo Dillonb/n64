@@ -185,6 +185,11 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", system->mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
             run_dma(system, cart_addr, dram_addr, length, "CART to DRAM");
+            static bool first_time = true;
+            if (first_time) {
+                n64_write_word(system, 0x318, N64_RDRAM_SIZE);
+                first_time = false;
+            }
             system->mem.pi_reg[PI_DRAM_ADDR_REG] += length;
             system->mem.pi_reg[PI_CART_ADDR_REG] += length;
             interrupt_raise(INTERRUPT_PI);
