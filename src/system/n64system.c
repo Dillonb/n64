@@ -189,6 +189,11 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->cpu.cp0.config     = 0x70000000;
     system->cpu.cp0.error_epc  = 0xFFFFFFFF;
 
+    system->mem.ri_reg[RI_MODE_REG] = 0xE;
+    system->mem.ri_reg[RI_CONFIG_REG] = 0x40;
+    system->mem.ri_reg[RI_SELECT_REG] = 0x14;
+    system->mem.ri_reg[RI_REFRESH_REG] = 0x63634;
+
     return system;
 }
 

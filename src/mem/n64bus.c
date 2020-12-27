@@ -234,8 +234,9 @@ word read_word_rireg(n64_system_t* system, word address) {
         logfatal("In RI read handler with out of bounds address 0x%08X", address);
     }
 
-    logwarn("Reading RI reg, returning 0.");
-    return 0;
+    word value = system->mem.ri_reg[(address - SREGION_RI_REGS) / 4];
+    logwarn("Reading RI reg, returning 0x%08X", value);
+    return value;
 }
 
 void write_word_rireg(n64_system_t* system, word address, word value) {
@@ -247,6 +248,7 @@ void write_word_rireg(n64_system_t* system, word address, word value) {
         logfatal("In RI write handler with out of bounds address 0x%08X", address);
     }
 
+    logwarn("Writing RI reg with value 0x%08X", value);
     system->mem.ri_reg[(address - SREGION_RI_REGS) / 4] = value;
 }
 
