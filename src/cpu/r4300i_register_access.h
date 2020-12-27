@@ -121,6 +121,11 @@ INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
     loginfo("CP0 $%s = 0x%08X", cp0_register_names[r], value);
 }
 
+INLINE word get_cp0_count(r4300i_t* cpu) {
+    dword shifted = cpu->cp0.count >> 1;
+    return (word)shifted;
+}
+
 INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
@@ -142,10 +147,8 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
             return cpu->cp0.r7;
         case R4300I_CP0_REG_BADVADDR:
             return cpu->cp0.bad_vaddr;
-        case R4300I_CP0_REG_COUNT: {
-            dword shifted = cpu->cp0.count >> 1;
-            return (word)shifted;
-        }
+        case R4300I_CP0_REG_COUNT:
+            return get_cp0_count(cpu);
         case R4300I_CP0_REG_ENTRYHI:
             return cpu->cp0.entry_hi.raw;
         case R4300I_CP0_REG_COMPARE:
