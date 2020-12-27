@@ -102,6 +102,10 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr)
                 return mips_mfc0;
             case COP_MT: // Last 11 bits are 0
                 return mips_mtc0;
+            case COP_DMT:
+                return mips_dmtc0;
+            case COP_DMF:
+                return mips_dmfc0;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);

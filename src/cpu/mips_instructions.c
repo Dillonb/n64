@@ -227,14 +227,23 @@ MIPS_INSTR(mips_sltiu) {
 }
 
 MIPS_INSTR(mips_mfc0) {
-    sword value = get_cp0_register(cpu, instruction.r.rd);
+    sword value = get_cp0_register_word(cpu, instruction.r.rd);
     set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
-
 MIPS_INSTR(mips_mtc0) {
     word value = get_register(cpu, instruction.r.rt);
-    set_cp0_register(cpu, instruction.r.rd, value);
+    set_cp0_register_word(cpu, instruction.r.rd, value);
+}
+
+MIPS_INSTR(mips_dmfc0) {
+    dword value = get_cp0_register_dword(cpu, instruction.r.rd);
+    set_register(cpu, instruction.r.rt, value);
+}
+
+MIPS_INSTR(mips_dmtc0) {
+    dword value = get_register(cpu, instruction.r.rt);
+    set_cp0_register_dword(cpu, instruction.r.rd, value);
 }
 
 #define checkcp1 do { if (!cpu->cp0.status.cu1) { r4300i_handle_exception(cpu, cpu->prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)

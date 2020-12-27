@@ -35,7 +35,7 @@ INLINE void log_status(cp0_status_t status) {
     loginfo("    CP0 status: cu3: %d", status.cu3);
 }
 
-INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
+INLINE void set_cp0_register_word(r4300i_t* cpu, byte r, word value) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
             cpu->cp0.index = value;
@@ -126,7 +126,7 @@ INLINE word get_cp0_count(r4300i_t* cpu) {
     return (word)shifted;
 }
 
-INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
+INLINE word get_cp0_register_word(r4300i_t* cpu, byte r) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
             return cpu->cp0.index & 0x8000003F;
@@ -193,6 +193,148 @@ INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
             return cpu->cp0.error_epc;
         case R4300I_CP0_REG_31:
             return cpu->cp0.r31;
+        default:
+            logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
+    }
+}
+
+INLINE void set_cp0_register_dword(r4300i_t* cpu, byte r, dword value) {
+    switch (r) {
+        case R4300I_CP0_REG_INDEX:
+            logfatal("Writing CP0 register R4300I_CP0_REG_INDEX as dword!");
+        case R4300I_CP0_REG_RANDOM:
+            logfatal("Writing CP0 register R4300I_CP0_REG_RANDOM as dword!");
+        case R4300I_CP0_REG_ENTRYLO0:
+            logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYLO0 as dword!");
+        case R4300I_CP0_REG_ENTRYLO1:
+            logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYLO1 as dword!");
+        case R4300I_CP0_REG_CONTEXT:
+            logfatal("Writing CP0 register R4300I_CP0_REG_CONTEXT as dword!");
+        case R4300I_CP0_REG_PAGEMASK:
+            logfatal("Writing CP0 register R4300I_CP0_REG_PAGEMASK as dword!");
+        case R4300I_CP0_REG_WIRED:
+            logfatal("Writing CP0 register R4300I_CP0_REG_WIRED as dword!");
+        case R4300I_CP0_REG_7:
+            logfatal("Writing CP0 register R4300I_CP0_REG_7 as dword!");
+        case R4300I_CP0_REG_BADVADDR:
+            logfatal("Writing CP0 register R4300I_CP0_REG_BADVADDR as dword!");
+        case R4300I_CP0_REG_COUNT:
+            logfatal("Writing CP0 register R4300I_CP0_REG_COUNT as dword!");
+        case R4300I_CP0_REG_ENTRYHI:
+            logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYHI as dword!");
+        case R4300I_CP0_REG_COMPARE:
+            logfatal("Writing CP0 register R4300I_CP0_REG_COMPARE as dword!");
+        case R4300I_CP0_REG_STATUS:
+            logfatal("Writing CP0 register R4300I_CP0_REG_STATUS as dword!");
+        case R4300I_CP0_REG_CAUSE:
+            logfatal("Writing CP0 register R4300I_CP0_REG_CAUSE as dword!");
+        case R4300I_CP0_REG_EPC:
+            logfatal("Writing CP0 register R4300I_CP0_REG_EPC as dword!");
+        case R4300I_CP0_REG_PRID:
+            logfatal("Writing CP0 register R4300I_CP0_REG_PRID as dword!");
+        case R4300I_CP0_REG_CONFIG:
+            logfatal("Writing CP0 register R4300I_CP0_REG_CONFIG as dword!");
+        case R4300I_CP0_REG_LLADDR:
+            logfatal("Writing CP0 register R4300I_CP0_REG_LLADDR as dword!");
+        case R4300I_CP0_REG_WATCHLO:
+            logfatal("Writing CP0 register R4300I_CP0_REG_WATCHLO as dword!");
+        case R4300I_CP0_REG_WATCHHI:
+            logfatal("Writing CP0 register R4300I_CP0_REG_WATCHHI as dword!");
+        case R4300I_CP0_REG_XCONTEXT:
+            logfatal("Writing CP0 register R4300I_CP0_REG_XCONTEXT as dword!");
+        case R4300I_CP0_REG_21:
+            logfatal("Writing CP0 register R4300I_CP0_REG_21 as dword!");
+        case R4300I_CP0_REG_22:
+            logfatal("Writing CP0 register R4300I_CP0_REG_22 as dword!");
+        case R4300I_CP0_REG_23:
+            logfatal("Writing CP0 register R4300I_CP0_REG_23 as dword!");
+        case R4300I_CP0_REG_24:
+            logfatal("Writing CP0 register R4300I_CP0_REG_24 as dword!");
+        case R4300I_CP0_REG_25:
+            logfatal("Writing CP0 register R4300I_CP0_REG_25 as dword!");
+        case R4300I_CP0_REG_PARITYER:
+            logfatal("Writing CP0 register R4300I_CP0_REG_PARITYER as dword!");
+        case R4300I_CP0_REG_CACHEER:
+            logfatal("Writing CP0 register R4300I_CP0_REG_CACHEER as dword!");
+        case R4300I_CP0_REG_TAGLO:
+            logfatal("Writing CP0 register R4300I_CP0_REG_TAGLO as dword!");
+        case R4300I_CP0_REG_TAGHI:
+            logfatal("Writing CP0 register R4300I_CP0_REG_TAGHI as dword!");
+        case R4300I_CP0_REG_ERR_EPC:
+            logfatal("Writing CP0 register R4300I_CP0_REG_ERR_EPC as dword!");
+        case R4300I_CP0_REG_31:
+            logfatal("Writing CP0 register R4300I_CP0_REG_31 as dword!");
+        default:
+            logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
+    }
+}
+
+INLINE dword get_cp0_register_dword(r4300i_t* cpu, byte r) {
+    switch (r) {
+        case R4300I_CP0_REG_INDEX:
+            logfatal("Reading CP0 register R4300I_CP0_REG_INDEX as dword!");
+        case R4300I_CP0_REG_RANDOM:
+            logfatal("Reading CP0 register R4300I_CP0_REG_RANDOM as dword!");
+        case R4300I_CP0_REG_ENTRYLO0:
+            logfatal("Reading CP0 register R4300I_CP0_REG_ENTRYLO0 as dword!");
+        case R4300I_CP0_REG_ENTRYLO1:
+            logfatal("Reading CP0 register R4300I_CP0_REG_ENTRYLO1 as dword!");
+        case R4300I_CP0_REG_CONTEXT:
+            logfatal("Reading CP0 register R4300I_CP0_REG_CONTEXT as dword!");
+        case R4300I_CP0_REG_PAGEMASK:
+            logfatal("Reading CP0 register R4300I_CP0_REG_PAGEMASK as dword!");
+        case R4300I_CP0_REG_WIRED:
+            logfatal("Reading CP0 register R4300I_CP0_REG_WIRED as dword!");
+        case R4300I_CP0_REG_7:
+            logfatal("Reading CP0 register R4300I_CP0_REG_7 as dword!");
+        case R4300I_CP0_REG_BADVADDR:
+            logfatal("Reading CP0 register R4300I_CP0_REG_BADVADDR as dword!");
+        case R4300I_CP0_REG_COUNT:
+            logfatal("Reading CP0 register R4300I_CP0_REG_COUNT as dword!");
+        case R4300I_CP0_REG_ENTRYHI:
+            logfatal("Reading CP0 register R4300I_CP0_REG_ENTRYHI as dword!");
+        case R4300I_CP0_REG_COMPARE:
+            logfatal("Reading CP0 register R4300I_CP0_REG_COMPARE as dword!");
+        case R4300I_CP0_REG_STATUS:
+            logfatal("Reading CP0 register R4300I_CP0_REG_STATUS as dword!");
+        case R4300I_CP0_REG_CAUSE:
+            logfatal("Reading CP0 register R4300I_CP0_REG_CAUSE as dword!");
+        case R4300I_CP0_REG_EPC:
+            logfatal("Reading CP0 register R4300I_CP0_REG_EPC as dword!");
+        case R4300I_CP0_REG_PRID:
+            logfatal("Reading CP0 register R4300I_CP0_REG_PRID as dword!");
+        case R4300I_CP0_REG_CONFIG:
+            logfatal("Reading CP0 register R4300I_CP0_REG_CONFIG as dword!");
+        case R4300I_CP0_REG_LLADDR:
+            logfatal("Reading CP0 register R4300I_CP0_REG_LLADDR as dword!");
+        case R4300I_CP0_REG_WATCHLO:
+            logfatal("Reading CP0 register R4300I_CP0_REG_WATCHLO as dword!");
+        case R4300I_CP0_REG_WATCHHI:
+            logfatal("Reading CP0 register R4300I_CP0_REG_WATCHHI as dword!");
+        case R4300I_CP0_REG_XCONTEXT:
+            logfatal("Reading CP0 register R4300I_CP0_REG_XCONTEXT as dword!");
+        case R4300I_CP0_REG_21:
+            logfatal("Reading CP0 register R4300I_CP0_REG_21 as dword!");
+        case R4300I_CP0_REG_22:
+            logfatal("Reading CP0 register R4300I_CP0_REG_22 as dword!");
+        case R4300I_CP0_REG_23:
+            logfatal("Reading CP0 register R4300I_CP0_REG_23 as dword!");
+        case R4300I_CP0_REG_24:
+            logfatal("Reading CP0 register R4300I_CP0_REG_24 as dword!");
+        case R4300I_CP0_REG_25:
+            logfatal("Reading CP0 register R4300I_CP0_REG_25 as dword!");
+        case R4300I_CP0_REG_PARITYER:
+            logfatal("Reading CP0 register R4300I_CP0_REG_PARITYER as dword!");
+        case R4300I_CP0_REG_CACHEER:
+            logfatal("Reading CP0 register R4300I_CP0_REG_CACHEER as dword!");
+        case R4300I_CP0_REG_TAGLO:
+            logfatal("Reading CP0 register R4300I_CP0_REG_TAGLO as dword!");
+        case R4300I_CP0_REG_TAGHI:
+            logfatal("Reading CP0 register R4300I_CP0_REG_TAGHI as dword!");
+        case R4300I_CP0_REG_ERR_EPC:
+            logfatal("Reading CP0 register R4300I_CP0_REG_ERR_EPC as dword!");
+        case R4300I_CP0_REG_31:
+            logfatal("Reading CP0 register R4300I_CP0_REG_31 as dword!");
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
     }
