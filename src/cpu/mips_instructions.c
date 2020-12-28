@@ -1377,6 +1377,16 @@ MIPS_INSTR(mips_spc_teq) {
     }
 }
 
+MIPS_INSTR(mips_spc_tne) {
+    dword rs = get_register(cpu, instruction.r.rs);
+    dword rt = get_register(cpu, instruction.r.rt);
+
+    if (rs != rt) {
+        // TODO mark this instruction as TRAP in the dynarec, and add special logic to the emitted code to handle it
+        logfatal("tne trapped!");
+    }
+}
+
 MIPS_INSTR(mips_spc_dsll) {
     dword value = get_register(cpu, instruction.r.rt);
     value <<= instruction.r.sa;
