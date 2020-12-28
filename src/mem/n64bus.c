@@ -346,7 +346,7 @@ word read_word_mireg(n64_system_t* system, word address) {
         case ADDR_MI_MODE_REG:
             logfatal("Read from unimplemented MI register: ADDR_MI_MODE_REG");
         case ADDR_MI_VERSION_REG:
-            return 0x01010101;
+            return 0x02020102;
         case ADDR_MI_INTR_REG:
             return system->mi.intr.raw;
         case ADDR_MI_INTR_MASK_REG:

@@ -58,16 +58,16 @@ Reads
 +-------+--------------+
 | Bit   | Explanation  |
 +=======+==============+
-| 0-7   | IO (??)      |
+| 0-7   | IO Version   |
 +-------+--------------+
-| 8-15  | RAC (??)     |
+| 8-15  | RAC Version  |
 +-------+--------------+
-| 16-23 | RDP (??)     |
+| 16-23 | RDP Version  |
 +-------+--------------+
-| 24-31 | RSP (??)     |
+| 24-31 | RSP Version  |
 +-------+--------------+
 
-This register can be mocked as returning 0x01010101 always (returning 0x01 for each field)
+This register should return 0x02020102 always.
 
 0x0430008 - MI_INTR_REG (Read only)
 -----------------------------------
