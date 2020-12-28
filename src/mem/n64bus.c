@@ -732,7 +732,8 @@ INLINE word _n64_read_word(word address) {
         case REGION_RESERVED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RESERVED", address);
         case REGION_CART_1_3:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_1_3", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_3", address);
+            return 0;
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
         default:
