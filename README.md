@@ -56,6 +56,5 @@ Reasonably complete. Fast3d (Super Mario 64) seems to work. There are still bugs
 
 Still greatly in need of optimization.
 
-
 ## RDP
 Not started. [My fork of Angrylion](https://github.com/Dillonb/angrylion-rdp-plus) can (and must!) be loaded to provide this functionality in the meantime, however.
