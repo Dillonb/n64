@@ -233,6 +233,8 @@ INLINE void set_cp0_register_dword(r4300i_t* cpu, byte r, dword value) {
         case R4300I_CP0_REG_COUNT:
             logfatal("Writing CP0 register R4300I_CP0_REG_COUNT as dword!");
         case R4300I_CP0_REG_ENTRYHI:
+            cpu->cp0.entry_hi_64.raw = value;
+            break;
             logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYHI as dword!");
         case R4300I_CP0_REG_COMPARE:
             logfatal("Writing CP0 register R4300I_CP0_REG_COMPARE as dword!");
@@ -306,7 +308,7 @@ INLINE dword get_cp0_register_dword(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_COUNT:
             logfatal("Reading CP0 register R4300I_CP0_REG_COUNT as dword!");
         case R4300I_CP0_REG_ENTRYHI:
-            logfatal("Reading CP0 register R4300I_CP0_REG_ENTRYHI as dword!");
+            return cpu->cp0.entry_hi.raw & CP0_ENTRY_HI_64_READ_MASK;
         case R4300I_CP0_REG_COMPARE:
             logfatal("Reading CP0 register R4300I_CP0_REG_COMPARE as dword!");
         case R4300I_CP0_REG_STATUS:

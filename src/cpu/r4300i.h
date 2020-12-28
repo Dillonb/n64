@@ -318,6 +318,21 @@ typedef union cp0_entry_hi {
 
 ASSERTWORD(cp0_entry_hi_t);
 
+#define CP0_ENTRY_HI_64_READ_MASK 0xC00000FFFFFFE0FF
+typedef union cp0_entry_hi_64 {
+    struct {
+        unsigned asid:8;
+        unsigned:5;
+        unsigned vpn2:27;
+        unsigned fill:22;
+        unsigned r:2;
+    } PACKED;
+    dword raw;
+} cp0_entry_hi_64_t;
+
+ASSERTDWORD(cp0_entry_hi_64_t);
+
+
 typedef struct tlb_entry {
     union {
         struct {
@@ -394,6 +409,7 @@ typedef struct cp0 {
     word bad_vaddr;
     dword count;
     cp0_entry_hi_t entry_hi;
+    cp0_entry_hi_64_t entry_hi_64;
     word compare;
     cp0_status_t status;
     cp0_cause_t cause;
