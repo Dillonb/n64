@@ -219,7 +219,9 @@ INLINE void set_cp0_register_dword(r4300i_t* cpu, byte r, dword value) {
         case R4300I_CP0_REG_ENTRYLO1:
             logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYLO1 as dword!");
         case R4300I_CP0_REG_CONTEXT:
-            logfatal("Writing CP0 register R4300I_CP0_REG_CONTEXT as dword!");
+            unimplemented(value != 0, "cp0 context written with non-zero value in 64 bit mode!");
+            cpu->cp0.context_64 = value;
+            break;
         case R4300I_CP0_REG_PAGEMASK:
             logfatal("Writing CP0 register R4300I_CP0_REG_PAGEMASK as dword!");
         case R4300I_CP0_REG_WIRED:
@@ -251,7 +253,9 @@ INLINE void set_cp0_register_dword(r4300i_t* cpu, byte r, dword value) {
         case R4300I_CP0_REG_WATCHHI:
             logfatal("Writing CP0 register R4300I_CP0_REG_WATCHHI as dword!");
         case R4300I_CP0_REG_XCONTEXT:
-            logfatal("Writing CP0 register R4300I_CP0_REG_XCONTEXT as dword!");
+            unimplemented(value != 0, "cp0 xcontext written with non-zero value in 64 bit mode!");
+            cpu->cp0.x_context = value;
+            break;
         case R4300I_CP0_REG_21:
             logfatal("Writing CP0 register R4300I_CP0_REG_21 as dword!");
         case R4300I_CP0_REG_22:

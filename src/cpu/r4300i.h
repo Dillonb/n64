@@ -386,6 +386,7 @@ typedef struct cp0 {
     cp0_entry_lo_t entry_lo0;
     cp0_entry_lo_t entry_lo1;
     word context;
+    dword context_64;
     cp0_page_mask_t page_mask;
     word wired;
     word r7;
@@ -401,7 +402,7 @@ typedef struct cp0 {
     word lladdr;
     watch_lo_t watch_lo;
     word watch_hi;
-    word x_context;
+    dword x_context;
     word r21;
     word r22;
     word r23;
