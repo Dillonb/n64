@@ -277,7 +277,7 @@ void process_commands_parallel_rdp(n64_system_t* system) {
         last_run_unprocessed_words = 0;
     }
 
-    dpc->start = end;
     dpc->current = end;
 
+    dpc->status.freeze = false;
 }
