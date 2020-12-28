@@ -289,7 +289,7 @@ MIPS_INSTR(mips_cfc1) {
     sword value;
     switch (fs) {
         case 0:
-            logfatal("cfc1 fcr0");
+            logwarn("Reading FCR0 - probably returning an invalid value!");
             value = cpu->fcr0.raw;
             break;
         case 31:
