@@ -127,6 +127,8 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->cpu.read_byte = &virtual_read_byte_wrapper;
     system->cpu.write_byte = &virtual_write_byte_wrapper;
 
+    system->cpu.resolve_virtual_address = &resolve_virtual_address;
+
     //system->rsp.read_dword = &read_dword_wrapper;
     //system->rsp.write_dword = &write_dword_wrapper;
 

@@ -103,6 +103,7 @@
 #define OPC_LDR    0b011011
 #define OPC_SDL    0b101100
 #define OPC_SDR    0b101101
+#define OPC_LLD    0b110100
 
 // Coprocessor
 #define COP_MF    0b00000
@@ -528,6 +529,8 @@ typedef struct r4300i {
 
     dword (*read_dword)(dword);
     void (*write_dword)(dword, dword);
+
+    word (*resolve_virtual_address)(dword, cp0_t*);
 } r4300i_t;
 
 typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);

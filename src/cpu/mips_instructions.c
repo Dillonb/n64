@@ -1086,6 +1086,28 @@ MIPS_INSTR(mips_sdr) {
     cpu->write_dword(address & ~7, (data & ~mask) | (oldreg << shift));
 }
 
+MIPS_INSTR(mips_lld) {
+    // Instruction is undefined outside of 64 bit mode and 32 bit kernel mode.
+    // Throw an exception if we're not in 64 bit mode AND not in kernel mode.
+    if (!cpu->cp0.is_64bit_addressing && cpu->cp0.kernel_mode) {
+        logfatal("LLD is undefined outside of 64 bit mode and 32 bit kernel mode. Throw a reserved instruction exception!");
+    }
+
+    // Identical to ld
+    shalf offset = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    dword result  = cpu->read_dword(address);
+
+    if ((address & 0b111) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+    }
+    set_register(cpu, instruction.i.rt, result);
+
+
+    // Unique to lld
+    cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
+}
+
 MIPS_INSTR(mips_spc_sll) {
     sword result = get_register(cpu, instruction.r.rt) << instruction.r.sa;
     set_register(cpu, instruction.r.rd, (sdword)result);

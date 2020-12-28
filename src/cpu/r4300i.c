@@ -511,6 +511,7 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
         case OPC_LDR:    return mips_ldr;
         case OPC_SDL:    return mips_sdl;
         case OPC_SDR:    return mips_sdr;
+        case OPC_LLD:    return mips_lld;
         default:
 #ifdef LOG_ENABLED
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {

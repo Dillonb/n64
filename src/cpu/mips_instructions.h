@@ -152,6 +152,7 @@ MIPS_INSTR(mips_ldl);
 MIPS_INSTR(mips_ldr);
 MIPS_INSTR(mips_sdl);
 MIPS_INSTR(mips_sdr);
+MIPS_INSTR(mips_lld);
 
 MIPS_INSTR(mips_spc_sll);
 MIPS_INSTR(mips_spc_srl);
