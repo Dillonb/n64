@@ -10,7 +10,7 @@ Experimental low-level N64 emulator
 This is a project I am working on to learn about the N64 and more advanced emulation techniques.
 
 # What is this not?
-- This is NOT intended to be your "daily driver" N64 emulator for gaming, at least it is currently not planned to be.
+- This is NOT intended to be your "daily driver" N64 emulator for gaming, or at least it is currently not planned to be.
 
 # Links
 - [Compatibility List](https://github.com/Dillonb/n64/projects/2)
