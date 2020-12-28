@@ -235,10 +235,6 @@ void process_commands_parallel_rdp(n64_system_t* system) {
 
         int command_length = command_lengths[command];
 
-        if (command == 36) {
-            command_length = 4;
-        }
-
         // Check we actually have enough bytes left in the display list for this command, and save the remainder of the display list for the next run, if not.
         if ((buf_index + command_length) * 4 > display_list_length + (last_run_unprocessed_words * 4)) {
             // Copy remaining bytes back to the beginning of the display list, and save them for next run.
