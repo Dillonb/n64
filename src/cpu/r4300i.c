@@ -305,7 +305,14 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
         case COP_FUNCT_C_F:
             logfatal("COP_FUNCT_C_F unimplemented");
         case COP_FUNCT_C_UN:
-            logfatal("COP_FUNCT_C_UN unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_un_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_un_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
