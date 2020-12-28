@@ -1066,7 +1066,7 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     n64_dynarec_block_t* block = &block_list[inner_index];
 
     static long total_blocks_run;
-    logdebug("Running block at 0x%08X - block run #%ld - block FP: 0x%016lX", system->cpu.pc, ++total_blocks_run, (uintptr_t)block->run);
+    logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", system->cpu.pc, ++total_blocks_run, (uintptr_t)block->run);
     int taken = block->run(&system->cpu);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, system->cpu.pc);
@@ -1078,7 +1078,7 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
     }
     printf("\n");
 #endif
-    logdebug("Done running block - took %d cycles - pc is now 0x%08X", taken, system->cpu.pc);
+    logdebug("Done running block - took %d cycles - pc is now 0x%016lX", taken, system->cpu.pc);
 
     return taken * CYCLES_PER_INSTR;
 }

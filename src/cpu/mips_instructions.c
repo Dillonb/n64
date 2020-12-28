@@ -837,7 +837,7 @@ MIPS_INSTR(mips_ld) {
     dword address = get_register(cpu, instruction.i.rs) + offset;
     dword result  = cpu->read_dword(address);
     if ((address & 0b111) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
     set_register(cpu, instruction.i.rt, result);
 }
@@ -866,7 +866,7 @@ MIPS_INSTR(mips_lhu) {
     dword address = get_register(cpu, instruction.i.rs) + offset;
     half value    = cpu->read_half(address);
     if ((address & 0b1) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     set_register(cpu, instruction.i.rt, value); // zero extend
@@ -877,7 +877,7 @@ MIPS_INSTR(mips_lh) {
     dword address = get_register(cpu, instruction.i.rs) + offset;
     shalf value   = cpu->read_half(address);
     if ((address & 0b1) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     set_register(cpu, instruction.i.rt, (sdword)value);
@@ -887,7 +887,7 @@ MIPS_INSTR(mips_lw) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     sword value = cpu->read_word(address);
@@ -898,7 +898,7 @@ MIPS_INSTR(mips_lwu) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     word value = cpu->read_word(address);

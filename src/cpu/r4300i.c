@@ -454,7 +454,7 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
-        logdebug("[0x%08X]=0x%08X %s", pc, instr.raw, buf);
+        logdebug("[0x%016lX]=0x%08X %s", pc, instr.raw, buf);
     }
 #endif
     if (unlikely(instr.raw == 0)) {

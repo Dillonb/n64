@@ -192,8 +192,8 @@ ssize_t n64_debug_get_register_value(n64_system_t* system, char * buffer, size_t
         case 36:
             return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.cause.raw);
         case 37:
-            printf("Sending PC: 0x%08X\n", system->cpu.pc);
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.pc);
+            printf("Sending PC: 0x%016lX\n", system->cpu.pc);
+            return snprintf(buffer, buffer_length, "%016lx", system->cpu.pc);
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
         default:

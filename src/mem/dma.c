@@ -6,7 +6,7 @@ bool is_dma_active() {
 }
 
 void run_dma(n64_system_t* system, word source, word dest, word length, const char* direction) {
-    logdebug("DMA requested at PC 0x%08X from 0x%08X to 0x%08X (%s), with a length of %d",
+    logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (%s), with a length of %d",
              system->cpu.pc, source, dest, direction, length);
     for (int i = 0; i < length; i++) {
         byte value = n64_read_byte(system, source + i);
