@@ -78,22 +78,26 @@ INLINE void set_cp0_register_word(r4300i_t* cpu, byte r, word value) {
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
+            unimplemented(cpu->cp0.is_64bit_addressing, "EntryLo0 written as word in 64 bit mode");
             cpu->cp0.entry_lo0.raw = value;
             break;
         case R4300I_CP0_REG_ENTRYLO1:
+            unimplemented(cpu->cp0.is_64bit_addressing, "EntryLo1 written as word in 64 bit mode");
             cpu->cp0.entry_lo1.raw = value;
             break;
         case 7:
             logfatal("CP0 Reg 7 write?");
             break;
         case R4300I_CP0_REG_ENTRYHI:
+            unimplemented(cpu->cp0.is_64bit_addressing, "Entry hi written as word in 64 bit mode");
             cpu->cp0.entry_hi.raw = value;
             break;
         case R4300I_CP0_REG_PAGEMASK:
             cpu->cp0.page_mask.raw = value;
             break;
         case R4300I_CP0_REG_EPC:
-            cpu->cp0.EPC = value;
+            unimplemented(cpu->cp0.is_64bit_addressing, "EPC written as word in 64 bit mode");
+            cpu->cp0.EPC = (sdword)((sword)value);
             break;
         case R4300I_CP0_REG_CONFIG:
             cpu->cp0.config &= ~CP0_CONFIG_WRITE_MASK;
@@ -111,6 +115,7 @@ INLINE void set_cp0_register_word(r4300i_t* cpu, byte r, word value) {
             cpu->cp0.wired = value;
             break;
         case R4300I_CP0_REG_CONTEXT:
+            unimplemented(cpu->cp0.is_64bit_addressing, "Context written as word in 64 bit mode");
             unimplemented(value != 0, "cp0 context written with non-zero value");
             cpu->cp0.context = value;
             break;
@@ -134,10 +139,13 @@ INLINE word get_cp0_register_word(r4300i_t* cpu, byte r) {
             logalways("WARNING! Stubbed read from Random!");
             return 1;
         case R4300I_CP0_REG_ENTRYLO0:
+            unimplemented(cpu->cp0.is_64bit_addressing, "entrylo0 read as word in 64 bit mode");
             return cpu->cp0.entry_lo0.raw;
         case R4300I_CP0_REG_ENTRYLO1:
+            unimplemented(cpu->cp0.is_64bit_addressing, "entrylo1 read as word in 64 bit mode");
             return cpu->cp0.entry_lo1.raw;
         case R4300I_CP0_REG_CONTEXT:
+            unimplemented(cpu->cp0.is_64bit_addressing, "context read as word in 64 bit mode");
             return cpu->cp0.context;
         case R4300I_CP0_REG_PAGEMASK:
             return cpu->cp0.page_mask.raw;
@@ -146,10 +154,12 @@ INLINE word get_cp0_register_word(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_7:
             return cpu->cp0.r7;
         case R4300I_CP0_REG_BADVADDR:
+            unimplemented(cpu->cp0.is_64bit_addressing, "bad vaddr read as word in 64 bit mode");
             return cpu->cp0.bad_vaddr;
         case R4300I_CP0_REG_COUNT:
             return get_cp0_count(cpu);
         case R4300I_CP0_REG_ENTRYHI:
+            unimplemented(cpu->cp0.is_64bit_addressing, "entryhi read as word in 64 bit mode");
             return cpu->cp0.entry_hi.raw;
         case R4300I_CP0_REG_COMPARE:
             return cpu->cp0.compare;
@@ -158,7 +168,7 @@ INLINE word get_cp0_register_word(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_CAUSE:
             return cpu->cp0.cause.raw;
         case R4300I_CP0_REG_EPC:
-            return cpu->cp0.EPC;
+            return cpu->cp0.EPC & 0xFFFFFFFF;
         case R4300I_CP0_REG_PRID:
             return cpu->cp0.PRId;
         case R4300I_CP0_REG_CONFIG:
@@ -190,7 +200,7 @@ INLINE word get_cp0_register_word(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_TAGHI:
             return cpu->cp0.tag_hi;
         case R4300I_CP0_REG_ERR_EPC:
-            return cpu->cp0.error_epc;
+            return cpu->cp0.error_epc & 0xFFFFFFFF;
         case R4300I_CP0_REG_31:
             return cpu->cp0.r31;
         default:

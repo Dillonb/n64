@@ -274,12 +274,10 @@ MIPS_INSTR(mips_dmtc1) {
 
 MIPS_INSTR(mips_eret) {
     if (cpu->cp0.status.erl) {
-        ASSERTWORD(cpu->cp0.error_epc); // TODO: this is actually supposed to be a dword, just remember to update this code when it changes
-        set_pc_word_r4300i(cpu, cpu->cp0.error_epc);
+        set_pc_dword_r4300i(cpu, cpu->cp0.error_epc);
         cpu->cp0.status.erl = false;
     } else {
-        ASSERTWORD(cpu->cp0.EPC); // TODO: this is actually supposed to be a dword, just remember to update this code when it changes
-        set_pc_word_r4300i(cpu, cpu->cp0.EPC);
+        set_pc_dword_r4300i(cpu, cpu->cp0.EPC);
         cpu->cp0.status.exl = false;
     }
     cp0_status_updated(cpu);

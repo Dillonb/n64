@@ -395,7 +395,7 @@ typedef struct cp0 {
     word compare;
     cp0_status_t status;
     cp0_cause_t cause;
-    word EPC;
+    dword EPC;
     word PRId;
     word config;
     word lladdr;
@@ -411,7 +411,7 @@ typedef struct cp0 {
     word cache_error;
     word tag_lo;
     word tag_hi;
-    word error_epc;
+    dword error_epc;
     word r31;
 
     tlb_entry_t tlb[32];
