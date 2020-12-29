@@ -103,7 +103,9 @@
 #define OPC_LDR    0b011011
 #define OPC_SDL    0b101100
 #define OPC_SDR    0b101101
+#define OPC_LL     0b110000
 #define OPC_LLD    0b110100
+#define OPC_SC     0b111000
 #define OPC_SCD    0b111100
 
 // Coprocessor

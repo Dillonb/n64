@@ -1087,6 +1087,23 @@ MIPS_INSTR(mips_sdr) {
     cpu->write_dword(address & ~7, (data & ~mask) | (oldreg << shift));
 }
 
+MIPS_INSTR(mips_ll) {
+    // Identical to lw
+    shalf offset = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    sword result  = cpu->read_word(address);
+
+    if ((address & 0b11) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+    }
+
+    set_register(cpu, instruction.i.rt, (sdword)result);
+
+    // Unique to ll
+    cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
+    cpu->llbit = true;
+}
+
 MIPS_INSTR(mips_lld) {
     // Instruction is undefined outside of 64 bit mode and 32 bit kernel mode.
     // Throw an exception if we're not in 64 bit mode AND not in kernel mode.
@@ -1104,10 +1121,35 @@ MIPS_INSTR(mips_lld) {
     }
     set_register(cpu, instruction.i.rt, result);
 
-
     // Unique to lld
     cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
     cpu->llbit = true;
+}
+
+MIPS_INSTR(mips_sc) {
+    // Identical to sw
+    shalf offset          = instruction.i.immediate;
+    dword address         = get_register(cpu, instruction.i.rs) + offset;
+
+    // Exception takes precedence over the instruction failing
+    if ((address & 0b11) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016lX", address);
+    }
+
+    if (cpu->llbit) {
+        word physical_address = cpu->resolve_virtual_address(address, &cpu->cp0);
+
+        if (physical_address != cpu->cp0.lladdr) {
+            logfatal("Undefined: SC physical address is NOT EQUAL to last lladdr!\n");
+        }
+
+        word value = get_register(cpu, instruction.i.rt);
+        cpu->write_word(address, value);
+        set_register(cpu, instruction.i.rt, 1); // Success!
+
+    } else {
+        set_register(cpu, instruction.i.rt, 0); // Failure.
+    }
 }
 
 MIPS_INSTR(mips_scd) {
@@ -1123,7 +1165,7 @@ MIPS_INSTR(mips_scd) {
 
     // Exception takes precedence over the instruction failing
     if ((address & 0b111) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016lX", address);
     }
 
     if (cpu->llbit) {
