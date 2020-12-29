@@ -104,6 +104,7 @@
 #define OPC_SDL    0b101100
 #define OPC_SDR    0b101101
 #define OPC_LLD    0b110100
+#define OPC_SCD    0b111100
 
 // Coprocessor
 #define COP_MF    0b00000
@@ -501,6 +502,8 @@ typedef struct r4300i {
 
     dword mult_hi;
     dword mult_lo;
+
+    bool llbit;
 
     fcr0_t  fcr0;
     fcr31_t fcr31;

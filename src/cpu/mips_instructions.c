@@ -281,6 +281,7 @@ MIPS_INSTR(mips_eret) {
         cpu->cp0.status.exl = false;
     }
     cp0_status_updated(cpu);
+    cpu->llbit = false;
 }
 
 MIPS_INSTR(mips_cfc1) {
@@ -1106,6 +1107,39 @@ MIPS_INSTR(mips_lld) {
 
     // Unique to lld
     cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
+    cpu->llbit = true;
+}
+
+MIPS_INSTR(mips_scd) {
+    // Instruction is undefined outside of 64 bit mode and 32 bit kernel mode.
+    // Throw an exception if we're not in 64 bit mode AND not in kernel mode.
+    if (!cpu->cp0.is_64bit_addressing && cpu->cp0.kernel_mode) {
+        logfatal("SCD is undefined outside of 64 bit mode and 32 bit kernel mode. Throw a reserved instruction exception!");
+    }
+
+    // Identical to sd
+    shalf offset          = instruction.i.immediate;
+    dword address         = get_register(cpu, instruction.i.rs) + offset;
+
+    // Exception takes precedence over the instruction failing
+    if ((address & 0b111) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+    }
+
+    if (cpu->llbit) {
+        word physical_address = cpu->resolve_virtual_address(address, &cpu->cp0);
+
+        if (physical_address != cpu->cp0.lladdr) {
+            logfatal("Undefined: SCD physical address is NOT EQUAL to last lladdr!\n");
+        }
+
+        dword value = get_register(cpu, instruction.i.rt);
+        cpu->write_dword(address, value);
+        set_register(cpu, instruction.i.rt, 1); // Success!
+
+    } else {
+        set_register(cpu, instruction.i.rt, 0); // Failure.
+    }
 }
 
 MIPS_INSTR(mips_spc_sll) {
