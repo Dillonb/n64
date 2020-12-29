@@ -1,10 +1,7 @@
 #include "tlb_instructions.h"
 #include <mem/n64bus.h>
 
-// Loads the contents of the entry Hi, entry Lo0, entry Lo1, and page mask
-// registers to the TLB entry indicated by the index register.
-MIPS_INSTR(mips_tlbwi) {
-    unimplemented(cpu->cp0.is_64bit_addressing, "TLBWI in 64 bit mode!");
+void tlbwi_32b(r4300i_t* cpu) {
     cp0_entry_hi_t entry_hi;
     entry_hi.raw = cpu->cp0.entry_hi.raw   & 0xFFFFE0FF;
 
@@ -33,7 +30,21 @@ MIPS_INSTR(mips_tlbwi) {
 
 }
 
-// Loads the address of the TLB entry coinciding with the contents of the entry
+void tlbwi_64b(r4300i_t* cpu) {
+    logfatal("TLBWI in 64 bit mode!");
+}
+
+// Loads the contents of the pfn Hi, pfn Lo0, pfn Lo1, and page mask
+// registers to the TLB pfn indicated by the index register.
+MIPS_INSTR(mips_tlbwi) {
+    if (cpu->cp0.is_64bit_addressing) {
+        tlbwi_64b(cpu);
+    } else {
+        tlbwi_32b(cpu);
+    }
+}
+
+// Loads the address of the TLB pfn coinciding with the contents of the pfn
 // Hi register to the index register.
 MIPS_INSTR(mips_tlbp) {
     unimplemented(cpu->cp0.is_64bit_addressing, "TLBP in 64 bit mode!");

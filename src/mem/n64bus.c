@@ -38,12 +38,12 @@ bool tlb_probe(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
             if (!(entry.entry_lo0.valid)) {
                 continue;
             }
-            pfn = entry.entry_lo0.entry;
+            pfn = entry.entry_lo0.pfn;
         } else {
             if (!(entry.entry_lo1.valid)) {
                 continue;
             }
-            pfn = entry.entry_lo1.entry;
+            pfn = entry.entry_lo1.pfn;
         }
 
         if (paddr != NULL) {

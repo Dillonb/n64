@@ -356,24 +356,24 @@ ASSERTDWORD(cp0_entry_hi_64_t);
 typedef struct tlb_entry {
     union {
         struct {
-            bool global:1;
+            unsigned:1;
             bool valid:1;
             bool dirty:1;
             byte c:3;
-            unsigned entry:24;
-            unsigned:2;
+            unsigned pfn:20;
+            unsigned:6;
         };
         word raw;
     } entry_lo0;
 
     union {
         struct {
-            bool global:1;
+            unsigned:1;
             bool valid:1;
             bool dirty:1;
             byte c:3;
-            unsigned entry:24;
-            unsigned:2;
+            unsigned pfn:20;
+            unsigned:6;
         };
         word raw;
     } entry_lo1;
@@ -403,6 +403,59 @@ typedef struct tlb_entry {
     byte asid;
 
 } tlb_entry_t;
+
+typedef struct tlb_entry_64 {
+    union {
+        struct {
+            unsigned:1;
+            bool valid:1;
+            bool dirty:1;
+            byte c:3;
+            unsigned pfn:20;
+            unsigned long:38;
+        };
+        word raw;
+    } entry_lo0;
+
+    union {
+        struct {
+            unsigned:1;
+            bool valid:1;
+            bool dirty:1;
+            byte c:3;
+            unsigned pfn:20;
+            unsigned long:38;
+        };
+        word raw;
+    } entry_lo1;
+
+    union {
+        word raw;
+        struct {
+            unsigned asid:8;
+            unsigned:4;
+            bool g:1;
+            unsigned vpn2:27;
+            unsigned:22;
+            unsigned r:2;
+        };
+    } entry_hi;
+
+    union {
+        struct {
+            unsigned:13;
+            unsigned mask:12;
+            unsigned long:39;
+        };
+        dword raw;
+    } page_mask;
+
+    // "parsed"
+    bool global;
+    bool valid;
+    byte asid;
+
+} tlb_entry_64_t;
 
 typedef union watch_lo {
     word raw;
