@@ -12,7 +12,7 @@ INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
 
 INLINE dword get_register(r4300i_t* cpu, byte r) {
     dword value = cpu->gpr[r];
-    logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value);
+    logtrace("Reading $%s (r%d): 0x%016lX", register_names[r], r, value);
     return value;
 }
 

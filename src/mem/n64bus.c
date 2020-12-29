@@ -6,7 +6,6 @@
 #include <rdp/rdp.h>
 #include <cpu/dynarec.h>
 
-#include "dma.h"
 #include "addresses.h"
 #include "pif.h"
 #include "mem_util.h"
@@ -154,7 +153,7 @@ word read_word_pireg(n64_system_t* system, word address) {
             return system->mem.pi_reg[PI_WR_LEN_REG];
         case ADDR_PI_STATUS_REG: {
             word value = 0;
-            value |= is_dma_active();
+            value |= (0 << 0); // Is PI DMA active?
             value |= (0 << 1); // Is PI IO busy?
             value |= (0 << 2); // PI IO error?
             value |= (system->mi.intr.pi << 3); // PI interrupt?
@@ -184,12 +183,16 @@ word read_word_pireg(n64_system_t* system, word address) {
 void write_word_pireg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
-            system->mem.pi_reg[PI_DRAM_ADDR_REG] = value;
-            //system->mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~7;
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~7;
+            if (system->mem.pi_reg[PI_DRAM_ADDR_REG] != value) {
+                logwarn("Misaligned PI_DRAM_ADDR! 0x%08X force-aligned to 0x%08X.", value, system->mem.pi_reg[PI_DRAM_ADDR_REG]);
+            }
             break;
         case ADDR_PI_CART_ADDR_REG:
-            system->mem.pi_reg[PI_CART_ADDR_REG] = value;
-            //system->mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
+            system->mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
+            if (system->mem.pi_reg[PI_CART_ADDR_REG] != value) {
+                logwarn("Misaligned PI_CART_ADDR! 0x%08X force-aligned to 0x%08X.", value, system->mem.pi_reg[PI_CART_ADDR_REG]);
+            }
             break;
         case ADDR_PI_RD_LEN_REG: {
             word length = (value & 0x00FFFFFF) + 1;
@@ -205,7 +208,17 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             if (dram_addr >= SREGION_RDRAM_UNUSED) {
                 logfatal("DRAM address too high!");
             }
-            run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
+
+
+            logalways("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", system->cpu.pc, dram_addr, cart_addr, length);
+
+            for (int i = 0; i < length; i++) {
+                byte b = n64_read_byte(system, dram_addr + i);
+                logtrace("DRAM to CART: Copying 0x%02X from 0x%08X to 0x%08X", b, dram_addr + i, cart_addr + i);
+                n64_write_byte(system, cart_addr + i, b);
+            }
+
+            logdebug("DMA completed.");
             system->mem.pi_reg[PI_DRAM_ADDR_REG] += length;
             system->mem.pi_reg[PI_CART_ADDR_REG] += length;
             interrupt_raise(INTERRUPT_PI);
@@ -222,7 +235,16 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             if (cart_addr < SREGION_CART_2_1) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", system->mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
-            run_dma(system, cart_addr, dram_addr, length, "CART to DRAM");
+
+            logalways("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", system->cpu.pc, cart_addr, dram_addr, length);
+
+            for (int i = 0; i < length; i++) {
+                byte b = n64_read_byte(system, cart_addr + i);
+                logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
+                n64_write_byte(system, dram_addr + i, b);
+            }
+
+            logdebug("DMA completed.");
             static bool first_time = true;
             if (first_time) {
                 n64_write_word(system, 0x318, N64_RDRAM_SIZE);

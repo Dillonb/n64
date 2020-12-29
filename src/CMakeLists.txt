@@ -16,7 +16,6 @@ add_library(core
         mem/n64mem.c mem/n64mem.h
         mem/n64bus.c mem/n64bus.h
         mem/pif.c mem/pif.h
-        mem/dma.c mem/dma.h
         interface/vi.c interface/vi.h interface/vi_reg.h
         frontend/render.c frontend/render.h
         interface/ai.c interface/ai.h
