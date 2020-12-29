@@ -183,7 +183,7 @@ word read_word_pireg(n64_system_t* system, word address) {
 void write_word_pireg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
-            system->mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~7;
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~1;
             if (system->mem.pi_reg[PI_DRAM_ADDR_REG] != value) {
                 logwarn("Misaligned PI_DRAM_ADDR! 0x%08X force-aligned to 0x%08X.", value, system->mem.pi_reg[PI_DRAM_ADDR_REG]);
             }
