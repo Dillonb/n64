@@ -69,8 +69,29 @@ INLINE word resolve_virtual_address_64bit(dword address, cp0_t* cp0) {
             break;
     case REGION_XKSSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_XKSSEG) in 64 bit mode", address);
-        case REGION_XKPHYS:
-            logfatal("Resolving virtual address 0x%016lX (REGION_XKPHYS) in 64 bit mode", address);
+        case REGION_XKPHYS: {
+            if (!cp0->kernel_mode) {
+                logfatal("Access to XKPHYS address 0x%016lX when outside kernel mode!", address);
+            }
+            byte high_two_bits = (address >> 62) & 0b11;
+            if (high_two_bits != 0b10) {
+                logfatal("Access to XKPHYS address 0x%016lX with high two bits != 0b10!", address);
+            }
+            byte subsegment = (address >> 59) & 0b11;
+            bool cached = subsegment != 2;
+            if (cached) {
+                logwarn("Resolving virtual address in cached XKPHYS subsegment %d", subsegment);
+            }
+            // If any bits in the range of 58:32 are set, the address is invalid.
+            bool valid = (address & 0x07FFFFFF00000000) == 0;
+            if (!valid) {
+                logfatal("Invalid XKPHYS address 0x%016lX! bits in the range of 58:32 are set.", address);
+            }
+            physical = address & 0xFFFFFFFF;
+
+            logwarn("XKPHYS: Translated 0x%016lX to 0x%08X", address, physical);
+            break;
+        }
         case REGION_XKSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_XKSEG) in 64 bit mode", address);
         case REGION_CKSEG0:
