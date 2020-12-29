@@ -6,6 +6,7 @@
 #include "addresses.h"
 
 bool tlb_probe(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0);
+bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0);
 
 #define REGION_XKUSEG 0x0000000000000000 ... 0x000000FFFFFFFFFF
 #define REGION_XBAD1  0x0000010000000000 ... 0x3FFFFFFFFFFFFFFF
@@ -63,7 +64,7 @@ INLINE word resolve_virtual_address_64bit(dword address, cp0_t* cp0) {
     word physical;
     switch (address) {
         case REGION_XKUSEG:
-            if (!tlb_probe(address, &physical, NULL, cp0)) {
+            if (!tlb_probe_64(address, &physical, NULL, cp0)) {
                 logfatal("Unimplemented: page miss translating virtual address 0x%016lX in REGION_XKUSEG", address);
             }
             break;

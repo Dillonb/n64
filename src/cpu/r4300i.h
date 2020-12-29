@@ -300,22 +300,6 @@ typedef union cp0_entry_lo {
 
 ASSERTWORD(cp0_entry_lo_t);
 
-// Identical to entry_lo_t, except with more unused space at the end.
-// TODO: just use this one type for both 32 and 64 bit modes?
-typedef union cp0_entry_lo_64 {
-    dword raw;
-    struct {
-        bool g:1;
-        bool v:1;
-        bool d:1;
-        unsigned c:3;
-        unsigned pfn:20;
-        unsigned long:38;
-    } PACKED;
-} cp0_entry_lo_64_t;
-
-ASSERTDWORD(cp0_entry_lo_64_t);
-
 typedef union cp0_page_mask {
     word raw;
     struct {
@@ -454,7 +438,8 @@ typedef struct tlb_entry_64 {
     bool global;
     bool valid;
     byte asid;
-
+    // not present in 32 bit TLB
+    byte region;
 } tlb_entry_64_t;
 
 typedef union watch_lo {
@@ -473,9 +458,7 @@ typedef struct cp0 {
     word index;
     word random;
     cp0_entry_lo_t entry_lo0;
-    cp0_entry_lo_64_t entry_lo0_64;
     cp0_entry_lo_t entry_lo1;
-    cp0_entry_lo_64_t entry_lo1_64;
     word context;
     dword context_64;
     cp0_page_mask_t page_mask;
@@ -507,7 +490,8 @@ typedef struct cp0 {
     dword error_epc;
     word r31;
 
-    tlb_entry_t tlb[32];
+    tlb_entry_t    tlb[32];
+    tlb_entry_64_t tlb_64[32];
 
     bool kernel_mode;
     bool supervisor_mode;

@@ -12,9 +12,9 @@
 #include "mem_util.h"
 #include "backup.h"
 
-word get_vpn(dword address, word page_mask_raw) {
-    word tmp = page_mask_raw | 0x1FFF;
-    word vpn = address & ~tmp;
+dword get_vpn(dword address, word page_mask_raw) {
+    dword tmp = page_mask_raw | 0x1FFF;
+    dword vpn = address & ~tmp;
 
     return vpn;
 }
@@ -22,6 +22,44 @@ word get_vpn(dword address, word page_mask_raw) {
 bool tlb_probe(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = cp0->tlb[i];
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
+        word page_size = mask + 1;
+        word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
+        word vaddr_vpn = get_vpn(vaddr, entry.page_mask.raw);
+
+        if (entry_vpn != vaddr_vpn) {
+            continue;
+        }
+
+        word odd = vaddr & page_size;
+        word pfn;
+
+        if (!odd) {
+            if (!(entry.entry_lo0.valid)) {
+                continue;
+            }
+            pfn = entry.entry_lo0.pfn;
+        } else {
+            if (!(entry.entry_lo1.valid)) {
+                continue;
+            }
+            pfn = entry.entry_lo1.pfn;
+        }
+
+        if (paddr != NULL) {
+            *paddr = (pfn << 12) | (vaddr & mask);
+        }
+        if (entry_number != NULL) {
+            *entry_number = i;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
+    for (int i = 0; i < 32; i++) {
+        tlb_entry_64_t entry = cp0->tlb_64[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;
         word page_size = mask + 1;
         word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
