@@ -210,7 +210,7 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             }
 
 
-            logalways("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", system->cpu.pc, dram_addr, cart_addr, length);
+            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", system->cpu.pc, dram_addr, cart_addr, length);
 
             for (int i = 0; i < length; i++) {
                 byte b = n64_read_byte(system, dram_addr + i);
@@ -236,7 +236,7 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", system->mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
 
-            logalways("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", system->cpu.pc, cart_addr, dram_addr, length);
+            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", system->cpu.pc, cart_addr, dram_addr, length);
 
             for (int i = 0; i < length; i++) {
                 byte b = n64_read_byte(system, cart_addr + i);
