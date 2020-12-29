@@ -215,9 +215,11 @@ INLINE void set_cp0_register_dword(r4300i_t* cpu, byte r, dword value) {
         case R4300I_CP0_REG_RANDOM:
             logfatal("Writing CP0 register R4300I_CP0_REG_RANDOM as dword!");
         case R4300I_CP0_REG_ENTRYLO0:
-            logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYLO0 as dword!");
+            cpu->cp0.entry_lo0_64.raw = value;
+            break;
         case R4300I_CP0_REG_ENTRYLO1:
-            logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYLO1 as dword!");
+            cpu->cp0.entry_lo1_64.raw = value;
+            break;
         case R4300I_CP0_REG_CONTEXT:
             unimplemented(value != 0, "cp0 context written with non-zero value in 64 bit mode!");
             cpu->cp0.context_64 = value;
@@ -235,7 +237,6 @@ INLINE void set_cp0_register_dword(r4300i_t* cpu, byte r, dword value) {
         case R4300I_CP0_REG_ENTRYHI:
             cpu->cp0.entry_hi_64.raw = value;
             break;
-            logfatal("Writing CP0 register R4300I_CP0_REG_ENTRYHI as dword!");
         case R4300I_CP0_REG_COMPARE:
             logfatal("Writing CP0 register R4300I_CP0_REG_COMPARE as dword!");
         case R4300I_CP0_REG_STATUS:
@@ -243,7 +244,8 @@ INLINE void set_cp0_register_dword(r4300i_t* cpu, byte r, dword value) {
         case R4300I_CP0_REG_CAUSE:
             logfatal("Writing CP0 register R4300I_CP0_REG_CAUSE as dword!");
         case R4300I_CP0_REG_EPC:
-            logfatal("Writing CP0 register R4300I_CP0_REG_EPC as dword!");
+            cpu->cp0.EPC = value;
+            break;
         case R4300I_CP0_REG_PRID:
             logfatal("Writing CP0 register R4300I_CP0_REG_PRID as dword!");
         case R4300I_CP0_REG_CONFIG:
@@ -296,7 +298,7 @@ INLINE dword get_cp0_register_dword(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_ENTRYLO1:
             logfatal("Reading CP0 register R4300I_CP0_REG_ENTRYLO1 as dword!");
         case R4300I_CP0_REG_CONTEXT:
-            logfatal("Reading CP0 register R4300I_CP0_REG_CONTEXT as dword!");
+            return cpu->cp0.context_64;
         case R4300I_CP0_REG_PAGEMASK:
             logfatal("Reading CP0 register R4300I_CP0_REG_PAGEMASK as dword!");
         case R4300I_CP0_REG_WIRED:
@@ -316,7 +318,7 @@ INLINE dword get_cp0_register_dword(r4300i_t* cpu, byte r) {
         case R4300I_CP0_REG_CAUSE:
             logfatal("Reading CP0 register R4300I_CP0_REG_CAUSE as dword!");
         case R4300I_CP0_REG_EPC:
-            logfatal("Reading CP0 register R4300I_CP0_REG_EPC as dword!");
+            return cpu->cp0.EPC;
         case R4300I_CP0_REG_PRID:
             logfatal("Reading CP0 register R4300I_CP0_REG_PRID as dword!");
         case R4300I_CP0_REG_CONFIG:

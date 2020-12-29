@@ -4,6 +4,7 @@
 // Loads the contents of the entry Hi, entry Lo0, entry Lo1, and page mask
 // registers to the TLB entry indicated by the index register.
 MIPS_INSTR(mips_tlbwi) {
+    unimplemented(cpu->cp0.is_64bit_addressing, "TLBWI in 64 bit mode!");
     cp0_entry_hi_t entry_hi;
     entry_hi.raw = cpu->cp0.entry_hi.raw   & 0xFFFFE0FF;
 
@@ -35,6 +36,7 @@ MIPS_INSTR(mips_tlbwi) {
 // Loads the address of the TLB entry coinciding with the contents of the entry
 // Hi register to the index register.
 MIPS_INSTR(mips_tlbp) {
+    unimplemented(cpu->cp0.is_64bit_addressing, "TLBP in 64 bit mode!");
     word entry_hi = cpu->cp0.entry_hi.raw   & 0xFFFFE0FF;
     int match;
     if (tlb_probe(entry_hi, NULL, &match, &cpu->cp0)) {
@@ -45,17 +47,18 @@ MIPS_INSTR(mips_tlbp) {
 }
 
 MIPS_INSTR(mips_tlbr) {
-        int index = cpu->cp0.index & 0b111111;
-        if (index >= 32) {
-            logfatal("TLBR from TLB index %d", index);
-        }
+    unimplemented(cpu->cp0.is_64bit_addressing, "TLBR in 64 bit mode!");
+    int index = cpu->cp0.index & 0b111111;
+    if (index >= 32) {
+        logfatal("TLBR from TLB index %d", index);
+    }
 
-        tlb_entry_t entry = cpu->cp0.tlb[index];
+    tlb_entry_t entry = cpu->cp0.tlb[index];
 
-        cpu->cp0.entry_hi.raw  = entry.entry_hi.raw & ~(entry.page_mask.raw);
-        cpu->cp0.entry_lo0.raw = entry.entry_lo0.raw;
-        cpu->cp0.entry_lo1.raw = entry.entry_lo1.raw;
+    cpu->cp0.entry_hi.raw  = entry.entry_hi.raw & ~(entry.page_mask.raw);
+    cpu->cp0.entry_lo0.raw = entry.entry_lo0.raw;
+    cpu->cp0.entry_lo1.raw = entry.entry_lo1.raw;
 
-        cpu->cp0.entry_lo0.g = entry.entry_hi.g;
-        cpu->cp0.entry_lo1.g = entry.entry_hi.g;
+    cpu->cp0.entry_lo0.g = entry.entry_hi.g;
+    cpu->cp0.entry_lo1.g = entry.entry_hi.g;
 }
