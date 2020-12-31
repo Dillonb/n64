@@ -198,11 +198,19 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
         any_bad |= print_vureg_comparing_ln(&emu_acc_l, &acc_l);
         printf("\n");
 
-        printf("element %02d, n64 vcc: 0x%04X emu vcc: 0x%04X\n", element, flag_result.vcc, emu_flag_result.vcc);
+        const char* color_start = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
+        const char* color_end   = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
+        printf("element %02d, n64 vcc: 0x%04X emu vcc: %s0x%04X%s\n", element, flag_result.vcc, color_start, emu_flag_result.vcc, color_end);
         any_bad |= (flag_result.vcc != emu_flag_result.vcc);
-        printf("element %02d, n64 vco: 0x%04X emu vco: 0x%04X\n", element, flag_result.vco, emu_flag_result.vco);
+
+        color_start = (flag_result.vco != emu_flag_result.vco) ? COLOR_RED : "";
+        color_end   = (flag_result.vco != emu_flag_result.vco) ? COLOR_RED : "";
+        printf("element %02d, n64 vco: 0x%04X emu vco: %s0x%04X%s\n", element, flag_result.vco, color_start, emu_flag_result.vco, color_end);
         any_bad |= (flag_result.vco != emu_flag_result.vco);
-        printf("element %02d, n64 vce: 0x%04X emu vce: 0x%04X\n", element, flag_result.vce, emu_flag_result.vce);
+
+        color_start = (flag_result.vce != emu_flag_result.vce) ? COLOR_RED : "";
+        color_end   = (flag_result.vce != emu_flag_result.vce) ? COLOR_RED : "";
+        printf("element %02d, n64 vce: 0x%04X emu vce: %s0x%04X%s\n", element, flag_result.vce, color_start, emu_flag_result.vce, color_end);
         any_bad |= (flag_result.vce != emu_flag_result.vce);
     }
 
