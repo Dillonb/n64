@@ -13,6 +13,17 @@ static FT_HANDLE handle;
 unsigned int bytes_written;
 unsigned int bytes_read;
 
+typedef union flag_result {
+    struct {
+        half vcc;
+        half vco;
+        half vce;
+        half padding;
+    };
+    dword packed;
+} flag_result_t;
+static_assert(sizeof(flag_result_t) == sizeof(dword), "flag_result_t should be 64 bits");
+
 void assert_ftcommand(FT_STATUS result, const char* message) {
     if (result != FT_OK) {
         logdie("%s", message);
@@ -55,6 +66,11 @@ void recv_vreg(vu_reg_t* reg) {
     for (int i = 0; i < 8; i++) {
         reg->elements[i] = be16toh(reg->elements[i]);
     }
+}
+
+void recv_flag_result(flag_result_t* result) {
+    assert_ftcommand(FT_Read(handle, result, sizeof(flag_result_t), &bytes_read), "Unable to read flag_result!");
+    // TODO probably gonna need to bswap
 }
 
 void init_everdrive(unsigned int device) {
@@ -182,6 +198,9 @@ int main(int argc, char** argv) {
         vu_reg_t acc_l;
         recv_vreg(&acc_l);
 
+        flag_result_t flag_result;
+        recv_flag_result(&flag_result);
+
         vu_reg_t emu_res;
         vu_reg_t emu_acc_h;
         vu_reg_t emu_acc_m;
@@ -209,5 +228,9 @@ int main(int argc, char** argv) {
         printf("element %02d, emu acc_l: ", element);
         print_vureg_comparing_ln(&emu_acc_l, &acc_l);
         printf("\n");
+
+        printf("element %02d, n64 vcc: 0x%04X\n", element, flag_result.vcc);
+        printf("element %02d, n64 vco: 0x%04X\n", element, flag_result.vco);
+        printf("element %02d, n64 vce: 0x%04X\n", element, flag_result.vce);
     }
 }
