@@ -88,9 +88,11 @@ void print_vureg_ln(vu_reg_t* reg) {
     printf("\n");
 }
 
-void print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
+bool print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
+    bool any_bad = false;
     for (int i = 0; i < 8; i++) {
         if (compare->elements[i] != reg->elements[i]) {
+            any_bad = true;
             printf(COLOR_RED);
         }
         printf("%04X ", reg->elements[i]);
@@ -99,6 +101,7 @@ void print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
         }
     }
     printf("\n");
+    return any_bad;
 }
 
 void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l) {
@@ -129,54 +132,11 @@ void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, 
     }
 }
 
-int main(int argc, char** argv) {
-    if (FT_CreateDeviceInfoList(&num_devices) != FT_OK) {
-        logdie("Unable to enumerate num_devices. Try again?");
-    }
+half rand_half() {
+    return rand() & 0xFFFF;
+}
 
-    if (num_devices == 0) {
-        logdie("No devices found. Is your EverDrive plugged in?");
-    }
-
-    logalways("Found %d device%s.", num_devices, num_devices == 1 ? "" : "s");
-
-    device_info = malloc(sizeof(FT_DEVICE_LIST_INFO_NODE) * num_devices);
-    FT_GetDeviceInfoList(device_info, &num_devices);
-
-    int everdrive_index = -1;
-    for (int i = 0; i < num_devices && everdrive_index < 0; i++) {
-        if (is_everdrive(i)) {
-            everdrive_index = i;
-        }
-    }
-
-    if (everdrive_index < 0) {
-        logdie("Did not find an everdrive!\n");
-    }
-
-    init_everdrive(everdrive_index);
-
-    vu_reg_t arg1;
-    vu_reg_t arg2;
-
-    arg1.elements[0] = 0x0001;
-    arg1.elements[1] = 0x0002;
-    arg1.elements[2] = 0x0003;
-    arg1.elements[3] = 0x0004;
-    arg1.elements[4] = 0x0005;
-    arg1.elements[5] = 0x0006;
-    arg1.elements[6] = 0x0007;
-    arg1.elements[7] = 0x0008;
-
-    arg2.elements[0] = 0x0009;
-    arg2.elements[1] = 0x000a;
-    arg2.elements[2] = 0x000b;
-    arg2.elements[3] = 0x000c;
-    arg2.elements[4] = 0x000d;
-    arg2.elements[5] = 0x000e;
-    arg2.elements[6] = 0x000f;
-    arg2.elements[7] = 0x0010;
-
+void run_test(vu_reg_t arg1, vu_reg_t arg2) {
     send_vreg(&arg1);
     send_vreg(&arg2);
 
@@ -185,6 +145,7 @@ int main(int argc, char** argv) {
     print_vureg_ln(&arg2);
     printf("Result:\n");
 
+    bool any_bad = false;
     for (int element = 0; element < 16; element++) {
         vu_reg_t res;
         recv_vreg(&res);
@@ -211,26 +172,89 @@ int main(int argc, char** argv) {
         printf("element %02d, n64 res: ", element);
         print_vureg_ln(&res);
         printf("element %02d, emu res: ", element);
-        print_vureg_comparing_ln(&emu_res, &res);
+        any_bad |= print_vureg_comparing_ln(&emu_res, &res);
 
         printf("element %02d, n64 acc_h: ", element);
         print_vureg_ln(&acc_h);
         printf("element %02d, emu acc_h: ", element);
-        print_vureg_comparing_ln(&emu_acc_h, &acc_h);
+        any_bad |= print_vureg_comparing_ln(&emu_acc_h, &acc_h);
 
         printf("element %02d, n64 acc_m: ", element);
         print_vureg_ln(&acc_m);
         printf("element %02d, emu acc_m: ", element);
-        print_vureg_comparing_ln(&emu_acc_m, &acc_m);
+        any_bad |= print_vureg_comparing_ln(&emu_acc_m, &acc_m);
 
         printf("element %02d, n64 acc_l: ", element);
         print_vureg_ln(&acc_l);
         printf("element %02d, emu acc_l: ", element);
-        print_vureg_comparing_ln(&emu_acc_l, &acc_l);
+        any_bad |= print_vureg_comparing_ln(&emu_acc_l, &acc_l);
         printf("\n");
 
         printf("element %02d, n64 vcc: 0x%04X\n", element, flag_result.vcc);
         printf("element %02d, n64 vco: 0x%04X\n", element, flag_result.vco);
         printf("element %02d, n64 vce: 0x%04X\n", element, flag_result.vce);
+    }
+
+    if (any_bad) {
+        logfatal("We got a fuckin problem bois");
+    }
+}
+
+void run_random_test() {
+    vu_reg_t arg1;
+    vu_reg_t arg2;
+
+    arg1.elements[0] = rand_half();
+    arg1.elements[1] = rand_half();
+    arg1.elements[2] = rand_half();
+    arg1.elements[3] = rand_half();
+    arg1.elements[4] = rand_half();
+    arg1.elements[5] = rand_half();
+    arg1.elements[6] = rand_half();
+    arg1.elements[7] = rand_half();
+
+    arg2.elements[0] = rand_half();
+    arg2.elements[1] = rand_half();
+    arg2.elements[2] = rand_half();
+    arg2.elements[3] = rand_half();
+    arg2.elements[4] = rand_half();
+    arg2.elements[5] = rand_half();
+    arg2.elements[6] = rand_half();
+    arg2.elements[7] = rand_half();
+
+    run_test(arg1, arg2);
+
+}
+
+int main(int argc, char** argv) {
+    srand(time(NULL));
+    if (FT_CreateDeviceInfoList(&num_devices) != FT_OK) {
+        logdie("Unable to enumerate num_devices. Try again?");
+    }
+
+    if (num_devices == 0) {
+        logdie("No devices found. Is your EverDrive plugged in?");
+    }
+
+    logalways("Found %d device%s.", num_devices, num_devices == 1 ? "" : "s");
+
+    device_info = malloc(sizeof(FT_DEVICE_LIST_INFO_NODE) * num_devices);
+    FT_GetDeviceInfoList(device_info, &num_devices);
+
+    int everdrive_index = -1;
+    for (int i = 0; i < num_devices && everdrive_index < 0; i++) {
+        if (is_everdrive(i)) {
+            everdrive_index = i;
+        }
+    }
+
+    if (everdrive_index < 0) {
+        logdie("Did not find an everdrive!\n");
+    }
+
+    init_everdrive(everdrive_index);
+
+    while (true) {
+        run_random_test();
     }
 }
