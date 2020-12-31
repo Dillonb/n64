@@ -5,6 +5,7 @@
 #include <string.h>
 #include <rsp_types.h>
 #include <rsp_vector_instructions.h>
+#include <rsp.h>
 
 static unsigned int num_devices;
 static FT_DEVICE_LIST_INFO_NODE* device_info;
@@ -70,7 +71,9 @@ void recv_vreg(vu_reg_t* reg) {
 
 void recv_flag_result(flag_result_t* result) {
     assert_ftcommand(FT_Read(handle, result, sizeof(flag_result_t), &bytes_read), "Unable to read flag_result!");
-    // TODO probably gonna need to bswap
+    result->vcc = be16toh(result->vcc);
+    result->vco = be16toh(result->vco);
+    result->vce = be16toh(result->vce);
 }
 
 void init_everdrive(unsigned int device) {
@@ -104,7 +107,7 @@ bool print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
     return any_bad;
 }
 
-void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l) {
+void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l, flag_result_t* flag_result) {
     rsp_t rsp;
     memset(&rsp, 0, sizeof(rsp_t));
 
@@ -123,6 +126,10 @@ void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, 
     }
 
     rsp_vec_vadd(&rsp, instruction);
+
+    flag_result->vcc = rsp_get_vcc(&rsp);
+    flag_result->vco = rsp_get_vco(&rsp);
+    flag_result->vce = rsp_get_vce(&rsp);
 
     for (int i = 0; i < 8; i++) {
         res->elements[i] = rsp.vu_regs[3].elements[7 - i];
@@ -166,7 +173,8 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
         vu_reg_t emu_acc_h;
         vu_reg_t emu_acc_m;
         vu_reg_t emu_acc_l;
-        check_emu(arg1, arg2, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l);
+        flag_result_t emu_flag_result;
+        check_emu(arg1, arg2, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
 
 
         printf("element %02d, n64 res: ", element);
@@ -190,9 +198,12 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
         any_bad |= print_vureg_comparing_ln(&emu_acc_l, &acc_l);
         printf("\n");
 
-        printf("element %02d, n64 vcc: 0x%04X\n", element, flag_result.vcc);
-        printf("element %02d, n64 vco: 0x%04X\n", element, flag_result.vco);
-        printf("element %02d, n64 vce: 0x%04X\n", element, flag_result.vce);
+        printf("element %02d, n64 vcc: 0x%04X emu vcc: 0x%04X\n", element, flag_result.vcc, emu_flag_result.vcc);
+        any_bad |= (flag_result.vcc != emu_flag_result.vcc);
+        printf("element %02d, n64 vco: 0x%04X emu vco: 0x%04X\n", element, flag_result.vco, emu_flag_result.vco);
+        any_bad |= (flag_result.vco != emu_flag_result.vco);
+        printf("element %02d, n64 vce: 0x%04X emu vce: 0x%04X\n", element, flag_result.vce, emu_flag_result.vce);
+        any_bad |= (flag_result.vce != emu_flag_result.vce);
     }
 
     if (any_bad) {
