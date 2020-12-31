@@ -72,7 +72,20 @@ void print_vureg_ln(vu_reg_t* reg) {
     printf("\n");
 }
 
-vu_reg_t check_emu(vu_reg_t vs, vu_reg_t vt, int e) {
+void print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
+    for (int i = 0; i < 8; i++) {
+        if (compare->elements[i] != reg->elements[i]) {
+            printf(COLOR_RED);
+        }
+        printf("%04X ", reg->elements[i]);
+        if (compare->elements[i] != reg->elements[i]) {
+            printf(COLOR_END);
+        }
+    }
+    printf("\n");
+}
+
+void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l) {
     rsp_t rsp;
     memset(&rsp, 0, sizeof(rsp_t));
 
@@ -92,13 +105,12 @@ vu_reg_t check_emu(vu_reg_t vs, vu_reg_t vt, int e) {
 
     rsp_vec_vadd(&rsp, instruction);
 
-    vu_reg_t result;
-
     for (int i = 0; i < 8; i++) {
-        result.elements[i] = rsp.vu_regs[3].elements[7 - i];
+        res->elements[i] = rsp.vu_regs[3].elements[7 - i];
+        acc_h->elements[i] = rsp.acc.h.elements[7 - i];
+        acc_m->elements[i] = rsp.acc.m.elements[7 - i];
+        acc_l->elements[i] = rsp.acc.l.elements[7 - i];
     }
-
-    return result;
 }
 
 int main(int argc, char** argv) {
@@ -160,26 +172,42 @@ int main(int argc, char** argv) {
     for (int element = 0; element < 16; element++) {
         vu_reg_t res;
         recv_vreg(&res);
-        printf("element %02d, n64: ", element);
 
-        for (int i = 0; i < 8; i++) {
-            printf("%04X ", res.elements[i]);
-        }
-        printf("\n");
+        vu_reg_t acc_h;
+        recv_vreg(&acc_h);
 
-        vu_reg_t emu = check_emu(arg1, arg2, element);
+        vu_reg_t acc_m;
+        recv_vreg(&acc_m);
 
-        printf("element %02d, emu: ", element);
+        vu_reg_t acc_l;
+        recv_vreg(&acc_l);
 
-        for (int i = 0; i < 8; i++) {
-            if (emu.elements[i] != res.elements[i]) {
-                printf(COLOR_RED);
-            }
-            printf("%04X ", emu.elements[i]);
-            if (emu.elements[i] != res.elements[i]) {
-                printf(COLOR_END);
-            }
-        }
+        vu_reg_t emu_res;
+        vu_reg_t emu_acc_h;
+        vu_reg_t emu_acc_m;
+        vu_reg_t emu_acc_l;
+        check_emu(arg1, arg2, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l);
+
+
+        printf("element %02d, n64 res: ", element);
+        print_vureg_ln(&res);
+        printf("element %02d, emu res: ", element);
+        print_vureg_comparing_ln(&emu_res, &res);
+
+        printf("element %02d, n64 acc_h: ", element);
+        print_vureg_ln(&acc_h);
+        printf("element %02d, emu acc_h: ", element);
+        print_vureg_comparing_ln(&emu_acc_h, &acc_h);
+
+        printf("element %02d, n64 acc_m: ", element);
+        print_vureg_ln(&acc_m);
+        printf("element %02d, emu acc_m: ", element);
+        print_vureg_comparing_ln(&emu_acc_m, &acc_m);
+
+        printf("element %02d, n64 acc_l: ", element);
+        print_vureg_ln(&acc_l);
+        printf("element %02d, emu acc_l: ", element);
+        print_vureg_comparing_ln(&emu_acc_l, &acc_l);
         printf("\n");
     }
 }
