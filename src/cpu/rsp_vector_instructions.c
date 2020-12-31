@@ -1331,6 +1331,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     sword input;
     defvd;
     defvt;
+    defvte;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     input = vt->signed_elements[7 - e];
@@ -1339,7 +1340,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     rsp->divout = (result >> 16) & 0xFFFF;
 
 #ifdef N64_USE_SIMD
-    rsp->acc.l.single = vt->single;
+    rsp->acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
         rsp->acc.l.elements[i] = vt->elements[i];
