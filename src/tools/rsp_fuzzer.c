@@ -56,10 +56,15 @@ void send_vreg(vu_reg_t* reg) {
     memcpy(&swapped, reg, sizeof(vu_reg_t));
 
     for (int i = 0; i < 8; i++) {
-        swapped.elements[i] = be16toh(swapped.elements[i]);
+        swapped.elements[i] = htobe16(swapped.elements[i]);
     }
 
     assert_ftcommand(FT_Write(handle, &swapped, sizeof(vu_reg_t), &bytes_written), "Unable to write vu reg!");
+}
+
+void send_instruction(word instr) {
+    word swapped = htobe32(instr);
+    assert_ftcommand(FT_Write(handle, &swapped, sizeof(word), &bytes_written), "Unable to write instruction!");
 }
 
 void recv_vreg(vu_reg_t* reg) {
@@ -143,12 +148,25 @@ half rand_half() {
     return rand() & 0xFFFF;
 }
 
+word vec_instr(int funct) {
+    int vs = 1;
+    int vt = 2;
+    int vd = 3;
+
+    if (funct != (funct & 0b111111)) {
+        logfatal("FUNCT would overflow!\n");
+    }
+
+    return OPC_CP2 << 26 | 1 << 25 | vt << 16 | vs << 11 | vd << 6 | funct;
+}
+
 void run_test(vu_reg_t arg1, vu_reg_t arg2) {
+    send_instruction(vec_instr(FUNCT_RSP_VEC_VADD));
     send_vreg(&arg1);
     send_vreg(&arg2);
 
+    printf("args:\n");
     print_vureg_ln(&arg1);
-    printf("VADD\n");
     print_vureg_ln(&arg2);
     printf("Result:\n");
 
@@ -196,7 +214,6 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
         print_vureg_ln(&acc_l);
         printf("element %02d, emu acc_l: ", element);
         any_bad |= print_vureg_comparing_ln(&emu_acc_l, &acc_l);
-        printf("\n");
 
         const char* color_start = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
         const char* color_end   = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
@@ -212,10 +229,11 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
         color_end   = (flag_result.vce != emu_flag_result.vce) ? COLOR_RED : "";
         printf("element %02d, n64 vce: 0x%04X emu vce: %s0x%04X%s\n", element, flag_result.vce, color_start, emu_flag_result.vce, color_end);
         any_bad |= (flag_result.vce != emu_flag_result.vce);
+        printf("\n");
     }
 
     if (any_bad) {
-        logfatal("We got a fuckin problem bois");
+        logfatal("Data mismatch!");
     }
 }
 
