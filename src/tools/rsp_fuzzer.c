@@ -14,6 +14,9 @@ static FT_HANDLE handle;
 unsigned int bytes_written;
 unsigned int bytes_read;
 
+static rsp_t rsp;
+
+
 typedef union flag_result {
     struct {
         half vcc;
@@ -24,6 +27,60 @@ typedef union flag_result {
     dword packed;
 } flag_result_t;
 static_assert(sizeof(flag_result_t) == sizeof(dword), "flag_result_t should be 64 bits");
+
+typedef struct rsp_testable_instruction {
+    rspinstr_handler_t handler;
+    int funct;
+    const char* name;
+} rsp_testable_instruction_t;
+#define INSTR(_handler, _funct, _name) { .handler = _handler, .funct = _funct, .name = _name}
+
+
+rsp_testable_instruction_t instrs[] = {
+        INSTR(rsp_vec_vabs, FUNCT_RSP_VEC_VABS, "vabs"),
+        INSTR(rsp_vec_vadd, FUNCT_RSP_VEC_VADD, "vadd"),
+        INSTR(rsp_vec_vaddc, FUNCT_RSP_VEC_VADDC, "vaddc"),
+        INSTR(rsp_vec_vand, FUNCT_RSP_VEC_VAND, "vand"),
+        INSTR(rsp_vec_vch, FUNCT_RSP_VEC_VCH, "vch"),
+        INSTR(rsp_vec_vcl, FUNCT_RSP_VEC_VCL, "vcl"),
+        INSTR(rsp_vec_vcr, FUNCT_RSP_VEC_VCR, "vcr"),
+        INSTR(rsp_vec_veq, FUNCT_RSP_VEC_VEQ, "veq"),
+        INSTR(rsp_vec_vge, FUNCT_RSP_VEC_VGE, "vge"),
+        INSTR(rsp_vec_vlt, FUNCT_RSP_VEC_VLT, "vlt"),
+        INSTR(rsp_vec_vmacf, FUNCT_RSP_VEC_VMACF, "vmacf"),
+        INSTR(rsp_vec_vmacq, FUNCT_RSP_VEC_VMACQ, "vmacq"),
+        INSTR(rsp_vec_vmacu, FUNCT_RSP_VEC_VMACU, "vmacu"),
+        INSTR(rsp_vec_vmadh, FUNCT_RSP_VEC_VMADH, "vmadh"),
+        INSTR(rsp_vec_vmadl, FUNCT_RSP_VEC_VMADL, "vmadl"),
+        INSTR(rsp_vec_vmadm, FUNCT_RSP_VEC_VMADM, "vmadm"),
+        INSTR(rsp_vec_vmadn, FUNCT_RSP_VEC_VMADN, "vmadn"),
+        INSTR(rsp_vec_vmov, FUNCT_RSP_VEC_VMOV, "vmov"),
+        INSTR(rsp_vec_vmrg, FUNCT_RSP_VEC_VMRG, "vmrg"),
+        INSTR(rsp_vec_vmudh, FUNCT_RSP_VEC_VMUDH, "vmudh"),
+        INSTR(rsp_vec_vmudl, FUNCT_RSP_VEC_VMUDL, "vmudl"),
+        INSTR(rsp_vec_vmudm, FUNCT_RSP_VEC_VMUDM, "vmudm"),
+        INSTR(rsp_vec_vmudn, FUNCT_RSP_VEC_VMUDN, "vmudn"),
+        INSTR(rsp_vec_vmulf, FUNCT_RSP_VEC_VMULF, "vmulf"),
+        INSTR(rsp_vec_vmulq, FUNCT_RSP_VEC_VMULQ, "vmulq"),
+        INSTR(rsp_vec_vmulu, FUNCT_RSP_VEC_VMULU, "vmulu"),
+        INSTR(rsp_vec_vnand, FUNCT_RSP_VEC_VNAND, "vnand"),
+        INSTR(rsp_vec_vne, FUNCT_RSP_VEC_VNE, "vne"),
+        INSTR(rsp_vec_vnop, FUNCT_RSP_VEC_VNOP, "vnop"),
+        INSTR(rsp_vec_vnor, FUNCT_RSP_VEC_VNOR, "vnor"),
+        INSTR(rsp_vec_vnxor, FUNCT_RSP_VEC_VNXOR, "vnxor"),
+        INSTR(rsp_vec_vor, FUNCT_RSP_VEC_VOR, "vor"),
+        INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp"),
+        INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph_vrsqh"),
+        INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl"),
+        INSTR(rsp_vec_vrndn, FUNCT_RSP_VEC_VRNDN, "vrndn"),
+        INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp"),
+        INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq"),
+        INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql"),
+        INSTR(rsp_vec_vsar, FUNCT_RSP_VEC_VSAR, "vsar"),
+        INSTR(rsp_vec_vsub, FUNCT_RSP_VEC_VSUB, "vsub"),
+        INSTR(rsp_vec_vsubc, FUNCT_RSP_VEC_VSUBC, "vsubc"),
+        INSTR(rsp_vec_vxor, FUNCT_RSP_VEC_VXOR, "vxor"),
+};
 
 void assert_ftcommand(FT_STATUS result, const char* message) {
     if (result != FT_OK) {
@@ -112,10 +169,7 @@ bool print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
     return any_bad;
 }
 
-void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l, flag_result_t* flag_result) {
-    rsp_t rsp;
-    memset(&rsp, 0, sizeof(rsp_t));
-
+void check_emu(rspinstr_handler_t handler, vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l, flag_result_t* flag_result) {
     mips_instruction_t instruction;
     instruction.raw = 0;
 
@@ -130,7 +184,7 @@ void check_emu(vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, 
         rsp.vu_regs[2].elements[7 - i] = vt.elements[i];
     }
 
-    rsp_vec_vadd(&rsp, instruction);
+    handler(&rsp, instruction);
 
     flag_result->vcc = rsp_get_vcc(&rsp);
     flag_result->vco = rsp_get_vco(&rsp);
@@ -160,11 +214,12 @@ word vec_instr(int funct) {
     return OPC_CP2 << 26 | 1 << 25 | vt << 16 | vs << 11 | vd << 6 | funct;
 }
 
-void run_test(vu_reg_t arg1, vu_reg_t arg2) {
-    send_instruction(vec_instr(FUNCT_RSP_VEC_VADD));
+void run_test(vu_reg_t arg1, vu_reg_t arg2, rsp_testable_instruction_t* instr) {
+    send_instruction(vec_instr(instr->funct));
     send_vreg(&arg1);
     send_vreg(&arg2);
 
+    printf("Testing %s\n", instr->name);
     printf("args:\n");
     print_vureg_ln(&arg1);
     print_vureg_ln(&arg2);
@@ -192,7 +247,7 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
         vu_reg_t emu_acc_m;
         vu_reg_t emu_acc_l;
         flag_result_t emu_flag_result;
-        check_emu(arg1, arg2, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
+        check_emu(instr->handler, arg1, arg2, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
 
 
         printf("element %02d, n64 res: ", element);
@@ -216,17 +271,17 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
         any_bad |= print_vureg_comparing_ln(&emu_acc_l, &acc_l);
 
         const char* color_start = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
-        const char* color_end   = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
+        const char* color_end   = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_END : "";
         printf("element %02d, n64 vcc: 0x%04X emu vcc: %s0x%04X%s\n", element, flag_result.vcc, color_start, emu_flag_result.vcc, color_end);
         any_bad |= (flag_result.vcc != emu_flag_result.vcc);
 
         color_start = (flag_result.vco != emu_flag_result.vco) ? COLOR_RED : "";
-        color_end   = (flag_result.vco != emu_flag_result.vco) ? COLOR_RED : "";
+        color_end   = (flag_result.vco != emu_flag_result.vco) ? COLOR_END : "";
         printf("element %02d, n64 vco: 0x%04X emu vco: %s0x%04X%s\n", element, flag_result.vco, color_start, emu_flag_result.vco, color_end);
         any_bad |= (flag_result.vco != emu_flag_result.vco);
 
         color_start = (flag_result.vce != emu_flag_result.vce) ? COLOR_RED : "";
-        color_end   = (flag_result.vce != emu_flag_result.vce) ? COLOR_RED : "";
+        color_end   = (flag_result.vce != emu_flag_result.vce) ? COLOR_END : "";
         printf("element %02d, n64 vce: 0x%04X emu vce: %s0x%04X%s\n", element, flag_result.vce, color_start, emu_flag_result.vce, color_end);
         any_bad |= (flag_result.vce != emu_flag_result.vce);
         printf("\n");
@@ -237,7 +292,7 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2) {
     }
 }
 
-void run_random_test() {
+void run_random_test(rsp_testable_instruction_t* instr) {
     vu_reg_t arg1;
     vu_reg_t arg2;
 
@@ -259,11 +314,12 @@ void run_random_test() {
     arg2.elements[6] = rand_half();
     arg2.elements[7] = rand_half();
 
-    run_test(arg1, arg2);
+    run_test(arg1, arg2, instr);
 
 }
 
 int main(int argc, char** argv) {
+    memset(&rsp, 0, sizeof(rsp_t));
     srand(time(NULL));
     if (FT_CreateDeviceInfoList(&num_devices) != FT_OK) {
         logdie("Unable to enumerate num_devices. Try again?");
@@ -292,6 +348,11 @@ int main(int argc, char** argv) {
     init_everdrive(everdrive_index);
 
     while (true) {
-        run_random_test();
+        for (int instr = 0; instr < (sizeof(instrs) / sizeof(rsp_testable_instruction_t)); instr++) {
+            printf("Fuzzing %s 1000 times...\n", instrs[instr].name);
+            for (int test = 0; test < 1000; test++) {
+                run_random_test(&instrs[instr]);
+            }
+        }
     }
 }
