@@ -48,7 +48,7 @@ rsp_testable_instruction_t instrs[] = {
         INSTR(rsp_vec_vge, FUNCT_RSP_VEC_VGE, "vge"),
         INSTR(rsp_vec_vlt, FUNCT_RSP_VEC_VLT, "vlt"),
         INSTR(rsp_vec_vmacf, FUNCT_RSP_VEC_VMACF, "vmacf"),
-        INSTR(rsp_vec_vmacq, FUNCT_RSP_VEC_VMACQ, "vmacq"),
+        //INSTR(rsp_vec_vmacq, FUNCT_RSP_VEC_VMACQ, "vmacq"),
         INSTR(rsp_vec_vmacu, FUNCT_RSP_VEC_VMACU, "vmacu"),
         INSTR(rsp_vec_vmadh, FUNCT_RSP_VEC_VMADH, "vmadh"),
         INSTR(rsp_vec_vmadl, FUNCT_RSP_VEC_VMADL, "vmadl"),
@@ -61,19 +61,19 @@ rsp_testable_instruction_t instrs[] = {
         INSTR(rsp_vec_vmudm, FUNCT_RSP_VEC_VMUDM, "vmudm"),
         INSTR(rsp_vec_vmudn, FUNCT_RSP_VEC_VMUDN, "vmudn"),
         INSTR(rsp_vec_vmulf, FUNCT_RSP_VEC_VMULF, "vmulf"),
-        INSTR(rsp_vec_vmulq, FUNCT_RSP_VEC_VMULQ, "vmulq"),
+        //INSTR(rsp_vec_vmulq, FUNCT_RSP_VEC_VMULQ, "vmulq"),
         INSTR(rsp_vec_vmulu, FUNCT_RSP_VEC_VMULU, "vmulu"),
         INSTR(rsp_vec_vnand, FUNCT_RSP_VEC_VNAND, "vnand"),
         INSTR(rsp_vec_vne, FUNCT_RSP_VEC_VNE, "vne"),
-        INSTR(rsp_vec_vnop, FUNCT_RSP_VEC_VNOP, "vnop"),
+        //INSTR(rsp_vec_vnop, FUNCT_RSP_VEC_VNOP, "vnop"),
         INSTR(rsp_vec_vnor, FUNCT_RSP_VEC_VNOR, "vnor"),
         INSTR(rsp_vec_vnxor, FUNCT_RSP_VEC_VNXOR, "vnxor"),
         INSTR(rsp_vec_vor, FUNCT_RSP_VEC_VOR, "vor"),
         INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp"),
         INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph_vrsqh"),
         INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl"),
-        INSTR(rsp_vec_vrndn, FUNCT_RSP_VEC_VRNDN, "vrndn"),
-        INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp"),
+        //INSTR(rsp_vec_vrndn, FUNCT_RSP_VEC_VRNDN, "vrndn"),
+        //INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp"),
         INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq"),
         INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql"),
         INSTR(rsp_vec_vsar, FUNCT_RSP_VEC_VSAR, "vsar"),
@@ -90,22 +90,6 @@ void assert_ftcommand(FT_STATUS result, const char* message) {
 
 bool is_everdrive(unsigned int device) {
     return (strcmp(device_info[device].Description, "FT245R USB FIFO") == 0 && device_info[device].ID == 0x04036001);
-}
-
-void run_command(char* command, size_t command_length, char* response, size_t response_size) {
-    memset(response, 0, response_size);
-
-    // Send command
-    assert_ftcommand(FT_Write(handle, command, command_length, &bytes_written), "Unable to write command!");
-    printf("Sent to ED64: ");
-    for (int i = 0; i < command_length; i++) {
-        printf("%c", command[i]);
-    }
-    printf("\n");
-    // Read response
-    assert_ftcommand(FT_Read(handle, response, response_size, &bytes_read), "Unable to read command response!");
-
-    printf("Received back from ED64: %s\n", response);
 }
 
 void send_vreg(vu_reg_t* reg) {
