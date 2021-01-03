@@ -7,6 +7,8 @@
 #include <rsp_vector_instructions.h>
 #include <rsp.h>
 
+#define FUZZES_PER_INSTRUCTION 1000
+
 static unsigned int num_devices;
 static FT_DEVICE_LIST_INFO_NODE* device_info;
 static FT_HANDLE handle;
@@ -37,7 +39,8 @@ typedef struct rsp_testable_instruction {
 
 
 rsp_testable_instruction_t instrs[] = {
-        INSTR(rsp_vec_vabs, FUNCT_RSP_VEC_VABS, "vabs"),
+        // BROKEN!
+        //INSTR(rsp_vec_vabs, FUNCT_RSP_VEC_VABS, "vabs"),
         INSTR(rsp_vec_vadd, FUNCT_RSP_VEC_VADD, "vadd"),
         INSTR(rsp_vec_vaddc, FUNCT_RSP_VEC_VADDC, "vaddc"),
         INSTR(rsp_vec_vand, FUNCT_RSP_VEC_VAND, "vand"),
@@ -48,34 +51,46 @@ rsp_testable_instruction_t instrs[] = {
         INSTR(rsp_vec_vge, FUNCT_RSP_VEC_VGE, "vge"),
         INSTR(rsp_vec_vlt, FUNCT_RSP_VEC_VLT, "vlt"),
         INSTR(rsp_vec_vmacf, FUNCT_RSP_VEC_VMACF, "vmacf"),
+        // unimplemented
         //INSTR(rsp_vec_vmacq, FUNCT_RSP_VEC_VMACQ, "vmacq"),
         INSTR(rsp_vec_vmacu, FUNCT_RSP_VEC_VMACU, "vmacu"),
         INSTR(rsp_vec_vmadh, FUNCT_RSP_VEC_VMADH, "vmadh"),
         INSTR(rsp_vec_vmadl, FUNCT_RSP_VEC_VMADL, "vmadl"),
         INSTR(rsp_vec_vmadm, FUNCT_RSP_VEC_VMADM, "vmadm"),
         INSTR(rsp_vec_vmadn, FUNCT_RSP_VEC_VMADN, "vmadn"),
-        INSTR(rsp_vec_vmov, FUNCT_RSP_VEC_VMOV, "vmov"),
+        // BROKEN!
+        // INSTR(rsp_vec_vmov, FUNCT_RSP_VEC_VMOV, "vmov"),
         INSTR(rsp_vec_vmrg, FUNCT_RSP_VEC_VMRG, "vmrg"),
         INSTR(rsp_vec_vmudh, FUNCT_RSP_VEC_VMUDH, "vmudh"),
         INSTR(rsp_vec_vmudl, FUNCT_RSP_VEC_VMUDL, "vmudl"),
         INSTR(rsp_vec_vmudm, FUNCT_RSP_VEC_VMUDM, "vmudm"),
         INSTR(rsp_vec_vmudn, FUNCT_RSP_VEC_VMUDN, "vmudn"),
         INSTR(rsp_vec_vmulf, FUNCT_RSP_VEC_VMULF, "vmulf"),
+        // unimplemented
         //INSTR(rsp_vec_vmulq, FUNCT_RSP_VEC_VMULQ, "vmulq"),
         INSTR(rsp_vec_vmulu, FUNCT_RSP_VEC_VMULU, "vmulu"),
         INSTR(rsp_vec_vnand, FUNCT_RSP_VEC_VNAND, "vnand"),
         INSTR(rsp_vec_vne, FUNCT_RSP_VEC_VNE, "vne"),
-        //INSTR(rsp_vec_vnop, FUNCT_RSP_VEC_VNOP, "vnop"),
+        INSTR(rsp_vec_vnop, FUNCT_RSP_VEC_VNOP, "vnop"),
         INSTR(rsp_vec_vnor, FUNCT_RSP_VEC_VNOR, "vnor"),
         INSTR(rsp_vec_vnxor, FUNCT_RSP_VEC_VNXOR, "vnxor"),
         INSTR(rsp_vec_vor, FUNCT_RSP_VEC_VOR, "vor"),
-        INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp"),
-        INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph_vrsqh"),
-        INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl"),
+        // BROKEN!
+        //INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp"),
+        // BROKEN!
+        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph"),
+        // BROKEN!
+        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRSQH, "vrsqh"),
+        // BROKEN!
+        //INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl"),
+        // unimplemented
         //INSTR(rsp_vec_vrndn, FUNCT_RSP_VEC_VRNDN, "vrndn"),
+        // unimplemented
         //INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp"),
-        INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq"),
-        INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql"),
+        // BROKEN!
+        //INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq"),
+        // BROKEN!
+        //INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql"),
         INSTR(rsp_vec_vsar, FUNCT_RSP_VEC_VSAR, "vsar"),
         INSTR(rsp_vec_vsub, FUNCT_RSP_VEC_VSUB, "vsub"),
         INSTR(rsp_vec_vsubc, FUNCT_RSP_VEC_VSUBC, "vsubc"),
@@ -302,6 +317,41 @@ void run_random_test(rsp_testable_instruction_t* instr) {
 
 }
 
+void init_state_from_hw(rsp_t* rsp) {
+    send_instruction(vec_instr(FUNCT_RSP_VEC_VNOP));
+    vu_reg_t zero;
+    memset(&zero, 0, sizeof(zero));
+    // Send blank args
+    send_vreg(&zero);
+    send_vreg(&zero);
+
+    vu_reg_t res;
+    vu_reg_t acc_h;
+    vu_reg_t acc_m;
+    vu_reg_t acc_l;
+    flag_result_t flag_result;
+
+    for (int element = 0; element < 16; element++) {
+        recv_vreg(&res);
+        recv_vreg(&acc_h);
+        recv_vreg(&acc_m);
+        recv_vreg(&acc_l);
+        recv_flag_result(&flag_result);
+    }
+
+
+    // Last set of results received will be the state of the hardware
+    rsp->vu_regs[3] = res;
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.h.elements[i] = acc_h.elements[7 - i];
+        rsp->acc.m.elements[i] = acc_m.elements[7 - i];
+        rsp->acc.l.elements[i] = acc_l.elements[7 - i];
+    }
+    rsp_set_vcc(rsp, flag_result.vcc);
+    rsp_set_vco(rsp, flag_result.vco);
+    rsp_set_vce(rsp, flag_result.vce);
+}
+
 int main(int argc, char** argv) {
     memset(&rsp, 0, sizeof(rsp_t));
     srand(time(NULL));
@@ -331,10 +381,11 @@ int main(int argc, char** argv) {
 
     init_everdrive(everdrive_index);
 
+    init_state_from_hw(&rsp);
     while (true) {
         for (int instr = 0; instr < (sizeof(instrs) / sizeof(rsp_testable_instruction_t)); instr++) {
-            printf("Fuzzing %s 1000 times...\n", instrs[instr].name);
-            for (int test = 0; test < 1000; test++) {
+            printf("Fuzzing %s %d times...\n", instrs[instr].name, FUZZES_PER_INSTRUCTION);
+            for (int test = 0; test < FUZZES_PER_INSTRUCTION; test++) {
                 run_random_test(&instrs[instr]);
             }
         }

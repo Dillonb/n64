@@ -91,6 +91,8 @@
 #define RSP_DRAM_ADDR_MASK 0xFFFFF8
 #define RSP_MEM_ADDR_MASK 0xFF8
 
+#define FLAGREG_BOOL(x) ((x) ? 0xFFFF : 0)
+
 INLINE void rsp_dma_read(rsp_t* rsp) {
     word length = rsp->io.dma.length + 1;
 
@@ -329,6 +331,37 @@ INLINE byte rsp_get_vce(rsp_t* rsp) {
         value |= (l << i);
     }
     return value;
+}
+
+INLINE void rsp_set_vcc(rsp_t* rsp, half vcc) {
+    for (int i = 0; i < 8; i++) {
+        rsp->vcc.l.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
+        vcc >>= 1;
+    }
+
+    for (int i = 0; i < 8; i++) {
+        rsp->vcc.h.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
+        vcc >>= 1;
+    }
+}
+
+INLINE void rsp_set_vco(rsp_t* rsp, half vco) {
+    for (int i = 0; i < 8; i++) {
+        rsp->vco.l.elements[7 - i] = FLAGREG_BOOL(vco & 1);
+        vco >>= 1;
+    }
+
+    for (int i = 0; i < 8; i++) {
+        rsp->vco.h.elements[7 - i] = FLAGREG_BOOL(vco & 1);
+        vco >>= 1;
+    }
+}
+
+INLINE void rsp_set_vce(rsp_t* rsp, half vce) {
+    for (int i = 0; i < 8; i++) {
+        rsp->vce.elements[7 - i] = FLAGREG_BOOL(vce & 1);
+        vce >>= 1;
+    }
 }
 
 void rsp_step(n64_system_t* system);

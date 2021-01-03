@@ -18,8 +18,6 @@
 #define defvte vu_reg_t vte = get_vte(&rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
 #define elementzero unimplemented(instruction.cp2_vec.e != 0, "element was not zero!")
 
-#define FLAGREG_BOOL(x) ((x) ? 0xFFFF : 0)
-
 INLINE shalf clamp_signed(sdword value) {
     if (value < -32768) return -32768;
     if (value > 32767) return 32767;
