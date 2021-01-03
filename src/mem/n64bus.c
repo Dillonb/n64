@@ -6,19 +6,19 @@
 #include <rdp/rdp.h>
 #include <cpu/dynarec.h>
 
-#include "dma.h"
 #include "addresses.h"
 #include "pif.h"
 #include "mem_util.h"
+#include "backup.h"
 
-word get_vpn(word address, word page_mask_raw) {
-    word tmp = page_mask_raw | 0x1FFF;
-    word vpn = address & ~tmp;
+dword get_vpn(dword address, word page_mask_raw) {
+    dword tmp = page_mask_raw | 0x1FFF;
+    dword vpn = address & ~tmp;
 
     return vpn;
 }
 
-bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
+bool tlb_probe(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = cp0->tlb[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;
@@ -37,12 +37,50 @@ bool tlb_probe(word vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
             if (!(entry.entry_lo0.valid)) {
                 continue;
             }
-            pfn = entry.entry_lo0.entry;
+            pfn = entry.entry_lo0.pfn;
         } else {
             if (!(entry.entry_lo1.valid)) {
                 continue;
             }
-            pfn = entry.entry_lo1.entry;
+            pfn = entry.entry_lo1.pfn;
+        }
+
+        if (paddr != NULL) {
+            *paddr = (pfn << 12) | (vaddr & mask);
+        }
+        if (entry_number != NULL) {
+            *entry_number = i;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0) {
+    for (int i = 0; i < 32; i++) {
+        tlb_entry_64_t entry = cp0->tlb_64[i];
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
+        word page_size = mask + 1;
+        word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
+        word vaddr_vpn = get_vpn(vaddr, entry.page_mask.raw);
+
+        if (entry_vpn != vaddr_vpn) {
+            continue;
+        }
+
+        word odd = vaddr & page_size;
+        word pfn;
+
+        if (!odd) {
+            if (!(entry.entry_lo0.valid)) {
+                continue;
+            }
+            pfn = entry.entry_lo0.pfn;
+        } else {
+            if (!(entry.entry_lo1.valid)) {
+                continue;
+            }
+            pfn = entry.entry_lo1.pfn;
         }
 
         if (paddr != NULL) {
@@ -72,6 +110,7 @@ word read_word_rdramreg(n64_system_t* system, word address) {
         case ADDR_RDRAM_DELAY_REG:
             logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_DELAY_REG");
         case ADDR_RDRAM_MODE_REG:
+            logwarn("Read from RDRAM_MODE_REG, returning 0");
             return 0;
         case ADDR_RDRAM_REF_INTERVAL_REG:
             logfatal("Read from unimplemented RDRAM reg: ADDR_RDRAM_REF_INTERVAL_REG");
@@ -107,14 +146,14 @@ word read_word_pireg(n64_system_t* system, word address) {
         case ADDR_PI_DRAM_ADDR_REG:
             return system->mem.pi_reg[PI_DRAM_ADDR_REG];
         case ADDR_PI_CART_ADDR_REG:
-            logfatal("Reading word from unsupported PI register: PI_CART_ADDR_REG");
+            return system->mem.pi_reg[PI_CART_ADDR_REG];
         case ADDR_PI_RD_LEN_REG:
-            logfatal("Reading word from unsupported PI register: PI_RD_LEN_REG");
+            return system->mem.pi_reg[PI_RD_LEN_REG];
         case ADDR_PI_WR_LEN_REG:
-            logfatal("Reading word from unsupported PI register: PI_WR_LEN_REG");
+            return system->mem.pi_reg[PI_WR_LEN_REG];
         case ADDR_PI_STATUS_REG: {
             word value = 0;
-            value |= is_dma_active();
+            value |= (0 << 0); // Is PI DMA active?
             value |= (0 << 1); // Is PI IO busy?
             value |= (0 << 2); // PI IO error?
             value |= (system->mi.intr.pi << 3); // PI interrupt?
@@ -144,12 +183,16 @@ word read_word_pireg(n64_system_t* system, word address) {
 void write_word_pireg(n64_system_t* system, word address, word value) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
-            system->mem.pi_reg[PI_DRAM_ADDR_REG] = value;
-            //system->mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~7;
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~1;
+            if (system->mem.pi_reg[PI_DRAM_ADDR_REG] != value) {
+                logwarn("Misaligned PI_DRAM_ADDR! 0x%08X force-aligned to 0x%08X.", value, system->mem.pi_reg[PI_DRAM_ADDR_REG]);
+            }
             break;
         case ADDR_PI_CART_ADDR_REG:
-            system->mem.pi_reg[PI_CART_ADDR_REG] = value;
-            //system->mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
+            system->mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
+            if (system->mem.pi_reg[PI_CART_ADDR_REG] != value) {
+                logwarn("Misaligned PI_CART_ADDR! 0x%08X force-aligned to 0x%08X.", value, system->mem.pi_reg[PI_CART_ADDR_REG]);
+            }
             break;
         case ADDR_PI_RD_LEN_REG: {
             word length = (value & 0x00FFFFFF) + 1;
@@ -165,7 +208,19 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             if (dram_addr >= SREGION_RDRAM_UNUSED) {
                 logfatal("DRAM address too high!");
             }
-            run_dma(system, system->mem.pi_reg[PI_DRAM_ADDR_REG], system->mem.pi_reg[PI_CART_ADDR_REG], length, "DRAM to CART");
+
+
+            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", system->cpu.pc, dram_addr, cart_addr, length);
+
+            for (int i = 0; i < length; i++) {
+                byte b = n64_read_byte(system, dram_addr + i);
+                logtrace("DRAM to CART: Copying 0x%02X from 0x%08X to 0x%08X", b, dram_addr + i, cart_addr + i);
+                n64_write_byte(system, cart_addr + i, b);
+            }
+
+            logdebug("DMA completed.");
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] += length;
+            system->mem.pi_reg[PI_CART_ADDR_REG] += length;
             interrupt_raise(INTERRUPT_PI);
             break;
         }
@@ -180,7 +235,23 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             if (cart_addr < SREGION_CART_2_1) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", system->mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
-            run_dma(system, cart_addr, dram_addr, length, "CART to DRAM");
+
+            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", system->cpu.pc, cart_addr, dram_addr, length);
+
+            for (int i = 0; i < length; i++) {
+                byte b = n64_read_byte(system, cart_addr + i);
+                logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
+                n64_write_byte(system, dram_addr + i, b);
+            }
+
+            logdebug("DMA completed.");
+            static bool first_time = true;
+            if (first_time) {
+                n64_write_word(system, 0x318, N64_RDRAM_SIZE);
+                first_time = false;
+            }
+            system->mem.pi_reg[PI_DRAM_ADDR_REG] += length;
+            system->mem.pi_reg[PI_CART_ADDR_REG] += length;
             interrupt_raise(INTERRUPT_PI);
             break;
         }
@@ -228,7 +299,9 @@ word read_word_rireg(n64_system_t* system, word address) {
         logfatal("In RI read handler with out of bounds address 0x%08X", address);
     }
 
-    return 0;
+    word value = system->mem.ri_reg[(address - SREGION_RI_REGS) / 4];
+    logwarn("Reading RI reg, returning 0x%08X", value);
+    return value;
 }
 
 void write_word_rireg(n64_system_t* system, word address, word value) {
@@ -240,6 +313,7 @@ void write_word_rireg(n64_system_t* system, word address, word value) {
         logfatal("In RI write handler with out of bounds address 0x%08X", address);
     }
 
+    logwarn("Writing RI reg with value 0x%08X", value);
     system->mem.ri_reg[(address - SREGION_RI_REGS) / 4] = value;
 }
 
@@ -332,7 +406,7 @@ word read_word_mireg(n64_system_t* system, word address) {
         case ADDR_MI_MODE_REG:
             logfatal("Read from unimplemented MI register: ADDR_MI_MODE_REG");
         case ADDR_MI_VERSION_REG:
-            return 0x01010101;
+            return 0x02020102;
         case ADDR_MI_INTR_REG:
             return system->mi.intr.raw;
         case ADDR_MI_INTR_MASK_REG:
@@ -374,10 +448,10 @@ void write_word_sireg(n64_system_t* system, word address, word value) {
             system->mem.si_reg.dram_address = value;
             break;
         case ADDR_SI_PIF_ADDR_RD64B_REG:
-            pif_to_dram(system, value, system->mem.si_reg.dram_address);
+            pif_to_dram(system, value, system->mem.si_reg.dram_address & 0x1FFFFFFF);
             break;
         case ADDR_SI_PIF_ADDR_WR64B_REG:
-            dram_to_pif(system, system->mem.si_reg.dram_address, value);
+            dram_to_pif(system, system->mem.si_reg.dram_address & 0x1FFFFFFF, value);
             break;
         case ADDR_SI_STATUS_REG:
             interrupt_lower(system, INTERRUPT_SI);
@@ -617,14 +691,17 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_UNUSED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
+            sram_write_word(system, address - SREGION_CART_2_1, value);
+            return;
         case REGION_CART_1_1:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+            return;
         case REGION_CART_2_2:
-            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+            sram_write_word(system, address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            return;
         case REGION_PIF_BOOT:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
@@ -680,29 +757,31 @@ INLINE word _n64_read_word(word address) {
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1", address);
-            return 0;
+            return sram_read_word(global_system, address - SREGION_CART_2_1);
         case REGION_CART_1_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
             return 0;
         case REGION_CART_2_2:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_2", address);
-            return 0;
+            return sram_read_word(global_system, address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
-#ifdef N64_DEBUG_MODE
             if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+                return 0;
+            } else {
+                return word_from_byte_array(global_system->mem.rom.rom, index);
             }
-#endif
-            return word_from_byte_array(global_system->mem.rom.rom, index);
         }
         case REGION_PIF_BOOT: {
-            word index = address - SREGION_PIF_BOOT;
-            if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+            if (global_system->mem.rom.pif_rom == NULL) {
+                logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
             } else {
-                return word_from_byte_array(global_system->mem.rom.pif_rom, index);
+                word index = address - SREGION_PIF_BOOT;
+                if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
+                    logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+                } else {
+                    return word_from_byte_array(global_system->mem.rom.pif_rom, index);
+                }
             }
         }
         case REGION_PIF_RAM: {
@@ -717,7 +796,8 @@ INLINE word _n64_read_word(word address) {
         case REGION_RESERVED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RESERVED", address);
         case REGION_CART_1_3:
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_CART_1_3", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_3", address);
+            return 0;
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
         default:
@@ -914,11 +994,12 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
         case REGION_UNUSED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
+            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
+            return;
         case REGION_CART_1_1:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
         case REGION_CART_2_2:
-            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+            sram_write_byte(system, address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
@@ -976,10 +1057,10 @@ byte n64_read_byte(n64_system_t* system, word address) {
         case REGION_CART_2_1:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
         case REGION_CART_1_1:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1", address);
-        case REGION_CART_2_2:
-            logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_2", address);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
             return 0;
+        case REGION_CART_2_2:
+            return sram_read_byte(system, address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             word index = address - SREGION_CART_1_2;
             if (index > system->mem.rom.size) {
@@ -987,9 +1068,18 @@ byte n64_read_byte(n64_system_t* system, word address) {
             }
             return system->mem.rom.rom[index];
         }
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_2", address);
-        case REGION_PIF_BOOT:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
+        case REGION_PIF_BOOT: {
+            if (global_system->mem.rom.pif_rom == NULL) {
+                logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
+            } else {
+                word index = address - SREGION_PIF_BOOT;
+                if (index > global_system->mem.rom.size) {
+                    logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+                } else {
+                    return system->mem.rom.pif_rom[index];
+                }
+            }
+        }
         case REGION_PIF_RAM:
             logfatal("Reading from PIF RAM\n");
             return system->mem.pif_ram[address - SREGION_PIF_RAM];

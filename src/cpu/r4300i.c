@@ -44,10 +44,10 @@ const char* register_names[] = {
 const char* cp0_register_names[] = {
         "Index", "Random", "EntryLo0", "EntryLo1", "Context", "PageMask", "Wired", "7", "BadVAddr", "Count", "EntryHi",
         "Compare", "Status", "Cause", "EPC", "PRId", "Config", "LLAddr", "WatchLo", "WatchHi", "XContext", "21", "22",
-        "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi"
+        "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi", "error_epc", "r31"
 };
 
-void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor_error) {
+void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
@@ -66,13 +66,15 @@ void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor
     }
 
     cpu->cp0.cause.exception_code = code;
-    cpu->cp0.cause.coprocessor_error = coprocessor_error;
+    if (coprocessor_error > 0) {
+        cpu->cp0.cause.coprocessor_error = coprocessor_error;
+    }
 
     if (cpu->cp0.status.bev) {
         switch (code) {
             case EXCEPTION_COPROCESSOR_UNUSABLE:
                 logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.");
-                set_pc_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(cpu, 0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
@@ -80,25 +82,30 @@ void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor
     } else {
         switch (code) {
             case EXCEPTION_INTERRUPT:
-                set_pc_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(cpu, 0x80000180);
                 break;
             case EXCEPTION_COPROCESSOR_UNUSABLE:
-                set_pc_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(cpu, 0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
         }
     }
+    cp0_status_updated(cpu);
     cpu->exception = true;
 }
 
-INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MF:
                 return mips_mfc0;
             case COP_MT: // Last 11 bits are 0
                 return mips_mtc0;
+            case COP_DMT:
+                return mips_dmtc0;
+            case COP_DMF:
+                return mips_dmfc0;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -113,7 +120,6 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) 
             case COP_FUNCT_TLBP:
                 return mips_tlbp;
             case COP_FUNCT_TLBR_SUB:
-                logfatal("tlbr");
                 return mips_tlbr;
             case COP_FUNCT_ERET:
                 return mips_eret;
@@ -127,7 +133,7 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(word pc, mips_instruction_t instr) 
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
@@ -299,7 +305,14 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) 
         case COP_FUNCT_C_F:
             logfatal("COP_FUNCT_C_F unimplemented");
         case COP_FUNCT_C_UN:
-            logfatal("COP_FUNCT_C_UN unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_un_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_un_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -318,7 +331,14 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) 
         case COP_FUNCT_C_OLE:
             logfatal("COP_FUNCT_C_OLE unimplemented");
         case COP_FUNCT_C_ULE:
-            logfatal("COP_FUNCT_C_ULE unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ule_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ule_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_SF:
             logfatal("COP_FUNCT_C_SF unimplemented");
         case COP_FUNCT_C_NGLE:
@@ -359,7 +379,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(word pc, mips_instruction_t instr) 
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
 
-INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return mips_spc_sll;
         case FUNCT_SRL:    return mips_spc_srl;
@@ -396,6 +416,8 @@ INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t ins
         case FUNCT_DADD:   return mips_spc_dadd;
         case FUNCT_DADDU:  return mips_spc_daddu;
         case FUNCT_DSUBU:  return mips_spc_dsubu;
+        case FUNCT_TEQ:    return mips_spc_teq;
+        case FUNCT_TNE:    return mips_spc_tne;
         case FUNCT_DSLL:   return mips_spc_dsll;
         case FUNCT_DSRL:   return mips_spc_dsrl;
         case FUNCT_DSRA:   return mips_spc_dsra;
@@ -411,7 +433,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(word pc, mips_instruction_t ins
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_regimm_decode(word pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_regimm_decode(dword pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:   return mips_ri_bltz;
         case RT_BLTZL:  return mips_ri_bltzl;
@@ -428,12 +450,12 @@ INLINE mipsinstr_handler_t r4300i_regimm_decode(word pc, mips_instruction_t inst
     }
 }
 
-mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr) {
+mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
-        logdebug("[0x%08X]=0x%08X %s", pc, instr.raw, buf);
+        logdebug("[0x%016lX]=0x%08X %s", pc, instr.raw, buf);
     }
 #endif
     if (unlikely(instr.raw == 0)) {
@@ -489,6 +511,10 @@ mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr)
         case OPC_LDR:    return mips_ldr;
         case OPC_SDL:    return mips_sdl;
         case OPC_SDR:    return mips_sdr;
+        case OPC_LL:     return mips_ll;
+        case OPC_LLD:    return mips_lld;
+        case OPC_SC:     return mips_sc;
+        case OPC_SCD:    return mips_scd;
         default:
 #ifdef LOG_ENABLED
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
@@ -505,6 +531,7 @@ mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr)
 
 void r4300i_step(r4300i_t* cpu) {
     cpu->cp0.count += CYCLES_PER_INSTR;
+    cpu->cp0.count &= 0x1FFFFFFFF;
     if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
         cpu->cp0.cause.ip7 = true;
         loginfo("Compare interrupt!");
@@ -519,14 +546,13 @@ void r4300i_step(r4300i_t* cpu) {
     }
      */
 
-    word pc = cpu->pc;
+    dword pc = cpu->pc;
     mips_instruction_t instruction;
     instruction.raw = cpu->read_word(pc);
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            cpu->cp0.cause.interrupt_pending = cpu->interrupts;
-            r4300i_handle_exception(cpu, pc, 0, cpu->interrupts);
+            r4300i_handle_exception(cpu, pc, 0, -1);
             return;
         }
     }

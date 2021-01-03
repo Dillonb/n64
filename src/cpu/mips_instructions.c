@@ -28,13 +28,17 @@ void check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
 }
 
 INLINE void link(r4300i_t* cpu) {
-    sword pc = cpu->pc + 4;
-    set_register(cpu, R4300I_REG_LR, (sdword)pc); // Skips the instruction in the delay slot on return
+    dword pc = cpu->pc + 4;
+    set_register(cpu, R4300I_REG_LR, pc); // Skips the instruction in the delay slot on return
 }
 
-INLINE void branch_abs(r4300i_t* cpu, word address) {
+INLINE void branch_abs(r4300i_t* cpu, dword address) {
     cpu->next_pc = address;
     cpu->branch = true;
+}
+
+INLINE void branch_abs_word(r4300i_t* cpu, dword address) {
+    branch_abs(cpu, (sdword)((sword)address));
 }
 
 INLINE void branch_offset(r4300i_t* cpu, shalf offset) {
@@ -51,7 +55,7 @@ INLINE void conditional_branch_likely(r4300i_t* cpu, word offset, bool condition
         branch_offset(cpu, offset);
     } else {
         // Skip instruction in delay slot
-        set_pc_r4300i(cpu, cpu->pc + 4);
+        set_pc_dword_r4300i(cpu, cpu->pc + 4);
     }
 }
 
@@ -59,6 +63,51 @@ INLINE void conditional_branch(r4300i_t* cpu, word offset, bool condition) {
     if (condition) {
         branch_offset(cpu, offset);
     }
+}
+
+// https://stackoverflow.com/questions/25095741/how-can-i-multiply-64-bit-operands-and-get-128-bit-result-portably/58381061#58381061
+/* Prevents a partial vectorization from GCC. */
+#if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
+__attribute__((__target__("no-sse")))
+#endif
+INLINE dword mult_64_to_128(dword lhs, dword rhs, dword *high) {
+        /*
+         * GCC and Clang usually provide __uint128_t on 64-bit targets,
+         * although Clang also defines it on WASM despite having to use
+         * builtins for most purposes - including multiplication.
+         */
+#if defined(__SIZEOF_INT128__) && !defined(__wasm__)
+        __uint128_t product = (__uint128_t)lhs * (__uint128_t)rhs;
+        *high = (dword)(product >> 64);
+        return (dword)(product & 0xFFFFFFFFFFFFFFFF);
+
+        /* Use the _umul128 intrinsic on MSVC x64 to hint for mulq. */
+#elif defined(_MSC_VER) && defined(_M_IX64)
+        #   pragma intrinsic(_umul128)
+    /* This intentionally has the same signature. */
+    return _umul128(lhs, rhs, high);
+
+#else
+    /*
+     * Fast yet simple grade school multiply that avoids
+     * 64-bit carries with the properties of multiplying by 11
+     * and takes advantage of UMAAL on ARMv6 to only need 4
+     * calculations.
+     */
+
+    /* First calculate all of the cross products. */
+    uint64_t lo_lo = (lhs & 0xFFFFFFFF) * (rhs & 0xFFFFFFFF);
+    uint64_t hi_lo = (lhs >> 32)        * (rhs & 0xFFFFFFFF);
+    uint64_t lo_hi = (lhs & 0xFFFFFFFF) * (rhs >> 32);
+    uint64_t hi_hi = (lhs >> 32)        * (rhs >> 32);
+
+    /* Now add the products together. These will never overflow. */
+    uint64_t cross = (lo_lo >> 32) + (hi_lo & 0xFFFFFFFF) + lo_hi;
+    uint64_t upper = (hi_lo >> 32) + (cross >> 32)        + hi_hi;
+
+    *high = upper;
+    return (cross << 32) | (lo_lo & 0xFFFFFFFF);
+#endif /* portable */
 }
 
 MIPS_INSTR(mips_nop) {}
@@ -143,7 +192,7 @@ MIPS_INSTR(mips_j) {
     target <<= 2;
     target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
 
-    branch_abs(cpu, target);
+    branch_abs_word(cpu, target);
 }
 
 MIPS_INSTR(mips_jal) {
@@ -153,7 +202,7 @@ MIPS_INSTR(mips_jal) {
     target <<= 2;
     target |= ((cpu->pc - 4) & 0xF0000000); // PC is 4 ahead
 
-    branch_abs(cpu, target);
+    branch_abs_word(cpu, target);
 }
 
 MIPS_INSTR(mips_slti) {
@@ -178,14 +227,23 @@ MIPS_INSTR(mips_sltiu) {
 }
 
 MIPS_INSTR(mips_mfc0) {
-    sword value = get_cp0_register(cpu, instruction.r.rd);
+    sword value = get_cp0_register_word(cpu, instruction.r.rd);
     set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
-
 MIPS_INSTR(mips_mtc0) {
     word value = get_register(cpu, instruction.r.rt);
-    set_cp0_register(cpu, instruction.r.rd, value);
+    set_cp0_register_word(cpu, instruction.r.rd, value);
+}
+
+MIPS_INSTR(mips_dmfc0) {
+    dword value = get_cp0_register_dword(cpu, instruction.r.rd);
+    set_register(cpu, instruction.r.rt, value);
+}
+
+MIPS_INSTR(mips_dmtc0) {
+    dword value = get_register(cpu, instruction.r.rt);
+    set_cp0_register_dword(cpu, instruction.r.rd, value);
 }
 
 #define checkcp1 do { if (!cpu->cp0.status.cu1) { r4300i_handle_exception(cpu, cpu->prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
@@ -216,12 +274,14 @@ MIPS_INSTR(mips_dmtc1) {
 
 MIPS_INSTR(mips_eret) {
     if (cpu->cp0.status.erl) {
-        set_pc_r4300i(cpu, cpu->cp0.error_epc);
+        set_pc_dword_r4300i(cpu, cpu->cp0.error_epc);
         cpu->cp0.status.erl = false;
     } else {
-        set_pc_r4300i(cpu, cpu->cp0.EPC);
+        set_pc_dword_r4300i(cpu, cpu->cp0.EPC);
         cpu->cp0.status.exl = false;
     }
+    cp0_status_updated(cpu);
+    cpu->llbit = false;
 }
 
 MIPS_INSTR(mips_cfc1) {
@@ -230,6 +290,7 @@ MIPS_INSTR(mips_cfc1) {
     sword value;
     switch (fs) {
         case 0:
+            logwarn("Reading FCR0 - probably returning an invalid value!");
             value = cpu->fcr0.raw;
             break;
         case 31:
@@ -242,18 +303,25 @@ MIPS_INSTR(mips_cfc1) {
     set_register(cpu, instruction.r.rt, (sdword)value);
 }
 
+INLINE void check_fpu_exception(r4300i_t* cpu) {
+    if (cpu->fcr31.cause & (0b100000 | cpu->fcr31.enable)) {
+        logfatal("FPU exception");
+    }
+}
+
 MIPS_INSTR(mips_ctc1) {
     checkcp1;
     byte fs = instruction.r.rd;
     word value = get_register(cpu, instruction.r.rt);
     switch (fs) {
         case 0:
-            cpu->fcr0.raw = value;
-            break;
-        case 31:
+            logfatal("CTC1 FCR0: FCR0 is read only!");
+        case 31: {
+            value &= 0x183ffff; // mask out bits held 0
             cpu->fcr31.raw = value;
-            loginfo("TODO: possible exception here. See manual for CTC1");
+            check_fpu_exception(cpu);
             break;
+        }
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
     }
@@ -284,7 +352,6 @@ MIPS_INSTR(mips_cp_mul_d) {
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
     double result = fs * ft;
     set_fpu_register_double(cpu, instruction.fr.fd, result);
-    loginfo("mul.d: 0x%08X with fmt %d: %f * %f = %f", instruction.raw, instruction.fr.fmt, fs, ft, result);
 }
 
 MIPS_INSTR(mips_cp_mul_s) {
@@ -293,7 +360,6 @@ MIPS_INSTR(mips_cp_mul_s) {
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
     float result = fs * ft;
     set_fpu_register_float(cpu, instruction.fr.fd, result);
-    loginfo("mul.s: 0x%08X with fmt %d: %f * %f = %f", instruction.raw, instruction.fr.fmt, fs, ft, result);
 }
 
 MIPS_INSTR(mips_cp_div_d) {
@@ -494,6 +560,10 @@ MIPS_INSTR(mips_cp_c_eq_s) {
     checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+
+    unimplemented(isnanf(fs), "fs is nan");
+    unimplemented(isnanf(ft), "ft is nan");
+
     cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_s) {
@@ -530,11 +600,9 @@ MIPS_INSTR(mips_cp_c_ole_s) {
 }
 MIPS_INSTR(mips_cp_c_ule_s) {
     checkcp1;
-    /*
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_ule_s");
+    cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_sf_s) {
     checkcp1;
@@ -572,6 +640,10 @@ MIPS_INSTR(mips_cp_c_lt_s) {
     checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+
+    unimplemented(isnanf(fs), "fs is nan");
+    unimplemented(isnanf(ft), "ft is nan");
+
     cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_s) {
@@ -586,6 +658,10 @@ MIPS_INSTR(mips_cp_c_le_s) {
     checkcp1;
     float fs = get_fpu_register_float(cpu, instruction.fr.fs);
     float ft = get_fpu_register_float(cpu, instruction.fr.ft);
+
+    unimplemented(isnanf(fs), "fs is nan");
+    unimplemented(isnanf(ft), "ft is nan");
+
     cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_s) {
@@ -617,6 +693,10 @@ MIPS_INSTR(mips_cp_c_eq_d) {
     checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+
+    unimplemented(isnan(fs), "fs is nan");
+    unimplemented(isnan(ft), "ft is nan");
+
     cpu->fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_d) {
@@ -653,11 +733,10 @@ MIPS_INSTR(mips_cp_c_ole_d) {
 }
 MIPS_INSTR(mips_cp_c_ule_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_ule_d");
+
+    cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_sf_d) {
     checkcp1;
@@ -695,6 +774,10 @@ MIPS_INSTR(mips_cp_c_lt_d) {
     checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+
+    unimplemented(isnan(fs), "fs is nan");
+    unimplemented(isnan(ft), "ft is nan");
+
     cpu->fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_d) {
@@ -709,6 +792,10 @@ MIPS_INSTR(mips_cp_c_le_d) {
     checkcp1;
     double fs = get_fpu_register_double(cpu, instruction.fr.fs);
     double ft = get_fpu_register_double(cpu, instruction.fr.ft);
+
+    unimplemented(isnan(fs), "fs is nan");
+    unimplemented(isnan(ft), "ft is nan");
+
     cpu->fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_d) {
@@ -746,24 +833,28 @@ MIPS_INSTR(mips_cp_neg_d) {
 
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
-    dword result = cpu->read_dword(address);
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    dword result  = cpu->read_dword(address);
     if ((address & 0b111) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
     set_register(cpu, instruction.i.rt, result);
 }
 
 MIPS_INSTR(mips_lui) {
-    sword immediate = instruction.i.immediate << 16;
-    set_register(cpu, instruction.i.rt, (sdword)immediate);
+    // Done this way to avoid the undefined behavior of left shifting a signed integer
+    // Should compile to a left shift by 16.
+    sdword value = (shalf)instruction.i.immediate;
+    value *= 65536;
+
+    set_register(cpu, instruction.i.rt, value);
 }
 
 MIPS_INSTR(mips_lbu) {
     shalf offset = instruction.i.immediate;
     logtrace("LBU offset: %d", offset);
-    word address = get_register(cpu, instruction.i.rs) + offset;
-    byte value   = cpu->read_byte(address);
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    byte value    = cpu->read_byte(address);
 
     set_register(cpu, instruction.i.rt, value); // zero extend
 }
@@ -771,10 +862,10 @@ MIPS_INSTR(mips_lbu) {
 MIPS_INSTR(mips_lhu) {
     shalf offset = instruction.i.immediate;
     logtrace("LHU offset: %d", offset);
-    word address = get_register(cpu, instruction.i.rs) + offset;
-    half value   = cpu->read_half(address);
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    half value    = cpu->read_half(address);
     if ((address & 0b1) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     set_register(cpu, instruction.i.rt, value); // zero extend
@@ -782,20 +873,20 @@ MIPS_INSTR(mips_lhu) {
 
 MIPS_INSTR(mips_lh) {
     shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     shalf value   = cpu->read_half(address);
     if ((address & 0b1) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_lw) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     sword value = cpu->read_word(address);
@@ -803,10 +894,10 @@ MIPS_INSTR(mips_lw) {
 }
 
 MIPS_INSTR(mips_lwu) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%08X", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
     word value = cpu->read_word(address);
@@ -814,31 +905,31 @@ MIPS_INSTR(mips_lwu) {
 }
 
 MIPS_INSTR(mips_sb) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs);
     address += offset;
     byte value = get_register(cpu, instruction.i.rt) & 0xFF;
     cpu->write_byte(address, value);
 }
 
 MIPS_INSTR(mips_sh) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs);
     address += offset;
     half value = get_register(cpu, instruction.i.rt);
     cpu->write_half(address, value);
 }
 
 MIPS_INSTR(mips_sw) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs);
     address += offset;
     cpu->write_word(address, get_register(cpu, instruction.i.rt));
 }
 
 MIPS_INSTR(mips_sd) {
-    shalf offset = instruction.i.immediate;
-    word address = get_register(cpu, instruction.i.rs) + offset;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     dword value = get_register(cpu, instruction.i.rt);
     cpu->write_dword(address, value);
 }
@@ -855,21 +946,21 @@ MIPS_INSTR(mips_daddiu) {
     shalf  addend1 = instruction.i.immediate;
     sdword addend2 = get_register(cpu, instruction.i.rs);
     sdword result = addend1 + addend2;
-    check_sdword_add_overflow(addend1, addend2, result);
     set_register(cpu, instruction.i.rt, result);
 }
 
 MIPS_INSTR(mips_lb) {
-    shalf offset    = instruction.i.immediate;
-    word address    = get_register(cpu, instruction.i.rs) + offset;
-    sbyte value     = cpu->read_byte(address);
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    sbyte value   = cpu->read_byte(address);
 
     set_register(cpu, instruction.i.rt, (sdword)value);
 }
 
 MIPS_INSTR(mips_ldc1) {
-    shalf offset    = instruction.i.immediate;
-    word address    = get_register(cpu, instruction.i.rs) + offset;
+    checkcp1;
+    shalf offset  = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
     if (address & 0b111) {
         logfatal("Address error exception: misaligned dword read!");
     }
@@ -879,32 +970,35 @@ MIPS_INSTR(mips_ldc1) {
 }
 
 MIPS_INSTR(mips_sdc1) {
-    shalf offset    = instruction.fi.offset;
-    word address    = get_register(cpu, instruction.fi.base) + offset;
-    dword value     = get_fpu_register_dword(cpu, instruction.fi.ft);
+    checkcp1;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
+    dword value   = get_fpu_register_dword(cpu, instruction.fi.ft);
 
     cpu->write_dword(address, value);
 }
 
 MIPS_INSTR(mips_lwc1) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
-    word value   = cpu->read_word(address);
+    checkcp1;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
+    word value    = cpu->read_word(address);
 
     set_fpu_register_word(cpu, instruction.fi.ft, value);
 }
 
 MIPS_INSTR(mips_swc1) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
-    word value   = get_fpu_register_word(cpu, instruction.fi.ft);
+    checkcp1;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
+    word value    = get_fpu_register_word(cpu, instruction.fi.ft);
 
     cpu->write_word(address, value);
 }
 
 MIPS_INSTR(mips_lwl) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF << shift;
@@ -914,8 +1008,8 @@ MIPS_INSTR(mips_lwl) {
 }
 
 MIPS_INSTR(mips_lwr) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 3) & 3);
 
@@ -926,8 +1020,8 @@ MIPS_INSTR(mips_lwr) {
 }
 
 MIPS_INSTR(mips_swl) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF >> shift;
@@ -937,8 +1031,8 @@ MIPS_INSTR(mips_swl) {
 }
 
 MIPS_INSTR(mips_swr) {
-    shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    shalf offset  = instruction.fi.offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     word shift = 8 * ((address ^ 3) & 3);
     word mask = 0xFFFFFFFF << shift;
@@ -949,7 +1043,7 @@ MIPS_INSTR(mips_swr) {
 
 MIPS_INSTR(mips_ldl) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
     int shift = 8 * ((address ^ 0) & 7);
     dword mask = (dword)0xFFFFFFFFFFFFFFFF << shift;
     dword data = cpu->read_dword(address & ~7);
@@ -960,7 +1054,7 @@ MIPS_INSTR(mips_ldl) {
 
 MIPS_INSTR(mips_ldr) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
     int shift = 8 * ((address ^ 7) & 7);
     dword mask = (dword)0xFFFFFFFFFFFFFFFF >> shift;
     dword data = cpu->read_dword(address & ~7);
@@ -971,7 +1065,7 @@ MIPS_INSTR(mips_ldr) {
 
 MIPS_INSTR(mips_sdl) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     int shift = 8 * ((address ^ 0) & 7);
     dword mask = 0xFFFFFFFFFFFFFFFF;
@@ -983,7 +1077,7 @@ MIPS_INSTR(mips_sdl) {
 
 MIPS_INSTR(mips_sdr) {
     shalf offset = instruction.fi.offset;
-    word address = get_register(cpu, instruction.fi.base) + offset;
+    dword address = get_register(cpu, instruction.fi.base) + offset;
 
     int shift = 8 * ((address ^ 7) & 7);
     dword mask = 0xFFFFFFFFFFFFFFFF ;
@@ -991,6 +1085,103 @@ MIPS_INSTR(mips_sdr) {
     dword data = cpu->read_dword(address & ~7);
     dword oldreg = get_register(cpu, instruction.i.rt);
     cpu->write_dword(address & ~7, (data & ~mask) | (oldreg << shift));
+}
+
+MIPS_INSTR(mips_ll) {
+    // Identical to lw
+    shalf offset = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    sword result  = cpu->read_word(address);
+
+    if ((address & 0b11) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+    }
+
+    set_register(cpu, instruction.i.rt, (sdword)result);
+
+    // Unique to ll
+    cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
+    cpu->llbit = true;
+}
+
+MIPS_INSTR(mips_lld) {
+    // Instruction is undefined outside of 64 bit mode and 32 bit kernel mode.
+    // Throw an exception if we're not in 64 bit mode AND not in kernel mode.
+    if (!cpu->cp0.is_64bit_addressing && cpu->cp0.kernel_mode) {
+        logfatal("LLD is undefined outside of 64 bit mode and 32 bit kernel mode. Throw a reserved instruction exception!");
+    }
+
+    // Identical to ld
+    shalf offset = instruction.i.immediate;
+    dword address = get_register(cpu, instruction.i.rs) + offset;
+    dword result  = cpu->read_dword(address);
+
+    if ((address & 0b111) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+    }
+    set_register(cpu, instruction.i.rt, result);
+
+    // Unique to lld
+    cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
+    cpu->llbit = true;
+}
+
+MIPS_INSTR(mips_sc) {
+    // Identical to sw
+    shalf offset          = instruction.i.immediate;
+    dword address         = get_register(cpu, instruction.i.rs) + offset;
+
+    // Exception takes precedence over the instruction failing
+    if ((address & 0b11) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016lX", address);
+    }
+
+    if (cpu->llbit) {
+        word physical_address = cpu->resolve_virtual_address(address, &cpu->cp0);
+
+        if (physical_address != cpu->cp0.lladdr) {
+            logfatal("Undefined: SC physical address is NOT EQUAL to last lladdr!\n");
+        }
+
+        word value = get_register(cpu, instruction.i.rt);
+        cpu->write_word(address, value);
+        set_register(cpu, instruction.i.rt, 1); // Success!
+
+    } else {
+        set_register(cpu, instruction.i.rt, 0); // Failure.
+    }
+}
+
+MIPS_INSTR(mips_scd) {
+    // Instruction is undefined outside of 64 bit mode and 32 bit kernel mode.
+    // Throw an exception if we're not in 64 bit mode AND not in kernel mode.
+    if (!cpu->cp0.is_64bit_addressing && cpu->cp0.kernel_mode) {
+        logfatal("SCD is undefined outside of 64 bit mode and 32 bit kernel mode. Throw a reserved instruction exception!");
+    }
+
+    // Identical to sd
+    shalf offset          = instruction.i.immediate;
+    dword address         = get_register(cpu, instruction.i.rs) + offset;
+
+    // Exception takes precedence over the instruction failing
+    if ((address & 0b111) > 0) {
+        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016lX", address);
+    }
+
+    if (cpu->llbit) {
+        word physical_address = cpu->resolve_virtual_address(address, &cpu->cp0);
+
+        if (physical_address != cpu->cp0.lladdr) {
+            logfatal("Undefined: SCD physical address is NOT EQUAL to last lladdr!\n");
+        }
+
+        dword value = get_register(cpu, instruction.i.rt);
+        cpu->write_dword(address, value);
+        set_register(cpu, instruction.i.rt, 1); // Success!
+
+    } else {
+        set_register(cpu, instruction.i.rt, 0); // Failure.
+    }
 }
 
 MIPS_INSTR(mips_spc_sll) {
@@ -1099,9 +1290,13 @@ MIPS_INSTR(mips_spc_div) {
     sdword divisor  = get_register(cpu, instruction.r.rt);
 
     if (divisor == 0) {
-        logwarn("Undefined behavior! No exception thrown, but a divide by zero happened.");
-        cpu->mult_lo = 0;
-        cpu->mult_hi = 0;
+        logwarn("Divide by zero");
+        cpu->mult_hi = dividend;
+        if (dividend >= 0) {
+            cpu->mult_lo = (sdword)-1;
+        } else {
+            cpu->mult_lo = (sdword)1;
+        }
     } else {
         sdword quotient  = dividend / divisor;
         sdword remainder = dividend % divisor;
@@ -1126,26 +1321,16 @@ MIPS_INSTR(mips_spc_divu) {
 }
 
 MIPS_INSTR(mips_spc_dmult) {
-    __int128_t multiplicand_1 = get_register(cpu, instruction.r.rs) & 0xFFFFFFFFFFFFFFFF;
-    __int128_t multiplicand_2 = get_register(cpu, instruction.r.rt) & 0xFFFFFFFFFFFFFFFF;
-
-    __int128_t result = multiplicand_1 * multiplicand_2;
-
-    sdword result_lower = result         & 0xFFFFFFFFFFFFFFFF;
-    sdword result_upper = (result >> 64) & 0xFFFFFFFFFFFFFFFF;
+    dword result_upper;
+    dword result_lower = mult_64_to_128(get_register(cpu, instruction.r.rs), get_register(cpu, instruction.r.rt), &result_upper);
 
     cpu->mult_lo = result_lower;
     cpu->mult_hi = result_upper;
 }
 
 MIPS_INSTR(mips_spc_dmultu) {
-    __uint128_t multiplicand_1 = get_register(cpu, instruction.r.rs) & 0xFFFFFFFFFFFFFFFF;
-    __uint128_t multiplicand_2 = get_register(cpu, instruction.r.rt) & 0xFFFFFFFFFFFFFFFF;
-
-    __uint128_t result = multiplicand_1 * multiplicand_2;
-
-    sdword result_lower = result         & 0xFFFFFFFFFFFFFFFF;
-    sdword result_upper = (result >> 64) & 0xFFFFFFFFFFFFFFFF;
+    dword result_upper;
+    dword result_lower = mult_64_to_128(get_register(cpu, instruction.r.rs), get_register(cpu, instruction.r.rt), &result_upper);
 
     cpu->mult_lo = result_lower;
     cpu->mult_hi = result_upper;
@@ -1278,6 +1463,26 @@ MIPS_INSTR(mips_spc_dsubu) {
     sdword subtrahend = get_register(cpu, instruction.r.rt);
     sdword difference = minuend - subtrahend;
     set_register(cpu, instruction.r.rd, difference);
+}
+
+MIPS_INSTR(mips_spc_teq) {
+    dword rs = get_register(cpu, instruction.r.rs);
+    dword rt = get_register(cpu, instruction.r.rt);
+
+    if (rs == rt) {
+        // TODO mark this instruction as TRAP in the dynarec, and add special logic to the emitted code to handle it
+        logfatal("teq trapped!");
+    }
+}
+
+MIPS_INSTR(mips_spc_tne) {
+    dword rs = get_register(cpu, instruction.r.rs);
+    dword rt = get_register(cpu, instruction.r.rt);
+
+    if (rs != rt) {
+        // TODO mark this instruction as TRAP in the dynarec, and add special logic to the emitted code to handle it
+        logfatal("tne trapped!");
+    }
 }
 
 MIPS_INSTR(mips_spc_dsll) {

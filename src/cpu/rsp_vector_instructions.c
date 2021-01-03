@@ -18,8 +18,6 @@
 #define defvte vu_reg_t vte = get_vte(&rsp->vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
 #define elementzero unimplemented(instruction.cp2_vec.e != 0, "element was not zero!")
 
-#define FLAGREG_BOOL(x) ((x) ? 0xFFFF : 0)
-
 INLINE shalf clamp_signed(sdword value) {
     if (value < -32768) return -32768;
     if (value > 32767) return 32767;
@@ -1195,7 +1193,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
     logdebug("rsp_vec_vnand");
-    elementzero;
     defvs;
     defvd;
     defvte;
@@ -1223,15 +1220,10 @@ RSP_VECTOR_INSTR(rsp_vec_vne) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vnop) {
-    logdebug("rsp_vec_vnop");
-    logfatal("Unimplemented: rsp_vec_vnop");
-    elementzero;
-}
+RSP_VECTOR_INSTR(rsp_vec_vnop) {}
 
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
     logdebug("rsp_vec_vnor");
-    elementzero;
     defvs;
     defvd;
     defvte;
@@ -1331,6 +1323,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     sword input;
     defvd;
     defvt;
+    defvte;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     input = vt->signed_elements[7 - e];
@@ -1339,7 +1332,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     rsp->divout = (result >> 16) & 0xFFFF;
 
 #ifdef N64_USE_SIMD
-    rsp->acc.l.single = vt->single;
+    rsp->acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
         rsp->acc.l.elements[i] = vt->elements[i];

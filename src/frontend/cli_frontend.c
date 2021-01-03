@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <cflags.h>
 #include <log.h>
 #include <system/n64system.h>
@@ -6,6 +7,7 @@
 #include <rdp/rdp.h>
 #include <rdp/parallel_rdp_wrapper.h>
 #include <frontend/tas_movie.h>
+#include <signal.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -14,13 +16,31 @@ void usage(cflags_t* flags) {
                        "https://github.com/Dillonb/n64");
 }
 
+void sig_handler(int signum) {
+    if (signum == SIGUSR1) {
+        delayed_log_set_verbosity(LOG_VERBOSITY_DEBUG);
+    } else if (signum == SIGUSR2) {
+        delayed_log_set_verbosity(LOG_VERBOSITY_WARN);
+    }
+}
+
 int main(int argc, char** argv) {
+
+    signal(SIGUSR1, sig_handler);
+    signal(SIGUSR2, sig_handler);
+
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
+
+    bool interpreter = false;
+    cflags_add_bool(flags, 'i', "interpreter", &interpreter, "Force the use of the interpreter");
+
     bool debug = false;
-    char description[100];
-    snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port %d for gdb.", GDB_CPU_PORT);
+#ifdef N64_DEBUG_MODE
+    char description[110];
+    snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port %d for gdb. NOTE: implies -i!", GDB_CPU_PORT);
     cflags_add_bool(flags, 'd', "debug", &debug, description);
+#endif
 
 #ifndef N64_WIN
     const char* rdp_plugin_path = NULL;
@@ -39,20 +59,25 @@ int main(int argc, char** argv) {
         return 1;
     }
     log_set_verbosity(verbose->count);
-    // In debug builds, always log at least warnings.
 #ifdef N64_DEBUG_MODE
+    // In debug builds, always log at least warnings.
     if (log_get_verbosity() < LOG_VERBOSITY_WARN) {
         log_set_verbosity(LOG_VERBOSITY_WARN);
     }
+    // if debug mode is enabled, force the interpreter
+    if (debug && !interpreter) {
+        logwarn("Debug mode enabled, forcing the use of the interpreter!");
+        interpreter = true;
+    }
 #endif
     n64_system_t* system;
-#ifndef N64_WIN
+#ifndef N64_WIN // Don't allow loading an RDP plugin on Windows
     if (rdp_plugin_path != NULL) {
-        system = init_n64system(flags->argv[0], true, debug, OPENGL);
+        system = init_n64system(flags->argv[0], true, debug, OPENGL, interpreter);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
 #endif
-        system = init_n64system(flags->argv[0], true, debug, VULKAN);
+        system = init_n64system(flags->argv[0], true, debug, VULKAN, interpreter);
         load_parallel_rdp(system);
 #ifndef N64_WIN
     }
@@ -62,6 +87,9 @@ int main(int argc, char** argv) {
     }
     if (pif_rom_path) {
         load_pif_rom(system, pif_rom_path);
+    } else if (access("pif.rom", F_OK) == 0) {
+        logalways("Found PIF ROM at pif.rom, loading");
+        load_pif_rom(system, "pif.rom");
     }
     pif_rom_execute(system);
 #ifdef N64_DEBUG_MODE
@@ -72,6 +100,7 @@ int main(int argc, char** argv) {
     }
 #endif
 #endif
+    cflags_free(flags);
     n64_system_loop(system);
     n64_system_cleanup(system);
     return 0;

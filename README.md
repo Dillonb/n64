@@ -10,7 +10,7 @@ Experimental low-level N64 emulator
 This is a project I am working on to learn about the N64 and more advanced emulation techniques.
 
 # What is this not?
-- This is NOT intended to be your "daily driver" N64 emulator for gaming, at least it is currently not planned to be.
+- This is NOT intended to be your "daily driver" N64 emulator for gaming, or at least it is currently not planned to be.
 
 # Links
 - [Compatibility List](https://github.com/Dillonb/n64/projects/2)
@@ -55,7 +55,6 @@ An interpreter and a basic cached interpreter are available, able to be switched
 Reasonably complete. Fast3d (Super Mario 64) seems to work. There are still bugs in the VRCP family of instructions.
 
 Still greatly in need of optimization.
-
 
 ## RDP
 Not started. [My fork of Angrylion](https://github.com/Dillonb/angrylion-rdp-plus) can (and must!) be loaded to provide this functionality in the meantime, however.

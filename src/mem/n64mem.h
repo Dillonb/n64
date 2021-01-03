@@ -7,6 +7,7 @@
 #define N64_RDRAM_SIZE   0x800000
 #define SP_DMEM_SIZE 0x1000
 #define SP_IMEM_SIZE 0x1000
+#define N64_SRAM_SIZE 0x20000
 
 typedef enum ri_reg {
     RI_MODE_REG,
@@ -48,6 +49,7 @@ typedef struct n64_mem {
     word ri_reg[8];
     si_reg_t si_reg;
     byte pif_ram[64];
+    byte sram[N64_SRAM_SIZE];
 } n64_mem_t;
 
 void init_mem(n64_mem_t* mem);

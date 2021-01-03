@@ -13,6 +13,10 @@ bool rsp_acquire_semaphore(n64_system_t* system) {
     }
 }
 
+void rsp_release_semaphore(n64_system_t* system) {
+    system->rsp.semaphore_held = false;
+}
+
 INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
@@ -128,7 +132,7 @@ INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instructi
         case FUNCT_XOR:    return rsp_spc_xor;
         case FUNCT_NOR:    return rsp_spc_nor;
         case FUNCT_SLT:    return rsp_spc_slt;
-        //case FUNCT_SLTU:   return rsp_spc_sltu;
+        case FUNCT_SLTU:   return rsp_spc_sltu;
 
         case FUNCT_BREAK: return rsp_spc_break;
         default: {
@@ -225,7 +229,7 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
             case OPC_J:     return rsp_j;
             case OPC_JAL:   return rsp_jal;
             case OPC_SLTI:  return rsp_slti;
-            //case OPC_SLTIU: return rsp_sltiu;
+            case OPC_SLTIU: return rsp_sltiu;
             case OPC_XORI:  return rsp_xori;
             case OPC_LB:    return rsp_lb;
             //case OPC_LWL:   return rsp_lwl;
@@ -278,6 +282,7 @@ void rsp_step(n64_system_t* system) {
 }
 
 void rsp_run(n64_system_t* system) {
+    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
     while (system->rsp.steps > 0) {
         system->rsp.steps--;
         _rsp_step(system);

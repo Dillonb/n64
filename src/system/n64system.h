@@ -186,11 +186,12 @@ typedef struct n64_system {
     n64_dpc_t dpc;
     n64_debugger_state_t debugger_state;
     n64_dynarec_t *dynarec;
+    bool use_interpreter;
 } n64_system_t;
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type);
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
 
-void n64_system_step(n64_system_t* system);
+void n64_system_step(n64_system_t* system, bool dynarec);
 void n64_system_loop(n64_system_t* system);
 void n64_system_cleanup(n64_system_t* system);
 void n64_request_quit();

@@ -36,38 +36,38 @@ void pif_rom_execute_hle(n64_system_t* system) {
     system->cpu.gpr[30] = 0;
     system->cpu.gpr[31] = 0;
 
-    system->cpu.cp0.index         = 0;
+    //system->cpu.cp0.index         = 0;
     system->cpu.cp0.random        = 0x0000001F;
-    system->cpu.cp0.entry_lo0.raw = 0;
-    system->cpu.cp0.entry_lo1.raw = 0;
-    system->cpu.cp0.context       = 0;
-    system->cpu.cp0.page_mask.raw = 0;
-    system->cpu.cp0.wired         = 0;
-    system->cpu.cp0.r7            = 0;
-    system->cpu.cp0.bad_vaddr     = 0;
-    system->cpu.cp0.count         = 0;
-    system->cpu.cp0.entry_hi.raw  = 0;
-    system->cpu.cp0.compare       = 0;
+    //system->cpu.cp0.entry_lo0.raw = 0;
+    //system->cpu.cp0.entry_lo1.raw = 0;
+    //system->cpu.cp0.context       = 0;
+    //system->cpu.cp0.page_mask.raw = 0;
+    //system->cpu.cp0.wired         = 0;
+    //system->cpu.cp0.r7            = 0;
+    //system->cpu.cp0.bad_vaddr     = 0;
+    //system->cpu.cp0.count         = 0;
+    //system->cpu.cp0.entry_hi.raw  = 0;
+    //system->cpu.cp0.compare       = 0;
     system->cpu.cp0.status.raw    = 0x34000000;
-    system->cpu.cp0.cause.raw     = 0;
-    system->cpu.cp0.EPC           = 0;
+    //system->cpu.cp0.cause.raw     = 0;
+    //system->cpu.cp0.EPC           = 0;
     system->cpu.cp0.PRId          = 0x00000B00;
-    system->cpu.cp0.config        = 0x0006E463;
-    system->cpu.cp0.lladdr        = 0;
-    system->cpu.cp0.watch_lo.raw  = 0;
-    system->cpu.cp0.watch_hi      = 0;
-    system->cpu.cp0.x_context     = 0;
-    system->cpu.cp0.r21           = 0;
-    system->cpu.cp0.r22           = 0;
-    system->cpu.cp0.r23           = 0;
-    system->cpu.cp0.r24           = 0;
-    system->cpu.cp0.r25           = 0;
-    system->cpu.cp0.parity_error  = 0;
-    system->cpu.cp0.cache_error   = 0;
-    system->cpu.cp0.tag_lo        = 0;
-    system->cpu.cp0.tag_hi        = 0;
-    system->cpu.cp0.error_epc     = 0;
-    system->cpu.cp0.r31           = 0;
+    system->cpu.cp0.config        = 0x7006E463;
+    //system->cpu.cp0.lladdr        = 0;
+    //system->cpu.cp0.watch_lo.raw  = 0;
+    //system->cpu.cp0.watch_hi      = 0;
+    //system->cpu.cp0.x_context     = 0;
+    //system->cpu.cp0.r21           = 0;
+    //system->cpu.cp0.r22           = 0;
+    //system->cpu.cp0.r23           = 0;
+    //system->cpu.cp0.r24           = 0;
+    //system->cpu.cp0.r25           = 0;
+    //system->cpu.cp0.parity_error  = 0;
+    //system->cpu.cp0.cache_error   = 0;
+    //system->cpu.cp0.tag_lo        = 0;
+    //system->cpu.cp0.tag_hi        = 0;
+    //system->cpu.cp0.error_epc     = 0;
+    //system->cpu.cp0.r31           = 0;
 
     loginfo("CP0 status: ie:  %d", system->cpu.cp0.status.ie);
     loginfo("CP0 status: exl: %d", system->cpu.cp0.status.exl);
@@ -102,13 +102,11 @@ void pif_rom_execute_hle(n64_system_t* system) {
         logtrace("PIF: Copied 0x%016lX from 0x%08X ==> 0x%08X", src, src_address, dest_address);
     }
 
-    system->cpu.pc = 0xA4000040;
-    system->cpu.next_pc = system->cpu.pc + 4;
+    set_pc_word_r4300i(&system->cpu, 0xA4000040);
 }
 
 void pif_rom_execute_lle(n64_system_t* system) {
-    system->cpu.pc = 0x1FC00000 + SVREGION_KSEG1;
-    system->cpu.next_pc = system->cpu.pc + 4;
+    set_pc_word_r4300i(&system->cpu, 0x1FC00000 + SVREGION_KSEG1);
 }
 
 void pif_rom_execute(n64_system_t* system) {

@@ -47,6 +47,8 @@ typedef union rsp_types {
     };
 } rsp_status_t;
 
+ASSERTWORD(rsp_status_t);
+
 typedef struct rsp rsp_t;
 
 void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr);
@@ -57,6 +59,27 @@ typedef struct rsp_icache_entry {
     mips_instruction_t instruction;
     rspinstr_handler_t handler;
 } rsp_icache_entry_t;
+
+typedef union mem_addr {
+    word raw;
+    struct {
+        unsigned address:12;
+        bool imem:1;
+        unsigned:19;
+    };
+} mem_addr_t;
+
+ASSERTWORD(mem_addr_t);
+
+typedef union dram_addr {
+    word raw;
+    struct {
+        unsigned address:24;
+        unsigned:8;
+    };
+} dram_addr_t;
+
+ASSERTWORD(dram_addr_t);
 
 typedef struct rsp {
     word gpr[32];
@@ -73,21 +96,12 @@ typedef struct rsp {
     rsp_status_t status;
 
     struct {
-        union {
-            word raw;
-            struct {
-                unsigned address:12;
-                bool imem:1;
-                unsigned:19;
-            };
-        } mem_addr;
-        union {
-            word raw;
-            struct {
-                unsigned address:24;
-                unsigned:8;
-            };
-        } dram_addr;
+        mem_addr_t mem_addr;
+        dram_addr_t dram_addr;
+
+        // values are stored in shadow registers until the DMA actually runs
+        mem_addr_t shadow_mem_addr;
+        dram_addr_t shadow_dmem_addr;
         union {
             struct {
                 unsigned length: 12;
@@ -95,15 +109,7 @@ typedef struct rsp {
                 unsigned skip: 12;
             };
             word raw;
-        } dma_read;
-        union {
-            struct {
-                unsigned length: 12;
-                unsigned count: 8;
-                unsigned skip: 12;
-            };
-            word raw;
-        } dma_write;
+        } dma;
     } io;
 
     rsp_icache_entry_t icache[0x1000 / 4];

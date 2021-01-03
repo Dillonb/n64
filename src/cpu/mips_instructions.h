@@ -5,11 +5,6 @@
 
 #define MIPS_INSTR(NAME) void NAME(r4300i_t* cpu, mips_instruction_t instruction)
 
-INLINE void set_pc_r4300i(r4300i_t* cpu, word new_pc) {
-    cpu->pc = new_pc;
-    cpu->next_pc = cpu->pc + 4;
-}
-
 MIPS_INSTR(mips_nop);
 
 MIPS_INSTR(mips_addi);
@@ -38,6 +33,8 @@ MIPS_INSTR(mips_sltiu);
 
 MIPS_INSTR(mips_mfc0);
 MIPS_INSTR(mips_mtc0);
+MIPS_INSTR(mips_dmfc0);
+MIPS_INSTR(mips_dmtc0);
 MIPS_INSTR(mips_mfc1);
 MIPS_INSTR(mips_dmfc1);
 MIPS_INSTR(mips_mtc1);
@@ -155,6 +152,10 @@ MIPS_INSTR(mips_ldl);
 MIPS_INSTR(mips_ldr);
 MIPS_INSTR(mips_sdl);
 MIPS_INSTR(mips_sdr);
+MIPS_INSTR(mips_ll);
+MIPS_INSTR(mips_lld);
+MIPS_INSTR(mips_sc);
+MIPS_INSTR(mips_scd);
 
 MIPS_INSTR(mips_spc_sll);
 MIPS_INSTR(mips_spc_srl);
@@ -191,6 +192,8 @@ MIPS_INSTR(mips_spc_sltu);
 MIPS_INSTR(mips_spc_dadd);
 MIPS_INSTR(mips_spc_daddu);
 MIPS_INSTR(mips_spc_dsubu);
+MIPS_INSTR(mips_spc_teq);
+MIPS_INSTR(mips_spc_tne);
 MIPS_INSTR(mips_spc_dsll);
 MIPS_INSTR(mips_spc_dsrl);
 MIPS_INSTR(mips_spc_dsra);

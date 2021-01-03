@@ -16,7 +16,6 @@ add_library(core
         mem/n64mem.c mem/n64mem.h
         mem/n64bus.c mem/n64bus.h
         mem/pif.c mem/pif.h
-        mem/dma.c mem/dma.h
         interface/vi.c interface/vi.h interface/vi_reg.h
         frontend/render.c frontend/render.h
         interface/ai.c interface/ai.h
@@ -24,7 +23,8 @@ add_library(core
         mem/n64_rsp_bus.c mem/n64_rsp_bus.h
         frontend/tas_movie.c frontend/tas_movie.h
         frontend/audio.c frontend/audio.h
-        frontend/gamepad.c frontend/gamepad.h)
+        frontend/gamepad.c frontend/gamepad.h
+        mem/backup.c mem/backup.h)
 
 target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY})
 if (NOT WIN32)
