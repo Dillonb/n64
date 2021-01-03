@@ -1195,7 +1195,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
     logdebug("rsp_vec_vnand");
-    elementzero;
     defvs;
     defvd;
     defvte;
