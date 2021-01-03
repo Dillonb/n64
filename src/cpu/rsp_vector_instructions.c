@@ -1222,11 +1222,7 @@ RSP_VECTOR_INSTR(rsp_vec_vne) {
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vnop) {
-    logdebug("rsp_vec_vnop");
-    logfatal("Unimplemented: rsp_vec_vnop");
-    elementzero;
-}
+RSP_VECTOR_INSTR(rsp_vec_vnop) {}
 
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
     logdebug("rsp_vec_vnor");
