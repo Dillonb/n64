@@ -1230,7 +1230,6 @@ RSP_VECTOR_INSTR(rsp_vec_vnop) {
 
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
     logdebug("rsp_vec_vnor");
-    elementzero;
     defvs;
     defvd;
     defvte;
