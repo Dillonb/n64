@@ -8,6 +8,7 @@
 #include <rsp.h>
 
 #define FUZZES_PER_INSTRUCTION 1000
+static const bool verbose = false;
 
 static unsigned int num_devices;
 static FT_DEVICE_LIST_INFO_NODE* device_info;
@@ -143,6 +144,7 @@ void init_everdrive(unsigned int device) {
     assert_ftcommand(FT_ResetDevice(handle), "Unable to reset device!");
     assert_ftcommand(FT_SetTimeouts(handle, 5000, 5000), "Unable to set timeouts!");
     assert_ftcommand(FT_Purge(handle, FT_PURGE_RX | FT_PURGE_TX), "Unable to purge USB buffer contents!");
+    logalways("EverDrive-64 connection initialized");
 }
 
 void print_vureg_ln(vu_reg_t* reg) {
@@ -152,11 +154,19 @@ void print_vureg_ln(vu_reg_t* reg) {
     printf("\n");
 }
 
-bool print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
+bool compare_vureg(vu_reg_t* reg, vu_reg_t* compare) {
     bool any_bad = false;
     for (int i = 0; i < 8; i++) {
         if (compare->elements[i] != reg->elements[i]) {
             any_bad = true;
+        }
+    }
+    return any_bad;
+}
+
+void print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
+    for (int i = 0; i < 8; i++) {
+        if (compare->elements[i] != reg->elements[i]) {
             printf(COLOR_RED);
         }
         printf("%04X ", reg->elements[i]);
@@ -165,7 +175,6 @@ bool print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
         }
     }
     printf("\n");
-    return any_bad;
 }
 
 void check_emu(rspinstr_handler_t handler, vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l, flag_result_t* flag_result) {
@@ -218,12 +227,6 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2, rsp_testable_instruction_t* instr) {
     send_vreg(&arg1);
     send_vreg(&arg2);
 
-    printf("Testing %s\n", instr->name);
-    printf("args:\n");
-    print_vureg_ln(&arg1);
-    print_vureg_ln(&arg2);
-    printf("Result:\n");
-
     bool any_bad = false;
     for (int element = 0; element < 16; element++) {
         vu_reg_t res;
@@ -248,42 +251,44 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2, rsp_testable_instruction_t* instr) {
         flag_result_t emu_flag_result;
         check_emu(instr->handler, arg1, arg2, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
 
-
-        printf("element %02d, n64 res: ", element);
-        print_vureg_ln(&res);
-        printf("element %02d, emu res: ", element);
-        any_bad |= print_vureg_comparing_ln(&emu_res, &res);
-
-        printf("element %02d, n64 acc_h: ", element);
-        print_vureg_ln(&acc_h);
-        printf("element %02d, emu acc_h: ", element);
-        any_bad |= print_vureg_comparing_ln(&emu_acc_h, &acc_h);
-
-        printf("element %02d, n64 acc_m: ", element);
-        print_vureg_ln(&acc_m);
-        printf("element %02d, emu acc_m: ", element);
-        any_bad |= print_vureg_comparing_ln(&emu_acc_m, &acc_m);
-
-        printf("element %02d, n64 acc_l: ", element);
-        print_vureg_ln(&acc_l);
-        printf("element %02d, emu acc_l: ", element);
-        any_bad |= print_vureg_comparing_ln(&emu_acc_l, &acc_l);
-
-        const char* color_start = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
-        const char* color_end   = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_END : "";
-        printf("element %02d, n64 vcc: 0x%04X emu vcc: %s0x%04X%s\n", element, flag_result.vcc, color_start, emu_flag_result.vcc, color_end);
-        any_bad |= (flag_result.vcc != emu_flag_result.vcc);
-
-        color_start = (flag_result.vco != emu_flag_result.vco) ? COLOR_RED : "";
-        color_end   = (flag_result.vco != emu_flag_result.vco) ? COLOR_END : "";
-        printf("element %02d, n64 vco: 0x%04X emu vco: %s0x%04X%s\n", element, flag_result.vco, color_start, emu_flag_result.vco, color_end);
+        any_bad |= compare_vureg(&emu_res, &res);
+        any_bad |= compare_vureg(&emu_acc_h, &acc_h);
+        any_bad |= compare_vureg(&emu_acc_m, &acc_m);
+        any_bad |= compare_vureg(&emu_acc_l, &acc_l);
         any_bad |= (flag_result.vco != emu_flag_result.vco);
-
-        color_start = (flag_result.vce != emu_flag_result.vce) ? COLOR_RED : "";
-        color_end   = (flag_result.vce != emu_flag_result.vce) ? COLOR_END : "";
-        printf("element %02d, n64 vce: 0x%04X emu vce: %s0x%04X%s\n", element, flag_result.vce, color_start, emu_flag_result.vce, color_end);
         any_bad |= (flag_result.vce != emu_flag_result.vce);
-        printf("\n");
+
+        if (verbose || any_bad) {
+            printf("Testing %s element %d\n", instr->name, element);
+            printf("args:\n");
+            print_vureg_ln(&arg1);
+            print_vureg_ln(&arg2);
+            printf("Result:\n");
+
+            printf("element %02d, n64 res: ", element);
+            print_vureg_ln(&res);
+            printf("element %02d, emu res: ", element);
+            printf("element %02d, n64 acc_h: ", element);
+            print_vureg_ln(&acc_h);
+            printf("element %02d, emu acc_h: ", element);
+            printf("element %02d, n64 acc_m: ", element);
+            print_vureg_ln(&acc_m);
+            printf("element %02d, emu acc_m: ", element);
+            printf("element %02d, n64 acc_l: ", element);
+            print_vureg_ln(&acc_l);
+            printf("element %02d, emu acc_l: ", element);
+            const char* color_start = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_RED : "";
+            const char* color_end   = (flag_result.vcc != emu_flag_result.vcc) ? COLOR_END : "";
+            printf("element %02d, n64 vcc: 0x%04X emu vcc: %s0x%04X%s\n", element, flag_result.vcc, color_start, emu_flag_result.vcc, color_end);
+            any_bad |= (flag_result.vcc != emu_flag_result.vcc);
+            color_start = (flag_result.vco != emu_flag_result.vco) ? COLOR_RED : "";
+            color_end   = (flag_result.vco != emu_flag_result.vco) ? COLOR_END : "";
+            printf("element %02d, n64 vco: 0x%04X emu vco: %s0x%04X%s\n", element, flag_result.vco, color_start, emu_flag_result.vco, color_end);
+            color_start = (flag_result.vce != emu_flag_result.vce) ? COLOR_RED : "";
+            color_end   = (flag_result.vce != emu_flag_result.vce) ? COLOR_END : "";
+            printf("element %02d, n64 vce: 0x%04X emu vce: %s0x%04X%s\n", element, flag_result.vce, color_start, emu_flag_result.vce, color_end);
+            printf("\n");
+        }
     }
 
     if (any_bad) {
@@ -350,6 +355,8 @@ void init_state_from_hw(rsp_t* rsp) {
     rsp_set_vcc(rsp, flag_result.vcc);
     rsp_set_vco(rsp, flag_result.vco);
     rsp_set_vce(rsp, flag_result.vce);
+
+    logalways("Received initial state from hardware");
 }
 
 int main(int argc, char** argv) {
@@ -384,7 +391,7 @@ int main(int argc, char** argv) {
     init_state_from_hw(&rsp);
     while (true) {
         for (int instr = 0; instr < (sizeof(instrs) / sizeof(rsp_testable_instruction_t)); instr++) {
-            printf("Fuzzing %s %d times...\n", instrs[instr].name, FUZZES_PER_INSTRUCTION);
+            logalways("Fuzzing %s %d times...", instrs[instr].name, FUZZES_PER_INSTRUCTION);
             for (int test = 0; test < FUZZES_PER_INSTRUCTION; test++) {
                 run_random_test(&instrs[instr]);
             }
