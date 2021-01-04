@@ -62,6 +62,10 @@ void create_empty_file(n64_save_type_t save_type, const char* save_path) {
 }
 
 void init_savedata(n64_mem_t* mem, const char* rom_path) {
+    if (mem->save_type == SAVE_NONE) {
+        return;
+    }
+
     int save_path_len = strlen(rom_path) + 6; // +6 for ".save" + null terminator
     if (save_path_len >= PATH_MAX) {
         logalways("Path too long, not creating save file!\n");
@@ -72,22 +76,21 @@ void init_savedata(n64_mem_t* mem, const char* rom_path) {
         FILE* f = fopen(mem->save_file_path, "rb");
 
         if (f == NULL) {
-            if (mem->save_type != SAVE_NONE) {
-                create_empty_file(mem->save_type, mem->save_file_path);
-            } else {
-                fseek(f, 0, SEEK_END);
-                size_t size = ftell(f);
-                fseek(f, 0, SEEK_SET);
-
-                size_t expected_size = get_save_size(mem->save_type);
-
-                if (size != expected_size) {
-                    logfatal("Corrupted save file: wrong size!");
-                }
-
-                mem->save_data = malloc(size);
-                fread(mem->save_data, size, 1, f);
-            }
+            create_empty_file(mem->save_type, mem->save_file_path);
+            f = fopen(mem->save_file_path, "rb");
         }
+
+        fseek(f, 0, SEEK_END);
+        size_t size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        size_t expected_size = get_save_size(mem->save_type);
+
+        if (size != expected_size) {
+            logfatal("Corrupted save file: wrong size!");
+        }
+
+        mem->save_data = malloc(size);
+        fread(mem->save_data, size, 1, f);
     }
 }

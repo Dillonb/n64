@@ -212,9 +212,12 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
 
             logalways("mempack read: crc %02X offset: %d", crc, offset);
 
-            for (int i = 0; i < 32; i++) {
-                // TODO: actual data
-                system->mem.pif_ram[(*index)++] = 0x00;
+            if (offset >= 0x8000) {
+                (*index) += 35;
+            } else {
+                for (int i = 0; i < 32; i++) {
+                    system->mem.pif_ram[(*index)++] = system->mem.save_data[offset + i];
+                }
             }
 
             // CRC byte TODO: calculate it correctly
@@ -234,14 +237,20 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             // offset must be 32-byte aligned
             offset &= ~0x1F;
 
-            logalways("mempack write: crc %02X offset: %d", crc, offset);
-            for (int i = 0; i < 32; i++) {
-                // TODO: save this data
-                printf("%02X ", system->mem.pif_ram[(*index)++]);
+            if (offset >= 0x8000) {
+                (*index) += 33;
+                system->mem.pif_ram[(*index) - 1] = 0x00; // pretty sure this means no rumble pack is present
+            } else {
+                logalways("mempack write: crc %02X offset: %d", crc, offset);
+                for (int i = 0; i < 32; i++) {
+                    // TODO: save this data
+                    printf("%02X ", system->mem.pif_ram[(*index)++]);
+                    system->mem.save_data[offset + i] = system->mem.pif_ram[(*index)++];
+                }
+                printf("\n");
+                // CRC byte TODO: calculate it correctly
+                system->mem.pif_ram[(*index)++] = 0x00;
             }
-            printf("\n");
-            // CRC byte TODO: calculate it correctly
-            system->mem.pif_ram[(*index)++] = 0x00;
             break;
         }
         case PIF_COMMAND_EEPROM_READ:
