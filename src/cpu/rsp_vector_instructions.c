@@ -573,11 +573,43 @@ RSP_VECTOR_INSTR(rsp_vec_vabs) {
     defvte;
 
 #ifdef N64_USE_SIMD
-    __m128i res = _mm_sign_epi16(vte.single, vs->single);
-    rsp->acc.l.single = res;
-    vd->single = res;
+    // check if each element is zero
+    __m128i vs_is_zero = _mm_cmpeq_epi16(vs->single, rsp->zero);
+
+    // arithmetic shift right by 15 (effectively sets each bit of the number to the sign bit)
+    __m128i vs_is_negative = _mm_srai_epi16(vs->single, 15);
+    // (!vs_is_zero) & vte
+    // for each vte element, outputs zero if the corresponding vs element is zero, or else outputs the regular vte element.
+    __m128i temp = _mm_andnot_si128(vs_is_zero, vte.single);
+
+    // xor each element of the temp var with whether the vs element is negative
+    // If the vs element is negative, flip all the bits. Otherwise, do nothing.
+    temp = _mm_xor_si128(temp, vs_is_negative);
+    // acc.l = temp[element] - (is_negative[element] ? 0xFFFF : 0)
+    rsp->acc.l.single = _mm_sub_epi16(temp, vs_is_negative);
+
+    // only difference here is that this a _signed_ subtraction
+    // handle the special case where vte.elements[i] == 0x8000
+    // acc.l = temp[element] - (is_negative[element] ? -1 : 0)
+    vd->single = _mm_subs_epi16(temp, vs_is_negative);
 #else
-    logfatal("UNIMPLEMENTED: SISD version of this");
+    for (int i = 0; i < 8; i++) {
+        if (vs->signed_elements[i] < 0) {
+            if (unlikely(vte.elements[i] == 0x8000)) {
+                vd->elements[i] = 0x7FFF;
+                rsp->acc.l.elements[i] = 0x8000;
+            } else {
+                vd->elements[i] = -vte.signed_elements[i];
+                rsp->acc.l.elements[i] = -vte.signed_elements[i];
+            }
+        } else if (vs->elements[i] == 0) {
+            vd->elements[i] = 0x0000;
+            rsp->acc.l.elements[i] = 0x0000;
+        } else {
+            vd->elements[i] = vte.elements[i];
+            rsp->acc.l.elements[i] = vte.elements[i];
+        }
+    }
 #endif
 }
 

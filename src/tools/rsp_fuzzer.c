@@ -41,8 +41,7 @@ typedef struct rsp_testable_instruction {
 #define INSTR(_handler, _funct, _name, _random_vs) { .handler = _handler, .funct = _funct, .name = _name, .random_vs = _random_vs}
 
 rsp_testable_instruction_t instrs[] = {
-        // BROKEN!
-        //INSTR(rsp_vec_vabs, FUNCT_RSP_VEC_VABS, "vabs", false),
+        INSTR(rsp_vec_vabs, FUNCT_RSP_VEC_VABS, "vabs", false),
         INSTR(rsp_vec_vadd, FUNCT_RSP_VEC_VADD, "vadd", false),
         INSTR(rsp_vec_vaddc, FUNCT_RSP_VEC_VADDC, "vaddc", false),
         INSTR(rsp_vec_vand, FUNCT_RSP_VEC_VAND, "vand", false),
