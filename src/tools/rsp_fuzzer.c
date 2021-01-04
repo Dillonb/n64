@@ -35,67 +35,68 @@ typedef struct rsp_testable_instruction {
     rspinstr_handler_t handler;
     int funct;
     const char* name;
+    bool random_vs;
 } rsp_testable_instruction_t;
-#define INSTR(_handler, _funct, _name) { .handler = _handler, .funct = _funct, .name = _name}
 
+#define INSTR(_handler, _funct, _name, _random_vs) { .handler = _handler, .funct = _funct, .name = _name, .random_vs = _random_vs}
 
 rsp_testable_instruction_t instrs[] = {
         // BROKEN!
-        //INSTR(rsp_vec_vabs, FUNCT_RSP_VEC_VABS, "vabs"),
-        INSTR(rsp_vec_vadd, FUNCT_RSP_VEC_VADD, "vadd"),
-        INSTR(rsp_vec_vaddc, FUNCT_RSP_VEC_VADDC, "vaddc"),
-        INSTR(rsp_vec_vand, FUNCT_RSP_VEC_VAND, "vand"),
-        INSTR(rsp_vec_vch, FUNCT_RSP_VEC_VCH, "vch"),
-        INSTR(rsp_vec_vcl, FUNCT_RSP_VEC_VCL, "vcl"),
-        INSTR(rsp_vec_vcr, FUNCT_RSP_VEC_VCR, "vcr"),
-        INSTR(rsp_vec_veq, FUNCT_RSP_VEC_VEQ, "veq"),
-        INSTR(rsp_vec_vge, FUNCT_RSP_VEC_VGE, "vge"),
-        INSTR(rsp_vec_vlt, FUNCT_RSP_VEC_VLT, "vlt"),
-        INSTR(rsp_vec_vmacf, FUNCT_RSP_VEC_VMACF, "vmacf"),
+        //INSTR(rsp_vec_vabs, FUNCT_RSP_VEC_VABS, "vabs", false),
+        INSTR(rsp_vec_vadd, FUNCT_RSP_VEC_VADD, "vadd", false),
+        INSTR(rsp_vec_vaddc, FUNCT_RSP_VEC_VADDC, "vaddc", false),
+        INSTR(rsp_vec_vand, FUNCT_RSP_VEC_VAND, "vand", false),
+        INSTR(rsp_vec_vch, FUNCT_RSP_VEC_VCH, "vch", false),
+        INSTR(rsp_vec_vcl, FUNCT_RSP_VEC_VCL, "vcl", false),
+        INSTR(rsp_vec_vcr, FUNCT_RSP_VEC_VCR, "vcr", false),
+        INSTR(rsp_vec_veq, FUNCT_RSP_VEC_VEQ, "veq", false),
+        INSTR(rsp_vec_vge, FUNCT_RSP_VEC_VGE, "vge", false),
+        INSTR(rsp_vec_vlt, FUNCT_RSP_VEC_VLT, "vlt", false),
+        INSTR(rsp_vec_vmacf, FUNCT_RSP_VEC_VMACF, "vmacf", false),
         // unimplemented
-        //INSTR(rsp_vec_vmacq, FUNCT_RSP_VEC_VMACQ, "vmacq"),
-        INSTR(rsp_vec_vmacu, FUNCT_RSP_VEC_VMACU, "vmacu"),
-        INSTR(rsp_vec_vmadh, FUNCT_RSP_VEC_VMADH, "vmadh"),
-        INSTR(rsp_vec_vmadl, FUNCT_RSP_VEC_VMADL, "vmadl"),
-        INSTR(rsp_vec_vmadm, FUNCT_RSP_VEC_VMADM, "vmadm"),
-        INSTR(rsp_vec_vmadn, FUNCT_RSP_VEC_VMADN, "vmadn"),
+        //INSTR(rsp_vec_vmacq, FUNCT_RSP_VEC_VMACQ, "vmacq", false),
+        INSTR(rsp_vec_vmacu, FUNCT_RSP_VEC_VMACU, "vmacu", false),
+        INSTR(rsp_vec_vmadh, FUNCT_RSP_VEC_VMADH, "vmadh", false),
+        INSTR(rsp_vec_vmadl, FUNCT_RSP_VEC_VMADL, "vmadl", false),
+        INSTR(rsp_vec_vmadm, FUNCT_RSP_VEC_VMADM, "vmadm", false),
+        INSTR(rsp_vec_vmadn, FUNCT_RSP_VEC_VMADN, "vmadn", false),
         // BROKEN!
-        // INSTR(rsp_vec_vmov, FUNCT_RSP_VEC_VMOV, "vmov"),
-        INSTR(rsp_vec_vmrg, FUNCT_RSP_VEC_VMRG, "vmrg"),
-        INSTR(rsp_vec_vmudh, FUNCT_RSP_VEC_VMUDH, "vmudh"),
-        INSTR(rsp_vec_vmudl, FUNCT_RSP_VEC_VMUDL, "vmudl"),
-        INSTR(rsp_vec_vmudm, FUNCT_RSP_VEC_VMUDM, "vmudm"),
-        INSTR(rsp_vec_vmudn, FUNCT_RSP_VEC_VMUDN, "vmudn"),
-        INSTR(rsp_vec_vmulf, FUNCT_RSP_VEC_VMULF, "vmulf"),
+        // INSTR(rsp_vec_vmov, FUNCT_RSP_VEC_VMOV, "vmov", true),
+        INSTR(rsp_vec_vmrg, FUNCT_RSP_VEC_VMRG, "vmrg", false),
+        INSTR(rsp_vec_vmudh, FUNCT_RSP_VEC_VMUDH, "vmudh", false),
+        INSTR(rsp_vec_vmudl, FUNCT_RSP_VEC_VMUDL, "vmudl", false),
+        INSTR(rsp_vec_vmudm, FUNCT_RSP_VEC_VMUDM, "vmudm", false),
+        INSTR(rsp_vec_vmudn, FUNCT_RSP_VEC_VMUDN, "vmudn", false),
+        INSTR(rsp_vec_vmulf, FUNCT_RSP_VEC_VMULF, "vmulf", false),
         // unimplemented
-        //INSTR(rsp_vec_vmulq, FUNCT_RSP_VEC_VMULQ, "vmulq"),
-        INSTR(rsp_vec_vmulu, FUNCT_RSP_VEC_VMULU, "vmulu"),
-        INSTR(rsp_vec_vnand, FUNCT_RSP_VEC_VNAND, "vnand"),
-        INSTR(rsp_vec_vne, FUNCT_RSP_VEC_VNE, "vne"),
-        INSTR(rsp_vec_vnop, FUNCT_RSP_VEC_VNOP, "vnop"),
-        INSTR(rsp_vec_vnor, FUNCT_RSP_VEC_VNOR, "vnor"),
-        INSTR(rsp_vec_vnxor, FUNCT_RSP_VEC_VNXOR, "vnxor"),
-        INSTR(rsp_vec_vor, FUNCT_RSP_VEC_VOR, "vor"),
+        //INSTR(rsp_vec_vmulq, FUNCT_RSP_VEC_VMULQ, "vmulq", false),
+        INSTR(rsp_vec_vmulu, FUNCT_RSP_VEC_VMULU, "vmulu", false),
+        INSTR(rsp_vec_vnand, FUNCT_RSP_VEC_VNAND, "vnand", false),
+        INSTR(rsp_vec_vne, FUNCT_RSP_VEC_VNE, "vne", false),
+        INSTR(rsp_vec_vnop, FUNCT_RSP_VEC_VNOP, "vnop", false),
+        INSTR(rsp_vec_vnor, FUNCT_RSP_VEC_VNOR, "vnor", false),
+        INSTR(rsp_vec_vnxor, FUNCT_RSP_VEC_VNXOR, "vnxor", false),
+        INSTR(rsp_vec_vor, FUNCT_RSP_VEC_VOR, "vor", false),
         // BROKEN!
-        //INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp"),
+        //INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp", false),
         // BROKEN!
-        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph"),
+        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph", false),
         // BROKEN!
-        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRSQH, "vrsqh"),
+        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRSQH, "vrsqh", false),
         // BROKEN!
-        //INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl"),
+        //INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl", false),
         // unimplemented
-        //INSTR(rsp_vec_vrndn, FUNCT_RSP_VEC_VRNDN, "vrndn"),
+        //INSTR(rsp_vec_vrndn, FUNCT_RSP_VEC_VRNDN, "vrndn", false),
         // unimplemented
-        //INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp"),
+        //INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp", false),
         // BROKEN!
-        //INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq"),
+        //INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq", false),
         // BROKEN!
-        //INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql"),
-        INSTR(rsp_vec_vsar, FUNCT_RSP_VEC_VSAR, "vsar"),
-        INSTR(rsp_vec_vsub, FUNCT_RSP_VEC_VSUB, "vsub"),
-        INSTR(rsp_vec_vsubc, FUNCT_RSP_VEC_VSUBC, "vsubc"),
-        INSTR(rsp_vec_vxor, FUNCT_RSP_VEC_VXOR, "vxor"),
+        //INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql", false),
+        INSTR(rsp_vec_vsar, FUNCT_RSP_VEC_VSAR, "vsar", false),
+        INSTR(rsp_vec_vsub, FUNCT_RSP_VEC_VSUB, "vsub", false),
+        INSTR(rsp_vec_vsubc, FUNCT_RSP_VEC_VSUBC, "vsubc", false),
+        INSTR(rsp_vec_vxor, FUNCT_RSP_VEC_VXOR, "vxor", false),
 };
 
 void assert_ftcommand(FT_STATUS result, const char* message) {
