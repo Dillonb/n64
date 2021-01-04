@@ -60,8 +60,7 @@ rsp_testable_instruction_t instrs[] = {
         INSTR(rsp_vec_vmadl, FUNCT_RSP_VEC_VMADL, "vmadl", false),
         INSTR(rsp_vec_vmadm, FUNCT_RSP_VEC_VMADM, "vmadm", false),
         INSTR(rsp_vec_vmadn, FUNCT_RSP_VEC_VMADN, "vmadn", false),
-        // BROKEN!
-        // INSTR(rsp_vec_vmov, FUNCT_RSP_VEC_VMOV, "vmov", true),
+        INSTR(rsp_vec_vmov, FUNCT_RSP_VEC_VMOV, "vmov", true),
         INSTR(rsp_vec_vmrg, FUNCT_RSP_VEC_VMRG, "vmrg", false),
         INSTR(rsp_vec_vmudh, FUNCT_RSP_VEC_VMUDH, "vmudh", false),
         INSTR(rsp_vec_vmudl, FUNCT_RSP_VEC_VMUDL, "vmudl", false),
