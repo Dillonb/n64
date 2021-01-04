@@ -120,8 +120,8 @@ void send_vreg(vu_reg_t* reg) {
     assert_ftcommand(FT_Write(handle, &swapped, sizeof(vu_reg_t), &bytes_written), "Unable to write vu reg!");
 }
 
-void send_instruction(word instr) {
-    word swapped = htobe32(instr);
+void send_instruction(mips_instruction_t instr) {
+    word swapped = htobe32(instr.raw);
     assert_ftcommand(FT_Write(handle, &swapped, sizeof(word), &bytes_written), "Unable to write instruction!");
 }
 
@@ -178,22 +178,14 @@ void print_vureg_comparing_ln(vu_reg_t* reg, vu_reg_t* compare) {
     printf("\n");
 }
 
-void check_emu(rspinstr_handler_t handler, vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l, flag_result_t* flag_result) {
-    mips_instruction_t instruction;
-    instruction.raw = 0;
-
-    instruction.cp2_vec.vs = 1;
-    instruction.cp2_vec.vt = 2;
-    instruction.cp2_vec.vd = 3;
-    instruction.cp2_vec.e = e;
-
-
+void check_emu(rspinstr_handler_t handler, mips_instruction_t mipsinstr, vu_reg_t vs, vu_reg_t vt, int e, vu_reg_t* res, vu_reg_t* acc_h, vu_reg_t* acc_m, vu_reg_t* acc_l, flag_result_t* flag_result) {
     for (int i = 0; i < 8; i++) {
         rsp.vu_regs[1].elements[7 - i] = vs.elements[i];
         rsp.vu_regs[2].elements[7 - i] = vt.elements[i];
     }
 
-    handler(&rsp, instruction);
+    mipsinstr.cp2_vec.e = e;
+    handler(&rsp, mipsinstr);
 
     flag_result->vcc = rsp_get_vcc(&rsp);
     flag_result->vco = rsp_get_vco(&rsp);
@@ -211,7 +203,7 @@ half rand_half() {
     return rand() & 0xFFFF;
 }
 
-word vec_instr(int funct) {
+mips_instruction_t vec_instr(int funct) {
     int vs = 1;
     int vt = 2;
     int vd = 3;
@@ -220,11 +212,17 @@ word vec_instr(int funct) {
         logfatal("FUNCT would overflow!\n");
     }
 
-    return OPC_CP2 << 26 | 1 << 25 | vt << 16 | vs << 11 | vd << 6 | funct;
+    mips_instruction_t instr;
+    instr.raw = OPC_CP2 << 26 | 1 << 25 | vt << 16 | vs << 11 | vd << 6 | funct;
+    return instr;
 }
 
 void run_test(vu_reg_t vs, vu_reg_t vt, rsp_testable_instruction_t* instr) {
-    send_instruction(vec_instr(instr->funct));
+    mips_instruction_t mipsinstr = vec_instr(instr->funct);
+    if (instr->random_vs) {
+        mipsinstr.cp2_vec.vs = rand() & 0b11111;
+    }
+    send_instruction(mipsinstr);
     send_vreg(&vs);
     send_vreg(&vt);
 
@@ -250,7 +248,7 @@ void run_test(vu_reg_t vs, vu_reg_t vt, rsp_testable_instruction_t* instr) {
         vu_reg_t emu_acc_m;
         vu_reg_t emu_acc_l;
         flag_result_t emu_flag_result;
-        check_emu(instr->handler, vs, vt, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
+        check_emu(instr->handler, mipsinstr, vs, vt, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
 
         any_bad |= compare_vureg(&emu_res, &res);
         any_bad |= compare_vureg(&emu_acc_h, &acc_h);
