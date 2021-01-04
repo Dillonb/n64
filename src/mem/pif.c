@@ -201,8 +201,25 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_MEMPACK_READ:
             unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
             unimplemented(reslen != 33, "Mempack read with reslen != 33");
-            //logfatal("PIF_COMMAND_MEMPACK_READ");
-            (*index) += 35; // NOOP
+            // First two bytes in the command are the offset
+            half offset = system->mem.pif_ram[(*index)++] << 8;
+            offset |= system->mem.pif_ram[(*index)++];
+
+            // low 5 bits are the CRC
+            byte crc = offset & 0x1F;
+            // offset must be 32-byte aligned
+            offset &= ~0x1F;
+
+            logalways("mempack read: crc %02X offset: %d", crc, offset);
+
+            for (int i = 0; i < 32; i++) {
+                // TODO: actual data
+                system->mem.pif_ram[(*index)++] = 0x00;
+            }
+
+            // CRC byte TODO: calculate it correctly
+            system->mem.pif_ram[(*index)++] = 0x00;
+
             break;
         case PIF_COMMAND_MEMPACK_WRITE:
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
