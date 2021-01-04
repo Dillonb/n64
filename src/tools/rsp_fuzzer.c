@@ -300,28 +300,28 @@ void run_test(vu_reg_t vs, vu_reg_t vt, rsp_testable_instruction_t* instr) {
 }
 
 void run_random_test(rsp_testable_instruction_t* instr) {
-    vu_reg_t arg1;
-    vu_reg_t arg2;
+    vu_reg_t vs;
+    vu_reg_t vt;
 
-    arg1.elements[0] = rand_half();
-    arg1.elements[1] = rand_half();
-    arg1.elements[2] = rand_half();
-    arg1.elements[3] = rand_half();
-    arg1.elements[4] = rand_half();
-    arg1.elements[5] = rand_half();
-    arg1.elements[6] = rand_half();
-    arg1.elements[7] = rand_half();
+    vs.elements[0] = rand_half();
+    vs.elements[1] = rand_half();
+    vs.elements[2] = rand_half();
+    vs.elements[3] = rand_half();
+    vs.elements[4] = rand_half();
+    vs.elements[5] = rand_half();
+    vs.elements[6] = rand_half();
+    vs.elements[7] = rand_half();
 
-    arg2.elements[0] = rand_half();
-    arg2.elements[1] = rand_half();
-    arg2.elements[2] = rand_half();
-    arg2.elements[3] = rand_half();
-    arg2.elements[4] = rand_half();
-    arg2.elements[5] = rand_half();
-    arg2.elements[6] = rand_half();
-    arg2.elements[7] = rand_half();
+    vt.elements[0] = rand_half();
+    vt.elements[1] = rand_half();
+    vt.elements[2] = rand_half();
+    vt.elements[3] = rand_half();
+    vt.elements[4] = rand_half();
+    vt.elements[5] = rand_half();
+    vt.elements[6] = rand_half();
+    vt.elements[7] = rand_half();
 
-    run_test(arg1, arg2, instr);
+    run_test(vs, vt, instr);
 
 }
 
