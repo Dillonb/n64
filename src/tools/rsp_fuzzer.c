@@ -355,8 +355,8 @@ void init_state_from_hw(rsp_t* rsp) {
 
 
     // Last set of results received will be the state of the hardware
-    rsp->vu_regs[3] = res;
     for (int i = 0; i < 8; i++) {
+        rsp->vu_regs[3].elements[i] = res.elements[7 - i];
         rsp->acc.h.elements[i] = acc_h.elements[7 - i];
         rsp->acc.m.elements[i] = acc_m.elements[7 - i];
         rsp->acc.l.elements[i] = acc_l.elements[7 - i];
