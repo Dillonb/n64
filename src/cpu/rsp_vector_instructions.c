@@ -1361,6 +1361,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     logdebug("rsp_vec_vrsql");
     defvt;
+    defvte;
     defvd;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
@@ -1377,7 +1378,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     rsp->divin_loaded = false;
 
 #ifdef N64_USE_SIMD
-    rsp->acc.l.single = vt->single;
+    rsp->acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
         rsp->acc.l.elements[i] = vt->elements[i];

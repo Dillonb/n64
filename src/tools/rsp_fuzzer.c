@@ -85,8 +85,7 @@ rsp_testable_instruction_t instrs[] = {
         // unimplemented
         //INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp", false),
         INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq", false),
-        // BROKEN!
-        //INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql", false),
+        INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql", true),
         INSTR(rsp_vec_vsar, FUNCT_RSP_VEC_VSAR, "vsar", false),
         INSTR(rsp_vec_vsub, FUNCT_RSP_VEC_VSUB, "vsub", false),
         INSTR(rsp_vec_vsubc, FUNCT_RSP_VEC_VSUBC, "vsubc", false),
