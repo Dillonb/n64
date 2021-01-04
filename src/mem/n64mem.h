@@ -3,6 +3,7 @@
 
 #include "n64rom.h"
 #include <util.h>
+#include <limits.h>
 
 #define N64_RDRAM_SIZE   0x800000
 #define SP_DMEM_SIZE 0x1000
@@ -39,6 +40,16 @@ typedef struct si_reg {
     word dram_address;
 } si_reg_t;
 
+typedef enum n64_save_type {
+    SAVE_NONE,
+    SAVE_MEMPAK,
+    SAVE_EEPROM_4k,
+    SAVE_EEPROM_16k,
+    SAVE_EEPROM_256k,
+    SAVE_EEPROM_1Mb,
+    SAVE_SRAM_768k
+} n64_save_type_t;
+
 typedef struct n64_mem {
     byte rdram[N64_RDRAM_SIZE];
     n64_rom_t rom;
@@ -50,6 +61,9 @@ typedef struct n64_mem {
     si_reg_t si_reg;
     byte pif_ram[64];
     byte sram[N64_SRAM_SIZE];
+    char save_file_path[PATH_MAX];
+    n64_save_type_t save_type;
+    byte* save_data;
 } n64_mem_t;
 
 void init_mem(n64_mem_t* mem);
