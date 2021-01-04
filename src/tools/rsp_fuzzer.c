@@ -76,20 +76,15 @@ rsp_testable_instruction_t instrs[] = {
         INSTR(rsp_vec_vnor, FUNCT_RSP_VEC_VNOR, "vnor", false),
         INSTR(rsp_vec_vnxor, FUNCT_RSP_VEC_VNXOR, "vnxor", false),
         INSTR(rsp_vec_vor, FUNCT_RSP_VEC_VOR, "vor", false),
-        // BROKEN!
-        //INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp", false),
-        // BROKEN!
-        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph", false),
-        // BROKEN!
-        //INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRSQH, "vrsqh", false),
-        // BROKEN!
-        //INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl", false),
+        INSTR(rsp_vec_vrcp, FUNCT_RSP_VEC_VRCP, "vrcp", false),
+        INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRCPH, "vrcph", false),
+        INSTR(rsp_vec_vrcph_vrsqh, FUNCT_RSP_VEC_VRSQH, "vrsqh", false),
+        INSTR(rsp_vec_vrcpl, FUNCT_RSP_VEC_VRCPL, "vrcpl", false),
         // unimplemented
         //INSTR(rsp_vec_vrndn, FUNCT_RSP_VEC_VRNDN, "vrndn", false),
         // unimplemented
         //INSTR(rsp_vec_vrndp, FUNCT_RSP_VEC_VRNDP, "vrndp", false),
-        // BROKEN!
-        //INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq", false),
+        INSTR(rsp_vec_vrsq, FUNCT_RSP_VEC_VRSQ, "vrsq", false),
         // BROKEN!
         //INSTR(rsp_vec_vrsql, FUNCT_RSP_VEC_VRSQL, "vrsql", false),
         INSTR(rsp_vec_vsar, FUNCT_RSP_VEC_VSAR, "vsar", false),
