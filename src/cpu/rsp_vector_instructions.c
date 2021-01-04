@@ -1021,19 +1021,13 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
 
     half vte_elem = vte.elements[7 - se];
 #ifdef N64_USE_SIMD
-    vecr vte_single = vte.single;
     vd->elements[7 - de] = vte_elem;
-    rsp->acc.l.single = vte_single;
+    rsp->acc.l = vte;
 #else
-    half vte_temp[8];
-    for (int i = 0; i < 8; i++) {
-        vte_temp[i] = vte.elements[i];
-    }
     vd->elements[7 - de] = vte_elem;
     for (int i = 0; i < 8; i++) {
-        rsp->acc.l.elements[i] = vte_temp[i];
+        rsp->acc.l.elements[i] = vte[i];
     }
-
 #endif
 }
 
