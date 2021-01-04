@@ -222,10 +222,10 @@ word vec_instr(int funct) {
     return OPC_CP2 << 26 | 1 << 25 | vt << 16 | vs << 11 | vd << 6 | funct;
 }
 
-void run_test(vu_reg_t arg1, vu_reg_t arg2, rsp_testable_instruction_t* instr) {
+void run_test(vu_reg_t vs, vu_reg_t vt, rsp_testable_instruction_t* instr) {
     send_instruction(vec_instr(instr->funct));
-    send_vreg(&arg1);
-    send_vreg(&arg2);
+    send_vreg(&vs);
+    send_vreg(&vt);
 
     bool any_bad = false;
     for (int element = 0; element < 16; element++) {
@@ -249,7 +249,7 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2, rsp_testable_instruction_t* instr) {
         vu_reg_t emu_acc_m;
         vu_reg_t emu_acc_l;
         flag_result_t emu_flag_result;
-        check_emu(instr->handler, arg1, arg2, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
+        check_emu(instr->handler, vs, vt, element, &emu_res, &emu_acc_h, &emu_acc_m, &emu_acc_l, &emu_flag_result);
 
         any_bad |= compare_vureg(&emu_res, &res);
         any_bad |= compare_vureg(&emu_acc_h, &acc_h);
@@ -261,8 +261,15 @@ void run_test(vu_reg_t arg1, vu_reg_t arg2, rsp_testable_instruction_t* instr) {
         if (verbose || any_bad) {
             printf("Testing %s element %d\n", instr->name, element);
             printf("args:\n");
-            print_vureg_ln(&arg1);
-            print_vureg_ln(&arg2);
+            printf("vs: ");
+            print_vureg_ln(&vs);
+            printf("vt: ");
+            print_vureg_ln(&vt);
+
+            vu_reg_t vte = ext_get_vte(&vt, element);
+            printf("vt[%02d]: ", element);
+            print_vureg_ln(&vte);
+
             printf("Result:\n");
 
             printf("element %02d, n64 res: ", element);

@@ -106,6 +106,11 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
 }
 
 
+vu_reg_t ext_get_vte(vu_reg_t* vt, byte e) {
+    return get_vte(vt, e);
+}
+
+
 #define SHIFT_AMOUNT_LBV_SBV 0
 #define SHIFT_AMOUNT_LSV_SSV 1
 #define SHIFT_AMOUNT_LLV_SLV 2
