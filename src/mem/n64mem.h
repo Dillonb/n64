@@ -64,6 +64,8 @@ typedef struct n64_mem {
     char save_file_path[PATH_MAX];
     n64_save_type_t save_type;
     byte* save_data;
+    bool save_data_dirty;
+    int save_data_debounce_counter;
 } n64_mem_t;
 
 void init_mem(n64_mem_t* mem);

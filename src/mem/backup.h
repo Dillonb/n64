@@ -12,4 +12,6 @@ byte sram_read_byte(n64_system_t* system, word index);
 size_t get_save_size(n64_save_type_t save_type);
 void init_savedata(n64_mem_t* mem, const char* rom_path);
 
+void persist_backup(n64_system_t* system);
+
 #endif //N64_BACKUP_H

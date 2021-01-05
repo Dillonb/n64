@@ -139,6 +139,27 @@ void pif_rom_execute(n64_system_t* system) {
     }
 }
 
+
+byte data_crc(const byte* data) {
+    byte crc = 0;
+    for (int i = 0; i <= 32; i++) {
+        for (int j = 7; j >= 0; j--) {
+            byte xor_val =((crc & 0x80) != 0) ? 0x85 : 0x00;
+
+            crc <<= 1;
+            if (i < 32) {
+                if ((data[i] & (1 << j)) != 0) {
+                    crc |= 1;
+                }
+            }
+
+            crc ^= xor_val;
+        }
+    }
+
+    return crc;
+}
+
 #define PIF_COMMAND_CONTROLLER_ID 0x00
 #define PIF_COMMAND_READ_BUTTONS  0x01
 #define PIF_COMMAND_MEMPACK_READ  0x02
@@ -210,18 +231,20 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             // offset must be 32-byte aligned
             offset &= ~0x1F;
 
-            logalways("mempack read: crc %02X offset: %d", crc, offset);
+            loginfo("mempack read: crc %02X offset: %d", crc, offset);
 
-            if (offset >= 0x8000) {
-                (*index) += 35;
-            } else {
-                for (int i = 0; i < 32; i++) {
-                    system->mem.pif_ram[(*index)++] = system->mem.save_data[offset + i];
-                }
+            // The most significant bit in the address is not used for the mempak.
+            // The game will identify whether the connected device is a mempak or something else by writing to
+            // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
+            // something else, depending on the data it returns.
+            offset &= 0x7FE0;
+
+            for (int i = 0; i < 32; i++) {
+                system->mem.pif_ram[(*index)++] = system->mem.save_data[offset + i];
             }
 
-            // CRC byte TODO: calculate it correctly
-            system->mem.pif_ram[(*index)++] = 0x00;
+            // CRC byte
+            system->mem.pif_ram[(*index)++] = data_crc(&system->mem.save_data[offset]);
 
             break;
         }
@@ -236,21 +259,21 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             byte crc = offset & 0x1F;
             // offset must be 32-byte aligned
             offset &= ~0x1F;
+            loginfo("mempack write: crc %02X offset: %d / 0x%04X", crc, offset, offset);
 
-            if (offset >= 0x8000) {
-                (*index) += 33;
-                system->mem.pif_ram[(*index) - 1] = 0x00; // pretty sure this means no rumble pack is present
-            } else {
-                logalways("mempack write: crc %02X offset: %d", crc, offset);
-                for (int i = 0; i < 32; i++) {
-                    // TODO: save this data
-                    printf("%02X ", system->mem.pif_ram[(*index)++]);
-                    system->mem.save_data[offset + i] = system->mem.pif_ram[(*index)++];
-                }
-                printf("\n");
-                // CRC byte TODO: calculate it correctly
-                system->mem.pif_ram[(*index)++] = 0x00;
+            // The most significant bit in the address is not used for the mempak.
+            // The game will identify whether the connected device is a mempak or something else by writing to
+            // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
+            // something else, depending on the data it returns.
+            offset &= 0x7FE0;
+
+            int data_start_index = *index;
+            for (int i = 0; i < 32; i++) {
+                system->mem.save_data[offset + i] = system->mem.pif_ram[(*index)++];
             }
+            system->mem.save_data_dirty = true;
+            // CRC byte
+            system->mem.pif_ram[(*index)++] = data_crc(&system->mem.pif_ram[data_start_index]);
             break;
         }
         case PIF_COMMAND_EEPROM_READ:

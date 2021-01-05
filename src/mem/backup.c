@@ -1,6 +1,8 @@
 #include "backup.h"
 #include <limits.h>
 
+#define SAVE_DATA_DEBOUNCE_FRAMES 60
+
 void sram_write_word(n64_system_t* system, word index, word value) {
     if (index >= N64_SRAM_SIZE - 3) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
@@ -92,5 +94,21 @@ void init_savedata(n64_mem_t* mem, const char* rom_path) {
 
         mem->save_data = malloc(size);
         fread(mem->save_data, size, 1, f);
+    }
+}
+
+
+void persist_backup(n64_system_t* system) {
+    if (system->mem.save_data_dirty) {
+        system->mem.save_data_dirty = false;
+        system->mem.save_data_debounce_counter = SAVE_DATA_DEBOUNCE_FRAMES;
+    } else if (system->mem.save_data_debounce_counter >= 0) {
+        if (system->mem.save_data_debounce_counter-- == 0) {
+            int save_size = get_save_size(system->mem.save_type);
+            FILE* f = fopen(system->mem.save_file_path, "wb");
+            fwrite(system->mem.save_data, 1, save_size, f);
+            fclose(f);
+            logalways("Persisted mempak to disk");
+        }
     }
 }
