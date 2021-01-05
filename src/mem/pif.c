@@ -222,6 +222,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_MEMPACK_READ: {
             unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
             unimplemented(reslen != 33, "Mempack read with reslen != 33");
+            unimplemented(system->mem.save_type != SAVE_MEMPAK, "Tried to read from mempack when save_type != SAVE_MEMPACK!");
             // First two bytes in the command are the offset
             half offset = system->mem.pif_ram[(*index)++] << 8;
             offset |= system->mem.pif_ram[(*index)++];
@@ -251,6 +252,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_MEMPACK_WRITE: {
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
             unimplemented(reslen != 1, "Mempack write with reslen != 1");
+            unimplemented(system->mem.save_type != SAVE_MEMPAK, "Tried to write to mempack when save_type != SAVE_MEMPACK!");
             // First two bytes in the command are the offset
             half offset = system->mem.pif_ram[(*index)++] << 8;
             offset |= system->mem.pif_ram[(*index)++];
