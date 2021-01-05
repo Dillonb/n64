@@ -13,6 +13,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <mem/backup.h>
+#include <frontend/game_db.h>
 
 bool should_quit = false;
 
@@ -109,7 +110,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     if (rom_path != NULL) {
         logalways("Loading %s", rom_path);
         load_n64rom(&system->mem.rom, rom_path);
-        system->mem.save_type = SAVE_MEMPAK; // TODO detect this with a game db
+        gamedb_match(system);
         init_savedata(&system->mem, rom_path);
     }
 

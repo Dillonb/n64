@@ -24,7 +24,8 @@ add_library(core
         frontend/tas_movie.c frontend/tas_movie.h
         frontend/audio.c frontend/audio.h
         frontend/gamepad.c frontend/gamepad.h
-        mem/backup.c mem/backup.h)
+        mem/backup.c mem/backup.h
+        frontend/game_db.c frontend/game_db.h)
 
 target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} z)
 
