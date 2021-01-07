@@ -1,6 +1,7 @@
 #include <frontend/tas_movie.h>
 #include "pif.h"
 #include "n64bus.h"
+#include "backup.h"
 
 void pif_rom_execute_hle(n64_system_t* system) {
     system->cpu.gpr[0] = 0;
@@ -222,7 +223,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_MEMPACK_READ: {
             unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
             unimplemented(reslen != 33, "Mempack read with reslen != 33");
-            unimplemented(system->mem.save_type != SAVE_MEMPAK, "Tried to read from mempack when save_type != SAVE_MEMPACK!");
+            init_mempack(&system->mem, system->rom_path);
             // First two bytes in the command are the offset
             half offset = system->mem.pif_ram[(*index)++] << 8;
             offset |= system->mem.pif_ram[(*index)++];
@@ -241,18 +242,18 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             offset &= 0x7FE0;
 
             for (int i = 0; i < 32; i++) {
-                system->mem.pif_ram[(*index)++] = system->mem.save_data[offset + i];
+                system->mem.pif_ram[(*index)++] = system->mem.mempack_data[offset + i];
             }
 
             // CRC byte
-            system->mem.pif_ram[(*index)++] = data_crc(&system->mem.save_data[offset]);
+            system->mem.pif_ram[(*index)++] = data_crc(&system->mem.mempack_data[offset]);
 
             break;
         }
         case PIF_COMMAND_MEMPACK_WRITE: {
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
             unimplemented(reslen != 1, "Mempack write with reslen != 1");
-            unimplemented(system->mem.save_type != SAVE_MEMPAK, "Tried to write to mempack when save_type != SAVE_MEMPACK!");
+            init_mempack(&system->mem, system->rom_path);
             // First two bytes in the command are the offset
             half offset = system->mem.pif_ram[(*index)++] << 8;
             offset |= system->mem.pif_ram[(*index)++];
@@ -271,9 +272,9 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
 
             int data_start_index = *index;
             for (int i = 0; i < 32; i++) {
-                system->mem.save_data[offset + i] = system->mem.pif_ram[(*index)++];
+                system->mem.mempack_data[offset + i] = system->mem.pif_ram[(*index)++];
             }
-            system->mem.save_data_dirty = true;
+            system->mem.mempack_data_dirty = true;
             // CRC byte
             system->mem.pif_ram[(*index)++] = data_crc(&system->mem.pif_ram[data_start_index]);
             break;

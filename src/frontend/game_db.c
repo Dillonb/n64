@@ -1,10 +1,10 @@
 #include "game_db.h"
 
 static const gamedb_entry_t gamedb[] = {
-        {"NNM", "E", SAVE_MEMPAK, "Namco Museum 64"},
-        {"NDM", "E", SAVE_MEMPAK, "Doom 64"},
-        {"NPD", "E", SAVE_MEMPAK, "Perfect Dark"},
-        {"NKT", "E", SAVE_MEMPAK, "Mario Kart 64"}
+        {"NNM", "E", SAVE_NONE,       "Namco Museum 64"},
+        {"NDM", "E", SAVE_NONE,       "Doom 64"},
+        {"NPD", "E", SAVE_EEPROM_16k, "Perfect Dark"},
+        {"NKT", "E", SAVE_EEPROM_4k,  "Mario Kart 64"}
 };
 
 #define GAMEDB_SIZE (sizeof(gamedb) / sizeof(gamedb_entry_t))

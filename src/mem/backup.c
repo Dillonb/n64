@@ -2,6 +2,7 @@
 #include <limits.h>
 
 #define SAVE_DATA_DEBOUNCE_FRAMES 60
+#define MEMPACK_SIZE 32768
 
 void sram_write_word(n64_system_t* system, word index, word value) {
     if (index >= N64_SRAM_SIZE - 3) {
@@ -34,8 +35,6 @@ size_t get_save_size(n64_save_type_t save_type) {
     switch (save_type) {
         case SAVE_NONE:
             return 0;
-        case SAVE_MEMPAK:
-            return 32768;
         case SAVE_EEPROM_4k:
             return 512;
         case SAVE_EEPROM_16k:
@@ -51,8 +50,7 @@ size_t get_save_size(n64_save_type_t save_type) {
     }
 }
 
-void create_empty_file(n64_save_type_t save_type, const char* save_path) {
-    int save_size = get_save_size(save_type);
+void create_empty_file(size_t save_size, const char* save_path) {
     if (save_size > 0) {
         FILE* f = fopen(save_path, "wb");
         byte* zeroes = malloc(save_size);
@@ -63,52 +61,96 @@ void create_empty_file(n64_save_type_t save_type, const char* save_path) {
     }
 }
 
+byte* load_backup_file(const char *rom_path, const char *suffix, size_t save_size, char *path) {
+    size_t save_path_len = strlen(rom_path) + strlen(suffix);
+    byte* save_data;
+    if (save_path_len >= PATH_MAX) {
+        logfatal("Path too long, not creating save file! Calm down with the directories.");
+    } else {
+        strcpy(path, rom_path);
+        strncat(path, suffix, PATH_MAX);
+
+        FILE* f = fopen(path, "rb");
+
+        if (f == NULL) {
+            create_empty_file(save_size, path);
+            f = fopen(path, "rb");
+        }
+
+        fseek(f, 0, SEEK_END);
+        size_t actual_size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        if (actual_size != save_size) {
+            logfatal("Corrupted save file: wrong size!");
+        }
+
+        save_data = malloc(actual_size);
+        fread(save_data, actual_size, 1, f);
+    }
+
+    return save_data;
+}
+
 void init_savedata(n64_mem_t* mem, const char* rom_path) {
     if (mem->save_type == SAVE_NONE) {
         return;
     }
 
-    int save_path_len = strlen(rom_path) + 6; // +6 for ".save" + null terminator
-    if (save_path_len >= PATH_MAX) {
-        logalways("Path too long, not creating save file!\n");
-    } else {
-        strcpy(mem->save_file_path, rom_path);
-        strncat(mem->save_file_path, ".save", PATH_MAX);
-
-        FILE* f = fopen(mem->save_file_path, "rb");
-
-        if (f == NULL) {
-            create_empty_file(mem->save_type, mem->save_file_path);
-            f = fopen(mem->save_file_path, "rb");
-        }
-
-        fseek(f, 0, SEEK_END);
-        size_t size = ftell(f);
-        fseek(f, 0, SEEK_SET);
-
-        size_t expected_size = get_save_size(mem->save_type);
-
-        if (size != expected_size) {
-            logfatal("Corrupted save file: wrong size!");
-        }
-
-        mem->save_data = malloc(size);
-        fread(mem->save_data, size, 1, f);
-    }
+    mem->save_data = load_backup_file(rom_path, ".save", get_save_size(mem->save_type), mem->save_file_path);
 }
 
 
-void persist_backup(n64_system_t* system) {
-    if (system->mem.save_data_dirty) {
-        system->mem.save_data_dirty = false;
-        system->mem.save_data_debounce_counter = SAVE_DATA_DEBOUNCE_FRAMES;
-    } else if (system->mem.save_data_debounce_counter >= 0) {
-        if (system->mem.save_data_debounce_counter-- == 0) {
-            int save_size = get_save_size(system->mem.save_type);
-            FILE* f = fopen(system->mem.save_file_path, "wb");
-            fwrite(system->mem.save_data, 1, save_size, f);
+void init_mempack(n64_mem_t* mem, const char* rom_path) {
+    if (mem->mempack_data == NULL) {
+        mem->mempack_data = load_backup_file(rom_path, ".mempak", MEMPACK_SIZE, mem->mempack_file_path);
+    }
+}
+
+void persist(bool* dirty, int* debounce_counter, size_t size, const char* file_path, byte* data, const char* name) {
+    if (*dirty) {
+        *dirty = false;
+        *debounce_counter = SAVE_DATA_DEBOUNCE_FRAMES;
+    } else if (*debounce_counter >= 0) {
+        if ((*debounce_counter)-- == 0) {
+            FILE* f = fopen(file_path, "wb");
+            fwrite(data, 1, size, f);
             fclose(f);
-            logalways("Persisted mempak to disk");
+            logalways("Persisted %s data to disk", name);
         }
+    }
+}
+
+void persist_backup(n64_system_t* system) {
+    int save_size = get_save_size(system->mem.save_type);
+    persist(&system->mem.save_data_dirty,
+            &system->mem.save_data_debounce_counter,
+            save_size,
+            system->mem.save_file_path,
+            system->mem.save_data,
+            "save");
+
+    persist(&system->mem.mempack_data_dirty,
+            &system->mem.mempack_data_debounce_counter,
+            MEMPACK_SIZE,
+            system->mem.mempack_file_path,
+            system->mem.mempack_data,
+            "mempack");
+}
+
+void force_persist_backup(n64_system_t* system) {
+    bool should_persist = false;
+    if (system->mem.save_data_dirty || system->mem.save_data_debounce_counter > 0) {
+        system->mem.save_data_debounce_counter = 0;
+        should_persist = true;
+    }
+
+    if (system->mem.mempack_data_dirty || system->mem.mempack_data_debounce_counter > 0) {
+        system->mem.mempack_data_debounce_counter = 0;
+        should_persist = true;
+    }
+
+    if (should_persist) {
+        persist_backup(system);
     }
 }

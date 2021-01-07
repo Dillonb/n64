@@ -112,6 +112,7 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
         load_n64rom(&system->mem.rom, rom_path);
         gamedb_match(system);
         init_savedata(&system->mem, rom_path);
+        system->rom_path = rom_path;
     }
 
     system->video_type = video_type;
@@ -330,6 +331,7 @@ update_delayed_log_verbosity();
 #endif
         persist_backup(system);
     }
+    force_persist_backup(system);
 }
 
 void interpreter_system_loop(n64_system_t* system) {
@@ -367,6 +369,7 @@ void interpreter_system_loop(n64_system_t* system) {
 #endif
         persist_backup(system);
     }
+    force_persist_backup(system);
 }
 
 void n64_system_loop(n64_system_t* system) {

@@ -42,7 +42,6 @@ typedef struct si_reg {
 
 typedef enum n64_save_type {
     SAVE_NONE,
-    SAVE_MEMPAK,
     SAVE_EEPROM_4k,
     SAVE_EEPROM_16k,
     SAVE_EEPROM_256k,
@@ -62,10 +61,17 @@ typedef struct n64_mem {
     byte pif_ram[64];
     byte sram[N64_SRAM_SIZE];
     char save_file_path[PATH_MAX];
+    char mempack_file_path[PATH_MAX];
     n64_save_type_t save_type;
+
     byte* save_data;
     bool save_data_dirty;
     int save_data_debounce_counter;
+
+    byte* mempack_data;
+    bool mempack_data_dirty;
+    int mempack_data_debounce_counter;
+
 } n64_mem_t;
 
 void init_mem(n64_mem_t* mem);
