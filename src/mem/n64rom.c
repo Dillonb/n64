@@ -90,8 +90,6 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
         rom->game_name_cartridge[i] = '\0';
     }
 
-    rom->header.program_counter = be32toh(rom->header.program_counter);
-
     word checksum = crc32(0, &rom->rom[0x40], 0x9c0);
 
     switch (checksum) {
