@@ -14,7 +14,8 @@ static const gamedb_entry_t gamedb[] = {
         {"NSQ", "E", SAVE_EEPROM_1Mb,  "StarCraft 64"},
         {"NK4", "P", SAVE_EEPROM_4k,   "Kirby 64: The Crystal Shards"},
         {"NGE", "E", SAVE_EEPROM_4k,   "GoldenEye 007"},
-        {"NZS", "E", SAVE_EEPROM_1Mb,  "The Legend of Zelda: Majora's Mask"}
+        {"NZS", "E", SAVE_EEPROM_1Mb,  "The Legend of Zelda: Majora's Mask"},
+        {"NJF", "E", SAVE_EEPROM_1Mb,  "Jet Force Gemini"}
 };
 
 #define GAMEDB_SIZE (sizeof(gamedb) / sizeof(gamedb_entry_t))
