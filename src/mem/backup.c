@@ -5,30 +5,36 @@
 #define MEMPACK_SIZE 32768
 
 void sram_write_word(n64_system_t* system, word index, word value) {
-    if (index >= N64_SRAM_SIZE - 3) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+    if (index >= system->mem.save_size - 3) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
     }
-    word_to_byte_array(system->mem.sram, index, value);
+    word_to_byte_array(system->mem.save_data, index, value);
+    system->mem.save_data_dirty = true;
 }
 word sram_read_word(n64_system_t* system, word index) {
-    if (index >= N64_SRAM_SIZE - 3) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+    if (index >= system->mem.save_size - 3) {
         logfatal("Out of range SRAM read! index 0x%08X\n", index);
     }
 
-    return word_from_byte_array(system->mem.sram, index);
+    return word_from_byte_array(system->mem.save_data, index);
 }
 
 void sram_write_byte(n64_system_t* system, word index, byte value) {
-    if (index >= N64_SRAM_SIZE) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+    if (index >= system->mem.save_size) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
     }
-    system->mem.sram[index] = value;
+    system->mem.save_data[index] = value;
+    system->mem.save_data_dirty = true;
 }
 byte sram_read_byte(n64_system_t* system, word index) {
-    if (index >= N64_SRAM_SIZE) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+    if (index >= system->mem.save_size) {
         logfatal("Out of range SRAM read! index 0x%08X\n", index);
     }
-    return system->mem.sram[index];
+    return system->mem.save_data[index];
 }
 
 size_t get_save_size(n64_save_type_t save_type) {
@@ -97,7 +103,9 @@ void init_savedata(n64_mem_t* mem, const char* rom_path) {
         return;
     }
 
-    mem->save_data = load_backup_file(rom_path, ".save", get_save_size(mem->save_type), mem->save_file_path);
+    size_t save_size = get_save_size(mem->save_type);
+    mem->save_data = load_backup_file(rom_path, ".save", save_size, mem->save_file_path);
+    mem->save_size = save_size;
 }
 
 
@@ -122,10 +130,9 @@ void persist(bool* dirty, int* debounce_counter, size_t size, const char* file_p
 }
 
 void persist_backup(n64_system_t* system) {
-    int save_size = get_save_size(system->mem.save_type);
     persist(&system->mem.save_data_dirty,
             &system->mem.save_data_debounce_counter,
-            save_size,
+            system->mem.save_size,
             system->mem.save_file_path,
             system->mem.save_data,
             "save");

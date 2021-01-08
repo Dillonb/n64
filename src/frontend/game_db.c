@@ -1,10 +1,11 @@
 #include "game_db.h"
 
 static const gamedb_entry_t gamedb[] = {
-        {"NNM", "E", SAVE_NONE,       "Namco Museum 64"},
-        {"NDM", "E", SAVE_NONE,       "Doom 64"},
-        {"NPD", "E", SAVE_EEPROM_16k, "Perfect Dark"},
-        {"NKT", "E", SAVE_EEPROM_4k,  "Mario Kart 64"}
+        {"NNM", "E", SAVE_NONE,        "Namco Museum 64"},
+        {"NDM", "E", SAVE_NONE,        "Doom 64"},
+        {"NPD", "E", SAVE_EEPROM_16k,  "Perfect Dark"},
+        {"NKT", "E", SAVE_EEPROM_4k,   "Mario Kart 64"},
+        {"CZL", "E", SAVE_EEPROM_256k, "The Legend of Zelda: Ocarina of Time"}
 };
 
 #define GAMEDB_SIZE (sizeof(gamedb) / sizeof(gamedb_entry_t))
@@ -35,7 +36,7 @@ void gamedb_match(n64_system_t* system) {
 
     }
 
-    logwarn("Did not match any Game DB entries. Code: %s Region: %c", system->mem.rom.code, system->mem.rom.header.country_code[0]);
+    logalways("Did not match any Game DB entries. Code: %s Region: %c", system->mem.rom.code, system->mem.rom.header.country_code[0]);
 
     system->mem.rom.game_name_db = NULL;
     system->mem.save_type = SAVE_NONE;
