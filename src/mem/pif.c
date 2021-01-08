@@ -170,20 +170,27 @@ byte data_crc(const byte* data) {
 #define PIF_COMMAND_RESET         0xFF
 
 void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, int* index, int* channel) {
-    byte command = system->mem.pif_ram[(*index)];
-    (*index)++;
+    byte command = system->mem.pif_ram[(*index)++];
     switch (command) {
         case PIF_COMMAND_RESET:
         case PIF_COMMAND_CONTROLLER_ID: {
-            bool plugged_in = (*channel) < 4 && system->si.controllers[*channel].plugged_in;
-            if (plugged_in) {
-                system->mem.pif_ram[(*index)++] = 0x05;
+            if (*channel < 4) {
+                bool plugged_in = system->si.controllers[*channel].plugged_in;
+                if (plugged_in) {
+                    system->mem.pif_ram[(*index)++] = 0x05;
+                    system->mem.pif_ram[(*index)++] = 0x00;
+                    system->mem.pif_ram[(*index)++] = 0x01; // Controller pak plugged in.
+                } else {
+                    system->mem.pif_ram[(*index)++] = 0x05;
+                    system->mem.pif_ram[(*index)++] = 0x00;
+                    system->mem.pif_ram[(*index)++] = 0x01;
+                }
+            } else if (*channel == 4) { // EEPROM?
                 system->mem.pif_ram[(*index)++] = 0x00;
-                system->mem.pif_ram[(*index)++] = 0x01; // Controller pak plugged in.
+                system->mem.pif_ram[(*index)++] = 0x80;
+                system->mem.pif_ram[(*index)++] = 0x00;
             } else {
-                system->mem.pif_ram[(*index)++] = 0x05;
-                system->mem.pif_ram[(*index)++] = 0x00;
-                system->mem.pif_ram[(*index)++] = 0x01;
+                logfatal("Controller ID on unknown channel %d", *channel);
             }
             (*channel)++;
             break;
