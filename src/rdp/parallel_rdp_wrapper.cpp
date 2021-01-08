@@ -95,7 +95,7 @@ void load_parallel_rdp(n64_system_t* system) {
         logwarn("VK_EXT_external_memory_host is not supported by this device. Application might run slower because of this.");
     }
 
-    CommandProcessorFlags flags = 1 << 3; // TODO configurable scaling
+    CommandProcessorFlags flags = 1 << 1; // TODO configurable scaling
 
     command_processor = new CommandProcessor(wsi->get_device(), reinterpret_cast<void *>(aligned_rdram),
                                         offset, 8 * 1024 * 1024, 4 * 1024 * 1024, flags);
