@@ -289,6 +289,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_EEPROM_READ:
             unimplemented(cmdlen != 2, "EEPROM read with cmdlen != 2");
             unimplemented(reslen != 8, "EEPROM read with reslen != 8");
+            unimplemented(system->mem.save_data == NULL, "EEPROM read when save data is uninitialized! Is this game in the game DB?");
             if (*channel == 4) {
                 byte offset = system->mem.pif_ram[(*index)++];
                 if ((offset * 8) >= system->mem.save_size) {
@@ -305,6 +306,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
         case PIF_COMMAND_EEPROM_WRITE:
             unimplemented(cmdlen != 10, "EEPROM write with cmdlen != 10");
             unimplemented(reslen != 1,  "EEPROM write with reslen != 1");
+            unimplemented(system->mem.save_data == NULL, "EEPROM write when save data is uninitialized! Is this game in the game DB?");
             if (*channel == 4) {
                 byte offset = system->mem.pif_ram[(*index)++];
                 if ((offset * 8) >= system->mem.save_size) {
