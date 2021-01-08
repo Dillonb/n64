@@ -185,7 +185,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
                     system->mem.pif_ram[(*index)++] = 0x00;
                     system->mem.pif_ram[(*index)++] = 0x01;
                 }
-            } else if (*channel == 4) { // EEPROM?
+            } else if (*channel == 4) { // EEPROM is on channel 4, and sometimes 5.
                 system->mem.pif_ram[(*index)++] = 0x00;
                 system->mem.pif_ram[(*index)++] = 0x80;
                 system->mem.pif_ram[(*index)++] = 0x00;
@@ -287,9 +287,40 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             break;
         }
         case PIF_COMMAND_EEPROM_READ:
-            logfatal("PIF_COMMAND_EEPROM_READ");
+            unimplemented(cmdlen != 2, "EEPROM read with cmdlen != 2");
+            unimplemented(reslen != 8, "EEPROM read with reslen != 8");
+            if (*channel == 4) {
+                byte offset = system->mem.pif_ram[(*index)++];
+                if ((offset * 8) >= system->mem.save_size) {
+                    logfatal("Out of range EEPROM read! offset: 0x%02X", offset);
+                }
+
+                for (int i = 0; i < 8; i++) {
+                    system->mem.pif_ram[(*index)++] = system->mem.save_data[(offset * 8) + i];
+                }
+            } else {
+                logfatal("EEPROM read on bad channel %d", *channel);
+            }
+            break;
         case PIF_COMMAND_EEPROM_WRITE:
-            logfatal("PIF_COMMAND_EEPROM_WRITE");
+            unimplemented(cmdlen != 10, "EEPROM write with cmdlen != 10");
+            unimplemented(reslen != 1,  "EEPROM write with reslen != 1");
+            if (*channel == 4) {
+                byte offset = system->mem.pif_ram[(*index)++];
+                if ((offset * 8) >= system->mem.save_size) {
+                    logfatal("Out of range EEPROM write! offset: 0x%02X", offset);
+                }
+
+                for (int i = 0; i < 8; i++) {
+                    system->mem.save_data[(offset * 8) + i] = system->mem.pif_ram[(*index)++];
+                }
+
+                system->mem.pif_ram[(*index)++] = 0; // Error byte, I guess it always succeeds?
+            } else {
+                logfatal("EEPROM write on bad channel %d", *channel);
+            }
+            system->mem.save_data_dirty = true;
+            break;
         default:
             logfatal("Unknown PIF command: %d", command);
     }
