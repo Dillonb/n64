@@ -13,7 +13,10 @@ void sram_write_word(n64_system_t* system, word index, word value) {
     system->mem.save_data_dirty = true;
 }
 word sram_read_word(n64_system_t* system, word index) {
-    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+    if (system->mem.save_data == NULL) {
+        logwarn("Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+        return 0;
+    }
     if (index >= system->mem.save_size - 3) {
         logwarn("Out of range SRAM read! index 0x%08X\n", index);
         return 0;
