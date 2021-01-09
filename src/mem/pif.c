@@ -1,6 +1,7 @@
-#include <tas_movie.h>
+#include <frontend/tas_movie.h>
 #include "pif.h"
 #include "n64bus.h"
+#include "backup.h"
 
 void pif_rom_execute_hle(n64_system_t* system) {
     system->cpu.gpr[0] = 0;
@@ -36,38 +37,38 @@ void pif_rom_execute_hle(n64_system_t* system) {
     system->cpu.gpr[30] = 0;
     system->cpu.gpr[31] = 0;
 
-    system->cpu.cp0.index         = 0;
+    //system->cpu.cp0.index         = 0;
     system->cpu.cp0.random        = 0x0000001F;
-    system->cpu.cp0.entry_lo0.raw = 0;
-    system->cpu.cp0.entry_lo1.raw = 0;
-    system->cpu.cp0.context       = 0;
-    system->cpu.cp0.page_mask.raw = 0;
-    system->cpu.cp0.wired         = 0;
-    system->cpu.cp0.r7            = 0;
-    system->cpu.cp0.bad_vaddr     = 0;
-    system->cpu.cp0.count         = 0;
-    system->cpu.cp0.entry_hi.raw  = 0;
-    system->cpu.cp0.compare       = 0;
-    system->cpu.cp0.status.raw    = 0x70400004;
-    system->cpu.cp0.cause.raw     = 0;
-    system->cpu.cp0.EPC           = 0;
+    //system->cpu.cp0.entry_lo0.raw = 0;
+    //system->cpu.cp0.entry_lo1.raw = 0;
+    //system->cpu.cp0.context       = 0;
+    //system->cpu.cp0.page_mask.raw = 0;
+    //system->cpu.cp0.wired         = 0;
+    //system->cpu.cp0.r7            = 0;
+    //system->cpu.cp0.bad_vaddr     = 0;
+    //system->cpu.cp0.count         = 0;
+    //system->cpu.cp0.entry_hi.raw  = 0;
+    //system->cpu.cp0.compare       = 0;
+    system->cpu.cp0.status.raw    = 0x34000000;
+    //system->cpu.cp0.cause.raw     = 0;
+    //system->cpu.cp0.EPC           = 0;
     system->cpu.cp0.PRId          = 0x00000B00;
-    system->cpu.cp0.config        = 0x0006E463;
-    system->cpu.cp0.lladdr        = 0;
-    system->cpu.cp0.watch_lo.raw  = 0;
-    system->cpu.cp0.watch_hi      = 0;
-    system->cpu.cp0.x_context     = 0;
-    system->cpu.cp0.r21           = 0;
-    system->cpu.cp0.r22           = 0;
-    system->cpu.cp0.r23           = 0;
-    system->cpu.cp0.r24           = 0;
-    system->cpu.cp0.r25           = 0;
-    system->cpu.cp0.parity_error  = 0;
-    system->cpu.cp0.cache_error   = 0;
-    system->cpu.cp0.tag_lo        = 0;
-    system->cpu.cp0.tag_hi        = 0;
-    system->cpu.cp0.error_epc     = 0;
-    system->cpu.cp0.r31           = 0;
+    system->cpu.cp0.config        = 0x7006E463;
+    //system->cpu.cp0.lladdr        = 0;
+    //system->cpu.cp0.watch_lo.raw  = 0;
+    //system->cpu.cp0.watch_hi      = 0;
+    //system->cpu.cp0.x_context     = 0;
+    //system->cpu.cp0.r21           = 0;
+    //system->cpu.cp0.r22           = 0;
+    //system->cpu.cp0.r23           = 0;
+    //system->cpu.cp0.r24           = 0;
+    //system->cpu.cp0.r25           = 0;
+    //system->cpu.cp0.parity_error  = 0;
+    //system->cpu.cp0.cache_error   = 0;
+    //system->cpu.cp0.tag_lo        = 0;
+    //system->cpu.cp0.tag_hi        = 0;
+    //system->cpu.cp0.error_epc     = 0;
+    //system->cpu.cp0.r31           = 0;
 
     loginfo("CP0 status: ie:  %d", system->cpu.cp0.status.ie);
     loginfo("CP0 status: exl: %d", system->cpu.cp0.status.exl);
@@ -102,13 +103,11 @@ void pif_rom_execute_hle(n64_system_t* system) {
         logtrace("PIF: Copied 0x%016lX from 0x%08X ==> 0x%08X", src, src_address, dest_address);
     }
 
-    system->cpu.pc = 0xA4000040;
-    system->cpu.next_pc = system->cpu.pc + 4;
+    set_pc_word_r4300i(&system->cpu, 0xA4000040);
 }
 
 void pif_rom_execute_lle(n64_system_t* system) {
-    system->cpu.pc = 0x1FC00000 + SVREGION_KSEG1;
-    system->cpu.next_pc = system->cpu.pc + 4;
+    set_pc_word_r4300i(&system->cpu, 0x1FC00000 + SVREGION_KSEG1);
 }
 
 void pif_rom_execute(n64_system_t* system) {
@@ -141,6 +140,27 @@ void pif_rom_execute(n64_system_t* system) {
     }
 }
 
+
+byte data_crc(const byte* data) {
+    byte crc = 0;
+    for (int i = 0; i <= 32; i++) {
+        for (int j = 7; j >= 0; j--) {
+            byte xor_val =((crc & 0x80) != 0) ? 0x85 : 0x00;
+
+            crc <<= 1;
+            if (i < 32) {
+                if ((data[i] & (1 << j)) != 0) {
+                    crc |= 1;
+                }
+            }
+
+            crc ^= xor_val;
+        }
+    }
+
+    return crc;
+}
+
 #define PIF_COMMAND_CONTROLLER_ID 0x00
 #define PIF_COMMAND_READ_BUTTONS  0x01
 #define PIF_COMMAND_MEMPACK_READ  0x02
@@ -150,20 +170,27 @@ void pif_rom_execute(n64_system_t* system) {
 #define PIF_COMMAND_RESET         0xFF
 
 void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, int* index, int* channel) {
-    byte command = system->mem.pif_ram[(*index)];
-    (*index)++;
+    byte command = system->mem.pif_ram[(*index)++];
     switch (command) {
         case PIF_COMMAND_RESET:
         case PIF_COMMAND_CONTROLLER_ID: {
-            bool plugged_in = (*channel) < 4 && system->si.controllers[*channel].plugged_in;
-            if (plugged_in) {
-                system->mem.pif_ram[(*index)++] = 0x05;
+            if (*channel < 4) {
+                bool plugged_in = system->si.controllers[*channel].plugged_in;
+                if (plugged_in) {
+                    system->mem.pif_ram[(*index)++] = 0x05;
+                    system->mem.pif_ram[(*index)++] = 0x00;
+                    system->mem.pif_ram[(*index)++] = 0x01; // Controller pak plugged in.
+                } else {
+                    system->mem.pif_ram[(*index)++] = 0x05;
+                    system->mem.pif_ram[(*index)++] = 0x00;
+                    system->mem.pif_ram[(*index)++] = 0x01;
+                }
+            } else if (*channel == 4) { // EEPROM is on channel 4, and sometimes 5.
                 system->mem.pif_ram[(*index)++] = 0x00;
-                system->mem.pif_ram[(*index)++] = 0x01; // Controller pak plugged in.
+                system->mem.pif_ram[(*index)++] = 0x80;
+                system->mem.pif_ram[(*index)++] = 0x00;
             } else {
-                system->mem.pif_ram[(*index)++] = 0x05;
-                system->mem.pif_ram[(*index)++] = 0x00;
-                system->mem.pif_ram[(*index)++] = 0x01;
+                logfatal("Controller ID on unknown channel %d", *channel);
             }
             (*channel)++;
             break;
@@ -200,23 +227,102 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             (*channel)++;
             break;
         }
-        case PIF_COMMAND_MEMPACK_READ:
+        case PIF_COMMAND_MEMPACK_READ: {
             unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
             unimplemented(reslen != 33, "Mempack read with reslen != 33");
-            //logfatal("PIF_COMMAND_MEMPACK_READ");
-            (*index) += 33; // NOOP
+            init_mempack(&system->mem, system->rom_path);
+            // First two bytes in the command are the offset
+            half offset = system->mem.pif_ram[(*index)++] << 8;
+            offset |= system->mem.pif_ram[(*index)++];
+
+            // low 5 bits are the CRC
+            byte crc = offset & 0x1F;
+            // offset must be 32-byte aligned
+            offset &= ~0x1F;
+
+            loginfo("mempack read: crc %02X offset: %d", crc, offset);
+
+            // The most significant bit in the address is not used for the mempak.
+            // The game will identify whether the connected device is a mempak or something else by writing to
+            // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
+            // something else, depending on the data it returns.
+            offset &= 0x7FE0;
+
+            for (int i = 0; i < 32; i++) {
+                system->mem.pif_ram[(*index)++] = system->mem.mempack_data[offset + i];
+            }
+
+            // CRC byte
+            system->mem.pif_ram[(*index)++] = data_crc(&system->mem.mempack_data[offset]);
+
             break;
-        case PIF_COMMAND_MEMPACK_WRITE:
+        }
+        case PIF_COMMAND_MEMPACK_WRITE: {
             unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
             unimplemented(reslen != 1, "Mempack write with reslen != 1");
-            system->mem.pif_ram[r_index]   |= 0x80; // Device not present
-            system->mem.pif_ram[(*index) + 34] = 0x00;
-            (*index) += 35; // NOOP
+            init_mempack(&system->mem, system->rom_path);
+            // First two bytes in the command are the offset
+            half offset = system->mem.pif_ram[(*index)++] << 8;
+            offset |= system->mem.pif_ram[(*index)++];
+
+            // low 5 bits are the CRC
+            byte crc = offset & 0x1F;
+            // offset must be 32-byte aligned
+            offset &= ~0x1F;
+            loginfo("mempack write: crc %02X offset: %d / 0x%04X", crc, offset, offset);
+
+            // The most significant bit in the address is not used for the mempak.
+            // The game will identify whether the connected device is a mempak or something else by writing to
+            // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
+            // something else, depending on the data it returns.
+            offset &= 0x7FE0;
+
+            int data_start_index = *index;
+            for (int i = 0; i < 32; i++) {
+                system->mem.mempack_data[offset + i] = system->mem.pif_ram[(*index)++];
+            }
+            system->mem.mempack_data_dirty = true;
+            // CRC byte
+            system->mem.pif_ram[(*index)++] = data_crc(&system->mem.pif_ram[data_start_index]);
             break;
+        }
         case PIF_COMMAND_EEPROM_READ:
-            logfatal("PIF_COMMAND_EEPROM_READ");
+            unimplemented(cmdlen != 2, "EEPROM read with cmdlen != 2");
+            unimplemented(reslen != 8, "EEPROM read with reslen != 8");
+            unimplemented(system->mem.save_data == NULL, "EEPROM read when save data is uninitialized! Is this game in the game DB?");
+            if (*channel == 4) {
+                byte offset = system->mem.pif_ram[(*index)++];
+                if ((offset * 8) >= system->mem.save_size) {
+                    logfatal("Out of range EEPROM read! offset: 0x%02X", offset);
+                }
+
+                for (int i = 0; i < 8; i++) {
+                    system->mem.pif_ram[(*index)++] = system->mem.save_data[(offset * 8) + i];
+                }
+            } else {
+                logfatal("EEPROM read on bad channel %d", *channel);
+            }
+            break;
         case PIF_COMMAND_EEPROM_WRITE:
-            logfatal("PIF_COMMAND_EEPROM_WRITE");
+            unimplemented(cmdlen != 10, "EEPROM write with cmdlen != 10");
+            unimplemented(reslen != 1,  "EEPROM write with reslen != 1");
+            unimplemented(system->mem.save_data == NULL, "EEPROM write when save data is uninitialized! Is this game in the game DB?");
+            if (*channel == 4) {
+                byte offset = system->mem.pif_ram[(*index)++];
+                if ((offset * 8) >= system->mem.save_size) {
+                    logfatal("Out of range EEPROM write! offset: 0x%02X", offset);
+                }
+
+                for (int i = 0; i < 8; i++) {
+                    system->mem.save_data[(offset * 8) + i] = system->mem.pif_ram[(*index)++];
+                }
+
+                system->mem.pif_ram[(*index)++] = 0; // Error byte, I guess it always succeeds?
+            } else {
+                logfatal("EEPROM write on bad channel %d", *channel);
+            }
+            system->mem.save_data_dirty = true;
+            break;
         default:
             logfatal("Unknown PIF command: %d", command);
     }

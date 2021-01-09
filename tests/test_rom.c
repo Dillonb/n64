@@ -4,7 +4,8 @@
 #include <log.h>
 #include <system/n64system.h>
 #include <cpu/mips_instructions.h>
-#include <mem/dma.h>
+#include <cpu/r4300i_register_access.h>
+#include <mem/n64bus.h>
 
 #define MAX_STEPS 10000000
 #define TEST_FAILED_REGISTER 30
@@ -29,17 +30,20 @@ int main(int argc, char** argv) {
 
     log_set_verbosity(LOG_VERBOSITY_DEBUG);
 
-    n64_system_t* system = init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE);
+    n64_system_t* system = init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE, false);
     // Normally handled by the bootcode, we gotta do it ourselves.
-    run_dma(system, 0x10001000, 0x00001000, 1048576, "CART to DRAM");
+    for (int i = 0; i < 1048576; i++) {
+        byte b = n64_read_byte(system, 0x10001000 + i);
+        n64_write_byte(system, 0x00001000 + i, b);
+    }
 
-    set_pc_r4300i(&system->cpu, system->mem.rom.header.program_counter);
+    set_pc_word_r4300i(&system->cpu, system->mem.rom.header.program_counter);
 
-    loginfo("Initial PC: 0x%08X\n", system->cpu.pc);
+    loginfo("Initial PC: 0x%016lX\n", system->cpu.pc);
 
     int steps = 0;
     for (; steps < MAX_STEPS && !test_complete(system); steps++) {
-        n64_system_step(system);
+        n64_system_step(system, false);
     }
 
     if (!test_complete(system)) {

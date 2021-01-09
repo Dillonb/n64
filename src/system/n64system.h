@@ -15,6 +15,19 @@ extern "C" {
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
 #define CYCLES_PER_INSTR 1
 
+// The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
+// There are 1562500 cycles per frame.
+// Because this doesn't divide nicely by 262, we have to run some lines for 1 more cycle than others.
+// We call these the "long" lines, and the others the "short" lines.
+
+// 5963*68+5964*194 == 1562500
+
+#define NUM_SHORTLINES 68
+#define NUM_LONGLINES  194
+
+#define SHORTLINE_CYCLES 5963
+#define LONGLINE_CYCLES  5964
+
 typedef enum n64_video_type {
     UNKNOWN_VIDEO_TYPE,
     OPENGL,
@@ -173,17 +186,20 @@ typedef struct n64_system {
     n64_dpc_t dpc;
     n64_debugger_state_t debugger_state;
     n64_dynarec_t *dynarec;
+    bool use_interpreter;
+    const char *rom_path;
 } n64_system_t;
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type);
+n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
 
-void n64_system_step(n64_system_t* system);
+void n64_system_step(n64_system_t* system, bool dynarec);
 void n64_system_loop(n64_system_t* system);
 void n64_system_cleanup(n64_system_t* system);
 void n64_request_quit();
 void interrupt_raise(n64_interrupt_t interrupt);
 void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt);
 void on_interrupt_change(n64_system_t* system);
+void check_vsync(n64_system_t* system);
 extern n64_system_t* global_system;
 #ifdef __cplusplus
 }

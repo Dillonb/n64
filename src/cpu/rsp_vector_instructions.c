@@ -1,9 +1,14 @@
 #include "rsp_vector_instructions.h"
 
+#ifdef N64_USE_SIMD
 #include <emmintrin.h>
+#endif
 
 #include <log.h>
+#ifdef N64_USE_SIMD
 #include <tmmintrin.h>
+#include <immintrin.h>
+#endif
 #include "rsp.h"
 #include "rsp_rom.h"
 
@@ -40,35 +45,69 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
         case 0 ... 1:
             return *vt;
         case 2:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11110101), 0b11110101);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 3:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10100000), 0b10100000);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 4:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11111111), 0b11111111);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 5:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10101010), 0b10101010);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 6:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b01010101), 0b01010101);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
         case 7:
+#ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b00000000), 0b00000000);
+#else
+            logfatal("UNIMPLEMENTED: SISD version of this");
+#endif
             break;
-        case 8 ... 15:
+        case 8 ... 15: {
+            int index = 7 - (e - 8);
+#ifdef N64_USE_SIMD
+            vte.single = _mm_set1_epi16(vt->elements[index]);
+#else
             for (int i = 0; i < 8; i++) {
-                int index = 7 - (e - 8);
                 half val = vt->elements[index];
                 vte.elements[i] = val;
             }
+#endif
             break;
+        }
         default:
             logfatal("vte where e > 15");
     }
 
     return vte;
+}
+
+
+vu_reg_t ext_get_vte(vu_reg_t* vt, byte e) {
+    return get_vte(vt, e);
 }
 
 
@@ -87,8 +126,9 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
 INLINE int sign_extend_7bit_offset(byte offset, int shift_amount) {
     sbyte soffset = ((offset << 1) & 0x80) | offset;
 
-    int ofs = soffset;
-    return ofs << shift_amount;
+    sword ofs = soffset;
+    word uofs = ofs;
+    return uofs << shift_amount;
 }
 
 word rcp(sword sinput) {
@@ -156,32 +196,23 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
     logdebug("rsp_lwc2_lfv");
+    logwarn("LFV executed, this instruction is known to be buggy!");
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
     int e = instruction.v.element;
-    int start = e;
-    int end = (start + 8);
-    if (end > 15) {
-        end = 15;
-    }
+    int start = e >> 1;
+    int end = (start + 4);
 
-    printf("LFV 0x%08X e %d\n", address, e);
-    printf("%d -> %d (e = %d)\n", start, end, e);
-    for (int i = e; i < end; i += 2) {
-        printf("i: %d: ", i);
+    for (int i = e; i < end; i++) {
         half val = rsp->read_byte(address);
         int shift_amount = e & 7;
         if (shift_amount == 0) {
             shift_amount = 7;
         }
-        printf("%02X << %d == ", val, shift_amount);
         val <<= shift_amount;
-        printf("%04X\n", val);
         byte low = val & 0xFF;
         byte high = (val >> 8) & 0xFF;
         rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + 0) & 15)] = high;
-        printf("byte %d = 0x%02X\n", ((i + 0) & 15), high);
         rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + 1) & 15)] = low;
-        printf("byte %d = 0x%02X\n", ((i + 1) & 15), low);
         address += 4;
     }
 }
@@ -331,7 +362,20 @@ RSP_VECTOR_INSTR(rsp_swc2_sdv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_sfv) {
     logdebug("rsp_swc2_sfv");
-    logfatal("Unimplemented: rsp_swc2_sfv");
+    logwarn("SFV executed, this instruction is known to be buggy!");
+    defvt;
+    word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
+    int e = instruction.v.element;
+
+    int start = e >> 1;
+    int end = start + 4;
+    int base = address & 15;
+
+    address &= ~15;
+    for(int i = start; i < end; i++) {
+        rsp->write_byte(address + (base & 15), vt->elements[7 - (i & 7)] >> 7);
+        base += 4;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_shv) {
@@ -480,21 +524,21 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
     switch (instruction.r.rd) {
         case 0: { // VCO
             for (int i = 0; i < 8; i++) {
-                rsp->vco.h.elements[7 - i] = ((value >> (i + 8)) & 1) == 1;
-                rsp->vco.l.elements[7 - i] = ((value >> i) & 1) == 1;
+                rsp->vco.h.elements[7 - i] = FLAGREG_BOOL(((value >> (i + 8)) & 1) == 1);
+                rsp->vco.l.elements[7 - i] = FLAGREG_BOOL(((value >> i) & 1) == 1);
             }
             break;
         }
         case 1: { // VCC
             for (int i = 0; i < 8; i++) {
-                rsp->vcc.h.elements[7 - i] = ((value >> (i + 8)) & 1) == 1;
-                rsp->vcc.l.elements[7 - i] = ((value >> i) & 1) == 1;
+                rsp->vcc.h.elements[7 - i] = FLAGREG_BOOL(((value >> (i + 8)) & 1) == 1);
+                rsp->vcc.l.elements[7 - i] = FLAGREG_BOOL(((value >> i) & 1) == 1);
             }
             break;
         }
         case 2: { // VCE
             for (int i = 0; i < 8; i++) {
-                rsp->vce.elements[7 - i] = ((value >> i) & 1) == 1;
+                rsp->vce.elements[7 - i] = FLAGREG_BOOL(((value >> i) & 1) == 1);
             }
             break;
         }
@@ -528,10 +572,45 @@ RSP_VECTOR_INSTR(rsp_vec_vabs) {
     defvd;
     defvte;
 
-    __m128i res = _mm_sign_epi16(vte.single, vs->single);
-    rsp->acc.l.single = res;
-    vd->single = res;
+#ifdef N64_USE_SIMD
+    // check if each element is zero
+    __m128i vs_is_zero = _mm_cmpeq_epi16(vs->single, rsp->zero);
 
+    // arithmetic shift right by 15 (effectively sets each bit of the number to the sign bit)
+    __m128i vs_is_negative = _mm_srai_epi16(vs->single, 15);
+    // (!vs_is_zero) & vte
+    // for each vte element, outputs zero if the corresponding vs element is zero, or else outputs the regular vte element.
+    __m128i temp = _mm_andnot_si128(vs_is_zero, vte.single);
+
+    // xor each element of the temp var with whether the vs element is negative
+    // If the vs element is negative, flip all the bits. Otherwise, do nothing.
+    temp = _mm_xor_si128(temp, vs_is_negative);
+    // acc.l = temp[element] - (is_negative[element] ? 0xFFFF : 0)
+    rsp->acc.l.single = _mm_sub_epi16(temp, vs_is_negative);
+
+    // only difference here is that this a _signed_ subtraction
+    // handle the special case where vte.elements[i] == 0x8000
+    // acc.l = temp[element] - (is_negative[element] ? -1 : 0)
+    vd->single = _mm_subs_epi16(temp, vs_is_negative);
+#else
+    for (int i = 0; i < 8; i++) {
+        if (vs->signed_elements[i] < 0) {
+            if (unlikely(vte.elements[i] == 0x8000)) {
+                vd->elements[i] = 0x7FFF;
+                rsp->acc.l.elements[i] = 0x8000;
+            } else {
+                vd->elements[i] = -vte.signed_elements[i];
+                rsp->acc.l.elements[i] = -vte.signed_elements[i];
+            }
+        } else if (vs->elements[i] == 0) {
+            vd->elements[i] = 0x0000;
+            rsp->acc.l.elements[i] = 0x0000;
+        } else {
+            vd->elements[i] = vte.elements[i];
+            rsp->acc.l.elements[i] = vte.elements[i];
+        }
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vadd) {
@@ -546,8 +625,8 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
         sword result = vs_element + vte_element + (rsp->vco.l.elements[i] != 0);
         rsp->acc.l.elements[i] = result;
         vd->elements[i] = clamp_signed(result);
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -563,8 +642,8 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
         word result = vs_element + vte_element;
         rsp->acc.l.elements[i] = result & 0xFFFF;
         vd->elements[i] = result & 0xFFFF;
-        rsp->vco.l.elements[i] = (result >> 16) & 1;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL((result >> 16) & 1);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -595,20 +674,20 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
             shalf result = vs_element + vte_element;
 
             rsp->acc.l.signed_elements[i] = (result <= 0 ? -vte_element : vs_element);
-            rsp->vcc.l.elements[i] = result <= 0;
-            rsp->vcc.h.elements[i] = vte_element < 0;
-            rsp->vco.l.elements[i] = 1;
-            rsp->vco.h.elements[i] = result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF);
-            rsp->vce.elements[i] = result == -1;
+            rsp->vcc.l.elements[i] = FLAGREG_BOOL(result <= 0);
+            rsp->vcc.h.elements[i] = FLAGREG_BOOL(vte_element < 0);
+            rsp->vco.l.elements[i] = FLAGREG_BOOL(1);
+            rsp->vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF));
+            rsp->vce.elements[i]   = FLAGREG_BOOL(result == -1);
         } else {
             shalf result = vs_element - vte_element;
 
             rsp->acc.l.elements[i] = (result >= 0 ? vte_element : vs_element);
-            rsp->vcc.l.elements[i] = vte_element < 0;
-            rsp->vcc.h.elements[i] = result >= 0;
-            rsp->vco.l.elements[i] = 0;
-            rsp->vco.h.elements[i] = result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF);
-            rsp->vce.elements[i] = 0;
+            rsp->vcc.l.elements[i] = FLAGREG_BOOL(vte_element < 0);
+            rsp->vcc.h.elements[i] = FLAGREG_BOOL(result >= 0);
+            rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+            rsp->vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF));
+            rsp->vce.elements[i]   = FLAGREG_BOOL(0);
         }
 
         vd->elements[i] = rsp->acc.l.elements[i];
@@ -624,13 +703,13 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
         half vs_element = vs->elements[i];
         half vte_element = vte.elements[i];
         if (rsp->vco.l.elements[i] == 0 && rsp->vco.h.elements[i] == 0) {
-            rsp->vcc.h.elements[i] = vs_element >= vte_element;
+            rsp->vcc.h.elements[i] = FLAGREG_BOOL(vs_element >= vte_element);
         }
 
         if (rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] == 0) {
             bool lte = vs_element + vte_element <= 0xFFFF;
             bool eql = (shalf)vs_element == -(shalf)vte_element;
-            rsp->vcc.l.elements[i] = rsp->vce.elements[i] != 0 ? lte : eql;
+            rsp->vcc.l.elements[i] = FLAGREG_BOOL(rsp->vce.elements[i] != 0 ? lte : eql);
         }
         bool clip = rsp->vco.l.elements[i] != 0 ? rsp->vcc.l.elements[i] : rsp->vcc.h.elements[i];
         half vtabs = rsp->vco.l.elements[i] != 0 ? -(half)vte_element : (half)vte_element;
@@ -640,10 +719,10 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
 
     }
     for (int i = 0; i < 8; i++) {
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
 
-        rsp->vce.elements[i] = 0;
+        rsp->vce.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -673,12 +752,12 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
         rsp->acc.l.elements[i] = result;
         vd->elements[i] = result;
 
-        rsp->vcc.h.elements[i] = gte;
-        rsp->vcc.l.elements[i] = lte;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(gte);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL(lte);
 
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vce.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vce.elements[i] = FLAGREG_BOOL(0);
 
     }
 }
@@ -690,13 +769,13 @@ RSP_VECTOR_INSTR(rsp_vec_veq) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        rsp->vcc.l.elements[i] = (rsp->vco.h.elements[i] == 0) && (vs->elements[i] == vte.elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL((rsp->vco.h.elements[i] == 0) && (vs->elements[i] == vte.elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -710,12 +789,12 @@ RSP_VECTOR_INSTR(rsp_vec_vge) {
         bool eql = vs->signed_elements[i] == vte.signed_elements[i];
         bool neg = !(rsp->vco.l.elements[i] != 0 && rsp->vco.h.elements[i] != 0) && eql;
 
-        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] > vte.signed_elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL(neg || (vs->signed_elements[i] > vte.signed_elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
 
     }
 }
@@ -729,12 +808,12 @@ RSP_VECTOR_INSTR(rsp_vec_vlt) {
     for (int i = 0; i < 8; i++) {
         bool eql = vs->elements[i] == vte.elements[i];
         bool neg = rsp->vco.h.elements[i] != 0 && rsp->vco.l.elements[i] != 0 && eql;
-        rsp->vcc.l.elements[i] = neg || (vs->signed_elements[i] < vte.signed_elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL(neg || (vs->signed_elements[i] < vte.signed_elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -770,7 +849,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
     defvs;
     defvd;
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -792,6 +870,20 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
     defvs;
     defvd;
     defvte;
+#ifdef N64_USE_SIMD
+    vecr lo, hi, omask;
+    lo                 = _mm_mullo_epi16(vs->single, vte.single);
+    hi                 = _mm_mulhi_epi16(vs->single, vte.single);
+    omask              = _mm_adds_epu16(rsp->acc.m.single, lo);
+    rsp->acc.m.single  = _mm_add_epi16(rsp->acc.m.single, lo);
+    omask              = _mm_cmpeq_epi16(rsp->acc.m.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_sub_epi16(hi, omask);
+    rsp->acc.h.single  = _mm_add_epi16(rsp->acc.h.single, hi);
+    lo                 = _mm_unpacklo_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    hi                 = _mm_unpackhi_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    vd->single         = _mm_packs_epi32(lo, hi);
+#else
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -806,6 +898,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
         set_rsp_accumulator(rsp, e, acc);
         vd->elements[e] = result;
     }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadl) {
@@ -814,9 +907,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = vte.elements[e];
-        half multiplicand2 = vs->elements[e];
-        word prod = multiplicand1 * multiplicand2;
+        dword multiplicand1 = vte.elements[e];
+        dword multiplicand2 = vs->elements[e];
+        dword prod = multiplicand1 * multiplicand2;
 
         dword acc_delta = prod >> 16;
         dword acc = get_rsp_accumulator(rsp, e) + acc_delta;
@@ -840,6 +933,29 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
     defvs;
     defvd;
     defvte;
+#ifdef N64_USE_SIMD
+    vecr lo, hi, sign, vta, omask;
+    lo                 = _mm_mullo_epi16(vs->single, vte.single);
+    hi                 = _mm_mulhi_epu16(vs->single, vte.single);
+    sign               = _mm_srai_epi16(vs->single, 15);
+    vta                = _mm_and_si128(vte.single, sign);
+    hi                 = _mm_sub_epi16(hi, vta);
+    omask              = _mm_adds_epu16(rsp->acc.l.single, lo);
+    rsp->acc.l.single  = _mm_add_epi16(rsp->acc.l.single, lo);
+    omask              = _mm_cmpeq_epi16(rsp->acc.l.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_sub_epi16(hi, omask);
+    omask              = _mm_adds_epu16(rsp->acc.m.single, hi);
+    rsp->acc.m.single  = _mm_add_epi16(rsp->acc.m.single, hi);
+    omask              = _mm_cmpeq_epi16(rsp->acc.m.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_srai_epi16(hi, 15);
+    rsp->acc.h.single  = _mm_add_epi16(rsp->acc.h.single, hi);
+    rsp->acc.h.single  = _mm_sub_epi16(rsp->acc.h.single, omask);
+    lo                 = _mm_unpacklo_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    hi                 = _mm_unpackhi_epi16(rsp->acc.m.single, rsp->acc.h.single);
+    vd->single         = _mm_packs_epi32(lo, hi);
+#else
     for (int e = 0; e < 8; e++) {
         half multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -854,6 +970,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
         set_rsp_accumulator(rsp, e, acc);
         vd->elements[e] = result;
     }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmadn) {
@@ -861,6 +978,33 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
     defvs;
     defvd;
     defvte;
+#ifdef N64_USE_SIMD
+    vecr lo, hi, sign, vsa, omask, nhi, nmd, shi, smd, cmask, cval;
+    lo                 = _mm_mullo_epi16(vs->single, vte.single);
+    hi                 = _mm_mulhi_epu16(vs->single, vte.single);
+    sign               = _mm_srai_epi16(vte.single, 15);
+    vsa                = _mm_and_si128(vs->single, sign);
+    hi                 = _mm_sub_epi16(hi, vsa);
+    omask              = _mm_adds_epu16(rsp->acc.l.single, lo);
+    rsp->acc.l.single  = _mm_add_epi16(rsp->acc.l.single, lo);
+    omask              = _mm_cmpeq_epi16(rsp->acc.l.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_sub_epi16(hi, omask);
+    omask              = _mm_adds_epu16(rsp->acc.m.single, hi);
+    rsp->acc.m.single  = _mm_add_epi16(rsp->acc.m.single, hi);
+    omask              = _mm_cmpeq_epi16(rsp->acc.m.single, omask);
+    omask              = _mm_cmpeq_epi16(omask, rsp->zero);
+    hi                 = _mm_srai_epi16(hi, 15);
+    rsp->acc.h.single  = _mm_add_epi16(rsp->acc.h.single, hi);
+    rsp->acc.h.single  = _mm_sub_epi16(rsp->acc.h.single, omask);
+    nhi                = _mm_srai_epi16(rsp->acc.h.single, 15);
+    nmd                = _mm_srai_epi16(rsp->acc.m.single, 15);
+    shi                = _mm_cmpeq_epi16(nhi, rsp->acc.h.single);
+    smd                = _mm_cmpeq_epi16(nhi, nmd);
+    cmask              = _mm_and_si128(smd, shi);
+    cval               = _mm_cmpeq_epi16(nhi, rsp->zero);
+    vd->single         = _mm_blendv_epi8(cval, rsp->acc.l.single, cmask);
+#else
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         half multiplicand2 = vs->elements[e];
@@ -883,6 +1027,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
 
         vd->elements[e] = result;
     }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmov) {
@@ -912,10 +1057,15 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
     byte de = instruction.cp2_vec.vs & 7;
 
     half vte_elem = vte.elements[7 - se];
-    vecr vte_single = vte.single;
-
+#ifdef N64_USE_SIMD
     vd->elements[7 - de] = vte_elem;
-    rsp->acc.l.single = vte_single;
+    rsp->acc.l = vte;
+#else
+    vd->elements[7 - de] = vte_elem;
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vte[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmrg) {
@@ -928,8 +1078,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmrg) {
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -943,7 +1093,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
         shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
-        sdword acc = prod;
+        dword acc = (sdword)prod;
 
         shalf result = clamp_signed(acc);
 
@@ -960,9 +1110,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = vte.elements[e];
-        half multiplicand2 = vs->elements[e];
-        word prod = multiplicand1 * multiplicand2;
+        dword multiplicand1 = vte.elements[e];
+        dword multiplicand2 = vs->elements[e];
+        dword prod = multiplicand1 * multiplicand2;
 
         dword acc = prod >> 16;
 
@@ -1057,7 +1207,6 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
     defvs;
     defvd;
     defvte;
-    elementzero;
     for (int e = 0; e < 8; e++) {
         shalf multiplicand1 = vte.elements[e];
         shalf multiplicand2 = vs->elements[e];
@@ -1075,12 +1224,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
 
 RSP_VECTOR_INSTR(rsp_vec_vnand) {
     logdebug("rsp_vec_vnand");
-    elementzero;
     defvs;
     defvd;
-    defvt;
+    defvte;
     for (int i = 0; i < 8; i++) {
-        half result = ~(vt->elements[i] & vs->elements[i]);
+        half result = ~(vte.elements[i] & vs->elements[i]);
         vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
@@ -1093,30 +1241,25 @@ RSP_VECTOR_INSTR(rsp_vec_vne) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        rsp->vcc.l.elements[i] = (rsp->vco.h.elements[i] != 0) || (vs->elements[i] != vte.elements[i]);
+        rsp->vcc.l.elements[i] = FLAGREG_BOOL((rsp->vco.h.elements[i] != 0) || (vs->elements[i] != vte.elements[i]));
         rsp->acc.l.elements[i] = rsp->vcc.l.elements[i] != 0 ? vs->elements[i] : vte.elements[i];
         vd->elements[i] = rsp->acc.l.elements[i];
 
-        rsp->vcc.h.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
-        rsp->vco.l.elements[i] = 0;
+        rsp->vcc.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
-RSP_VECTOR_INSTR(rsp_vec_vnop) {
-    logdebug("rsp_vec_vnop");
-    logfatal("Unimplemented: rsp_vec_vnop");
-    elementzero;
-}
+RSP_VECTOR_INSTR(rsp_vec_vnop) {}
 
 RSP_VECTOR_INSTR(rsp_vec_vnor) {
     logdebug("rsp_vec_vnor");
-    elementzero;
     defvs;
     defvd;
-    defvt;
+    defvte;
     for (int i = 0; i < 8; i++) {
-        half result = ~(vt->elements[i] | vs->elements[i]);
+        half result = ~(vte.elements[i] | vs->elements[i]);
         vd->elements[i] = result;
         rsp->acc.l.elements[i] = result;
     }
@@ -1158,7 +1301,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
     defvte;
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vte.elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
@@ -1179,7 +1328,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     rsp->divin = 0;
     rsp->divin_loaded = false;
     defvte;
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vte.elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
@@ -1199,13 +1354,21 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     sword input;
     defvd;
     defvt;
+    defvte;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     input = vt->signed_elements[7 - e];
     word result = rsq(input);
     vd->elements[7 - de] = result & 0xFFFF;
     rsp->divout = (result >> 16) & 0xFFFF;
-    rsp->acc.l.single = vt->single;
+
+#ifdef N64_USE_SIMD
+    rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vt->elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
@@ -1215,7 +1378,13 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     defvte;
     byte de = instruction.cp2_vec.vs;
 
+#ifdef N64_USE_SIMD
     rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vt->elements[i];
+    }
+#endif
     rsp->divin_loaded = true;
     rsp->divin = vt->elements[7 - (instruction.cp2_vec.e & 7)];
     vd->elements[7 - (de & 7)] = rsp->divout;
@@ -1224,6 +1393,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     logdebug("rsp_vec_vrsql");
     defvt;
+    defvte;
     defvd;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
@@ -1238,7 +1408,14 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     rsp->divout = (result >> 16) & 0xFFFF;
     rsp->divin = 0;
     rsp->divin_loaded = false;
-    rsp->acc.l.single = vt->single;
+
+#ifdef N64_USE_SIMD
+    rsp->acc.l.single = vte.single;
+#else
+    for (int i = 0; i < 8; i++) {
+        rsp->acc.l.elements[i] = vt->elements[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
@@ -1246,13 +1423,31 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
     defvd;
     switch (instruction.cp2_vec.e) {
         case 0x8:
+#ifdef N64_USE_SIMD
             vd->single = rsp->acc.h.single;
+#else
+            for (int i = 0; i < 8; i++) {
+                vd->elements[i] = rsp->acc.h.elements[i];
+            }
+#endif
             break;
         case 0x9:
+#ifdef N64_USE_SIMD
             vd->single = rsp->acc.m.single;
+#else
+            for (int i = 0; i < 8; i++) {
+                vd->elements[i] = rsp->acc.m.elements[i];
+            }
+#endif
             break;
         case 0xA:
+#ifdef N64_USE_SIMD
             vd->single = rsp->acc.l.single;
+#else
+            for (int i = 0; i < 8; i++) {
+                vd->elements[i] = rsp->acc.l.elements[i];
+            }
+#endif
             break;
         default: // Not actually sure what the default behavior is here
             for (int i = 0; i < 8; i++) {
@@ -1272,8 +1467,8 @@ RSP_VECTOR_INSTR(rsp_vec_vsub) {
         sword result = vs->signed_elements[i] - vte.signed_elements[i] - (rsp->vco.l.elements[i] != 0);
         rsp->acc.l.signed_elements[i] = result;
         vd->signed_elements[i] = clamp_signed(result);
-        rsp->vco.l.elements[i] = 0;
-        rsp->vco.h.elements[i] = 0;
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(0);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(0);
     }
 }
 
@@ -1290,8 +1485,8 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
 
         vd->elements[i] = hresult;
         rsp->acc.l.elements[i] = hresult;
-        rsp->vco.l.elements[i] = carry;
-        rsp->vco.h.elements[i] = result != 0; // not hresult, but I bet that'd also work
+        rsp->vco.l.elements[i] = FLAGREG_BOOL(carry);
+        rsp->vco.h.elements[i] = FLAGREG_BOOL(result != 0); // not hresult, but I bet that'd also work
     }
 }
 

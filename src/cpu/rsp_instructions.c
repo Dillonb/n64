@@ -61,6 +61,12 @@ RSP_INSTR(rsp_spc_sra) {
     set_rsp_register(rsp, instruction.r.rd, result);
 }
 
+RSP_INSTR(rsp_spc_srav) {
+    sword value = get_rsp_register(rsp, instruction.r.rt);
+    sword result = value >> (get_rsp_register(rsp, instruction.r.rs) & 0b11111);
+    set_rsp_register(rsp, instruction.r.rd, result);
+}
+
 RSP_INSTR(rsp_spc_srlv) {
     word value = get_rsp_register(rsp, instruction.r.rt);
     sword result = value >> (get_rsp_register(rsp, instruction.r.rs) & 0b11111);
@@ -109,6 +115,17 @@ RSP_INSTR(rsp_spc_slt) {
     }
 }
 
+RSP_INSTR(rsp_spc_sltu) {
+    word op1 = get_rsp_register(rsp, instruction.r.rs);
+    word op2 = get_rsp_register(rsp, instruction.r.rt);
+
+    if (op1 < op2) {
+        set_rsp_register(rsp, instruction.r.rd, 1);
+    } else {
+        set_rsp_register(rsp, instruction.r.rd, 0);
+    }
+}
+
 RSP_INSTR(rsp_spc_add) {
     word addend1 = get_rsp_register(rsp, instruction.r.rs);
     word addend2 = get_rsp_register(rsp, instruction.r.rt);
@@ -124,6 +141,7 @@ RSP_INSTR(rsp_spc_and) {
 
 RSP_INSTR(rsp_spc_break) {
     rsp->status.halt = true;
+    rsp->steps = 0;
     rsp->status.broke = true;
 
     if (rsp->status.intr_on_break) {
@@ -208,6 +226,26 @@ RSP_INSTR(rsp_j) {
 RSP_INSTR(rsp_jal) {
     rsp_link(rsp);
     rsp_branch_abs(rsp, instruction.j.target);
+}
+
+RSP_INSTR(rsp_slti) {
+        shalf immediate = instruction.i.immediate;
+        sword reg = get_rsp_register(rsp, instruction.i.rs);
+        if (reg < immediate) {
+            set_rsp_register(rsp, instruction.i.rt, 1);
+        } else {
+            set_rsp_register(rsp, instruction.i.rt, 0);
+        }
+}
+
+RSP_INSTR(rsp_sltiu) {
+    shalf immediate = instruction.i.immediate;
+    word reg = get_rsp_register(rsp, instruction.i.rs);
+    if (reg < immediate) {
+        set_rsp_register(rsp, instruction.i.rt, 1);
+    } else {
+        set_rsp_register(rsp, instruction.i.rt, 0);
+    }
 }
 
 RSP_INSTR(rsp_spc_jr) {

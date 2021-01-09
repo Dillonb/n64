@@ -8,19 +8,17 @@ configure_file(../contrib/tools/dynasm/dasm_ppc.lua dynasm/dasm_ppc.lua COPYONLY
 configure_file(../contrib/tools/dynasm/dasm_x64.lua dynasm/dasm_x64.lua COPYONLY)
 configure_file(../contrib/tools/dynasm/dasm_x86.lua dynasm/dasm_x86.lua COPYONLY)
 
-configure_file(dynarec.dasc dynarec.dasc COPYONLY)
-
 add_executable(minilua ../contrib/tools/minilua.c)
 target_link_libraries(minilua m)
 
 add_custom_command(OUTPUT dynarec.c
-        COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 -o dynarec.c dynarec.dasc
-        BYPRODUCTS dynarec.c
-        DEPENDS minilua dynarec.dasc
+        COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 -o dynarec.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec.dasc
+        MAIN_DEPENDENCY dynarec.dasc
+        DEPENDS minilua
         )
 
 add_library(r4300i
-        r4300i.c r4300i.h
+        r4300i.c r4300i.h r4300i_register_access.h
         mips_instructions.c mips_instructions.h
         tlb_instructions.c tlb_instructions.h
         rsp_interface.c rsp_interface.h

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 extern unsigned int n64_log_verbosity;
+extern unsigned int next_n64_log_verbosity;
 
 #define COLOR_RED       "\033[0;31m"
 #define COLOR_GREEN     "\033[0;32m"
@@ -22,7 +23,9 @@ extern unsigned int n64_log_verbosity;
 #endif
 
 
-#define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity;} while(0)
+#define log_set_verbosity(new_verbosity) do {n64_log_verbosity = new_verbosity; next_n64_log_verbosity = new_verbosity;} while(0)
+#define delayed_log_set_verbosity(new_verbosity) do {next_n64_log_verbosity = new_verbosity;} while(0)
+#define update_delayed_log_verbosity() do {n64_log_verbosity = next_n64_log_verbosity;} while(0)
 #define log_get_verbosity() n64_log_verbosity
 
 #define logfatal(message,...) do { \

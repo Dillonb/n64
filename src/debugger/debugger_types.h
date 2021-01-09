@@ -22,6 +22,7 @@ INLINE bool check_breakpoint(n64_debugger_state_t* state, word address) {
     n64_breakpoint_t* cur = state->breakpoints;
     while (cur != NULL) {
         if (cur->address == address) {
+            logalways("Hit breakpoint at 0x%08X\n", address);
             return true;
         }
         cur = cur->next;

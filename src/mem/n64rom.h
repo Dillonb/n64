@@ -35,7 +35,9 @@ typedef struct n64_rom {
     size_t pif_rom_size;
     n64_header_t header;
     n64_cic_type_t cic_type;
-    char game_name[20];
+    char game_name_cartridge[20];
+    const char* game_name_db;
+    char code[4];
 } n64_rom_t;
 
 void load_n64rom(n64_rom_t* rom, const char* path);

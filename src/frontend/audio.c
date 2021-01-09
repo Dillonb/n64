@@ -1,17 +1,29 @@
 #include <SDL_audio.h>
+#include <pthread.h>
 #include "audio.h"
 
 #define AUDIO_SAMPLE_RATE 48000
 static SDL_AudioStream* audio_stream = NULL;
+static pthread_mutex_t audio_stream_mutex;
 SDL_AudioSpec audio_spec;
 SDL_AudioSpec request;
 SDL_AudioDeviceID audio_dev;
 
+INLINE void acquire_audiostream_mutex() {
+    pthread_mutex_lock(&audio_stream_mutex);
+}
+
+INLINE void release_audiostream_mutex() {
+    pthread_mutex_unlock(&audio_stream_mutex);
+}
+
 void audio_callback(void* userdata, Uint8* stream, int length) {
     int gotten = 0;
+    acquire_audiostream_mutex();
     if (SDL_AudioStreamAvailable(audio_stream) > 0) {
         gotten = SDL_AudioStreamGet(audio_stream, stream, length);
     }
+    release_audiostream_mutex();
 
     if (gotten < length) {
         int gotten_samples = gotten / sizeof(float);
@@ -46,14 +58,21 @@ void audio_init(n64_system_t* system) {
     }
 
     SDL_PauseAudioDevice(audio_dev, false);
+
+    if (pthread_mutex_init(&audio_stream_mutex, NULL) != 0) {
+        logfatal("Unable to initialize mutex");
+    }
 }
 
 void adjust_audio_sample_rate(int sample_rate) {
+    logwarn("Adjusting audio sample rate, locking mutex!");
+    acquire_audiostream_mutex();
     if (audio_stream != NULL) {
         SDL_FreeAudioStream(audio_stream);
     }
 
     audio_stream = SDL_NewAudioStream(AUDIO_S16SYS, 2, sample_rate, AUDIO_F32SYS, 2, AUDIO_SAMPLE_RATE);
+    release_audiostream_mutex();
 }
 
 void audio_push_sample(shalf left, shalf right) {
@@ -62,5 +81,7 @@ void audio_push_sample(shalf left, shalf right) {
             right
     };
 
-    SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+    if (SDL_AudioStreamAvailable(audio_stream) < (AUDIO_SAMPLE_RATE / 2)) {
+        SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+    }
 }

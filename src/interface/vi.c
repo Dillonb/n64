@@ -47,6 +47,8 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
             if (system->vi.vsync != 0x20D) {
                 if (system->vi.vsync == 0x271) {
                     logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D.) This looks like a PAL ROM. These are currently not supported.", system->vi.vsync);
+                } else if (system->vi.vsync == 0x20C) {
+                    logwarn("Wrote 0x20C to VI_VSYNC, this is (valid NTSC value) - 1, I've seen some games do this, no idea why, ignoring...");
                 } else {
                     logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D)", system->vi.vsync);
                 }

@@ -14,7 +14,9 @@ using RDP::CommandProcessor;
 using RDP::CommandProcessorFlags;
 using RDP::VIRegister;
 
-static unique_ptr<CommandProcessor> command_processor;
+static CommandProcessor* command_processor;
+static WSI* wsi;
+
 std::vector<Semaphore> acquire_semaphore;
 
 #define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
@@ -73,11 +75,8 @@ public:
     }
 };
 
-
-static unique_ptr<WSI> wsi;
-
 void load_parallel_rdp(n64_system_t* system) {
-    wsi = std::make_unique<WSI>();
+    wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(new SDLWSIPlatform());
     if (!wsi->init(1, nullptr)) {
@@ -96,9 +95,9 @@ void load_parallel_rdp(n64_system_t* system) {
         logwarn("VK_EXT_external_memory_host is not supported by this device. Application might run slower because of this.");
     }
 
-    CommandProcessorFlags flags = 0; // TODO setup scaling in here later
+    CommandProcessorFlags flags = 1 << 1; // TODO configurable scaling
 
-    command_processor = std::make_unique<CommandProcessor>(wsi->get_device(), reinterpret_cast<void *>(aligned_rdram),
+    command_processor = new CommandProcessor(wsi->get_device(), reinterpret_cast<void *>(aligned_rdram),
                                         offset, 8 * 1024 * 1024, 4 * 1024 * 1024, flags);
 
     if (!command_processor->device_is_supported()) {
@@ -149,10 +148,20 @@ void update_screen_parallel_rdp(n64_system_t* system) {
                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 
-        cmd->blit_image(swapchain_image, image->get_view().get_image(),
+        Image& image_ref = image->get_view().get_image();
+
+        cmd->image_barrier(image_ref, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+
+        cmd->blit_image(swapchain_image, image_ref,
                         {}, dst_extent,
                         {}, src_extent,
                         0, 0);
+
+        cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
 
         cmd->uses_swapchain = true;
         wsi->get_device().submit(cmd);
@@ -226,10 +235,6 @@ void process_commands_parallel_rdp(n64_system_t* system) {
 
         int command_length = command_lengths[command];
 
-        if (command == 36) {
-            command_length = 4;
-        }
-
         // Check we actually have enough bytes left in the display list for this command, and save the remainder of the display list for the next run, if not.
         if ((buf_index + command_length) * 4 > display_list_length + (last_run_unprocessed_words * 4)) {
             // Copy remaining bytes back to the beginning of the display list, and save them for next run.
@@ -268,7 +273,7 @@ void process_commands_parallel_rdp(n64_system_t* system) {
         last_run_unprocessed_words = 0;
     }
 
-    dpc->start = end;
     dpc->current = end;
 
+    dpc->status.freeze = false;
 }

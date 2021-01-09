@@ -88,56 +88,96 @@
 #define FUNCT_RSP_VEC_VSUBC 0b010101
 #define FUNCT_RSP_VEC_VXOR  0b101100
 
+#define RSP_DRAM_ADDR_MASK 0xFFFFF8
+#define RSP_MEM_ADDR_MASK 0xFF8
+
+#define FLAGREG_BOOL(x) ((x) ? 0xFFFF : 0)
+
 INLINE void rsp_dma_read(rsp_t* rsp) {
-    word length = rsp->io.dma_read.length + 1;
+    word length = rsp->io.dma.length + 1;
+
+    dram_addr_t dram_addr_reg = rsp->io.shadow_dmem_addr;
+    mem_addr_t mem_addr_reg = rsp->io.shadow_mem_addr;
 
     length = (length + 0x7) & ~0x7;
 
-    word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
-    if (dram_address != rsp->io.dram_addr.address) {
-        logfatal("Misaligned DRAM RSP DMA READ!");
-    }
-    word mem_address = rsp->io.mem_addr.address & 0xFFC;
-    if (mem_address != rsp->io.mem_addr.address) {
-        logfatal("Misaligned MEM RSP DMA READ!");
+    if (mem_addr_reg.address + length > 0x1000) {
+        logfatal("RSP DMA READ would read off the end of memory!\n");
     }
 
-    for (int i = 0; i < rsp->io.dma_read.count + 1; i++) {
-        word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+    word dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
+    if (dram_address != dram_addr_reg.address) {
+        logwarn("Misaligned DRAM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", dram_addr_reg.address, dram_address);
+    }
+    word mem_address = mem_addr_reg.address & RSP_MEM_ADDR_MASK;
+    if (mem_address != mem_addr_reg.address) {
+        logwarn("Misaligned MEM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", mem_addr_reg.address, mem_address);
+    }
+
+    for (int i = 0; i < rsp->io.dma.count + 1; i++) {
+        word full_mem_addr = mem_address + (mem_addr_reg.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
         for (int j = 0; j < length; j += 4) {
             word val = rsp->read_physical_word(dram_address + j);
-            rsp->write_physical_word(mem_addr + j, val);
+            rsp->write_physical_word(full_mem_addr + j, val);
         }
 
-        dram_address += length + rsp->io.dma_read.skip;
+        int skip = i == rsp->io.dma.count ? 0 : rsp->io.dma.skip;
+
+        dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
         mem_address += length;
     }
+
+    // Set registers for reading now that DMA is complete
+    rsp->io.dram_addr.address = dram_address;
+    rsp->io.mem_addr.address = mem_address;
+    rsp->io.mem_addr.imem = mem_addr_reg.imem;
+
+    // Hardware seems to always return this value in the length register
+    // No real idea why
+    rsp->io.dma.raw = 0xFF8 | (rsp->io.dma.skip << 20);
 }
 
 INLINE void rsp_dma_write(rsp_t* rsp) {
-    word length = rsp->io.dma_write.length + 1;
+    word length = rsp->io.dma.length + 1;
+
+    dram_addr_t dram_addr = rsp->io.shadow_dmem_addr;
+    mem_addr_t mem_addr = rsp->io.shadow_mem_addr;
 
     length = (length + 0x7) & ~0x7;
 
-    word dram_address = rsp->io.dram_addr.address & 0xFFFFF8;
-    if (dram_address != rsp->io.dram_addr.address) {
-        logfatal("Misaligned DRAM RSP DMA WRITE!");
-    }
-    word mem_address = rsp->io.mem_addr.address & 0xFFC;
-    if (mem_address != rsp->io.mem_addr.address) {
-        logfatal("Misaligned MEM RSP DMA WRITE!");
+    if (mem_addr.address + length > 0x1000) {
+        logfatal("RSP DMA WRITE would write off the end of memory!\n");
     }
 
-    for (int i = 0; i < rsp->io.dma_write.count + 1; i++) {
-        word mem_addr = mem_address + (rsp->io.mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
+    word dram_address = dram_addr.address & RSP_DRAM_ADDR_MASK;
+    if (dram_address != dram_addr.address) {
+        logwarn("Misaligned DRAM RSP DMA WRITE! 0x%08X", dram_addr.address);
+    }
+    word mem_address = mem_addr.address & RSP_MEM_ADDR_MASK;
+    if (mem_address != mem_addr.address) {
+        logwarn("Misaligned MEM RSP DMA WRITE! 0x%08X", mem_addr.address);
+    }
+
+    for (int i = 0; i < rsp->io.dma.count + 1; i++) {
+        word full_mem_addr = mem_address + (mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
         for (int j = 0; j < length; j += 4) {
-            word val = rsp->read_physical_word(mem_addr + j);
+            word val = rsp->read_physical_word(full_mem_addr + j);
             rsp->write_physical_word(dram_address + j, val);
         }
 
-        dram_address += length + rsp->io.dma_write.skip;
+        int skip = i == rsp->io.dma.count ? 0 : rsp->io.dma.skip;
+
+        dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
         mem_address += length;
     }
+
+    rsp->io.dram_addr.address = dram_address;
+    rsp->io.mem_addr.address = mem_address;
+    rsp->io.mem_addr.imem = mem_addr.imem;
+
+    // Hardware seems to always return this value in the length register
+    // No real idea why
+    rsp->io.dma.raw = 0xFF8 | (rsp->io.dma.skip << 20);
 }
 
 INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
@@ -160,13 +200,14 @@ INLINE word get_rsp_register(rsp_t* rsp, byte r) {
 }
 
 bool rsp_acquire_semaphore(n64_system_t* system);
+void rsp_release_semaphore(n64_system_t* system);
 
 INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE:
+        case RSP_CP0_DMA_CACHE: return system->rsp.io.shadow_mem_addr.raw;
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
         case RSP_CP0_DMA_DRAM:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_DRAM", r);
+            return system->rsp.io.shadow_dmem_addr.raw;
         case RSP_CP0_DMA_READ_LENGTH:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r);
         case RSP_CP0_DMA_WRITE_LENGTH:
@@ -181,7 +222,8 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
         case RSP_CP0_CMD_CURRENT: return system->dpc.current;
         case RSP_CP0_CMD_STATUS:  return system->dpc.status.raw;
         case RSP_CP0_CMD_CLOCK:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);
+            logwarn("Read from RDP clock: returning 0.");
+            return 0;
         case RSP_CP0_CMD_BUSY:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
         case RSP_CP0_CMD_PIPE_BUSY:
@@ -195,14 +237,14 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
 
 INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: system->rsp.io.mem_addr.raw = value; break;
-        case RSP_CP0_DMA_DRAM:  system->rsp.io.dram_addr.raw = value; break;
+        case RSP_CP0_DMA_CACHE: system->rsp.io.shadow_mem_addr.raw = value; break;
+        case RSP_CP0_DMA_DRAM:  system->rsp.io.shadow_dmem_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
-            system->rsp.io.dma_read.raw = value;
+            system->rsp.io.dma.raw = value;
             rsp_dma_read(&system->rsp);
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            system->rsp.io.dma_write.raw = value;
+            system->rsp.io.dma.raw = value;
             rsp_dma_write(&system->rsp);
             break;
         case RSP_CP0_SP_STATUS:
@@ -214,7 +256,7 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r);
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
-                system->rsp.semaphore_held = false;
+                rsp_release_semaphore(system);
             } else {
                 logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value);
             }
@@ -291,7 +333,39 @@ INLINE byte rsp_get_vce(rsp_t* rsp) {
     return value;
 }
 
+INLINE void rsp_set_vcc(rsp_t* rsp, half vcc) {
+    for (int i = 0; i < 8; i++) {
+        rsp->vcc.l.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
+        vcc >>= 1;
+    }
+
+    for (int i = 0; i < 8; i++) {
+        rsp->vcc.h.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
+        vcc >>= 1;
+    }
+}
+
+INLINE void rsp_set_vco(rsp_t* rsp, half vco) {
+    for (int i = 0; i < 8; i++) {
+        rsp->vco.l.elements[7 - i] = FLAGREG_BOOL(vco & 1);
+        vco >>= 1;
+    }
+
+    for (int i = 0; i < 8; i++) {
+        rsp->vco.h.elements[7 - i] = FLAGREG_BOOL(vco & 1);
+        vco >>= 1;
+    }
+}
+
+INLINE void rsp_set_vce(rsp_t* rsp, half vce) {
+    for (int i = 0; i < 8; i++) {
+        rsp->vce.elements[7 - i] = FLAGREG_BOOL(vce & 1);
+        vce >>= 1;
+    }
+}
+
 void rsp_step(n64_system_t* system);
-int rsp_run(n64_system_t* system, int steps);
+void rsp_run(n64_system_t* system);
+vu_reg_t ext_get_vte(vu_reg_t* vt, byte e);
 
 #endif //N64_RSP_H

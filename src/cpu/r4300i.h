@@ -2,6 +2,7 @@
 #define N64_R4300I_H
 #include <stdbool.h>
 #include <assert.h>
+#include <string.h>
 
 #include <util.h>
 #include <log.h>
@@ -20,6 +21,7 @@
 #define R4300I_CP0_REG_CONTEXT  4
 #define R4300I_CP0_REG_PAGEMASK 5
 #define R4300I_CP0_REG_WIRED    6
+#define R4300I_CP0_REG_7        7
 #define R4300I_CP0_REG_BADVADDR 8
 #define R4300I_CP0_REG_COUNT    9
 #define R4300I_CP0_REG_ENTRYHI  10
@@ -27,13 +29,30 @@
 #define R4300I_CP0_REG_STATUS   12
 #define R4300I_CP0_REG_CAUSE    13
 #define R4300I_CP0_REG_EPC      14
+#define R4300I_CP0_REG_PRID     15
 #define R4300I_CP0_REG_CONFIG   16
+#define R4300I_CP0_REG_LLADDR   17
 #define R4300I_CP0_REG_WATCHLO  18
 #define R4300I_CP0_REG_WATCHHI  19
+#define R4300I_CP0_REG_XCONTEXT 20
+#define R4300I_CP0_REG_21       21
+#define R4300I_CP0_REG_22       22
+#define R4300I_CP0_REG_23       23
+#define R4300I_CP0_REG_24       24
+#define R4300I_CP0_REG_25       25
+#define R4300I_CP0_REG_PARITYER 26
+#define R4300I_CP0_REG_CACHEER  27
 #define R4300I_CP0_REG_TAGLO    28
 #define R4300I_CP0_REG_TAGHI    29
+#define R4300I_CP0_REG_ERR_EPC  30
+#define R4300I_CP0_REG_31       31
 
 #define CP0_STATUS_WRITE_MASK 0xFF57FFFF
+#define CP0_CONFIG_WRITE_MASK 0x0FFFFFFF
+
+#define CPU_MODE_KERNEL 0
+#define CPU_MODE_SUPERVISOR 1 /* TODO this is probably wrong */
+#define CPU_MODE_USER 2 /* TODO this is probably wrong */
 
 #define OPC_CP0    0b010000
 #define OPC_CP1    0b010001
@@ -84,11 +103,17 @@
 #define OPC_LDR    0b011011
 #define OPC_SDL    0b101100
 #define OPC_SDR    0b101101
+#define OPC_LL     0b110000
+#define OPC_LLD    0b110100
+#define OPC_SC     0b111000
+#define OPC_SCD    0b111100
 
 // Coprocessor
 #define COP_MF    0b00000
+#define COP_DMF   0b00001
 #define COP_CF    0b00010
 #define COP_MT    0b00100
+#define COP_DMT   0b00101
 #define COP_CT    0b00110
 #define COP_BC    0b01000
 
@@ -104,6 +129,7 @@
 #define COP_FUNCT_TLBWI_MULT 0b000010
 #define COP_FUNCT_DIV        0b000011
 #define COP_FUNCT_SQRT       0b000100
+#define COP_FUNCT_ABS        0b000101
 #define COP_FUNCT_MOV        0b000110
 #define COP_FUNCT_TLBP       0b001000
 #define COP_FUNCT_TRUNC_L    0b001001
@@ -152,10 +178,12 @@
 #define FUNCT_MFLO   0b010010
 #define FUNCT_MTLO   0b010011
 #define FUNCT_DSLLV  0b010100
+#define FUNCT_DSRLV  0b010110
 #define FUNCT_MULT   0b011000
 #define FUNCT_MULTU  0b011001
 #define FUNCT_DIV    0b011010
 #define FUNCT_DIVU   0b011011
+#define FUNCT_DMULT  0b011100
 #define FUNCT_DMULTU 0b011101
 #define FUNCT_DDIV   0b011110
 #define FUNCT_DDIVU  0b011111
@@ -171,8 +199,14 @@
 #define FUNCT_SLTU   0b101011
 #define FUNCT_DADD   0b101100
 #define FUNCT_DADDU  0b101101
+#define FUNCT_DSUBU  0b101111
+#define FUNCT_TEQ    0b110100
+#define FUNCT_TNE    0b110110
 #define FUNCT_DSLL   0b111000
+#define FUNCT_DSRL   0b111010
+#define FUNCT_DSRA   0b111011
 #define FUNCT_DSLL32 0b111100
+#define FUNCT_DSRL32 0b111110
 #define FUNCT_DSRA32 0b111111
 
 #define FUNCT_BREAK 0b001101
@@ -183,6 +217,7 @@
 #define RT_BLTZL  0b00010
 #define RT_BGEZ   0b00001
 #define RT_BGEZL  0b00011
+#define RT_BLTZAL 0b10000
 #define RT_BGEZAL 0b10001
 
 
@@ -205,7 +240,7 @@ typedef union cp0_status {
         bool cu1:1;
         bool cu2:1;
         bool cu3:1;
-    };
+    } PACKED;
     struct {
         unsigned:16;
         bool de:1;
@@ -218,8 +253,10 @@ typedef union cp0_status {
         bool:1;
         bool its:1;
         unsigned:7;
-    };
+    } PACKED;
 } cp0_status_t;
+
+ASSERTWORD(cp0_status_t);
 
 typedef union cp0_cause {
     struct {
@@ -247,6 +284,8 @@ typedef union cp0_cause {
     word raw;
 } cp0_cause_t;
 
+ASSERTWORD(cp0_cause_t);
+
 typedef union cp0_entry_lo {
     word raw;
     struct {
@@ -259,6 +298,8 @@ typedef union cp0_entry_lo {
     };
 } cp0_entry_lo_t;
 
+ASSERTWORD(cp0_entry_lo_t);
+
 typedef union cp0_page_mask {
     word raw;
     struct {
@@ -267,6 +308,8 @@ typedef union cp0_page_mask {
         unsigned:7;
     };
 } cp0_page_mask_t;
+
+ASSERTWORD(cp0_page_mask_t);
 
 typedef union cp0_entry_hi {
     struct {
@@ -277,27 +320,44 @@ typedef union cp0_entry_hi {
     word raw;
 } cp0_entry_hi_t;
 
+ASSERTWORD(cp0_entry_hi_t);
+
+#define CP0_ENTRY_HI_64_READ_MASK 0xC00000FFFFFFE0FF
+typedef union cp0_entry_hi_64 {
+    struct {
+        unsigned asid:8;
+        unsigned:5;
+        unsigned vpn2:27;
+        unsigned fill:22;
+        unsigned r:2;
+    } PACKED;
+    dword raw;
+} cp0_entry_hi_64_t;
+
+ASSERTDWORD(cp0_entry_hi_64_t);
+
+
 typedef struct tlb_entry {
     union {
         struct {
-            bool global:1;
+            unsigned:1;
             bool valid:1;
             bool dirty:1;
             byte c:3;
-            unsigned entry:24;
-            unsigned:2;
+            unsigned pfn:20;
+            unsigned:6;
         };
         word raw;
     } entry_lo0;
 
     union {
         struct {
-            bool global:1;
+            unsigned:1;
             bool valid:1;
             bool dirty:1;
             byte c:3;
-            unsigned entry:24;
-            unsigned:2;
+            unsigned pfn:20;
+            unsigned:6;
         };
         word raw;
     } entry_lo1;
@@ -328,6 +388,60 @@ typedef struct tlb_entry {
 
 } tlb_entry_t;
 
+typedef struct tlb_entry_64 {
+    union {
+        struct {
+            unsigned:1;
+            bool valid:1;
+            bool dirty:1;
+            byte c:3;
+            unsigned pfn:20;
+            unsigned long:38;
+        };
+        word raw;
+    } entry_lo0;
+
+    union {
+        struct {
+            unsigned:1;
+            bool valid:1;
+            bool dirty:1;
+            byte c:3;
+            unsigned pfn:20;
+            unsigned long:38;
+        };
+        word raw;
+    } entry_lo1;
+
+    union {
+        word raw;
+        struct {
+            unsigned asid:8;
+            unsigned:4;
+            bool g:1;
+            unsigned vpn2:27;
+            unsigned:22;
+            unsigned r:2;
+        };
+    } entry_hi;
+
+    union {
+        struct {
+            unsigned:13;
+            unsigned mask:12;
+            unsigned long:39;
+        };
+        dword raw;
+    } page_mask;
+
+    // "parsed"
+    bool global;
+    bool valid;
+    byte asid;
+    // not present in 32 bit TLB
+    byte region;
+} tlb_entry_64_t;
+
 typedef union watch_lo {
     word raw;
     struct {
@@ -338,7 +452,7 @@ typedef union watch_lo {
     };
 } watch_lo_t;
 
-static_assert(sizeof(watch_lo_t) == 4, "watch_lo_t wrong size!");
+ASSERTWORD(watch_lo_t);
 
 typedef struct cp0 {
     word index;
@@ -346,22 +460,24 @@ typedef struct cp0 {
     cp0_entry_lo_t entry_lo0;
     cp0_entry_lo_t entry_lo1;
     word context;
+    dword context_64;
     cp0_page_mask_t page_mask;
     word wired;
     word r7;
     word bad_vaddr;
     dword count;
     cp0_entry_hi_t entry_hi;
+    cp0_entry_hi_64_t entry_hi_64;
     word compare;
     cp0_status_t status;
     cp0_cause_t cause;
-    word EPC;
+    dword EPC;
     word PRId;
     word config;
     word lladdr;
     watch_lo_t watch_lo;
     word watch_hi;
-    word x_context;
+    dword x_context;
     word r21;
     word r22;
     word r23;
@@ -371,10 +487,16 @@ typedef struct cp0 {
     word cache_error;
     word tag_lo;
     word tag_hi;
-    word error_epc;
+    dword error_epc;
     word r31;
 
-    tlb_entry_t tlb[32];
+    tlb_entry_t    tlb[32];
+    tlb_entry_64_t tlb_64[32];
+
+    bool kernel_mode;
+    bool supervisor_mode;
+    bool user_mode;
+    bool is_64bit_addressing;
 } cp0_t;
 
 typedef union fcr0 {
@@ -407,22 +529,43 @@ typedef union fcr31 {
         bool fs:1;
         unsigned:7;
     };
+
+    struct {
+        unsigned:7;
+        byte enable:5;
+        byte cause:6;
+        unsigned:14;
+    } PACKED;
 } fcr31_t;
+
+ASSERTWORD(fcr31_t);
+
+typedef union fgr {
+    dword raw;
+    struct {
+        word lo:32;
+        word hi:32;
+    } __attribute__((packed));
+} fgr_t;
+
+ASSERTDWORD(fgr_t);
 
 typedef struct r4300i {
     dword gpr[32];
 
-    word pc;
-    word next_pc;
-    word prev_pc;
+    dword pc;
+    dword next_pc;
+    dword prev_pc;
 
     dword mult_hi;
     dword mult_lo;
 
+    bool llbit;
+
     fcr0_t  fcr0;
     fcr31_t fcr31;
 
-    byte f[256];
+    fgr_t f[32];
 
     cp0_t cp0;
 
@@ -435,239 +578,51 @@ typedef struct r4300i {
     // Did an exception just happen?
     bool exception;
 
-    byte (*read_byte)(word);
-    void (*write_byte)(word, byte);
+    byte (*read_byte)(dword);
+    void (*write_byte)(dword, byte);
 
-    half (*read_half)(word);
-    void (*write_half)(word, half);
+    half (*read_half)(dword);
+    void (*write_half)(dword, half);
 
-    word (*read_word)(word);
-    void (*write_word)(word, word);
+    word (*read_word)(dword);
+    void (*write_word)(dword, word);
 
-    dword (*read_dword)(word);
-    void (*write_dword)(word, dword);
+    dword (*read_dword)(dword);
+    void (*write_dword)(dword, dword);
+
+    word (*resolve_virtual_address)(dword, cp0_t*);
 } r4300i_t;
 
 typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
 
 void r4300i_step(r4300i_t* cpu);
-void r4300i_handle_exception(r4300i_t* cpu, word pc, word code, word coprocessor_error);
-mipsinstr_handler_t r4300i_instruction_decode(word pc, mips_instruction_t instr);
+void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error);
+mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);
 void r4300i_interrupt_update(r4300i_t* cpu);
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
 
-INLINE void set_register(r4300i_t* cpu, byte r, dword value) {
-    logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
-    if (r != 0) {
-        cpu->gpr[r] = value;
-    }
+INLINE void set_pc_word_r4300i(r4300i_t* cpu, word new_pc) {
+    cpu->pc = (sdword)((sword)new_pc);
+    cpu->next_pc = cpu->pc + 4;
 }
 
-INLINE dword get_register(r4300i_t* cpu, byte r) {
-    dword value = cpu->gpr[r];
-    logtrace("Reading $%s (r%d): 0x%08lX", register_names[r], r, value);
-    return value;
+INLINE void set_pc_dword_r4300i(r4300i_t* cpu, dword new_pc) {
+    cpu->pc = new_pc;
+    cpu->next_pc = cpu->pc + 4;
 }
 
-INLINE void on_change_fr(r4300i_t* cpu, cp0_status_t oldstatus) {
-    //logfatal("FR changed from %d to %d!", oldstatus.fr, cpu->cp0.status.fr);
-}
+INLINE void cp0_status_updated(r4300i_t* cpu) {
+    bool exception = cpu->cp0.status.exl || cpu->cp0.status.erl;
 
-INLINE void set_cp0_register(r4300i_t* cpu, byte r, word value) {
-    switch (r) {
-        case R4300I_CP0_REG_INDEX:
-            cpu->cp0.index = value;
-            break;
-        case R4300I_CP0_REG_RANDOM:
-            break;
-        case R4300I_CP0_REG_COUNT:
-            cpu->cp0.count = value;
-            break;
-        case R4300I_CP0_REG_CAUSE: {
-            cp0_cause_t newcause;
-            newcause.raw = value;
-            cpu->cp0.cause.ip0 = newcause.ip0;
-            cpu->cp0.cause.ip1 = newcause.ip1;
-            break;
-        }
-        case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
-            cpu->cp0.tag_lo = value;
-            break;
-        case R4300I_CP0_REG_TAGHI: // Used for the cache, which is unimplemented.
-            cpu->cp0.tag_hi = value;
-            break;
-        case R4300I_CP0_REG_COMPARE:
-            loginfo("$Compare written with 0x%08X (count is now 0x%08lX)", value, cpu->cp0.count);
-            cpu->cp0.cause.ip7 = false;
-            cpu->cp0.compare = value;
-            break;
-        case R4300I_CP0_REG_STATUS: {
-            cp0_status_t oldstatus = cpu->cp0.status;
-
-            cpu->cp0.status.raw &= value & ~CP0_STATUS_WRITE_MASK;
-            cpu->cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
-
-            if (oldstatus.fr != cpu->cp0.status.fr) {
-                on_change_fr(cpu, oldstatus);
-            }
-
-            loginfo("    CP0 status: ie:  %d", cpu->cp0.status.ie);
-            loginfo("    CP0 status: exl: %d", cpu->cp0.status.exl);
-            loginfo("    CP0 status: erl: %d", cpu->cp0.status.erl);
-            loginfo("    CP0 status: ksu: %d", cpu->cp0.status.ksu);
-            loginfo("    CP0 status: ux:  %d", cpu->cp0.status.ux);
-            loginfo("    CP0 status: sx:  %d", cpu->cp0.status.sx);
-            loginfo("    CP0 status: kx:  %d", cpu->cp0.status.kx);
-            loginfo("    CP0 status: im:  %d", cpu->cp0.status.im);
-            loginfo("    CP0 status: ds:  %d", cpu->cp0.status.ds);
-            loginfo("    CP0 status: re:  %d", cpu->cp0.status.re);
-            loginfo("    CP0 status: fr:  %d", cpu->cp0.status.fr);
-            loginfo("    CP0 status: rp:  %d", cpu->cp0.status.rp);
-            loginfo("    CP0 status: cu0: %d", cpu->cp0.status.cu0);
-            loginfo("    CP0 status: cu1: %d", cpu->cp0.status.cu1);
-            loginfo("    CP0 status: cu2: %d", cpu->cp0.status.cu2);
-            loginfo("    CP0 status: cu3: %d", cpu->cp0.status.cu3);
-
-            r4300i_interrupt_update(cpu);
-            break;
-        }
-        case R4300I_CP0_REG_ENTRYLO0:
-            cpu->cp0.entry_lo0.raw = value;
-            break;
-        case R4300I_CP0_REG_ENTRYLO1:
-            cpu->cp0.entry_lo1.raw = value;
-            break;
-        case 7:
-            logfatal("CP0 Reg 7 write?");
-            break;
-        case R4300I_CP0_REG_ENTRYHI:
-            cpu->cp0.entry_hi.raw = value;
-            break;
-        case R4300I_CP0_REG_PAGEMASK:
-            cpu->cp0.page_mask.raw = value;
-            break;
-        case R4300I_CP0_REG_EPC:
-            cpu->cp0.EPC = value;
-            break;
-        case R4300I_CP0_REG_CONFIG:
-            cpu->cp0.config = value;
-            break;
-        case R4300I_CP0_REG_WATCHLO:
-            cpu->cp0.watch_lo.raw = value;
-            unimplemented(cpu->cp0.watch_lo.r, "Read exception enabled in CP0 watch_lo!");
-            unimplemented(cpu->cp0.watch_lo.w, "Write exception enabled in CP0 watch_lo!");
-            break;
-        case R4300I_CP0_REG_WATCHHI:
-            cpu->cp0.watch_hi = value;
-            break;
-        default:
-            logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
-    }
-
-    loginfo("CP0 $%s = 0x%08X", cp0_register_names[r], value);
-}
-
-INLINE word get_cp0_register(r4300i_t* cpu, byte r) {
-    switch (r) {
-        case R4300I_CP0_REG_ENTRYLO0:
-            return cpu->cp0.entry_lo0.raw;
-        case R4300I_CP0_REG_BADVADDR:
-            return cpu->cp0.bad_vaddr;
-        case R4300I_CP0_REG_STATUS:
-            return cpu->cp0.status.raw;
-        case R4300I_CP0_REG_ENTRYHI:
-            return cpu->cp0.entry_hi.raw;
-        case R4300I_CP0_REG_CAUSE:
-            return cpu->cp0.cause.raw;
-        case R4300I_CP0_REG_EPC:
-            return cpu->cp0.EPC;
-        case R4300I_CP0_REG_COUNT: {
-            dword shifted = cpu->cp0.count >> 1;
-            return (word)shifted;
-        }
-        case R4300I_CP0_REG_COMPARE:
-            return cpu->cp0.compare;
-        case R4300I_CP0_REG_INDEX:
-            return cpu->cp0.index & 0x8000003F;
-        case R4300I_CP0_REG_CONTEXT:
-            return cpu->cp0.context;
-        case R4300I_CP0_REG_PAGEMASK:
-            return cpu->cp0.page_mask.raw;
-        case R4300I_CP0_REG_WIRED:
-            return cpu->cp0.wired;
-        default:
-            logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
-    }
-}
-
-INLINE void set_fpu_register_dword(r4300i_t* cpu, byte r, dword value) {
-    dword* darr = (dword*)cpu->f;
-    darr[r] = value;
-}
-
-INLINE void set_fpu_register_double(r4300i_t* cpu, byte r, double value) {
-    double* darr = (double*)cpu->f;
-    darr[r] = value;
-}
-
-INLINE dword get_fpu_register_dword(r4300i_t* cpu, byte r) {
-    dword* darr = (dword*)cpu->f;
-    return darr[r];
-}
-
-INLINE double get_fpu_register_double(r4300i_t* cpu, byte r) {
-    double* darr = (double*)cpu->f;
-    return darr[r];
-}
-
-INLINE void set_fpu_register_word(r4300i_t* cpu, byte r, word value) {
-    dword* darr = (dword*)cpu->f;
-    if (!cpu->cp0.status.fr) {
-        if ((r & 1) == 0) {
-            darr[r] &= 0xFFFFFFFF00000000;
-            darr[r] |= value;
-        } else {
-            darr[r - 1] &= 0x00000000FFFFFFFF;
-            darr[r - 1] |= (dword)value << 32;
-        }
-    } else {
-        logfatal("Unimplemented!");
-    }
-}
-
-INLINE word get_fpu_register_word(r4300i_t* cpu, byte r) {
-    dword* darr = (dword*)cpu->f;
-    if (!cpu->cp0.status.fr) {
-        if ((r & 1) == 0) {
-            return darr[r] & 0xFFFFFFFF;
-        } else {
-            return darr[r - 1] >> 32;
-        }
-    } else {
-        logfatal("Unimplemented!");
-    }
-}
-
-INLINE void set_fpu_register_float(r4300i_t* cpu, byte r, float value) {
-    union {
-        float f;
-        word w;
-    } conv;
-
-    conv.f = value;
-    set_fpu_register_word(cpu, r, conv.w);
-}
-
-INLINE float get_fpu_register_float(r4300i_t* cpu, byte r) {
-    union {
-        float f;
-        word w;
-    } conv;
-
-    conv.w = get_fpu_register_word(cpu, r);
-    return conv.f;
+    cpu->cp0.kernel_mode     =  exception || cpu->cp0.status.ksu == CPU_MODE_KERNEL;
+    cpu->cp0.supervisor_mode = !exception && cpu->cp0.status.ksu == CPU_MODE_SUPERVISOR;
+    cpu->cp0.user_mode       = !exception && cpu->cp0.status.ksu == CPU_MODE_USER;
+    cpu->cp0.is_64bit_addressing =
+            (cpu->cp0.kernel_mode && cpu->cp0.status.kx)
+            || (cpu->cp0.supervisor_mode && cpu->cp0.status.sx)
+               || (cpu->cp0.user_mode && cpu->cp0.status.ux);
 }
 
 #endif //N64_R4300I_H

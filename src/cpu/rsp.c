@@ -4,8 +4,6 @@
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
 
-#include <mem/mem_util.h>
-
 bool rsp_acquire_semaphore(n64_system_t* system) {
     if (system->rsp.semaphore_held) {
         return false; // Semaphore is already held
@@ -13,6 +11,10 @@ bool rsp_acquire_semaphore(n64_system_t* system) {
         system->rsp.semaphore_held = true;
         return true; // Acquired semaphore.
     }
+}
+
+void rsp_release_semaphore(n64_system_t* system) {
+    system->rsp.semaphore_held = false;
 }
 
 INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
@@ -112,7 +114,7 @@ INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instructi
         case FUNCT_SLL:    return rsp_spc_sll;
         case FUNCT_SRL:    return rsp_spc_srl;
         case FUNCT_SRA:    return rsp_spc_sra;
-        //case FUNCT_SRAV:   return rsp_spc_srav;
+        case FUNCT_SRAV:   return rsp_spc_srav;
         case FUNCT_SLLV:   return rsp_spc_sllv;
         case FUNCT_SRLV:   return rsp_spc_srlv;
         case FUNCT_JR:     return rsp_spc_jr;
@@ -125,12 +127,12 @@ INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instructi
         case FUNCT_ADDU:   return rsp_spc_add;
         case FUNCT_AND:    return rsp_spc_and;
         case FUNCT_SUB:    return rsp_spc_sub;
-        //case FUNCT_SUBU:   return rsp_spc_subu;
+        case FUNCT_SUBU:   return rsp_spc_sub;
         case FUNCT_OR:     return rsp_spc_or;
         case FUNCT_XOR:    return rsp_spc_xor;
         case FUNCT_NOR:    return rsp_spc_nor;
         case FUNCT_SLT:    return rsp_spc_slt;
-        //case FUNCT_SLTU:   return rsp_spc_sltu;
+        case FUNCT_SLTU:   return rsp_spc_sltu;
 
         case FUNCT_BREAK: return rsp_spc_break;
         default: {
@@ -146,7 +148,7 @@ INLINE rspinstr_handler_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instructio
     switch (instr.i.rt) {
         case RT_BLTZ:   return rsp_ri_bltz;
         case RT_BGEZ:   return rsp_ri_bgez;
-        //case RT_BGEZAL: return rsp_ri_bgezAL;
+        case RT_BGEZAL: return rsp_ri_bgezal;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -226,8 +228,8 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
             case OPC_ORI:   return rsp_ori;
             case OPC_J:     return rsp_j;
             case OPC_JAL:   return rsp_jal;
-            //case OPC_SLTI:  return rsp_slti;
-            //case OPC_SLTIU: return rsp_sltiu;
+            case OPC_SLTI:  return rsp_slti;
+            case OPC_SLTIU: return rsp_sltiu;
             case OPC_XORI:  return rsp_xori;
             case OPC_LB:    return rsp_lb;
             //case OPC_LWL:   return rsp_lwl;
@@ -257,19 +259,18 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
         }
 }
 
+void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr) {
+    rsp_icache_entry_t* cache = &rsp->icache[rsp->prev_pc];
+    cache->handler = rsp_instruction_decode(rsp, rsp->prev_pc << 2, cache->instruction);
+    cache->handler(rsp, instr);
+}
+
 INLINE void _rsp_step(n64_system_t* system) {
     rsp_t* rsp = &system->rsp;
     half pc = rsp->pc & 0x3FF;
     rsp_icache_entry_t* cache = &system->rsp.icache[pc];
 
-    // Need to decode the instruction?
-    if (cache->handler == NULL) {
-        half fullsize_pc = pc << 2;
-        // RSP can only read from IMEM.
-        cache->instruction.raw = word_from_byte_array((byte*) &system->mem.sp_imem, fullsize_pc);
-        cache->handler = rsp_instruction_decode(rsp, fullsize_pc, cache->instruction);
-    }
-
+    rsp->prev_pc = pc;
     rsp->pc = rsp->next_pc;
     rsp->next_pc++;
 
@@ -280,17 +281,10 @@ void rsp_step(n64_system_t* system) {
     _rsp_step(system);
 }
 
-int rsp_run(n64_system_t* system, int steps) {
-    // 2 RSP steps per CPU step
-    while (steps >= 3) {
-        for (int i = 0; i < 2; i++) {
-            if (system->rsp.status.halt) {
-                return 0;
-            } else {
-                _rsp_step(system);
-            }
-        }
-        steps -= 3;
+void rsp_run(n64_system_t* system) {
+    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
+    while (system->rsp.steps > 0) {
+        system->rsp.steps--;
+        _rsp_step(system);
     }
-    return steps;
 }

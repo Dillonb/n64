@@ -36,6 +36,11 @@ void gamepad_refresh() {
 }
 
 void gamepad_init(n64_system_t* system) {
+    if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") == -1) {
+        logalways("Failed to load game controller DB!");
+    } else {
+        logalways("Loaded game controller DB!");
+    }
     if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
         logfatal("Failed to initialize SDL Gamecontroller!");
     }
@@ -143,6 +148,7 @@ void gamepad_update_axis(n64_system_t* system, byte axis, shalf value) {
             update_joyaxis_y(system, 0, inverted);
             break;
         case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+        case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
             update_button(system, 0, N64_BUTTON_Z, value == INT16_MAX);
             break;
         case SDL_CONTROLLER_AXIS_RIGHTX:

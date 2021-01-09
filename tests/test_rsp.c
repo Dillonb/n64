@@ -8,6 +8,7 @@
 #include <bzlib.h>
 #include <system/n64system.h>
 #include <cpu/rsp.h>
+#include <mem/mem_util.h>
 
 // Just to make sure we don't get caught in an infinite loop
 #define MAX_CYCLES 100000
@@ -18,6 +19,11 @@ void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
     size_t read = fread(system->mem.sp_imem, 1, SP_IMEM_SIZE, rsp);
     if (read == 0) {
         logfatal("Read 0 bytes from %s", rsp_path);
+    }
+
+    for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
+        system->rsp.icache[i].instruction.raw = word_from_byte_array(system->mem.sp_imem, i * 4);
+        system->rsp.icache[i].handler = cache_rsp_instruction;
     }
 }
 
@@ -96,7 +102,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
 }
 
 n64_system_t* load_test(const char* rsp_path) {
-    n64_system_t* system = init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE);
+    n64_system_t* system = init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, false);
     load_rsp_imem(system, rsp_path);
     return system;
 }

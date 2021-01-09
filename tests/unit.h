@@ -1,5 +1,6 @@
 #ifndef N64_UNIT_H
 #define N64_UNIT_H
+#include <cpu/r4300i_register_access.h>
 
 static int tests_failed = 0;
 
