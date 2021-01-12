@@ -63,18 +63,6 @@ static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
 |.endif // TODO x86 version? ARM version?
 |.type cpu_state, r4300i_t, cpuState
 
-void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
-    size_t code_size;
-    dasm_link(d, &code_size);
-#ifdef N64_LOG_COMPILATIONS
-    printf("Generated %ld bytes of code\n", code_size);
-#endif
-    void* buf = dynarec_bumpalloc(dynarec, code_size);
-    dasm_encode(d, buf);
-
-    return buf;
-}
-
 INLINE void run_handler(dasm_State** Dst, mips_instruction_t instr, word address, uintptr_t handler) {
     | prepcall2 cpuState, instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
@@ -739,7 +727,7 @@ INLINE COMPILER(cp1_instruction) {
              instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4,
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
-// returns true when the block should end
+
 dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word block_length, word* extra_cycles) {
     if (unlikely(instr.raw == 0)) {
         return CALL_COMPILER(compile_mips_nop);
@@ -837,8 +825,7 @@ void pre_instruction(r4300i_t* cpu, word expected_address) {
     cpu->next_pc += 4;
 }
 
-void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
-
+dasm_State* block_header() {
     dasm_State* d;
     unsigned npc = 8; // number of dynamic labels
 
@@ -855,141 +842,45 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
     dasm_growpc(&d, npc);
 
     dasm_State** Dst = &d;
-
-    bool should_continue_block = true;
-    int block_length = 0;
-
-    //uintptr_t pre_instruction_ptr = (uintptr_t)pre_instruction;
-
-    int instructions_left_in_block = -1;
-
-    dynarec_instruction_category_t prev_instr_category = NORMAL;
-
     |.code
     |->compiled_block:
     | prologue
-    do {
-        mips_instruction_t instr;
-        instr.raw = n64_read_physical_word(physical_address);
-
-        word next_physical_address = physical_address + 4;
-
-        /* I'm keeping this around for debugging because pre_instruction() does the actual vs. expected pc check.
-        | prepcall2 cpuState, physical_address
-        // x86 cannot call a 64 bit immediate, put it into rax first
-        | mov64 rax, pre_instruction_ptr
-        | call rax
-        | postcall 2
-         */
-
-        static_assert(sizeof(compile_time_cpu->pc) == 8, "PC must be 64 bits for this to work (using RAX)");
-        static_assert(sizeof(compile_time_cpu->next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
-
-        // cpu->branch = false;
-        | mov al, 0
-        | mov cpu_state->branch, al
-
-        // cpu->prev_pc = cpu->pc;
-        | mov rax, cpu_state->pc
-        | mov cpu_state->prev_pc, rax
-
-        // cpu->pc = cpu->next_pc;
-        | mov rax, cpu_state->next_pc
-        | mov cpu_state->pc, rax
-
-        // cpu->next_pc += 4;
-        | add rax, 4
-        | mov cpu_state->next_pc, rax
-
-        instructions_left_in_block--;
-        bool instr_ends_block;
-
-        block_length++; // Needs to happen before we compile since we use the incremented value inside the compiler
-        word extra_cycles = 0;
-        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address, block_length, &extra_cycles);
-        block_length += extra_cycles;
-
-        switch (category) {
-            case NORMAL:
-                instr_ends_block = instructions_left_in_block == 0;
-                break; // the "instructions_left_in_block" check got
-            case BRANCH:
-                if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
-                    // Check if the previous branch was taken.
-
-                    // If the last branch wasn't taken, we can treat this the same as if the previous instruction wasn't a branch
-                    // just set the cpu->last_branch_taken to cpu->branch_taken and execute the next instruction.
-
-                    // emit:
-                    // if (!cpu->last_branch_taken) cpu->last_branch_taken = cpu->branch_taken;
-                    logfatal("Branch in a branch delay slot");
-                } else {
-                    // If the last instruction wasn't a branch, no special behavior is needed. Just set up some state in case the next one is.
-                    // emit:
-                    // cpu->last_branch_taken = cpu->branch_taken;
-                    //logfatal("unimp");
-                }
-
-                // If the previous instruction was a branch, exit the block early if
-
-                // If the previous instruction was a branch LIKELY, exit the block early if the _previous branch_
-                instr_ends_block = false;
-                instructions_left_in_block = 1; // emit delay slot
-                break;
-
-            case BRANCH_LIKELY:
-                // If the previous instruction was a branch:
-                //
-                if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
-                    logfatal("Branch in a branch likely delay slot");
-                } else {
-                    // If it wasn't taken, end the block.
-                    // If it was taken, don't end the block, need to execute delay slot
-                    | mov al, cpu_state->branch
-                    | cmp al, 0 // if (branch == true)
-                    | jne >1
-                    | mov rax, block_length
-                    | epilogue // return block_length
-                    |1:
-                }
-
-                instr_ends_block = false;
-                instructions_left_in_block = 1; // emit delay slot
-                break;
-            case ERET:
-            case TLB_WRITE:
-            case STORE:
-                instr_ends_block = true;
-                break;
-
-            default:
-                logfatal("Unknown dynarec instruction type");
-        }
-
-        bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0;
-        // !!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!
-        // If the first instruction in the new page is a delay slot, INCLUDE IT IN THE BLOCK ANYWAY.
-        // This DOES BREAK a corner case!
-        // If the game overwrites the delay slot but does not overwrite the branch or anything in the other page,
-        // THIS BLOCK WILL NOT GET MARKED DIRTY.
-        // I highly doubt any games do it, but THIS NEEDS TO GET FIXED AT SOME POINT
-        // !!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!
-        if (instructions_left_in_block == 1) { page_boundary_ends_block = false; } // FIXME, TODO, BAD, EVIL, etc
-
-        if (instr_ends_block || page_boundary_ends_block) {
-#ifdef N64_LOG_COMPILATIONS
-            printf("Ending block. instr: %d pb: %d (0x%08X)\n", instr_ends_block, page_boundary_ends_block, next_physical_address);
-#endif
-            should_continue_block = false;
-        }
-
-        physical_address = next_physical_address;
-        prev_instr_category = category;
-    } while (should_continue_block);
-    | mov eax, block_length
-    | epilogue
-    void* compiled = link_and_encode(dynarec, &d);
-    dasm_free(&d);
-
-    block->run = compiled;
+    return d;
 }
+
+void advance_pc(r4300i_t* compile_time_cpu, dasm_State** Dst) {
+    static_assert(sizeof(compile_time_cpu->pc) == 8, "PC must be 64 bits for this to work (using RAX)");
+    static_assert(sizeof(compile_time_cpu->next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
+
+    // cpu->branch = false;
+    | mov al, 0
+    | mov cpu_state->branch, al
+
+    // cpu->prev_pc = cpu->pc;
+    | mov rax, cpu_state->pc
+    | mov cpu_state->prev_pc, rax
+
+    // cpu->pc = cpu->next_pc;
+    | mov rax, cpu_state->next_pc
+    | mov cpu_state->pc, rax
+
+    // cpu->next_pc += 4;
+    | add rax, 4
+    | mov cpu_state->next_pc, rax
+}
+
+void end_block(dasm_State** Dst, int block_length) {
+    | mov eax, block_length
+    | epilogue // return block_length
+}
+
+void end_block_early_on_branch_taken(dasm_State** Dst, int block_length) {
+    // If it wasn't taken, end the block.
+    // If it was taken, don't end the block, need to execute delay slot
+    | mov al, cpu_state->branch
+    | cmp al, 0 // if (branch == true)
+    | jne >1
+    end_block(Dst, block_length);
+    |1:
+}
+
