@@ -9,7 +9,7 @@
 #include <interface/ai.h>
 #include <mem/n64_rsp_bus.h>
 #include <cpu/rsp.h>
-#include <cpu/dynarec.h>
+#include <cpu/dynarec/dynarec.h>
 #include <sys/mman.h>
 #include <errno.h>
 #include <mem/backup.h>

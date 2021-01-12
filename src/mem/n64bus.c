@@ -4,7 +4,7 @@
 #include <interface/ai.h>
 #include <cpu/rsp_interface.h>
 #include <rdp/rdp.h>
-#include <cpu/dynarec.h>
+#include <cpu/dynarec/dynarec.h>
 
 #include "addresses.h"
 #include "pif.h"

@@ -11,9 +11,9 @@ configure_file(../contrib/tools/dynasm/dasm_x86.lua dynasm/dasm_x86.lua COPYONLY
 add_executable(minilua ../contrib/tools/minilua.c)
 target_link_libraries(minilua m)
 
-add_custom_command(OUTPUT dynarec.c
-        COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 -o dynarec.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec.dasc
-        MAIN_DEPENDENCY dynarec.dasc
+add_custom_command(OUTPUT asm_emitter.c
+        COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 -o asm_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/asm_emitter.dasc
+        MAIN_DEPENDENCY dynarec/asm_emitter.dasc
         DEPENDS minilua
         )
 
@@ -23,7 +23,9 @@ add_library(r4300i
         tlb_instructions.c tlb_instructions.h
         rsp_interface.c rsp_interface.h
         mips_instruction_decode.h
-        dynarec.c dynarec.h)
+        dynarec/dynarec.c dynarec/dynarec.h
+        asm_emitter.c dynarec/asm_emitter.h
+        dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h)
 
 add_library(rsp
         rsp_types.h rsp_rom.h
