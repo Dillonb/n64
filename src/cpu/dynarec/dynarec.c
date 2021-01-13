@@ -5,6 +5,8 @@
 #include "cpu/dynarec/asm_emitter.h"
 #include "dynarec_memory_management.h"
 
+#define IS_PAGE_BOUNDARY(address) ((address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
+
 void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
     size_t code_size;
     dasm_link(d, &code_size);
@@ -18,14 +20,13 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
 }
 
 
-void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, word virtual_address, word physical_address) {
+void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, word physical_address) {
     dasm_State* d = block_header();
     dasm_State** Dst = &d;
 
     bool should_continue_block = true;
     int block_length = 0;
 
-    //uintptr_t pre_instruction_ptr = (uintptr_t)pre_instruction;
 
     int instructions_left_in_block = -1;
 
@@ -36,14 +37,6 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
         instr.raw = n64_read_physical_word(physical_address);
 
         word next_physical_address = physical_address + 4;
-
-        /* I'm keeping this around for debugging because pre_instruction() does the actual vs. expected pc check.
-        | prepcall2 cpuState, physical_address
-        // x86 cannot call a 64 bit immediate, put it into rax first
-        | mov64 rax, pre_instruction_ptr
-        | call rax
-        | postcall 2
-         */
 
         advance_pc(compile_time_cpu, Dst);
 
@@ -63,7 +56,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
         switch (category) {
             case NORMAL:
                 instr_ends_block = instructions_left_in_block == 0;
-                break; // the "instructions_left_in_block" check got
+                break;
             case BRANCH:
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
                     // Check if the previous branch was taken.
@@ -110,7 +103,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
                 logfatal("Unknown dynarec instruction type");
         }
 
-        bool page_boundary_ends_block = (next_physical_address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0;
+        bool page_boundary_ends_block = IS_PAGE_BOUNDARY(next_physical_address);
         // !!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!
         // If the first instruction in the new page is a delay slot, INCLUDE IT IN THE BLOCK ANYWAY.
         // This DOES BREAK a corner case!
@@ -151,7 +144,7 @@ int missing_block_handler(r4300i_t* cpu) {
     printf("Compilin' new block at 0x%08X / 0x%08X\n", global_system->cpu.pc, physical);
 #endif
 
-    compile_new_block(global_system->dynarec, cpu, block, cpu->pc, physical);
+    compile_new_block(global_system->dynarec, cpu, block, physical);
 
     return block->run(cpu);
 }

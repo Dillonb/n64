@@ -793,20 +793,6 @@ dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address) {
     }
 }
 
-void pre_instruction(r4300i_t* cpu, word expected_address) {
-    word actual_address = resolve_virtual_address(cpu->pc, &cpu->cp0);
-#ifdef N64_LOG_COMPILATIONS
-    printf("pc 0x%08X\n", cpu->pc);
-#endif
-    if (actual_address != expected_address) {
-        logfatal("Executing at 0x%08X when we should be at 0x%08X!\n", actual_address, expected_address);
-    }
-    cpu->branch = false;
-    cpu->prev_pc = cpu->pc;
-    cpu->pc = cpu->next_pc;
-    cpu->next_pc += 4;
-}
-
 dasm_State* block_header() {
     dasm_State* d;
     unsigned npc = 8; // number of dynamic labels
