@@ -96,7 +96,7 @@ INLINE void sign_extend_eax_rax(dasm_State** Dst) {
     | movsxd rax, eax
 }
 
-INLINE void check_exception(dasm_State** Dst, word block_length) {
+void check_exception(dasm_State** Dst, word block_length) {
     // If an exception was triggered, end the block.
     // otherwise, don't end the block.
     | mov al, cpu_state->exception
@@ -121,15 +121,13 @@ INLINE void check_exception(dasm_State** Dst, word block_length) {
 #define SAVERAX(r) save_rax(Dst, address, r)
 #define SEAX sign_extend_eax_rax(Dst)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
-#define COMPILER(name) dynarec_instruction_category_t compile_##name(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles)
-#define COMP(name, type) COMPILER(name) { RUNHANDLER(name); return type; }
-#define BAILZERO(v) do { if ((v) == 0) { return NORMAL; } } while (0)
+#define IR_INFO(instruction, category_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .exception_possible = exception}
+#define COMP(name, type, exception) COMPILER(name) { RUNHANDLER(name); } IR_INFO(name, type, exception)
+#define BAILZERO(v) do { if ((v) == 0) { return; } } while (0)
 #define CALL_COMPILER(compiler) compiler(Dst, instr, address, extra_cycles)
-#define CASECOMPILE(pattern, compiler) case pattern: return CALL_COMPILER(compiler)
+#define CASEIR(pattern, instruction) case pattern: return &ir_##instruction
 
-COMPILER(mips_nop) {
-    return NORMAL;
-}
+COMPILER(mips_nop) {}
 
 COMPILER(mips_addi) {
     BAILZERO(instr.i.rt);
@@ -145,14 +143,13 @@ COMPILER(mips_addi) {
         SEAX;
         SAVERAX(instr.i.rt);
     }
-    return NORMAL;
 }
 
 COMPILER(mips_addiu) {
-    return CALL_COMPILER(compile_mips_addi);
+    CALL_COMPILER(compile_mips_addi);
 }
 
-dynarec_instruction_category_t compile_mips_beq(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles) {
+COMPILER(mips_beq) {
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
         // This is a branch-to-self, make it take extra cycles
@@ -164,12 +161,9 @@ dynarec_instruction_category_t compile_mips_beq(dasm_State** Dst, mips_instructi
         // handle normally
         RUNHANDLER(mips_beq);
    }
-   return BRANCH;
 }
 
-COMPILER(mips_cache) {
-    return NORMAL;
-}
+COMPILER(mips_cache) {}
 
 COMPILER(mips_daddi) {
     BAILZERO(instr.i.rt);
@@ -184,7 +178,6 @@ COMPILER(mips_daddi) {
         | add rax, ext_imm
         SAVERAX(instr.i.rt);
     }
-    return NORMAL;
 }
 
 COMPILER(mips_daddiu) {
@@ -196,7 +189,6 @@ COMPILER(mips_andi) {
     LOADRAX(instr.i.rs);
     | and rax, instr.i.immediate
     SAVERAX(instr.i.rt);
-    return NORMAL;
 }
 
 COMPILER(mips_ori) {
@@ -204,18 +196,16 @@ COMPILER(mips_ori) {
     LOADRAX(instr.i.rs);
     | or rax, instr.i.immediate
     SAVERAX(instr.i.rt);
-    return NORMAL;
 }
 
-COMP(mips_slti, NORMAL);
-COMP(mips_sltiu, NORMAL);
+COMP(mips_slti, NORMAL, false);
+COMP(mips_sltiu, NORMAL, false);
 
 COMPILER(mips_xori) {
     BAILZERO(instr.i.rt);
     LOADRAX(instr.i.rs);
     | xor rax, instr.i.immediate
     SAVERAX(instr.i.rt);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_sll) {
@@ -224,7 +214,6 @@ COMPILER(mips_spc_sll) {
     | shl eax, instr.r.sa
     SEAX;
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_srl) {
@@ -233,7 +222,6 @@ COMPILER(mips_spc_srl) {
     | shr eax, instr.r.sa
     SEAX;
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_sra) {
@@ -242,7 +230,6 @@ COMPILER(mips_spc_sra) {
     | sar eax, instr.r.sa
     SEAX;
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_srav) {
@@ -254,7 +241,6 @@ COMPILER(mips_spc_srav) {
     | sar eax, cl
     SEAX;
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_sllv) {
@@ -266,7 +252,6 @@ COMPILER(mips_spc_sllv) {
     | shl eax, cl
     SEAX;
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_srlv) {
@@ -278,7 +263,6 @@ COMPILER(mips_spc_srlv) {
     | shr eax, cl
     SEAX;
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_mfhi) {
@@ -286,14 +270,12 @@ COMPILER(mips_spc_mfhi) {
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_hi;
     | mov64 rax, [src]
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_mthi) {
     LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_hi;
     | mov64 [dst], rax
-    return NORMAL;
 }
 
 COMPILER(mips_spc_mflo) {
@@ -301,155 +283,174 @@ COMPILER(mips_spc_mflo) {
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_lo;
     | mov64 rax, [src]
     SAVERAX(instr.r.rd);
-    return NORMAL;
 }
 
 COMPILER(mips_spc_mtlo) {
     LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_lo;
     | mov64 [dst], rax
-    return NORMAL;
 }
 
-COMP(mips_spc_dsllv, NORMAL);
-COMP(mips_spc_dsrlv, NORMAL);
-COMP(mips_spc_mult, NORMAL);
-COMP(mips_spc_multu, NORMAL);
-COMP(mips_spc_div, NORMAL);
-COMP(mips_spc_divu, NORMAL);
-COMP(mips_spc_dmult, NORMAL);
-COMP(mips_spc_dmultu, NORMAL);
-COMP(mips_spc_ddiv, NORMAL);
-COMP(mips_spc_ddivu, NORMAL);
-COMP(mips_spc_add, NORMAL);
-COMP(mips_spc_addu, NORMAL);
-COMP(mips_spc_and, NORMAL);
-COMP(mips_spc_nor, NORMAL);
-COMP(mips_spc_sub, NORMAL);
-COMP(mips_spc_subu, NORMAL);
-COMP(mips_spc_or, NORMAL);
-COMP(mips_spc_xor, NORMAL);
-COMP(mips_spc_slt, NORMAL);
-COMP(mips_spc_sltu, NORMAL);
-COMP(mips_spc_dadd, NORMAL);
-COMP(mips_spc_daddu, NORMAL);
-COMP(mips_spc_dsubu, NORMAL);
-COMP(mips_spc_teq, NORMAL); // TODO this needs to be marked as TRAP and special logic added to the emitted code
-COMP(mips_spc_dsll, NORMAL);
-COMP(mips_spc_dsrl, NORMAL);
-COMP(mips_spc_dsra, NORMAL);
-COMP(mips_spc_dsll32, NORMAL);
-COMP(mips_spc_dsrl32, NORMAL);
-COMP(mips_spc_dsra32, NORMAL);
+IR_INFO(mips_nop, NORMAL, false);
+IR_INFO(mips_addi, NORMAL, false);
+IR_INFO(mips_addiu, NORMAL, false);
+IR_INFO(mips_beq, BRANCH, false);
+IR_INFO(mips_cache, NORMAL, false);
+IR_INFO(mips_daddi, NORMAL, false);
+IR_INFO(mips_daddiu, NORMAL, false);
+IR_INFO(mips_andi, NORMAL, false);
+IR_INFO(mips_ori, NORMAL, false);
+IR_INFO(mips_xori, NORMAL, false);
+IR_INFO(mips_spc_sll, NORMAL, false);
+IR_INFO(mips_spc_srl, NORMAL, false);
+IR_INFO(mips_spc_sra, NORMAL, false);
+IR_INFO(mips_spc_srav, NORMAL, false);
+IR_INFO(mips_spc_sllv, NORMAL, false);
+IR_INFO(mips_spc_srlv, NORMAL, false);
+IR_INFO(mips_spc_mfhi, NORMAL, false);
+IR_INFO(mips_spc_mthi, NORMAL, false);
+IR_INFO(mips_spc_mflo, NORMAL, false);
+IR_INFO(mips_spc_mtlo, NORMAL, false);
+
+COMP(mips_spc_dsllv, NORMAL, false);
+COMP(mips_spc_dsrlv, NORMAL, false);
+COMP(mips_spc_mult, NORMAL, false);
+COMP(mips_spc_multu, NORMAL, false);
+COMP(mips_spc_div, NORMAL, false);
+COMP(mips_spc_divu, NORMAL, false);
+COMP(mips_spc_dmult, NORMAL, false);
+COMP(mips_spc_dmultu, NORMAL, false);
+COMP(mips_spc_ddiv, NORMAL, false);
+COMP(mips_spc_ddivu, NORMAL, false);
+COMP(mips_spc_add, NORMAL, false);
+COMP(mips_spc_addu, NORMAL, false);
+COMP(mips_spc_and, NORMAL, false);
+COMP(mips_spc_nor, NORMAL, false);
+COMP(mips_spc_sub, NORMAL, false);
+COMP(mips_spc_subu, NORMAL, false);
+COMP(mips_spc_or, NORMAL, false);
+COMP(mips_spc_xor, NORMAL, false);
+COMP(mips_spc_slt, NORMAL, false);
+COMP(mips_spc_sltu, NORMAL, false);
+COMP(mips_spc_dadd, NORMAL, false);
+COMP(mips_spc_daddu, NORMAL, false);
+COMP(mips_spc_dsubu, NORMAL, false);
+COMP(mips_spc_teq, NORMAL, true);
+COMP(mips_spc_dsll, NORMAL, false);
+COMP(mips_spc_dsrl, NORMAL, false);
+COMP(mips_spc_dsra, NORMAL, false);
+COMP(mips_spc_dsll32, NORMAL, false);
+COMP(mips_spc_dsrl32, NORMAL, false);
+COMP(mips_spc_dsra32, NORMAL, false);
 
 // Load-stores
-COMP(mips_lbu, NORMAL);
-COMP(mips_lhu, NORMAL);
-COMP(mips_lh, NORMAL);
-COMP(mips_lw, NORMAL);
-COMP(mips_lwu, NORMAL);
-COMP(mips_sb, STORE);
-COMP(mips_sh, STORE);
-COMP(mips_sw, STORE);
-COMP(mips_sd, STORE);
-COMP(mips_lb, NORMAL);
-COMP(mips_lui, NORMAL);
-COMP(mips_ld, NORMAL);
-COMP(mips_ldc1, NORMAL);
-COMP(mips_sdc1, STORE);
-COMP(mips_lwc1, NORMAL);
-COMP(mips_swc1, STORE);
-COMP(mips_lwl, NORMAL);
-COMP(mips_lwr, NORMAL);
-COMP(mips_swl, STORE);
-COMP(mips_swr, STORE);
-COMP(mips_ldl, NORMAL);
-COMP(mips_ldr, NORMAL);
-COMP(mips_sdl, STORE);
-COMP(mips_sdr, STORE);
+COMP(mips_lbu, NORMAL, false);
+COMP(mips_lhu, NORMAL, false);
+COMP(mips_lh, NORMAL, false);
+COMP(mips_lw, NORMAL, false);
+COMP(mips_lwu, NORMAL, false);
+COMP(mips_sb, STORE, false);
+COMP(mips_sh, STORE, false);
+COMP(mips_sw, STORE, false);
+COMP(mips_sd, STORE, false);
+COMP(mips_lb, NORMAL, false);
+COMP(mips_lui, NORMAL, false);
+COMP(mips_ld, NORMAL, false);
+COMP(mips_ldc1, NORMAL, true);
+COMP(mips_sdc1, STORE, true);
+COMP(mips_lwc1, NORMAL, true);
+COMP(mips_swc1, STORE, true);
+COMP(mips_lwl, NORMAL, false);
+COMP(mips_lwr, NORMAL, false);
+COMP(mips_swl, STORE, false);
+COMP(mips_swr, STORE, false);
+COMP(mips_ldl, NORMAL, false);
+COMP(mips_ldr, NORMAL, false);
+COMP(mips_sdl, STORE, false);
+COMP(mips_sdr, STORE, false);
 
 // Unoptimized branches
-COMP(mips_beql, BRANCH_LIKELY);
-COMP(mips_bgtz, BRANCH);
-COMP(mips_bgtzl, BRANCH_LIKELY);
-COMP(mips_blez, BRANCH);
-COMP(mips_blezl, BRANCH_LIKELY);
-COMP(mips_bne, BRANCH);
-COMP(mips_bnel, BRANCH_LIKELY);
-COMP(mips_j, BRANCH);
-COMP(mips_jal, BRANCH);
-COMP(mips_ri_bltz, BRANCH);
-COMP(mips_ri_bltzl, BRANCH_LIKELY);
-COMP(mips_ri_bltzal, BRANCH);
-COMP(mips_ri_bgez, BRANCH);
-COMP(mips_ri_bgezl, BRANCH_LIKELY);
-COMP(mips_ri_bgezal, BRANCH);
-COMP(mips_spc_jr, BRANCH);
-COMP(mips_spc_jalr, BRANCH);
-COMP(mips_cp_bc1tl, BRANCH_LIKELY);
-COMP(mips_cp_bc1fl, BRANCH_LIKELY);
+COMP(mips_beql, BRANCH_LIKELY, false);
+COMP(mips_bgtz, BRANCH, false);
+COMP(mips_bgtzl, BRANCH_LIKELY, false);
+COMP(mips_blez, BRANCH, false);
+COMP(mips_blezl, BRANCH_LIKELY, false);
+COMP(mips_bne, BRANCH, false);
+COMP(mips_bnel, BRANCH_LIKELY, false);
+COMP(mips_j, BRANCH, false);
+COMP(mips_jal, BRANCH, false);
+COMP(mips_ri_bltz, BRANCH, false);
+COMP(mips_ri_bltzl, BRANCH_LIKELY, false);
+COMP(mips_ri_bltzal, BRANCH, false);
+COMP(mips_ri_bgez, BRANCH, false);
+COMP(mips_ri_bgezl, BRANCH_LIKELY, false);
+COMP(mips_ri_bgezal, BRANCH, false);
+COMP(mips_spc_jr, BRANCH, false);
+COMP(mips_spc_jalr, BRANCH, false);
+COMP(mips_cp_bc1tl, BRANCH_LIKELY, false);
+COMP(mips_cp_bc1fl, BRANCH_LIKELY, false);
 
 // Instructions that don't make too much sense to optimize
-COMP(mips_mfc0, NORMAL);
-COMP(mips_mtc0, NORMAL);
-COMP(mips_tlbwi, TLB_WRITE);
-COMP(mips_tlbp, NORMAL);
-COMP(mips_tlbr, NORMAL);
-COMP(mips_eret, ERET);
+COMP(mips_mfc0, NORMAL, false);
+COMP(mips_mtc0, NORMAL, false);
+COMP(mips_tlbwi, TLB_WRITE, false);
+COMP(mips_tlbp, NORMAL, false);
+COMP(mips_tlbr, NORMAL, false);
+COMP(mips_eret, ERET, false);
 
 
 // CP1 stuff
-COMP(mips_cfc1, NORMAL);
-COMP(mips_mfc1, NORMAL);
-COMP(mips_dmfc1, NORMAL);
-COMP(mips_mtc1, NORMAL);
-COMP(mips_dmtc1, NORMAL);
-COMP(mips_ctc1, NORMAL);
-COMP(mips_cp_bc1t, BRANCH);
-COMP(mips_cp_bc1f, BRANCH);
-COMP(mips_cp_add_d, NORMAL);
-COMP(mips_cp_add_s, NORMAL);
-COMP(mips_cp_sub_d, NORMAL);
-COMP(mips_cp_sub_s, NORMAL);
-COMP(mips_cp_mul_d, NORMAL);
-COMP(mips_cp_mul_s, NORMAL);
-COMP(mips_cp_div_d, NORMAL);
-COMP(mips_cp_div_s, NORMAL);
-COMP(mips_cp_trunc_l_d, NORMAL);
-COMP(mips_cp_trunc_l_s, NORMAL);
-COMP(mips_cp_trunc_w_d, NORMAL);
-COMP(mips_cp_trunc_w_s, NORMAL);
-COMP(mips_cp_cvt_d_s, NORMAL);
-COMP(mips_cp_cvt_d_w, NORMAL);
-COMP(mips_cp_cvt_d_l, NORMAL);
-COMP(mips_cp_cvt_l_d, NORMAL);
-COMP(mips_cp_cvt_l_s, NORMAL);
-COMP(mips_cp_cvt_s_d, NORMAL);
-COMP(mips_cp_cvt_s_w, NORMAL);
-COMP(mips_cp_cvt_s_l, NORMAL);
-COMP(mips_cp_cvt_w_d, NORMAL);
-COMP(mips_cp_cvt_w_s, NORMAL);
-COMP(mips_cp_sqrt_d, NORMAL);
-COMP(mips_cp_sqrt_s, NORMAL);
-COMP(mips_cp_abs_d, NORMAL);
-COMP(mips_cp_abs_s, NORMAL);
-COMP(mips_cp_mov_d, NORMAL);
-COMP(mips_cp_mov_s, NORMAL);
-COMP(mips_cp_neg_d, NORMAL);
-COMP(mips_cp_neg_s, NORMAL);
-COMP(mips_cp_c_eq_d, NORMAL);
-COMP(mips_cp_c_eq_s, NORMAL);
-COMP(mips_cp_c_lt_d, NORMAL);
-COMP(mips_cp_c_lt_s, NORMAL);
-COMP(mips_cp_c_le_d, NORMAL);
-COMP(mips_cp_c_le_s, NORMAL);
+COMP(mips_cfc1, NORMAL, true);
+COMP(mips_mfc1, NORMAL, true);
+COMP(mips_dmfc1, NORMAL, true);
+COMP(mips_mtc1, NORMAL, true);
+COMP(mips_dmtc1, NORMAL, true);
+COMP(mips_ctc1, NORMAL, true);
+COMP(mips_cp_bc1t, BRANCH, true);
+COMP(mips_cp_bc1f, BRANCH, true);
+COMP(mips_cp_add_d, NORMAL, true);
+COMP(mips_cp_add_s, NORMAL, true);
+COMP(mips_cp_sub_d, NORMAL, true);
+COMP(mips_cp_sub_s, NORMAL, true);
+COMP(mips_cp_mul_d, NORMAL, true);
+COMP(mips_cp_mul_s, NORMAL, true);
+COMP(mips_cp_div_d, NORMAL, true);
+COMP(mips_cp_div_s, NORMAL, true);
+COMP(mips_cp_trunc_l_d, NORMAL, true);
+COMP(mips_cp_trunc_l_s, NORMAL, true);
+COMP(mips_cp_trunc_w_d, NORMAL, true);
+COMP(mips_cp_trunc_w_s, NORMAL, true);
+COMP(mips_cp_cvt_d_s, NORMAL, true);
+COMP(mips_cp_cvt_d_w, NORMAL, true);
+COMP(mips_cp_cvt_d_l, NORMAL, true);
+COMP(mips_cp_cvt_l_d, NORMAL, true);
+COMP(mips_cp_cvt_l_s, NORMAL, true);
+COMP(mips_cp_cvt_s_d, NORMAL, true);
+COMP(mips_cp_cvt_s_w, NORMAL, true);
+COMP(mips_cp_cvt_s_l, NORMAL, true);
+COMP(mips_cp_cvt_w_d, NORMAL, true);
+COMP(mips_cp_cvt_w_s, NORMAL, true);
+COMP(mips_cp_sqrt_d, NORMAL, true);
+COMP(mips_cp_sqrt_s, NORMAL, true);
+COMP(mips_cp_abs_d, NORMAL, true);
+COMP(mips_cp_abs_s, NORMAL, true);
+COMP(mips_cp_mov_d, NORMAL, true);
+COMP(mips_cp_mov_s, NORMAL, true);
+COMP(mips_cp_neg_d, NORMAL, true);
+COMP(mips_cp_neg_s, NORMAL, true);
+COMP(mips_cp_c_eq_d, NORMAL, true);
+COMP(mips_cp_c_eq_s, NORMAL, true);
+COMP(mips_cp_c_lt_d, NORMAL, true);
+COMP(mips_cp_c_lt_s, NORMAL, true);
+COMP(mips_cp_c_le_d, NORMAL, true);
+COMP(mips_cp_c_le_s, NORMAL, true);
 
-dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles) {
+INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, word address) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
-            CASECOMPILE(COP_MF, compile_mips_mfc0);
+            CASEIR(COP_MF, mips_mfc0);
             // Last 11 bits are 0
-            CASECOMPILE(COP_MT, compile_mips_mtc0);
+            CASEIR(COP_MT, mips_mtc0);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);
@@ -459,10 +460,10 @@ dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_in
         }
     } else {
         switch (instr.fr.funct) {
-            CASECOMPILE(COP_FUNCT_TLBWI_MULT, compile_mips_tlbwi);
-            CASECOMPILE(COP_FUNCT_TLBP,       compile_mips_tlbp);
-            CASECOMPILE(COP_FUNCT_TLBR_SUB,   compile_mips_tlbr);
-            CASECOMPILE(COP_FUNCT_ERET,       compile_mips_eret);
+            CASEIR(COP_FUNCT_TLBWI_MULT, mips_tlbwi);
+            CASEIR(COP_FUNCT_TLBP,       mips_tlbp);
+            CASEIR(COP_FUNCT_TLBR_SUB,   mips_tlbr);
+            CASEIR(COP_FUNCT_ERET,       mips_eret);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);
@@ -473,50 +474,50 @@ dynarec_instruction_category_t compile_cp0_instruction(dasm_State** Dst, mips_in
     }
 }
 
-INLINE COMPILER(special_instruction) {
+INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word address) {
     switch (instr.r.funct) {
-        CASECOMPILE(FUNCT_SLL, compile_mips_spc_sll);
-        CASECOMPILE(FUNCT_SRL, compile_mips_spc_srl);
-        CASECOMPILE(FUNCT_SRA, compile_mips_spc_sra);
-        CASECOMPILE(FUNCT_SRAV, compile_mips_spc_srav);
-        CASECOMPILE(FUNCT_SLLV, compile_mips_spc_sllv);
-        CASECOMPILE(FUNCT_SRLV, compile_mips_spc_srlv);
-        CASECOMPILE(FUNCT_JR, compile_mips_spc_jr);
-        CASECOMPILE(FUNCT_JALR, compile_mips_spc_jalr);
-        CASECOMPILE(FUNCT_MFHI, compile_mips_spc_mfhi);
-        CASECOMPILE(FUNCT_MTHI, compile_mips_spc_mthi);
-        CASECOMPILE(FUNCT_MFLO, compile_mips_spc_mflo);
-        CASECOMPILE(FUNCT_MTLO, compile_mips_spc_mtlo);
-        CASECOMPILE(FUNCT_DSLLV, compile_mips_spc_dsllv);
-        CASECOMPILE(FUNCT_DSRLV, compile_mips_spc_dsrlv);
-        CASECOMPILE(FUNCT_MULT, compile_mips_spc_mult);
-        CASECOMPILE(FUNCT_MULTU, compile_mips_spc_multu);
-        CASECOMPILE(FUNCT_DIV, compile_mips_spc_div);
-        CASECOMPILE(FUNCT_DIVU, compile_mips_spc_divu);
-        CASECOMPILE(FUNCT_DMULT, compile_mips_spc_dmult);
-        CASECOMPILE(FUNCT_DMULTU, compile_mips_spc_dmultu);
-        CASECOMPILE(FUNCT_DDIV, compile_mips_spc_ddiv);
-        CASECOMPILE(FUNCT_DDIVU, compile_mips_spc_ddivu);
-        CASECOMPILE(FUNCT_ADD, compile_mips_spc_add);
-        CASECOMPILE(FUNCT_ADDU, compile_mips_spc_addu);
-        CASECOMPILE(FUNCT_AND, compile_mips_spc_and);
-        CASECOMPILE(FUNCT_NOR, compile_mips_spc_nor);
-        CASECOMPILE(FUNCT_SUB, compile_mips_spc_sub);
-        CASECOMPILE(FUNCT_SUBU, compile_mips_spc_subu);
-        CASECOMPILE(FUNCT_OR, compile_mips_spc_or);
-        CASECOMPILE(FUNCT_XOR, compile_mips_spc_xor);
-        CASECOMPILE(FUNCT_SLT, compile_mips_spc_slt);
-        CASECOMPILE(FUNCT_SLTU, compile_mips_spc_sltu);
-        CASECOMPILE(FUNCT_DADD, compile_mips_spc_dadd);
-        CASECOMPILE(FUNCT_DADDU, compile_mips_spc_daddu);
-        CASECOMPILE(FUNCT_DSUBU, compile_mips_spc_dsubu);
-        CASECOMPILE(FUNCT_TEQ, compile_mips_spc_teq);
-        CASECOMPILE(FUNCT_DSLL, compile_mips_spc_dsll);
-        CASECOMPILE(FUNCT_DSRL, compile_mips_spc_dsrl);
-        CASECOMPILE(FUNCT_DSRA, compile_mips_spc_dsra);
-        CASECOMPILE(FUNCT_DSLL32, compile_mips_spc_dsll32);
-        CASECOMPILE(FUNCT_DSRL32, compile_mips_spc_dsrl32);
-        CASECOMPILE(FUNCT_DSRA32, compile_mips_spc_dsra32);
+        CASEIR(FUNCT_SLL, mips_spc_sll);
+        CASEIR(FUNCT_SRL, mips_spc_srl);
+        CASEIR(FUNCT_SRA, mips_spc_sra);
+        CASEIR(FUNCT_SRAV, mips_spc_srav);
+        CASEIR(FUNCT_SLLV, mips_spc_sllv);
+        CASEIR(FUNCT_SRLV, mips_spc_srlv);
+        CASEIR(FUNCT_JR, mips_spc_jr);
+        CASEIR(FUNCT_JALR, mips_spc_jalr);
+        CASEIR(FUNCT_MFHI, mips_spc_mfhi);
+        CASEIR(FUNCT_MTHI, mips_spc_mthi);
+        CASEIR(FUNCT_MFLO, mips_spc_mflo);
+        CASEIR(FUNCT_MTLO, mips_spc_mtlo);
+        CASEIR(FUNCT_DSLLV, mips_spc_dsllv);
+        CASEIR(FUNCT_DSRLV, mips_spc_dsrlv);
+        CASEIR(FUNCT_MULT, mips_spc_mult);
+        CASEIR(FUNCT_MULTU, mips_spc_multu);
+        CASEIR(FUNCT_DIV, mips_spc_div);
+        CASEIR(FUNCT_DIVU, mips_spc_divu);
+        CASEIR(FUNCT_DMULT, mips_spc_dmult);
+        CASEIR(FUNCT_DMULTU, mips_spc_dmultu);
+        CASEIR(FUNCT_DDIV, mips_spc_ddiv);
+        CASEIR(FUNCT_DDIVU, mips_spc_ddivu);
+        CASEIR(FUNCT_ADD, mips_spc_add);
+        CASEIR(FUNCT_ADDU, mips_spc_addu);
+        CASEIR(FUNCT_AND, mips_spc_and);
+        CASEIR(FUNCT_NOR, mips_spc_nor);
+        CASEIR(FUNCT_SUB, mips_spc_sub);
+        CASEIR(FUNCT_SUBU, mips_spc_subu);
+        CASEIR(FUNCT_OR, mips_spc_or);
+        CASEIR(FUNCT_XOR, mips_spc_xor);
+        CASEIR(FUNCT_SLT, mips_spc_slt);
+        CASEIR(FUNCT_SLTU, mips_spc_sltu);
+        CASEIR(FUNCT_DADD, mips_spc_dadd);
+        CASEIR(FUNCT_DADDU, mips_spc_daddu);
+        CASEIR(FUNCT_DSUBU, mips_spc_dsubu);
+        CASEIR(FUNCT_TEQ, mips_spc_teq);
+        CASEIR(FUNCT_DSLL, mips_spc_dsll);
+        CASEIR(FUNCT_DSRL, mips_spc_dsrl);
+        CASEIR(FUNCT_DSRA, mips_spc_dsra);
+        CASEIR(FUNCT_DSLL32, mips_spc_dsll32);
+        CASEIR(FUNCT_DSRL32, mips_spc_dsrl32);
+        CASEIR(FUNCT_DSRA32, mips_spc_dsra32);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -526,14 +527,15 @@ INLINE COMPILER(special_instruction) {
     }
 }
 
-INLINE COMPILER(regimm_instruction) {
+
+INLINE dynarec_ir_t* regimm_instruction_ir(mips_instruction_t instr, word address) {
     switch (instr.i.rt) {
-        CASECOMPILE(RT_BLTZ, compile_mips_ri_bltz);
-        CASECOMPILE(RT_BLTZL, compile_mips_ri_bltzl);
-        CASECOMPILE(RT_BLTZAL, compile_mips_ri_bltzal);
-        CASECOMPILE(RT_BGEZ, compile_mips_ri_bgez);
-        CASECOMPILE(RT_BGEZL, compile_mips_ri_bgezl);
-        CASECOMPILE(RT_BGEZAL, compile_mips_ri_bgezal);
+        CASEIR(RT_BLTZ, mips_ri_bltz);
+        CASEIR(RT_BLTZL, mips_ri_bltzl);
+        CASEIR(RT_BLTZAL, mips_ri_bltzal);
+        CASEIR(RT_BGEZ, mips_ri_bgez);
+        CASEIR(RT_BGEZL, mips_ri_bgezl);
+        CASEIR(RT_BGEZAL, mips_ri_bgezal);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -543,23 +545,23 @@ INLINE COMPILER(regimm_instruction) {
     }
 }
 
-INLINE COMPILER(cp1_instruction) {
+INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
     switch (instr.r.rs) {
-        CASECOMPILE(COP_CF, compile_mips_cfc1);
-        CASECOMPILE(COP_MF, compile_mips_mfc1);
-        CASECOMPILE(COP_DMF, compile_mips_dmfc1);
-        CASECOMPILE(COP_MT, compile_mips_mtc1);
-        CASECOMPILE(COP_DMT, compile_mips_dmtc1);
-        CASECOMPILE(COP_CT, compile_mips_ctc1);
+        CASEIR(COP_CF, mips_cfc1);
+        CASEIR(COP_MF, mips_mfc1);
+        CASEIR(COP_DMF, mips_dmfc1);
+        CASEIR(COP_MT, mips_mtc1);
+        CASEIR(COP_DMT, mips_dmtc1);
+        CASEIR(COP_CT, mips_ctc1);
         case COP_BC:
             switch (instr.r.rt) {
-                CASECOMPILE(COP_BC_BCT, compile_mips_cp_bc1t);
-                CASECOMPILE(COP_BC_BCF, compile_mips_cp_bc1f);
-                CASECOMPILE(COP_BC_BCTL, compile_mips_cp_bc1tl);
-                CASECOMPILE(COP_BC_BCFL, compile_mips_cp_bc1fl);
+                CASEIR(COP_BC_BCT, mips_cp_bc1t);
+                CASEIR(COP_BC_BCF, mips_cp_bc1f);
+                CASEIR(COP_BC_BCTL, mips_cp_bc1tl);
+                CASEIR(COP_BC_BCFL, mips_cp_bc1fl);
                 default: {
                     char buf[50];
                     disassemble(address, instr.raw, buf, 50);
@@ -570,104 +572,104 @@ INLINE COMPILER(cp1_instruction) {
     switch (instr.fr.funct) {
         case COP_FUNCT_ADD:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_add_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_add_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_add_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_add_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_TLBR_SUB: {
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_sub_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_sub_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_sub_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_sub_s);
                 default:
                     logfatal("Undefined!");
             }
         }
         case COP_FUNCT_TLBWI_MULT:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_mul_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_mul_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_mul_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_mul_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_DIV:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_div_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_div_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_div_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_div_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_TRUNC_L:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_trunc_l_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_trunc_l_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_l_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_trunc_l_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_TRUNC_W:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_trunc_w_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_trunc_w_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_w_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_trunc_w_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_D:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_cvt_d_s);
-                CASECOMPILE(FP_FMT_W, compile_mips_cp_cvt_d_w);
-                CASECOMPILE(FP_FMT_L, compile_mips_cp_cvt_d_l);
+                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_d_s);
+                CASEIR(FP_FMT_W, mips_cp_cvt_d_w);
+                CASEIR(FP_FMT_L, mips_cp_cvt_d_l);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_L:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_cvt_l_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_cvt_l_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_l_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_l_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_S:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_cvt_s_d);
-                CASECOMPILE(FP_FMT_W, compile_mips_cp_cvt_s_w);
-                CASECOMPILE(FP_FMT_L, compile_mips_cp_cvt_s_l);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_s_d);
+                CASEIR(FP_FMT_W, mips_cp_cvt_s_w);
+                CASEIR(FP_FMT_L, mips_cp_cvt_s_l);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_CVT_W:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_cvt_w_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_cvt_w_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_w_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_w_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_SQRT:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_sqrt_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_sqrt_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_sqrt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_sqrt_s);
                 default:
                     logfatal("Undefined!");
             }
 
         case COP_FUNCT_ABS:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_abs_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_abs_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_abs_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_abs_s);
                 default:
                     logfatal("Undefined!");
             }
 
         case COP_FUNCT_MOV:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_mov_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_mov_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_mov_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_mov_s);
                 default:
                     logfatal("Undefined!");
             }
         case COP_FUNCT_NEG:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_neg_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_neg_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_neg_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_neg_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -677,8 +679,8 @@ INLINE COMPILER(cp1_instruction) {
             logfatal("COP_FUNCT_C_UN unimplemented");
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_c_eq_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_c_eq_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_eq_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_eq_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -702,8 +704,8 @@ INLINE COMPILER(cp1_instruction) {
             logfatal("COP_FUNCT_C_NGL unimplemented");
         case COP_FUNCT_C_LT:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_c_lt_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_c_lt_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_lt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_lt_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -711,8 +713,8 @@ INLINE COMPILER(cp1_instruction) {
             logfatal("COP_FUNCT_C_NGE unimplemented");
         case COP_FUNCT_C_LE:
             switch (instr.fr.fmt) {
-                CASECOMPILE(FP_FMT_DOUBLE, compile_mips_cp_c_le_d);
-                CASECOMPILE(FP_FMT_SINGLE, compile_mips_cp_c_le_s);
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_le_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_le_s);
                 default:
                     logfatal("Undefined!");
             }
@@ -728,80 +730,60 @@ INLINE COMPILER(cp1_instruction) {
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
 
-dynarec_instruction_category_t compile_instruction(dasm_State** Dst, mips_instruction_t instr, word address, word block_length, word* extra_cycles) {
+dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address) {
     if (unlikely(instr.raw == 0)) {
-        return CALL_COMPILER(compile_mips_nop);
+        return &ir_mips_nop;
     }
     switch (instr.op) {
-        case OPC_CP0:    return CALL_COMPILER(compile_cp0_instruction);
-        case OPC_CP1: {
-            dynarec_instruction_category_t category = CALL_COMPILER(compile_cp1_instruction);
-            check_exception(Dst, block_length);
-            return category;
-        }
-        CASECOMPILE(OPC_SPCL, compile_special_instruction);
-        CASECOMPILE(OPC_REGIMM, compile_regimm_instruction);
+        case OPC_CP0:    return cp0_instruction_ir(instr, address);
+        case OPC_CP1:    return cp1_instruction_ir(instr, address);
+        case OPC_SPCL:   return special_instruction_ir(instr, address);
+        case OPC_REGIMM: return regimm_instruction_ir(instr, address);
 
-        CASECOMPILE(OPC_LD, compile_mips_ld);
-        CASECOMPILE(OPC_LUI, compile_mips_lui);
-        CASECOMPILE(OPC_ADDIU, compile_mips_addiu);
-        CASECOMPILE(OPC_ADDI, compile_mips_addi);
-        CASECOMPILE(OPC_DADDI, compile_mips_daddi);
-        CASECOMPILE(OPC_ANDI, compile_mips_andi);
-        CASECOMPILE(OPC_LBU, compile_mips_lbu);
-        CASECOMPILE(OPC_LHU, compile_mips_lhu);
-        CASECOMPILE(OPC_LH, compile_mips_lh);
-        CASECOMPILE(OPC_LW, compile_mips_lw);
-        CASECOMPILE(OPC_LWU, compile_mips_lwu);
-        CASECOMPILE(OPC_BEQ, compile_mips_beq);
-        CASECOMPILE(OPC_BEQL, compile_mips_beql);
-        CASECOMPILE(OPC_BGTZ, compile_mips_bgtz);
-        CASECOMPILE(OPC_BGTZL, compile_mips_bgtzl);
-        CASECOMPILE(OPC_BLEZ, compile_mips_blez);
-        CASECOMPILE(OPC_BLEZL, compile_mips_blezl);
-        CASECOMPILE(OPC_BNE, compile_mips_bne);
-        CASECOMPILE(OPC_BNEL, compile_mips_bnel);
-        CASECOMPILE(OPC_CACHE, compile_mips_cache);
-        CASECOMPILE(OPC_SB, compile_mips_sb);
-        CASECOMPILE(OPC_SH, compile_mips_sh);
-        CASECOMPILE(OPC_SW, compile_mips_sw);
-        CASECOMPILE(OPC_SD, compile_mips_sd);
-        CASECOMPILE(OPC_ORI, compile_mips_ori);
-        CASECOMPILE(OPC_J, compile_mips_j);
-        CASECOMPILE(OPC_JAL, compile_mips_jal);
-        CASECOMPILE(OPC_SLTI, compile_mips_slti);
-        CASECOMPILE(OPC_SLTIU, compile_mips_sltiu);
-        CASECOMPILE(OPC_XORI, compile_mips_xori);
-        CASECOMPILE(OPC_DADDIU, compile_mips_daddiu);
-        CASECOMPILE(OPC_LB, compile_mips_lb);
-        case OPC_LDC1: {
-            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_ldc1);
-            check_exception(Dst, block_length);
-            return category;
-        }
-        case OPC_SDC1: {
-            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_sdc1);
-            check_exception(Dst, block_length);
-            return category;
-        }
-        case OPC_LWC1: {
-            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_lwc1);
-            check_exception(Dst, block_length);
-            return category;
-        }
-        case OPC_SWC1: {
-            dynarec_instruction_category_t category = CALL_COMPILER(compile_mips_swc1);
-            check_exception(Dst, block_length);
-            return category;
-        }
-        CASECOMPILE(OPC_LWL, compile_mips_lwl);
-        CASECOMPILE(OPC_LWR, compile_mips_lwr);
-        CASECOMPILE(OPC_SWL, compile_mips_swl);
-        CASECOMPILE(OPC_SWR, compile_mips_swr);
-        CASECOMPILE(OPC_LDL, compile_mips_ldl);
-        CASECOMPILE(OPC_LDR, compile_mips_ldr);
-        CASECOMPILE(OPC_SDL, compile_mips_sdl);
-        CASECOMPILE(OPC_SDR, compile_mips_sdr);
+        CASEIR(OPC_LD, mips_ld);
+        CASEIR(OPC_LUI, mips_lui);
+        CASEIR(OPC_ADDIU, mips_addiu);
+        CASEIR(OPC_ADDI, mips_addi);
+        CASEIR(OPC_DADDI, mips_daddi);
+        CASEIR(OPC_ANDI, mips_andi);
+        CASEIR(OPC_LBU, mips_lbu);
+        CASEIR(OPC_LHU, mips_lhu);
+        CASEIR(OPC_LH, mips_lh);
+        CASEIR(OPC_LW, mips_lw);
+        CASEIR(OPC_LWU, mips_lwu);
+        CASEIR(OPC_BEQ, mips_beq);
+        CASEIR(OPC_BEQL, mips_beql);
+        CASEIR(OPC_BGTZ, mips_bgtz);
+        CASEIR(OPC_BGTZL, mips_bgtzl);
+        CASEIR(OPC_BLEZ, mips_blez);
+        CASEIR(OPC_BLEZL, mips_blezl);
+        CASEIR(OPC_BNE, mips_bne);
+        CASEIR(OPC_BNEL, mips_bnel);
+        CASEIR(OPC_CACHE, mips_cache);
+        CASEIR(OPC_SB, mips_sb);
+        CASEIR(OPC_SH, mips_sh);
+        CASEIR(OPC_SW, mips_sw);
+        CASEIR(OPC_SD, mips_sd);
+        CASEIR(OPC_ORI, mips_ori);
+        CASEIR(OPC_J, mips_j);
+        CASEIR(OPC_JAL, mips_jal);
+        CASEIR(OPC_SLTI, mips_slti);
+        CASEIR(OPC_SLTIU, mips_sltiu);
+        CASEIR(OPC_XORI, mips_xori);
+        CASEIR(OPC_DADDIU, mips_daddiu);
+        CASEIR(OPC_LB, mips_lb);
+        CASEIR(OPC_LDC1, mips_ldc1);
+        CASEIR(OPC_SDC1, mips_sdc1);
+        CASEIR(OPC_LWC1, mips_lwc1);
+        CASEIR(OPC_SWC1, mips_swc1);
+        CASEIR(OPC_LWL, mips_lwl);
+        CASEIR(OPC_LWR, mips_lwr);
+        CASEIR(OPC_SWL, mips_swl);
+        CASEIR(OPC_SWR, mips_swr);
+        CASEIR(OPC_LDL, mips_ldl);
+        CASEIR(OPC_LDR, mips_ldr);
+        CASEIR(OPC_SDL, mips_sdl);
+        CASEIR(OPC_SDR, mips_sdr);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);

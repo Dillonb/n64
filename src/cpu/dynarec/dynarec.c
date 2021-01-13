@@ -52,7 +52,12 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
 
         block_length++; // Needs to happen before we compile since we use the incremented value inside the compiler
         word extra_cycles = 0;
-        dynarec_instruction_category_t category = compile_instruction(Dst, instr, physical_address, block_length, &extra_cycles);
+        dynarec_ir_t* ir = instruction_ir(instr, physical_address);
+        ir->compiler(Dst, instr, physical_address, &extra_cycles);
+        if (ir->exception_possible) {
+            check_exception(Dst, block_length);
+        }
+        dynarec_instruction_category_t category = ir->category;
         block_length += extra_cycles;
 
         switch (category) {
@@ -170,8 +175,10 @@ int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
 
     n64_dynarec_block_t* block = &block_list[inner_index];
 
+#ifdef LOG_ENABLED
     static long total_blocks_run;
     logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", system->cpu.pc, ++total_blocks_run, (uintptr_t)block->run);
+#endif
     int taken = block->run(&system->cpu);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, system->cpu.pc);

@@ -2,6 +2,7 @@
 #define N64_DYNAREC_H
 
 #include <system/n64system.h>
+#include <dynasm/dasm_proto.h>
 
 // 4KiB aligned pages
 #define BLOCKCACHE_OUTER_SHIFT 12
@@ -12,16 +13,25 @@
 
 typedef enum dynarec_instruction_category {
     NORMAL,
-    // Might cause an interrupt, so end the block
     STORE,
-    // emit the delay slot, always, then end the block.
     BRANCH,
-    // emit the delay slot wrapped in a conditional, then end the block.
     BRANCH_LIKELY,
-    // Special cases
     TLB_WRITE,
     ERET
 } dynarec_instruction_category_t;
+
+
+typedef void(*mipsinstr_compiler_t)(dasm_State**, mips_instruction_t, word, word*);
+
+typedef struct dynarec_ir {
+    dynarec_instruction_category_t category;
+    /*
+    int guest_args[2];
+    int host_output;
+     */
+    bool exception_possible;
+    mipsinstr_compiler_t compiler;
+} dynarec_ir_t;
 
 typedef struct n64_dynarec_block {
     int (*run)(r4300i_t* cpu);
