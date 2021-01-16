@@ -19,6 +19,9 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
     return buf;
 }
 
+INLINE bool is_branch(dynarec_instruction_category_t category) {
+    return category == BRANCH || category == BRANCH_LIKELY;
+}
 
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     dasm_State* d = block_header();
@@ -50,6 +53,9 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
             // save prev_pc
             // TODO will no longer need this when we emit code to check the exceptions
             flush_prev_pc(Dst, virtual_address);
+        }
+        if (is_branch(ir->category)) {
+            flush_pc(Dst, next_virtual_address);
         }
         ir->compiler(Dst, instr, physical_address, &extra_cycles);
         block_length++;

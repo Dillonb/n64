@@ -880,3 +880,8 @@ void flush_prev_pc(dasm_State** Dst, dword prev_pc) {
     | mov rax, prev_pc
     | mov cpu_state->prev_pc, rax
 }
+
+void flush_pc(dasm_State** Dst, dword pc) {
+    | mov rax, pc
+    | mov cpu_state->pc, rax
+}
