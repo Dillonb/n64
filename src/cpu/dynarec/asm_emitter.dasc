@@ -198,8 +198,33 @@ COMPILER(mips_ori) {
     SAVERAX(instr.i.rt);
 }
 
-COMP(mips_slti, NORMAL, false);
-COMP(mips_sltiu, NORMAL, false);
+COMPILER(mips_slti) {
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
+
+    BAILZERO(instr.i.rt);
+    LOADRAX(instr.i.rs);
+    | cmp rax, ext_imm
+    // sets al to 1 if rs < imm (signed), 0 if not
+    | setl al
+    // al operations don't extend to eax, so we do it manually. This is a fast equivalent to and eax, $FF
+    | movzx rax, al
+    SAVERAX(instr.i.rt);
+}
+
+COMPILER(mips_sltiu) {
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
+
+    BAILZERO(instr.i.rt);
+    LOADRAX(instr.i.rs);
+    | cmp rax, ext_imm
+    // sets al to 1 if rs < imm (unsigned), 0 if not
+    | setb al
+    // al operations don't extend to eax, so we do it manually. This is a fast equivalent to and eax, $FF
+    | movzx rax, al
+    SAVERAX(instr.i.rt);
+}
 
 COMPILER(mips_xori) {
     BAILZERO(instr.i.rt);
@@ -297,6 +322,8 @@ IR_INFO(mips_daddi, NORMAL, false);
 IR_INFO(mips_daddiu, NORMAL, false);
 IR_INFO(mips_andi, NORMAL, false);
 IR_INFO(mips_ori, NORMAL, false);
+IR_INFO(mips_slti, NORMAL, false);
+IR_INFO(mips_sltiu, NORMAL, false);
 IR_INFO(mips_xori, NORMAL, false);
 IR_INFO(mips_spc_sll, NORMAL, false);
 IR_INFO(mips_spc_srl, NORMAL, false);
