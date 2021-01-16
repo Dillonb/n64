@@ -528,12 +528,13 @@ typedef union fcr31 {
         bool compare:1;
         bool fs:1;
         unsigned:7;
-    };
+    } PACKED;
 
     struct {
         unsigned:7;
-        byte enable:5;
-        byte cause:6;
+        // these types are half to make GCC happy, since they cross the size of a byte.
+        half enable:5;
+        half cause:6;
         unsigned:14;
     } PACKED;
 } fcr31_t;
