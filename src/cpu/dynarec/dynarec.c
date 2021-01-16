@@ -24,7 +24,8 @@ INLINE bool is_branch(dynarec_instruction_category_t category) {
 }
 
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
-    dasm_State* d = block_header();
+    static dasm_State* d;
+    d = block_header();
     dasm_State** Dst = &d;
 
     bool should_continue_block = true;
