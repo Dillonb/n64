@@ -305,7 +305,7 @@ void check_cpu_log(n64_system_t* system, FILE* fp) {
         tok = strtok(instrline, " ");
         dword pc = strtol(tok, NULL, 16);
         if (pc != system->cpu.pc) {
-            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08X", line + 1, pc, system->cpu.pc);
+            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, system->cpu.pc);
         }
         n64_system_step(system, false);
     }
@@ -367,7 +367,7 @@ int run_system_and_check(n64_system_t* system, long taken, char* line, long line
     cpu_steps += taken;
 
     if (expected_pc != cpu->pc) {
-        logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08X\n", linenum, taken, expected_pc, cpu->pc);
+        logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08lX\n", linenum, taken, expected_pc, cpu->pc);
     }
 
     logalways("Synchronized at PC=0x%08X, checking registers", cpu->pc);
