@@ -75,9 +75,9 @@ INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address
     shalf offset = instr.i.immediate;
     sword soffset = offset;
     soffset <<= 2;
-    | mov eax, cpu_state->pc
-    | add eax, soffset
-    | mov cpu_state->next_pc, eax
+    | mov rax, cpu_state->pc
+    | add rax, soffset
+    | mov cpu_state->next_pc, rax
     | mov al, 1
     | mov cpu_state->branch, al
 }
