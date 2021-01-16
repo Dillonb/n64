@@ -7,8 +7,10 @@ The code at this address is what's called the PIF ROM. This is code baked into t
 
 Emulators can execute this code, but the effects of it are so simple it can make sense to simply simulate its effects instead.
 
-If you wish to simulate it, simply perform the following operations:
+Simulating the PIF ROM
+----------------------
 
+The PIF ROM can be fairly tricky for young emulators to run, and its effects are not complicated. If you wish to simulate it, know that it has the following side effects on the console:
 
 Set three GPRs to initial values:
 
@@ -19,11 +21,8 @@ Set three GPRs to initial values:
 +-----------------+---------------+--------------------+
 | 22              | s6            | 0x000000000000003F |
 +-----------------+---------------+--------------------+
-| 29              | sp            | 0x00000000A4001FF0 |
+| 29              | sp            | 0xFFFFFFFFA4001FF0 |
 +-----------------+---------------+--------------------+
-
-
-**TODO: is $sp set to 0x00000000A4001FF0, or 0xFFFFFFFFA4001FF0?** (i.e., is it sign extended?)
 
 All other registers are left at zero.
 
@@ -43,10 +42,10 @@ Set some CP0 registers to initial values:
 
 All other registers are left at zero.
 
-The value 0x01010101 is then written to memory address 0x04300004
+The value 0x01010101 is then written to physical memory address 0x04300004 (through 0xA4300004 most likely, but that doesn't matter for our purposes here)
 
-The first 0x1000 bytes from the cartridge are then copied to the first 0x1000 bytes of RDRAM. This is implemented as a copy of 0x1000 bytes from 0xB0000000 to 0xA4000000.
+The first 0x1000 bytes from the cartridge are then copied to SP DMEM. This is implemented as a copy of 0x1000 bytes from 0xB0000000 to 0xA4000000.
 
-The program counter is then set to 0xA4000040. Note that this skips the first 0x40 bytes of the ROM, as this is where the header is stored.
+The program counter is then set to 0xA4000040. Note that this skips the first 0x40 bytes of the ROM, as this is where the header is stored. Also note that execution begins with the CPU executing out of SP DMEM.
 
 The ROM now begins to execute! In practice, this is the Bootcode. A reverse-engineering and analysis of this bootcode can be found `Here <https://www.retroreversing.com/n64bootcode>`_.
