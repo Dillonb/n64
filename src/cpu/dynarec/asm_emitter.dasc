@@ -861,19 +861,29 @@ void advance_pc(r4300i_t* compile_time_cpu, dasm_State** Dst) {
     | mov cpu_state->next_pc, rax
 }
 
+void clear_branch_flag(dasm_State** Dst) {
+    // cpu->branch = false;
+    | mov al, 0
+    | mov cpu_state->branch, al
+}
+
 void end_block(dasm_State** Dst, int block_length) {
+    clear_branch_flag(Dst);
     | mov eax, block_length
     | epilogue // return block_length
 }
 
-void end_block_early_on_branch_taken(dasm_State** Dst, int block_length) {
-    // If it wasn't taken, end the block.
-    // If it was taken, don't end the block, need to execute delay slot
+void post_branch_likely(dasm_State** Dst, r4300i_t* compile_time_cpu, int block_length) {
     | mov al, cpu_state->branch
     | cmp al, 0 // if (branch == true)
     | jne >1
+    // If the branch WAS taken, end the block.
     end_block(Dst, block_length);
+    | jmp >2
     |1:
+    // If the branch WAS NOT taken, advance the PC.
+    advance_pc(compile_time_cpu, Dst);
+    |2:
 }
 
 void flush_prev_pc(dasm_State** Dst, dword prev_pc) {
@@ -884,4 +894,9 @@ void flush_prev_pc(dasm_State** Dst, dword prev_pc) {
 void flush_pc(dasm_State** Dst, dword pc) {
     | mov rax, pc
     | mov cpu_state->pc, rax
+}
+
+void flush_next_pc(dasm_State** Dst, dword next_pc) {
+    | mov rax, next_pc
+    | mov cpu_state->next_pc, rax
 }

@@ -604,11 +604,13 @@ extern const char* register_names[];
 extern const char* cp0_register_names[];
 
 INLINE void set_pc_word_r4300i(r4300i_t* cpu, word new_pc) {
+    cpu->prev_pc = cpu->pc;
     cpu->pc = (sdword)((sword)new_pc);
     cpu->next_pc = cpu->pc + 4;
 }
 
 INLINE void set_pc_dword_r4300i(r4300i_t* cpu, dword new_pc) {
+    cpu->prev_pc = cpu->pc;
     cpu->pc = new_pc;
     cpu->next_pc = cpu->pc + 4;
 }

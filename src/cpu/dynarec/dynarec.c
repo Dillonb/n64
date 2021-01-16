@@ -35,14 +35,14 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
 
     dynarec_instruction_category_t prev_instr_category = NORMAL;
 
+    bool branch_in_block = false;
+
     do {
         mips_instruction_t instr;
         instr.raw = n64_read_physical_word(physical_address);
 
         word next_physical_address = physical_address + 4;
         dword next_virtual_address = virtual_address + 4;
-
-        advance_pc(compile_time_cpu, Dst);
 
         instructions_left_in_block--;
         bool instr_ends_block;
@@ -56,6 +56,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
         }
         if (is_branch(ir->category)) {
             flush_pc(Dst, next_virtual_address);
+            flush_next_pc(Dst, next_virtual_address + 4);
+            clear_branch_flag(Dst);
         }
         ir->compiler(Dst, instr, physical_address, &extra_cycles);
         block_length++;
@@ -69,6 +71,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
                 instr_ends_block = instructions_left_in_block == 0;
                 break;
             case BRANCH:
+                branch_in_block = true;
+                advance_pc(compile_time_cpu, Dst);
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
                     // Check if the previous branch was taken.
 
@@ -85,26 +89,28 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
                     //logfatal("unimp");
                 }
 
-                // If the previous instruction was a branch, exit the block early if
-
-                // If the previous instruction was a branch LIKELY, exit the block early if the _previous branch_
                 instr_ends_block = false;
                 instructions_left_in_block = 1; // emit delay slot
                 break;
 
             case BRANCH_LIKELY:
+                branch_in_block = true;
                 // If the previous instruction was a branch:
-                //
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
                     logfatal("Branch in a branch likely delay slot");
                 } else {
-                    end_block_early_on_branch_taken(Dst, block_length);
+                    post_branch_likely(Dst, compile_time_cpu, block_length);
                 }
 
                 instr_ends_block = false;
                 instructions_left_in_block = 1; // emit delay slot
                 break;
+
             case ERET:
+                branch_in_block = true;
+                instr_ends_block = true;
+                break;
+
             case TLB_WRITE:
             case STORE:
                 instr_ends_block = true;
@@ -128,6 +134,10 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
 #ifdef N64_LOG_COMPILATIONS
             printf("Ending block. instr: %d pb: %d (0x%08X)\n", instr_ends_block, page_boundary_ends_block, next_physical_address);
 #endif
+            if (!branch_in_block) {
+                flush_pc(Dst, next_virtual_address);
+                flush_next_pc(Dst, next_virtual_address + 4);
+            }
             should_continue_block = false;
         }
 

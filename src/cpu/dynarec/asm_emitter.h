@@ -161,11 +161,13 @@ COMPILER(mips_cp_c_le_d);
 COMPILER(mips_cp_c_le_s);
 
 dasm_State* block_header();
+void clear_branch_flag(dasm_State** Dst);
 void advance_pc(r4300i_t* compile_time_cpu, dasm_State** Dst);
 dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address);
 void end_block(dasm_State** Dst, int block_length);
-void end_block_early_on_branch_taken(dasm_State** Dst, int block_length);
+void post_branch_likely(dasm_State** Dst, r4300i_t* compile_time_cpu, int block_length);
 void check_exception(dasm_State** Dst, word block_length);
 void flush_prev_pc(dasm_State** Dst, dword prev_pc);
 void flush_pc(dasm_State** Dst, dword pc);
+void flush_next_pc(dasm_State** Dst, dword next_pc);
 #endif //N64_ASM_EMITTER_H
