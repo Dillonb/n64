@@ -28,6 +28,9 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
     d = block_header();
     dasm_State** Dst = &d;
 
+    static int arg_host_registers[] = {0, 0};
+    static int dest_host_register = 0;
+
     bool should_continue_block = true;
     int block_length = 0;
 
@@ -60,7 +63,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
             flush_next_pc(Dst, next_virtual_address + 4);
             clear_branch_flag(Dst);
         }
-        ir->compiler(Dst, instr, physical_address, &extra_cycles);
+        ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);
         block_length++;
         block_length += extra_cycles;
         if (ir->exception_possible) {

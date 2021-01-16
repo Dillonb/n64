@@ -20,15 +20,22 @@ typedef enum dynarec_instruction_category {
     ERET
 } dynarec_instruction_category_t;
 
+typedef enum instruction_format {
+    CALL_INTERPRETER,
+    FORMAT_NOP,
+    SHIFT_CONST,
+    I_TYPE,
+    R_TYPE,
+    J_TYPE,
+    MF_MULTREG,
+    MT_MULTREG
+} instruction_format_t;
 
-typedef void(*mipsinstr_compiler_t)(dasm_State**, mips_instruction_t, word, word*);
+typedef void(*mipsinstr_compiler_t)(dasm_State**, mips_instruction_t, word, int*, int, word*);
 
 typedef struct dynarec_ir {
     dynarec_instruction_category_t category;
-    /*
-    int guest_args[2];
-    int host_output;
-     */
+    instruction_format_t format;
     bool exception_possible;
     mipsinstr_compiler_t compiler;
 } dynarec_ir_t;

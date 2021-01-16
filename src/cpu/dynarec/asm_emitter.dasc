@@ -121,10 +121,10 @@ void check_exception(dasm_State** Dst, word block_length) {
 #define SAVERAX(r) save_rax(Dst, address, r)
 #define SEAX sign_extend_eax_rax(Dst)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
-#define IR_INFO(instruction, category_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .exception_possible = exception}
-#define COMP(name, type, exception) COMPILER(name) { RUNHANDLER(name); } IR_INFO(name, type, exception)
+#define IR_INFO(instruction, category_, format_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .format = format_, .exception_possible = exception}
+#define COMP(name, type, exception) COMPILER(name) { RUNHANDLER(name); } IR_INFO(name, type, CALL_INTERPRETER, exception)
 #define BAILZERO(v) do { if ((v) == 0) { return; } } while (0)
-#define CALL_COMPILER(compiler) compiler(Dst, instr, address, extra_cycles)
+#define CALL_COMPILER(compiler) compiler(Dst, instr, address, argument_registers, destination_register, extra_cycles)
 #define CASEIR(pattern, instruction) case pattern: return &ir_##instruction
 
 COMPILER(mips_nop) {}
@@ -313,28 +313,30 @@ COMPILER(mips_spc_mtlo) {
     | mov64 [dst], rax
 }
 
-IR_INFO(mips_nop, NORMAL, false);
-IR_INFO(mips_addi, NORMAL, false);
-IR_INFO(mips_addiu, NORMAL, false);
-IR_INFO(mips_beq, BRANCH, false);
-IR_INFO(mips_cache, NORMAL, false);
-IR_INFO(mips_daddi, NORMAL, false);
-IR_INFO(mips_daddiu, NORMAL, false);
-IR_INFO(mips_andi, NORMAL, false);
-IR_INFO(mips_ori, NORMAL, false);
-IR_INFO(mips_slti, NORMAL, false);
-IR_INFO(mips_sltiu, NORMAL, false);
-IR_INFO(mips_xori, NORMAL, false);
-IR_INFO(mips_spc_sll, NORMAL, false);
-IR_INFO(mips_spc_srl, NORMAL, false);
-IR_INFO(mips_spc_sra, NORMAL, false);
-IR_INFO(mips_spc_srav, NORMAL, false);
-IR_INFO(mips_spc_sllv, NORMAL, false);
-IR_INFO(mips_spc_srlv, NORMAL, false);
-IR_INFO(mips_spc_mfhi, NORMAL, false);
-IR_INFO(mips_spc_mthi, NORMAL, false);
-IR_INFO(mips_spc_mflo, NORMAL, false);
-IR_INFO(mips_spc_mtlo, NORMAL, false);
+IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
+IR_INFO(mips_addi, NORMAL, I_TYPE, false);
+IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
+IR_INFO(mips_beq, BRANCH, I_TYPE, false);
+IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
+IR_INFO(mips_daddi, NORMAL, I_TYPE, false);
+IR_INFO(mips_daddiu, NORMAL, I_TYPE, false);
+IR_INFO(mips_andi, NORMAL, I_TYPE, false);
+IR_INFO(mips_ori, NORMAL, I_TYPE, false);
+IR_INFO(mips_slti, NORMAL, I_TYPE, false);
+IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
+IR_INFO(mips_xori, NORMAL, I_TYPE, false);
+
+IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
+IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
+IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
+IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
+IR_INFO(mips_spc_sllv, NORMAL, R_TYPE, false);
+IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
+
+IR_INFO(mips_spc_mfhi, NORMAL, MF_MULTREG, false);
+IR_INFO(mips_spc_mthi, NORMAL, MT_MULTREG, false);
+IR_INFO(mips_spc_mflo, NORMAL, MF_MULTREG, false);
+IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
 
 COMP(mips_spc_dsllv, NORMAL, false);
 COMP(mips_spc_dsrlv, NORMAL, false);
