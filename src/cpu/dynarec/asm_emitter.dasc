@@ -876,3 +876,7 @@ void end_block_early_on_branch_taken(dasm_State** Dst, int block_length) {
     |1:
 }
 
+void flush_prev_pc(dasm_State** Dst, dword prev_pc) {
+    | mov rax, prev_pc
+    | mov cpu_state->prev_pc, rax
+}

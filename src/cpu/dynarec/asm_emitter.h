@@ -166,4 +166,5 @@ dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address);
 void end_block(dasm_State** Dst, int block_length);
 void end_block_early_on_branch_taken(dasm_State** Dst, int block_length);
 void check_exception(dasm_State** Dst, word block_length);
+void flush_prev_pc(dasm_State** Dst, dword prev_pc);
 #endif //N64_ASM_EMITTER_H

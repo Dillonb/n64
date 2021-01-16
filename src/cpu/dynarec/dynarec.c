@@ -20,7 +20,7 @@ void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
 }
 
 
-void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, word physical_address) {
+void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     dasm_State* d = block_header();
     dasm_State** Dst = &d;
 
@@ -37,23 +37,28 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
         instr.raw = n64_read_physical_word(physical_address);
 
         word next_physical_address = physical_address + 4;
+        dword next_virtual_address = virtual_address + 4;
 
         advance_pc(compile_time_cpu, Dst);
 
         instructions_left_in_block--;
         bool instr_ends_block;
 
-        block_length++; // Needs to happen before we compile since we use the incremented value inside the compiler
         word extra_cycles = 0;
         dynarec_ir_t* ir = instruction_ir(instr, physical_address);
+        if (ir->exception_possible) {
+            // save prev_pc
+            // TODO will no longer need this when we emit code to check the exceptions
+            flush_prev_pc(Dst, virtual_address);
+        }
         ir->compiler(Dst, instr, physical_address, &extra_cycles);
+        block_length++;
+        block_length += extra_cycles;
         if (ir->exception_possible) {
             check_exception(Dst, block_length);
         }
-        dynarec_instruction_category_t category = ir->category;
-        block_length += extra_cycles;
 
-        switch (category) {
+        switch (ir->category) {
             case NORMAL:
                 instr_ends_block = instructions_left_in_block == 0;
                 break;
@@ -121,7 +126,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
         }
 
         physical_address = next_physical_address;
-        prev_instr_category = category;
+        virtual_address = next_virtual_address;
+        prev_instr_category = ir->category;
     } while (should_continue_block);
     end_block(Dst, block_length);
     void* compiled = link_and_encode(dynarec, &d);
@@ -144,7 +150,7 @@ int missing_block_handler(r4300i_t* cpu) {
     printf("Compilin' new block at 0x%08X / 0x%08X\n", global_system->cpu.pc, physical);
 #endif
 
-    compile_new_block(global_system->dynarec, cpu, block, physical);
+    compile_new_block(global_system->dynarec, cpu, block, cpu->pc, physical);
 
     return block->run(cpu);
 }
