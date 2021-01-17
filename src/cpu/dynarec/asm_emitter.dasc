@@ -202,26 +202,19 @@ COMPILER(mips_daddiu) {
 }
 IR_INFO(mips_daddiu, NORMAL, I_TYPE, false);
 
-/*
 COMPILER(mips_andi) {
     BAILZERO(instr.i.rt);
     | mov Rq(dreg), Rq(aregs[0])
     | and Rq(dreg), instr.i.immediate
 }
 IR_INFO(mips_andi, NORMAL, I_TYPE, false);
- */
 
-/*
 COMPILER(mips_ori) {
     BAILZERO(instr.i.rt);
     | mov Rq(dreg), Rq(aregs[0])
     | or Rq(dreg), instr.i.immediate
 }
 IR_INFO(mips_ori, NORMAL, I_TYPE, false);
-*/
-
-COMP(mips_andi, NORMAL, false);
-COMP(mips_ori, NORMAL, false);
 
 /*
 COMPILER(mips_slti) {
@@ -353,10 +346,6 @@ COMP(mips_spc_mflo, NORMAL, false);
 COMP(mips_spc_mtlo, NORMAL, false);
 
 /*
-IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
- */
-/*
-IR_INFO(mips_andi, NORMAL, I_TYPE, false);
 IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
 
 IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
