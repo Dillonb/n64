@@ -87,21 +87,10 @@ void pif_rom_execute_hle(n64_system_t* system) {
     loginfo("CP0 status: cu2: %d", system->cpu.cp0.status.cu2);
     loginfo("CP0 status: cu3: %d", system->cpu.cp0.status.cu3);
 
-    //n64_write_word(system, 0x04300004, 0x01010101);
+    n64_write_word(system, 0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
-
-    word src_ptr  = 0xB0000000;
-    word dest_ptr = 0xA4000000;
-
-    for (int i = 0; i < (0x1000 >> 3); i++) {
-        word src_address = src_ptr + (i << 3);
-        word dest_address = dest_ptr + (i << 3);
-        dword src = n64_read_dword(system, resolve_virtual_address(src_address, &system->cpu.cp0));
-        n64_write_dword(system, resolve_virtual_address(dest_address, &system->cpu.cp0), src);
-
-        logtrace("PIF: Copied 0x%016lX from 0x%08X ==> 0x%08X", src, src_address, dest_address);
-    }
+    memcpy(system->mem.sp_dmem, system->mem.rom.rom, sizeof(byte) * 0x1000);
 
     set_pc_word_r4300i(&system->cpu, 0xA4000040);
 }
