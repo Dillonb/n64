@@ -393,25 +393,32 @@ COMP(mips_spc_teq, NORMAL, true);
 COMPILER(mips_spc_dsll) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
-    | shl Rd(dreg), instr.r.sa
+    | shl Rq(dreg), instr.r.sa
 }
 IR_INFO(mips_spc_dsll, NORMAL, SHIFT_CONST, false);
 
 COMPILER(mips_spc_dsrl) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
-    | shr Rd(dreg), instr.r.sa
+    | shr Rq(dreg), instr.r.sa
 }
 IR_INFO(mips_spc_dsrl, NORMAL, SHIFT_CONST, false);
 
 COMPILER(mips_spc_dsra) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
-    | sar Rd(dreg), instr.r.sa
+    | sar Rq(dreg), instr.r.sa
 }
 IR_INFO(mips_spc_dsra, NORMAL, SHIFT_CONST, false);
 
-COMP(mips_spc_dsll32, NORMAL, false);
+COMPILER(mips_spc_dsll32) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shl Rq(dreg), 32
+    | shl Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsll32, NORMAL, SHIFT_CONST, false);
+
 COMP(mips_spc_dsrl32, NORMAL, false);
 COMP(mips_spc_dsra32, NORMAL, false);
 
