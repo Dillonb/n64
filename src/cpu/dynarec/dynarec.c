@@ -83,6 +83,17 @@ INLINE void flush_all(dasm_State** Dst, r4300i_t* cpu) {
     }
 }
 
+INLINE void load_reg_1(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1) {
+    bool r1_loaded = is_reg_loaded(r1);
+
+    if (num_available_host_regs >= 1 || r1_loaded) {
+        *dest1 = load_reg(Dst, cpu, r1);
+    } else {
+        flush_all(Dst, cpu);
+        *dest1 = load_reg(Dst, cpu, r1);
+    }
+}
+
 INLINE void load_reg_2(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int* dest2, int r2) {
     bool r1_loaded = is_reg_loaded(r1);
     bool r2_loaded = is_reg_loaded(r2);
@@ -160,32 +171,24 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
             case CALL_INTERPRETER:
                 flush_all(Dst, compile_time_cpu);
                 break;
-            case FORMAT_NOP:
-                break; // Shouldn't touch any registers, so no need to do anything
+            case FORMAT_NOP:break; // Shouldn't touch any registers, so no need to do anything
             case SHIFT_CONST:
-                load_reg_2(Dst, compile_time_cpu,
-                           &arg_host_registers[0], instr.r.rt,
-                           &dest_host_register, instr.r.rd);
+                load_reg_2(Dst, compile_time_cpu, &arg_host_registers[0], instr.r.rt, &dest_host_register, instr.r.rd);
                 break;
             case I_TYPE:
-                load_reg_2(Dst, compile_time_cpu,
-                           &arg_host_registers[0], instr.i.rs,
-                           &dest_host_register, instr.i.rt);
+                load_reg_2(Dst, compile_time_cpu, &arg_host_registers[0], instr.i.rs, &dest_host_register, instr.i.rt);
                 break;
             case R_TYPE:
-                load_reg_3(Dst, compile_time_cpu,
-                           &arg_host_registers[0], instr.r.rt,
-                           &arg_host_registers[1], instr.r.rs,
-                           &dest_host_register, instr.r.rd);
+                load_reg_3(Dst, compile_time_cpu, &arg_host_registers[0], instr.r.rt, &arg_host_registers[1], instr.r.rs, &dest_host_register, instr.r.rd);
                 break;
             case J_TYPE:
                 logfatal("Allocate regs for J_TYPE");
                 break;
             case MF_MULTREG:
-                dest_host_register = load_reg(Dst, compile_time_cpu, instr.r.rd);
+                load_reg_1(Dst, compile_time_cpu, &dest_host_register, instr.r.rd);
                 break;
             case MT_MULTREG:
-                arg_host_registers[0] = load_reg(Dst, compile_time_cpu, instr.r.rs);
+                load_reg_1(Dst, compile_time_cpu, &arg_host_registers[0], instr.r.rs);
                 break;
         }
         ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);
