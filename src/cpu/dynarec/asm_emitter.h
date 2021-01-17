@@ -5,7 +5,7 @@
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
 
-#define COMPILER(name) void compile_##name(dasm_State** Dst, mips_instruction_t instr, word address, int* argument_registers, int destination_register, word* extra_cycles)
+#define COMPILER(name) void compile_##name(dasm_State** Dst, mips_instruction_t instr, word address, int* aregs, int dreg, word* extra_cycles)
 
 COMPILER(mips_addiu);
 COMPILER(mips_beq);

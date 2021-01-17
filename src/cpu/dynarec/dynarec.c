@@ -128,7 +128,6 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
         }
         switch (ir->format) {
             case CALL_INTERPRETER:
-                printf("Next instruction calls interpreter, flushing all\n");
                 flush_all(Dst, compile_time_cpu);
                 break;
             case FORMAT_NOP:
@@ -145,16 +144,16 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
                 dest_host_register = load_reg(Dst, compile_time_cpu, instr.i.rt);
                 break;
             case R_TYPE:
-                //logfatal("Allocate regs for R_TYPE");
+                logfatal("Allocate regs for R_TYPE");
                 break;
             case J_TYPE:
-                //logfatal("Allocate regs for J_TYPE");
+                logfatal("Allocate regs for J_TYPE");
                 break;
             case MF_MULTREG:
-                //logfatal("Allocate regs for MF_MULTREG");
+                logfatal("Allocate regs for MF_MULTREG");
                 break;
             case MT_MULTREG:
-                //logfatal("Allocate regs for MT_MULTREG");
+                logfatal("Allocate regs for MT_MULTREG");
                 break;
         }
         ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);
