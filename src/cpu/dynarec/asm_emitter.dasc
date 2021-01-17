@@ -82,10 +82,6 @@ INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address
     | mov cpu_state->branch, al
 }
 
-INLINE void sign_extend_32_64(dasm_State** Dst, int reg) {
-    | movsxd Rq(reg), Rd(reg)
-}
-
 void check_exception(dasm_State** Dst, word block_length) {
     // If an exception was triggered, end the block.
     // otherwise, don't end the block.
@@ -107,7 +103,6 @@ void check_exception(dasm_State** Dst, word block_length) {
 
 
 #define TAKEBRANCH take_branch(Dst, instr, address)
-#define SDEST sign_extend_32_64(Dst, dreg)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
 #define IR_INFO(instruction, category_, format_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .format = format_, .exception_possible = exception}
 #define COMP(name, type, exception) COMPILER(name) { RUNHANDLER(name); } IR_INFO(name, type, CALL_INTERPRETER, exception)
@@ -128,8 +123,7 @@ COMPILER(mips_addi) {
     } else {
         | mov Rq(dreg), Rq(aregs[0])
         | add Rq(dreg), ext_imm
-        SDEST;
-        | .byte 0x90
+        | movsxd Rq(dreg), Rd(dreg)
     }
 }
 IR_INFO(mips_addi, NORMAL, I_TYPE, false);
