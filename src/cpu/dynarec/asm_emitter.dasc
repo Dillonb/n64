@@ -112,6 +112,8 @@ void check_exception(dasm_State** Dst, word block_length) {
 
 COMPILER(mips_nop) {}
 IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
+COMPILER(mips_cache) {}
+IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
 
 COMPILER(mips_addi) {
     BAILZERO(instr.i.rt);
@@ -147,10 +149,6 @@ COMPILER(mips_beq) {
    }
 }
 IR_INFO(mips_beq, BRANCH, CALL_INTERPRETER, false);
-
-
-COMPILER(mips_cache) {}
-IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
 
 COMPILER(mips_daddi) {
     BAILZERO(instr.i.rt);
@@ -195,7 +193,6 @@ COMPILER(mips_slti) {
     | movzx Rq(dreg), al // al operations don't extend to rax, so we do it manually.
 }
 IR_INFO(mips_slti, NORMAL, I_TYPE, false);
-
 
 COMPILER(mips_sltiu) {
     shalf imm = instr.i.immediate;
@@ -265,7 +262,6 @@ COMPILER(mips_spc_srlv) {
 }
 IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
 
-
 COMPILER(mips_spc_mfhi) {
     BAILZERO(instr.r.rd);
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_hi;
@@ -296,8 +292,22 @@ COMPILER(mips_spc_mtlo) {
 }
 IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
 
-COMP(mips_spc_dsllv, NORMAL, false);
-COMP(mips_spc_dsrlv, NORMAL, false);
+COMPILER(mips_spc_dsllv) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shl Rq(dreg), cl
+}
+IR_INFO(mips_spc_dsllv, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_dsrlv) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shr Rq(dreg), cl
+}
+IR_INFO(mips_spc_dsrlv, NORMAL, R_TYPE, false);
+
 COMP(mips_spc_mult, NORMAL, false);
 COMP(mips_spc_multu, NORMAL, false);
 COMP(mips_spc_div, NORMAL, false);
@@ -306,23 +316,101 @@ COMP(mips_spc_dmult, NORMAL, false);
 COMP(mips_spc_dmultu, NORMAL, false);
 COMP(mips_spc_ddiv, NORMAL, false);
 COMP(mips_spc_ddivu, NORMAL, false);
-COMP(mips_spc_add, NORMAL, false);
-COMP(mips_spc_addu, NORMAL, false);
-COMP(mips_spc_and, NORMAL, false);
-COMP(mips_spc_nor, NORMAL, false);
+
+COMPILER(mips_spc_add) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | add Rq(dreg), rax
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_add, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_addu) {
+    CALL_COMPILER(compile_mips_spc_add);
+}
+IR_INFO(mips_spc_addu, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_and) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | and Rq(dreg), rax
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_and, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_nor) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | or Rq(dreg), rax
+    | not Rq(dreg)
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_nor, NORMAL, R_TYPE, false);
+
 COMP(mips_spc_sub, NORMAL, false);
 COMP(mips_spc_subu, NORMAL, false);
-COMP(mips_spc_or, NORMAL, false);
-COMP(mips_spc_xor, NORMAL, false);
+
+COMPILER(mips_spc_or) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | or Rq(dreg), rax
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_or, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_xor) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | xor Rq(dreg), rax
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_xor, NORMAL, R_TYPE, false);
+
 COMP(mips_spc_slt, NORMAL, false);
 COMP(mips_spc_sltu, NORMAL, false);
-COMP(mips_spc_dadd, NORMAL, false);
-COMP(mips_spc_daddu, NORMAL, false);
+
+COMPILER(mips_spc_dadd) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | add Rq(dreg), rax
+}
+IR_INFO(mips_spc_dadd, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_daddu) {
+    CALL_COMPILER(compile_mips_spc_dadd);
+}
+IR_INFO(mips_spc_daddu, NORMAL, R_TYPE, false);
+
 COMP(mips_spc_dsubu, NORMAL, false);
 COMP(mips_spc_teq, NORMAL, true);
-COMP(mips_spc_dsll, NORMAL, false);
-COMP(mips_spc_dsrl, NORMAL, false);
-COMP(mips_spc_dsra, NORMAL, false);
+
+COMPILER(mips_spc_dsll) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shl Rd(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsll, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsrl) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shr Rd(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsrl, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsra) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rd(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsra, NORMAL, SHIFT_CONST, false);
+
 COMP(mips_spc_dsll32, NORMAL, false);
 COMP(mips_spc_dsrl32, NORMAL, false);
 COMP(mips_spc_dsra32, NORMAL, false);
