@@ -97,6 +97,23 @@ INLINE void load_reg_2(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int*
     }
 }
 
+INLINE void load_reg_3(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int* dest2, int r2, int* dest3, int r3) {
+    bool r1_loaded = is_reg_loaded(r1);
+    bool r2_loaded = is_reg_loaded(r2);
+    bool r3_loaded = is_reg_loaded(r3);
+
+    if (num_available_host_regs >= 3 || (r1_loaded && r2_loaded && r3_loaded)) {
+        *dest1 = load_reg(Dst, cpu, r1);
+        *dest2 = load_reg(Dst, cpu, r2);
+        *dest3 = load_reg(Dst, cpu, r3);
+    } else {
+        flush_all(Dst, cpu);
+        *dest1 = load_reg(Dst, cpu, r1);
+        *dest2 = load_reg(Dst, cpu, r2);
+        *dest3 = load_reg(Dst, cpu, r3);
+    }
+}
+
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     static dasm_State* d;
     d = block_header();
@@ -156,16 +173,19 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
                            &dest_host_register, instr.i.rt);
                 break;
             case R_TYPE:
-                logfatal("Allocate regs for R_TYPE");
+                load_reg_3(Dst, compile_time_cpu,
+                           &arg_host_registers[0], instr.r.rt,
+                           &arg_host_registers[1], instr.r.rs,
+                           &dest_host_register, instr.r.rd);
                 break;
             case J_TYPE:
                 logfatal("Allocate regs for J_TYPE");
                 break;
             case MF_MULTREG:
-                logfatal("Allocate regs for MF_MULTREG");
+                dest_host_register = load_reg(Dst, compile_time_cpu, instr.r.rd);
                 break;
             case MT_MULTREG:
-                logfatal("Allocate regs for MT_MULTREG");
+                arg_host_registers[0] = load_reg(Dst, compile_time_cpu, instr.r.rs);
                 break;
         }
         ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);

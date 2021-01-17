@@ -280,18 +280,17 @@ IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
 */
 COMP(mips_spc_srlv, NORMAL, false);
 
-/*
 COMPILER(mips_spc_mfhi) {
     BAILZERO(instr.r.rd);
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_hi;
     | mov64 rax, [src]
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), rax
 }
 IR_INFO(mips_spc_mfhi, NORMAL, MF_MULTREG, false);
 
 COMPILER(mips_spc_mthi) {
-    LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_hi;
+    | mov rax, Rq(aregs[0])
     | mov64 [dst], rax
 }
 IR_INFO(mips_spc_mthi, NORMAL, MT_MULTREG, false);
@@ -300,22 +299,17 @@ COMPILER(mips_spc_mflo) {
     BAILZERO(instr.r.rd);
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_lo;
     | mov64 rax, [src]
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), rax
 }
 IR_INFO(mips_spc_mflo, NORMAL, MF_MULTREG, false);
 
 COMPILER(mips_spc_mtlo) {
-    LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_lo;
+    | mov rax, Rq(aregs[0])
     | mov64 [dst], rax
 }
 IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
-*/
 
-COMP(mips_spc_mfhi, NORMAL, false);
-COMP(mips_spc_mthi, NORMAL, false);
-COMP(mips_spc_mflo, NORMAL, false);
-COMP(mips_spc_mtlo, NORMAL, false);
 COMP(mips_spc_dsllv, NORMAL, false);
 COMP(mips_spc_dsrlv, NORMAL, false);
 COMP(mips_spc_mult, NORMAL, false);
