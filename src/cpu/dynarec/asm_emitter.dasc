@@ -161,7 +161,6 @@ COMP(mips_beq, BRANCH, false);
 COMP(mips_daddi, NORMAL, false);
 COMP(mips_nop, NORMAL, false);
 COMP(mips_cache, NORMAL, false);
-COMP(mips_ori, NORMAL, false);
 COMP(mips_slti, NORMAL, false);
 COMP(mips_sltiu, NORMAL, false);
 COMP(mips_xori, NORMAL, false);
@@ -210,18 +209,17 @@ COMPILER(mips_andi) {
     BAILZERO(instr.i.rt);
     | mov Rq(dreg), Rq(aregs[0])
     | and Rq(dreg), instr.i.immediate
-    | .byte 0x90
 }
 IR_INFO(mips_andi, NORMAL, I_TYPE, false);
-/*
 
 COMPILER(mips_ori) {
     BAILZERO(instr.i.rt);
     | mov Rq(dreg), Rq(aregs[0])
     | or Rq(dreg), instr.i.immediate
-    | .byte 0x90
 }
+IR_INFO(mips_ori, NORMAL, I_TYPE, false);
 
+/*
 COMPILER(mips_slti) {
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
@@ -355,7 +353,6 @@ IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
 IR_INFO(mips_daddi, NORMAL, I_TYPE, false);
 IR_INFO(mips_daddiu, NORMAL, I_TYPE, false);
 IR_INFO(mips_andi, NORMAL, I_TYPE, false);
-IR_INFO(mips_ori, NORMAL, I_TYPE, false);
 IR_INFO(mips_slti, NORMAL, I_TYPE, false);
 IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
 IR_INFO(mips_xori, NORMAL, I_TYPE, false);
