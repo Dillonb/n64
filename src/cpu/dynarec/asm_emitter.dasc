@@ -133,12 +133,6 @@ COMPILER(mips_addiu) {
 }
 IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
 
-COMP(mips_slti, NORMAL, false);
-COMP(mips_sltiu, NORMAL, false);
-COMP(mips_spc_sll, NORMAL, false);
-COMP(mips_spc_srl, NORMAL, false);
-COMP(mips_spc_sra, NORMAL, false);
-
 COMPILER(mips_beq) {
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
@@ -165,11 +159,9 @@ COMPILER(mips_daddi) {
     // This is actually a load-immediate
     if (instr.i.rs == 0) {
         | mov64 Rq(dreg), ext_imm
-        | .byte 0x90
     } else {
         | mov Rq(dreg), Rq(aregs[0])
         | add Rq(dreg), ext_imm
-        | .byte 0x90
     }
 }
 IR_INFO(mips_daddi, NORMAL, I_TYPE, false);
@@ -207,6 +199,8 @@ COMPILER(mips_slti) {
 }
 IR_INFO(mips_slti, NORMAL, I_TYPE, false);
 */
+COMP(mips_slti, NORMAL, false);
+
 
 /*
 COMPILER(mips_sltiu) {
@@ -222,6 +216,7 @@ COMPILER(mips_sltiu) {
 }
 IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
 */
+COMP(mips_sltiu, NORMAL, false);
 
 COMPILER(mips_xori) {
     BAILZERO(instr.i.rt);
@@ -231,28 +226,36 @@ COMPILER(mips_xori) {
 IR_INFO(mips_xori, NORMAL, I_TYPE, false);
 
 /*
-
 COMPILER(mips_spc_sll) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | shl Rd(dreg), instr.r.sa
 }
 IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
+*/
+COMP(mips_spc_sll, NORMAL, false);
 
+/*
 COMPILER(mips_spc_srl) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | shr Rd(dreg), instr.r.sa
 }
 IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
+*/
+COMP(mips_spc_srl, NORMAL, false);
 
+/*
 COMPILER(mips_spc_sra) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | sar Rd(dreg), instr.r.sa
 }
 IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
+*/
+COMP(mips_spc_sra, NORMAL, false);
 
+/*
 COMPILER(mips_spc_srav) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rs);
@@ -263,7 +266,7 @@ COMPILER(mips_spc_srav) {
     SAVERAX(instr.r.rd);
 }
 IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
- */
+*/
 COMP(mips_spc_srav, NORMAL, false);
 
 /*
