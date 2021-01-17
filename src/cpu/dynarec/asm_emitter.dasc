@@ -419,8 +419,21 @@ COMPILER(mips_spc_dsll32) {
 }
 IR_INFO(mips_spc_dsll32, NORMAL, SHIFT_CONST, false);
 
-COMP(mips_spc_dsrl32, NORMAL, false);
-COMP(mips_spc_dsra32, NORMAL, false);
+COMPILER(mips_spc_dsrl32) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shr Rq(dreg), 32
+    | shr Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsrl32, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsra32) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rq(dreg), 32
+    | sar Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsra32, NORMAL, SHIFT_CONST, false);
 
 // Load-stores
 COMP(mips_lbu, NORMAL, false);
