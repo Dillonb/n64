@@ -208,6 +208,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
                     logfatal("Branch in a branch likely delay slot");
                 } else {
+                    // TODO: only need to flush all if we exit the block early
+                    flush_all(Dst, compile_time_cpu);
                     post_branch_likely(Dst, compile_time_cpu, block_length);
                 }
 
