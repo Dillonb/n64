@@ -418,8 +418,11 @@ MIPS_INSTR(mips_cp_trunc_l_d) {
 }
 
 MIPS_INSTR(mips_cp_round_l_d) {
+    logwarn("mips_cp_round_l_d used: this instruction is known to be buggy!");
     checkcp1;
-    logfatal("Unimplemented: mips_cp_round_l_d");
+    double value = get_fpu_register_double(cpu, instruction.fr.fs);
+    dword truncated = value;
+    set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_trunc_l_s) {
@@ -430,8 +433,11 @@ MIPS_INSTR(mips_cp_trunc_l_s) {
 }
 
 MIPS_INSTR(mips_cp_round_l_s) {
+    logwarn("mips_cp_round_l_s used: this instruction is known to be buggy!");
     checkcp1;
-    logfatal("Unimplemented: mips_cp_round_l_s");
+    float value = get_fpu_register_float(cpu, instruction.fr.fs);
+    dword truncated = value;
+    set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_d) {
@@ -442,8 +448,11 @@ MIPS_INSTR(mips_cp_trunc_w_d) {
 }
 
 MIPS_INSTR(mips_cp_round_w_d) {
+    logwarn("mips_cp_round_w_d used: this instruction is known to be buggy!");
     checkcp1;
-    logfatal("Unimplemented: mips_cp_round_w_d");
+    double value = get_fpu_register_double(cpu, instruction.fr.fs);
+    word truncated = value;
+    set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_s) {
@@ -454,8 +463,11 @@ MIPS_INSTR(mips_cp_trunc_w_s) {
 }
 
 MIPS_INSTR(mips_cp_round_w_s) {
+    logwarn("mips_cp_round_w_s used: this instruction is known to be buggy!");
     checkcp1;
-    logfatal("Unimplemented: mips_cp_round_w_s");
+    float value = get_fpu_register_float(cpu, instruction.fr.fs);
+    sword truncated = truncf(value);
+    set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_s) {
