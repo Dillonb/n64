@@ -336,7 +336,6 @@ COMPILER(mips_spc_and) {
     | mov rax, Rq(aregs[0])
     | mov Rq(dreg), Rq(aregs[1])
     | and Rq(dreg), rax
-    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_and, NORMAL, R_TYPE, false);
 
@@ -346,7 +345,6 @@ COMPILER(mips_spc_nor) {
     | mov Rq(dreg), Rq(aregs[1])
     | or Rq(dreg), rax
     | not Rq(dreg)
-    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_nor, NORMAL, R_TYPE, false);
 
@@ -358,7 +356,6 @@ COMPILER(mips_spc_or) {
     | mov rax, Rq(aregs[0])
     | mov Rq(dreg), Rq(aregs[1])
     | or Rq(dreg), rax
-    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_or, NORMAL, R_TYPE, false);
 
@@ -367,7 +364,6 @@ COMPILER(mips_spc_xor) {
     | mov rax, Rq(aregs[0])
     | mov Rq(dreg), Rq(aregs[1])
     | xor Rq(dreg), rax
-    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_xor, NORMAL, R_TYPE, false);
 
