@@ -27,6 +27,7 @@ static int arg_host_registers[] = {0, 0};
 static int dest_host_register = 0;
 static int valid_host_regs[32];
 static int num_valid_host_regs;
+static int num_available_host_regs;
 static bool guest_reg_loaded[32];
 static bool host_reg_used[32];
 static int guest_reg_to_host_reg[32];
@@ -46,13 +47,14 @@ INLINE int get_valid_host_reg() {
         }
     }
 
-    logfatal("Ran out of valid host regs! Time to implement flushing");
+    logfatal("Ran out of valid host regs! Should have flushed!");
 }
 
 INLINE void flush_reg(dasm_State** Dst, r4300i_t* cpu, int guest) {
     if (is_reg_loaded(guest)) {
         int host_reg = guest_reg_to_host_reg[guest];
         flush_host_register_to_gpr(Dst, cpu, valid_host_regs[host_reg], guest);
+        num_available_host_regs++;
     }
     guest_reg_loaded[guest] = false;
     host_reg_used[guest_reg_to_host_reg[guest]] = false;
@@ -62,6 +64,7 @@ INLINE int load_reg(dasm_State** Dst, r4300i_t* cpu, int guest) {
     if (!is_reg_loaded(guest)) {
         guest_reg_loaded[guest] = true;
         int host_reg = get_valid_host_reg();
+        num_available_host_regs--;
 
         guest_reg_to_host_reg[guest] = host_reg;
         host_reg_used[host_reg] = true;
@@ -80,11 +83,19 @@ INLINE void flush_all(dasm_State** Dst, r4300i_t* cpu) {
     }
 }
 
-INLINE int* load_regs(int* regs, int num) {
-    logfatal("asdf");
-    return NULL;
-}
+INLINE void load_reg_2(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int* dest2, int r2) {
+    bool r1_loaded = is_reg_loaded(r1);
+    bool r2_loaded = is_reg_loaded(r2);
 
+    if (num_available_host_regs >= 2 || (r1_loaded && r2_loaded)) {
+        *dest1 = load_reg(Dst, cpu, r1);
+        *dest2 = load_reg(Dst, cpu, r2);
+    } else {
+        flush_all(Dst, cpu);
+        *dest1 = load_reg(Dst, cpu, r1);
+        *dest2 = load_reg(Dst, cpu, r2);
+    }
+}
 
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     static dasm_State* d;
@@ -93,6 +104,8 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
 
     memset(guest_reg_loaded, 0, sizeof(guest_reg_loaded));
     memset(host_reg_used, 0, sizeof(host_reg_used));
+
+    num_available_host_regs = num_valid_host_regs;
 
     bool should_continue_block = true;
     int block_length = 0;
@@ -131,17 +144,16 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
                 flush_all(Dst, compile_time_cpu);
                 break;
             case FORMAT_NOP:
-                printf("NOP\n");
                 break; // Shouldn't touch any registers, so no need to do anything
             case SHIFT_CONST:
-                printf("Shift const\n");
-                arg_host_registers[0] = load_reg(Dst, compile_time_cpu, instr.r.rt);
-                dest_host_register = load_reg(Dst, compile_time_cpu, instr.r.rd);
+                load_reg_2(Dst, compile_time_cpu,
+                           &arg_host_registers[0], instr.r.rt,
+                           &dest_host_register, instr.r.rd);
                 break;
             case I_TYPE:
-                printf("I_TYPE\n");
-                arg_host_registers[0] = load_reg(Dst, compile_time_cpu, instr.r.rs);
-                dest_host_register = load_reg(Dst, compile_time_cpu, instr.i.rt);
+                load_reg_2(Dst, compile_time_cpu,
+                           &arg_host_registers[0], instr.i.rs,
+                           &dest_host_register, instr.i.rt);
                 break;
             case R_TYPE:
                 logfatal("Allocate regs for R_TYPE");

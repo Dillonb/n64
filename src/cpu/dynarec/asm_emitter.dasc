@@ -132,9 +132,9 @@ void check_exception(dasm_State** Dst, word block_length) {
 #define CALL_COMPILER(compiler) compiler(Dst, instr, address, aregs, dreg, extra_cycles)
 #define CASEIR(pattern, instruction) case pattern: return &ir_##instruction
 
-//COMPILER(mips_nop) {}
+COMPILER(mips_nop) {}
+IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
 
-/*
 COMPILER(mips_addi) {
     BAILZERO(instr.i.rt);
     shalf imm = instr.i.immediate;
@@ -149,26 +149,19 @@ COMPILER(mips_addi) {
         | .byte 0x90
     }
 }
+IR_INFO(mips_addi, NORMAL, I_TYPE, false);
 
 COMPILER(mips_addiu) {
     CALL_COMPILER(compile_mips_addi);
 }
- */
-COMP(mips_addi, NORMAL, false);
-COMP(mips_addiu, NORMAL, false);
+IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
 
-COMP(mips_beq, BRANCH, false);
-COMP(mips_daddi, NORMAL, false);
-COMP(mips_nop, NORMAL, false);
-COMP(mips_cache, NORMAL, false);
 COMP(mips_slti, NORMAL, false);
 COMP(mips_sltiu, NORMAL, false);
-COMP(mips_xori, NORMAL, false);
-COMP(mips_daddiu, NORMAL, false);
 COMP(mips_spc_sll, NORMAL, false);
 COMP(mips_spc_srl, NORMAL, false);
 COMP(mips_spc_sra, NORMAL, false);
-/*
+
 COMPILER(mips_beq) {
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
@@ -182,8 +175,11 @@ COMPILER(mips_beq) {
         RUNHANDLER(mips_beq);
    }
 }
+IR_INFO(mips_beq, BRANCH, CALL_INTERPRETER, false);
+
 
 COMPILER(mips_cache) {}
+IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
 
 COMPILER(mips_daddi) {
     BAILZERO(instr.i.rt);
@@ -199,25 +195,33 @@ COMPILER(mips_daddi) {
         | .byte 0x90
     }
 }
+IR_INFO(mips_daddi, NORMAL, I_TYPE, false);
 
 COMPILER(mips_daddiu) {
     return CALL_COMPILER(compile_mips_daddi);
 }
- */
+IR_INFO(mips_daddiu, NORMAL, I_TYPE, false);
 
+/*
 COMPILER(mips_andi) {
     BAILZERO(instr.i.rt);
     | mov Rq(dreg), Rq(aregs[0])
     | and Rq(dreg), instr.i.immediate
 }
 IR_INFO(mips_andi, NORMAL, I_TYPE, false);
+ */
 
+/*
 COMPILER(mips_ori) {
     BAILZERO(instr.i.rt);
     | mov Rq(dreg), Rq(aregs[0])
     | or Rq(dreg), instr.i.immediate
 }
 IR_INFO(mips_ori, NORMAL, I_TYPE, false);
+*/
+
+COMP(mips_andi, NORMAL, false);
+COMP(mips_ori, NORMAL, false);
 
 /*
 COMPILER(mips_slti) {
@@ -230,9 +234,11 @@ COMPILER(mips_slti) {
     | setl Rb(dreg)
     // low byte operations don't extend to the full 64, so we do it manually. This is a fast equivalent to and reg, $FF
     | movzx Rq(dreg), Rb(dreg)
-    | .byte 0x90
 }
+IR_INFO(mips_slti, NORMAL, I_TYPE, false);
+*/
 
+/*
 COMPILER(mips_sltiu) {
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
@@ -244,12 +250,16 @@ COMPILER(mips_sltiu) {
     | movzx Rq(dreg), Rb(dreg)
     | .byte 0x90
 }
+*/
 
 COMPILER(mips_xori) {
     BAILZERO(instr.i.rt);
     | mov Rq(dreg), Rq(aregs[0])
     | xor Rq(dreg), instr.i.immediate
 }
+IR_INFO(mips_xori, NORMAL, I_TYPE, false);
+
+/*
 
 COMPILER(mips_spc_sll) {
     BAILZERO(instr.r.rd);
@@ -345,17 +355,9 @@ COMP(mips_spc_mtlo, NORMAL, false);
 /*
 IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
  */
-//IR_INFO(mips_addi, NORMAL, I_TYPE, false);
-//IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
 /*
-IR_INFO(mips_beq, BRANCH, CALL_INTERPRETER, false);
-IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
-IR_INFO(mips_daddi, NORMAL, I_TYPE, false);
-IR_INFO(mips_daddiu, NORMAL, I_TYPE, false);
 IR_INFO(mips_andi, NORMAL, I_TYPE, false);
-IR_INFO(mips_slti, NORMAL, I_TYPE, false);
 IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
-IR_INFO(mips_xori, NORMAL, I_TYPE, false);
 
 IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
 IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
@@ -940,8 +942,11 @@ void flush_next_pc(dasm_State** Dst, dword next_pc) {
 void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
     // TODO: support calling conventions and architectures other than System-V x86_64
     // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
-    int available_host_regs[] = {/*0,*/ 7, 6, 2, 1, 8, 9, 10, 11};
-    int num_available_host_regs = 8;
+    //int available_host_regs[] = {/*0,*/ 7, 6, 2, 1, 8, 9, 10, 11};
+    //int num_available_host_regs = 8;
+
+    int available_host_regs[] = {7, 6, 2, 1};
+    int num_available_host_regs = 4;
 
     int used_host_regs = 0;
     for (; (used_host_regs < *num_valid_host_regs) && (used_host_regs < num_available_host_regs); used_host_regs++) {
@@ -952,19 +957,15 @@ void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
 }
 
 void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg) {
-    printf("Loading mips r%d into x86_64 reg r%d\n", guest_reg, host_reg);
     uintptr_t src = (uintptr_t)&cpu->gpr[guest_reg];
-    printf("Loading r%d from 0x%016lX\n", host_reg, src);
-
-    | mov64 Rq(host_reg), src
-    | mov Rq(host_reg), [Rq(host_reg)]
-    | .byte 0x90 // No idea why this is necessary, but it freaks out if I don't have it.
+    | mov64 rax, src
+    | mov Rq(host_reg), [rax]
 }
 
 void flush_host_register_to_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg) {
-    printf("Flushing x86 r%d into mips reg r%d\n", host_reg, guest_reg);
-    uintptr_t dst = (uintptr_t)&cpu->gpr[guest_reg];
-    | mov64 rax, dst
-    | mov [rax], Rq(host_reg)
-    | .byte 0x90 // No idea why this is necessary, but it freaks out if I don't have it.
+    if (guest_reg != 0) {
+        uintptr_t dst = (uintptr_t)&cpu->gpr[guest_reg];
+        | mov64 rax, dst
+        | mov [rax], Rq(host_reg)
+    }
 }
