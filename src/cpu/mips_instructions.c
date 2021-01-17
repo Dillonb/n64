@@ -417,11 +417,21 @@ MIPS_INSTR(mips_cp_trunc_l_d) {
     set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
 }
 
+MIPS_INSTR(mips_cp_round_l_d) {
+    checkcp1;
+    logfatal("Unimplemented: mips_cp_round_l_d");
+}
+
 MIPS_INSTR(mips_cp_trunc_l_s) {
     checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
     dword truncated = value;
     set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
+}
+
+MIPS_INSTR(mips_cp_round_l_s) {
+    checkcp1;
+    logfatal("Unimplemented: mips_cp_round_l_s");
 }
 
 MIPS_INSTR(mips_cp_trunc_w_d) {
@@ -431,11 +441,21 @@ MIPS_INSTR(mips_cp_trunc_w_d) {
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
+MIPS_INSTR(mips_cp_round_w_d) {
+    checkcp1;
+    logfatal("Unimplemented: mips_cp_round_w_d");
+}
+
 MIPS_INSTR(mips_cp_trunc_w_s) {
     checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
     sword truncated = truncf(value);
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
+}
+
+MIPS_INSTR(mips_cp_round_w_s) {
+    checkcp1;
+    logfatal("Unimplemented: mips_cp_round_w_s");
 }
 
 MIPS_INSTR(mips_cp_cvt_d_s) {

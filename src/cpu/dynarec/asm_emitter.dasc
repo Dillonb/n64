@@ -506,8 +506,12 @@ COMP(mips_cp_div_d, NORMAL, true);
 COMP(mips_cp_div_s, NORMAL, true);
 COMP(mips_cp_trunc_l_d, NORMAL, true);
 COMP(mips_cp_trunc_l_s, NORMAL, true);
+COMP(mips_cp_round_l_d, NORMAL, true);
+COMP(mips_cp_round_l_s, NORMAL, true);
 COMP(mips_cp_trunc_w_d, NORMAL, true);
 COMP(mips_cp_trunc_w_s, NORMAL, true);
+COMP(mips_cp_round_w_d, NORMAL, true);
+COMP(mips_cp_round_w_s, NORMAL, true);
 COMP(mips_cp_cvt_d_s, NORMAL, true);
 COMP(mips_cp_cvt_d_w, NORMAL, true);
 COMP(mips_cp_cvt_d_l, NORMAL, true);
@@ -694,10 +698,24 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
                 default:
                     logfatal("Undefined!");
             }
+        case COP_FUNCT_ROUND_L:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_round_l_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_round_l_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_TRUNC_W:
             switch (instr.fr.fmt) {
                 CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_w_d);
                 CASEIR(FP_FMT_SINGLE, mips_cp_trunc_w_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_ROUND_W:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_round_w_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_round_w_s);
                 default:
                     logfatal("Undefined!");
             }

@@ -146,7 +146,9 @@
 #define COP_FUNCT_ABS        0b000101
 #define COP_FUNCT_MOV        0b000110
 #define COP_FUNCT_TLBP       0b001000
+#define COP_FUNCT_ROUND_L    0b001000
 #define COP_FUNCT_TRUNC_L    0b001001
+#define COP_FUNCT_ROUND_W    0b001100
 #define COP_FUNCT_TRUNC_W    0b001101
 #define COP_FUNCT_ERET       0b011000
 #define COP_FUNCT_CVT_S      0b100000
