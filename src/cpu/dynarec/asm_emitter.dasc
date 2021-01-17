@@ -185,38 +185,27 @@ COMPILER(mips_ori) {
 }
 IR_INFO(mips_ori, NORMAL, I_TYPE, false);
 
-/*
 COMPILER(mips_slti) {
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
     BAILZERO(instr.i.rt);
 
     | cmp Rq(aregs[0]), ext_imm
-    // sets byte reg to 1 if rs < imm (signed), 0 if not
-    | setl Rb(dreg)
-    // low byte operations don't extend to the full 64, so we do it manually. This is a fast equivalent to and reg, $FF
-    | movzx Rq(dreg), Rb(dreg)
+    | setl cl // sets al to 1 if rs < imm (signed), 0 if not
+    | movzx Rq(dreg), cl // al operations don't extend to rax, so we do it manually.
 }
 IR_INFO(mips_slti, NORMAL, I_TYPE, false);
-*/
-COMP(mips_slti, NORMAL, false);
 
 
-/*
 COMPILER(mips_sltiu) {
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
     BAILZERO(instr.i.rt);
     | cmp Rq(aregs[0]), ext_imm
-    // sets byte reg to 1 if rs < imm (unsigned), 0 if not
-    | setb Rb(dreg)
-    // low byte operations don't extend to the full 64, so we do it manually. This is a fast equivalent to and reg, $FF
-    | movzx Rq(dreg), Rb(dreg)
-    | .byte 0x90
+    | setb cl // sets al to 1 if rs < imm (unsigned), 0 if not
+    | movzx Rq(dreg), cl // al operations don't extend to rax, so we do it manually.
 }
 IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
-*/
-COMP(mips_sltiu, NORMAL, false);
 
 COMPILER(mips_xori) {
     BAILZERO(instr.i.rt);
@@ -225,35 +214,29 @@ COMPILER(mips_xori) {
 }
 IR_INFO(mips_xori, NORMAL, I_TYPE, false);
 
-/*
 COMPILER(mips_spc_sll) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | shl Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
-*/
-COMP(mips_spc_sll, NORMAL, false);
 
-/*
 COMPILER(mips_spc_srl) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | shr Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
-*/
-COMP(mips_spc_srl, NORMAL, false);
 
-/*
 COMPILER(mips_spc_sra) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | sar Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
-*/
-COMP(mips_spc_sra, NORMAL, false);
 
 /*
 COMPILER(mips_spc_srav) {
