@@ -191,8 +191,8 @@ COMPILER(mips_slti) {
     BAILZERO(instr.i.rt);
 
     | cmp Rq(aregs[0]), ext_imm
-    | setl cl // sets al to 1 if rs < imm (signed), 0 if not
-    | movzx Rq(dreg), cl // al operations don't extend to rax, so we do it manually.
+    | setl al // sets al to 1 if rs < imm (signed), 0 if not
+    | movzx Rq(dreg), al // al operations don't extend to rax, so we do it manually.
 }
 IR_INFO(mips_slti, NORMAL, I_TYPE, false);
 
@@ -202,8 +202,8 @@ COMPILER(mips_sltiu) {
     sdword ext_imm = imm;
     BAILZERO(instr.i.rt);
     | cmp Rq(aregs[0]), ext_imm
-    | setb cl // sets al to 1 if rs < imm (unsigned), 0 if not
-    | movzx Rq(dreg), cl // al operations don't extend to rax, so we do it manually.
+    | setb al // sets al to 1 if rs < imm (unsigned), 0 if not
+    | movzx Rq(dreg), al // al operations don't extend to rax, so we do it manually.
 }
 IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
 
@@ -238,47 +238,33 @@ COMPILER(mips_spc_sra) {
 }
 IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
 
-/*
 COMPILER(mips_spc_srav) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rs);
-    | mov rcx, rax
-    LOADRAX(instr.r.rt);
-    | sar eax, cl
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | sar Rd(dreg), cl
+    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
-*/
-COMP(mips_spc_srav, NORMAL, false);
 
-/*
 COMPILER(mips_spc_sllv) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rs);
-    | mov rcx, rax
-    LOADRAX(instr.r.rt);
-    | shl eax, cl
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shl Rd(dreg), cl
+    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_sllv, NORMAL, R_TYPE, false);
- */
-COMP(mips_spc_sllv, NORMAL, false);
 
-/*
 COMPILER(mips_spc_srlv) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rs);
-    | mov rcx, rax
-    LOADRAX(instr.r.rt);
-    | shr eax, cl
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shr Rd(dreg), cl
+    | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
-*/
-COMP(mips_spc_srlv, NORMAL, false);
+
 
 COMPILER(mips_spc_mfhi) {
     BAILZERO(instr.r.rd);
