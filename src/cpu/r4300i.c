@@ -82,9 +82,8 @@ void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocess
     } else {
         switch (code) {
             case EXCEPTION_INTERRUPT:
-                set_pc_word_r4300i(cpu, 0x80000180);
-                break;
             case EXCEPTION_COPROCESSOR_UNUSABLE:
+            case EXCEPTION_TRAP:
                 set_pc_word_r4300i(cpu, 0x80000180);
                 break;
             default:
@@ -552,7 +551,7 @@ void r4300i_step(r4300i_t* cpu) {
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            r4300i_handle_exception(cpu, pc, 0, -1);
+            r4300i_handle_exception(cpu, pc, EXCEPTION_INTERRUPT, -1);
             return;
         }
     }

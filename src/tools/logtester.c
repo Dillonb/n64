@@ -344,7 +344,7 @@ int run_system_check_interrupt(n64_system_t* system) {
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            r4300i_handle_exception(cpu, cpu->pc, 0, -1);
+            r4300i_handle_exception(cpu, cpu->pc, EXCEPTION_INTERRUPT, -1);
             cpu->cp0.count += CYCLES_PER_INSTR;
             printf("Interrupt!\n");
             return CYCLES_PER_INSTR;
