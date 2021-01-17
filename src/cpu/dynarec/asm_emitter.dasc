@@ -82,20 +82,6 @@ INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address
     | mov cpu_state->branch, al
 }
 
-INLINE void load_rax(dasm_State** Dst, word address, int r) {
-    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[r];
-    | mov64 rax, [src]
-}
-
-INLINE void save_rax(dasm_State** Dst, word address, int r) {
-    uintptr_t dst = (uintptr_t) &global_system->cpu.gpr[r];
-    | mov64 [dst], rax
-}
-
-INLINE void sign_extend_eax_rax(dasm_State** Dst) {
-    | movsxd rax, eax
-}
-
 INLINE void sign_extend_32_64(dasm_State** Dst, int reg) {
     | movsxd Rq(reg), Rd(reg)
 }
@@ -121,9 +107,6 @@ void check_exception(dasm_State** Dst, word block_length) {
 
 
 #define TAKEBRANCH take_branch(Dst, instr, address)
-//#define LOADRAX(r) load_rax(Dst, address, r)
-//#define SAVERAX(r) save_rax(Dst, address, r)
-//#define SEAX sign_extend_eax_rax(Dst)
 #define SDEST sign_extend_32_64(Dst, dreg)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
 #define IR_INFO(instruction, category_, format_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .format = format_, .exception_possible = exception}
@@ -243,6 +226,7 @@ COMPILER(mips_sltiu) {
     | movzx Rq(dreg), Rb(dreg)
     | .byte 0x90
 }
+IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
 */
 
 COMPILER(mips_xori) {
@@ -259,21 +243,22 @@ COMPILER(mips_spc_sll) {
     | mov Rq(dreg), Rq(aregs[0])
     | shl Rd(dreg), instr.r.sa
 }
+IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
 
 COMPILER(mips_spc_srl) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | shr Rd(dreg), instr.r.sa
 }
+IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
 
 COMPILER(mips_spc_sra) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
     | sar Rd(dreg), instr.r.sa
 }
- */
+IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
 
-/*
 COMPILER(mips_spc_srav) {
     BAILZERO(instr.r.rd);
     LOADRAX(instr.r.rs);
@@ -283,6 +268,7 @@ COMPILER(mips_spc_srav) {
     SEAX;
     SAVERAX(instr.r.rd);
 }
+IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
  */
 COMP(mips_spc_srav, NORMAL, false);
 
@@ -296,6 +282,7 @@ COMPILER(mips_spc_sllv) {
     SEAX;
     SAVERAX(instr.r.rd);
 }
+IR_INFO(mips_spc_sllv, NORMAL, R_TYPE, false);
  */
 COMP(mips_spc_sllv, NORMAL, false);
 
@@ -309,6 +296,7 @@ COMPILER(mips_spc_srlv) {
     SEAX;
     SAVERAX(instr.r.rd);
 }
+IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
 */
 COMP(mips_spc_srlv, NORMAL, false);
 
@@ -319,12 +307,14 @@ COMPILER(mips_spc_mfhi) {
     | mov64 rax, [src]
     SAVERAX(instr.r.rd);
 }
+IR_INFO(mips_spc_mfhi, NORMAL, MF_MULTREG, false);
 
 COMPILER(mips_spc_mthi) {
     LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_hi;
     | mov64 [dst], rax
 }
+IR_INFO(mips_spc_mthi, NORMAL, MT_MULTREG, false);
 
 COMPILER(mips_spc_mflo) {
     BAILZERO(instr.r.rd);
@@ -332,37 +322,20 @@ COMPILER(mips_spc_mflo) {
     | mov64 rax, [src]
     SAVERAX(instr.r.rd);
 }
+IR_INFO(mips_spc_mflo, NORMAL, MF_MULTREG, false);
 
 COMPILER(mips_spc_mtlo) {
     LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_lo;
     | mov64 [dst], rax
 }
+IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
 */
 
 COMP(mips_spc_mfhi, NORMAL, false);
 COMP(mips_spc_mthi, NORMAL, false);
 COMP(mips_spc_mflo, NORMAL, false);
 COMP(mips_spc_mtlo, NORMAL, false);
-
-/*
-IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
-
-IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
-IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
-IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
-IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
-IR_INFO(mips_spc_sllv, NORMAL, R_TYPE, false);
-IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
- */
-
-/*
-IR_INFO(mips_spc_mfhi, NORMAL, MF_MULTREG, false);
-IR_INFO(mips_spc_mthi, NORMAL, MT_MULTREG, false);
-IR_INFO(mips_spc_mflo, NORMAL, MF_MULTREG, false);
-IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
- */
-
 COMP(mips_spc_dsllv, NORMAL, false);
 COMP(mips_spc_dsrlv, NORMAL, false);
 COMP(mips_spc_mult, NORMAL, false);
