@@ -1,17 +1,20 @@
 ------------------------------------------------------------------------------
--- DynASM ARM module.
+-- DynASM MIPS32/MIPS64 module.
 --
--- Copyright (C) 2005-2017 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2021 Mike Pall. All rights reserved.
 -- See dynasm.lua for full copyright notice.
 ------------------------------------------------------------------------------
 
+local mips64 = mips64
+local mipsr6 = _map_def.MIPSR6
+
 -- Module information:
 local _info = {
-  arch =	"arm",
-  description =	"DynASM ARM module",
-  version =	"1.3.0",
-  vernum =	 10300,
-  release =	"2011-05-05",
+  arch =	mips64 and "mips64" or "mips",
+  description =	"DynASM MIPS32/MIPS64 module",
+  version =	"1.4.0",
+  vernum =	 10400,
+  release =	"2020-01-20",
   author =	"Mike Pall",
   license =	"MIT",
 }
@@ -21,14 +24,14 @@ local _M = { _info = _info }
 
 -- Cache library functions.
 local type, tonumber, pairs, ipairs = type, tonumber, pairs, ipairs
-local assert, setmetatable, rawget = assert, setmetatable, rawget
+local assert, setmetatable = assert, setmetatable
 local _s = string
 local sub, format, byte, char = _s.sub, _s.format, _s.byte, _s.char
-local match, gmatch, gsub = _s.match, _s.gmatch, _s.gsub
-local concat, sort, insert = table.concat, table.sort, table.insert
+local match, gmatch = _s.match, _s.gmatch
+local concat, sort = table.concat, table.sort
 local bit = bit or require("bit")
 local band, shl, shr, sar = bit.band, bit.lshift, bit.rshift, bit.arshift
-local ror, tohex = bit.ror, bit.tohex
+local tohex = bit.tohex
 
 -- Inherited tables and callbacks.
 local g_opt, g_arch
@@ -39,7 +42,7 @@ local wline, werror, wfatal, wwarn
 local action_names = {
   "STOP", "SECTION", "ESC", "REL_EXT",
   "ALIGN", "REL_LG", "LABEL_LG",
-  "REL_PC", "LABEL_PC", "IMM", "IMM12", "IMM16", "IMML8", "IMML12", "IMMV8",
+  "REL_PC", "LABEL_PC", "IMM", "IMMS",
 }
 
 -- Maximum number of section buffer positions for dasm_put().
@@ -95,7 +98,7 @@ end
 -- Add action to list with optional arg. Advance buffer pos, too.
 local function waction(action, val, a, num)
   local w = assert(map_action[action], "bad action name `"..action.."'")
-  wputxw(w * 0x10000 + (val or 0))
+  wputxw(0xff000000 + w * 0x10000 + (val or 0))
   if a then actargs[#actargs+1] = a end
   if a or num then secpos = secpos + (num or 1) end
 end
@@ -111,7 +114,7 @@ end
 
 -- Put escaped word.
 local function wputw(n)
-  if n <= 0x000fffff then waction("ESC") end
+  if n >= 0xff000000 then waction("ESC") end
   wputxw(n)
 end
 
@@ -125,10 +128,6 @@ end
 -- Store word to reserved position.
 local function wputpos(pos, n)
   assert(n >= 0 and n <= 0xffffffff and n % 1 == 0, "word out of range")
-  if n <= 0x000fffff then
-    insert(actlist, pos+1, n)
-    n = map_action.ESC * 0x10000
-  end
   actlist[pos] = n
 end
 
@@ -214,327 +213,623 @@ end
 ------------------------------------------------------------------------------
 
 -- Arch-specific maps.
-
--- Ext. register name -> int. name.
-local map_archdef = { sp = "r13", lr = "r14", pc = "r15", }
-
--- Int. register name -> ext. name.
-local map_reg_rev = { r13 = "sp", r14 = "lr", r15 = "pc", }
+local map_archdef = { sp="r29", ra="r31" } -- Ext. register name -> int. name.
 
 local map_type = {}		-- Type name -> { ctype, reg }
 local ctypenum = 0		-- Type number (for Dt... macros).
 
 -- Reverse defines for registers.
 function _M.revdef(s)
-  return map_reg_rev[s] or s
+  if s == "r29" then return "sp"
+  elseif s == "r31" then return "ra" end
+  return s
 end
-
-local map_shift = { lsl = 0, lsr = 1, asr = 2, ror = 3, }
-
-local map_cond = {
-  eq = 0, ne = 1, cs = 2, cc = 3, mi = 4, pl = 5, vs = 6, vc = 7,
-  hi = 8, ls = 9, ge = 10, lt = 11, gt = 12, le = 13, al = 14,
-  hs = 2, lo = 3,
-}
 
 ------------------------------------------------------------------------------
 
--- Template strings for ARM instructions.
+-- Template strings for MIPS instructions.
 local map_op = {
-  -- Basic data processing instructions.
-  and_3 = "e0000000DNPs",
-  eor_3 = "e0200000DNPs",
-  sub_3 = "e0400000DNPs",
-  rsb_3 = "e0600000DNPs",
-  add_3 = "e0800000DNPs",
-  adc_3 = "e0a00000DNPs",
-  sbc_3 = "e0c00000DNPs",
-  rsc_3 = "e0e00000DNPs",
-  tst_2 = "e1100000NP",
-  teq_2 = "e1300000NP",
-  cmp_2 = "e1500000NP",
-  cmn_2 = "e1700000NP",
-  orr_3 = "e1800000DNPs",
-  mov_2 = "e1a00000DPs",
-  bic_3 = "e1c00000DNPs",
-  mvn_2 = "e1e00000DPs",
+  -- First-level opcodes.
+  j_1 =		"08000000J",
+  jal_1 =	"0c000000J",
+  b_1 =		"10000000B",
+  beqz_2 =	"10000000SB",
+  beq_3 =	"10000000STB",
+  bnez_2 =	"14000000SB",
+  bne_3 =	"14000000STB",
+  blez_2 =	"18000000SB",
+  bgtz_2 =	"1c000000SB",
+  li_2 =	"24000000TI",
+  addiu_3 =	"24000000TSI",
+  slti_3 =	"28000000TSI",
+  sltiu_3 =	"2c000000TSI",
+  andi_3 =	"30000000TSU",
+  lu_2 =	"34000000TU",
+  ori_3 =	"34000000TSU",
+  xori_3 =	"38000000TSU",
+  lui_2 =	"3c000000TU",
+  daddiu_3 =	mips64 and "64000000TSI",
+  ldl_2 =	mips64 and "68000000TO",
+  ldr_2 =	mips64 and "6c000000TO",
+  lb_2 =	"80000000TO",
+  lh_2 =	"84000000TO",
+  lw_2 =	"8c000000TO",
+  lbu_2 =	"90000000TO",
+  lhu_2 =	"94000000TO",
+  lwu_2 =	mips64 and "9c000000TO",
+  sb_2 =	"a0000000TO",
+  sh_2 =	"a4000000TO",
+  sw_2 =	"ac000000TO",
+  lwc1_2 =	"c4000000HO",
+  ldc1_2 =	"d4000000HO",
+  ld_2 =	mips64 and "dc000000TO",
+  swc1_2 =	"e4000000HO",
+  sdc1_2 =	"f4000000HO",
+  sd_2 =	mips64 and "fc000000TO",
 
-  and_4 = "e0000000DNMps",
-  eor_4 = "e0200000DNMps",
-  sub_4 = "e0400000DNMps",
-  rsb_4 = "e0600000DNMps",
-  add_4 = "e0800000DNMps",
-  adc_4 = "e0a00000DNMps",
-  sbc_4 = "e0c00000DNMps",
-  rsc_4 = "e0e00000DNMps",
-  tst_3 = "e1100000NMp",
-  teq_3 = "e1300000NMp",
-  cmp_3 = "e1500000NMp",
-  cmn_3 = "e1700000NMp",
-  orr_4 = "e1800000DNMps",
-  mov_3 = "e1a00000DMps",
-  bic_4 = "e1c00000DNMps",
-  mvn_3 = "e1e00000DMps",
+  -- Opcode SPECIAL.
+  nop_0 =	"00000000",
+  sll_3 =	"00000000DTA",
+  sextw_2 =	"00000000DT",
+  srl_3 =	"00000002DTA",
+  rotr_3 =	"00200002DTA",
+  sra_3 =	"00000003DTA",
+  sllv_3 =	"00000004DTS",
+  srlv_3 =	"00000006DTS",
+  rotrv_3 =	"00000046DTS",
+  drotrv_3 =	mips64 and "00000056DTS",
+  srav_3 =	"00000007DTS",
+  jalr_1 =	"0000f809S",
+  jalr_2 =	"00000009DS",
+  syscall_0 =	"0000000c",
+  syscall_1 =	"0000000cY",
+  break_0 =	"0000000d",
+  break_1 =	"0000000dY",
+  sync_0 =	"0000000f",
+  dsllv_3 =	mips64 and "00000014DTS",
+  dsrlv_3 =	mips64 and "00000016DTS",
+  dsrav_3 =	mips64 and "00000017DTS",
+  add_3 =	"00000020DST",
+  move_2 =	mips64 and "00000025DS" or "00000021DS",
+  addu_3 =	"00000021DST",
+  sub_3 =	"00000022DST",
+  negu_2 =	mips64 and "0000002fDT" or "00000023DT",
+  subu_3 =	"00000023DST",
+  and_3 =	"00000024DST",
+  or_3 =	"00000025DST",
+  xor_3 =	"00000026DST",
+  not_2 =	"00000027DS",
+  nor_3 =	"00000027DST",
+  slt_3 =	"0000002aDST",
+  sltu_3 =	"0000002bDST",
+  dadd_3 =	mips64 and "0000002cDST",
+  daddu_3 =	mips64 and "0000002dDST",
+  dsub_3 =	mips64 and "0000002eDST",
+  dsubu_3 =	mips64 and "0000002fDST",
+  tge_2 =	"00000030ST",
+  tge_3 =	"00000030STZ",
+  tgeu_2 =	"00000031ST",
+  tgeu_3 =	"00000031STZ",
+  tlt_2 =	"00000032ST",
+  tlt_3 =	"00000032STZ",
+  tltu_2 =	"00000033ST",
+  tltu_3 =	"00000033STZ",
+  teq_2 =	"00000034ST",
+  teq_3 =	"00000034STZ",
+  tne_2 =	"00000036ST",
+  tne_3 =	"00000036STZ",
+  dsll_3 =	mips64 and "00000038DTa",
+  dsrl_3 =	mips64 and "0000003aDTa",
+  drotr_3 =	mips64 and "0020003aDTa",
+  dsra_3 =	mips64 and "0000003bDTa",
+  dsll32_3 =	mips64 and "0000003cDTA",
+  dsrl32_3 =	mips64 and "0000003eDTA",
+  drotr32_3 =	mips64 and "0020003eDTA",
+  dsra32_3 =	mips64 and "0000003fDTA",
 
-  lsl_3 = "e1a00000DMws",
-  lsr_3 = "e1a00020DMws",
-  asr_3 = "e1a00040DMws",
-  ror_3 = "e1a00060DMws",
-  rrx_2 = "e1a00060DMs",
+  -- Opcode REGIMM.
+  bltz_2 =	"04000000SB",
+  bgez_2 =	"04010000SB",
+  bltzl_2 =	"04020000SB",
+  bgezl_2 =	"04030000SB",
+  bal_1 =	"04110000B",
+  synci_1 =	"041f0000O",
 
-  -- Multiply and multiply-accumulate.
-  mul_3 = "e0000090NMSs",
-  mla_4 = "e0200090NMSDs",
-  umaal_4 = "e0400090DNMSs",	-- v6
-  mls_4 = "e0600090DNMSs",	-- v6T2
-  umull_4 = "e0800090DNMSs",
-  umlal_4 = "e0a00090DNMSs",
-  smull_4 = "e0c00090DNMSs",
-  smlal_4 = "e0e00090DNMSs",
+  -- Opcode SPECIAL3.
+  ext_4 =	"7c000000TSAM", -- Note: last arg is msbd = size-1
+  dextm_4 =	mips64 and "7c000001TSAM", -- Args: pos    | size-1-32
+  dextu_4 =	mips64 and "7c000002TSAM", -- Args: pos-32 | size-1
+  dext_4 =	mips64 and "7c000003TSAM", -- Args: pos    | size-1
+  zextw_2 =	mips64 and "7c00f803TS",
+  ins_4 =	"7c000004TSAM", -- Note: last arg is msb = pos+size-1
+  dinsm_4 =	mips64 and "7c000005TSAM", -- Args: pos    | pos+size-33
+  dinsu_4 =	mips64 and "7c000006TSAM", -- Args: pos-32 | pos+size-33
+  dins_4 =	mips64 and "7c000007TSAM", -- Args: pos    | pos+size-1
+  wsbh_2 =	"7c0000a0DT",
+  dsbh_2 =	mips64 and "7c0000a4DT",
+  dshd_2 =	mips64 and "7c000164DT",
+  seb_2 =	"7c000420DT",
+  seh_2 =	"7c000620DT",
+  rdhwr_2 =	"7c00003bTD",
 
-  -- Halfword multiply and multiply-accumulate.
-  smlabb_4 = "e1000080NMSD",	-- v5TE
-  smlatb_4 = "e10000a0NMSD",	-- v5TE
-  smlabt_4 = "e10000c0NMSD",	-- v5TE
-  smlatt_4 = "e10000e0NMSD",	-- v5TE
-  smlawb_4 = "e1200080NMSD",	-- v5TE
-  smulwb_3 = "e12000a0NMS",	-- v5TE
-  smlawt_4 = "e12000c0NMSD",	-- v5TE
-  smulwt_3 = "e12000e0NMS",	-- v5TE
-  smlalbb_4 = "e1400080NMSD",	-- v5TE
-  smlaltb_4 = "e14000a0NMSD",	-- v5TE
-  smlalbt_4 = "e14000c0NMSD",	-- v5TE
-  smlaltt_4 = "e14000e0NMSD",	-- v5TE
-  smulbb_3 = "e1600080NMS",	-- v5TE
-  smultb_3 = "e16000a0NMS",	-- v5TE
-  smulbt_3 = "e16000c0NMS",	-- v5TE
-  smultt_3 = "e16000e0NMS",	-- v5TE
+  -- Opcode COP0.
+  mfc0_2 =	"40000000TD",
+  mfc0_3 =	"40000000TDW",
+  dmfc0_2 =	mips64 and "40200000TD",
+  dmfc0_3 =	mips64 and "40200000TDW",
+  mtc0_2 =	"40800000TD",
+  mtc0_3 =	"40800000TDW",
+  dmtc0_2 =	mips64 and "40a00000TD",
+  dmtc0_3 =	mips64 and "40a00000TDW",
+  rdpgpr_2 =	"41400000DT",
+  di_0 =	"41606000",
+  di_1 =	"41606000T",
+  ei_0 =	"41606020",
+  ei_1 =	"41606020T",
+  wrpgpr_2 =	"41c00000DT",
+  tlbr_0 =	"42000001",
+  tlbwi_0 =	"42000002",
+  tlbwr_0 =	"42000006",
+  tlbp_0 =	"42000008",
+  eret_0 =	"42000018",
+  deret_0 =	"4200001f",
+  wait_0 =	"42000020",
 
-  -- Miscellaneous data processing instructions.
-  clz_2 = "e16f0f10DM", -- v5T
-  rev_2 = "e6bf0f30DM", -- v6
-  rev16_2 = "e6bf0fb0DM", -- v6
-  revsh_2 = "e6ff0fb0DM", -- v6
-  sel_3 = "e6800fb0DNM", -- v6
-  usad8_3 = "e780f010NMS", -- v6
-  usada8_4 = "e7800010NMSD", -- v6
-  rbit_2 = "e6ff0f30DM", -- v6T2
-  movw_2 = "e3000000DW", -- v6T2
-  movt_2 = "e3400000DW", -- v6T2
-  -- Note: the X encodes width-1, not width.
-  sbfx_4 = "e7a00050DMvX", -- v6T2
-  ubfx_4 = "e7e00050DMvX", -- v6T2
-  -- Note: the X encodes the msb field, not the width.
-  bfc_3 = "e7c0001fDvX", -- v6T2
-  bfi_4 = "e7c00010DMvX", -- v6T2
+  -- Opcode COP1.
+  mfc1_2 =	"44000000TG",
+  dmfc1_2 =	mips64 and "44200000TG",
+  cfc1_2 =	"44400000TG",
+  mfhc1_2 =	"44600000TG",
+  mtc1_2 =	"44800000TG",
+  dmtc1_2 =	mips64 and "44a00000TG",
+  ctc1_2 =	"44c00000TG",
+  mthc1_2 =	"44e00000TG",
 
-  -- Packing and unpacking instructions.
-  pkhbt_3 = "e6800010DNM", pkhbt_4 = "e6800010DNMv", -- v6
-  pkhtb_3 = "e6800050DNM", pkhtb_4 = "e6800050DNMv", -- v6
-  sxtab_3 = "e6a00070DNM", sxtab_4 = "e6a00070DNMv", -- v6
-  sxtab16_3 = "e6800070DNM", sxtab16_4 = "e6800070DNMv", -- v6
-  sxtah_3 = "e6b00070DNM", sxtah_4 = "e6b00070DNMv", -- v6
-  sxtb_2 = "e6af0070DM", sxtb_3 = "e6af0070DMv", -- v6
-  sxtb16_2 = "e68f0070DM", sxtb16_3 = "e68f0070DMv", -- v6
-  sxth_2 = "e6bf0070DM", sxth_3 = "e6bf0070DMv", -- v6
-  uxtab_3 = "e6e00070DNM", uxtab_4 = "e6e00070DNMv", -- v6
-  uxtab16_3 = "e6c00070DNM", uxtab16_4 = "e6c00070DNMv", -- v6
-  uxtah_3 = "e6f00070DNM", uxtah_4 = "e6f00070DNMv", -- v6
-  uxtb_2 = "e6ef0070DM", uxtb_3 = "e6ef0070DMv", -- v6
-  uxtb16_2 = "e6cf0070DM", uxtb16_3 = "e6cf0070DMv", -- v6
-  uxth_2 = "e6ff0070DM", uxth_3 = "e6ff0070DMv", -- v6
-
-  -- Saturating instructions.
-  qadd_3 = "e1000050DMN",	-- v5TE
-  qsub_3 = "e1200050DMN",	-- v5TE
-  qdadd_3 = "e1400050DMN",	-- v5TE
-  qdsub_3 = "e1600050DMN",	-- v5TE
-  -- Note: the X for ssat* encodes sat_imm-1, not sat_imm.
-  ssat_3 = "e6a00010DXM", ssat_4 = "e6a00010DXMp", -- v6
-  usat_3 = "e6e00010DXM", usat_4 = "e6e00010DXMp", -- v6
-  ssat16_3 = "e6a00f30DXM", -- v6
-  usat16_3 = "e6e00f30DXM", -- v6
-
-  -- Parallel addition and subtraction.
-  sadd16_3 = "e6100f10DNM", -- v6
-  sasx_3 = "e6100f30DNM", -- v6
-  ssax_3 = "e6100f50DNM", -- v6
-  ssub16_3 = "e6100f70DNM", -- v6
-  sadd8_3 = "e6100f90DNM", -- v6
-  ssub8_3 = "e6100ff0DNM", -- v6
-  qadd16_3 = "e6200f10DNM", -- v6
-  qasx_3 = "e6200f30DNM", -- v6
-  qsax_3 = "e6200f50DNM", -- v6
-  qsub16_3 = "e6200f70DNM", -- v6
-  qadd8_3 = "e6200f90DNM", -- v6
-  qsub8_3 = "e6200ff0DNM", -- v6
-  shadd16_3 = "e6300f10DNM", -- v6
-  shasx_3 = "e6300f30DNM", -- v6
-  shsax_3 = "e6300f50DNM", -- v6
-  shsub16_3 = "e6300f70DNM", -- v6
-  shadd8_3 = "e6300f90DNM", -- v6
-  shsub8_3 = "e6300ff0DNM", -- v6
-  uadd16_3 = "e6500f10DNM", -- v6
-  uasx_3 = "e6500f30DNM", -- v6
-  usax_3 = "e6500f50DNM", -- v6
-  usub16_3 = "e6500f70DNM", -- v6
-  uadd8_3 = "e6500f90DNM", -- v6
-  usub8_3 = "e6500ff0DNM", -- v6
-  uqadd16_3 = "e6600f10DNM", -- v6
-  uqasx_3 = "e6600f30DNM", -- v6
-  uqsax_3 = "e6600f50DNM", -- v6
-  uqsub16_3 = "e6600f70DNM", -- v6
-  uqadd8_3 = "e6600f90DNM", -- v6
-  uqsub8_3 = "e6600ff0DNM", -- v6
-  uhadd16_3 = "e6700f10DNM", -- v6
-  uhasx_3 = "e6700f30DNM", -- v6
-  uhsax_3 = "e6700f50DNM", -- v6
-  uhsub16_3 = "e6700f70DNM", -- v6
-  uhadd8_3 = "e6700f90DNM", -- v6
-  uhsub8_3 = "e6700ff0DNM", -- v6
-
-  -- Load/store instructions.
-  str_2 = "e4000000DL", str_3 = "e4000000DL", str_4 = "e4000000DL",
-  strb_2 = "e4400000DL", strb_3 = "e4400000DL", strb_4 = "e4400000DL",
-  ldr_2 = "e4100000DL", ldr_3 = "e4100000DL", ldr_4 = "e4100000DL",
-  ldrb_2 = "e4500000DL", ldrb_3 = "e4500000DL", ldrb_4 = "e4500000DL",
-  strh_2 = "e00000b0DL", strh_3 = "e00000b0DL",
-  ldrh_2 = "e01000b0DL", ldrh_3 = "e01000b0DL",
-  ldrd_2 = "e00000d0DL", ldrd_3 = "e00000d0DL", -- v5TE
-  ldrsb_2 = "e01000d0DL", ldrsb_3 = "e01000d0DL",
-  strd_2 = "e00000f0DL", strd_3 = "e00000f0DL", -- v5TE
-  ldrsh_2 = "e01000f0DL", ldrsh_3 = "e01000f0DL",
-
-  ldm_2 = "e8900000oR", ldmia_2 = "e8900000oR", ldmfd_2 = "e8900000oR",
-  ldmda_2 = "e8100000oR", ldmfa_2 = "e8100000oR",
-  ldmdb_2 = "e9100000oR", ldmea_2 = "e9100000oR",
-  ldmib_2 = "e9900000oR", ldmed_2 = "e9900000oR",
-  stm_2 = "e8800000oR", stmia_2 = "e8800000oR", stmfd_2 = "e8800000oR",
-  stmda_2 = "e8000000oR", stmfa_2 = "e8000000oR",
-  stmdb_2 = "e9000000oR", stmea_2 = "e9000000oR",
-  stmib_2 = "e9800000oR", stmed_2 = "e9800000oR",
-  pop_1 = "e8bd0000R", push_1 = "e92d0000R",
-
-  -- Branch instructions.
-  b_1 = "ea000000B",
-  bl_1 = "eb000000B",
-  blx_1 = "e12fff30C",
-  bx_1 = "e12fff10M",
-
-  -- Miscellaneous instructions.
-  nop_0 = "e1a00000",
-  mrs_1 = "e10f0000D",
-  bkpt_1 = "e1200070K", -- v5T
-  svc_1 = "ef000000T", swi_1 = "ef000000T",
-  ud_0 = "e7f001f0",
-
-  -- VFP instructions.
-  ["vadd.f32_3"] = "ee300a00dnm",
-  ["vadd.f64_3"] = "ee300b00Gdnm",
-  ["vsub.f32_3"] = "ee300a40dnm",
-  ["vsub.f64_3"] = "ee300b40Gdnm",
-  ["vmul.f32_3"] = "ee200a00dnm",
-  ["vmul.f64_3"] = "ee200b00Gdnm",
-  ["vnmul.f32_3"] = "ee200a40dnm",
-  ["vnmul.f64_3"] = "ee200b40Gdnm",
-  ["vmla.f32_3"] = "ee000a00dnm",
-  ["vmla.f64_3"] = "ee000b00Gdnm",
-  ["vmls.f32_3"] = "ee000a40dnm",
-  ["vmls.f64_3"] = "ee000b40Gdnm",
-  ["vnmla.f32_3"] = "ee100a40dnm",
-  ["vnmla.f64_3"] = "ee100b40Gdnm",
-  ["vnmls.f32_3"] = "ee100a00dnm",
-  ["vnmls.f64_3"] = "ee100b00Gdnm",
-  ["vdiv.f32_3"] = "ee800a00dnm",
-  ["vdiv.f64_3"] = "ee800b00Gdnm",
-
-  ["vabs.f32_2"] = "eeb00ac0dm",
-  ["vabs.f64_2"] = "eeb00bc0Gdm",
-  ["vneg.f32_2"] = "eeb10a40dm",
-  ["vneg.f64_2"] = "eeb10b40Gdm",
-  ["vsqrt.f32_2"] = "eeb10ac0dm",
-  ["vsqrt.f64_2"] = "eeb10bc0Gdm",
-  ["vcmp.f32_2"] = "eeb40a40dm",
-  ["vcmp.f64_2"] = "eeb40b40Gdm",
-  ["vcmpe.f32_2"] = "eeb40ac0dm",
-  ["vcmpe.f64_2"] = "eeb40bc0Gdm",
-  ["vcmpz.f32_1"] = "eeb50a40d",
-  ["vcmpz.f64_1"] = "eeb50b40Gd",
-  ["vcmpze.f32_1"] = "eeb50ac0d",
-  ["vcmpze.f64_1"] = "eeb50bc0Gd",
-
-  vldr_2 = "ed100a00dl|ed100b00Gdl",
-  vstr_2 = "ed000a00dl|ed000b00Gdl",
-  vldm_2 = "ec900a00or",
-  vldmia_2 = "ec900a00or",
-  vldmdb_2 = "ed100a00or",
-  vpop_1 = "ecbd0a00r",
-  vstm_2 = "ec800a00or",
-  vstmia_2 = "ec800a00or",
-  vstmdb_2 = "ed000a00or",
-  vpush_1 = "ed2d0a00r",
-
-  ["vmov.f32_2"] = "eeb00a40dm|eeb00a00dY",	-- #imm is VFPv3 only
-  ["vmov.f64_2"] = "eeb00b40Gdm|eeb00b00GdY",	-- #imm is VFPv3 only
-  vmov_2 = "ee100a10Dn|ee000a10nD",
-  vmov_3 = "ec500a10DNm|ec400a10mDN|ec500b10GDNm|ec400b10GmDN",
-
-  vmrs_0 = "eef1fa10",
-  vmrs_1 = "eef10a10D",
-  vmsr_1 = "eee10a10D",
-
-  ["vcvt.s32.f32_2"] = "eebd0ac0dm",
-  ["vcvt.s32.f64_2"] = "eebd0bc0dGm",
-  ["vcvt.u32.f32_2"] = "eebc0ac0dm",
-  ["vcvt.u32.f64_2"] = "eebc0bc0dGm",
-  ["vcvtr.s32.f32_2"] = "eebd0a40dm",
-  ["vcvtr.s32.f64_2"] = "eebd0b40dGm",
-  ["vcvtr.u32.f32_2"] = "eebc0a40dm",
-  ["vcvtr.u32.f64_2"] = "eebc0b40dGm",
-  ["vcvt.f32.s32_2"] = "eeb80ac0dm",
-  ["vcvt.f64.s32_2"] = "eeb80bc0GdFm",
-  ["vcvt.f32.u32_2"] = "eeb80a40dm",
-  ["vcvt.f64.u32_2"] = "eeb80b40GdFm",
-  ["vcvt.f32.f64_2"] = "eeb70bc0dGm",
-  ["vcvt.f64.f32_2"] = "eeb70ac0GdFm",
-
-  -- VFPv4 only:
-  ["vfma.f32_3"] = "eea00a00dnm",
-  ["vfma.f64_3"] = "eea00b00Gdnm",
-  ["vfms.f32_3"] = "eea00a40dnm",
-  ["vfms.f64_3"] = "eea00b40Gdnm",
-  ["vfnma.f32_3"] = "ee900a40dnm",
-  ["vfnma.f64_3"] = "ee900b40Gdnm",
-  ["vfnms.f32_3"] = "ee900a00dnm",
-  ["vfnms.f64_3"] = "ee900b00Gdnm",
-
-  -- NYI: Advanced SIMD instructions.
-
-  -- NYI: I have no need for these instructions right now:
-  -- swp, swpb, strex, ldrex, strexd, ldrexd, strexb, ldrexb, strexh, ldrexh
-  -- msr, nopv6, yield, wfe, wfi, sev, dbg, bxj, smc, srs, rfe
-  -- cps, setend, pli, pld, pldw, clrex, dsb, dmb, isb
-  -- stc, ldc, mcr, mcr2, mrc, mrc2, mcrr, mcrr2, mrrc, mrrc2, cdp, cdp2
+  ["add.s_3"] =		"46000000FGH",
+  ["sub.s_3"] =		"46000001FGH",
+  ["mul.s_3"] =		"46000002FGH",
+  ["div.s_3"] =		"46000003FGH",
+  ["sqrt.s_2"] =	"46000004FG",
+  ["abs.s_2"] =		"46000005FG",
+  ["mov.s_2"] =		"46000006FG",
+  ["neg.s_2"] =		"46000007FG",
+  ["round.l.s_2"] =	"46000008FG",
+  ["trunc.l.s_2"] =	"46000009FG",
+  ["ceil.l.s_2"] =	"4600000aFG",
+  ["floor.l.s_2"] =	"4600000bFG",
+  ["round.w.s_2"] =	"4600000cFG",
+  ["trunc.w.s_2"] =	"4600000dFG",
+  ["ceil.w.s_2"] =	"4600000eFG",
+  ["floor.w.s_2"] =	"4600000fFG",
+  ["recip.s_2"] =	"46000015FG",
+  ["rsqrt.s_2"] =	"46000016FG",
+  ["cvt.d.s_2"] =	"46000021FG",
+  ["cvt.w.s_2"] =	"46000024FG",
+  ["cvt.l.s_2"] =	"46000025FG",
+  ["add.d_3"] =		"46200000FGH",
+  ["sub.d_3"] =		"46200001FGH",
+  ["mul.d_3"] =		"46200002FGH",
+  ["div.d_3"] =		"46200003FGH",
+  ["sqrt.d_2"] =	"46200004FG",
+  ["abs.d_2"] =		"46200005FG",
+  ["mov.d_2"] =		"46200006FG",
+  ["neg.d_2"] =		"46200007FG",
+  ["round.l.d_2"] =	"46200008FG",
+  ["trunc.l.d_2"] =	"46200009FG",
+  ["ceil.l.d_2"] =	"4620000aFG",
+  ["floor.l.d_2"] =	"4620000bFG",
+  ["round.w.d_2"] =	"4620000cFG",
+  ["trunc.w.d_2"] =	"4620000dFG",
+  ["ceil.w.d_2"] =	"4620000eFG",
+  ["floor.w.d_2"] =	"4620000fFG",
+  ["recip.d_2"] =	"46200015FG",
+  ["rsqrt.d_2"] =	"46200016FG",
+  ["cvt.s.d_2"] =	"46200020FG",
+  ["cvt.w.d_2"] =	"46200024FG",
+  ["cvt.l.d_2"] =	"46200025FG",
+  ["cvt.s.w_2"] =	"46800020FG",
+  ["cvt.d.w_2"] =	"46800021FG",
+  ["cvt.s.l_2"] =	"46a00020FG",
+  ["cvt.d.l_2"] =	"46a00021FG",
 }
 
--- Add mnemonics for "s" variants.
-do
-  local t = {}
-  for k,v in pairs(map_op) do
-    if sub(v, -1) == "s" then
-      local v2 = sub(v, 1, 2)..char(byte(v, 3)+1)..sub(v, 4, -2)
-      t[sub(k, 1, -3).."s"..sub(k, -2)] = v2
-    end
-  end
-  for k,v in pairs(t) do
-    map_op[k] = v
-  end
+if mipsr6 then -- Instructions added with MIPSR6.
+
+  for k,v in pairs({
+
+    -- Add immediate to upper bits.
+    aui_3 =	"3c000000TSI",
+    daui_3 =	mips64 and "74000000TSI",
+    dahi_2 =	mips64 and "04060000SI",
+    dati_2 =	mips64 and "041e0000SI",
+
+    -- TODO: addiupc, auipc, aluipc, lwpc, lwupc, ldpc.
+
+    -- Compact branches.
+    blezalc_2 =	"18000000TB",	-- rt != 0.
+    bgezalc_2 =	"18000000T=SB",	-- rt != 0.
+    bgtzalc_2 =	"1c000000TB",	-- rt != 0.
+    bltzalc_2 =	"1c000000T=SB",	-- rt != 0.
+
+    blezc_2 =	"58000000TB",	-- rt != 0.
+    bgezc_2 =	"58000000T=SB",	-- rt != 0.
+    bgec_3 =	"58000000STB",	-- rs != rt.
+    blec_3 =	"58000000TSB",	-- rt != rs.
+
+    bgtzc_2 =	"5c000000TB",	-- rt != 0.
+    bltzc_2 =	"5c000000T=SB",	-- rt != 0.
+    bltc_3 =	"5c000000STB",	-- rs != rt.
+    bgtc_3 =	"5c000000TSB",	-- rt != rs.
+
+    bgeuc_3 =	"18000000STB",	-- rs != rt.
+    bleuc_3 =	"18000000TSB",	-- rt != rs.
+    bltuc_3 =	"1c000000STB",	-- rs != rt.
+    bgtuc_3 =	"1c000000TSB",	-- rt != rs.
+
+    beqzalc_2 =	"20000000TB",	-- rt != 0.
+    bnezalc_2 =	"60000000TB",	-- rt != 0.
+    beqc_3 =	"20000000STB",	-- rs < rt.
+    bnec_3 =	"60000000STB",	-- rs < rt.
+    bovc_3 =	"20000000STB",	-- rs >= rt.
+    bnvc_3 =	"60000000STB",	-- rs >= rt.
+
+    beqzc_2 =	"d8000000SK",	-- rs != 0.
+    bnezc_2 =	"f8000000SK",	-- rs != 0.
+    jic_2 =	"d8000000TI",
+    jialc_2 =	"f8000000TI",
+    bc_1 =	"c8000000L",
+    balc_1 =	"e8000000L",
+
+    -- Opcode SPECIAL.
+    jr_1 =	"00000009S",
+    sdbbp_0 =	"0000000e",
+    sdbbp_1 =	"0000000eY",
+    lsa_4 =	"00000005DSTA",
+    dlsa_4 =	mips64 and "00000015DSTA",
+    seleqz_3 =	"00000035DST",
+    selnez_3 =	"00000037DST",
+    clz_2 =	"00000050DS",
+    clo_2 =	"00000051DS",
+    dclz_2 =	mips64 and "00000052DS",
+    dclo_2 =	mips64 and "00000053DS",
+    mul_3 =	"00000098DST",
+    muh_3 =	"000000d8DST",
+    mulu_3 =	"00000099DST",
+    muhu_3 =	"000000d9DST",
+    div_3 =	"0000009aDST",
+    mod_3 =	"000000daDST",
+    divu_3 =	"0000009bDST",
+    modu_3 =	"000000dbDST",
+    dmul_3 =	mips64 and "0000009cDST",
+    dmuh_3 =	mips64 and "000000dcDST",
+    dmulu_3 =	mips64 and "0000009dDST",
+    dmuhu_3 =	mips64 and "000000ddDST",
+    ddiv_3 =	mips64 and "0000009eDST",
+    dmod_3 =	mips64 and "000000deDST",
+    ddivu_3 =	mips64 and "0000009fDST",
+    dmodu_3 =	mips64 and "000000dfDST",
+
+    -- Opcode SPECIAL3.
+    align_4 =		"7c000220DSTA",
+    dalign_4 =		mips64 and "7c000224DSTA",
+    bitswap_2 =		"7c000020DT",
+    dbitswap_2 =	mips64 and "7c000024DT",
+
+    -- Opcode COP1.
+    bc1eqz_2 =	"45200000HB",
+    bc1nez_2 =	"45a00000HB",
+
+    ["sel.s_3"] =	"46000010FGH",
+    ["seleqz.s_3"] =	"46000014FGH",
+    ["selnez.s_3"] =	"46000017FGH",
+    ["maddf.s_3"] =	"46000018FGH",
+    ["msubf.s_3"] =	"46000019FGH",
+    ["rint.s_2"] =	"4600001aFG",
+    ["class.s_2"] =	"4600001bFG",
+    ["min.s_3"] =	"4600001cFGH",
+    ["mina.s_3"] =	"4600001dFGH",
+    ["max.s_3"] =	"4600001eFGH",
+    ["maxa.s_3"] =	"4600001fFGH",
+    ["cmp.af.s_3"] =	"46800000FGH",
+    ["cmp.un.s_3"] =	"46800001FGH",
+    ["cmp.or.s_3"] =	"46800011FGH",
+    ["cmp.eq.s_3"] =	"46800002FGH",
+    ["cmp.une.s_3"] =	"46800012FGH",
+    ["cmp.ueq.s_3"] =	"46800003FGH",
+    ["cmp.ne.s_3"] =	"46800013FGH",
+    ["cmp.lt.s_3"] =	"46800004FGH",
+    ["cmp.ult.s_3"] =	"46800005FGH",
+    ["cmp.le.s_3"] =	"46800006FGH",
+    ["cmp.ule.s_3"] =	"46800007FGH",
+    ["cmp.saf.s_3"] =	"46800008FGH",
+    ["cmp.sun.s_3"] =	"46800009FGH",
+    ["cmp.sor.s_3"] =	"46800019FGH",
+    ["cmp.seq.s_3"] =	"4680000aFGH",
+    ["cmp.sune.s_3"] =	"4680001aFGH",
+    ["cmp.sueq.s_3"] =	"4680000bFGH",
+    ["cmp.sne.s_3"] =	"4680001bFGH",
+    ["cmp.slt.s_3"] =	"4680000cFGH",
+    ["cmp.sult.s_3"] =	"4680000dFGH",
+    ["cmp.sle.s_3"] =	"4680000eFGH",
+    ["cmp.sule.s_3"] =	"4680000fFGH",
+
+    ["sel.d_3"] =	"46200010FGH",
+    ["seleqz.d_3"] =	"46200014FGH",
+    ["selnez.d_3"] =	"46200017FGH",
+    ["maddf.d_3"] =	"46200018FGH",
+    ["msubf.d_3"] =	"46200019FGH",
+    ["rint.d_2"] =	"4620001aFG",
+    ["class.d_2"] =	"4620001bFG",
+    ["min.d_3"] =	"4620001cFGH",
+    ["mina.d_3"] =	"4620001dFGH",
+    ["max.d_3"] =	"4620001eFGH",
+    ["maxa.d_3"] =	"4620001fFGH",
+    ["cmp.af.d_3"] =	"46a00000FGH",
+    ["cmp.un.d_3"] =	"46a00001FGH",
+    ["cmp.or.d_3"] =	"46a00011FGH",
+    ["cmp.eq.d_3"] =	"46a00002FGH",
+    ["cmp.une.d_3"] =	"46a00012FGH",
+    ["cmp.ueq.d_3"] =	"46a00003FGH",
+    ["cmp.ne.d_3"] =	"46a00013FGH",
+    ["cmp.lt.d_3"] =	"46a00004FGH",
+    ["cmp.ult.d_3"] =	"46a00005FGH",
+    ["cmp.le.d_3"] =	"46a00006FGH",
+    ["cmp.ule.d_3"] =	"46a00007FGH",
+    ["cmp.saf.d_3"] =	"46a00008FGH",
+    ["cmp.sun.d_3"] =	"46a00009FGH",
+    ["cmp.sor.d_3"] =	"46a00019FGH",
+    ["cmp.seq.d_3"] =	"46a0000aFGH",
+    ["cmp.sune.d_3"] =	"46a0001aFGH",
+    ["cmp.sueq.d_3"] =	"46a0000bFGH",
+    ["cmp.sne.d_3"] =	"46a0001bFGH",
+    ["cmp.slt.d_3"] =	"46a0000cFGH",
+    ["cmp.sult.d_3"] =	"46a0000dFGH",
+    ["cmp.sle.d_3"] =	"46a0000eFGH",
+    ["cmp.sule.d_3"] =	"46a0000fFGH",
+
+  }) do map_op[k] = v end
+
+else -- Instructions removed by MIPSR6.
+
+  for k,v in pairs({
+    -- Traps, don't use.
+    addi_3 =	"20000000TSI",
+    daddi_3 =	mips64 and "60000000TSI",
+
+    -- Branch on likely, don't use.
+    beqzl_2 =	"50000000SB",
+    beql_3 =	"50000000STB",
+    bnezl_2 =	"54000000SB",
+    bnel_3 =	"54000000STB",
+    blezl_2 =	"58000000SB",
+    bgtzl_2 =	"5c000000SB",
+
+    lwl_2 =	"88000000TO",
+    lwr_2 =	"98000000TO",
+    swl_2 =	"a8000000TO",
+    sdl_2 =	mips64 and "b0000000TO",
+    sdr_2 =	mips64 and "b1000000TO",
+    swr_2 =	"b8000000TO",
+    cache_2 =	"bc000000NO",
+    ll_2 =	"c0000000TO",
+    pref_2 =	"cc000000NO",
+    sc_2 =	"e0000000TO",
+    scd_2 =	mips64 and "f0000000TO",
+
+    -- Opcode SPECIAL.
+    movf_2 =	"00000001DS",
+    movf_3 =	"00000001DSC",
+    movt_2 =	"00010001DS",
+    movt_3 =	"00010001DSC",
+    jr_1 =	"00000008S",
+    movz_3 =	"0000000aDST",
+    movn_3 =	"0000000bDST",
+    mfhi_1 =	"00000010D",
+    mthi_1 =	"00000011S",
+    mflo_1 =	"00000012D",
+    mtlo_1 =	"00000013S",
+    mult_2 =	"00000018ST",
+    multu_2 =	"00000019ST",
+    div_3 =	"0000001aST",
+    divu_3 =	"0000001bST",
+    ddiv_3 =	mips64 and "0000001eST",
+    ddivu_3 =	mips64 and "0000001fST",
+    dmult_2 =	mips64 and "0000001cST",
+    dmultu_2 =	mips64 and "0000001dST",
+
+    -- Opcode REGIMM.
+    tgei_2 =	"04080000SI",
+    tgeiu_2 =	"04090000SI",
+    tlti_2 =	"040a0000SI",
+    tltiu_2 =	"040b0000SI",
+    teqi_2 =	"040c0000SI",
+    tnei_2 =	"040e0000SI",
+    bltzal_2 =	"04100000SB",
+    bgezal_2 =	"04110000SB",
+    bltzall_2 =	"04120000SB",
+    bgezall_2 =	"04130000SB",
+
+    -- Opcode SPECIAL2.
+    madd_2 =	"70000000ST",
+    maddu_2 =	"70000001ST",
+    mul_3 =	"70000002DST",
+    msub_2 =	"70000004ST",
+    msubu_2 =	"70000005ST",
+    clz_2 =	"70000020D=TS",
+    clo_2 =	"70000021D=TS",
+    dclz_2 =	mips64 and "70000024D=TS",
+    dclo_2 =	mips64 and "70000025D=TS",
+    sdbbp_0 =	"7000003f",
+    sdbbp_1 =	"7000003fY",
+
+    -- Opcode COP1.
+    bc1f_1 =	"45000000B",
+    bc1f_2 =	"45000000CB",
+    bc1t_1 =	"45010000B",
+    bc1t_2 =	"45010000CB",
+    bc1fl_1 =	"45020000B",
+    bc1fl_2 =	"45020000CB",
+    bc1tl_1 =	"45030000B",
+    bc1tl_2 =	"45030000CB",
+
+    ["movf.s_2"] =	"46000011FG",
+    ["movf.s_3"] =	"46000011FGC",
+    ["movt.s_2"] =	"46010011FG",
+    ["movt.s_3"] =	"46010011FGC",
+    ["movz.s_3"] =	"46000012FGT",
+    ["movn.s_3"] =	"46000013FGT",
+    ["cvt.ps.s_3"] =	"46000026FGH",
+    ["c.f.s_2"] =	"46000030GH",
+    ["c.f.s_3"] =	"46000030VGH",
+    ["c.un.s_2"] =	"46000031GH",
+    ["c.un.s_3"] =	"46000031VGH",
+    ["c.eq.s_2"] =	"46000032GH",
+    ["c.eq.s_3"] =	"46000032VGH",
+    ["c.ueq.s_2"] =	"46000033GH",
+    ["c.ueq.s_3"] =	"46000033VGH",
+    ["c.olt.s_2"] =	"46000034GH",
+    ["c.olt.s_3"] =	"46000034VGH",
+    ["c.ult.s_2"] =	"46000035GH",
+    ["c.ult.s_3"] =	"46000035VGH",
+    ["c.ole.s_2"] =	"46000036GH",
+    ["c.ole.s_3"] =	"46000036VGH",
+    ["c.ule.s_2"] =	"46000037GH",
+    ["c.ule.s_3"] =	"46000037VGH",
+    ["c.sf.s_2"] =	"46000038GH",
+    ["c.sf.s_3"] =	"46000038VGH",
+    ["c.ngle.s_2"] =	"46000039GH",
+    ["c.ngle.s_3"] =	"46000039VGH",
+    ["c.seq.s_2"] =	"4600003aGH",
+    ["c.seq.s_3"] =	"4600003aVGH",
+    ["c.ngl.s_2"] =	"4600003bGH",
+    ["c.ngl.s_3"] =	"4600003bVGH",
+    ["c.lt.s_2"] =	"4600003cGH",
+    ["c.lt.s_3"] =	"4600003cVGH",
+    ["c.nge.s_2"] =	"4600003dGH",
+    ["c.nge.s_3"] =	"4600003dVGH",
+    ["c.le.s_2"] =	"4600003eGH",
+    ["c.le.s_3"] =	"4600003eVGH",
+    ["c.ngt.s_2"] =	"4600003fGH",
+    ["c.ngt.s_3"] =	"4600003fVGH",
+    ["movf.d_2"] =	"46200011FG",
+    ["movf.d_3"] =	"46200011FGC",
+    ["movt.d_2"] =	"46210011FG",
+    ["movt.d_3"] =	"46210011FGC",
+    ["movz.d_3"] =	"46200012FGT",
+    ["movn.d_3"] =	"46200013FGT",
+    ["c.f.d_2"] =	"46200030GH",
+    ["c.f.d_3"] =	"46200030VGH",
+    ["c.un.d_2"] =	"46200031GH",
+    ["c.un.d_3"] =	"46200031VGH",
+    ["c.eq.d_2"] =	"46200032GH",
+    ["c.eq.d_3"] =	"46200032VGH",
+    ["c.ueq.d_2"] =	"46200033GH",
+    ["c.ueq.d_3"] =	"46200033VGH",
+    ["c.olt.d_2"] =	"46200034GH",
+    ["c.olt.d_3"] =	"46200034VGH",
+    ["c.ult.d_2"] =	"46200035GH",
+    ["c.ult.d_3"] =	"46200035VGH",
+    ["c.ole.d_2"] =	"46200036GH",
+    ["c.ole.d_3"] =	"46200036VGH",
+    ["c.ule.d_2"] =	"46200037GH",
+    ["c.ule.d_3"] =	"46200037VGH",
+    ["c.sf.d_2"] =	"46200038GH",
+    ["c.sf.d_3"] =	"46200038VGH",
+    ["c.ngle.d_2"] =	"46200039GH",
+    ["c.ngle.d_3"] =	"46200039VGH",
+    ["c.seq.d_2"] =	"4620003aGH",
+    ["c.seq.d_3"] =	"4620003aVGH",
+    ["c.ngl.d_2"] =	"4620003bGH",
+    ["c.ngl.d_3"] =	"4620003bVGH",
+    ["c.lt.d_2"] =	"4620003cGH",
+    ["c.lt.d_3"] =	"4620003cVGH",
+    ["c.nge.d_2"] =	"4620003dGH",
+    ["c.nge.d_3"] =	"4620003dVGH",
+    ["c.le.d_2"] =	"4620003eGH",
+    ["c.le.d_3"] =	"4620003eVGH",
+    ["c.ngt.d_2"] =	"4620003fGH",
+    ["c.ngt.d_3"] =	"4620003fVGH",
+    ["add.ps_3"] =	"46c00000FGH",
+    ["sub.ps_3"] =	"46c00001FGH",
+    ["mul.ps_3"] =	"46c00002FGH",
+    ["abs.ps_2"] =	"46c00005FG",
+    ["mov.ps_2"] =	"46c00006FG",
+    ["neg.ps_2"] =	"46c00007FG",
+    ["movf.ps_2"] =	"46c00011FG",
+    ["movf.ps_3"] =	"46c00011FGC",
+    ["movt.ps_2"] =	"46c10011FG",
+    ["movt.ps_3"] =	"46c10011FGC",
+    ["movz.ps_3"] =	"46c00012FGT",
+    ["movn.ps_3"] =	"46c00013FGT",
+    ["cvt.s.pu_2"] =	"46c00020FG",
+    ["cvt.s.pl_2"] =	"46c00028FG",
+    ["pll.ps_3"] =	"46c0002cFGH",
+    ["plu.ps_3"] =	"46c0002dFGH",
+    ["pul.ps_3"] =	"46c0002eFGH",
+    ["puu.ps_3"] =	"46c0002fFGH",
+    ["c.f.ps_2"] =	"46c00030GH",
+    ["c.f.ps_3"] =	"46c00030VGH",
+    ["c.un.ps_2"] =	"46c00031GH",
+    ["c.un.ps_3"] =	"46c00031VGH",
+    ["c.eq.ps_2"] =	"46c00032GH",
+    ["c.eq.ps_3"] =	"46c00032VGH",
+    ["c.ueq.ps_2"] =	"46c00033GH",
+    ["c.ueq.ps_3"] =	"46c00033VGH",
+    ["c.olt.ps_2"] =	"46c00034GH",
+    ["c.olt.ps_3"] =	"46c00034VGH",
+    ["c.ult.ps_2"] =	"46c00035GH",
+    ["c.ult.ps_3"] =	"46c00035VGH",
+    ["c.ole.ps_2"] =	"46c00036GH",
+    ["c.ole.ps_3"] =	"46c00036VGH",
+    ["c.ule.ps_2"] =	"46c00037GH",
+    ["c.ule.ps_3"] =	"46c00037VGH",
+    ["c.sf.ps_2"] =	"46c00038GH",
+    ["c.sf.ps_3"] =	"46c00038VGH",
+    ["c.ngle.ps_2"] =	"46c00039GH",
+    ["c.ngle.ps_3"] =	"46c00039VGH",
+    ["c.seq.ps_2"] =	"46c0003aGH",
+    ["c.seq.ps_3"] =	"46c0003aVGH",
+    ["c.ngl.ps_2"] =	"46c0003bGH",
+    ["c.ngl.ps_3"] =	"46c0003bVGH",
+    ["c.lt.ps_2"] =	"46c0003cGH",
+    ["c.lt.ps_3"] =	"46c0003cVGH",
+    ["c.nge.ps_2"] =	"46c0003dGH",
+    ["c.nge.ps_3"] =	"46c0003dVGH",
+    ["c.le.ps_2"] =	"46c0003eGH",
+    ["c.le.ps_3"] =	"46c0003eVGH",
+    ["c.ngt.ps_2"] =	"46c0003fGH",
+    ["c.ngt.ps_3"] =	"46c0003fVGH",
+
+    -- Opcode COP1X.
+    lwxc1_2 =	"4c000000FX",
+    ldxc1_2 =	"4c000001FX",
+    luxc1_2 =	"4c000005FX",
+    swxc1_2 =	"4c000008FX",
+    sdxc1_2 =	"4c000009FX",
+    suxc1_2 =	"4c00000dFX",
+    prefx_2 =	"4c00000fMX",
+    ["alnv.ps_4"] =	"4c00001eFGHS",
+    ["madd.s_4"] =	"4c000020FRGH",
+    ["madd.d_4"] =	"4c000021FRGH",
+    ["madd.ps_4"] =	"4c000026FRGH",
+    ["msub.s_4"] =	"4c000028FRGH",
+    ["msub.d_4"] =	"4c000029FRGH",
+    ["msub.ps_4"] =	"4c00002eFRGH",
+    ["nmadd.s_4"] =	"4c000030FRGH",
+    ["nmadd.d_4"] =	"4c000031FRGH",
+    ["nmadd.ps_4"] =	"4c000036FRGH",
+    ["nmsub.s_4"] =	"4c000038FRGH",
+    ["nmsub.d_4"] =	"4c000039FRGH",
+    ["nmsub.ps_4"] =	"4c00003eFRGH",
+
+  }) do map_op[k] = v end
+
 end
 
 ------------------------------------------------------------------------------
 
 local function parse_gpr(expr)
-  local tname, ovreg = match(expr, "^([%w_]+):(r1?[0-9])$")
+  local tname, ovreg = match(expr, "^([%w_]+):(r[1-3]?[0-9])$")
   local tp = map_type[tname or expr]
   if tp then
     local reg = ovreg or tp.reg
@@ -543,63 +838,24 @@ local function parse_gpr(expr)
     end
     expr = reg
   end
-  local r = match(expr, "^r(1?[0-9])$")
+  local r = match(expr, "^r([1-3]?[0-9])$")
   if r then
     r = tonumber(r)
-    if r <= 15 then return r, tp end
+    if r <= 31 then return r, tp end
   end
   werror("bad register name `"..expr.."'")
 end
 
-local function parse_gpr_pm(expr)
-  local pm, expr2 = match(expr, "^([+-]?)(.*)$")
-  return parse_gpr(expr2), (pm == "-")
-end
-
-local function parse_vr(expr, tp)
-  local t, r = match(expr, "^([sd])([0-9]+)$")
-  if t == tp then
+local function parse_fpr(expr)
+  local r = match(expr, "^f([1-3]?[0-9])$")
+  if r then
     r = tonumber(r)
-    if r <= 31 then
-      if t == "s" then return shr(r, 1), band(r, 1) end
-      return band(r, 15), shr(r, 4)
-    end
+    if r <= 31 then return r end
   end
   werror("bad register name `"..expr.."'")
 end
 
-local function parse_reglist(reglist)
-  reglist = match(reglist, "^{%s*([^}]*)}$")
-  if not reglist then werror("register list expected") end
-  local rr = 0
-  for p in gmatch(reglist..",", "%s*([^,]*),") do
-    local rbit = shl(1, parse_gpr(gsub(p, "%s+$", "")))
-    if band(rr, rbit) ~= 0 then
-      werror("duplicate register `"..p.."'")
-    end
-    rr = rr + rbit
-  end
-  return rr
-end
-
-local function parse_vrlist(reglist)
-  local ta, ra, tb, rb = match(reglist,
-			   "^{%s*([sd])([0-9]+)%s*%-%s*([sd])([0-9]+)%s*}$")
-  ra, rb = tonumber(ra), tonumber(rb)
-  if ta and ta == tb and ra and rb and ra <= 31 and rb <= 31 and ra <= rb then
-    local nr = rb+1 - ra
-    if ta == "s" then
-      return shl(shr(ra,1),12)+shl(band(ra,1),22) + nr
-    else
-      return shl(band(ra,15),12)+shl(shr(ra,4),22) + nr*2 + 0x100
-    end
-  end
-  werror("register list expected")
-end
-
-local function parse_imm(imm, bits, shift, scale, signed)
-  imm = match(imm, "^#(.*)$")
-  if not imm then werror("expected immediate operand") end
+local function parse_imm(imm, bits, shift, scale, signed, action)
   local n = tonumber(imm)
   if n then
     local m = sar(n, scale)
@@ -613,76 +869,47 @@ local function parse_imm(imm, bits, shift, scale, signed)
       end
     end
     werror("out of range immediate `"..imm.."'")
+  elseif match(imm, "^[rf]([1-3]?[0-9])$") or
+	 match(imm, "^([%w_]+):([rf][1-3]?[0-9])$") then
+    werror("expected immediate operand, got register")
   else
-    waction("IMM", (signed and 32768 or 0)+scale*1024+bits*32+shift, imm)
+    waction(action or "IMM",
+	    (signed and 32768 or 0)+shl(scale, 10)+shl(bits, 5)+shift, imm)
     return 0
   end
 end
 
-local function parse_imm12(imm)
-  local n = tonumber(imm)
-  if n then
-    local m = band(n)
-    for i=0,-15,-1 do
-      if shr(m, 8) == 0 then return m + shl(band(i, 15), 8) end
-      m = ror(m, 2)
-    end
-    werror("out of range immediate `"..imm.."'")
-  else
-    waction("IMM12", 0, imm)
-    return 0
-  end
-end
-
-local function parse_imm16(imm)
-  imm = match(imm, "^#(.*)$")
-  if not imm then werror("expected immediate operand") end
-  local n = tonumber(imm)
-  if n then
-    if shr(n, 16) == 0 then return band(n, 0x0fff) + shl(band(n, 0xf000), 4) end
-    werror("out of range immediate `"..imm.."'")
-  else
-    waction("IMM16", 32*16, imm)
-    return 0
-  end
-end
-
-local function parse_imm_load(imm, ext)
-  local n = tonumber(imm)
-  if n then
-    if ext then
-      if n >= -255 and n <= 255 then
-	local up = 0x00800000
-	if n < 0 then n = -n; up = 0 end
-	return shl(band(n, 0xf0), 4) + band(n, 0x0f) + up
-      end
+local function parse_disp(disp)
+  local imm, reg = match(disp, "^(.*)%(([%w_:]+)%)$")
+  if imm then
+    local r = shl(parse_gpr(reg), 21)
+    local extname = match(imm, "^extern%s+(%S+)$")
+    if extname then
+      waction("REL_EXT", map_extern[extname], nil, 1)
+      return r
     else
-      if n >= -4095 and n <= 4095 then
-	if n >= 0 then return n+0x00800000 end
-	return -n
-      end
+      return r + parse_imm(imm, 16, 0, 0, true)
     end
-    werror("out of range immediate `"..imm.."'")
-  else
-    waction(ext and "IMML8" or "IMML12", 32768 + shl(ext and 8 or 12, 5), imm)
-    return 0
   end
+  local reg, tailr = match(disp, "^([%w_:]+)%s*(.*)$")
+  if reg and tailr ~= "" then
+    local r, tp = parse_gpr(reg)
+    if tp then
+      waction("IMM", 32768+16*32, format(tp.ctypefmt, tailr))
+      return shl(r, 21)
+    end
+  end
+  werror("bad displacement `"..disp.."'")
 end
 
-local function parse_shift(shift, gprok)
-  if shift == "rrx" then
-    return 3 * 32
-  else
-    local s, s2 = match(shift, "^(%S+)%s*(.*)$")
-    s = map_shift[s]
-    if not s then werror("expected shift operand") end
-    if sub(s2, 1, 1) == "#" then
-      return parse_imm(s2, 5, 7, 0, false) + shl(s, 5)
-    else
-      if not gprok then werror("expected immediate shift operand") end
-      return shl(parse_gpr(s2), 8) + shl(s, 5) + 16
-    end
+local function parse_index(idx)
+  local rt, rs = match(idx, "^(.*)%(([%w_:]+)%)$")
+  if rt then
+    rt = parse_gpr(rt)
+    rs = parse_gpr(rs)
+    return shl(rt, 16) + shl(rs, 21)
   end
+  werror("bad index `"..idx.."'")
 end
 
 local function parse_label(label, def)
@@ -715,235 +942,76 @@ local function parse_label(label, def)
   werror("bad label `"..label.."'")
 end
 
-local function parse_load(params, nparams, n, op)
-  local oplo = band(op, 255)
-  local ext, ldrd = (oplo ~= 0), (oplo == 208)
-  local d
-  if (ldrd or oplo == 240) then
-    d = band(shr(op, 12), 15)
-    if band(d, 1) ~= 0 then werror("odd destination register") end
-  end
-  local pn = params[n]
-  local p1, wb = match(pn, "^%[%s*(.-)%s*%](!?)$")
-  local p2 = params[n+1]
-  if not p1 then
-    if not p2 then
-      if match(pn, "^[<>=%-]") or match(pn, "^extern%s+") then
-	local mode, n, s = parse_label(pn, false)
-	waction("REL_"..mode, n + (ext and 0x1800 or 0x0800), s, 1)
-	return op + 15 * 65536 + 0x01000000 + (ext and 0x00400000 or 0)
-      end
-      local reg, tailr = match(pn, "^([%w_:]+)%s*(.*)$")
-      if reg and tailr ~= "" then
-	local d, tp = parse_gpr(reg)
-	if tp then
-	  waction(ext and "IMML8" or "IMML12", 32768 + 32*(ext and 8 or 12),
-		  format(tp.ctypefmt, tailr))
-	  return op + shl(d, 16) + 0x01000000 + (ext and 0x00400000 or 0)
-	end
-      end
-    end
-    werror("expected address operand")
-  end
-  if wb == "!" then op = op + 0x00200000 end
-  if p2 then
-    if wb == "!" then werror("bad use of '!'") end
-    local p3 = params[n+2]
-    op = op + shl(parse_gpr(p1), 16)
-    local imm = match(p2, "^#(.*)$")
-    if imm then
-      local m = parse_imm_load(imm, ext)
-      if p3 then werror("too many parameters") end
-      op = op + m + (ext and 0x00400000 or 0)
-    else
-      local m, neg = parse_gpr_pm(p2)
-      if ldrd and (m == d or m-1 == d) then werror("register conflict") end
-      op = op + m + (neg and 0 or 0x00800000) + (ext and 0 or 0x02000000)
-      if p3 then op = op + parse_shift(p3) end
-    end
-  else
-    local p1a, p2 = match(p1, "^([^,%s]*)%s*(.*)$")
-    op = op + shl(parse_gpr(p1a), 16) + 0x01000000
-    if p2 ~= "" then
-      local imm = match(p2, "^,%s*#(.*)$")
-      if imm then
-	local m = parse_imm_load(imm, ext)
-	op = op + m + (ext and 0x00400000 or 0)
-      else
-	local p2a, p3 = match(p2, "^,%s*([^,%s]*)%s*,?%s*(.*)$")
-	local m, neg = parse_gpr_pm(p2a)
-	if ldrd and (m == d or m-1 == d) then werror("register conflict") end
-	op = op + m + (neg and 0 or 0x00800000) + (ext and 0 or 0x02000000)
-	if p3 ~= "" then
-	  if ext then werror("too many parameters") end
-	  op = op + parse_shift(p3)
-	end
-      end
-    else
-      if wb == "!" then werror("bad use of '!'") end
-      op = op + (ext and 0x00c00000 or 0x00800000)
-    end
-  end
-  return op
-end
-
-local function parse_vload(q)
-  local reg, imm = match(q, "^%[%s*([^,%s]*)%s*(.*)%]$")
-  if reg then
-    local d = shl(parse_gpr(reg), 16)
-    if imm == "" then return d end
-    imm = match(imm, "^,%s*#(.*)$")
-    if imm then
-      local n = tonumber(imm)
-      if n then
-	if n >= -1020 and n <= 1020 and n%4 == 0 then
-	  return d + (n >= 0 and n/4+0x00800000 or -n/4)
-	end
-	werror("out of range immediate `"..imm.."'")
-      else
-	waction("IMMV8", 32768 + 32*8, imm)
-	return d
-      end
-    end
-  else
-    if match(q, "^[<>=%-]") or match(q, "^extern%s+") then
-      local mode, n, s = parse_label(q, false)
-      waction("REL_"..mode, n + 0x2800, s, 1)
-      return 15 * 65536
-    end
-    local reg, tailr = match(q, "^([%w_:]+)%s*(.*)$")
-    if reg and tailr ~= "" then
-      local d, tp = parse_gpr(reg)
-      if tp then
-	waction("IMMV8", 32768 + 32*8, format(tp.ctypefmt, tailr))
-	return shl(d, 16)
-      end
-    end
-  end
-  werror("expected address operand")
-end
-
 ------------------------------------------------------------------------------
 
 -- Handle opcodes defined with template strings.
-local function parse_template(params, template, nparams, pos)
+map_op[".template__"] = function(params, template, nparams)
+  if not params then return sub(template, 9) end
   local op = tonumber(sub(template, 1, 8), 16)
   local n = 1
-  local vr = "s"
+
+  -- Limit number of section buffer positions used by a single dasm_put().
+  -- A single opcode needs a maximum of 2 positions (ins/ext).
+  if secpos+2 > maxsecpos then wflush() end
+  local pos = wpos()
 
   -- Process each character.
   for p in gmatch(sub(template, 9), ".") do
-    local q = params[n]
     if p == "D" then
-      op = op + shl(parse_gpr(q), 12); n = n + 1
-    elseif p == "N" then
-      op = op + shl(parse_gpr(q), 16); n = n + 1
-    elseif p == "S" then
-      op = op + shl(parse_gpr(q), 8); n = n + 1
-    elseif p == "M" then
-      op = op + parse_gpr(q); n = n + 1
-    elseif p == "d" then
-      local r,h = parse_vr(q, vr); op = op+shl(r,12)+shl(h,22); n = n + 1
-    elseif p == "n" then
-      local r,h = parse_vr(q, vr); op = op+shl(r,16)+shl(h,7); n = n + 1
-    elseif p == "m" then
-      local r,h = parse_vr(q, vr); op = op+r+shl(h,5); n = n + 1
-    elseif p == "P" then
-      local imm = match(q, "^#(.*)$")
-      if imm then
-	op = op + parse_imm12(imm) + 0x02000000
-      else
-	op = op + parse_gpr(q)
-      end
-      n = n + 1
-    elseif p == "p" then
-      op = op + parse_shift(q, true); n = n + 1
-    elseif p == "L" then
-      op = parse_load(params, nparams, n, op)
-    elseif p == "l" then
-      op = op + parse_vload(q)
-    elseif p == "B" then
-      local mode, n, s = parse_label(q, false)
-      waction("REL_"..mode, n, s, 1)
-    elseif p == "C" then -- blx gpr vs. blx label.
-      if match(q, "^([%w_]+):(r1?[0-9])$") or match(q, "^r(1?[0-9])$") then
-	op = op + parse_gpr(q)
-      else
-	if op < 0xe0000000 then werror("unconditional instruction") end
-	local mode, n, s = parse_label(q, false)
-	waction("REL_"..mode, n, s, 1)
-	op = 0xfa000000
-      end
-    elseif p == "F" then
-      vr = "s"
-    elseif p == "G" then
-      vr = "d"
-    elseif p == "o" then
-      local r, wb = match(q, "^([^!]*)(!?)$")
-      op = op + shl(parse_gpr(r), 16) + (wb == "!" and 0x00200000 or 0)
-      n = n + 1
-    elseif p == "R" then
-      op = op + parse_reglist(q); n = n + 1
-    elseif p == "r" then
-      op = op + parse_vrlist(q); n = n + 1
-    elseif p == "W" then
-      op = op + parse_imm16(q); n = n + 1
-    elseif p == "v" then
-      op = op + parse_imm(q, 5, 7, 0, false); n = n + 1
-    elseif p == "w" then
-      local imm = match(q, "^#(.*)$")
-      if imm then
-	op = op + parse_imm(q, 5, 7, 0, false); n = n + 1
-      else
-	op = op + shl(parse_gpr(q), 8) + 16
-      end
-    elseif p == "X" then
-      op = op + parse_imm(q, 5, 16, 0, false); n = n + 1
-    elseif p == "Y" then
-      local imm = tonumber(match(q, "^#(.*)$")); n = n + 1
-      if not imm or shr(imm, 8) ~= 0 then
-	werror("bad immediate operand")
-      end
-      op = op + shl(band(imm, 0xf0), 12) + band(imm, 0x0f)
-    elseif p == "K" then
-      local imm = tonumber(match(q, "^#(.*)$")); n = n + 1
-      if not imm or shr(imm, 16) ~= 0 then
-	werror("bad immediate operand")
-      end
-      op = op + shl(band(imm, 0xfff0), 4) + band(imm, 0x000f)
+      op = op + shl(parse_gpr(params[n]), 11); n = n + 1
     elseif p == "T" then
-      op = op + parse_imm(q, 24, 0, 0, false); n = n + 1
-    elseif p == "s" then
-      -- Ignored.
+      op = op + shl(parse_gpr(params[n]), 16); n = n + 1
+    elseif p == "S" then
+      op = op + shl(parse_gpr(params[n]), 21); n = n + 1
+    elseif p == "F" then
+      op = op + shl(parse_fpr(params[n]), 6); n = n + 1
+    elseif p == "G" then
+      op = op + shl(parse_fpr(params[n]), 11); n = n + 1
+    elseif p == "H" then
+      op = op + shl(parse_fpr(params[n]), 16); n = n + 1
+    elseif p == "R" then
+      op = op + shl(parse_fpr(params[n]), 21); n = n + 1
+    elseif p == "I" then
+      op = op + parse_imm(params[n], 16, 0, 0, true); n = n + 1
+    elseif p == "U" then
+      op = op + parse_imm(params[n], 16, 0, 0, false); n = n + 1
+    elseif p == "O" then
+      op = op + parse_disp(params[n]); n = n + 1
+    elseif p == "X" then
+      op = op + parse_index(params[n]); n = n + 1
+    elseif p == "B" or p == "J" or p == "K" or p == "L" then
+      local mode, m, s = parse_label(params[n], false)
+      if p == "J" then m = m + 0xa800
+      elseif p == "K" then m = m + 0x5000
+      elseif p == "L" then m = m + 0xa000 end
+      waction("REL_"..mode, m, s, 1)
+      n = n + 1
+    elseif p == "A" then
+      op = op + parse_imm(params[n], 5, 6, 0, false); n = n + 1
+    elseif p == "a" then
+      local m = parse_imm(params[n], 6, 6, 0, false, "IMMS"); n = n + 1
+      op = op + band(m, 0x7c0) + band(shr(m, 9), 4)
+    elseif p == "M" then
+      op = op + parse_imm(params[n], 5, 11, 0, false); n = n + 1
+    elseif p == "N" then
+      op = op + parse_imm(params[n], 5, 16, 0, false); n = n + 1
+    elseif p == "C" then
+      op = op + parse_imm(params[n], 3, 18, 0, false); n = n + 1
+    elseif p == "V" then
+      op = op + parse_imm(params[n], 3, 8, 0, false); n = n + 1
+    elseif p == "W" then
+      op = op + parse_imm(params[n], 3, 0, 0, false); n = n + 1
+    elseif p == "Y" then
+      op = op + parse_imm(params[n], 20, 6, 0, false); n = n + 1
+    elseif p == "Z" then
+      op = op + parse_imm(params[n], 10, 6, 0, false); n = n + 1
+    elseif p == "=" then
+      n = n - 1 -- Re-use previous parameter for next template char.
     else
       assert(false)
     end
   end
   wputpos(pos, op)
-end
-
-map_op[".template__"] = function(params, template, nparams)
-  if not params then return template:gsub("%x%x%x%x%x%x%x%x", "") end
-
-  -- Limit number of section buffer positions used by a single dasm_put().
-  -- A single opcode needs a maximum of 3 positions.
-  if secpos+3 > maxsecpos then wflush() end
-  local pos = wpos()
-  local lpos, apos, spos = #actlist, #actargs, secpos
-
-  local ok, err
-  for t in gmatch(template, "[^|]+") do
-    ok, err = pcall(parse_template, params, t, nparams, pos)
-    if ok then return end
-    secpos = spos
-    actlist[lpos+1] = nil
-    actlist[lpos+2] = nil
-    actlist[lpos+3] = nil
-    actargs[apos+1] = nil
-    actargs[apos+2] = nil
-    actargs[apos+3] = nil
-  end
-  error(err, 0)
 end
 
 ------------------------------------------------------------------------------
@@ -1102,19 +1170,7 @@ end
 
 -- Merge the core maps and the arch-specific maps.
 function _M.mergemaps(map_coreop, map_def)
-  setmetatable(map_op, { __index = function(t, k)
-    local v = map_coreop[k]
-    if v then return v end
-    local k1, cc, k2 = match(k, "^(.-)(..)([._].*)$")
-    local cv = map_cond[cc]
-    if cv then
-      local v = rawget(t, k1..k2)
-      if type(v) == "string" then
-	local scv = format("%x", cv)
-	return gsub(scv..sub(v, 2), "|e", "|"..scv)
-      end
-    end
-  end })
+  setmetatable(map_op, { __index = map_coreop })
   setmetatable(map_def, { __index = map_archdef })
   return map_op, map_def
 end

@@ -877,12 +877,10 @@ void flush_next_pc(dasm_State** Dst, dword next_pc) {
 
 void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
     // TODO: support calling conventions and architectures other than System-V x86_64
-    // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
-    //int available_host_regs[] = {/*0,*/ 7, 6, 2, 1, 8, 9, 10, 11};
-    //int num_available_host_regs = 8;
-
-    int available_host_regs[] = {7, 6, 2, 1};
-    int num_available_host_regs = 4;
+    // rdi, rsi, rdx, rcx, r8, r9, r10, r11
+    // save rax and rcx as work registers
+    int available_host_regs[] = {2, 6, 7, 8, 9, 10, 11};
+    int num_available_host_regs = 7;
 
     int used_host_regs = 0;
     for (; (used_host_regs < *num_valid_host_regs) && (used_host_regs < num_available_host_regs); used_host_regs++) {
@@ -892,7 +890,7 @@ void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
     *num_valid_host_regs = used_host_regs;
 }
 
-void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg) {
+void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, byte host_reg, int guest_reg) {
     uintptr_t src = (uintptr_t)&cpu->gpr[guest_reg];
     | mov64 rax, src
     | mov Rq(host_reg), [rax]
