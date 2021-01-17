@@ -5,7 +5,7 @@
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
 
-#define COMPILER(name) void compile_##name(dasm_State** Dst, mips_instruction_t instr, word address, word* extra_cycles)
+#define COMPILER(name) void compile_##name(dasm_State** Dst, mips_instruction_t instr, word address, int* aregs, int dreg, word* extra_cycles)
 
 COMPILER(mips_addiu);
 COMPILER(mips_beq);
@@ -170,4 +170,7 @@ void check_exception(dasm_State** Dst, word block_length);
 void flush_prev_pc(dasm_State** Dst, dword prev_pc);
 void flush_pc(dasm_State** Dst, dword pc);
 void flush_next_pc(dasm_State** Dst, dword next_pc);
+void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs);
+void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, byte host_reg, int guest_reg);
+void flush_host_register_to_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg);
 #endif //N64_ASM_EMITTER_H

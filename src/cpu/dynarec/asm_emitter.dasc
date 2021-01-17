@@ -82,20 +82,6 @@ INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address
     | mov cpu_state->branch, al
 }
 
-INLINE void load_rax(dasm_State** Dst, word address, int r) {
-    uintptr_t src = (uintptr_t) &global_system->cpu.gpr[r];
-    | mov64 rax, [src]
-}
-
-INLINE void save_rax(dasm_State** Dst, word address, int r) {
-    uintptr_t dst = (uintptr_t) &global_system->cpu.gpr[r];
-    | mov64 [dst], rax
-}
-
-INLINE void sign_extend_eax_rax(dasm_State** Dst) {
-    | movsxd rax, eax
-}
-
 void check_exception(dasm_State** Dst, word block_length) {
     // If an exception was triggered, end the block.
     // otherwise, don't end the block.
@@ -117,17 +103,15 @@ void check_exception(dasm_State** Dst, word block_length) {
 
 
 #define TAKEBRANCH take_branch(Dst, instr, address)
-#define LOADRAX(r) load_rax(Dst, address, r)
-#define SAVERAX(r) save_rax(Dst, address, r)
-#define SEAX sign_extend_eax_rax(Dst)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
-#define IR_INFO(instruction, category_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .exception_possible = exception}
-#define COMP(name, type, exception) COMPILER(name) { RUNHANDLER(name); } IR_INFO(name, type, exception)
+#define IR_INFO(instruction, category_, format_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .format = format_, .exception_possible = exception}
+#define COMP(name, type, exception) COMPILER(name) { RUNHANDLER(name); } IR_INFO(name, type, CALL_INTERPRETER, exception)
 #define BAILZERO(v) do { if ((v) == 0) { return; } } while (0)
-#define CALL_COMPILER(compiler) compiler(Dst, instr, address, extra_cycles)
+#define CALL_COMPILER(compiler) compiler(Dst, instr, address, aregs, dreg, extra_cycles)
 #define CASEIR(pattern, instruction) case pattern: return &ir_##instruction
 
 COMPILER(mips_nop) {}
+IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
 
 COMPILER(mips_addi) {
     BAILZERO(instr.i.rt);
@@ -135,19 +119,19 @@ COMPILER(mips_addi) {
     sdword ext_imm = imm;
     // This is actually a load-immediate
     if (instr.i.rs == 0) {
-        | mov rax, ext_imm
-        SAVERAX(instr.i.rt);
+        | mov64 Rq(dreg), ext_imm
     } else {
-        LOADRAX(instr.i.rs);
-        | add rax, ext_imm
-        SEAX;
-        SAVERAX(instr.i.rt);
+        | mov Rq(dreg), Rq(aregs[0])
+        | add Rq(dreg), ext_imm
+        | movsxd Rq(dreg), Rd(dreg)
     }
 }
+IR_INFO(mips_addi, NORMAL, I_TYPE, false);
 
 COMPILER(mips_addiu) {
     CALL_COMPILER(compile_mips_addi);
 }
+IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
 
 COMPILER(mips_beq) {
     // Compile as an unconditional branch
@@ -162,8 +146,11 @@ COMPILER(mips_beq) {
         RUNHANDLER(mips_beq);
    }
 }
+IR_INFO(mips_beq, BRANCH, CALL_INTERPRETER, false);
+
 
 COMPILER(mips_cache) {}
+IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
 
 COMPILER(mips_daddi) {
     BAILZERO(instr.i.rt);
@@ -171,170 +158,143 @@ COMPILER(mips_daddi) {
     sdword ext_imm = imm;
     // This is actually a load-immediate
     if (instr.i.rs == 0) {
-        | mov rax, ext_imm
-        SAVERAX(instr.i.rt);
+        | mov64 Rq(dreg), ext_imm
     } else {
-        LOADRAX(instr.i.rs);
-        | add rax, ext_imm
-        SAVERAX(instr.i.rt);
+        | mov Rq(dreg), Rq(aregs[0])
+        | add Rq(dreg), ext_imm
     }
 }
+IR_INFO(mips_daddi, NORMAL, I_TYPE, false);
 
 COMPILER(mips_daddiu) {
     return CALL_COMPILER(compile_mips_daddi);
 }
+IR_INFO(mips_daddiu, NORMAL, I_TYPE, false);
 
 COMPILER(mips_andi) {
     BAILZERO(instr.i.rt);
-    LOADRAX(instr.i.rs);
-    | and rax, instr.i.immediate
-    SAVERAX(instr.i.rt);
+    | mov Rq(dreg), Rq(aregs[0])
+    | and Rq(dreg), instr.i.immediate
 }
+IR_INFO(mips_andi, NORMAL, I_TYPE, false);
 
 COMPILER(mips_ori) {
     BAILZERO(instr.i.rt);
-    LOADRAX(instr.i.rs);
-    | or rax, instr.i.immediate
-    SAVERAX(instr.i.rt);
+    | mov Rq(dreg), Rq(aregs[0])
+    | or Rq(dreg), instr.i.immediate
 }
+IR_INFO(mips_ori, NORMAL, I_TYPE, false);
 
 COMPILER(mips_slti) {
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
-
     BAILZERO(instr.i.rt);
-    LOADRAX(instr.i.rs);
-    | cmp rax, ext_imm
-    // sets al to 1 if rs < imm (signed), 0 if not
-    | setl al
-    // al operations don't extend to eax, so we do it manually. This is a fast equivalent to and eax, $FF
-    | movzx rax, al
-    SAVERAX(instr.i.rt);
+
+    | cmp Rq(aregs[0]), ext_imm
+    | setl al // sets al to 1 if rs < imm (signed), 0 if not
+    | movzx Rq(dreg), al // al operations don't extend to rax, so we do it manually.
 }
+IR_INFO(mips_slti, NORMAL, I_TYPE, false);
+
 
 COMPILER(mips_sltiu) {
     shalf imm = instr.i.immediate;
     sdword ext_imm = imm;
-
     BAILZERO(instr.i.rt);
-    LOADRAX(instr.i.rs);
-    | cmp rax, ext_imm
-    // sets al to 1 if rs < imm (unsigned), 0 if not
-    | setb al
-    // al operations don't extend to eax, so we do it manually. This is a fast equivalent to and eax, $FF
-    | movzx rax, al
-    SAVERAX(instr.i.rt);
+    | cmp Rq(aregs[0]), ext_imm
+    | setb al // sets al to 1 if rs < imm (unsigned), 0 if not
+    | movzx Rq(dreg), al // al operations don't extend to rax, so we do it manually.
 }
+IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
 
 COMPILER(mips_xori) {
     BAILZERO(instr.i.rt);
-    LOADRAX(instr.i.rs);
-    | xor rax, instr.i.immediate
-    SAVERAX(instr.i.rt);
+    | mov Rq(dreg), Rq(aregs[0])
+    | xor Rq(dreg), instr.i.immediate
 }
+IR_INFO(mips_xori, NORMAL, I_TYPE, false);
 
 COMPILER(mips_spc_sll) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rt);
-    | shl eax, instr.r.sa
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shl Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
 }
+IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
 
 COMPILER(mips_spc_srl) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rt);
-    | shr eax, instr.r.sa
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shr Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
 }
+IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
 
 COMPILER(mips_spc_sra) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rt);
-    | sar eax, instr.r.sa
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
 }
+IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
 
 COMPILER(mips_spc_srav) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rs);
-    | mov rcx, rax
-    LOADRAX(instr.r.rt);
-    | sar eax, cl
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | sar Rd(dreg), cl
+    | movsxd Rq(dreg), Rd(dreg)
 }
+IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
 
 COMPILER(mips_spc_sllv) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rs);
-    | mov rcx, rax
-    LOADRAX(instr.r.rt);
-    | shl eax, cl
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shl Rd(dreg), cl
+    | movsxd Rq(dreg), Rd(dreg)
 }
+IR_INFO(mips_spc_sllv, NORMAL, R_TYPE, false);
 
 COMPILER(mips_spc_srlv) {
     BAILZERO(instr.r.rd);
-    LOADRAX(instr.r.rs);
-    | mov rcx, rax
-    LOADRAX(instr.r.rt);
-    | shr eax, cl
-    SEAX;
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shr Rd(dreg), cl
+    | movsxd Rq(dreg), Rd(dreg)
 }
+IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
+
 
 COMPILER(mips_spc_mfhi) {
     BAILZERO(instr.r.rd);
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_hi;
     | mov64 rax, [src]
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), rax
 }
+IR_INFO(mips_spc_mfhi, NORMAL, MF_MULTREG, false);
 
 COMPILER(mips_spc_mthi) {
-    LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_hi;
+    | mov rax, Rq(aregs[0])
     | mov64 [dst], rax
 }
+IR_INFO(mips_spc_mthi, NORMAL, MT_MULTREG, false);
 
 COMPILER(mips_spc_mflo) {
     BAILZERO(instr.r.rd);
     uintptr_t src = (uintptr_t) &global_system->cpu.mult_lo;
     | mov64 rax, [src]
-    SAVERAX(instr.r.rd);
+    | mov Rq(dreg), rax
 }
+IR_INFO(mips_spc_mflo, NORMAL, MF_MULTREG, false);
 
 COMPILER(mips_spc_mtlo) {
-    LOADRAX(instr.r.rs);
     uintptr_t dst = (uintptr_t) &global_system->cpu.mult_lo;
+    | mov rax, Rq(aregs[0])
     | mov64 [dst], rax
 }
-
-IR_INFO(mips_nop, NORMAL, false);
-IR_INFO(mips_addi, NORMAL, false);
-IR_INFO(mips_addiu, NORMAL, false);
-IR_INFO(mips_beq, BRANCH, false);
-IR_INFO(mips_cache, NORMAL, false);
-IR_INFO(mips_daddi, NORMAL, false);
-IR_INFO(mips_daddiu, NORMAL, false);
-IR_INFO(mips_andi, NORMAL, false);
-IR_INFO(mips_ori, NORMAL, false);
-IR_INFO(mips_slti, NORMAL, false);
-IR_INFO(mips_sltiu, NORMAL, false);
-IR_INFO(mips_xori, NORMAL, false);
-IR_INFO(mips_spc_sll, NORMAL, false);
-IR_INFO(mips_spc_srl, NORMAL, false);
-IR_INFO(mips_spc_sra, NORMAL, false);
-IR_INFO(mips_spc_srav, NORMAL, false);
-IR_INFO(mips_spc_sllv, NORMAL, false);
-IR_INFO(mips_spc_srlv, NORMAL, false);
-IR_INFO(mips_spc_mfhi, NORMAL, false);
-IR_INFO(mips_spc_mthi, NORMAL, false);
-IR_INFO(mips_spc_mflo, NORMAL, false);
-IR_INFO(mips_spc_mtlo, NORMAL, false);
+IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
 
 COMP(mips_spc_dsllv, NORMAL, false);
 COMP(mips_spc_dsrlv, NORMAL, false);
@@ -899,4 +859,33 @@ void flush_pc(dasm_State** Dst, dword pc) {
 void flush_next_pc(dasm_State** Dst, dword next_pc) {
     | mov rax, next_pc
     | mov cpu_state->next_pc, rax
+}
+
+void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
+    // TODO: support calling conventions and architectures other than System-V x86_64
+    // rdi, rsi, rdx, rcx, r8, r9, r10, r11
+    // save rax and rcx as work registers
+    int available_host_regs[] = {2, 6, 7, 8, 9, 10, 11};
+    int num_available_host_regs = 7;
+
+    int used_host_regs = 0;
+    for (; (used_host_regs < *num_valid_host_regs) && (used_host_regs < num_available_host_regs); used_host_regs++) {
+        valid_host_regs[used_host_regs] = available_host_regs[used_host_regs];
+    }
+
+    *num_valid_host_regs = used_host_regs;
+}
+
+void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, byte host_reg, int guest_reg) {
+    uintptr_t src = (uintptr_t)&cpu->gpr[guest_reg];
+    | mov64 rax, src
+    | mov Rq(host_reg), [rax]
+}
+
+void flush_host_register_to_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg) {
+    if (guest_reg != 0) {
+        uintptr_t dst = (uintptr_t)&cpu->gpr[guest_reg];
+        | mov64 rax, dst
+        | mov [rax], Rq(host_reg)
+    }
 }
