@@ -170,4 +170,7 @@ void check_exception(dasm_State** Dst, word block_length);
 void flush_prev_pc(dasm_State** Dst, dword prev_pc);
 void flush_pc(dasm_State** Dst, dword pc);
 void flush_next_pc(dasm_State** Dst, dword next_pc);
+void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs);
+void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg);
+void flush_host_register_to_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg);
 #endif //N64_ASM_EMITTER_H

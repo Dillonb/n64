@@ -902,3 +902,35 @@ void flush_next_pc(dasm_State** Dst, dword next_pc) {
     | mov rax, next_pc
     | mov cpu_state->next_pc, rax
 }
+
+void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
+    // TODO: support calling conventions and architectures other than System-V x86_64
+    // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
+    int available_host_regs[] = {0, 7, 6, 2, 1, 8, 9, 10, 11};
+    int num_available_host_regs = 9;
+
+    int used_host_regs = 0;
+    for (; (used_host_regs < *num_valid_host_regs) && (used_host_regs < num_available_host_regs); used_host_regs++) {
+        valid_host_regs[used_host_regs] = available_host_regs[used_host_regs];
+    }
+
+    *num_valid_host_regs = used_host_regs;
+}
+
+void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg) {
+    printf("Loading mips r%d into x86_64 reg r%d\n", guest_reg, host_reg);
+    uintptr_t src = (uintptr_t)&cpu->gpr[guest_reg];
+    printf("Loading r%d from 0x%016lX\n", host_reg, src);
+
+    | mov64 Rq(host_reg), src
+    | mov Rq(host_reg), [Rq(host_reg)]
+    | .byte 0x90 // No idea why this is necessary, but it freaks out if I don't have it.
+}
+
+void flush_host_register_to_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg) {
+    printf("Flushing x86 r%d into mips reg r%d\n", host_reg, guest_reg);
+    /*
+    uintptr_t dst = (uintptr_t)&cpu->gpr[guest_reg];
+    | mov [dst], Rq(host_reg)
+     */
+}

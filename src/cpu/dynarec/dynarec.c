@@ -23,13 +23,76 @@ INLINE bool is_branch(dynarec_instruction_category_t category) {
     return category == BRANCH || category == BRANCH_LIKELY;
 }
 
+static int arg_host_registers[] = {0, 0};
+static int dest_host_register = 0;
+static int valid_host_regs[32];
+static int num_valid_host_regs;
+static bool guest_reg_loaded[32];
+static bool host_reg_used[32];
+static int guest_reg_to_host_reg[32];
+
+INLINE bool is_reg_loaded(int guest) {
+    return guest_reg_loaded[guest];
+}
+
+INLINE bool is_reg_used(int host) {
+    return host_reg_used[host];
+}
+
+INLINE int get_valid_host_reg() {
+    for (int r = 0; r < num_valid_host_regs; r++) {
+        if (!is_reg_used(r)) {
+            return r;
+        }
+    }
+
+    logfatal("Ran out of valid host regs! Time to implement flushing");
+}
+
+INLINE void flush_reg(dasm_State** Dst, r4300i_t* cpu, int guest) {
+    if (is_reg_loaded(guest)) {
+        int host_reg = guest_reg_to_host_reg[guest];
+        flush_host_register_to_gpr(Dst, cpu, valid_host_regs[host_reg], guest);
+    }
+    guest_reg_loaded[guest] = false;
+    host_reg_used[guest_reg_to_host_reg[guest]] = false;
+}
+
+INLINE int load_reg(dasm_State** Dst, r4300i_t* cpu, int guest) {
+    if (!is_reg_loaded(guest)) {
+        guest_reg_loaded[guest] = true;
+        int host_reg = get_valid_host_reg();
+
+        guest_reg_to_host_reg[guest] = host_reg;
+        host_reg_used[host_reg] = true;
+
+        load_host_register_from_gpr(Dst, cpu, valid_host_regs[host_reg], guest);
+    }
+    int valid_host_reg = valid_host_regs[guest_reg_to_host_reg[guest]];
+    return valid_host_reg;
+}
+
+INLINE void flush_all(dasm_State** Dst, r4300i_t* cpu) {
+    for (int r = 0; r < 32; r++) {
+        if (is_reg_loaded(r)) {
+            flush_reg(Dst, cpu, r);
+        }
+    }
+}
+
+INLINE int* load_regs(int* regs, int num) {
+    logfatal("asdf");
+    return NULL;
+}
+
+
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     static dasm_State* d;
     d = block_header();
     dasm_State** Dst = &d;
 
-    static int arg_host_registers[] = {0, 0};
-    static int dest_host_register = 0;
+    memset(guest_reg_loaded, 0, sizeof(guest_reg_loaded));
+    memset(host_reg_used, 0, sizeof(host_reg_used));
 
     bool should_continue_block = true;
     int block_length = 0;
@@ -62,6 +125,37 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
             flush_pc(Dst, next_virtual_address);
             flush_next_pc(Dst, next_virtual_address + 4);
             clear_branch_flag(Dst);
+        }
+        switch (ir->format) {
+            case CALL_INTERPRETER:
+                printf("Next instruction calls interpreter, flushing all\n");
+                flush_all(Dst, compile_time_cpu);
+                break;
+            case FORMAT_NOP:
+                printf("NOP\n");
+                break; // Shouldn't touch any registers, so no need to do anything
+            case SHIFT_CONST:
+                printf("Shift const\n");
+                arg_host_registers[0] = load_reg(Dst, compile_time_cpu, instr.r.rt);
+                dest_host_register = load_reg(Dst, compile_time_cpu, instr.r.rd);
+                break;
+            case I_TYPE:
+                printf("I_TYPE\n");
+                arg_host_registers[0] = load_reg(Dst, compile_time_cpu, instr.r.rs);
+                dest_host_register = load_reg(Dst, compile_time_cpu, instr.i.rt);
+                break;
+            case R_TYPE:
+                //logfatal("Allocate regs for R_TYPE");
+                break;
+            case J_TYPE:
+                //logfatal("Allocate regs for J_TYPE");
+                break;
+            case MF_MULTREG:
+                //logfatal("Allocate regs for MF_MULTREG");
+                break;
+            case MT_MULTREG:
+                //logfatal("Allocate regs for MT_MULTREG");
+                break;
         }
         ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);
         block_length++;
@@ -149,6 +243,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
         virtual_address = next_virtual_address;
         prev_instr_category = ir->category;
     } while (should_continue_block);
+    flush_all(Dst, compile_time_cpu);
     end_block(Dst, block_length);
     void* compiled = link_and_encode(dynarec, &d);
     dasm_free(&d);
@@ -228,6 +323,10 @@ n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t co
     }
 
     dynarec->codecache = codecache;
+
+    num_valid_host_regs = 32;
+    fill_valid_host_regs(valid_host_regs, &num_valid_host_regs);
+
     return dynarec;
 }
 
