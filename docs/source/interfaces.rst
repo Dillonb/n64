@@ -1,7 +1,7 @@
 MIPS Interface
 ==============
 
-0x0430000 - MI_MODE_REG (Read / Write)
+0x04300000 - MI_MODE_REG (Read / Write)
 --------------------------------------
 
 Sets and retrieves some values. I am uncertain of what they are used for.
@@ -52,7 +52,7 @@ Reads
 |  9  | Gets RDRAM reg mode - returns the value written above |
 +-----+-------------------------------------------------------+
 
-0x0430004 - MI_VERSION_REG (Read only)
+0x04300004 - MI_VERSION_REG (Read only)
 --------------------------------------
 
 +-------+--------------+
@@ -69,7 +69,7 @@ Reads
 
 This register should return 0x02020102 always.
 
-0x0430008 - MI_INTR_REG (Read only)
+0x04300008 - MI_INTR_REG (Read only)
 -----------------------------------
 
 Bits in this register are raised and lowered as interrupts are raised and lowered by other parts of the system.
@@ -90,7 +90,7 @@ Bits in this register are raised and lowered as interrupts are raised and lowere
 | 5   | DP Interrupt - Set by the RDP, when a full sync completes.                                                                 |
 +-----+----------------------------------------------------------------------------------------------------------------------------+
 
-0x043000C - MI_INTR_MASK_REG (Read / Write)
+0x0430000C - MI_INTR_MASK_REG (Read / Write)
 -------------------------------------------
 
 This register sets up a mask. If (MI_INTR_REG & MI_INTR_MASK_REG) != 0, then a MIPS interrupt is raised.
