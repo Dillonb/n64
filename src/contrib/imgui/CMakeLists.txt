@@ -4,6 +4,8 @@ add_library(imgui
         imgui_draw.cpp
         imgui_tables.cpp
 
+        imgui_demo.cpp
+
         imgui_impl_vulkan.cpp imgui_impl_vulkan.h
         imgui_impl_sdl.cpp imgui_impl_sdl.h
 

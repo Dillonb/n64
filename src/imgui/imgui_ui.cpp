@@ -20,10 +20,39 @@
 
 #include <frontend/render_internal.h>
 
-//#define IMGUI_UNLIMITED_FRAME_RATE
-#ifdef _DEBUG
-#define IMGUI_VULKAN_DEBUG_REPORT
-#endif
+static bool show_metrics_window = false;
+static bool show_imgui_demo_window = false;
+
+void render_menubar() {
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Load ROM")) {}
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("View"))
+        {
+            if (ImGui::MenuItem("Show Metrics", nullptr, show_metrics_window)) { show_metrics_window = !show_metrics_window; }
+            if (ImGui::MenuItem("Show ImGui Demo Window", nullptr, show_imgui_demo_window)) { show_imgui_demo_window = !show_imgui_demo_window; }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
+void render_metrics_window() {
+    ImGui::Begin("Performance Metrics");
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+}
+
+void render_ui() {
+    render_menubar();
+    if (show_metrics_window) { render_metrics_window(); }
+    if (show_imgui_demo_window) { ImGui::ShowDemoWindow(); }
+}
 
 static VkAllocationCallbacks*   g_Allocator = NULL;
 static VkInstance               g_Instance = VK_NULL_HANDLE;
@@ -31,13 +60,11 @@ static VkPhysicalDevice         g_PhysicalDevice = VK_NULL_HANDLE;
 static VkDevice                 g_Device = VK_NULL_HANDLE;
 static uint32_t                 g_QueueFamily = (uint32_t)-1;
 static VkQueue                  g_Queue = VK_NULL_HANDLE;
-static VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
 static VkPipelineCache          g_PipelineCache = VK_NULL_HANDLE;
 static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
 
 static ImGui_ImplVulkanH_Window g_MainWindowData;
 static uint32_t                 g_MinImageCount = 2;
-static bool                     g_SwapChainRebuild = false;
 
 static void check_vk_result(VkResult err)
 {
@@ -61,8 +88,6 @@ void load_imgui_ui() {
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
-
-    static VkAllocationCallbacks callbacks;
 
     g_Instance = get_vk_instance();
     g_PhysicalDevice = get_vk_physical_device();
@@ -212,44 +237,7 @@ ImDrawData* imgui_frame() {
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
 
-    static bool show_demo_window = true;
-    static bool show_another_window = false;
-
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    //ImGui::ShowDemoWindow(&show_demo_window);
-
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-    {
-        static float f = 0.0f;
-        static int counter = 0;
-
-        ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &show_another_window);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-        //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::End();
-    }
-
-    // 3. Show another simple window.
-    if (show_another_window)
-    {
-        ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::Text("Hello from another window!");
-        if (ImGui::Button("Close Me"))
-            show_another_window = false;
-        ImGui::End();
-    }
+    render_ui();
 
     // Rendering
     ImGui::Render();
