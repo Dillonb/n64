@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <mem/backup.h>
 #include <frontend/game_db.h>
+#include <metrics.h>
 
 bool should_quit = false;
 
@@ -330,6 +331,7 @@ void jit_system_loop(n64_system_t* system) {
 update_delayed_log_verbosity();
 #endif
         persist_backup(system);
+        reset_all_metrics();
     }
     force_persist_backup(system);
 }
@@ -368,6 +370,7 @@ void interpreter_system_loop(n64_system_t* system) {
         update_delayed_log_verbosity();
 #endif
         persist_backup(system);
+        reset_all_metrics();
     }
     force_persist_backup(system);
 }

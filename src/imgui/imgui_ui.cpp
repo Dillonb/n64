@@ -13,15 +13,44 @@
 #include <rdp/parallel_rdp_wrapper.h>
 #include <volk.h>
 #include <imgui.h>
+#include <implot.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 #include <cstdio>          // printf, fprintf
 #include <cstdlib>         // abort
 
 #include <frontend/render_internal.h>
+#include <metrics.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
+
+#define METRICS_HISTORY_SECONDS 10
+
+#define METRICS_HISTORY_ITEMS ((METRICS_HISTORY_SECONDS) * 60)
+
+template<typename T>
+struct RingBuffer {
+    int offset;
+    T max;
+    T data[METRICS_HISTORY_ITEMS];
+    RingBuffer() {
+        offset = 0;
+        max = 0;
+        memset(data, 0, sizeof(data));
+    }
+    void add_point(T point) {
+        if (point > max) {
+            max = point;
+        }
+        data[offset++] = point;
+        offset %= METRICS_HISTORY_ITEMS;
+    }
+};
+
+RingBuffer<double> frame_times;
+RingBuffer<ImU64> block_complilations;
+RingBuffer<ImU64> rsp_steps;
 
 void render_menubar() {
     if (ImGui::BeginMainMenuBar())
@@ -43,8 +72,36 @@ void render_menubar() {
 }
 
 void render_metrics_window() {
+    block_complilations.add_point(get_metric(METRIC_BLOCK_COMPILATION));
+    rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
+    double frametime = 1000.0f / ImGui::GetIO().Framerate;
+    frame_times.add_point(frametime);
+
     ImGui::Begin("Performance Metrics");
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Text("Average %.3f ms/frame (%.1f FPS)", frametime, ImGui::GetIO().Framerate);
+
+    ImPlot::SetNextPlotLimitsY(0, frame_times.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Frame Times")) {
+        ImPlot::PlotLine("Frame Time (ms)", frame_times.data, METRICS_HISTORY_ITEMS, 1, 0, frame_times.offset);
+        ImPlot::EndPlot();
+    }
+
+    ImPlot::SetNextPlotLimitsY(0, rsp_steps.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("RSP Steps Per Frame")) {
+        ImPlot::PlotLine("RSP Steps", rsp_steps.data, METRICS_HISTORY_ITEMS, 1, 0, rsp_steps.offset);
+        ImPlot::EndPlot();
+    }
+
+    ImGui::Text("Block compilations this frame: %ld", get_metric(METRIC_BLOCK_COMPILATION));
+    ImPlot::SetNextPlotLimitsY(0, block_complilations.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Block Compilations Per Frame")) {
+        ImPlot::PlotBars("Block compilations", block_complilations.data, METRICS_HISTORY_ITEMS, 1, 0, block_complilations.offset);
+        ImPlot::EndPlot();
+    }
+
     ImGui::End();
 }
 
@@ -81,6 +138,7 @@ void load_imgui_ui() {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls

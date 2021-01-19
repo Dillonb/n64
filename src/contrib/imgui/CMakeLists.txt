@@ -6,6 +6,9 @@ add_library(imgui
 
         imgui_demo.cpp
 
+        implot_items.cpp
+        implot.cpp implot.h implot_internal.h
+
         imgui_impl_vulkan.cpp imgui_impl_vulkan.h
         imgui_impl_sdl.cpp imgui_impl_sdl.h
 
@@ -15,8 +18,4 @@ add_library(imgui
         imgui.h
         imgui_internal.h)
 
-target_include_directories(imgui PUBLIC
-        ../parallel-rdp-standalone/volk
-        #../parallel-rdp-standalone/vulkan
-        #../parallel-rdp-standalone/util
-        )
+target_include_directories(imgui PUBLIC ../parallel-rdp-standalone/volk)
