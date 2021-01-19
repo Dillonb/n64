@@ -3,10 +3,11 @@
 #include <memory>
 #include <SDL_video.h>
 #include <rdp_device.hpp>
-#include <wsi.hpp>
 #include <frontend/render.h>
 #include <SDL_vulkan.h>
 #include <mem/mem_util.h>
+#include <imgui/imgui_ui.h>
+#include <imgui_impl_vulkan.h>
 
 using namespace Vulkan;
 using std::unique_ptr;
@@ -18,6 +19,41 @@ static CommandProcessor* command_processor;
 static WSI* wsi;
 
 std::vector<Semaphore> acquire_semaphore;
+
+VkQueue get_graphics_queue() {
+    return wsi->get_context().get_graphics_queue();
+}
+
+VkInstance get_vk_instance() {
+    return wsi->get_context().get_instance();
+}
+
+VkPhysicalDevice get_vk_physical_device() {
+    return wsi->get_device().get_physical_device();
+}
+
+VkDevice get_vk_device() {
+    return wsi->get_device().get_device();
+}
+
+uint32_t get_vk_graphics_queue_family() {
+    return wsi->get_context().get_graphics_queue_family();
+}
+
+VkFormat get_vk_format() {
+    return wsi->get_device().get_swapchain_view().get_format();
+}
+
+CommandBufferHandle requested_command_buffer;
+
+VkCommandBuffer get_vk_command_buffer() {
+    requested_command_buffer = wsi->get_device().request_command_buffer();
+    return requested_command_buffer->get_command_buffer();
+}
+
+void submit_requested_vk_command_buffer() {
+    wsi->get_device().submit(requested_command_buffer);
+}
 
 #define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
 word parallel_rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
@@ -138,8 +174,9 @@ void update_screen_parallel_rdp(n64_system_t* system) {
 
     wsi->begin_frame();
 
+    auto cmd = wsi->get_device().request_command_buffer();
+
     if (image) {
-        auto cmd = wsi->get_device().request_command_buffer();
         Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
         VkOffset3D dst_extent = {int(swapchain_image.get_width()), int(swapchain_image.get_height()), 1};
         VkOffset3D src_extent = {int(image->get_width()),          int(image->get_height()),          1};
@@ -162,11 +199,11 @@ void update_screen_parallel_rdp(n64_system_t* system) {
         cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
                            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-
-        cmd->uses_swapchain = true;
-        wsi->get_device().submit(cmd);
-
     }
+
+    ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
+    cmd->uses_swapchain = true;
+    wsi->get_device().submit(cmd);
     wsi->end_frame();
     command_processor->begin_frame_context();
 }

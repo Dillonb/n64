@@ -8,6 +8,7 @@
 #include <rdp/parallel_rdp_wrapper.h>
 #include <frontend/tas_movie.h>
 #include <signal.h>
+#include <imgui/imgui_ui.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -75,6 +76,7 @@ int main(int argc, char** argv) {
     } else {
         system = init_n64system(flags->argv[0], true, debug, VULKAN, interpreter);
         load_parallel_rdp(system);
+        load_imgui_ui();
     }
     if (tas_movie_path != NULL) {
         load_tas_movie(tas_movie_path);

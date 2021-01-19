@@ -23,6 +23,10 @@ word sdl_numframes = 0;
 word sdl_fps = 0;
 char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
 
+SDL_Window* get_window_handle() {
+    return window;
+}
+
 void video_init_opengl() {
     window = SDL_CreateWindow(N64_APP_NAME,
                               SDL_WINDOWPOS_UNDEFINED,
