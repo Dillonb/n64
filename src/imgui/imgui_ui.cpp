@@ -28,7 +28,7 @@
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
 
-#define METRICS_HISTORY_SECONDS 10
+#define METRICS_HISTORY_SECONDS 5
 
 #define METRICS_HISTORY_ITEMS ((METRICS_HISTORY_SECONDS) * 60)
 
@@ -65,13 +65,17 @@ void render_menubar() {
             if (ImGui::MenuItem("Load ROM")) {
                 fileBrowser.Open();
             }
+
+            if (ImGui::MenuItem("Quit")) {
+                n64_request_quit();
+            }
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("View"))
+        if (ImGui::BeginMenu("Window"))
         {
-            if (ImGui::MenuItem("Show Metrics", nullptr, show_metrics_window)) { show_metrics_window = !show_metrics_window; }
-            if (ImGui::MenuItem("Show ImGui Demo Window", nullptr, show_imgui_demo_window)) { show_imgui_demo_window = !show_imgui_demo_window; }
+            if (ImGui::MenuItem("Metrics", nullptr, show_metrics_window)) { show_metrics_window = !show_metrics_window; }
+            if (ImGui::MenuItem("ImGui Demo Window", nullptr, show_imgui_demo_window)) { show_imgui_demo_window = !show_imgui_demo_window; }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -84,7 +88,7 @@ void render_metrics_window() {
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
 
-    ImGui::Begin("Performance Metrics");
+    ImGui::Begin("Performance Metrics", &show_metrics_window);
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", frametime, ImGui::GetIO().Framerate);
 
     ImPlot::SetNextPlotLimitsY(0, frame_times.max, ImGuiCond_Always, 0);
