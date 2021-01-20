@@ -47,6 +47,10 @@ void byteswap(byte* rom, size_t rom_size) {
 }
 
 void load_n64rom(n64_rom_t* rom, const char* path) {
+    if (rom->rom != NULL) {
+        free(rom->rom);
+        rom->rom = NULL;
+    }
     FILE *fp = fopen(path, "rb");
 
     if (fp == NULL) {

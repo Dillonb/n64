@@ -8,6 +8,7 @@
 #define N64_RDRAM_SIZE   0x800000
 #define SP_DMEM_SIZE 0x1000
 #define SP_IMEM_SIZE 0x1000
+#define PIF_RAM_SIZE 64
 
 typedef enum ri_reg {
     RI_MODE_REG,
@@ -57,7 +58,7 @@ typedef struct n64_mem {
     word pi_reg[13];
     word ri_reg[8];
     si_reg_t si_reg;
-    byte pif_ram[64];
+    byte pif_ram[PIF_RAM_SIZE];
     char save_file_path[PATH_MAX];
     char mempack_file_path[PATH_MAX];
     n64_save_type_t save_type;

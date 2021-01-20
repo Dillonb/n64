@@ -193,6 +193,7 @@ typedef struct n64_system {
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
 void reset_n64system(n64_system_t* system);
 bool n64_should_quit();
+void n64_load_rom(n64_system_t* system, const char* rom_path);
 
 void n64_system_step(n64_system_t* system, bool dynarec);
 void n64_system_loop(n64_system_t* system);

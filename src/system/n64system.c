@@ -213,6 +213,11 @@ void reset_n64system(n64_system_t* system) {
     system->cpu.cp0.config     = 0x70000000;
     system->cpu.cp0.error_epc  = 0xFFFFFFFFFFFFFFFF;
 
+    memset(system->mem.rdram, 0, N64_RDRAM_SIZE);
+    memset(system->mem.sp_dmem, 0, SP_DMEM_SIZE);
+    memset(system->mem.sp_imem, 0, SP_IMEM_SIZE);
+    memset(system->mem.pif_ram, 0, PIF_RAM_SIZE);
+
     invalidate_dynarec_all_pages(system->dynarec);
 }
 

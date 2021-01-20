@@ -13,6 +13,7 @@
 #include <rdp/parallel_rdp_wrapper.h>
 #include <volk.h>
 #include <imgui.h>
+#include <imfilebrowser.h>
 #include <implot.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
@@ -22,6 +23,7 @@
 #include <frontend/render_internal.h>
 #include <metrics.h>
 #include <SDL.h>
+#include <mem/pif.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
@@ -53,12 +55,16 @@ RingBuffer<double> frame_times;
 RingBuffer<ImU64> block_complilations;
 RingBuffer<ImU64> rsp_steps;
 
+ImGui::FileBrowser fileBrowser;
+
 void render_menubar() {
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Load ROM")) {}
+            if (ImGui::MenuItem("Load ROM")) {
+                fileBrowser.Open();
+            }
             ImGui::EndMenu();
         }
 
@@ -107,9 +113,19 @@ void render_metrics_window() {
 }
 
 void render_ui() {
-    if (SDL_GetMouseFocus()) { render_menubar(); }
+    if (SDL_GetMouseFocus() || global_system->mem.rom.rom == nullptr) {
+        render_menubar();
+    }
     if (show_metrics_window) { render_metrics_window(); }
     if (show_imgui_demo_window) { ImGui::ShowDemoWindow(); }
+
+    fileBrowser.Display();
+    if (fileBrowser.HasSelected()) {
+        reset_n64system(global_system);
+        n64_load_rom(global_system, fileBrowser.GetSelected().string().c_str());
+        pif_rom_execute(global_system);
+        fileBrowser.ClearSelected();
+    }
 }
 
 static VkAllocationCallbacks*   g_Allocator = NULL;
@@ -288,6 +304,9 @@ void load_imgui_ui() {
 
         submit_requested_vk_command_buffer();
     }
+
+    fileBrowser.SetTitle("Load ROM");
+    fileBrowser.SetTypeFilters({".n64", ".v64", ".z64", ".N64", ".V64", ".Z64"});
 }
 
 ImDrawData* imgui_frame() {

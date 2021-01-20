@@ -91,7 +91,9 @@ int main(int argc, char** argv) {
         logalways("Found PIF ROM at pif.rom, loading");
         load_pif_rom(system, "pif.rom");
     }
-    pif_rom_execute(system);
+    if (system->mem.rom.rom != NULL) {
+        pif_rom_execute(system);
+    }
 #ifdef N64_DEBUG_MODE
     if (debug) {
         printf("Listening on 0.0.0.0:%d - Waiting for GDB to connect...\n", GDB_CPU_PORT);
