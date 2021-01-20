@@ -297,16 +297,8 @@ void load_imgui_ui() {
         end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         end_info.commandBufferCount = 1;
         end_info.pCommandBuffers = &command_buffer;
-        err = vkEndCommandBuffer(command_buffer);
-        check_vk_result(err);
-        err = vkQueueSubmit(g_Queue, 1, &end_info, VK_NULL_HANDLE);
-        check_vk_result(err);
-
-        err = vkDeviceWaitIdle(g_Device);
-        check_vk_result(err);
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
-
         submit_requested_vk_command_buffer();
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
     fileBrowser.SetTitle("Load ROM");
