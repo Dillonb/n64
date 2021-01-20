@@ -282,21 +282,8 @@ void load_imgui_ui() {
 
     // Upload Fonts
     {
-        // Use any command queue
         VkCommandBuffer command_buffer = get_vk_command_buffer();
-
-        VkCommandBufferBeginInfo begin_info = {};
-        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        err = vkBeginCommandBuffer(command_buffer, &begin_info);
-        check_vk_result(err);
-
         ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
-
-        VkSubmitInfo end_info = {};
-        end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        end_info.commandBufferCount = 1;
-        end_info.pCommandBuffers = &command_buffer;
         submit_requested_vk_command_buffer();
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
