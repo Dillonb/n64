@@ -372,3 +372,9 @@ void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address) {
     word outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
     dynarec->blockcache[outer_index] = NULL;
 }
+
+void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec) {
+    for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
+        dynarec->blockcache[i] = NULL;
+    }
+}

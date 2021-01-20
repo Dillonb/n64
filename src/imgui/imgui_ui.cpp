@@ -21,6 +21,7 @@
 
 #include <frontend/render_internal.h>
 #include <metrics.h>
+#include <SDL.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
@@ -106,7 +107,7 @@ void render_metrics_window() {
 }
 
 void render_ui() {
-    render_menubar();
+    if (SDL_GetMouseFocus()) { render_menubar(); }
     if (show_metrics_window) { render_metrics_window(); }
     if (show_imgui_demo_window) { ImGui::ShowDemoWindow(); }
 }
@@ -288,7 +289,6 @@ void load_imgui_ui() {
         submit_requested_vk_command_buffer();
     }
 }
-
 
 ImDrawData* imgui_frame() {
     ImGui_ImplVulkan_NewFrame();

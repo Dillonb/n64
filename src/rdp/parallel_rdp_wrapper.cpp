@@ -141,6 +141,62 @@ void load_parallel_rdp(n64_system_t* system) {
     }
 }
 
+void update_screen(Util::IntrusivePtr<Image> image) {
+    wsi->begin_frame();
+
+    if (!image) {
+        auto info = Vulkan::ImageCreateInfo::immutable_2d_image(1, 1, VK_FORMAT_R8G8B8A8_UNORM);
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        info.misc = IMAGE_MISC_MUTABLE_SRGB_BIT;
+        info.initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        image = wsi->get_device().create_image(info);
+
+        auto cmd = wsi->get_device().request_command_buffer();
+
+        cmd->image_barrier(*image,
+                           VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+        cmd->clear_image(*image, {});
+        cmd->image_barrier(*image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                           VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+        wsi->get_device().submit(cmd);
+    }
+
+    auto cmd = wsi->get_device().request_command_buffer();
+
+    Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
+    VkOffset3D dst_extent = {int(swapchain_image.get_width()), int(swapchain_image.get_height()), 1};
+    VkOffset3D src_extent = {int(image->get_width()),          int(image->get_height()),          1};
+
+    cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                       VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+
+    Image& image_ref = image->get_view().get_image();
+
+    cmd->image_barrier(image_ref, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                       VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+
+    cmd->blit_image(swapchain_image, image_ref,
+                    {}, dst_extent,
+                    {}, src_extent,
+                    0, 0);
+
+    cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                       VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+
+    ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
+    cmd->uses_swapchain = true;
+    wsi->get_device().submit(cmd);
+    wsi->end_frame();
+}
+
 void update_screen_parallel_rdp(n64_system_t* system) {
     if (unlikely(!command_processor)) {
         logfatal("Update screen without an initialized command processor");
@@ -171,41 +227,12 @@ void update_screen_parallel_rdp(n64_system_t* system) {
     opts.downscale_steps = true;
     opts.crop_overscan_pixels = true;
     Util::IntrusivePtr<Image> image = command_processor->scanout(opts);
-
-    wsi->begin_frame();
-
-    auto cmd = wsi->get_device().request_command_buffer();
-
-    if (image) {
-        Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
-        VkOffset3D dst_extent = {int(swapchain_image.get_width()), int(swapchain_image.get_height()), 1};
-        VkOffset3D src_extent = {int(image->get_width()),          int(image->get_height()),          1};
-
-        cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-                          VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
-
-        Image& image_ref = image->get_view().get_image();
-
-        cmd->image_barrier(image_ref, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-
-        cmd->blit_image(swapchain_image, image_ref,
-                        {}, dst_extent,
-                        {}, src_extent,
-                        0, 0);
-
-        cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-    }
-
-    ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
-    cmd->uses_swapchain = true;
-    wsi->get_device().submit(cmd);
-    wsi->end_frame();
+    update_screen(image);
     command_processor->begin_frame_context();
+}
+
+void update_screen_parallel_rdp_no_game() {
+    update_screen(static_cast<Util::IntrusivePtr<Image>>(nullptr));
 }
 
 #define FROM_RDRAM(system, address) word_from_byte_array(system->mem.rdram, address)

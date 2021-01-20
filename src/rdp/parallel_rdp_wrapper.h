@@ -18,6 +18,7 @@ extern "C" {
     void load_parallel_rdp(n64_system_t* system);
     void update_screen_parallel_rdp(n64_system_t* system);
     void process_commands_parallel_rdp(n64_system_t* system);
+    void update_screen_parallel_rdp_no_game();
 #ifdef __cplusplus
 };
 #endif

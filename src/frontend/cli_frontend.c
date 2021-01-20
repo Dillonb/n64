@@ -44,8 +44,8 @@ int main(int argc, char** argv) {
 #endif
 
     const char* rdp_plugin_path = NULL;
-    cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible)");
-
+    cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible) "
+                                                           "- note: disables UI and requires ROM to be passed on the command line!");
     const char* tas_movie_path = NULL;
     cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
 
@@ -53,10 +53,6 @@ int main(int argc, char** argv) {
     cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
 
     cflags_parse(flags, argc, argv);
-    if (flags->argc != 1) {
-        usage(flags);
-        return 1;
-    }
     log_set_verbosity(verbose->count);
 #ifdef N64_DEBUG_MODE
     // In debug builds, always log at least warnings.
@@ -71,10 +67,18 @@ int main(int argc, char** argv) {
 #endif
     n64_system_t* system;
     if (rdp_plugin_path != NULL) {
+        if (flags->argc != 1) {
+            usage(flags);
+            return 1;
+        }
         system = init_n64system(flags->argv[0], true, debug, OPENGL, interpreter);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
-        system = init_n64system(flags->argv[0], true, debug, VULKAN, interpreter);
+        const char* rom_path = NULL;
+        if (flags->argc >= 1) {
+            rom_path = flags->argv[0];
+        }
+        system = init_n64system(rom_path, true, debug, VULKAN, interpreter);
         load_parallel_rdp(system);
         load_imgui_ui();
     }
@@ -95,6 +99,9 @@ int main(int argc, char** argv) {
     }
 #endif
     cflags_free(flags);
+    while (system->mem.rom.rom == NULL && !n64_should_quit()) {
+        update_screen_parallel_rdp_no_game();
+    }
     n64_system_loop(system);
     n64_system_cleanup(system);
 }
