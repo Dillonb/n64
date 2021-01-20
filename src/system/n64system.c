@@ -110,7 +110,7 @@ void n64_load_rom(n64_system_t* system, const char* rom_path) {
     load_n64rom(&system->mem.rom, rom_path);
     gamedb_match(system);
     init_savedata(&system->mem, rom_path);
-    system->rom_path = rom_path;
+    strcpy(system->rom_path, rom_path);
 }
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
@@ -120,10 +120,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
-
-    if (rom_path != NULL) {
-        n64_load_rom(system, rom_path);
-    }
 
     system->video_type = video_type;
 
@@ -174,13 +170,25 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     }
     system->use_interpreter = use_interpreter;
 
-
     reset_n64system(system);
+
+    if (rom_path != NULL) {
+        n64_load_rom(system, rom_path);
+    }
 
     return system;
 }
 
 void reset_n64system(n64_system_t* system) {
+    force_persist_backup(system);
+    if (system->mem.save_data != NULL) {
+        free(system->mem.save_data);
+        system->mem.save_data = NULL;
+    }
+    if (system->mem.mempack_data != NULL) {
+        free(system->mem.mempack_data);
+        system->mem.mempack_data = NULL;
+    }
     system->cpu.branch = false;
     system->cpu.exception = false;
 

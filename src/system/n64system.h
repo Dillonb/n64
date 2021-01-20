@@ -187,7 +187,7 @@ typedef struct n64_system {
     n64_debugger_state_t debugger_state;
     n64_dynarec_t *dynarec;
     bool use_interpreter;
-    const char *rom_path;
+    char rom_path[PATH_MAX];
 } n64_system_t;
 
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
