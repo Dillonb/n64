@@ -2,6 +2,7 @@
 
 #include <mem/n64bus.h>
 #include <dynasm/dasm_proto.h>
+#include <metrics.h>
 #include "cpu/dynarec/asm_emitter.h"
 #include "dynarec_memory_management.h"
 
@@ -126,6 +127,7 @@ INLINE void load_reg_3(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int*
 }
 
 void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
+    mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
     d = block_header();
     dasm_State** Dst = &d;
@@ -369,4 +371,10 @@ n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t co
 void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address) {
     word outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
     dynarec->blockcache[outer_index] = NULL;
+}
+
+void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec) {
+    for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
+        dynarec->blockcache[i] = NULL;
+    }
 }

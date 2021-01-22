@@ -14,8 +14,9 @@
 #include <errno.h>
 #include <mem/backup.h>
 #include <frontend/game_db.h>
+#include <metrics.h>
 
-bool should_quit = false;
+static bool should_quit = false;
 
 
 n64_system_t* global_system;
@@ -23,6 +24,10 @@ n64_system_t* global_system;
 // 128MiB codecache
 #define CODECACHE_SIZE (1 << 27)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
+
+bool n64_should_quit() {
+    return should_quit;
+}
 
 word read_rsp_word_wrapper(word address) {
     return n64_rsp_read_word(global_system, address);
@@ -100,6 +105,14 @@ void virtual_write_byte_wrapper(dword address, byte value) {
     n64_write_byte(global_system, physical, value);
 }
 
+void n64_load_rom(n64_system_t* system, const char* rom_path) {
+    logalways("Loading %s", rom_path);
+    load_n64rom(&system->mem.rom, rom_path);
+    gamedb_match(system);
+    init_savedata(&system->mem, rom_path);
+    strcpy(system->rom_path, rom_path);
+}
+
 n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
     // align to page boundary
     n64_system_t* system;
@@ -107,18 +120,8 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     memset(system, 0x00, sizeof(n64_system_t));
     init_mem(&system->mem);
-    if (rom_path != NULL) {
-        logalways("Loading %s", rom_path);
-        load_n64rom(&system->mem.rom, rom_path);
-        gamedb_match(system);
-        init_savedata(&system->mem, rom_path);
-        system->rom_path = rom_path;
-    }
 
     system->video_type = video_type;
-
-    system->cpu.branch = false;
-    system->cpu.exception = false;
 
     system->cpu.read_dword = &virtual_read_dword_wrapper;
     system->cpu.write_dword = &virtual_write_dword_wrapper;
@@ -152,6 +155,44 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->rsp.read_physical_word = &n64_read_physical_word;
     system->rsp.write_physical_word = &write_physical_word_wrapper;
 
+    if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        logfatal("mprotect codecache failed! %s", strerror(errno));
+    }
+    system->dynarec = n64_dynarec_init(system, codecache, CODECACHE_SIZE);
+
+    global_system = system;
+    if (enable_frontend) {
+        render_init(system, video_type);
+    }
+    system->debugger_state.enabled = enable_debug;
+    if (enable_debug) {
+        debugger_init(system);
+    }
+    system->use_interpreter = use_interpreter;
+
+    reset_n64system(system);
+
+    if (rom_path != NULL) {
+        n64_load_rom(system, rom_path);
+    }
+
+    return system;
+}
+
+void reset_n64system(n64_system_t* system) {
+    force_persist_backup(system);
+    if (system->mem.save_data != NULL) {
+        free(system->mem.save_data);
+        system->mem.save_data = NULL;
+    }
+    if (system->mem.mempack_data != NULL) {
+        free(system->mem.mempack_data);
+        system->mem.mempack_data = NULL;
+    }
+    system->cpu.branch = false;
+    system->cpu.exception = false;
+
+
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
         system->rsp.icache[i].instruction.raw = 0;
         system->rsp.icache[i].handler = cache_rsp_instruction;
@@ -173,22 +214,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->si.controllers[2].plugged_in = false;
     system->si.controllers[3].plugged_in = false;
 
-    if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
-        printf("Page size: %ld\n", sysconf(_SC_PAGESIZE));
-        logfatal("mprotect codecache failed! %s", strerror(errno));
-    }
-    system->dynarec = n64_dynarec_init(system, codecache, CODECACHE_SIZE);
-
-    global_system = system;
-    if (enable_frontend) {
-        render_init(system, video_type);
-    }
-    system->debugger_state.enabled = enable_debug;
-    if (enable_debug) {
-        debugger_init(system);
-    }
-    system->use_interpreter = use_interpreter;
-
     system->cpu.cp0.status.bev = true;
     system->cpu.cp0.cause.raw  = 0xB000007C;
     system->cpu.cp0.EPC        = 0xFFFFFFFFFFFFFFFF;
@@ -196,7 +221,12 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
     system->cpu.cp0.config     = 0x70000000;
     system->cpu.cp0.error_epc  = 0xFFFFFFFFFFFFFFFF;
 
-    return system;
+    memset(system->mem.rdram, 0, N64_RDRAM_SIZE);
+    memset(system->mem.sp_dmem, 0, SP_DMEM_SIZE);
+    memset(system->mem.sp_imem, 0, SP_IMEM_SIZE);
+    memset(system->mem.pif_ram, 0, PIF_RAM_SIZE);
+
+    invalidate_dynarec_all_pages(system->dynarec);
 }
 
 INLINE int jit_system_step(n64_system_t* system) {
@@ -330,6 +360,7 @@ void jit_system_loop(n64_system_t* system) {
 update_delayed_log_verbosity();
 #endif
         persist_backup(system);
+        reset_all_metrics();
     }
     force_persist_backup(system);
 }
@@ -368,6 +399,7 @@ void interpreter_system_loop(n64_system_t* system) {
         update_delayed_log_verbosity();
 #endif
         persist_backup(system);
+        reset_all_metrics();
     }
     force_persist_backup(system);
 }

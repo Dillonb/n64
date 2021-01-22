@@ -8,6 +8,9 @@ add_library(rdp
 add_library(parallel_rdp_wrapper
         parallel_rdp_wrapper.cpp parallel_rdp_wrapper.h)
 
+target_link_libraries(parallel_rdp_wrapper
+        imgui-ui)
+
 target_include_directories(parallel_rdp_wrapper PUBLIC
         ../contrib/parallel-rdp-standalone/parallel-rdp
         ../contrib/parallel-rdp-standalone/volk

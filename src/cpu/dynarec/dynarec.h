@@ -55,5 +55,6 @@ typedef struct n64_dynarec {
 int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec);
 n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size);
 void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address);
+void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec);
 
 #endif //N64_DYNAREC_H

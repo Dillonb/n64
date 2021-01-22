@@ -1,3 +1,4 @@
+#include <metrics.h>
 #include "rsp.h"
 #include "mips_instructions.h"
 #include "rsp_instructions.h"
@@ -283,8 +284,11 @@ void rsp_step(n64_system_t* system) {
 
 void rsp_run(n64_system_t* system) {
     // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
+    int run_for = 0;
     while (system->rsp.steps > 0) {
         system->rsp.steps--;
+        run_for++;
         _rsp_step(system);
     }
+    mark_metric_multiple(METRIC_RSP_STEPS, run_for);
 }

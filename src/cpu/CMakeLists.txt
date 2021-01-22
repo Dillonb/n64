@@ -14,8 +14,7 @@ target_link_libraries(minilua m)
 add_custom_command(OUTPUT asm_emitter.c
         COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 -o asm_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/asm_emitter.dasc
         MAIN_DEPENDENCY dynarec/asm_emitter.dasc
-        DEPENDS minilua
-        )
+        DEPENDS minilua)
 
 add_library(r4300i
         r4300i.c r4300i.h r4300i_register_access.h
@@ -35,7 +34,7 @@ add_library(rsp
         mips_instruction_decode.h)
 
 TARGET_LINK_LIBRARIES(rsp    disassemble)
-TARGET_LINK_LIBRARIES(r4300i disassemble m)
+TARGET_LINK_LIBRARIES(r4300i disassemble m common)
 
 find_package(Capstone)
 
