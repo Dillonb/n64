@@ -1,14 +1,3 @@
-// Dear ImGui: standalone example application for SDL2 + Vulkan
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
-// Read online: https://github.com/ocornut/imgui/tree/master/docs
-
-// Important note to the reader who wish to integrate imgui_impl_vulkan.cpp/.h in their own engine/app.
-// - Common ImGui_ImplVulkan_XXX functions and structures are used to interface with imgui_impl_vulkan.cpp/.h.
-//   You will use those if you want to use this rendering backend in your engine/app.
-// - Helper ImGui_ImplVulkanH_XXX functions and structures are only used by this example (main.cpp) and by
-//   the backend itself (imgui_impl_vulkan.cpp), but should PROBABLY NOT be used by your own engine/app code.
-// Read comments in imgui_impl_vulkan.h.
-
 #include "imgui_ui.h"
 #include <rdp/parallel_rdp_wrapper.h>
 #include <volk.h>
@@ -17,8 +6,8 @@
 #include <implot.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
-#include <cstdio>          // printf, fprintf
-#include <cstdlib>         // abort
+#include <cstdio>
+#include <cstdlib>
 
 #include <frontend/render_internal.h>
 #include <metrics.h>
@@ -211,7 +200,6 @@ void load_imgui_ui() {
         VkAttachmentDescription attachment = {};
         attachment.format = get_vk_format();
         attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        //attachment.loadOp = wd->ClearEnable ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -242,10 +230,6 @@ void load_imgui_ui() {
         info.pDependencies = &dependency;
         err = vkCreateRenderPass(g_Device, &info, g_Allocator, &renderPass);
         check_vk_result(err);
-
-        // We do not create a pipeline by default as this is also used by examples' main.cpp,
-        // but secondary viewport in multi-viewport mode may want to create one with:
-        //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, g_Subpass);
     }
 
     // Setup Platform/Renderer backends
@@ -298,7 +282,6 @@ ImDrawData* imgui_frame() {
 
     render_ui();
 
-    // Rendering
     ImGui::Render();
     return ImGui::GetDrawData();
 }
