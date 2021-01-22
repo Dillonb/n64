@@ -285,7 +285,6 @@ void load_imgui_ui() {
         VkCommandBuffer command_buffer = get_vk_command_buffer();
         ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
         submit_requested_vk_command_buffer();
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
     fileBrowser.SetTitle("Load ROM");
