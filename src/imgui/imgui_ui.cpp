@@ -110,7 +110,7 @@ void render_ui() {
         render_menubar();
     }
     if (show_metrics_window) { render_metrics_window(); }
-    if (show_imgui_demo_window) { ImGui::ShowDemoWindow(); }
+    if (show_imgui_demo_window) { ImGui::ShowDemoWindow(&show_imgui_demo_window); }
 
     fileBrowser.Display();
     if (fileBrowser.HasSelected()) {
