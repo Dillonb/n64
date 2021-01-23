@@ -12,7 +12,7 @@
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
-                       "[OPTION]... FILE",
+                       "[OPTION]... [FILE]",
                        "n64, a dgb n64 emulator",
                        "https://github.com/Dillonb/n64");
 }
@@ -32,6 +32,9 @@ int main(int argc, char** argv) {
 
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
+
+    bool help = false;
+    cflags_add_bool(flags, 'h', "help", &help, "Display this help message");
 
     bool interpreter = false;
     cflags_add_bool(flags, 'i', "interpreter", &interpreter, "Force the use of the interpreter");
@@ -53,6 +56,12 @@ int main(int argc, char** argv) {
     cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
 
     cflags_parse(flags, argc, argv);
+
+    if (help) {
+        usage(flags);
+        return 0;
+    }
+
     log_set_verbosity(verbose->count);
 #ifdef N64_DEBUG_MODE
     // In debug builds, always log at least warnings.
