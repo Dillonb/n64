@@ -57,14 +57,6 @@ void write_rsp_byte_wrapper(word address, byte value) {
     n64_rsp_write_byte(global_system, address, value);
 }
 
-byte read_physical_byte_wrapper(word address) {
-    return n64_read_byte(global_system, address);
-}
-
-void write_physical_byte_wrapper(word address, byte value) {
-    n64_write_byte(global_system, address, value);
-}
-
 dword virtual_read_dword_wrapper(dword address) {
     word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
     return n64_read_dword(global_system, physical);
@@ -137,9 +129,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     system->cpu.resolve_virtual_address = &resolve_virtual_address;
 
-    //system->rsp.read_dword = &read_dword_wrapper;
-    //system->rsp.write_dword = &write_dword_wrapper;
-
     system->rsp.read_word = &read_rsp_word_wrapper;
     system->rsp.write_word = &write_rsp_word_wrapper;
 
@@ -148,9 +137,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     system->rsp.read_byte = &read_rsp_byte_wrapper;
     system->rsp.write_byte = &write_rsp_byte_wrapper;
-
-    system->rsp.read_physical_byte = &read_physical_byte_wrapper;
-    system->rsp.write_physical_byte = &write_physical_byte_wrapper;
 
     system->rsp.read_physical_word = &n64_read_physical_word;
     system->rsp.write_physical_word = &write_physical_word_wrapper;
