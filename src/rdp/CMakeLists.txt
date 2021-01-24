@@ -12,12 +12,12 @@ target_link_libraries(parallel_rdp_wrapper
         imgui-ui)
 
 target_include_directories(parallel_rdp_wrapper PUBLIC
-        ../contrib/parallel-rdp-standalone/parallel-rdp
-        ../contrib/parallel-rdp-standalone/volk
-        ../contrib/parallel-rdp-standalone/spirv-cross
-        ../contrib/parallel-rdp-standalone/vulkan
-        ../contrib/parallel-rdp-standalone/vulkan-headers/include
-        ../contrib/parallel-rdp-standalone/util)
+        ../contrib/parallel-rdp/parallel-rdp-standalone/parallel-rdp
+        ../contrib/parallel-rdp/parallel-rdp-standalone/volk
+        ../contrib/parallel-rdp/parallel-rdp-standalone/spirv-cross
+        ../contrib/parallel-rdp/parallel-rdp-standalone/vulkan
+        ../contrib/parallel-rdp/parallel-rdp-standalone/vulkan-headers/include
+        ../contrib/parallel-rdp/parallel-rdp-standalone/util)
 
 target_compile_definitions(parallel_rdp_wrapper PUBLIC GRANITE_VULKAN_MT)
 

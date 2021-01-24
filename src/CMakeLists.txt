@@ -6,7 +6,7 @@ add_subdirectory(common)
 add_subdirectory(cpu)
 add_subdirectory(rdp)
 add_subdirectory(debugger)
-add_subdirectory(contrib/parallel-rdp-standalone)
+add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(tools)
 
@@ -33,9 +33,9 @@ add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)
 
 target_include_directories(imgui-ui PUBLIC
-        contrib/parallel-rdp-standalone/volk
-        contrib/parallel-rdp-standalone/vulkan
-        contrib/parallel-rdp-standalone/util
+        contrib/parallel-rdp/parallel-rdp-standalone/volk
+        contrib/parallel-rdp/parallel-rdp-standalone/vulkan
+        contrib/parallel-rdp/parallel-rdp-standalone/util
         )
 
 target_link_libraries(imgui-ui imgui)

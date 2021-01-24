@@ -1,6 +1,6 @@
-[submodule "src/contrib/parallel-rdp-standalone"]
-	path = src/contrib/parallel-rdp-standalone
-	url = https://github.com/Dillonb/parallel-rdp-standalone.git
 [submodule "tests/n64-tests"]
 	path = tests/n64-tests
 	url = https://github.com/Dillonb/n64-tests.git
+[submodule "src/contrib/parallel-rdp/parallel-rdp-standalone"]
+	path = src/contrib/parallel-rdp/parallel-rdp-standalone
+	url = git@github.com:Themaister/parallel-rdp-standalone.git

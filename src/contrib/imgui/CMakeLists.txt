@@ -21,5 +21,5 @@ add_library(imgui
         imgui_internal.h)
 
 target_include_directories(imgui PUBLIC
-        ../parallel-rdp-standalone/volk
-        ../parallel-rdp-standalone/vulkan-headers/include)
+        ../parallel-rdp/parallel-rdp-standalone/volk
+        ../parallel-rdp/parallel-rdp-standalone/vulkan-headers/include)
