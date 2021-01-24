@@ -23,7 +23,7 @@ void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
     }
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
-        system->rsp.icache[i].instruction.raw = word_from_byte_array(system->rsp.sp_imem, i * 4);
+        system->rsp.icache[i].instruction.raw = be32toh(word_from_byte_array(system->rsp.sp_imem, i * 4));
         system->rsp.icache[i].handler = cache_rsp_instruction;
     }
 }
