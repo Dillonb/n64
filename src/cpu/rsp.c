@@ -266,10 +266,9 @@ void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr) {
     cache->handler(rsp, instr);
 }
 
-INLINE void _rsp_step(n64_system_t* system) {
-    rsp_t* rsp = &system->rsp;
+INLINE void _rsp_step(rsp_t* rsp) {
     half pc = rsp->pc & 0x3FF;
-    rsp_icache_entry_t* cache = &system->rsp.icache[pc];
+    rsp_icache_entry_t* cache = &rsp->icache[pc];
 
     rsp->prev_pc = pc;
     rsp->pc = rsp->next_pc;
@@ -278,17 +277,17 @@ INLINE void _rsp_step(n64_system_t* system) {
     cache->handler(rsp, cache->instruction);
 }
 
-void rsp_step(n64_system_t* system) {
-    _rsp_step(system);
+void rsp_step(rsp_t* rsp) {
+    _rsp_step(rsp);
 }
 
-void rsp_run(n64_system_t* system) {
-    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
+void rsp_run(rsp_t* rsp) {
     int run_for = 0;
-    while (system->rsp.steps > 0) {
-        system->rsp.steps--;
+    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
+    while (rsp->steps > 0) {
+        rsp->steps--;
         run_for++;
-        _rsp_step(system);
+        _rsp_step(rsp);
     }
     mark_metric_multiple(METRIC_RSP_STEPS, run_for);
 }

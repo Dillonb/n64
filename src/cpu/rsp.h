@@ -364,8 +364,8 @@ INLINE void rsp_set_vce(rsp_t* rsp, half vce) {
     }
 }
 
-void rsp_step(n64_system_t* system);
-void rsp_run(n64_system_t* system);
+void rsp_step(rsp_t* rsp);
+void rsp_run(rsp_t* rsp);
 vu_reg_t ext_get_vte(vu_reg_t* vt, byte e);
 
 #endif //N64_RSP_H
