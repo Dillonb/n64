@@ -145,9 +145,6 @@ typedef struct rsp {
     byte (*read_byte)(word);
     void (*write_byte)(word, byte);
 
-    byte (*read_physical_byte)(word);
-    void (*write_physical_byte)(word, byte);
-
     half (*read_half)(word);
     void (*write_half)(word, half);
 
@@ -156,9 +153,6 @@ typedef struct rsp {
 
     word (*read_physical_word)(word);
     void (*write_physical_word)(word, word);
-
-    //dword (*read_dword)(word);
-    //void (*write_dword)(word, dword);
 } rsp_t;
 
 INLINE void set_rsp_pc(rsp_t* rsp, half pc) {
