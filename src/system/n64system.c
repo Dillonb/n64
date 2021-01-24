@@ -7,7 +7,7 @@
 #include <frontend/render.h>
 #include <interface/vi.h>
 #include <interface/ai.h>
-#include <mem/n64_rsp_bus.h>
+#include <n64_rsp_bus.h>
 #include <cpu/rsp.h>
 #include <cpu/dynarec/dynarec.h>
 #include <sys/mman.h>
@@ -29,32 +29,8 @@ bool n64_should_quit() {
     return should_quit;
 }
 
-word read_rsp_word_wrapper(word address) {
-    return n64_rsp_read_word(global_system, address);
-}
-
-void write_rsp_word_wrapper(word address, word value) {
-    n64_rsp_write_word(global_system, address, value);
-}
-
 void write_physical_word_wrapper(word address, word value) {
     n64_write_word(global_system, address, value);
-}
-
-half read_rsp_half_wrapper(word address) {
-    return n64_rsp_read_half(global_system, address);
-}
-
-void write_rsp_half_wrapper(word address, half value) {
-    n64_rsp_write_half(global_system, address, value);
-}
-
-byte read_rsp_byte_wrapper(word address) {
-    return n64_rsp_read_byte(global_system, address);
-}
-
-void write_rsp_byte_wrapper(word address, byte value) {
-    n64_rsp_write_byte(global_system, address, value);
 }
 
 dword virtual_read_dword_wrapper(dword address) {
@@ -129,15 +105,6 @@ n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool en
 
     system->cpu.resolve_virtual_address = &resolve_virtual_address;
 
-    system->rsp.read_word = &read_rsp_word_wrapper;
-    system->rsp.write_word = &write_rsp_word_wrapper;
-
-    system->rsp.read_half = &read_rsp_half_wrapper;
-    system->rsp.write_half = &write_rsp_half_wrapper;
-
-    system->rsp.read_byte = &read_rsp_byte_wrapper;
-    system->rsp.write_byte = &write_rsp_byte_wrapper;
-
     system->rsp.read_physical_word = &n64_read_physical_word;
     system->rsp.write_physical_word = &write_physical_word_wrapper;
 
@@ -208,8 +175,8 @@ void reset_n64system(n64_system_t* system) {
     system->cpu.cp0.error_epc  = 0xFFFFFFFFFFFFFFFF;
 
     memset(system->mem.rdram, 0, N64_RDRAM_SIZE);
-    memset(system->mem.sp_dmem, 0, SP_DMEM_SIZE);
-    memset(system->mem.sp_imem, 0, SP_IMEM_SIZE);
+    memset(system->rsp.sp_dmem, 0, SP_DMEM_SIZE);
+    memset(system->rsp.sp_imem, 0, SP_IMEM_SIZE);
     memset(system->mem.pif_ram, 0, PIF_RAM_SIZE);
 
     invalidate_dynarec_all_pages(system->dynarec);

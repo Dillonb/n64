@@ -6,8 +6,6 @@
 #include <limits.h>
 
 #define N64_RDRAM_SIZE   0x800000
-#define SP_DMEM_SIZE 0x1000
-#define SP_IMEM_SIZE 0x1000
 #define PIF_RAM_SIZE 64
 
 typedef enum ri_reg {
@@ -52,8 +50,6 @@ typedef enum n64_save_type {
 typedef struct n64_mem {
     byte rdram[N64_RDRAM_SIZE];
     n64_rom_t rom;
-    byte sp_dmem[SP_DMEM_SIZE];
-    byte sp_imem[SP_IMEM_SIZE];
     word rdram_reg[10];
     word pi_reg[13];
     word ri_reg[8];

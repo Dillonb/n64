@@ -159,7 +159,7 @@ void check_rsp_log(n64_system_t* system, FILE* fp) {
         strtok(NULL, " ");
 
         // Pre-setup is done, run the step
-        rsp_step(system);
+        rsp_step(&system->rsp);
 
         bool all_correct = true;
 
@@ -393,7 +393,7 @@ int run_system_and_check(n64_system_t* system, long taken, char* line, long line
         system->rsp.steps += (cpu_steps / 3) * 2;
         cpu_steps -= cpu_steps % 3;
 
-        rsp_run(system);
+        rsp_run(&system->rsp);
     } else {
         cpu_steps = 0;
     }
