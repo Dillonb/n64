@@ -269,7 +269,7 @@ INLINE int jit_system_step(n64_system_t* system) {
             cpu_steps -= 3;
         }
 
-        rsp_run(system);
+        rsp_run(&system->rsp);
     } else {
         system->rsp.steps = 0;
         cpu_steps = 0;
@@ -302,7 +302,7 @@ INLINE int interpreter_system_step(n64_system_t* system) {
             system->rsp.steps += 2;
             cpu_steps -= 3;
         }
-        rsp_run(system);
+        rsp_run(&system->rsp);
     }
 
     return taken;
@@ -315,7 +315,7 @@ void n64_system_step(n64_system_t* system, bool dynarec) {
     } else {
         r4300i_step(&system->cpu);
         if (!system->rsp.status.halt) {
-            rsp_step(system);
+            rsp_step(&system->rsp);
         }
     }
 }
