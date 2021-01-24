@@ -90,7 +90,7 @@ void pif_rom_execute_hle(n64_system_t* system) {
     n64_write_word(system, 0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
-    memcpy(system->mem.sp_dmem, system->mem.rom.rom, sizeof(byte) * 0x1000);
+    memcpy(system->rsp.sp_dmem, system->mem.rom.rom, sizeof(byte) * 0x1000);
 
     set_pc_word_r4300i(&system->cpu, 0xA4000040);
 }

@@ -6,8 +6,9 @@
 
 #include <log.h>
 #ifdef N64_USE_SIMD
-#include <tmmintrin.h>
 #include <immintrin.h>
+#include <n64_rsp_bus.h>
+
 #endif
 #include "rsp.h"
 #include "rsp_rom.h"
@@ -178,7 +179,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
     vu_reg_t* vt = &rsp->vu_regs[instruction.cp2_vec.vt];
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
-    vt->bytes[15 - instruction.v.element] = rsp->read_byte(address);
+    vt->bytes[15 - instruction.v.element] = n64_rsp_read_byte(rsp, address);
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
@@ -190,7 +191,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
         if (element > 15) {
             break;
         }
-        rsp->vu_regs[instruction.v.vt].bytes[15 - element] = rsp->read_byte(address + i);
+        rsp->vu_regs[instruction.v.vt].bytes[15 - element] = n64_rsp_read_byte(rsp, address + i);
     }
 }
 
@@ -203,7 +204,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
     int end = (start + 4);
 
     for (int i = e; i < end; i++) {
-        half val = rsp->read_byte(address);
+        half val = n64_rsp_read_byte(rsp, address);
         int shift_amount = e & 7;
         if (shift_amount == 0) {
             shift_amount = 7;
@@ -228,7 +229,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
 
     for (int i = 0; i < 8; i++) {
         int ofs = ((16 - e) + (i * 2) + in_addr_offset) & 0xF;
-        half val = rsp->read_byte(address + ofs);
+        half val = n64_rsp_read_byte(rsp, address + ofs);
         val <<= 7;
         rsp->vu_regs[instruction.v.vt].elements[7 - i] = val;
     }
@@ -244,7 +245,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_llv) {
         if (element > 15) {
             break;
         }
-        rsp->vu_regs[instruction.v.vt].bytes[15 - element] = rsp->read_byte(address + i);
+        rsp->vu_regs[instruction.v.vt].bytes[15 - element] = n64_rsp_read_byte(rsp, address + i);
     }
 }
 
@@ -261,7 +262,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
     for(uint elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
-        half value = rsp->read_byte(address + element_offset);
+        half value = n64_rsp_read_byte(rsp, address + element_offset);
         value <<= 8;
         rsp->vu_regs[instruction.v.vt].elements[7 - elem] = value;
     }
@@ -274,7 +275,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address && i + e < 16; i++) {
-        rsp->vu_regs[instruction.v.vt].bytes[15 - (i + e)] = rsp->read_byte(address + i);
+        rsp->vu_regs[instruction.v.vt].bytes[15 - (i + e)] = n64_rsp_read_byte(rsp, address + i);
     }
 }
 
@@ -286,7 +287,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
     address &= 0xFFFFFFF0;
 
     for (int i = start; i < 16; i++) {
-        rsp->vu_regs[instruction.v.vt].bytes[15 - (i & 0xF)] = rsp->read_byte(address++);
+        rsp->vu_regs[instruction.v.vt].bytes[15 - (i & 0xF)] = n64_rsp_read_byte(rsp, address++);
     }
 }
 
@@ -294,7 +295,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
     logdebug("rsp_lwc2_lsv");
     int e = instruction.v.element;
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
-    half val = rsp->read_half(address);
+    half val = n64_rsp_read_half(rsp, address);
     byte lo = val & 0xFF;
     byte hi = (val >> 8) & 0xFF;
     rsp->vu_regs[instruction.v.vt].bytes[15 - (e + 0)] = hi;
@@ -313,8 +314,8 @@ RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
 
         word offset = (i * 2) + e;
 
-        half hi = rsp->read_byte(address + ((offset + 0) & 0xF));
-        half lo = rsp->read_byte(address + ((offset + 1) & 0xF));
+        half hi = n64_rsp_read_byte(rsp, address + ((offset + 0) & 0xF));
+        half lo = n64_rsp_read_byte(rsp, address + ((offset + 1) & 0xF));
 
         int reg = (instruction.v.vt & 0x18) | ((i + (e >> 1)) & 0x7);
 
@@ -336,7 +337,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_luv) {
     for(uint elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
-        half value = rsp->read_byte(address + element_offset);
+        half value = n64_rsp_read_byte(rsp, address + element_offset);
         value <<= 7;
         rsp->vu_regs[instruction.v.vt].elements[7 - elem] = value;
     }
@@ -347,7 +348,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sbv) {
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
     int element = instruction.v.element;
-    rsp->write_byte(address, rsp->vu_regs[instruction.v.vt].bytes[15 - element]);
+    n64_rsp_write_byte(rsp, address, rsp->vu_regs[instruction.v.vt].bytes[15 - element]);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_sdv) {
@@ -356,7 +357,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sdv) {
 
     for (int i = 0; i < 8; i++) {
         int element = i + instruction.v.element;
-        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - (element & 0xF)]);
+        n64_rsp_write_byte(rsp, address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - (element & 0xF)]);
     }
 }
 
@@ -373,7 +374,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sfv) {
 
     address &= ~15;
     for(int i = start; i < end; i++) {
-        rsp->write_byte(address + (base & 15), vt->elements[7 - (i & 7)] >> 7);
+        n64_rsp_write_byte(rsp, address + (base & 15), vt->elements[7 - (i & 7)] >> 7);
         base += 4;
     }
 }
@@ -394,7 +395,7 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
         byte b = val & 0xFF;
 
         int ofs = in_addr_offset + (i * 2);
-        rsp->write_byte(address + (ofs & 0xF), b);
+        n64_rsp_write_byte(rsp, address + (ofs & 0xF), b);
     }
 }
 
@@ -405,7 +406,7 @@ RSP_VECTOR_INSTR(rsp_swc2_slv) {
 
     for (int i = 0; i < 4; i++) {
         int element = i + e;
-        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - (element & 0xF)]);
+        n64_rsp_write_byte(rsp, address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - (element & 0xF)]);
     }
 }
 
@@ -418,9 +419,9 @@ RSP_VECTOR_INSTR(rsp_swc2_spv) {
 
     for (int offset = start; offset < end; offset++) {
         if((offset & 15) < 8) {
-            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((offset & 7) << 1)]);
+            n64_rsp_write_byte(rsp, address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((offset & 7) << 1)]);
         } else {
-            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].elements[7 - (offset & 7)] >> 7);
+            n64_rsp_write_byte(rsp, address++, rsp->vu_regs[instruction.v.vt].elements[7 - (offset & 7)] >> 7);
         }
     }
 }
@@ -432,7 +433,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sqv) {
     word end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address; i++) {
-        rsp->write_byte(address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + e) & 15)]);
+        n64_rsp_write_byte(rsp, address + i, rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + e) & 15)]);
     }
 }
 
@@ -444,7 +445,7 @@ RSP_VECTOR_INSTR(rsp_swc2_srv) {
     int base = 16 - (address & 15);
     address &= ~15;
     for(int i = start; i < end; i++) {
-        rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + base) & 0xF)]);
+        n64_rsp_write_byte(rsp, address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((i + base) & 0xF)]);
     }
 }
 
@@ -453,7 +454,7 @@ RSP_VECTOR_INSTR(rsp_swc2_ssv) {
     word address = get_rsp_register(rsp, instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
 
     int element = instruction.v.element;
-    rsp->write_half(address, rsp->vu_regs[instruction.v.vt].elements[7 - (element / 2)]);
+    n64_rsp_write_half(rsp, address, rsp->vu_regs[instruction.v.vt].elements[7 - (element / 2)]);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {
@@ -475,8 +476,8 @@ RSP_VECTOR_INSTR(rsp_swc2_stv) {
         half hi = (val >> 8) & 0xFF;
         half lo = (val >> 0) & 0xFF;
 
-        rsp->write_byte(address + ((offset + 0) & 0xF), hi);
-        rsp->write_byte(address + ((offset + 1) & 0xF), lo);
+        n64_rsp_write_byte(rsp, address + ((offset + 0) & 0xF), hi);
+        n64_rsp_write_byte(rsp, address + ((offset + 1) & 0xF), lo);
     }
 }
 
@@ -488,9 +489,9 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
     int end = start + 8;
     for(uint offset = start; offset < end; offset++) {
         if((offset & 15) < 8) {
-            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].elements[7 - (offset & 7)] >> 7);
+            n64_rsp_write_byte(rsp, address++, rsp->vu_regs[instruction.v.vt].elements[7 - (offset & 7)] >> 7);
         } else {
-            rsp->write_byte(address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((offset & 7) << 1)]);
+            n64_rsp_write_byte(rsp, address++, rsp->vu_regs[instruction.v.vt].bytes[15 - ((offset & 7) << 1)]);
         }
     }
 }

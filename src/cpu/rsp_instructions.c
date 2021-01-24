@@ -1,5 +1,6 @@
 #include "rsp_instructions.h"
 #include <log.h>
+#include <n64_rsp_bus.h>
 
 #define RSP_REG_LR 31
 
@@ -153,7 +154,7 @@ RSP_INSTR(rsp_lb) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
-    sbyte value = rsp->read_byte(address);
+    sbyte value = n64_rsp_read_byte(rsp, address);
     set_rsp_register(rsp, instruction.i.rt, (sword)value);
 }
 
@@ -161,7 +162,7 @@ RSP_INSTR(rsp_lbu) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
-    byte value = rsp->read_byte(address);
+    byte value = n64_rsp_read_byte(rsp, address);
     set_rsp_register(rsp, instruction.i.rt, value);
 }
 
@@ -176,7 +177,7 @@ RSP_INSTR(rsp_sb) {
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
     byte value = get_rsp_register(rsp, instruction.i.rt);
-    rsp->write_byte(address, value);
+    n64_rsp_write_byte(rsp, address, value);
 }
 
 RSP_INSTR(rsp_sh) {
@@ -184,7 +185,7 @@ RSP_INSTR(rsp_sh) {
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
     half value = get_rsp_register(rsp, instruction.i.rt);
-    rsp->write_half(address, value);
+    n64_rsp_write_half(rsp, address, value);
 }
 
 RSP_INSTR(rsp_sw) {
@@ -192,14 +193,14 @@ RSP_INSTR(rsp_sw) {
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
     word value = get_rsp_register(rsp, instruction.i.rt);
-    rsp->write_word(address, value);
+    n64_rsp_write_word(rsp, address, value);
 }
 
 RSP_INSTR(rsp_lhu) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
-    half value = rsp->read_half(address);
+    half value = n64_rsp_read_half(rsp, address);
     set_rsp_register(rsp, instruction.i.rt, value);
 }
 
@@ -207,7 +208,7 @@ RSP_INSTR(rsp_lh) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
-    shalf value = rsp->read_half(address);
+    shalf value = n64_rsp_read_half(rsp, address);
     set_rsp_register(rsp, instruction.i.rt, (sword)value);
 }
 
@@ -215,7 +216,7 @@ RSP_INSTR(rsp_lw) {
     shalf offset = instruction.i.immediate;
     word address = get_rsp_register(rsp, instruction.i.rs) + offset;
 
-    sword value = rsp->read_word(address);
+    sword value = n64_rsp_read_word(rsp, address);
     set_rsp_register(rsp, instruction.i.rt, value);
 }
 

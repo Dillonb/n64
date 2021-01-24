@@ -21,7 +21,6 @@ add_library(core
         frontend/render.c frontend/render.h frontend/render_internal.h
         interface/ai.c interface/ai.h
         mem/addresses.h
-        mem/n64_rsp_bus.c mem/n64_rsp_bus.h
         frontend/tas_movie.c frontend/tas_movie.h
         frontend/audio.c frontend/audio.h
         frontend/gamepad.c frontend/gamepad.h

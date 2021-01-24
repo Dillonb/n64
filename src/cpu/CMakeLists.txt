@@ -27,6 +27,7 @@ add_library(r4300i
         dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h)
 
 add_library(rsp
+        n64_rsp_bus.c n64_rsp_bus.h
         rsp_types.h rsp_rom.h
         rsp.c rsp.h
         rsp_instructions.c rsp_instructions.h

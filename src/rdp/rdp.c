@@ -46,8 +46,8 @@ GFX_INFO get_gfx_info(n64_system_t* system) {
     GFX_INFO gfx_info;
     gfx_info.HEADER = system->mem.rom.rom;
     gfx_info.RDRAM = system->mem.rdram;
-    gfx_info.DMEM = system->mem.sp_dmem;
-    gfx_info.IMEM = system->mem.sp_imem;
+    gfx_info.DMEM = system->rsp.sp_dmem;
+    gfx_info.IMEM = system->rsp.sp_imem;
 
     gfx_info.MI_INTR_REG = &system->mi.intr.raw;
 
