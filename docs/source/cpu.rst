@@ -171,9 +171,9 @@ These registers are used to generate random values.
 
 The Random register is read-only. The high 26 bits are unused, leaving the low 6 bits to represent a random value. This value can be read and used by software, but is mainly meant to be used by the TLBWR (TLB Write Random) instruction.
 
-On a real CPU, the value is decremented every cycle. When the value of Random is <= the value of Wired, it is reset to 0x1F (31)
+On a real CPU, the value is decremented every instruction. When the value of Random is <= the value of Wired, it is reset to 0x1F (31)
 
-It should be fine for emulation purposes to generate a random value in the range of Wired <= Value <= 31 every time Random is read, as checking and decrementing Random every single cycle will be expensive to do 93 million times per second.
+It should be fine for emulation purposes to generate a random value in the range of Wired <= Value <= 31 every time Random is read, as checking and decrementing Random every single instruction will be expensive.
 
 * Random
 
