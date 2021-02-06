@@ -12,11 +12,13 @@ Simulating the PIF ROM
 
 The PIF ROM can be fairly tricky for young emulators to run, and its effects are not complicated. If you wish to simulate it, know that it has the following side effects on the console:
 
-Set three GPRs to initial values:
+Set four GPRs to initial values:
 
 +-----------------+---------------+--------------------+
 | Register Number | Register Name | Set to value       |
 +=================+===============+====================+
+| 11              | t3            | 0xFFFFFFFFA4000040 |
++-----------------+---------------+--------------------+
 | 20              | s4            | 0x0000000000000001 |
 +-----------------+---------------+--------------------+
 | 22              | s6            | 0x000000000000003F |
