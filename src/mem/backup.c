@@ -9,7 +9,7 @@ void sram_write_word(n64_system_t* system, word index, word value) {
     if (index >= system->mem.save_size - 3) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
     }
-    word_to_byte_array(system->mem.save_data, index, value);
+    word_to_byte_array(system->mem.save_data, index, htobe32(value));
     system->mem.save_data_dirty = true;
 }
 word sram_read_word(n64_system_t* system, word index) {
@@ -22,7 +22,7 @@ word sram_read_word(n64_system_t* system, word index) {
         return 0;
     }
 
-    return word_from_byte_array(system->mem.save_data, index);
+    return be32toh(word_from_byte_array(system->mem.save_data, index));
 }
 
 void sram_write_byte(n64_system_t* system, word index, byte value) {

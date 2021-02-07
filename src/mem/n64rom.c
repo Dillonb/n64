@@ -11,7 +11,7 @@
 #define N64_IDENTIFIER 0x40123780
 #define V64_IDENTIFIER 0x37804012
 
-void byteswap(byte* rom, size_t rom_size) {
+void byteswap_to_be(byte* rom, size_t rom_size) {
     word identifier;
     memcpy(&identifier, rom, 4); // first 4 bytes
     identifier = be32toh(identifier);
@@ -46,6 +46,17 @@ void byteswap(byte* rom, size_t rom_size) {
     }
 }
 
+void byteswap_to_host(byte* rom, size_t rom_size) {
+#ifndef N64_BIG_ENDIAN // Only need to swap if not already on a big endian host
+    for (int i = 0; i < rom_size / 4; i++) {
+        word w;
+        memcpy(&w, rom + (i * 4), 4);
+        word swapped = be32toh(w);
+        memcpy(rom + (i * 4), &swapped, 4);
+    }
+#endif
+}
+
 void load_n64rom(n64_rom_t* rom, const char* path) {
     if (rom->rom != NULL) {
         free(rom->rom);
@@ -66,7 +77,7 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     byte *buf = malloc(size);
     fread(buf, size, 1, fp);
 
-    byteswap(buf, size);
+    byteswap_to_be(buf, size);
 
     rom->rom = buf;
     rom->size = size;
@@ -124,6 +135,7 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     }
 
 
+    byteswap_to_host(rom->rom, size);
 
     loginfo("Loaded %s", rom->game_name_cartridge);
     logdebug("The program counter starts at: " PRINTF_WORD, rom->header.program_counter);
