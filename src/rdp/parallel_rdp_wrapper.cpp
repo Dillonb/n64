@@ -416,7 +416,7 @@ void process_commands_parallel_rdp(n64_system_t* system) {
     // because commands have variable lengths
     if (dpc->status.xbus_dmem_dma) {
         for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_DMEM(system, (current + i) & 0xFF8);
+            word command_word = FROM_DMEM(system, (current + i));
             parallel_rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
         }
     } else {
