@@ -23,7 +23,10 @@ static const gamedb_entry_t gamedb[] = {
         {"NK4", "E", SAVE_EEPROM_4k,   "Kirby 64: The Crystal Shards"},
         {"NAL", "E", SAVE_EEPROM_256k, "Super Smash Bros"},
         {"NBM", "E", SAVE_EEPROM_4k,   "Bomberman 64"},
-        {"NWR", "E", SAVE_EEPROM_4k,   "Wave Race 64"}
+        {"NWR", "E", SAVE_EEPROM_4k,   "Wave Race 64"},
+        {"NBK", "E", SAVE_EEPROM_4k,   "Banjo-Kazooie"},
+        {"NPF", "E", SAVE_EEPROM_1Mb,  "Pokemon Snap"},
+        {"NFX", "E", SAVE_EEPROM_4k,   "Starfox 64"}
 };
 
 #define GAMEDB_SIZE (sizeof(gamedb) / sizeof(gamedb_entry_t))
