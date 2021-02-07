@@ -16,23 +16,28 @@
 
 void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
     FILE* rsp = fopen(rsp_path, "rb");
-    // This file is already in big endian
     size_t read = fread(system->rsp.sp_imem, 1, SP_IMEM_SIZE, rsp);
+
+    // File is in big endian, byte swap it all.
+    for (int i = 0; i < SP_IMEM_SIZE; i += 4) {
+        word instr = word_from_byte_array((byte*) &system->rsp.sp_imem, i);
+        instr = be32toh(instr);
+        word_to_byte_array((byte*) &system->rsp.sp_imem, i, instr);
+    }
+
     if (read == 0) {
         logfatal("Read 0 bytes from %s", rsp_path);
     }
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
-        system->rsp.icache[i].instruction.raw = be32toh(word_from_byte_array(system->rsp.sp_imem, i * 4));
+        system->rsp.icache[i].instruction.raw = word_from_byte_array(system->rsp.sp_imem, i * 4);
         system->rsp.icache[i].handler = cache_rsp_instruction;
     }
 }
 
 void load_rsp_dmem(n64_system_t* system, word* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
-        // This translates to big endian
-        word address = i * 4;
-        n64_rsp_write_word(&system->rsp, address, input[i]);
+        n64_rsp_write_word(&system->rsp, i * 4, input[i]);
     }
 }
 
@@ -77,7 +82,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
                 printf(" ");
             }
             if (i + b < output_size) {
-                byte actual = system->rsp.sp_dmem[0x800 + i + b];
+                byte actual = system->rsp.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
                 byte expected = ((byte*)output)[i + b];
 
                 if (actual != expected) {

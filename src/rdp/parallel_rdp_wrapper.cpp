@@ -377,7 +377,7 @@ void update_screen_parallel_rdp_no_game() {
 }
 
 #define FROM_RDRAM(system, address) word_from_byte_array(system->mem.rdram, WORD_ADDRESS(address))
-#define FROM_DMEM(system, address) be32toh(word_from_byte_array(system->rsp.sp_dmem, address))
+#define FROM_DMEM(system, address) word_from_byte_array(system->rsp.sp_dmem, address)
 
 static const int command_lengths[64] = {
         2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,

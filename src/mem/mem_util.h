@@ -127,19 +127,7 @@ INLINE word word_from_byte_array(byte* arr, word index) {
     return val;
 }
 
-INLINE word word_from_byte_array_unaligned(byte* arr, word index) {
-    word w;
-    memcpy(&w, arr + index, sizeof(word));
-    return w;
-}
-
 INLINE half half_from_byte_array(byte* arr, word index) {
-    half h;
-    memcpy(&h, arr + index, sizeof(half));
-    return h;
-}
-
-INLINE half half_from_byte_array_unaligned(byte* arr, word index) {
     half h;
     memcpy(&h, arr + index, sizeof(half));
     return h;
@@ -162,15 +150,7 @@ INLINE void word_to_byte_array(byte* arr, word index, word value) {
     memcpy(arr + index, &value, sizeof(word));
 }
 
-INLINE void word_to_byte_array_unaligned(byte* arr, word index, word value) {
-    memcpy(arr + index, &value, sizeof(word));
-}
-
 INLINE void half_to_byte_array(byte* arr, word index, half value) {
-    memcpy(arr + index, &value, sizeof(half));
-}
-
-INLINE void half_to_byte_array_unaligned(byte* arr, word index, half value) {
     memcpy(arr + index, &value, sizeof(half));
 }
 
