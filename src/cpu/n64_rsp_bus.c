@@ -20,12 +20,10 @@ void n64_rsp_write_word(rsp_t* rsp, word address, word value) {
 }
 
 half n64_rsp_read_half(rsp_t* rsp, word address) {
-    address = HALF_ADDRESS(address & 0xFFF);
     return GET_RSP_HALF(address);
 }
 
 void n64_rsp_write_half(rsp_t* rsp, word address, half value) {
-    address = HALF_ADDRESS(address & 0xFFF);
     SET_RSP_HALF(address, value);
 }
 
