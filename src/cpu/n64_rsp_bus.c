@@ -10,20 +10,22 @@
 #define SET_RSP_WORD(addr, value) do { SET_RSP_HALF(addr, ((value) >> 16) & 0xFFFF); SET_RSP_HALF((addr) + 2, (value) & 0xFFFF);} while(0)
 
 word n64_rsp_read_word(rsp_t* rsp, word address) {
-    address = WORD_ADDRESS(address & 0xFFF);
+    address &= 0xFFF;
     return GET_RSP_WORD(address);
 }
 
 void n64_rsp_write_word(rsp_t* rsp, word address, word value) {
-    address = WORD_ADDRESS(address & 0xFFF);
+    address &= 0xFFF;
     SET_RSP_WORD(address, value);
 }
 
 half n64_rsp_read_half(rsp_t* rsp, word address) {
+    address &= 0xFFF;
     return GET_RSP_HALF(address);
 }
 
 void n64_rsp_write_half(rsp_t* rsp, word address, half value) {
+    address &= 0xFFF;
     SET_RSP_HALF(address, value);
 }
 
