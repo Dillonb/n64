@@ -20,7 +20,7 @@ INLINE void mark_metric_multiple(metric_t metric, int times) {
 }
 
 INLINE uint64_t get_metric(metric_t metric) {
-    return n64_metric_data[metric]++;
+    return n64_metric_data[metric];
 }
 
 INLINE void reset_all_metrics() {
