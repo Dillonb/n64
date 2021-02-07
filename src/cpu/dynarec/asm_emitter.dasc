@@ -536,6 +536,14 @@ COMP(mips_cp_c_lt_d, NORMAL, true);
 COMP(mips_cp_c_lt_s, NORMAL, true);
 COMP(mips_cp_c_le_d, NORMAL, true);
 COMP(mips_cp_c_le_s, NORMAL, true);
+COMP(mips_cp_c_olt_d, NORMAL, true);
+COMP(mips_cp_c_olt_s, NORMAL, true);
+COMP(mips_cp_c_ueq_d, NORMAL, true);
+COMP(mips_cp_c_ueq_s, NORMAL, true);
+COMP(mips_cp_c_ole_d, NORMAL, true);
+COMP(mips_cp_c_ole_s, NORMAL, true);
+COMP(mips_cp_c_ult_d, NORMAL, true);
+COMP(mips_cp_c_ult_s, NORMAL, true);
 
 INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, word address) {
     if (instr.last11 == 0) {
@@ -791,13 +799,33 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_UEQ:
-            logfatal("COP_FUNCT_C_UEQ unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ueq_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ueq_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_OLT:
-            logfatal("COP_FUNCT_C_OLT unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_olt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_olt_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_ULT:
-            logfatal("COP_FUNCT_C_ULT unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ult_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ult_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_OLE:
-            logfatal("COP_FUNCT_C_OLE unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ole_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ole_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_ULE:
             logfatal("COP_FUNCT_C_ULE unimplemented");
         case COP_FUNCT_C_SF:
