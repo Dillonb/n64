@@ -32,9 +32,6 @@ The goals of this project are to create a low-level emulator with good compatibi
 - Only gcc and clang will be supported. I unapologetically use extensions like case ranges and binary literals.
 - Only software that uses NTSC video modes is currently supported. This is planned to be fixed.
 
-# Quirks
-- RDRAM is stored internally as big-endian and translated to the host's endianness on every read/write.
-
 # Building
 Currently, only Linux on x86_64 is supported.
 
