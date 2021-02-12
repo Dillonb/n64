@@ -3,4 +3,4 @@
 	url = https://github.com/Dillonb/n64-tests.git
 [submodule "src/contrib/parallel-rdp/parallel-rdp-standalone"]
 	path = src/contrib/parallel-rdp/parallel-rdp-standalone
-	url = git@github.com:Themaister/parallel-rdp-standalone.git
+	url = https://github.com/Themaister/parallel-rdp-standalone.git
