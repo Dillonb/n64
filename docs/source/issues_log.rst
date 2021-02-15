@@ -2,13 +2,11 @@ Issues Log
 ==========
 I'm keeping a small log of various bugs and issues I fixed, categorized under the games they fixed.
 
-Namco Museum
+Namco Museum & Super Mario 64
 ------------
-Distorted audio - the game uses COP1 Unusable Exceptions as a trigger to initialize the audio system. If these are not thrown, audio will be extremely distorted.
+Distorted audio - the operating system uses COP1 Unusable Exceptions as a trigger to save the FPU registers on a context switch.
 
-Super Mario 64
---------------
-Distorted audio - the game uses COP1 Unusable Exceptions as a trigger to initialize the audio system. If these are not thrown, audio will be extremely distorted.
+If these are not thrown, the FPU registers will not be properly saved/restored, and the audio will be extremely distorted due to incorrect values remaining in the registers when the OS switches back to the audio thread.
 
 Ocarina of Time
 ---------------
