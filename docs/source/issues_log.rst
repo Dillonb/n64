@@ -3,7 +3,7 @@ Issues Log
 I'm keeping a small log of various bugs and issues I fixed, categorized under the games they fixed.
 
 Namco Museum & Super Mario 64
-------------
+-----------------------------
 Distorted audio - the operating system uses COP1 Unusable Exceptions as a trigger to save the FPU registers on a context switch.
 
 If these are not thrown, the FPU registers will not be properly saved/restored, and the audio will be extremely distorted due to incorrect values remaining in the registers when the OS switches back to the audio thread.
@@ -14,6 +14,6 @@ I had major graphical issues in the game when I first got it booting. The game w
 
 The game would hang upon opening the pause menu. This is because the operating system uses software timers while opening this screen. These were broken because my handling of Compare interrupts was incorrect.
 
-Mario Kart 64
--------------
+Mario Kart 64, other games using EEPROM
+---------------------------------------
 Game would hang upon completing a Grand Prix. This ended up being because EEPROM wasn't identified correctly in the PIF, when channel 4 was requested in a controller ID command.
