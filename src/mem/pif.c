@@ -276,6 +276,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             break;
         }
         case PIF_COMMAND_EEPROM_READ:
+            assert_is_eeprom(system->mem.save_type);
             unimplemented(cmdlen != 2, "EEPROM read with cmdlen != 2");
             unimplemented(reslen != 8, "EEPROM read with reslen != 8");
             unimplemented(system->mem.save_data == NULL, "EEPROM read when save data is uninitialized! Is this game in the game DB?");
@@ -293,6 +294,7 @@ void pif_command(n64_system_t* system, sbyte cmdlen, byte reslen, int r_index, i
             }
             break;
         case PIF_COMMAND_EEPROM_WRITE:
+            assert_is_eeprom(system->mem.save_type);
             unimplemented(cmdlen != 10, "EEPROM write with cmdlen != 10");
             unimplemented(reslen != 1,  "EEPROM write with reslen != 1");
             unimplemented(system->mem.save_data == NULL, "EEPROM write when save data is uninitialized! Is this game in the game DB?");

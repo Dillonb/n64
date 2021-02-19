@@ -6,6 +6,7 @@
 
 void sram_write_word(n64_system_t* system, word index, word value) {
     unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+    assert_is_sram(system->mem.save_type);
     if (index >= system->mem.save_size - 3) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
     }
@@ -13,6 +14,7 @@ void sram_write_word(n64_system_t* system, word index, word value) {
     system->mem.save_data_dirty = true;
 }
 word sram_read_word(n64_system_t* system, word index) {
+    assert_is_sram(system->mem.save_type);
     if (system->mem.save_data == NULL) {
         logwarn("Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
         return 0;
@@ -27,6 +29,7 @@ word sram_read_word(n64_system_t* system, word index) {
 
 void sram_write_byte(n64_system_t* system, word index, byte value) {
     unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
+    assert_is_sram(system->mem.save_type);
     if (index >= system->mem.save_size) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
     }
@@ -34,6 +37,7 @@ void sram_write_byte(n64_system_t* system, word index, byte value) {
     system->mem.save_data_dirty = true;
 }
 byte sram_read_byte(n64_system_t* system, word index) {
+    assert_is_sram(system->mem.save_type);
     unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
     if (index >= system->mem.save_size) {
         logfatal("Out of range SRAM read! index 0x%08X\n", index);

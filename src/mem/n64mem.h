@@ -2,6 +2,7 @@
 #define N64_N64MEM_H
 
 #include "n64rom.h"
+#include <log.h>
 #include <util.h>
 #include <limits.h>
 
@@ -46,6 +47,36 @@ typedef enum n64_save_type {
     SAVE_FLASH_1m,
     SAVE_SRAM_768k
 } n64_save_type_t;
+
+INLINE bool is_eeprom(n64_save_type_t type) {
+    return type == SAVE_EEPROM_4k || type == SAVE_EEPROM_16k || type == SAVE_EEPROM_256k;
+}
+
+INLINE bool assert_is_eeprom(n64_save_type_t save_type) {
+    if (!is_eeprom(save_type)) {
+        logfatal("Expected save type to be EEPROM, but was not! Is this game in the game DB?");
+    }
+}
+
+INLINE bool is_sram(n64_save_type_t type) {
+    return type == SAVE_SRAM_768k;
+}
+
+INLINE bool assert_is_sram(n64_save_type_t save_type) {
+    if (!is_eeprom(save_type)) {
+        logfatal("Expected save type to be SRAM, but was not! Is this game in the game DB?");
+    }
+}
+
+INLINE bool is_flash(n64_save_type_t type) {
+    return type == SAVE_FLASH_1m;
+}
+
+INLINE bool assert_is_flash(n64_save_type_t save_type) {
+    if (!is_eeprom(save_type)) {
+        logfatal("Expected save type to be FLASH, but was not! Is this game in the game DB?");
+    }
+}
 
 typedef struct n64_mem {
     byte rdram[N64_RDRAM_SIZE];
