@@ -41,6 +41,22 @@ byte sram_read_byte(n64_system_t* system, word index) {
     return system->mem.save_data[index];
 }
 
+byte get_initial_value(n64_save_type_t save_type) {
+    switch (save_type) {
+        case SAVE_NONE:
+        case SAVE_EEPROM_4k:
+        case SAVE_EEPROM_16k:
+        case SAVE_EEPROM_256k:
+        case SAVE_SRAM_768k:
+            return 0x00;
+        case SAVE_FLASH_1m:
+            return 0xFF;
+        default:
+            logfatal("Unknown save type!\n");
+    }
+}
+
+
 size_t get_save_size(n64_save_type_t save_type) {
     switch (save_type) {
         case SAVE_NONE:
@@ -60,18 +76,18 @@ size_t get_save_size(n64_save_type_t save_type) {
     }
 }
 
-void create_empty_file(size_t save_size, const char* save_path) {
+void create_empty_file(size_t save_size, const char* save_path, byte initial_value) {
     if (save_size > 0) {
         FILE* f = fopen(save_path, "wb");
-        byte* zeroes = malloc(save_size);
-        memset(zeroes, 0, save_size);
-        fwrite(zeroes, 1, save_size, f);
+        byte* blank = malloc(save_size);
+        memset(blank, initial_value, save_size);
+        fwrite(blank, 1, save_size, f);
         fclose(f);
-        free(zeroes);
+        free(blank);
     }
 }
 
-byte* load_backup_file(const char *rom_path, const char *suffix, size_t save_size, char *path) {
+byte* load_backup_file(const char *rom_path, const char *suffix, size_t save_size, char *path, byte initial_value) {
     size_t save_path_len = strlen(rom_path) + strlen(suffix);
     byte* save_data;
     if (save_path_len >= PATH_MAX) {
@@ -83,7 +99,7 @@ byte* load_backup_file(const char *rom_path, const char *suffix, size_t save_siz
         FILE* f = fopen(path, "rb");
 
         if (f == NULL) {
-            create_empty_file(save_size, path);
+            create_empty_file(save_size, path, initial_value);
             f = fopen(path, "rb");
         }
 
@@ -108,14 +124,15 @@ void init_savedata(n64_mem_t* mem, const char* rom_path) {
     }
 
     size_t save_size = get_save_size(mem->save_type);
-    mem->save_data = load_backup_file(rom_path, ".save", save_size, mem->save_file_path);
+    byte initial_value = get_initial_value(mem->save_type);
+    mem->save_data = load_backup_file(rom_path, ".save", save_size, mem->save_file_path, initial_value);
     mem->save_size = save_size;
 }
 
 
 void init_mempack(n64_mem_t* mem, const char* rom_path) {
     if (mem->mempack_data == NULL) {
-        mem->mempack_data = load_backup_file(rom_path, ".mempak", MEMPACK_SIZE, mem->mempack_file_path);
+        mem->mempack_data = load_backup_file(rom_path, ".mempak", MEMPACK_SIZE, mem->mempack_file_path, 0x00);
     }
 }
 
