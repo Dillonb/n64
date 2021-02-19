@@ -51,7 +51,7 @@ size_t get_save_size(n64_save_type_t save_type) {
             return 2048;
         case SAVE_EEPROM_256k:
             return 32768;
-        case SAVE_EEPROM_1Mb:
+        case SAVE_FLASH_1m:
             return 131072;
         case SAVE_SRAM_768k:
             return 98304;

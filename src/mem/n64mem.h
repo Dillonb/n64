@@ -43,7 +43,7 @@ typedef enum n64_save_type {
     SAVE_EEPROM_4k,
     SAVE_EEPROM_16k,
     SAVE_EEPROM_256k,
-    SAVE_EEPROM_1Mb,
+    SAVE_FLASH_1m,
     SAVE_SRAM_768k
 } n64_save_type_t;
 
