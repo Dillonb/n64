@@ -687,13 +687,13 @@ void n64_write_word(n64_system_t* system, word address, word value) {
         case REGION_UNUSED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            sram_write_word(system, address - SREGION_CART_2_1, value);
+            backup_write_word(system, address - SREGION_CART_2_1, value);
             return;
         case REGION_CART_1_1:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
             return;
         case REGION_CART_2_2:
-            sram_write_word(system, address - SREGION_CART_2_2, value);
+            backup_write_word(system, address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
@@ -753,12 +753,12 @@ INLINE word _n64_read_word(word address) {
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
-            return sram_read_word(global_system, address - SREGION_CART_2_1);
+            return backup_read_word(global_system, address - SREGION_CART_2_1);
         case REGION_CART_1_1:
             logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
             return 0;
         case REGION_CART_2_2:
-            return sram_read_word(global_system, address - SREGION_CART_2_2);
+            return backup_read_word(global_system, address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             word index = WORD_ADDRESS(address) - SREGION_CART_1_2;
             if (index > global_system->mem.rom.size - 3) { // -3 because we're reading an entire word
@@ -986,12 +986,12 @@ void n64_write_byte(n64_system_t* system, word address, byte value) {
         case REGION_UNUSED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            sram_write_byte(system, address - SREGION_CART_2_1, value);
+            backup_write_byte(system, address - SREGION_CART_2_1, value);
             return;
         case REGION_CART_1_1:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
         case REGION_CART_2_2:
-            sram_write_byte(system, address - SREGION_CART_2_2, value);
+            backup_write_byte(system, address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
@@ -1052,7 +1052,7 @@ byte n64_read_byte(n64_system_t* system, word address) {
             logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
             return 0;
         case REGION_CART_2_2:
-            return sram_read_byte(system, address - SREGION_CART_2_2);
+            return backup_read_byte(system, address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             word index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
             if (index > system->mem.rom.size) {

@@ -5,7 +5,6 @@
 #define MEMPACK_SIZE 32768
 
 void sram_write_word(n64_system_t* system, word index, word value) {
-    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
     assert_is_sram(system->mem.save_type);
     if (index >= system->mem.save_size - 3) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
@@ -13,12 +12,9 @@ void sram_write_word(n64_system_t* system, word index, word value) {
     word_to_byte_array(system->mem.save_data, index, htobe32(value));
     system->mem.save_data_dirty = true;
 }
+
 word sram_read_word(n64_system_t* system, word index) {
     assert_is_sram(system->mem.save_type);
-    if (system->mem.save_data == NULL) {
-        logwarn("Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
-        return 0;
-    }
     if (index >= system->mem.save_size - 3) {
         logwarn("Out of range SRAM read! index 0x%08X\n", index);
         return 0;
@@ -28,7 +24,6 @@ word sram_read_word(n64_system_t* system, word index) {
 }
 
 void sram_write_byte(n64_system_t* system, word index, byte value) {
-    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
     assert_is_sram(system->mem.save_type);
     if (index >= system->mem.save_size) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
@@ -36,14 +31,99 @@ void sram_write_byte(n64_system_t* system, word index, byte value) {
     system->mem.save_data[index] = value;
     system->mem.save_data_dirty = true;
 }
+
 byte sram_read_byte(n64_system_t* system, word index) {
     assert_is_sram(system->mem.save_type);
-    unimplemented(system->mem.save_data == NULL, "Accessing cartridge SRAM when not initialized! Is this game in the game DB?");
     if (index >= system->mem.save_size) {
         logfatal("Out of range SRAM read! index 0x%08X\n", index);
     }
     return system->mem.save_data[index];
 }
+
+void backup_write_word(n64_system_t* system, word index, word value) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
+
+    switch (system->mem.save_type) {
+        case SAVE_NONE:
+            logfatal("Accessing cartridge backup with save type SAVE_NONE");
+            break;
+        case SAVE_EEPROM_4k:
+        case SAVE_EEPROM_16k:
+        case SAVE_EEPROM_256k:
+            logfatal("Accessing cartridge backup with save type SAVE_EEPROM");
+            break;
+        case SAVE_FLASH_1m:
+            logfatal("Accessing cartridge backup with save type SAVE_FLASH");
+            break;
+        case SAVE_SRAM_768k:
+            sram_write_word(system, index, value);
+            break;
+    }
+}
+
+word backup_read_word(n64_system_t* system, word index) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
+
+    switch (system->mem.save_type) {
+        case SAVE_NONE:
+            logfatal("Accessing cartridge backup with save type SAVE_NONE");
+            break;
+        case SAVE_EEPROM_4k:
+        case SAVE_EEPROM_16k:
+        case SAVE_EEPROM_256k:
+            logwarn("Accessing cartridge backup with save type SAVE_EEPROM, returning 0 for a word read");
+            return 0;
+        case SAVE_FLASH_1m:
+            logfatal("Accessing cartridge backup with save type SAVE_FLASH");
+            break;
+        case SAVE_SRAM_768k:
+            return sram_read_word(system, index);
+            break;
+    }
+}
+
+void backup_write_byte(n64_system_t* system, word index, byte value) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
+
+    switch (system->mem.save_type) {
+        case SAVE_NONE:
+            logfatal("Accessing cartridge backup with save type SAVE_NONE");
+            break;
+        case SAVE_EEPROM_4k:
+        case SAVE_EEPROM_16k:
+        case SAVE_EEPROM_256k:
+            logfatal("Accessing cartridge backup with save type SAVE_EEPROM");
+            break;
+        case SAVE_FLASH_1m:
+            logfatal("Accessing cartridge backup with save type SAVE_FLASH");
+            break;
+        case SAVE_SRAM_768k:
+            sram_write_byte(system, index, value);
+            break;
+    }
+}
+
+byte backup_read_byte(n64_system_t* system, word index) {
+    unimplemented(system->mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
+
+    switch (system->mem.save_type) {
+        case SAVE_NONE:
+            logfatal("Accessing cartridge backup with save type SAVE_NONE");
+            break;
+        case SAVE_EEPROM_4k:
+        case SAVE_EEPROM_16k:
+        case SAVE_EEPROM_256k:
+            logwarn("Accessing cartridge backup with save type SAVE_EEPROM, returning 0 for a byte read");
+            return 0;
+        case SAVE_FLASH_1m:
+            logfatal("Accessing cartridge backup with save type SAVE_FLASH");
+            break;
+        case SAVE_SRAM_768k:
+            return sram_read_byte(system, index);
+            break;
+    }
+}
+
 
 byte get_initial_value(n64_save_type_t save_type) {
     switch (save_type) {
