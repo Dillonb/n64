@@ -40,6 +40,138 @@ byte sram_read_byte(n64_system_t* system, word index) {
     return system->mem.save_data[index];
 }
 
+#define FLASH_COMMAND_EXECUTE          0xD2
+#define FLASH_COMMAND_STATUS           0xE1
+#define FLASH_COMMAND_SET_ERASE_OFFSET 0x4B
+#define FLASH_COMMAND_ERASE            0x78
+#define FLASH_COMMAND_SET_WRITE_OFFSET 0xA5
+#define FLASH_COMMAND_WRITE            0xB4
+#define FLASH_COMMAND_READ             0xF0
+
+void flash_command_execute(n64_system_t* system) {
+    logalways("flash_command_execute");
+    switch (system->mem.flash.state) {
+
+        case FLASH_STATE_IDLE:
+            break;
+        case FLASH_STATE_ERASE:
+            for (int i = 0; i < 128; i++) {
+                system->mem.save_data[system->mem.flash.erase_offset + i] = 0xFF;
+            }
+            system->mem.save_data_dirty = true;
+            logalways("Execute erase at offset 0x%X", system->mem.flash.erase_offset);
+            break;
+        case FLASH_STATE_WRITE:
+            for (int i = 0; i < 128; i++) {
+                system->mem.save_data[system->mem.flash.write_offset + i] = system->mem.flash.write_buffer[i];
+            }
+            system->mem.save_data_dirty = true;
+            logalways("Copied write buffer to flash starting at 0x%X", system->mem.flash.write_offset);
+            break;
+        case FLASH_STATE_READ:
+            logfatal("Execute command when flash in read state");
+            break;
+        case FLASH_STATE_STATUS:
+            break;
+    }
+}
+
+void flash_command_status(n64_system_t* system) {
+    logalways("flash_command_status");
+    system->mem.flash.state      = FLASH_STATE_STATUS;
+    system->mem.flash.status_reg = 0x1111800100C20000;
+}
+
+void flash_command_write(n64_system_t* system) {
+    logalways("flash_command_write");
+    system->mem.flash.state = FLASH_STATE_WRITE;
+}
+
+void flash_command_read(n64_system_t* system) {
+    logalways("flash_command_read");
+    system->mem.flash.state      = FLASH_STATE_READ;
+    system->mem.flash.status_reg = 0x11118004F0000000;
+}
+
+void flash_command_set_erase_offset(n64_system_t* system, word value) {
+    logalways("flash_command_set_erase_offset");
+    system->mem.flash.erase_offset = (value & 0xFFFF) << 7;
+    logalways("Wrote 0x%08X, set erase offset to 0x%X", value, system->mem.flash.erase_offset);
+}
+
+void flash_command_erase(n64_system_t* system) {
+    logalways("flash_command_erase");
+    system->mem.flash.state      = FLASH_STATE_ERASE;
+    system->mem.flash.status_reg = 0x1111800800C20000LL;
+}
+
+void flash_command_set_write_offset(n64_system_t* system, word value) {
+    logalways("flash_command_set_write_offset");
+    system->mem.flash.write_offset = (value & 0xFFFF) << 7;
+    system->mem.flash.status_reg   = 0x1111800400C20000LL;
+}
+
+void flash_write_word(n64_system_t* system, word index, word value) {
+    logalways("Flash write word index %X = 0x%08X", index, value);
+
+    if (index > 0) {
+        byte command = value >> 24;
+        switch (command) {
+            case FLASH_COMMAND_EXECUTE:          flash_command_execute(system); break;
+            case FLASH_COMMAND_STATUS:           flash_command_status(system); break;
+            case FLASH_COMMAND_SET_ERASE_OFFSET: flash_command_set_erase_offset(system, value); break;
+            case FLASH_COMMAND_ERASE:            flash_command_erase(system); break;
+            case FLASH_COMMAND_SET_WRITE_OFFSET: flash_command_set_write_offset(system, value); break;
+            case FLASH_COMMAND_WRITE:            flash_command_write(system); break;
+            case FLASH_COMMAND_READ:             flash_command_read(system); break;
+
+            default: logfatal("Unknown (probably invalid) flash command: %02X", command);
+        }
+    } else {
+        logwarn("Ignoring write to flash status register");
+    }
+}
+
+word flash_read_word(n64_system_t* system, word index) {
+    word value = system->mem.flash.status_reg >> 32;
+    logalways("Flash read word index 0x%X = 0x%08X", index, value);
+    return value;
+
+}
+
+void flash_write_byte(n64_system_t* system, word index, byte value) {
+    switch (system->mem.flash.state) {
+        case FLASH_STATE_IDLE: logfatal("Flash write byte in state FLASH_STATE_IDLE");
+        case FLASH_STATE_ERASE: logfatal("Flash write byte in state FLASH_STATE_ERASE");
+        case FLASH_STATE_WRITE:
+            logalways("Flash write byte index 0x%X = 0x%02X", index, value);
+            unimplemented(index > 0x7F, "Out of range flash write_byte");
+            system->mem.flash.write_buffer[index] = value;
+            break;
+        case FLASH_STATE_READ: logfatal("Flash write byte in state FLASH_STATE_READ");
+        case FLASH_STATE_STATUS: logfatal("Flash write byte in state FLASH_STATE_STATUS");
+    }
+}
+
+byte flash_read_byte(n64_system_t* system, word index) {
+    switch (system->mem.flash.state) {
+        case FLASH_STATE_IDLE: logfatal("Flash read byte while in state FLASH_STATE_IDLE");
+        case FLASH_STATE_WRITE: logfatal("Flash read byte while in state FLASH_STATE_WRITE");
+        case FLASH_STATE_READ: {
+            byte value = system->mem.save_data[index];
+            //logalways("Flash read byte in state read: index 0x%X = 0x%02X", index, value);
+            return value;
+        }
+        case FLASH_STATE_STATUS: {
+            word offset = (7 - (index % 8)) * 8;
+            byte value = (system->mem.flash.status_reg >> offset) & 0xFF;
+            logalways("Flash read byte in state status: index 0x%X = 0x%02X", index, value);
+            return value;
+        }
+        default: logfatal("Flash read byte while in unknown state");
+    }
+}
+
 void backup_write_word(n64_system_t* system, word index, word value) {
     unimplemented(system->mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
 
@@ -53,7 +185,7 @@ void backup_write_word(n64_system_t* system, word index, word value) {
             logfatal("Accessing cartridge backup with save type SAVE_EEPROM");
             break;
         case SAVE_FLASH_1m:
-            logfatal("Accessing cartridge backup with save type SAVE_FLASH");
+            flash_write_word(system, index, value);
             break;
         case SAVE_SRAM_768k:
             sram_write_word(system, index, value);
@@ -74,6 +206,7 @@ word backup_read_word(n64_system_t* system, word index) {
             logwarn("Accessing cartridge backup with save type SAVE_EEPROM, returning 0 for a word read");
             return 0;
         case SAVE_FLASH_1m:
+            return flash_read_word(system, index);
             logfatal("Accessing cartridge backup with save type SAVE_FLASH");
             break;
         case SAVE_SRAM_768k:
@@ -95,7 +228,7 @@ void backup_write_byte(n64_system_t* system, word index, byte value) {
             logfatal("Accessing cartridge backup with save type SAVE_EEPROM");
             break;
         case SAVE_FLASH_1m:
-            logfatal("Accessing cartridge backup with save type SAVE_FLASH");
+            flash_write_byte(system, index, value);
             break;
         case SAVE_SRAM_768k:
             sram_write_byte(system, index, value);
@@ -116,7 +249,7 @@ byte backup_read_byte(n64_system_t* system, word index) {
             logwarn("Accessing cartridge backup with save type SAVE_EEPROM, returning 0 for a byte read");
             return 0;
         case SAVE_FLASH_1m:
-            logfatal("Accessing cartridge backup with save type SAVE_FLASH");
+            return flash_read_byte(system, index);
             break;
         case SAVE_SRAM_768k:
             return sram_read_byte(system, index);

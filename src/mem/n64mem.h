@@ -48,6 +48,14 @@ typedef enum n64_save_type {
     SAVE_SRAM_768k
 } n64_save_type_t;
 
+typedef enum flash_state {
+    FLASH_STATE_IDLE,
+    FLASH_STATE_ERASE,
+    FLASH_STATE_WRITE,
+    FLASH_STATE_READ,
+    FLASH_STATE_STATUS
+} flash_state_t;
+
 INLINE bool is_eeprom(n64_save_type_t type) {
     return type == SAVE_EEPROM_4k || type == SAVE_EEPROM_16k || type == SAVE_EEPROM_256k;
 }
@@ -94,6 +102,17 @@ typedef struct n64_mem {
     bool save_data_dirty;
     int save_data_debounce_counter;
     size_t save_size;
+
+    struct {
+        flash_state_t state;
+        dword status_reg;
+
+        // TODO: do these share the same reg?
+        size_t erase_offset;
+        size_t write_offset;
+
+        byte write_buffer[128];
+    } flash;
 
     byte* mempack_data;
     bool mempack_data_dirty;
