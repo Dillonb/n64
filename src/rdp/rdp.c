@@ -205,10 +205,10 @@ void rdp_cleanup() {
 void rdp_run_command(n64_system_t* system) {
     //printf("Running commands from 0x%08X to 0x%08X\n", system->dpc.current, system->dpc.end);
     switch (system->video_type) {
-        case OPENGL:
+        case OPENGL_VIDEO_TYPE:
             graphics_plugin.ProcessRDPList();
             break;
-        case VULKAN:
+        case VULKAN_VIDEO_TYPE:
             process_commands_parallel_rdp(system);
             break;
         default:
@@ -218,10 +218,10 @@ void rdp_run_command(n64_system_t* system) {
 
 void rdp_update_screen(n64_system_t* system) {
     switch (system->video_type) {
-        case OPENGL:
+        case OPENGL_VIDEO_TYPE:
             graphics_plugin.UpdateScreen();
             break;
-        case VULKAN:
+        case VULKAN_VIDEO_TYPE:
             update_screen_parallel_rdp(system);
             break;
         default:

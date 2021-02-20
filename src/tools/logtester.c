@@ -500,10 +500,10 @@ int main(int argc, char** argv) {
     n64_system_t* system;
 
     if (rdp_plugin_path != NULL) {
-        system = init_n64system(rom, true, false, OPENGL, false);
+        system = init_n64system(rom, true, false, OPENGL_VIDEO_TYPE, false);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
-        system = init_n64system(rom, true, false, VULKAN, false);
+        system = init_n64system(rom, true, false, VULKAN_VIDEO_TYPE, false);
         load_parallel_rdp(system);
     }
     if (pif_rom_path) {

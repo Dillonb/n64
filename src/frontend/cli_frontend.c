@@ -80,14 +80,14 @@ int main(int argc, char** argv) {
             usage(flags);
             return 1;
         }
-        system = init_n64system(flags->argv[0], true, debug, OPENGL, interpreter);
+        system = init_n64system(flags->argv[0], true, debug, OPENGL_VIDEO_TYPE, interpreter);
         load_rdp_plugin(system, rdp_plugin_path);
     } else {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {
             rom_path = flags->argv[0];
         }
-        system = init_n64system(rom_path, true, debug, VULKAN, interpreter);
+        system = init_n64system(rom_path, true, debug, VULKAN_VIDEO_TYPE, interpreter);
         load_parallel_rdp(system);
         load_imgui_ui();
     }

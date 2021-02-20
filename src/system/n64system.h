@@ -30,8 +30,9 @@ extern "C" {
 
 typedef enum n64_video_type {
     UNKNOWN_VIDEO_TYPE,
-    OPENGL,
-    VULKAN
+    OPENGL_VIDEO_TYPE,
+    VULKAN_VIDEO_TYPE,
+    SOFTWARE_VIDEO_TYPE
 } n64_video_type_t;
 
 

@@ -77,9 +77,9 @@ void render_init(n64_system_t* system, n64_video_type_t video_type) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
-    if (video_type == OPENGL) {
+    if (video_type == OPENGL_VIDEO_TYPE) {
         video_init_opengl();
-    } else if (video_type == VULKAN) {
+    } else if (video_type == VULKAN_VIDEO_TYPE) {
         video_init_vulkan();
     }
     n64_video_type = video_type;
@@ -212,10 +212,10 @@ void n64_poll_input(n64_system_t* system) {
 
 void n64_render_screen(n64_system_t* system) {
     switch (n64_video_type) {
-        case OPENGL:
+        case OPENGL_VIDEO_TYPE:
             SDL_RenderPresent(renderer);
             break;
-        case VULKAN: // frame pushing handled elsewhere
+        case VULKAN_VIDEO_TYPE: // frame pushing handled elsewhere
             break;
         case UNKNOWN_VIDEO_TYPE:
         default:
