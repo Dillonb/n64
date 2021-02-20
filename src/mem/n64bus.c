@@ -238,6 +238,11 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
 
             logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", system->cpu.pc, cart_addr, dram_addr, length);
 
+            if (is_flash(system->mem.save_type) && cart_addr >= 0x08000000 && cart_addr < 0x08010000) {
+                // Special case for Flash DMAs
+                cart_addr = 0x08000000 | ((cart_addr & 0xFFFFF) << 1);
+            }
+
             for (int i = 0; i < length; i++) {
                 byte b = n64_read_byte(system, cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
