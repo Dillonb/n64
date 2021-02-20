@@ -191,9 +191,9 @@ void backup_write_word(n64_system_t* system, word index, word value) {
 }
 
 word backup_read_word(n64_system_t* system, word index) {
-    unimplemented(system->mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
-
     switch (system->mem.save_type) {
+        case SAVE_NONE:
+            return 0;
         case SAVE_EEPROM_4k:
         case SAVE_EEPROM_16k:
         case SAVE_EEPROM_256k:
@@ -206,7 +206,6 @@ word backup_read_word(n64_system_t* system, word index) {
         case SAVE_SRAM_768k:
             return sram_read_word(system, index);
             break;
-        case SAVE_NONE:
         default:
             logfatal("Backup read word with unknown save type");
     }
