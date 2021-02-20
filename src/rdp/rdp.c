@@ -219,6 +219,24 @@ void rdp_cleanup() {
     }
 }
 
+INLINE void rdp_enqueue_command(n64_system_t* system, int command_length, word* buffer) {
+    switch (system->video_type) {
+        case UNKNOWN_VIDEO_TYPE:  logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
+        case OPENGL_VIDEO_TYPE:   logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
+        case VULKAN_VIDEO_TYPE:   parallel_rdp_enqueue_command(command_length, buffer); break;
+        case SOFTWARE_VIDEO_TYPE: logfatal("RDP enqueue command with video type SOFTWARE_VIDEO_TYPE");
+    }
+}
+
+INLINE void rdp_on_full_sync(n64_system_t* system) {
+    switch (system->video_type) {
+        case UNKNOWN_VIDEO_TYPE:  logfatal("RDP on full sync with video type UNKNOWN_VIDEO_TYPE");
+        case OPENGL_VIDEO_TYPE:   logfatal("RDP on full sync with video type OPENGL_VIDEO_TYPE");
+        case VULKAN_VIDEO_TYPE:   parallel_rdp_on_full_sync(); break;
+        case SOFTWARE_VIDEO_TYPE: logfatal("RDP on full sync with video type SOFTWARE_VIDEO_TYPE");
+    }
+}
+
 void process_rdp_list(n64_system_t* system) {
     static int last_run_unprocessed_words = 0;
 
@@ -296,11 +314,11 @@ void process_rdp_list(n64_system_t* system) {
 
         // Don't need to process commands under 8
         if (command >= 8) {
-            parallel_rdp_enqueue_command(command_length, &rdp_command_buffer[buf_index]);
+            rdp_enqueue_command(system, command_length, &rdp_command_buffer[buf_index]);
         }
 
         if (command == RDP_COMMAND_FULL_SYNC) {
-            parallel_rdp_on_full_sync();
+            rdp_on_full_sync(system);
             interrupt_raise(INTERRUPT_DP);
         }
 
@@ -323,6 +341,7 @@ void rdp_run_command(n64_system_t* system) {
             graphics_plugin.ProcessRDPList();
             break;
         case VULKAN_VIDEO_TYPE:
+        case SOFTWARE_VIDEO_TYPE:
             process_rdp_list(system);
             break;
         default:
