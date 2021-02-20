@@ -119,6 +119,9 @@ INLINE void set_cp0_register_word(r4300i_t* cpu, byte r, word value) {
             unimplemented(value != 0, "cp0 context written with non-zero value");
             cpu->cp0.context = value;
             break;
+        case R4300I_CP0_REG_LLADDR:
+            cpu->cp0.lladdr = value;
+            break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
     }
