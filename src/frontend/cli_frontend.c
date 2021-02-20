@@ -9,6 +9,7 @@
 #include <frontend/tas_movie.h>
 #include <signal.h>
 #include <imgui/imgui_ui.h>
+#include <rdp/softrdp.h>
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -38,6 +39,9 @@ int main(int argc, char** argv) {
 
     bool interpreter = false;
     cflags_add_bool(flags, 'i', "interpreter", &interpreter, "Force the use of the interpreter");
+
+    bool software_mode = false;
+    cflags_add_bool(flags, 's', "software-mode", &software_mode, "Use software mode RDP (UNFINISHED!)");
 
     bool debug = false;
 #ifdef N64_DEBUG_MODE
@@ -82,6 +86,13 @@ int main(int argc, char** argv) {
         }
         system = init_n64system(flags->argv[0], true, debug, OPENGL_VIDEO_TYPE, interpreter);
         load_rdp_plugin(system, rdp_plugin_path);
+    } else if (software_mode) {
+        const char* rom_path = NULL;
+        if (flags->argc >= 1) {
+            rom_path = flags->argv[0];
+        }
+        system = init_n64system(rom_path, true, debug, SOFTWARE_VIDEO_TYPE, interpreter);
+        init_softrdp();
     } else {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {

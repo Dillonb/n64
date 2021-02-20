@@ -15,6 +15,8 @@ int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;
 SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
+static SDL_Texture* texture = NULL;
+static byte pixel_buffer[640 * 480 * 4]; // should be the largest needed
 static n64_video_type_t n64_video_type = UNKNOWN_VIDEO_TYPE;
 
 word fps_interval = 1000; // 1000ms = 1 second
@@ -73,14 +75,35 @@ void video_init_vulkan() {
 
 }
 
+void video_init_software() {
+    window = SDL_CreateWindow(N64_APP_NAME,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              N64_SCREEN_X * SCREEN_SCALE,
+                              N64_SCREEN_Y * SCREEN_SCALE,
+                              SDL_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+}
+
 void render_init(n64_system_t* system, n64_video_type_t video_type) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
-    if (video_type == OPENGL_VIDEO_TYPE) {
-        video_init_opengl();
-    } else if (video_type == VULKAN_VIDEO_TYPE) {
-        video_init_vulkan();
+    switch (video_type) {
+        case OPENGL_VIDEO_TYPE:
+            video_init_opengl();
+            break;
+        case VULKAN_VIDEO_TYPE:
+            video_init_vulkan();
+            break;
+        case SOFTWARE_VIDEO_TYPE:
+            video_init_software();
+            break;
+
+        case UNKNOWN_VIDEO_TYPE:
+        default:
+            logwarn("Unknown video type, not initializing video!");
+            break;
     }
     n64_video_type = video_type;
     audio_init(system);
@@ -210,12 +233,82 @@ void n64_poll_input(n64_system_t* system) {
     }
 }
 
+#define yscale_to_height(yscale) ((15 * (yscale)) / 64)
+
+static word last_vi_type = 0;
+static word last_yscale = 0;
+static word vi_height = 0;
+static word vi_width = 0;
+
+INLINE void pre_scanout(n64_system_t* system, SDL_PixelFormatEnum pixel_format) {
+    vi_width = system->vi.vi_width;
+    if (system->vi.yscale != last_yscale) {
+        last_yscale = system->vi.yscale;
+        vi_height = yscale_to_height(last_yscale);
+    }
+
+    if (last_vi_type != system->vi.status.type) {
+        last_vi_type = system->vi.status.type;
+        if (texture != NULL) {
+            SDL_DestroyTexture(texture);
+        }
+        texture = SDL_CreateTexture(renderer, pixel_format, SDL_TEXTUREACCESS_STREAMING, vi_width, vi_height);
+    }
+
+}
+
+static void vi_scanout_16bit(n64_system_t* system) {
+    pre_scanout(system, SDL_PIXELFORMAT_RGBA5551);
+    int rdram_offset = system->vi.vi_origin & (N64_RDRAM_SIZE - 1);
+    for (int y = 0; y < vi_height; y++) {
+        int yofs = (y * vi_width * 2);
+        for (int x = 0; x < vi_width; x += 2) {
+            memcpy(&pixel_buffer[yofs + x * 2 + 2], &system->mem.rdram[rdram_offset + yofs + x * 2 + 0], sizeof(half));
+            memcpy(&pixel_buffer[yofs + x * 2 + 0], &system->mem.rdram[rdram_offset + yofs + x * 2 + 2], sizeof(half));
+        }
+    }
+    SDL_UpdateTexture(texture, NULL, &pixel_buffer, vi_width * 2);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+}
+
+static void vi_scanout_32bit(n64_system_t* system) {
+    pre_scanout(system, SDL_PIXELFORMAT_RGBA8888);
+    int rdram_offset = system->vi.vi_origin & (N64_RDRAM_SIZE - 1);
+    SDL_UpdateTexture(texture, NULL, &system->mem.rdram[rdram_offset], vi_width * 4);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+}
+
+void render_screen_software(n64_system_t* system) {
+    n64_poll_input(system);
+
+    switch (system->vi.status.type) {
+        case VI_TYPE_BLANK:
+            SDL_RenderClear(renderer);
+            break;
+        case VI_TYPE_RESERVED:
+            logfatal("VI_TYPE_RESERVED");
+        case VI_TYPE_16BIT:
+            vi_scanout_16bit(system);
+            break;
+        case VI_TYPE_32BIT:
+            vi_scanout_32bit(system);
+            break;
+        default:
+            logfatal("Unknown VI type: %d", system->vi.status.type);
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
 void n64_render_screen(n64_system_t* system) {
     switch (n64_video_type) {
         case OPENGL_VIDEO_TYPE:
             SDL_RenderPresent(renderer);
             break;
         case VULKAN_VIDEO_TYPE: // frame pushing handled elsewhere
+            break;
+        case SOFTWARE_VIDEO_TYPE:
+            render_screen_software(system);
             break;
         case UNKNOWN_VIDEO_TYPE:
         default:

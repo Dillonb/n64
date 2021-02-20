@@ -12,6 +12,7 @@
 
 #include "mupen_interface.h"
 #include "parallel_rdp_wrapper.h"
+#include "softrdp.h"
 #include <log.h>
 #include <frontend/render.h>
 
@@ -224,7 +225,7 @@ INLINE void rdp_enqueue_command(n64_system_t* system, int command_length, word* 
         case UNKNOWN_VIDEO_TYPE:  logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
         case OPENGL_VIDEO_TYPE:   logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:   parallel_rdp_enqueue_command(command_length, buffer); break;
-        case SOFTWARE_VIDEO_TYPE: logfatal("RDP enqueue command with video type SOFTWARE_VIDEO_TYPE");
+        case SOFTWARE_VIDEO_TYPE: enqueue_command_softrdp(command_length, buffer); break;
     }
 }
 
@@ -356,6 +357,9 @@ void rdp_update_screen(n64_system_t* system) {
             break;
         case VULKAN_VIDEO_TYPE:
             update_screen_parallel_rdp(system);
+            break;
+        case SOFTWARE_VIDEO_TYPE:
+            n64_render_screen(system);
             break;
         default:
             logfatal("Unknown video type");
