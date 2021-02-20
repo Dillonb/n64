@@ -383,6 +383,7 @@ COMPILER(mips_spc_daddu) {
 }
 IR_INFO(mips_spc_daddu, NORMAL, R_TYPE, false);
 
+COMP(mips_spc_dsub, NORMAL, false);
 COMP(mips_spc_dsubu, NORMAL, false);
 COMP(mips_spc_teq, NORMAL, true);
 
@@ -534,8 +535,12 @@ COMP(mips_cp_c_eq_d, NORMAL, true);
 COMP(mips_cp_c_eq_s, NORMAL, true);
 COMP(mips_cp_c_lt_d, NORMAL, true);
 COMP(mips_cp_c_lt_s, NORMAL, true);
+COMP(mips_cp_c_nge_d, NORMAL, true);
+COMP(mips_cp_c_nge_s, NORMAL, true);
 COMP(mips_cp_c_le_d, NORMAL, true);
 COMP(mips_cp_c_le_s, NORMAL, true);
+COMP(mips_cp_c_ngt_d, NORMAL, true);
+COMP(mips_cp_c_ngt_s, NORMAL, true);
 COMP(mips_cp_c_olt_d, NORMAL, true);
 COMP(mips_cp_c_olt_s, NORMAL, true);
 COMP(mips_cp_c_ueq_d, NORMAL, true);
@@ -612,6 +617,7 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_SLTU, mips_spc_sltu);
         CASEIR(FUNCT_DADD, mips_spc_dadd);
         CASEIR(FUNCT_DADDU, mips_spc_daddu);
+        CASEIR(FUNCT_DSUB, mips_spc_dsub);
         CASEIR(FUNCT_DSUBU, mips_spc_dsubu);
         CASEIR(FUNCT_TEQ, mips_spc_teq);
         CASEIR(FUNCT_DSLL, mips_spc_dsll);
@@ -851,7 +857,12 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_NGE:
-            logfatal("COP_FUNCT_C_NGE unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_nge_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_nge_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_LE:
             switch (instr.fr.fmt) {
                 CASEIR(FP_FMT_DOUBLE, mips_cp_c_le_d);
@@ -859,9 +870,13 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
                 default:
                     logfatal("Undefined!");
             }
-            logfatal("COP_FUNCT_C_LE unimplemented");
         case COP_FUNCT_C_NGT:
-            logfatal("COP_FUNCT_C_NGT unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ngt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ngt_s);
+                default:
+                    logfatal("Undefined!");
+            }
     }
 
     char buf[50];

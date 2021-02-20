@@ -432,6 +432,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
         case FUNCT_SLTU:   return mips_spc_sltu;
         case FUNCT_DADD:   return mips_spc_dadd;
         case FUNCT_DADDU:  return mips_spc_daddu;
+        case FUNCT_DSUB:   return mips_spc_dsub;
         case FUNCT_DSUBU:  return mips_spc_dsubu;
         case FUNCT_TEQ:    return mips_spc_teq;
         case FUNCT_TNE:    return mips_spc_tne;
