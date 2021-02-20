@@ -18,7 +18,7 @@ void byteswap_to_be(byte* rom, size_t rom_size) {
 
     switch(identifier) {
         case Z64_IDENTIFIER:
-            loginfo("This is a .z64 ROM, no byte swapping is needed.");
+            logalways("This is a .z64 ROM, no byte swapping is needed.");
             return;
         case N64_IDENTIFIER:
             for (int i = 0; i < rom_size / 4; i++) {
@@ -27,7 +27,7 @@ void byteswap_to_be(byte* rom, size_t rom_size) {
                 word swapped = __bswap_32(w);
                 memcpy(rom + (i * 4), &swapped, 4);
             }
-            loginfo("This is a .n64 file, byte swapping it!");
+            logalways("This is a .n64 file, byte swapping it!");
             break;
         case V64_IDENTIFIER:
             for (int i = 0; i < rom_size / 4; i++) {
@@ -39,7 +39,7 @@ void byteswap_to_be(byte* rom, size_t rom_size) {
                         (0x000000FF & (w >> 8));
                 memcpy(rom + (i * 4), &swapped, 4);
             }
-            loginfo("This is a .v64 file, byte swapping it!");
+            logalways("This is a .v64 file, byte swapping it!");
             return;
         default:
             logfatal("Invalid cartridge header! This does not look like a valid N64 ROM.\n");
