@@ -253,6 +253,7 @@ void write_word_pireg(n64_system_t* system, word address, word value) {
             static bool first_time = true;
             if (first_time) {
                 n64_write_word(system, 0x318, N64_RDRAM_SIZE);
+                n64_write_word(system, 0x3f0, N64_RDRAM_SIZE);
                 first_time = false;
             }
             system->mem.pi_reg[PI_DRAM_ADDR_REG] += length;
