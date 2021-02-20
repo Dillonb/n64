@@ -1,4 +1,5 @@
 #include "rdp.h"
+#include <mem/mem_util.h>
 
 #include <dlfcn.h>
 #ifdef N64_MACOS
@@ -17,6 +18,22 @@
 static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;
 static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
+
+#define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
+word rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
+
+#define FROM_RDRAM(system, address) word_from_byte_array(system->mem.rdram, WORD_ADDRESS(address))
+#define FROM_DMEM(system, address) word_from_byte_array(system->rsp.sp_dmem, address)
+
+static const int command_lengths[64] = {
+        2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2,
+        2, 2, 2, 2, 4, 4, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2
+};
+
+#define RDP_COMMAND_FULL_SYNC 0x29
+
 
 void rdp_rendering_callback(int redrawn) {
     n64_poll_input(mupen_interface_global_system);
@@ -202,6 +219,103 @@ void rdp_cleanup() {
     }
 }
 
+void process_rdp_list(n64_system_t* system) {
+    static int last_run_unprocessed_words = 0;
+
+    n64_dpc_t* dpc = &system->dpc;
+
+    // tell the game to not touch RDP stuff while we work
+    dpc->status.freeze = true;
+
+    // force align to 8 byte boundaries
+    const word current = dpc->current & 0x00FFFFF8;
+    const word end = dpc->end & 0x00FFFFF8;
+
+    // How many bytes do we need to process?
+    int display_list_length = end - current;
+
+    if (display_list_length <= 0) {
+        // No commands to run
+        return;
+    }
+
+    if (display_list_length + (last_run_unprocessed_words * 4) > RDP_COMMAND_BUFFER_SIZE) {
+        logfatal("Got a command of display_list_length %d / 0x%X (with %d unprocessed words from last run) - this overflows our buffer of size %d / 0x%X!",
+                 display_list_length, display_list_length, last_run_unprocessed_words, RDP_COMMAND_BUFFER_SIZE, RDP_COMMAND_BUFFER_SIZE);
+    }
+
+    // read the commands into a buffer, 32 bits at a time.
+    // we need to read the whole thing into a buffer before sending each command to the RDP
+    // because commands have variable lengths
+    if (dpc->status.xbus_dmem_dma) {
+        for (int i = 0; i < display_list_length; i += 4) {
+            word command_word = FROM_DMEM(system, (current + i));
+            rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
+        }
+    } else {
+        if (end > 0x7FFFFFF || current > 0x7FFFFFF) {
+            logwarn("Not running RDP commands, wanted to read past end of RDRAM!");
+            return;
+        }
+        for (int i = 0; i < display_list_length; i += 4) {
+            word command_word = FROM_RDRAM(system, current + i);
+            rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
+        }
+    }
+
+    int length_words = (display_list_length >> 2) + last_run_unprocessed_words;
+    int buf_index = 0;
+
+    bool processed_all = true;
+
+    while (buf_index < length_words) {
+        byte command = (rdp_command_buffer[buf_index] >> 24) & 0x3F;
+
+        int command_length = command_lengths[command];
+
+        // Check we actually have enough bytes left in the display list for this command, and save the remainder of the display list for the next run, if not.
+        if ((buf_index + command_length) * 4 > display_list_length + (last_run_unprocessed_words * 4)) {
+            // Copy remaining bytes back to the beginning of the display list, and save them for next run.
+            last_run_unprocessed_words = length_words - buf_index;
+
+            // Safe to allocate this on the stack because we'll only have a partial command left, and that _has_ to be pretty small.
+            word temp[last_run_unprocessed_words];
+            for (int i = 0; i < last_run_unprocessed_words; i++) {
+                temp[i] = rdp_command_buffer[buf_index + i];
+            }
+
+            for (int i = 0; i < last_run_unprocessed_words; i++) {
+                rdp_command_buffer[i] = temp[i];
+            }
+
+            processed_all = false;
+
+            break;
+        }
+
+
+        // Don't need to process commands under 8
+        if (command >= 8) {
+            parallel_rdp_enqueue_command(command_length, &rdp_command_buffer[buf_index]);
+        }
+
+        if (command == RDP_COMMAND_FULL_SYNC) {
+            parallel_rdp_on_full_sync();
+            interrupt_raise(INTERRUPT_DP);
+        }
+
+        buf_index += command_length;
+    }
+
+    if (processed_all) {
+        last_run_unprocessed_words = 0;
+    }
+
+    dpc->current = end;
+
+    dpc->status.freeze = false;
+}
+
 void rdp_run_command(n64_system_t* system) {
     //printf("Running commands from 0x%08X to 0x%08X\n", system->dpc.current, system->dpc.end);
     switch (system->video_type) {
@@ -209,7 +323,7 @@ void rdp_run_command(n64_system_t* system) {
             graphics_plugin.ProcessRDPList();
             break;
         case VULKAN_VIDEO_TYPE:
-            process_commands_parallel_rdp(system);
+            process_rdp_list(system);
             break;
         default:
             logfatal("Unknown video type");
