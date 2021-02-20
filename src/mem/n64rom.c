@@ -138,5 +138,5 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     byteswap_to_host(rom->rom, size);
 
     loginfo("Loaded %s", rom->game_name_cartridge);
-    logdebug("The program counter starts at: " PRINTF_WORD, rom->header.program_counter);
+    logdebug("The program counter starts at: 0x%08X", rom->header.program_counter);
 }
