@@ -10,6 +10,7 @@ extern "C" {
 #include <interface/vi_reg.h>
 #include <debugger/debugger.h>
 #include <debugger/debugger_types.h>
+#include <rdp/softrdp.h>
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
@@ -187,6 +188,7 @@ typedef struct n64_system {
     n64_dpc_t dpc;
     n64_debugger_state_t debugger_state;
     n64_dynarec_t *dynarec;
+    softrdp_state_t softrdp_state;
     bool use_interpreter;
     char rom_path[PATH_MAX];
 } n64_system_t;
