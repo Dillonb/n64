@@ -158,12 +158,24 @@ DEF_RDP_COMMAND(fill_triangle) {
         int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
         int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
 
-        for (int x = xmin; x < xmax; x += bytes_per_pixel) {
+        for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
             word address = rdp->color_image.dram_addr + yofs + x;
             if (bytes_per_pixel == 4) {
                 rdram_write32(rdp, address, rdp->fill_color);
             } else if (bytes_per_pixel == 2) {
-                rdram_write16(rdp, address ^ 2, rdp->fill_color);
+                switch (rdp->other_modes.cycle_type) {
+                    case 0: {
+                        // hack, this is incorrect. Just use the blend color
+                        half color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
+                        rdram_write16(rdp, address ^ 2, color);
+                        break;
+                    }
+                    case 3:
+                        rdram_write16(rdp, address ^ 2, rdp->fill_color);
+                        break;
+                    default:
+                        logfatal("Fill triangle 16bpp unsupported cycle type: %d", rdp->other_modes.cycle_type);
+                }
             }
         }
         xstart += dxstart;
@@ -185,14 +197,25 @@ DEF_RDP_COMMAND(fill_triangle) {
         int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
         int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
 
-        for (int x = xmin; x < xmax; x += bytes_per_pixel) {
+        for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
             word address = rdp->color_image.dram_addr + yofs + x;
             if (bytes_per_pixel == 4) {
                 unimplemented(rdp->other_modes.cycle_type != 3, "Fill triangle 32bpp not in fill mode");
                 rdram_write32(rdp, address, rdp->fill_color);
             } else if (bytes_per_pixel == 2) {
-                unimplemented(rdp->other_modes.cycle_type != 3, "Fill triangle 16bpp not in fill mode");
-                rdram_write16(rdp, address ^ 2, rdp->fill_color);
+                switch (rdp->other_modes.cycle_type) {
+                    case 0: {
+                        // hack, this is incorrect. Just use the blend color
+                        half color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
+                        rdram_write16(rdp, address ^ 2, color);
+                        break;
+                    }
+                    case 3:
+                        rdram_write16(rdp, address ^ 2, rdp->fill_color);
+                        break;
+                    default:
+                        logfatal("Fill triangle 16bpp unsupported cycle type: %d", rdp->other_modes.cycle_type);
+                }
             }
         }
         xstart += dxstart;
