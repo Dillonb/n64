@@ -64,6 +64,8 @@ typedef enum rdp_command {
 #define MASK_LEN(n) ((1 << (n)) - 1)
 #define BITS(hi, lo) ((buffer[((command_length) - 1) - ((lo) / 32)] >> ((lo) & 0b11111)) & MASK_LEN((hi) - (lo) + 1))
 #define BIT(index) (((buffer[((command_length) - 1) - ((index) / 32)] >> ((index) & 0b11111)) & 1) != 0)
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 INLINE void rdram_write32(softrdp_state_t* rdp, word address, word value) {
     memcpy(&rdp->rdram[address], &value, sizeof(word));
@@ -74,9 +76,93 @@ INLINE bool check_scissor(softrdp_state_t* rdp, int x, int y) {
     return true;
 }
 
-
 DEF_RDP_COMMAND(fill_triangle) {
-    logfatal("rdp_fill_triangle unimplemented");
+    static int times_executed = 0;
+
+    if (times_executed++ >= 6) {
+        //return;
+    }
+    logalways("Filling triangle");
+
+    bool dir     = BIT(55 + 64 * 3);
+    word level   = BITS(53 + 64 * 3, 51 + 64 * 3);
+    word tile    = BITS(50 + 64 * 3, 48 + 64 * 3);
+    // Y position where the triangle ends.
+    word yl      = BITS(45 + 64 * 3, 32 + 64 * 3);
+    // Y position where the second minor line starts
+    word ym      = BITS(29 + 64 * 3, 16 + 64 * 3);
+    // Y position where the triangle starts
+    word yh      = BITS(13 + 64 * 3, 0  + 64 * 3);
+
+    // X position where the second minor line starts
+    word xl_i    = BITS(63 + 64 * 2, 48 + 64 * 2);
+    word xl_f    = BITS(47 + 64 * 2, 32 + 64 * 2);
+    // Change in X per Y along the second minor line
+    shalf dxldy_i = BITS(31 + 64 * 2, 16 + 64 * 2);
+    half dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
+
+    // X position where the major line starts
+    word xh_i    = BITS(63 + 64 * 1, 48 + 64 * 1);
+    word xh_f    = BITS(47 + 64 * 1, 32 + 64 * 1);
+    // Change in X per Y along the major line
+    shalf dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
+    half dxhdy_f = BITS(15 + 64 * 1, 0  + 64 * 1);
+
+    // X position where the first minor line starts.
+    word xm_i    = BITS(63 + 64 * 0, 48 + 64 * 0);
+    word xm_f    = BITS(47 + 64 * 0, 32 + 64 * 0);
+    // Change in X per Y along the first minor line
+    shalf dxmdy_i = BITS(31 + 64 * 0, 16 + 64 * 0);
+    half dxmdy_f = BITS(15 + 64 * 0, 0  + 64 * 0);
+
+    word xstart;
+    word xend;
+
+    sword dxstart;
+    sword dxend;
+
+    if (dir) {
+        xstart = xm_i << 16 | xm_f;
+        xend = xh_i << 16 | xh_f;
+
+        dxstart = dxmdy_i << 16 | dxmdy_f;
+        dxend = dxhdy_i << 16 | dxhdy_f;
+    } else {
+        xstart = xh_i << 16 | xh_f;
+        xend = xm_i << 16 | xm_f;
+
+        dxstart = dxhdy_i << 16 | dxhdy_f;
+        dxend = dxmdy_i << 16 | dxmdy_f;
+    }
+
+
+    // Top half of triangle (between YH and YM)
+    for (int y = yh; y < ym; y += 4) {
+        int yofs = (y * rdp->color_image.width);
+        for (int x = (MIN(xstart, xend) >> 16) * 4; x < (MAX(xstart, xend) >> 16) * 4; x += 4) {
+            rdram_write32(rdp, rdp->color_image.dram_addr + yofs + x, rdp->fill_color);
+        }
+        xstart += dxstart;
+        xend += dxend;
+    }
+
+    if (dir) {
+        xstart = xl_i << 16 | xl_f;
+        dxstart = dxldy_i << 16 | dxldy_f;
+    } else {
+        xend = xl_i << 16 | xl_f;
+        dxend = dxldy_i << 16 | dxldy_f;
+    }
+
+    // Bottom half of triangle (between YM and YL)
+    for (int y = ym; y < yl; y += 4) {
+        int yofs = (y * rdp->color_image.width);
+        for (int x = (MIN(xstart, xend) >> 16) * 4; x < (MAX(xstart, xend) >> 16) * 4; x += 4) {
+            rdram_write32(rdp, rdp->color_image.dram_addr + yofs + x, rdp->fill_color);
+        }
+        xstart += dxstart;
+        xend += dxend;
+    }
 }
 
 DEF_RDP_COMMAND(fill_zbuffer_triangle) {
