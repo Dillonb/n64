@@ -234,7 +234,7 @@ INLINE void rdp_on_full_sync(n64_system_t* system) {
         case UNKNOWN_VIDEO_TYPE:  logfatal("RDP on full sync with video type UNKNOWN_VIDEO_TYPE");
         case OPENGL_VIDEO_TYPE:   logfatal("RDP on full sync with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:   parallel_rdp_on_full_sync(); break;
-        case SOFTWARE_VIDEO_TYPE: logfatal("RDP on full sync with video type SOFTWARE_VIDEO_TYPE");
+        case SOFTWARE_VIDEO_TYPE: full_sync_softrdp(); break;
     }
 }
 

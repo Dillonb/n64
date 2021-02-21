@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <log.h>
+#include <string.h>
 #include "softrdp.h"
 
 typedef uint8_t byte;
@@ -12,7 +13,9 @@ typedef int16_t shalf;
 typedef int32_t sword;
 typedef int64_t sdword;
 
-void init_softrdp(softrdp_state_t* state) {}
+void init_softrdp(softrdp_state_t* state, byte* rdramptr) {
+    state->rdram = rdramptr;
+}
 
 typedef enum rdp_command {
     RDP_COMMAND_FILL_TRIANGLE = 0x08,
@@ -58,6 +61,18 @@ typedef enum rdp_command {
 
 #define DEF_RDP_COMMAND(name) INLINE void rdp_command_##name(softrdp_state_t* rdp, int command_length, const word* buffer)
 #define EXEC_RDP_COMMAND(name) rdp_command_##name(rdp, command_length, buffer); break
+#define MASK_LEN(n) ((1 << (n)) - 1)
+#define BITS(hi, lo) ((buffer[((command_length) - 1) - ((lo) / 32)] >> ((lo) & 0b11111)) & MASK_LEN((hi) - (lo) + 1))
+#define BIT(index) (((buffer[((command_length) - 1) - ((index) / 32)] >> ((index) & 0b11111)) & 1) != 0)
+
+INLINE void rdram_write32(softrdp_state_t* rdp, word address, word value) {
+    memcpy(&rdp->rdram[address], &value, sizeof(word));
+}
+
+INLINE bool check_scissor(softrdp_state_t* rdp, int x, int y) {
+    //return (x >= rdp->scissor.xl && x <= rdp->scissor.xh && y >= rdp->scissor.yl && y <= rdp->scissor.yh);
+    return true;
+}
 
 
 DEF_RDP_COMMAND(fill_triangle) {
@@ -105,7 +120,7 @@ DEF_RDP_COMMAND(sync_load) {
 }
 
 DEF_RDP_COMMAND(sync_pipe) {
-    logfatal("rdp_sync_pipe unimplemented");
+    logwarn("rdp_sync_pipe unimplemented");
 }
 
 DEF_RDP_COMMAND(sync_tile) {
@@ -113,7 +128,7 @@ DEF_RDP_COMMAND(sync_tile) {
 }
 
 DEF_RDP_COMMAND(sync_full) {
-    logfatal("rdp_sync_full unimplemented");
+    logwarn("rdp_sync_full unimplemented");
 }
 
 DEF_RDP_COMMAND(set_key_gb) {
@@ -129,19 +144,19 @@ DEF_RDP_COMMAND(set_convert) {
 }
 
 DEF_RDP_COMMAND(set_scissor) {
-    rdp->scissor.yl = (buffer[1] >>  0) & 0xFFF;
-    rdp->scissor.xl = (buffer[1] >> 12) & 0xFFF;
+    rdp->scissor.yl = BITS(11, 0);
+    rdp->scissor.xl = BITS(23, 12);
 
-    rdp->scissor.yh = (buffer[0] >>  0) & 0xFFF;
-    rdp->scissor.xh = (buffer[0] >> 12) & 0xFFF;
+    rdp->scissor.yh = BITS(43, 32);
+    rdp->scissor.xh = BITS(55, 44);
 
-    rdp->scissor.f = (buffer[1] & (1 << 25)) != 0;
-    rdp->scissor.o = (buffer[1] & (1 << 24)) != 0;
+    rdp->scissor.f = BIT(25);
+    rdp->scissor.o = BIT(24);
 }
 
 DEF_RDP_COMMAND(set_prim_depth) {
-    rdp->primitive_delta_z = (buffer[1] >>  0) & 0xFFFF;
-    rdp->primitive_z       = (buffer[1] >> 16) & 0xFFFF;
+    rdp->primitive_z       = BITS(31, 16);
+    rdp->primitive_delta_z = BITS(15, 0);
 }
 
 DEF_RDP_COMMAND(set_other_modes) {
@@ -169,13 +184,37 @@ DEF_RDP_COMMAND(set_tile) {
 }
 
 DEF_RDP_COMMAND(fill_rectangle) {
-    int yl = (buffer[1] >>  0) & 0xFFF;
-    int xl = (buffer[1] >> 12) & 0xFFF;
+    int xl = BITS(55, 44);
+    int yl = BITS(43, 32);
 
-    int yh = (buffer[0] >>  0) & 0xFFF;
-    int xh = (buffer[0] >> 12) & 0xFFF;
+    int xh = BITS(23, 12);
+    int yh = BITS(11, 0);
 
-    logfatal("Fill rectangle (%d, %d) (%d, %d)", xl, yl, xh, yh);
+    logalways("Fill rectangle (%d, %d) (%d, %d)", xh, yh, xl, yl);
+
+    unimplemented(rdp->color_image.format != 0, "Fill rect when color image format not RGBA");
+    unimplemented(rdp->color_image.size != 3, "Fill rect when color image size not 32bpp");
+
+    int bytes_per_pixel = 4;
+
+    int y_range = (yl - yh) / bytes_per_pixel + 1;
+    int x_range = (xl - xh) / bytes_per_pixel + 1;
+
+    logalways("y range: %d x range: %d", y_range, x_range);
+
+    for (int y = 0; y < y_range; y++) {
+        int y_pixel = y + yh / 4;
+        int yofs = (y_pixel * bytes_per_pixel * rdp->color_image.width);
+        for (int x = 0; x < x_range; x++) {
+            int x_pixel = x + xh / 4;
+            int xofs = xh + (x * bytes_per_pixel);
+            word addr = rdp->color_image.dram_addr + yofs + xofs;
+            if (check_scissor(rdp, x_pixel, y_pixel)) {
+                rdram_write32(rdp, addr, rdp->fill_color);
+            }
+        }
+    }
+
 }
 
 DEF_RDP_COMMAND(set_fill_color) {
@@ -213,10 +252,10 @@ DEF_RDP_COMMAND(set_mask_image) {
 
 DEF_RDP_COMMAND(set_color_image) {
     logalways("Set color image:");
-    rdp->color_image.format    = (buffer[0] >> 21) & 0x7;
-    rdp->color_image.size      = (buffer[0] >> 19) & 0x3;
-    rdp->color_image.width     = (buffer[0] >>  0) & 0x1FF + 1;
-    rdp->color_image.dram_addr = (buffer[1] >>  0) & 0x3FFFFFF;
+    rdp->color_image.format    = BITS(55, 53);
+    rdp->color_image.size      = BITS(52, 51);
+    rdp->color_image.width     = BITS(41, 32) + 1;
+    rdp->color_image.dram_addr = BITS(25, 0);
     logalways("Format: %d", rdp->color_image.format);
     logalways("Size: %d",   rdp->color_image.size);
     logalways("Width: %d",  rdp->color_image.width);

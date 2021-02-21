@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
             rom_path = flags->argv[0];
         }
         system = init_n64system(rom_path, true, debug, SOFTWARE_VIDEO_TYPE, interpreter);
-        init_softrdp(&system->softrdp_state);
+        init_softrdp(&system->softrdp_state, &system->mem.rdram);
     } else {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {
