@@ -386,7 +386,12 @@ DEF_RDP_COMMAND(set_fog_color) {
 }
 
 DEF_RDP_COMMAND(set_blend_color) {
-    logfatal("rdp_set_blend_color unimplemented");
+    rdp->blend_color.r = BITS(61, 56);
+    rdp->blend_color.g = BITS(31, 24);
+    rdp->blend_color.b = BITS(23, 16);
+    rdp->blend_color.a = BITS(7, 0);
+
+    logalways("Blend color: #%02X%02X%02X alpha %02X", rdp->blend_color.r, rdp->blend_color.g, rdp->blend_color.b, rdp->blend_color.a);
 }
 
 DEF_RDP_COMMAND(set_prim_color) {

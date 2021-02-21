@@ -42,6 +42,10 @@ typedef struct softrdp_state {
     } color_image;
 
     struct {
+        uint8_t r, g, b, a;
+    } blend_color;
+
+    struct {
         uint8_t format;
         uint8_t size;
         uint16_t width;
