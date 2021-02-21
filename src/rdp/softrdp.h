@@ -2,6 +2,22 @@
 #define SOFTRDP_H
 #include <stdint.h>
 #include <stdbool.h>
+
+typedef struct softrdp_tile {
+    uint8_t format;
+    uint8_t size;
+    uint8_t line;
+    uint8_t tmem_adrs;
+    uint8_t palette;
+    bool mt;
+    uint8_t mask_t;
+    uint8_t shift_t;
+    bool cs;
+    bool ms;
+    uint8_t mask_s;
+    uint8_t shift_s;
+} softrdp_tile_t;
+
 typedef struct softrdp_state {
     uint8_t* rdram;
 
@@ -17,12 +33,20 @@ typedef struct softrdp_state {
     uint16_t primitive_z;
     uint16_t primitive_delta_z;
     uint32_t fill_color;
+
     struct {
         uint8_t format;
         uint8_t size;
         uint16_t width;
         uint32_t dram_addr;
     } color_image;
+
+    struct {
+        uint8_t format;
+        uint8_t size;
+        uint16_t width;
+        uint32_t dram_addr;
+    } texture_image;
 
     struct {
         bool atomic_prim;
@@ -90,6 +114,7 @@ typedef struct softrdp_state {
         uint8_t add_A_1;
     } combine;
 
+    softrdp_tile_t tiles[8];
 } softrdp_state_t;
 
 void init_softrdp(softrdp_state_t* state, uint8_t* rdramptr);

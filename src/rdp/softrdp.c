@@ -313,11 +313,30 @@ DEF_RDP_COMMAND(load_block) {
 }
 
 DEF_RDP_COMMAND(load_tile) {
-    logfatal("rdp_load_tile unimplemented");
+    int tile_index = BITS(26, 24);
+
+    half sl   = BITS(55, 44);
+    half tl   = BITS(43, 32);
+    half sh   = BITS(23, 12);
+    half th   = BITS(11, 0);
+
+    logfatal("rdp_load_tile unimplemented sl: %d tl: %d, tile: %d, sh: %d, th: %d", sl, tl, tile_index, sh, th);
 }
 
 DEF_RDP_COMMAND(set_tile) {
-    logfatal("rdp_set_tile unimplemented");
+    int tile_index = BITS(26, 24);
+    rdp->tiles[tile_index].format    = BITS(55, 53);
+    rdp->tiles[tile_index].size      = BITS(52, 51);
+    rdp->tiles[tile_index].line      = BITS(49, 41);
+    rdp->tiles[tile_index].tmem_adrs = BITS(40, 32);
+    rdp->tiles[tile_index].palette   = BITS(23, 20);
+    rdp->tiles[tile_index].mt        = BIT(18);
+    rdp->tiles[tile_index].mask_t    = BITS(17, 14);
+    rdp->tiles[tile_index].shift_t   = BITS(13, 10);
+    rdp->tiles[tile_index].cs        = BIT(9);
+    rdp->tiles[tile_index].ms        = BIT(8);
+    rdp->tiles[tile_index].mask_s    = BITS(7, 4);
+    rdp->tiles[tile_index].shift_s   = BITS(3, 0);
 }
 
 DEF_RDP_COMMAND(fill_rectangle) {
@@ -398,7 +417,11 @@ DEF_RDP_COMMAND(set_combine) {
 }
 
 DEF_RDP_COMMAND(set_texture_image) {
-    logfatal("rdp_set_texture_image unimplemented");
+    rdp->texture_image.format = BITS(55, 53);
+    rdp->texture_image.size   = BITS(52, 51);
+
+    rdp->texture_image.width     = BITS(41, 32) + 1;
+    rdp->texture_image.dram_addr = BITS(25, 0);
 }
 
 DEF_RDP_COMMAND(set_mask_image) {
