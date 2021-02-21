@@ -71,9 +71,22 @@ INLINE void rdram_write32(softrdp_state_t* rdp, word address, word value) {
     memcpy(&rdp->rdram[address], &value, sizeof(word));
 }
 
+INLINE void rdram_write16(softrdp_state_t* rdp, word address, half value) {
+    memcpy(&rdp->rdram[address], &value, sizeof(half));
+}
+
 INLINE bool check_scissor(softrdp_state_t* rdp, int x, int y) {
     //return (x >= rdp->scissor.xl && x <= rdp->scissor.xh && y >= rdp->scissor.yl && y <= rdp->scissor.yh);
     return true;
+}
+
+INLINE int get_bytes_per_pixel(softrdp_state_t* rdp) {
+    switch (rdp->color_image.size) {
+        case 2: return 2;
+        case 3: return 4;
+        default:
+            logfatal("unknown color image size %d", rdp->color_image.size);
+    }
 }
 
 DEF_RDP_COMMAND(fill_triangle) {
@@ -265,33 +278,36 @@ DEF_RDP_COMMAND(set_tile) {
 }
 
 DEF_RDP_COMMAND(fill_rectangle) {
-    int xl = BITS(55, 44);
-    int yl = BITS(43, 32);
+    int xl = BITS(55, 44) / 4;
+    int yl = BITS(43, 32) / 4;
 
-    int xh = BITS(23, 12);
-    int yh = BITS(11, 0);
+    int xh = BITS(23, 12) / 4;
+    int yh = BITS(11, 0) / 4;
 
     logalways("Fill rectangle (%d, %d) (%d, %d)", xh, yh, xl, yl);
 
     unimplemented(rdp->color_image.format != 0, "Fill rect when color image format not RGBA");
-    unimplemented(rdp->color_image.size != 3, "Fill rect when color image size not 32bpp");
 
-    int bytes_per_pixel = 4;
+    int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
-    int y_range = (yl - yh) / bytes_per_pixel + 1;
-    int x_range = (xl - xh) / bytes_per_pixel + 1;
+    int y_range = (yl - yh) + 1;
+    int x_range = (xl - xh) + 1;
 
     logalways("y range: %d x range: %d", y_range, x_range);
 
     for (int y = 0; y < y_range; y++) {
-        int y_pixel = y + yh / 4;
+        int y_pixel = y + yh;
         int yofs = (y_pixel * bytes_per_pixel * rdp->color_image.width);
         for (int x = 0; x < x_range; x++) {
-            int x_pixel = x + xh / 4;
-            int xofs = xh + (x * bytes_per_pixel);
+            int x_pixel = x + xh;
+            int xofs = xh * bytes_per_pixel + (x * bytes_per_pixel);
             word addr = rdp->color_image.dram_addr + yofs + xofs;
             if (check_scissor(rdp, x_pixel, y_pixel)) {
-                rdram_write32(rdp, addr, rdp->fill_color);
+                if (bytes_per_pixel == 4) {
+                    rdram_write32(rdp, addr, rdp->fill_color);
+                } else if (bytes_per_pixel == 2) {
+                    rdram_write16(rdp, addr ^ 2, rdp->fill_color);
+                }
             }
         }
     }
@@ -345,11 +361,6 @@ DEF_RDP_COMMAND(set_color_image) {
 
 void enqueue_command_softrdp(softrdp_state_t* rdp, int command_length, word* buffer) {
     rdp_command_t command = (buffer[0] >> 24) & 0x3F;
-    printf("command: 0x");
-    for (int i = 0; i < command_length; i++) {
-        printf("%08X", buffer[i]);
-    }
-    printf("\n");
 
     switch (command) {
         case RDP_COMMAND_FILL_TRIANGLE:                  EXEC_RDP_COMMAND(fill_triangle);
