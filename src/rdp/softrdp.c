@@ -90,18 +90,16 @@ INLINE int get_bytes_per_pixel(softrdp_state_t* rdp) {
 }
 
 DEF_RDP_COMMAND(fill_triangle) {
-    logalways("Filling triangle");
-
     bool dir   = BIT(55 + 64 * 3);
-    word level = BITS(53 + 64 * 3, 51 + 64 * 3);
-    word tile  = BITS(50 + 64 * 3, 48 + 64 * 3);
+    //word level = BITS(53 + 64 * 3, 51 + 64 * 3);
+    //word tile  = BITS(50 + 64 * 3, 48 + 64 * 3);
 
-    // Y position where the triangle ends.
-    word yl = BITS(45 + 64 * 3, 32 + 64 * 3);
-    // Y position where the second minor line starts
-    word ym = BITS(29 + 64 * 3, 16 + 64 * 3);
     // Y position where the triangle starts
     word yh = BITS(13 + 64 * 3, 0  + 64 * 3);
+    // Y position where the second minor line starts
+    word ym = BITS(29 + 64 * 3, 16 + 64 * 3);
+    // Y position where the triangle ends.
+    word yl = BITS(45 + 64 * 3, 32 + 64 * 3);
 
     // X position where the major line starts
     word xh_i    = BITS(63 + 64 * 1, 48 + 64 * 1);
@@ -112,6 +110,8 @@ DEF_RDP_COMMAND(fill_triangle) {
     // X position where the second minor line starts
     word xl_i = BITS(63 + 64 * 2, 48 + 64 * 2);
     word xl_f = BITS(47 + 64 * 2, 32 + 64 * 2);
+
+    logalways("Filling triangle starting at %d, %d", yh, xh_i);
 
     // Change in X per Y along the major line
     shalf dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
@@ -143,12 +143,28 @@ DEF_RDP_COMMAND(fill_triangle) {
         dxend = dxmdy_i << 16 | dxmdy_f;
     }
 
+    int bytes_per_pixel = get_bytes_per_pixel(rdp);
+
+    if (bytes_per_pixel == 2) {
+        yh /= 2;
+        ym /= 2;
+        yl /= 2;
+    }
 
     // Top half of triangle (between YH and YM)
-    for (int y = yh; y < ym; y += 4) {
+    for (int y = yh; y < ym; y += bytes_per_pixel) {
         int yofs = (y * rdp->color_image.width);
-        for (int x = (MIN(xstart, xend) >> 16) * 4; x < (MAX(xstart, xend) >> 16) * 4; x += 4) {
-            rdram_write32(rdp, rdp->color_image.dram_addr + yofs + x, rdp->fill_color);
+
+        int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
+        int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
+
+        for (int x = xmin; x < xmax; x += bytes_per_pixel) {
+            word address = rdp->color_image.dram_addr + yofs + x;
+            if (bytes_per_pixel == 4) {
+                rdram_write32(rdp, address, rdp->fill_color);
+            } else if (bytes_per_pixel == 2) {
+                rdram_write16(rdp, address ^ 2, rdp->fill_color);
+            }
         }
         xstart += dxstart;
         xend += dxend;
@@ -163,10 +179,19 @@ DEF_RDP_COMMAND(fill_triangle) {
     }
 
     // Bottom half of triangle (between YM and YL)
-    for (int y = ym; y < yl; y += 4) {
+    for (int y = ym; y < yl; y += bytes_per_pixel) {
         int yofs = (y * rdp->color_image.width);
-        for (int x = (MIN(xstart, xend) >> 16) * 4; x < (MAX(xstart, xend) >> 16) * 4; x += 4) {
-            rdram_write32(rdp, rdp->color_image.dram_addr + yofs + x, rdp->fill_color);
+
+        int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
+        int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
+
+        for (int x = xmin; x < xmax; x += bytes_per_pixel) {
+            word address = rdp->color_image.dram_addr + yofs + x;
+            if (bytes_per_pixel == 4) {
+                rdram_write32(rdp, address, rdp->fill_color);
+            } else if (bytes_per_pixel == 2) {
+                rdram_write16(rdp, address ^ 2, rdp->fill_color);
+            }
         }
         xstart += dxstart;
         xend += dxend;
