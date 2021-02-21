@@ -79,36 +79,36 @@ INLINE bool check_scissor(softrdp_state_t* rdp, int x, int y) {
 DEF_RDP_COMMAND(fill_triangle) {
     logalways("Filling triangle");
 
-    bool dir     = BIT(55 + 64 * 3);
-    word level   = BITS(53 + 64 * 3, 51 + 64 * 3);
-    word tile    = BITS(50 + 64 * 3, 48 + 64 * 3);
-    // Y position where the triangle ends.
-    word yl      = BITS(45 + 64 * 3, 32 + 64 * 3);
-    // Y position where the second minor line starts
-    word ym      = BITS(29 + 64 * 3, 16 + 64 * 3);
-    // Y position where the triangle starts
-    word yh      = BITS(13 + 64 * 3, 0  + 64 * 3);
+    bool dir   = BIT(55 + 64 * 3);
+    word level = BITS(53 + 64 * 3, 51 + 64 * 3);
+    word tile  = BITS(50 + 64 * 3, 48 + 64 * 3);
 
-    // X position where the second minor line starts
-    word xl_i    = BITS(63 + 64 * 2, 48 + 64 * 2);
-    word xl_f    = BITS(47 + 64 * 2, 32 + 64 * 2);
-    // Change in X per Y along the second minor line
-    shalf dxldy_i = BITS(31 + 64 * 2, 16 + 64 * 2);
-    half dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
+    // Y position where the triangle ends.
+    word yl = BITS(45 + 64 * 3, 32 + 64 * 3);
+    // Y position where the second minor line starts
+    word ym = BITS(29 + 64 * 3, 16 + 64 * 3);
+    // Y position where the triangle starts
+    word yh = BITS(13 + 64 * 3, 0  + 64 * 3);
 
     // X position where the major line starts
     word xh_i    = BITS(63 + 64 * 1, 48 + 64 * 1);
     word xh_f    = BITS(47 + 64 * 1, 32 + 64 * 1);
-    // Change in X per Y along the major line
-    shalf dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
-    half dxhdy_f = BITS(15 + 64 * 1, 0  + 64 * 1);
-
     // X position where the first minor line starts.
     word xm_i    = BITS(63 + 64 * 0, 48 + 64 * 0);
     word xm_f    = BITS(47 + 64 * 0, 32 + 64 * 0);
+    // X position where the second minor line starts
+    word xl_i = BITS(63 + 64 * 2, 48 + 64 * 2);
+    word xl_f = BITS(47 + 64 * 2, 32 + 64 * 2);
+
+    // Change in X per Y along the major line
+    shalf dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
+    half  dxhdy_f = BITS(15 + 64 * 1, 0  + 64 * 1);
     // Change in X per Y along the first minor line
     shalf dxmdy_i = BITS(31 + 64 * 0, 16 + 64 * 0);
-    half dxmdy_f = BITS(15 + 64 * 0, 0  + 64 * 0);
+    half  dxmdy_f = BITS(15 + 64 * 0, 0  + 64 * 0);
+    // Change in X per Y along the second minor line
+    shalf dxldy_i = BITS(31 + 64 * 2, 16 + 64 * 2);
+    half  dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
 
     word xstart;
     word xend;
