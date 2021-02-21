@@ -57,7 +57,7 @@ typedef enum rdp_command {
 #endif
 
 #define DEF_RDP_COMMAND(name) INLINE void rdp_command_##name(softrdp_state_t* rdp, int command_length, const word* buffer)
-#define EXEC_RDP_COMMAND(name) rdp_command_##name(rdp, command_length, buffer)
+#define EXEC_RDP_COMMAND(name) rdp_command_##name(rdp, command_length, buffer); break
 
 
 DEF_RDP_COMMAND(fill_triangle) {
@@ -129,15 +129,23 @@ DEF_RDP_COMMAND(set_convert) {
 }
 
 DEF_RDP_COMMAND(set_scissor) {
-    logfatal("rdp_set_scissor unimplemented");
+    rdp->scissor.yl = (buffer[1] >>  0) & 0xFFF;
+    rdp->scissor.xl = (buffer[1] >> 12) & 0xFFF;
+
+    rdp->scissor.yh = (buffer[0] >>  0) & 0xFFF;
+    rdp->scissor.xh = (buffer[0] >> 12) & 0xFFF;
+
+    rdp->scissor.f = (buffer[1] & (1 << 25)) != 0;
+    rdp->scissor.o = (buffer[1] & (1 << 24)) != 0;
 }
 
 DEF_RDP_COMMAND(set_prim_depth) {
-    logfatal("rdp_set_prim_depth unimplemented");
+    rdp->primitive_delta_z = (buffer[1] >>  0) & 0xFFFF;
+    rdp->primitive_z       = (buffer[1] >> 16) & 0xFFFF;
 }
 
 DEF_RDP_COMMAND(set_other_modes) {
-    logfatal("rdp_set_other_modes unimplemented");
+    logwarn("rdp_set_other_modes unimplemented");
 }
 
 DEF_RDP_COMMAND(load_tlut) {
