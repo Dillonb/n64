@@ -188,8 +188,10 @@ DEF_RDP_COMMAND(fill_triangle) {
         for (int x = xmin; x < xmax; x += bytes_per_pixel) {
             word address = rdp->color_image.dram_addr + yofs + x;
             if (bytes_per_pixel == 4) {
+                unimplemented(rdp->other_modes.cycle_type != 3, "Fill triangle 32bpp not in fill mode");
                 rdram_write32(rdp, address, rdp->fill_color);
             } else if (bytes_per_pixel == 2) {
+                unimplemented(rdp->other_modes.cycle_type != 3, "Fill triangle 16bpp not in fill mode");
                 rdram_write16(rdp, address ^ 2, rdp->fill_color);
             }
         }
@@ -391,8 +393,10 @@ DEF_RDP_COMMAND(fill_rectangle) {
             word addr = rdp->color_image.dram_addr + yofs + xofs;
             if (check_scissor(rdp, x_pixel, y_pixel)) {
                 if (bytes_per_pixel == 4) {
+                    unimplemented(rdp->other_modes.cycle_type != 3, "Fill rectangle 32bpp not in fill mode");
                     rdram_write32(rdp, addr, rdp->fill_color);
                 } else if (bytes_per_pixel == 2) {
+                    unimplemented(rdp->other_modes.cycle_type != 3, "Fill rectangle 16bpp not in fill mode");
                     rdram_write16(rdp, addr ^ 2, rdp->fill_color);
                 }
             }
