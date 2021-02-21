@@ -77,11 +77,6 @@ INLINE bool check_scissor(softrdp_state_t* rdp, int x, int y) {
 }
 
 DEF_RDP_COMMAND(fill_triangle) {
-    static int times_executed = 0;
-
-    if (times_executed++ >= 6) {
-        //return;
-    }
     logalways("Filling triangle");
 
     bool dir     = BIT(55 + 64 * 3);
