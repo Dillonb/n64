@@ -169,11 +169,18 @@ DEF_RDP_COMMAND(set_tile) {
 }
 
 DEF_RDP_COMMAND(fill_rectangle) {
-    logfatal("rdp_fill_rectangle unimplemented");
+    int yl = (buffer[1] >>  0) & 0xFFF;
+    int xl = (buffer[1] >> 12) & 0xFFF;
+
+    int yh = (buffer[0] >>  0) & 0xFFF;
+    int xh = (buffer[0] >> 12) & 0xFFF;
+
+    logfatal("Fill rectangle (%d, %d) (%d, %d)", xl, yl, xh, yh);
 }
 
 DEF_RDP_COMMAND(set_fill_color) {
-    logfatal("rdp_set_fill_color unimplemented");
+    rdp->fill_color = buffer[1];
+    logalways("Fill color: 0x%08X", buffer[1]);
 }
 
 DEF_RDP_COMMAND(set_fog_color) {
@@ -205,11 +212,25 @@ DEF_RDP_COMMAND(set_mask_image) {
 }
 
 DEF_RDP_COMMAND(set_color_image) {
-    logfatal("rdp_set_color_image unimplemented");
+    logalways("Set color image:");
+    rdp->color_image.format    = (buffer[0] >> 21) & 0x7;
+    rdp->color_image.size      = (buffer[0] >> 19) & 0x3;
+    rdp->color_image.width     = (buffer[0] >>  0) & 0x1FF + 1;
+    rdp->color_image.dram_addr = (buffer[1] >>  0) & 0x3FFFFFF;
+    logalways("Format: %d", rdp->color_image.format);
+    logalways("Size: %d",   rdp->color_image.size);
+    logalways("Width: %d",  rdp->color_image.width);
+    logalways("DRAM addr: 0x%08X", rdp->color_image.dram_addr);
 }
 
 void enqueue_command_softrdp(softrdp_state_t* rdp, int command_length, word* buffer) {
     rdp_command_t command = (buffer[0] >> 24) & 0x3F;
+    printf("command: 0x");
+    for (int i = 0; i < command_length; i++) {
+        printf("%08X", buffer[i]);
+    }
+    printf("\n");
+
     switch (command) {
         case RDP_COMMAND_FILL_TRIANGLE:                  EXEC_RDP_COMMAND(fill_triangle);
         case RDP_COMMAND_FILL_ZBUFFER_TRIANGLE:          EXEC_RDP_COMMAND(fill_zbuffer_triangle);

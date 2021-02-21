@@ -14,6 +14,13 @@ typedef struct softrdp_state {
 
     uint16_t primitive_z;
     uint16_t primitive_delta_z;
+    uint32_t fill_color;
+    struct {
+        uint8_t format;
+        uint8_t size;
+        uint16_t width;
+        uint32_t dram_addr;
+    } color_image;
 } softrdp_state_t;
 
 void init_softrdp(softrdp_state_t* state);
