@@ -254,7 +254,50 @@ DEF_RDP_COMMAND(set_prim_depth) {
 }
 
 DEF_RDP_COMMAND(set_other_modes) {
-    logwarn("rdp_set_other_modes unimplemented");
+    rdp->other_modes.atomic_prim = BIT(55);
+    rdp->other_modes.cycle_type = BITS(53, 52);
+    rdp->other_modes.persp_tex_en = BIT(51);
+    rdp->other_modes.detail_tex_en = BIT(50);
+    rdp->other_modes.sharpen_tex_en = BIT(49);
+    rdp->other_modes.tex_lod_en = BIT(48);
+    rdp->other_modes.en_tlut = BIT(47);
+    rdp->other_modes.tlut_type = BIT(46);
+    rdp->other_modes.sample_type = BIT(45);
+    rdp->other_modes.mid_texel = BIT(44);
+    rdp->other_modes.bi_lerp_0 = BIT(43);
+    rdp->other_modes.bi_lerp_1 = BIT(42);
+    rdp->other_modes.convert_one = BIT(41);
+    rdp->other_modes.key_en = BIT(40);
+    rdp->other_modes.rgb_dither_sel = BITS(39, 38);
+    rdp->other_modes.alpha_dither_sel = BITS(37, 36);
+
+    rdp->other_modes.b_m1a_0 = BITS(31, 30);
+    rdp->other_modes.b_m1a_1 = BITS(29, 28);
+
+    rdp->other_modes.b_m1b_0 = BITS(27, 26);
+    rdp->other_modes.b_m1b_1 = BITS(25, 24);
+
+    rdp->other_modes.b_m2a_0 = BITS(23, 22);
+    rdp->other_modes.b_m2a_1 = BITS(21, 20);
+
+    rdp->other_modes.b_m2b_0 = BITS(19, 18);
+    rdp->other_modes.b_m2b_1 = BITS(17, 16);
+
+    rdp->other_modes.force_blend = BIT(14);
+    rdp->other_modes.alpha_cvg_select = BIT(13);
+    rdp->other_modes.cvg_times_alpha = BIT(12);
+
+    rdp->other_modes.z_mode = BITS(11, 10);
+    rdp->other_modes.cvg_dest = BITS(8, 9);
+
+    rdp->other_modes.color_on_cvg = BIT(7);
+    rdp->other_modes.image_read_en = BIT(6);
+    rdp->other_modes.z_update_en = BIT(5);
+    rdp->other_modes.z_compare_en = BIT(4);
+    rdp->other_modes.antialias_en = BIT(3);
+    rdp->other_modes.z_source_sel = BIT(2);
+    rdp->other_modes.dither_alpha_en = BIT(1);
+    rdp->other_modes.alpha_compare_en = BIT(0);
 }
 
 DEF_RDP_COMMAND(load_tlut) {
@@ -336,7 +379,22 @@ DEF_RDP_COMMAND(set_env_color) {
 }
 
 DEF_RDP_COMMAND(set_combine) {
-    logfatal("rdp_set_combine unimplemented");
+    rdp->combine.sub_a_R_0 = BITS(55, 52);
+    rdp->combine.mul_R_0   = BITS(51, 47);
+    rdp->combine.sub_a_A_0 = BITS(46, 44);
+    rdp->combine.mul_A_0   = BITS(43, 41);
+    rdp->combine.sub_a_R_1 = BITS(40, 37);
+    rdp->combine.mul_R_1   = BITS(36, 32);
+    rdp->combine.sub_b_R_0 = BITS(31, 28);
+    rdp->combine.sub_b_R_1 = BITS(27, 24);
+    rdp->combine.sub_a_A_1 = BITS(23, 21);
+    rdp->combine.mul_A_1   = BITS(20, 18);
+    rdp->combine.add_R_0   = BITS(17, 15);
+    rdp->combine.sub_b_A_0 = BITS(14, 12);
+    rdp->combine.add_A_0   = BITS(11,  9);
+    rdp->combine.add_R_1   = BITS(8,   6);
+    rdp->combine.sub_b_A_1 = BITS(5,   3);
+    rdp->combine.add_A_1   = BITS(2,   0);
 }
 
 DEF_RDP_COMMAND(set_texture_image) {
