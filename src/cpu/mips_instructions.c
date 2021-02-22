@@ -468,6 +468,17 @@ MIPS_INSTR(mips_cp_trunc_w_s) {
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
+MIPS_INSTR(mips_cp_floor_w_d) {
+    logfatal("mips_cp_floor_w_d");
+}
+
+MIPS_INSTR(mips_cp_floor_w_s) {
+    checkcp1;
+    float value = get_fpu_register_float(cpu, instruction.fr.fs);
+    sword truncated = truncf(floorf(value));
+    set_fpu_register_word(cpu, instruction.fr.fd, truncated);
+}
+
 MIPS_INSTR(mips_cp_round_w_s) {
     logwarn("mips_cp_round_w_s used: this instruction is known to be buggy!");
     checkcp1;
