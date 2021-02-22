@@ -871,7 +871,8 @@ void n64_write_half(n64_system_t* system, word address, half value) {
         case REGION_CART_2_2:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
         case REGION_CART_1_2:
-            logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            logwarn("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            return;
         case REGION_PIF_BOOT:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
