@@ -26,6 +26,12 @@
 #define EXCEPTION_FLOATING_POINT       15
 #define EXCEPTION_WATCH                23
 
+// FPU rounding modes
+#define R4300I_CP1_ROUND_NEAREST 0
+#define R4300I_CP1_ROUND_ZERO 1
+#define R4300I_CP1_ROUND_POSINF 2
+#define R4300I_CP1_ROUND_NEGINF 3
+
 #define R4300I_REG_LR 31
 
 #define R4300I_CP0_REG_INDEX    0

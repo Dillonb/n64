@@ -2,6 +2,7 @@
 #include "r4300i_register_access.h"
 
 #include <math.h>
+#include <fenv.h>
 #include <mem/n64bus.h>
 
 #define ORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
@@ -316,6 +317,31 @@ INLINE void check_fpu_exception(r4300i_t* cpu) {
     }
 }
 
+INLINE int push_round_mode(r4300i_t* cpu) {
+    int orig_round = fegetround();
+    switch (cpu->fcr31.rounding_mode) {
+        case R4300I_CP1_ROUND_NEAREST:
+            fesetround(FE_TONEAREST);
+            break;
+        case R4300I_CP1_ROUND_ZERO:
+            fesetround(FE_TOWARDZERO);
+            break;
+        case R4300I_CP1_ROUND_POSINF:
+            fesetround(FE_UPWARD);
+            break;
+        case R4300I_CP1_ROUND_NEGINF:
+            fesetround(FE_DOWNWARD);
+            break;
+        default:
+            logfatal("Unknown rounding mode %d", cpu->fcr31.rounding_mode);
+    }
+    //fesetround(FE_TOWARDZERO);
+    return orig_round;
+}
+
+#define PUSHROUND int orig_round = push_round_mode(cpu)
+#define POPROUND fesetround(orig_round)
+
 MIPS_INSTR(mips_ctc1) {
     checkcp1;
     byte fs = instruction.r.rd;
@@ -428,7 +454,9 @@ MIPS_INSTR(mips_cp_round_l_d) {
     logwarn("mips_cp_round_l_d used: this instruction is known to be buggy!");
     checkcp1;
     double value = get_fpu_register_double(cpu, instruction.fr.fs);
-    dword truncated = value;
+    PUSHROUND;
+    dword truncated = round(value);
+    POPROUND;
     set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
 }
 
@@ -443,7 +471,9 @@ MIPS_INSTR(mips_cp_round_l_s) {
     logwarn("mips_cp_round_l_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
-    dword truncated = value;
+    PUSHROUND;
+    dword truncated = roundf(value);
+    POPROUND;
     set_fpu_register_dword(cpu, instruction.fr.fd, truncated);
 }
 
@@ -458,7 +488,9 @@ MIPS_INSTR(mips_cp_round_w_d) {
     logwarn("mips_cp_round_w_d used: this instruction is known to be buggy!");
     checkcp1;
     double value = get_fpu_register_double(cpu, instruction.fr.fs);
-    word truncated = value;
+    PUSHROUND;
+    word truncated = round(value);
+    POPROUND;
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
@@ -484,7 +516,9 @@ MIPS_INSTR(mips_cp_round_w_s) {
     logwarn("mips_cp_round_w_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(cpu, instruction.fr.fs);
-    sword truncated = truncf(value);
+    PUSHROUND;
+    sword truncated = roundf(value);
+    POPROUND;
     set_fpu_register_word(cpu, instruction.fr.fd, truncated);
 }
 
