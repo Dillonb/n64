@@ -76,7 +76,7 @@ Hardware-verified over the EverDrive 64's USB port using [rsp-recorder](https://
 Still greatly in need of optimization.
 
 ## RDP
-Not started. [parallel-rdp by Themaister](https://github.com/Themaister/parallel-rdp) is integrated in the meantime.
+Very early stage. [parallel-rdp by Themaister](https://github.com/Themaister/parallel-rdp) is integrated to provide RDP functionality in the meantime.
 
 # Credits
 - [Stephen Lane-Walsh](https://github.com/whobrokethebuild) for [cflags](https://github.com/whobrokethebuild/cflags), [gdbstub](https://github.com/WhoBrokeTheBuild/gdbstub), and moral support
