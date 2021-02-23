@@ -46,43 +46,43 @@ void rsp_status_reg_write(word value) {
     sp_status_write_t write;
     write.raw = value;
 
-    CLEAR_SET(n64sys.rsp.status.halt,          write.clear_halt,          write.set_halt);
-    if (n64sys.rsp.status.halt) {
-        n64sys.rsp.steps = 0;
+    CLEAR_SET(N64RSP.status.halt,          write.clear_halt,          write.set_halt);
+    if (N64RSP.status.halt) {
+        N64RSP.steps = 0;
     }
 
-    CLEAR_SET(n64sys.rsp.status.broke,         write.clear_broke,         false);
+    CLEAR_SET(N64RSP.status.broke,         write.clear_broke,         false);
     if (write.clear_intr) {
         interrupt_lower(INTERRUPT_SP);
     }
     if (write.set_intr) {
         interrupt_raise(INTERRUPT_SP);
     }
-    CLEAR_SET(n64sys.rsp.status.single_step,   write.clear_sstep,         write.set_sstep);
-    CLEAR_SET(n64sys.rsp.status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break);
-    CLEAR_SET(n64sys.rsp.status.signal_0,      write.clear_signal_0,      write.set_signal_0);
-    CLEAR_SET(n64sys.rsp.status.signal_1,      write.clear_signal_1,      write.set_signal_1);
-    CLEAR_SET(n64sys.rsp.status.signal_2,      write.clear_signal_2,      write.set_signal_2);
-    CLEAR_SET(n64sys.rsp.status.signal_3,      write.clear_signal_3,      write.set_signal_3);
-    CLEAR_SET(n64sys.rsp.status.signal_4,      write.clear_signal_4,      write.set_signal_4);
-    CLEAR_SET(n64sys.rsp.status.signal_5,      write.clear_signal_5,      write.set_signal_5);
-    CLEAR_SET(n64sys.rsp.status.signal_6,      write.clear_signal_6,      write.set_signal_6);
-    CLEAR_SET(n64sys.rsp.status.signal_7,      write.clear_signal_7,      write.set_signal_7);
+    CLEAR_SET(N64RSP.status.single_step,   write.clear_sstep,         write.set_sstep);
+    CLEAR_SET(N64RSP.status.intr_on_break, write.clear_intr_on_break, write.set_intr_on_break);
+    CLEAR_SET(N64RSP.status.signal_0,      write.clear_signal_0,      write.set_signal_0);
+    CLEAR_SET(N64RSP.status.signal_1,      write.clear_signal_1,      write.set_signal_1);
+    CLEAR_SET(N64RSP.status.signal_2,      write.clear_signal_2,      write.set_signal_2);
+    CLEAR_SET(N64RSP.status.signal_3,      write.clear_signal_3,      write.set_signal_3);
+    CLEAR_SET(N64RSP.status.signal_4,      write.clear_signal_4,      write.set_signal_4);
+    CLEAR_SET(N64RSP.status.signal_5,      write.clear_signal_5,      write.set_signal_5);
+    CLEAR_SET(N64RSP.status.signal_6,      write.clear_signal_6,      write.set_signal_6);
+    CLEAR_SET(N64RSP.status.signal_7,      write.clear_signal_7,      write.set_signal_7);
 }
 
 word read_word_spreg(word address) {
     switch (address) {
         case ADDR_SP_MEM_ADDR_REG:
-            return n64sys.rsp.io.mem_addr.raw;
+            return N64RSP.io.mem_addr.raw;
         case ADDR_SP_DRAM_ADDR_REG:
-            return n64sys.rsp.io.dram_addr.raw;
+            return N64RSP.io.dram_addr.raw;
         case ADDR_SP_RD_LEN_REG:
         case ADDR_SP_WR_LEN_REG:
-            return n64sys.rsp.io.dma.raw;
+            return N64RSP.io.dma.raw;
         case ADDR_SP_PC_REG:
-            return n64sys.rsp.pc;
+            return N64RSP.pc;
         case ADDR_SP_STATUS_REG:
-            return n64sys.rsp.status.raw;
+            return N64RSP.status.raw;
         case ADDR_SP_DMA_BUSY_REG:
             return 0; // DMA not busy, since it's instant.
         default:
@@ -93,19 +93,19 @@ word read_word_spreg(word address) {
 void write_word_spreg(word address, word value) {
     switch (address) {
         case ADDR_SP_MEM_ADDR_REG:
-            n64sys.rsp.io.shadow_mem_addr.raw = value;
+            N64RSP.io.shadow_mem_addr.raw = value;
             break;
         case ADDR_SP_DRAM_ADDR_REG:
-            n64sys.rsp.io.shadow_dmem_addr.raw = value;
+            N64RSP.io.shadow_dmem_addr.raw = value;
             break;
         case ADDR_SP_RD_LEN_REG: {
-            n64sys.rsp.io.dma.raw = value;
-            rsp_dma_read(&n64sys.rsp);
+            N64RSP.io.dma.raw = value;
+            rsp_dma_read(&N64RSP);
             break;
         }
         case ADDR_SP_WR_LEN_REG: {
-            n64sys.rsp.io.dma.raw = value;
-            rsp_dma_write(&n64sys.rsp);
+            N64RSP.io.dma.raw = value;
+            rsp_dma_write(&N64RSP);
             break;
         }
         case ADDR_SP_STATUS_REG:

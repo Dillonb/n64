@@ -11,7 +11,7 @@
 #define TEST_FAILED_REGISTER 30
 
 bool test_complete() {
-    sdword test_failed = get_register(&n64sys.cpu, TEST_FAILED_REGISTER);
+    sdword test_failed = get_register(&N64CPU, TEST_FAILED_REGISTER);
     if (test_failed != 0) {
         if (test_failed != -1) {
             logfatal("Test #%ld failed.", test_failed);
@@ -37,9 +37,9 @@ int main(int argc, char** argv) {
         n64_write_byte(0x00001000 + i, b);
     }
 
-    set_pc_word_r4300i(&n64sys.cpu, n64sys.mem.rom.header.program_counter);
+    set_pc_word_r4300i(&N64CPU, n64sys.mem.rom.header.program_counter);
 
-    loginfo("Initial PC: 0x%016lX\n", n64sys.cpu.pc);
+    loginfo("Initial PC: 0x%016lX\n", N64CPU.pc);
 
     int steps = 0;
     for (; steps < MAX_STEPS && !test_complete(); steps++) {

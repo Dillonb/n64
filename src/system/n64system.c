@@ -88,20 +88,20 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
 
     n64sys.video_type = video_type;
 
-    n64sys.cpu.read_dword = &virtual_read_dword_wrapper;
-    n64sys.cpu.write_dword = &virtual_write_dword_wrapper;
+    N64CPU.read_dword = &virtual_read_dword_wrapper;
+    N64CPU.write_dword = &virtual_write_dword_wrapper;
 
-    n64sys.cpu.read_word = &virtual_read_word_wrapper;
-    n64sys.cpu.write_word = &virtual_write_word_wrapper;
+    N64CPU.read_word = &virtual_read_word_wrapper;
+    N64CPU.write_word = &virtual_write_word_wrapper;
 
-    n64sys.cpu.read_half = &virtual_read_half_wrapper;
-    n64sys.cpu.write_half = &virtual_write_half_wrapper;
+    N64CPU.read_half = &virtual_read_half_wrapper;
+    N64CPU.write_half = &virtual_write_half_wrapper;
 
-    n64sys.cpu.read_byte = &virtual_read_byte_wrapper;
-    n64sys.cpu.write_byte = &virtual_write_byte_wrapper;
+    N64CPU.read_byte = &virtual_read_byte_wrapper;
+    N64CPU.write_byte = &virtual_write_byte_wrapper;
 
-    n64sys.rsp.read_physical_word = &n64_read_physical_word;
-    n64sys.rsp.write_physical_word = &write_physical_word_wrapper;
+    N64RSP.read_physical_word = &n64_read_physical_word;
+    N64RSP.write_physical_word = &write_physical_word_wrapper;
 
     if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
         logfatal("mprotect codecache failed! %s", strerror(errno));
@@ -134,16 +134,16 @@ void reset_n64system() {
         free(n64sys.mem.mempack_data);
         n64sys.mem.mempack_data = NULL;
     }
-    n64sys.cpu.branch = false;
-    n64sys.cpu.exception = false;
+    N64CPU.branch = false;
+    N64CPU.exception = false;
 
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
-        n64sys.rsp.icache[i].instruction.raw = 0;
-        n64sys.rsp.icache[i].handler = cache_rsp_instruction;
+        N64RSP.icache[i].instruction.raw = 0;
+        N64RSP.icache[i].handler = cache_rsp_instruction;
     }
 
-    n64sys.rsp.status.halt = true; // RSP starts halted
+    N64RSP.status.halt = true; // RSP starts halted
 
     n64sys.vi.vi_v_intr = 256;
 
@@ -159,16 +159,16 @@ void reset_n64system() {
     n64sys.si.controllers[2].plugged_in = false;
     n64sys.si.controllers[3].plugged_in = false;
 
-    n64sys.cpu.cp0.status.bev = true;
-    n64sys.cpu.cp0.cause.raw  = 0xB000007C;
-    n64sys.cpu.cp0.EPC        = 0xFFFFFFFFFFFFFFFF;
-    n64sys.cpu.cp0.PRId       = 0x00000B22;
-    n64sys.cpu.cp0.config     = 0x70000000;
-    n64sys.cpu.cp0.error_epc  = 0xFFFFFFFFFFFFFFFF;
+    N64CP0.status.bev = true;
+    N64CP0.cause.raw  = 0xB000007C;
+    N64CP0.EPC        = 0xFFFFFFFFFFFFFFFF;
+    N64CP0.PRId       = 0x00000B22;
+    N64CP0.config     = 0x70000000;
+    N64CP0.error_epc  = 0xFFFFFFFFFFFFFFFF;
 
     memset(n64sys.mem.rdram, 0, N64_RDRAM_SIZE);
-    memset(n64sys.rsp.sp_dmem, 0, SP_DMEM_SIZE);
-    memset(n64sys.rsp.sp_imem, 0, SP_IMEM_SIZE);
+    memset(N64RSP.sp_dmem, 0, SP_DMEM_SIZE);
+    memset(N64RSP.sp_imem, 0, SP_IMEM_SIZE);
     memset(n64sys.mem.pif_ram, 0, PIF_RAM_SIZE);
 
     invalidate_dynarec_all_pages(n64sys.dynarec);
@@ -377,7 +377,7 @@ void n64_request_quit() {
 void on_interrupt_change() {
     bool interrupt = n64sys.mi.intr.raw & n64sys.mi.intr_mask.raw;
     loginfo("ip2 is now: %d", interrupt);
-    N64CPU.cp0.cause.ip2 = interrupt;
+    N64CP0.cause.ip2 = interrupt;
     r4300i_interrupt_update(&N64CPU);
 }
 

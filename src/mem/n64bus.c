@@ -210,7 +210,7 @@ void write_word_pireg(word address, word value) {
             }
 
 
-            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", n64sys.cpu.pc, dram_addr, cart_addr, length);
+            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", N64CPU.pc, dram_addr, cart_addr, length);
 
             for (int i = 0; i < length; i++) {
                 byte b = n64_read_byte(dram_addr + i);
@@ -236,7 +236,7 @@ void write_word_pireg(word address, word value) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
 
-            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", n64sys.cpu.pc, cart_addr, dram_addr, length);
+            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", N64CPU.pc, cart_addr, dram_addr, length);
 
             if (is_flash(n64sys.mem.save_type) && cart_addr >= 0x08000000 && cart_addr < 0x08010000) {
                 // Special case for Flash DMAs
@@ -501,8 +501,8 @@ INLINE void invalidate_rsp_icache(word address) {
 
     int index = address / 4;
 
-    n64sys.rsp.icache[index].handler = cache_rsp_instruction;
-    n64sys.rsp.icache[index].instruction.raw = word_from_byte_array(n64sys.rsp.sp_imem, address);
+    N64RSP.icache[index].handler = cache_rsp_instruction;
+    N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
 }
 
 void n64_write_dword(word address, dword value) {
@@ -518,10 +518,10 @@ void n64_write_dword(word address, dword value) {
         case REGION_RDRAM_UNUSED:
             return;
         case REGION_SP_DMEM:
-            dword_to_byte_array((byte*) &n64sys.rsp.sp_dmem, DWORD_ADDRESS(address - SREGION_SP_DMEM), value);
+            dword_to_byte_array((byte*) &N64RSP.sp_dmem, DWORD_ADDRESS(address - SREGION_SP_DMEM), value);
             break;
         case REGION_SP_IMEM:
-            dword_to_byte_array((byte*) &n64sys.rsp.sp_imem, DWORD_ADDRESS(address - SREGION_SP_IMEM), value);
+            dword_to_byte_array((byte*) &N64RSP.sp_imem, DWORD_ADDRESS(address - SREGION_SP_IMEM), value);
             invalidate_rsp_icache(DWORD_ADDRESS(address));
             invalidate_rsp_icache(DWORD_ADDRESS(address) + 4);
             break;
@@ -589,9 +589,9 @@ dword n64_read_dword(word address) {
         case REGION_RDRAM_REGS:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address);
         case REGION_SP_DMEM:
-            return dword_from_byte_array((byte*) &n64sys.rsp.sp_dmem, DWORD_ADDRESS(address - SREGION_SP_DMEM));
+            return dword_from_byte_array((byte*) &N64RSP.sp_dmem, DWORD_ADDRESS(address - SREGION_SP_DMEM));
         case REGION_SP_IMEM:
-            return dword_from_byte_array((byte*) &n64sys.rsp.sp_imem, DWORD_ADDRESS(address - SREGION_SP_IMEM));
+            return dword_from_byte_array((byte*) &N64RSP.sp_imem, DWORD_ADDRESS(address - SREGION_SP_IMEM));
         case REGION_SP_UNUSED:
             return read_unused(address);
         case REGION_SP_REGS:
@@ -656,10 +656,10 @@ void n64_write_word(word address, word value) {
         case REGION_RDRAM_UNUSED:
             return;
         case REGION_SP_DMEM:
-            word_to_byte_array((byte*) &n64sys.rsp.sp_dmem, WORD_ADDRESS(address - SREGION_SP_DMEM), value);
+            word_to_byte_array((byte*) &N64RSP.sp_dmem, WORD_ADDRESS(address - SREGION_SP_DMEM), value);
             break;
         case REGION_SP_IMEM:
-            word_to_byte_array((byte*) &n64sys.rsp.sp_imem, WORD_ADDRESS(address - SREGION_SP_IMEM), value);
+            word_to_byte_array((byte*) &N64RSP.sp_imem, WORD_ADDRESS(address - SREGION_SP_IMEM), value);
             invalidate_rsp_icache(WORD_ADDRESS(address));
             break;
         case REGION_SP_UNUSED:
@@ -731,9 +731,9 @@ INLINE word _n64_read_word(word address) {
         case REGION_RDRAM_REGS:
             return read_word_rdramreg(address);
         case REGION_SP_DMEM:
-            return word_from_byte_array((byte*) &n64sys.rsp.sp_dmem, WORD_ADDRESS(address - SREGION_SP_DMEM));
+            return word_from_byte_array((byte*) &N64RSP.sp_dmem, WORD_ADDRESS(address - SREGION_SP_DMEM));
         case REGION_SP_IMEM:
-            return word_from_byte_array((byte*) &n64sys.rsp.sp_imem, WORD_ADDRESS(address - SREGION_SP_IMEM));
+            return word_from_byte_array((byte*) &N64RSP.sp_imem, WORD_ADDRESS(address - SREGION_SP_IMEM));
         case REGION_SP_UNUSED:
             return read_unused(address);
         case REGION_SP_REGS:
@@ -828,10 +828,10 @@ void n64_write_half(word address, half value) {
         case REGION_RDRAM_UNUSED:
             return;
         case REGION_SP_DMEM:
-            half_to_byte_array((byte*) &n64sys.rsp.sp_dmem, HALF_ADDRESS(address - SREGION_SP_DMEM), value);
+            half_to_byte_array((byte*) &N64RSP.sp_dmem, HALF_ADDRESS(address - SREGION_SP_DMEM), value);
             break;
         case REGION_SP_IMEM:
-            half_to_byte_array((byte*) &n64sys.rsp.sp_imem, HALF_ADDRESS(address - SREGION_SP_IMEM), value);
+            half_to_byte_array((byte*) &N64RSP.sp_imem, HALF_ADDRESS(address - SREGION_SP_IMEM), value);
             invalidate_rsp_icache(HALF_ADDRESS(address));
             break;
         case REGION_SP_UNUSED:
@@ -900,9 +900,9 @@ half n64_read_half(word address) {
         case REGION_RDRAM_REGS:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address);
         case REGION_SP_DMEM:
-            return half_from_byte_array((byte*) &n64sys.rsp.sp_dmem, HALF_ADDRESS(address - SREGION_SP_DMEM));
+            return half_from_byte_array((byte*) &N64RSP.sp_dmem, HALF_ADDRESS(address - SREGION_SP_DMEM));
         case REGION_SP_IMEM:
-            return half_from_byte_array((byte*) &n64sys.rsp.sp_imem, HALF_ADDRESS(address - SREGION_SP_IMEM));
+            return half_from_byte_array((byte*) &N64RSP.sp_imem, HALF_ADDRESS(address - SREGION_SP_IMEM));
         case REGION_SP_UNUSED:
             return read_unused(address);
         case REGION_SP_REGS:
@@ -964,11 +964,11 @@ void n64_write_byte(word address, byte value) {
         case REGION_RDRAM_REGS:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address);
         case REGION_SP_DMEM: {
-            n64sys.rsp.sp_dmem[BYTE_ADDRESS(address - SREGION_SP_DMEM)] = value;
+            N64RSP.sp_dmem[BYTE_ADDRESS(address - SREGION_SP_DMEM)] = value;
             break;
         }
         case REGION_SP_IMEM: {
-            n64sys.rsp.sp_imem[BYTE_ADDRESS(address - SREGION_SP_IMEM)] = value;
+            N64RSP.sp_imem[BYTE_ADDRESS(address - SREGION_SP_IMEM)] = value;
             invalidate_rsp_icache(BYTE_ADDRESS(address));
             break;
         }
@@ -1027,9 +1027,9 @@ byte n64_read_byte(word address) {
         case REGION_RDRAM_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address);
         case REGION_SP_DMEM:
-            return n64sys.rsp.sp_dmem[BYTE_ADDRESS(address) - SREGION_SP_DMEM];
+            return N64RSP.sp_dmem[BYTE_ADDRESS(address) - SREGION_SP_DMEM];
         case REGION_SP_IMEM:
-            return n64sys.rsp.sp_imem[BYTE_ADDRESS(address) - SREGION_SP_IMEM];
+            return N64RSP.sp_imem[BYTE_ADDRESS(address) - SREGION_SP_IMEM];
         case REGION_SP_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_SP_REGS", address);
         case REGION_DP_COMMAND_REGS:

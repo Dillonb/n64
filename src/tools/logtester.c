@@ -91,9 +91,9 @@ void check_rsp_log(FILE* fp) {
         strcpy(post_line_buf, line);
         char* post_line = post_line_buf;
 
-        n64sys.rsp.pc = strtol(post_line, NULL, 16);
+        N64RSP.pc = strtol(post_line, NULL, 16);
         word instr = strtol(post_line + 10, NULL, 16);
-        n64sys.rsp.write_physical_word((n64sys.rsp.pc & 0xFFF) + SREGION_SP_IMEM, instr);
+        N64RSP.write_physical_word((N64RSP.pc & 0xFFF) + SREGION_SP_IMEM, instr);
 
         pre_line += 59; // Skip all the other stuff and get right to regs
         post_line += 59; // Skip all the other stuff and get right to regs
@@ -103,63 +103,63 @@ void check_rsp_log(FILE* fp) {
 
         for (int r = 0; r < 32; r++) {
             tok = strtok(NULL, " ");
-            n64sys.rsp.gpr[r] = strtol(tok, NULL, 16);
+            N64RSP.gpr[r] = strtol(tok, NULL, 16);
             strtok(NULL, " ");
         }
 
         for (int v = 0; v < 32; v++) {
             tok = strtok(NULL, " ");
-            load_vecr(tok, &(n64sys.rsp.vu_regs[v]));
+            load_vecr(tok, &(N64RSP.vu_regs[v]));
             strtok(NULL, " ");
         }
 
         // ACC_H
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.acc.h);
+        load_vecr(tok, &N64RSP.acc.h);
         strtok(NULL, " ");
 
         // ACC_M
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.acc.m);
+        load_vecr(tok, &N64RSP.acc.m);
         strtok(NULL, " ");
 
         // ACC_L
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.acc.l);
+        load_vecr(tok, &N64RSP.acc.l);
         strtok(NULL, " ");
 
         // VCC_H
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.vcc.h);
-        fix_fake_vecr(&n64sys.rsp.vcc.h);
+        load_vecr(tok, &N64RSP.vcc.h);
+        fix_fake_vecr(&N64RSP.vcc.h);
         strtok(NULL, " ");
 
         // VCC_L
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.vcc.l);
-        fix_fake_vecr(&n64sys.rsp.vcc.l);
+        load_vecr(tok, &N64RSP.vcc.l);
+        fix_fake_vecr(&N64RSP.vcc.l);
         strtok(NULL, " ");
 
         // VCO_H
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.vco.h);
-        fix_fake_vecr(&n64sys.rsp.vco.h);
+        load_vecr(tok, &N64RSP.vco.h);
+        fix_fake_vecr(&N64RSP.vco.h);
         strtok(NULL, " ");
 
         // VCO_L
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.vco.l);
-        fix_fake_vecr(&n64sys.rsp.vco.l);
+        load_vecr(tok, &N64RSP.vco.l);
+        fix_fake_vecr(&N64RSP.vco.l);
         strtok(NULL, " ");
 
         // VCE
         tok = strtok(NULL, " ");
-        load_vecr(tok, &n64sys.rsp.vce);
-        fix_fake_vecr(&n64sys.rsp.vce);
+        load_vecr(tok, &N64RSP.vce);
+        fix_fake_vecr(&N64RSP.vce);
         strtok(NULL, " ");
 
         // Pre-setup is done, run the step
-        rsp_step(&n64sys.rsp);
+        rsp_step(&N64RSP);
 
         bool all_correct = true;
 
@@ -168,7 +168,7 @@ void check_rsp_log(FILE* fp) {
 
         for (int r = 0; r < 32; r++) {
             tok = strtok(NULL, " ");
-            word actual = n64sys.rsp.gpr[r];
+            word actual = N64RSP.gpr[r];
             word expected = strtol(tok, NULL, 16);
             if (actual != expected) {
                 logfatal("r%d expected: 0x%08X actual 0x%08X\n", r, expected, actual);
@@ -180,53 +180,53 @@ void check_rsp_log(FILE* fp) {
             tok = strtok(NULL, " ");
             char bufname[6];
             sprintf(bufname, "v%02d  ", v);
-            all_correct &= compare_vecr(tok, bufname, &n64sys.rsp.vu_regs[v]);
+            all_correct &= compare_vecr(tok, bufname, &N64RSP.vu_regs[v]);
             strtok(NULL, " ");
         }
 
         // ACC_H
         tok = strtok(NULL, " ");
-        all_correct &= compare_vecr(tok, "ACC_H", &n64sys.rsp.acc.h);
+        all_correct &= compare_vecr(tok, "ACC_H", &N64RSP.acc.h);
         strtok(NULL, " ");
 
         // ACC_M
         tok = strtok(NULL, " ");
-        all_correct &= compare_vecr(tok, "ACC_M", &n64sys.rsp.acc.m);
+        all_correct &= compare_vecr(tok, "ACC_M", &N64RSP.acc.m);
         strtok(NULL, " ");
 
         // ACC_L
         tok = strtok(NULL, " ");
-        all_correct &= compare_vecr(tok, "ACC_L", &n64sys.rsp.acc.l);
+        all_correct &= compare_vecr(tok, "ACC_L", &N64RSP.acc.l);
         strtok(NULL, " ");
 
         // VCC_H
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&n64sys.rsp.vcc.h);
-        all_correct &= compare_vecr(tok, "VCC_H", &n64sys.rsp.vcc.h);
+        fix_fake_vecr(&N64RSP.vcc.h);
+        all_correct &= compare_vecr(tok, "VCC_H", &N64RSP.vcc.h);
         strtok(NULL, " ");
 
         // VCC_L
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&n64sys.rsp.vcc.l);
-        all_correct &= compare_vecr(tok, "VCC_L", &n64sys.rsp.vcc.l);
+        fix_fake_vecr(&N64RSP.vcc.l);
+        all_correct &= compare_vecr(tok, "VCC_L", &N64RSP.vcc.l);
         strtok(NULL, " ");
 
         // VCO_H
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&n64sys.rsp.vco.h);
-        all_correct &= compare_vecr(tok, "VCO_H", &n64sys.rsp.vco.h);
+        fix_fake_vecr(&N64RSP.vco.h);
+        all_correct &= compare_vecr(tok, "VCO_H", &N64RSP.vco.h);
         strtok(NULL, " ");
 
         // VCO_L
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&n64sys.rsp.vco.l);
-        all_correct &= compare_vecr(tok, "VCO_L", &n64sys.rsp.vco.l);
+        fix_fake_vecr(&N64RSP.vco.l);
+        all_correct &= compare_vecr(tok, "VCO_L", &N64RSP.vco.l);
         strtok(NULL, " ");
 
         // VCE
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&n64sys.rsp.vce);
-        all_correct &= compare_vecr(tok, "VCE", &n64sys.rsp.vce);
+        fix_fake_vecr(&N64RSP.vce);
+        all_correct &= compare_vecr(tok, "VCE", &N64RSP.vce);
         strtok(NULL, " ");
 
         if (!all_correct) {
@@ -237,38 +237,38 @@ void check_rsp_log(FILE* fp) {
 }
 
 void check_cpu_log(FILE* fp) {
-    n64sys.cpu.gpr[0] = 0x00000000;
-    n64sys.cpu.gpr[1] = 0x00000001;
-    n64sys.cpu.gpr[2] = 0x0ebda536;
-    n64sys.cpu.gpr[3] = 0x0ebda536;
-    n64sys.cpu.gpr[4] = 0x0000a536;
-    n64sys.cpu.gpr[5] = 0xc0f1d859;
-    n64sys.cpu.gpr[6] = 0xa4001f0c;
-    n64sys.cpu.gpr[7] = 0xa4001f08;
-    n64sys.cpu.gpr[8] = 0x000000f0;
-    n64sys.cpu.gpr[9] = 0x00000000;
-    n64sys.cpu.gpr[10] = 0x00000040;
-    n64sys.cpu.gpr[11] = 0xa4000040;
-    n64sys.cpu.gpr[12] = 0xed10d0b3;
-    n64sys.cpu.gpr[13] = 0x1402a4cc;
-    n64sys.cpu.gpr[14] = 0x2de108ea;
-    n64sys.cpu.gpr[15] = 0x3103e121;
-    n64sys.cpu.gpr[16] = 0x00000000;
-    n64sys.cpu.gpr[17] = 0x00000000;
-    n64sys.cpu.gpr[18] = 0x00000000;
-    n64sys.cpu.gpr[19] = 0x00000000;
-    n64sys.cpu.gpr[20] = 0x00000001;
-    n64sys.cpu.gpr[21] = 0x00000000;
-    n64sys.cpu.gpr[22] = 0x0000003f;
-    n64sys.cpu.gpr[23] = 0x00000000;
-    n64sys.cpu.gpr[24] = 0x00000000;
-    n64sys.cpu.gpr[25] = 0x9debb54f;
-    n64sys.cpu.gpr[26] = 0x00000000;
-    n64sys.cpu.gpr[27] = 0x00000000;
-    n64sys.cpu.gpr[28] = 0x00000000;
-    n64sys.cpu.gpr[29] = 0xa4001ff0;
-    n64sys.cpu.gpr[30] = 0x00000000;
-    n64sys.cpu.gpr[31] = 0xa4001550;
+    N64CPU.gpr[0] = 0x00000000;
+    N64CPU.gpr[1] = 0x00000001;
+    N64CPU.gpr[2] = 0x0ebda536;
+    N64CPU.gpr[3] = 0x0ebda536;
+    N64CPU.gpr[4] = 0x0000a536;
+    N64CPU.gpr[5] = 0xc0f1d859;
+    N64CPU.gpr[6] = 0xa4001f0c;
+    N64CPU.gpr[7] = 0xa4001f08;
+    N64CPU.gpr[8] = 0x000000f0;
+    N64CPU.gpr[9] = 0x00000000;
+    N64CPU.gpr[10] = 0x00000040;
+    N64CPU.gpr[11] = 0xa4000040;
+    N64CPU.gpr[12] = 0xed10d0b3;
+    N64CPU.gpr[13] = 0x1402a4cc;
+    N64CPU.gpr[14] = 0x2de108ea;
+    N64CPU.gpr[15] = 0x3103e121;
+    N64CPU.gpr[16] = 0x00000000;
+    N64CPU.gpr[17] = 0x00000000;
+    N64CPU.gpr[18] = 0x00000000;
+    N64CPU.gpr[19] = 0x00000000;
+    N64CPU.gpr[20] = 0x00000001;
+    N64CPU.gpr[21] = 0x00000000;
+    N64CPU.gpr[22] = 0x0000003f;
+    N64CPU.gpr[23] = 0x00000000;
+    N64CPU.gpr[24] = 0x00000000;
+    N64CPU.gpr[25] = 0x9debb54f;
+    N64CPU.gpr[26] = 0x00000000;
+    N64CPU.gpr[27] = 0x00000000;
+    N64CPU.gpr[28] = 0x00000000;
+    N64CPU.gpr[29] = 0xa4001ff0;
+    N64CPU.gpr[30] = 0x00000000;
+    N64CPU.gpr[31] = 0xa4001550;
 
 
     char lastinstr[100];
@@ -286,7 +286,7 @@ void check_cpu_log(FILE* fp) {
         for (int r = 0; r < 32; r++) {
             dword expected = strtol(tok, NULL, 16);
             tok = strtok(NULL, " ");
-            dword actual = n64sys.cpu.gpr[r] & 0xFFFFFFFF;
+            dword actual = N64CPU.gpr[r] & 0xFFFFFFFF;
             if (expected != actual) {
                 logwarn("Failed running line: %s", lastinstr);
                 logwarn("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual);
@@ -304,8 +304,8 @@ void check_cpu_log(FILE* fp) {
 
         tok = strtok(instrline, " ");
         dword pc = strtol(tok, NULL, 16);
-        if (pc != n64sys.cpu.pc) {
-            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, n64sys.cpu.pc);
+        if (pc != N64CPU.pc) {
+            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, N64CPU.pc);
         }
         n64_system_step(false);
     }
@@ -326,7 +326,7 @@ void cpu_step(r4300i_t* cpu) {
 }
 
 void update_count(int taken) {
-    r4300i_t* cpu = &n64sys.cpu;
+    r4300i_t* cpu = &N64CPU;
 
     uint64_t oldcount = cpu->cp0.count >> 1;
     uint64_t newcount = (cpu->cp0.count + (taken * CYCLES_PER_INSTR)) >> 1;
@@ -340,7 +340,7 @@ void update_count(int taken) {
 }
 
 int run_system_check_interrupt() {
-    r4300i_t* cpu = &n64sys.cpu;
+    r4300i_t* cpu = &N64CPU;
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
@@ -354,7 +354,7 @@ int run_system_check_interrupt() {
 }
 
 int run_system_and_check(long taken, char* line, long linenum) {
-    r4300i_t* cpu = &n64sys.cpu;
+    r4300i_t* cpu = &N64CPU;
     printf("Running for %ld cycles on line %ld\n", taken, linenum);
 
     char* tok = strtok(NULL, " ");
@@ -375,7 +375,7 @@ int run_system_and_check(long taken, char* line, long linenum) {
     for (int r = 0; r < 32; r++) {
         tok = strtok(NULL, " ");
         dword expected = strtoul(tok, NULL, 16);
-        dword actual = n64sys.cpu.gpr[r];
+        dword actual = N64CPU.gpr[r];
         bool anybad = false;
         if (expected != actual) {
             logalways("RIP! on line %ld, after a block of size %ld, r%d (%s) expected 0x%016lX actual 0x%016lX\n", linenum, taken, r, register_names[r], expected, actual);
@@ -388,12 +388,12 @@ int run_system_and_check(long taken, char* line, long linenum) {
     }
 
 
-    if (!n64sys.rsp.status.halt) {
+    if (!N64RSP.status.halt) {
         // 2 RSP steps per 3 CPU steps
-        n64sys.rsp.steps += (cpu_steps / 3) * 2;
+        N64RSP.steps += (cpu_steps / 3) * 2;
         cpu_steps -= cpu_steps % 3;
 
-        rsp_run(&n64sys.rsp);
+        rsp_run(&N64RSP);
     } else {
         cpu_steps = 0;
     }

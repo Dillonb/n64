@@ -4,38 +4,38 @@
 #include "backup.h"
 
 void pif_rom_execute_hle() {
-    n64sys.cpu.gpr[0] = 0;
-    n64sys.cpu.gpr[1] = 0;
-    n64sys.cpu.gpr[2] = 0;
-    n64sys.cpu.gpr[3] = 0;
-    n64sys.cpu.gpr[4] = 0;
-    n64sys.cpu.gpr[5] = 0;
-    n64sys.cpu.gpr[6] = 0;
-    n64sys.cpu.gpr[7] = 0;
-    n64sys.cpu.gpr[8] = 0;
-    n64sys.cpu.gpr[9] = 0;
-    n64sys.cpu.gpr[10] = 0;
-    n64sys.cpu.gpr[11] = 0;
-    n64sys.cpu.gpr[12] = 0;
-    n64sys.cpu.gpr[13] = 0;
-    n64sys.cpu.gpr[14] = 0;
-    n64sys.cpu.gpr[15] = 0;
-    n64sys.cpu.gpr[16] = 0;
-    n64sys.cpu.gpr[17] = 0;
-    n64sys.cpu.gpr[18] = 0;
-    n64sys.cpu.gpr[19] = 0;
-    n64sys.cpu.gpr[20] = 0x1;
-    n64sys.cpu.gpr[21] = 0;
-    n64sys.cpu.gpr[22] = 0x3F;
-    n64sys.cpu.gpr[23] = 0;
-    n64sys.cpu.gpr[24] = 0;
-    n64sys.cpu.gpr[25] = 0;
-    n64sys.cpu.gpr[26] = 0;
-    n64sys.cpu.gpr[27] = 0;
-    n64sys.cpu.gpr[28] = 0;
-    n64sys.cpu.gpr[29] = 0xFFFFFFFFA4001FF0;
-    n64sys.cpu.gpr[30] = 0;
-    n64sys.cpu.gpr[31] = 0;
+    N64CPU.gpr[0] = 0;
+    N64CPU.gpr[1] = 0;
+    N64CPU.gpr[2] = 0;
+    N64CPU.gpr[3] = 0;
+    N64CPU.gpr[4] = 0;
+    N64CPU.gpr[5] = 0;
+    N64CPU.gpr[6] = 0;
+    N64CPU.gpr[7] = 0;
+    N64CPU.gpr[8] = 0;
+    N64CPU.gpr[9] = 0;
+    N64CPU.gpr[10] = 0;
+    N64CPU.gpr[11] = 0;
+    N64CPU.gpr[12] = 0;
+    N64CPU.gpr[13] = 0;
+    N64CPU.gpr[14] = 0;
+    N64CPU.gpr[15] = 0;
+    N64CPU.gpr[16] = 0;
+    N64CPU.gpr[17] = 0;
+    N64CPU.gpr[18] = 0;
+    N64CPU.gpr[19] = 0;
+    N64CPU.gpr[20] = 0x1;
+    N64CPU.gpr[21] = 0;
+    N64CPU.gpr[22] = 0x3F;
+    N64CPU.gpr[23] = 0;
+    N64CPU.gpr[24] = 0;
+    N64CPU.gpr[25] = 0;
+    N64CPU.gpr[26] = 0;
+    N64CPU.gpr[27] = 0;
+    N64CPU.gpr[28] = 0;
+    N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
+    N64CPU.gpr[30] = 0;
+    N64CPU.gpr[31] = 0;
 
     //N64CP0.index         = 0;
     N64CP0.random        = 0x0000001F;
@@ -90,9 +90,9 @@ void pif_rom_execute_hle() {
     n64_write_word(0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
-    memcpy(n64sys.rsp.sp_dmem, n64sys.mem.rom.rom, sizeof(byte) * 0x1000);
+    memcpy(N64RSP.sp_dmem, n64sys.mem.rom.rom, sizeof(byte) * 0x1000);
 
-    set_pc_word_r4300i(&n64sys.cpu, 0xA4000040);
+    set_pc_word_r4300i(&N64CPU, 0xA4000040);
 }
 
 void pif_rom_execute_lle() {

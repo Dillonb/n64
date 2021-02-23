@@ -204,17 +204,17 @@ void rsp_release_semaphore();
 
 INLINE word get_rsp_cp0_register(byte r) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: return n64sys.rsp.io.shadow_mem_addr.raw;
+        case RSP_CP0_DMA_CACHE: return N64RSP.io.shadow_mem_addr.raw;
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
         case RSP_CP0_DMA_DRAM:
-            return n64sys.rsp.io.shadow_dmem_addr.raw;
+            return N64RSP.io.shadow_dmem_addr.raw;
         case RSP_CP0_DMA_READ_LENGTH:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r);
         case RSP_CP0_DMA_WRITE_LENGTH:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r);
-        case RSP_CP0_SP_STATUS: return n64sys.rsp.status.raw;
-        case RSP_CP0_DMA_FULL:  return n64sys.rsp.status.dma_full;
-        case RSP_CP0_DMA_BUSY:  return n64sys.rsp.status.dma_busy;
+        case RSP_CP0_SP_STATUS: return N64RSP.status.raw;
+        case RSP_CP0_DMA_FULL:  return N64RSP.status.dma_full;
+        case RSP_CP0_DMA_BUSY:  return N64RSP.status.dma_busy;
         case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore();
         case RSP_CP0_CMD_START:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r);
@@ -237,15 +237,15 @@ INLINE word get_rsp_cp0_register(byte r) {
 
 INLINE void set_rsp_cp0_register(byte r, word value) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: n64sys.rsp.io.shadow_mem_addr.raw = value; break;
-        case RSP_CP0_DMA_DRAM:  n64sys.rsp.io.shadow_dmem_addr.raw = value; break;
+        case RSP_CP0_DMA_CACHE: N64RSP.io.shadow_mem_addr.raw = value; break;
+        case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dmem_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
-            n64sys.rsp.io.dma.raw = value;
-            rsp_dma_read(&n64sys.rsp);
+            N64RSP.io.dma.raw = value;
+            rsp_dma_read(&N64RSP);
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            n64sys.rsp.io.dma.raw = value;
-            rsp_dma_write(&n64sys.rsp);
+            N64RSP.io.dma.raw = value;
+            rsp_dma_write(&N64RSP);
             break;
         case RSP_CP0_SP_STATUS:
             rsp_status_reg_write(value);

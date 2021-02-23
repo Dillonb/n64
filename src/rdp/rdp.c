@@ -24,7 +24,7 @@ static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent 
 word rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
 
 #define FROM_RDRAM(address) word_from_byte_array(n64sys.mem.rdram, WORD_ADDRESS(address))
-#define FROM_DMEM(address) word_from_byte_array(n64sys.rsp.sp_dmem, address)
+#define FROM_DMEM(address) word_from_byte_array(N64RSP.sp_dmem, address)
 
 static const int command_lengths[64] = {
         2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,
@@ -64,8 +64,8 @@ GFX_INFO get_gfx_info() {
     GFX_INFO gfx_info;
     gfx_info.HEADER = n64sys.mem.rom.rom;
     gfx_info.RDRAM = n64sys.mem.rdram;
-    gfx_info.DMEM = n64sys.rsp.sp_dmem;
-    gfx_info.IMEM = n64sys.rsp.sp_imem;
+    gfx_info.DMEM = N64RSP.sp_dmem;
+    gfx_info.IMEM = N64RSP.sp_imem;
 
     gfx_info.MI_INTR_REG = &n64sys.mi.intr.raw;
 
@@ -97,7 +97,7 @@ GFX_INFO get_gfx_info() {
 
     gfx_info.version = 2;
 
-    gfx_info.SP_STATUS_REG = &n64sys.rsp.status.raw;
+    gfx_info.SP_STATUS_REG = &N64RSP.status.raw;
     gfx_info.RDRAM_SIZE = &rdram_size_word;
 
     return gfx_info;

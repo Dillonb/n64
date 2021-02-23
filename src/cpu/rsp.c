@@ -6,16 +6,16 @@
 #include "disassemble.h"
 
 bool rsp_acquire_semaphore() {
-    if (n64sys.rsp.semaphore_held) {
+    if (N64RSP.semaphore_held) {
         return false; // Semaphore is already held
     } else {
-        n64sys.rsp.semaphore_held = true;
+        N64RSP.semaphore_held = true;
         return true; // Acquired semaphore.
     }
 }
 
 void rsp_release_semaphore() {
-    n64sys.rsp.semaphore_held = false;
+    N64RSP.semaphore_held = false;
 }
 
 INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {

@@ -180,20 +180,20 @@ ssize_t n64_debug_get_memory(char* buffer, size_t length, word address, size_t b
 ssize_t n64_debug_get_register_value(char * buffer, size_t buffer_length, int reg) {
     switch (reg) {
         case 0 ... 31:
-            return snprintf(buffer, buffer_length, "%016lx", n64sys.cpu.gpr[reg]);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.gpr[reg]);
         case 32:
-            return snprintf(buffer, buffer_length, "%08x", n64sys.cpu.cp0.status.raw);
+            return snprintf(buffer, buffer_length, "%08x", N64CP0.status.raw);
         case 33:
-            return snprintf(buffer, buffer_length, "%016lx", n64sys.cpu.mult_lo);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.mult_lo);
         case 34:
-            return snprintf(buffer, buffer_length, "%016lx", n64sys.cpu.mult_hi);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.mult_hi);
         case 35:
-            return snprintf(buffer, buffer_length, "%08x", n64sys.cpu.cp0.bad_vaddr);
+            return snprintf(buffer, buffer_length, "%08x", N64CP0.bad_vaddr);
         case 36:
-            return snprintf(buffer, buffer_length, "%08x", n64sys.cpu.cp0.cause.raw);
+            return snprintf(buffer, buffer_length, "%08x", N64CP0.cause.raw);
         case 37:
-            printf("Sending PC: 0x%016lX\n", n64sys.cpu.pc);
-            return snprintf(buffer, buffer_length, "%016lx", n64sys.cpu.pc);
+            printf("Sending PC: 0x%016lX\n", N64CPU.pc);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.pc);
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
         default:
@@ -208,7 +208,7 @@ ssize_t n64_debug_get_general_registers(char * buffer, size_t buffer_length) {
         if (ofs + 16 > buffer_length) {
             logfatal("Too big!");
         }
-        dword reg = n64sys.cpu.gpr[i];
+        dword reg = N64CPU.gpr[i];
         printed += snprintf(buffer + ofs, buffer_length - ofs, "%016lx", reg);
     }
     return printed;

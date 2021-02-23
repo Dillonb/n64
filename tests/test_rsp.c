@@ -16,13 +16,13 @@
 
 void load_rsp_imem(const char* rsp_path) {
     FILE* rsp = fopen(rsp_path, "rb");
-    size_t read = fread(n64sys.rsp.sp_imem, 1, SP_IMEM_SIZE, rsp);
+    size_t read = fread(N64RSP.sp_imem, 1, SP_IMEM_SIZE, rsp);
 
     // File is in big endian, byte swap it all.
     for (int i = 0; i < SP_IMEM_SIZE; i += 4) {
-        word instr = word_from_byte_array((byte*) &n64sys.rsp.sp_imem, i);
+        word instr = word_from_byte_array((byte*) &N64RSP.sp_imem, i);
         instr = be32toh(instr);
-        word_to_byte_array((byte*) &n64sys.rsp.sp_imem, i, instr);
+        word_to_byte_array((byte*) &N64RSP.sp_imem, i, instr);
     }
 
     if (read == 0) {
@@ -30,32 +30,32 @@ void load_rsp_imem(const char* rsp_path) {
     }
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
-        n64sys.rsp.icache[i].instruction.raw = word_from_byte_array(n64sys.rsp.sp_imem, i * 4);
-        n64sys.rsp.icache[i].handler = cache_rsp_instruction;
+        N64RSP.icache[i].instruction.raw = word_from_byte_array(N64RSP.sp_imem, i * 4);
+        N64RSP.icache[i].handler = cache_rsp_instruction;
     }
 }
 
 void load_rsp_dmem(word* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
-        n64_rsp_write_word(&n64sys.rsp, i * 4, input[i]);
+        n64_rsp_write_word(&N64RSP, i * 4, input[i]);
     }
 }
 
 bool run_test(word* input, int input_size, word* output, int output_size) {
     load_rsp_dmem(input, input_size / 4);
 
-    n64sys.rsp.status.halt = false;
-    n64sys.rsp.pc = 0;
+    N64RSP.status.halt = false;
+    N64RSP.pc = 0;
 
     int cycles = 0;
 
-    while (!n64sys.rsp.status.halt) {
+    while (!N64RSP.status.halt) {
         if (cycles >= MAX_CYCLES) {
             logfatal("Test ran too long and was killed! Possible infinite loop?");
         }
 
         cycles++;
-        rsp_step(&n64sys.rsp);
+        rsp_step(&N64RSP);
     }
 
     bool failed = false;
@@ -82,7 +82,7 @@ bool run_test(word* input, int input_size, word* output, int output_size) {
                 printf(" ");
             }
             if (i + b < output_size) {
-                byte actual = n64sys.rsp.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
+                byte actual = N64RSP.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
                 byte expected = ((byte*)output)[i + b];
 
                 if (actual != expected) {

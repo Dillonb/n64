@@ -124,7 +124,7 @@ INLINE word resolve_virtual_address_64bit(dword address) {
 }
 
 INLINE word resolve_virtual_address(dword address) {
-    if (n64sys.cpu.cp0.is_64bit_addressing) {
+    if (N64CP0.is_64bit_addressing) {
         return resolve_virtual_address_64bit(address);
     } else {
         return resolve_virtual_address_32bit(address);
