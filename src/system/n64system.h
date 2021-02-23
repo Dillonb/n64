@@ -193,20 +193,24 @@ typedef struct n64_system {
     char rom_path[PATH_MAX];
 } n64_system_t;
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
-void reset_n64system(n64_system_t* system);
+void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
+void reset_n64system();
 bool n64_should_quit();
-void n64_load_rom(n64_system_t* system, const char* rom_path);
+void n64_load_rom(const char* rom_path);
 
-void n64_system_step(n64_system_t* system, bool dynarec);
-void n64_system_loop(n64_system_t* system);
-void n64_system_cleanup(n64_system_t* system);
+void n64_system_step(bool dynarec);
+void n64_system_loop();
+void n64_system_cleanup();
 void n64_request_quit();
 void interrupt_raise(n64_interrupt_t interrupt);
-void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt);
-void on_interrupt_change(n64_system_t* system);
-void check_vsync(n64_system_t* system);
-extern n64_system_t* global_system;
+void interrupt_lower(n64_interrupt_t interrupt);
+void on_interrupt_change();
+void check_vsync();
+extern n64_system_t n64sys;
+#define N64CPU n64sys.cpu
+#define N64CP0 N64CPU.cp0
+#define N64RSP n64sys.rsp
+#define N64DYNAREC n64sys.dynarec
 #ifdef __cplusplus
 }
 #endif

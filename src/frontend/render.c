@@ -85,7 +85,7 @@ void video_init_software() {
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 }
 
-void render_init(n64_system_t* system, n64_video_type_t video_type) {
+void render_init(n64_video_type_t video_type) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
@@ -106,11 +106,11 @@ void render_init(n64_system_t* system, n64_video_type_t video_type) {
             break;
     }
     n64_video_type = video_type;
-    audio_init(system);
-    gamepad_init(system);
+    audio_init();
+    gamepad_init();
 }
 
-void handle_event(n64_system_t* system, SDL_Event* event) {
+void handle_event(SDL_Event* event) {
     switch (event->type) {
         case SDL_QUIT:
             logwarn("User requested quit");
@@ -123,43 +123,43 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
                     break;
 
                 case SDLK_j:
-                    update_button(system, 0, N64_BUTTON_A, true);
+                    update_button(0, N64_BUTTON_A, true);
                     break;
 
                 case SDLK_k:
-                    update_button(system, 0, N64_BUTTON_B, true);
+                    update_button(0, N64_BUTTON_B, true);
                     break;
 
                 case SDLK_UP:
                 case SDLK_w:
-                    update_joyaxis_y(system, 0, INT8_MAX);
-                    //update_button(system, 0, DPAD_UP, true);
+                    update_joyaxis_y(0, INT8_MAX);
+                    //update_button(0, DPAD_UP, true);
                     break;
 
                 case SDLK_DOWN:
                 case SDLK_s:
-                    update_joyaxis_y(system, 0, INT8_MIN);
-                    //update_button(system, 0, DPAD_DOWN, true);
+                    update_joyaxis_y(0, INT8_MIN);
+                    //update_button(0, DPAD_DOWN, true);
                     break;
 
                 case SDLK_LEFT:
                 case SDLK_a:
-                    update_joyaxis_x(system, 0, INT8_MIN);
-                    //update_button(system, 0, DPAD_LEFT, true);
+                    update_joyaxis_x(0, INT8_MIN);
+                    //update_button(0, DPAD_LEFT, true);
                     break;
 
                 case SDLK_RIGHT:
                 case SDLK_d:
-                    update_joyaxis_x(system, 0, INT8_MAX);
-                    //update_button(system, 0, DPAD_RIGHT, true);
+                    update_joyaxis_x(0, INT8_MAX);
+                    //update_button(0, DPAD_RIGHT, true);
                     break;
 
                 case SDLK_q:
-                    update_button(system, 0, N64_BUTTON_Z, true);
+                    update_button(0, N64_BUTTON_Z, true);
                     break;
 
                 case SDLK_RETURN:
-                    update_button(system, 0, N64_BUTTON_START, true);
+                    update_button(0, N64_BUTTON_START, true);
                     break;
             }
             break;
@@ -167,43 +167,43 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
         case SDL_KEYUP: {
             switch (event->key.keysym.sym) {
                 case SDLK_j:
-                    update_button(system, 0, N64_BUTTON_A, false);
+                    update_button(0, N64_BUTTON_A, false);
                     break;
 
                 case SDLK_k:
-                    update_button(system, 0, N64_BUTTON_B, false);
+                    update_button(0, N64_BUTTON_B, false);
                     break;
 
                 case SDLK_UP:
                 case SDLK_w:
-                    update_joyaxis_y(system, 0, 0);
-                    //update_button(system, 0, DPAD_UP, false);
+                    update_joyaxis_y(0, 0);
+                    //update_button(0, DPAD_UP, false);
                     break;
 
                 case SDLK_DOWN:
                 case SDLK_s:
-                    update_joyaxis_y(system, 0, 0);
-                    //update_button(system, 0, DPAD_DOWN, false);
+                    update_joyaxis_y(0, 0);
+                    //update_button(0, DPAD_DOWN, false);
                     break;
 
                 case SDLK_LEFT:
                 case SDLK_a:
-                    update_joyaxis_x(system, 0, 0);
-                    //update_button(system, 0, DPAD_LEFT, false);
+                    update_joyaxis_x(0, 0);
+                    //update_button(0, DPAD_LEFT, false);
                     break;
 
                 case SDLK_RIGHT:
                 case SDLK_d:
-                    update_joyaxis_x(system, 0, 0);
-                    //update_button(system, 0, DPAD_RIGHT, false);
+                    update_joyaxis_x(0, 0);
+                    //update_button(0, DPAD_RIGHT, false);
                     break;
 
                 case SDLK_q:
-                    update_button(system, 0, N64_BUTTON_Z, false);
+                    update_button(0, N64_BUTTON_Z, false);
                     break;
 
                 case SDLK_RETURN:
-                    update_button(system, 0, N64_BUTTON_START, false);
+                    update_button(0, N64_BUTTON_START, false);
                     break;
             }
             break;
@@ -215,21 +215,21 @@ void handle_event(n64_system_t* system, SDL_Event* event) {
             gamepad_refresh();
             break;
         case SDL_CONTROLLERBUTTONDOWN:
-            gamepad_update_button(system, event->cbutton.button, true);
+            gamepad_update_button(event->cbutton.button, true);
             break;
         case SDL_CONTROLLERBUTTONUP:
-            gamepad_update_button(system, event->cbutton.button, false);
+            gamepad_update_button(event->cbutton.button, false);
             break;
         case SDL_CONTROLLERAXISMOTION:
-            gamepad_update_axis(system, event->caxis.axis, event->caxis.value);
+            gamepad_update_axis(event->caxis.axis, event->caxis.value);
             break;
     }
 }
 
-void n64_poll_input(n64_system_t* system) {
+void n64_poll_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        handle_event(system, &event);
+        handle_event(&event);
     }
 }
 
@@ -240,15 +240,15 @@ static word last_yscale = 0;
 static word vi_height = 0;
 static word vi_width = 0;
 
-INLINE void pre_scanout(n64_system_t* system, SDL_PixelFormatEnum pixel_format) {
-    vi_width = system->vi.vi_width;
-    if (system->vi.yscale != last_yscale) {
-        last_yscale = system->vi.yscale;
+INLINE void pre_scanout(SDL_PixelFormatEnum pixel_format) {
+    vi_width = n64sys.vi.vi_width;
+    if (n64sys.vi.yscale != last_yscale) {
+        last_yscale = n64sys.vi.yscale;
         vi_height = yscale_to_height(last_yscale);
     }
 
-    if (last_vi_type != system->vi.status.type) {
-        last_vi_type = system->vi.status.type;
+    if (last_vi_type != n64sys.vi.status.type) {
+        last_vi_type = n64sys.vi.status.type;
         if (texture != NULL) {
             SDL_DestroyTexture(texture);
         }
@@ -257,50 +257,50 @@ INLINE void pre_scanout(n64_system_t* system, SDL_PixelFormatEnum pixel_format) 
 
 }
 
-static void vi_scanout_16bit(n64_system_t* system) {
-    pre_scanout(system, SDL_PIXELFORMAT_RGBA5551);
-    int rdram_offset = system->vi.vi_origin & (N64_RDRAM_SIZE - 1);
+static void vi_scanout_16bit() {
+    pre_scanout(SDL_PIXELFORMAT_RGBA5551);
+    int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
     for (int y = 0; y < vi_height; y++) {
         int yofs = (y * vi_width * 2);
         for (int x = 0; x < vi_width; x += 2) {
-            memcpy(&pixel_buffer[yofs + x * 2 + 2], &system->mem.rdram[rdram_offset + yofs + x * 2 + 0], sizeof(half));
-            memcpy(&pixel_buffer[yofs + x * 2 + 0], &system->mem.rdram[rdram_offset + yofs + x * 2 + 2], sizeof(half));
+            memcpy(&pixel_buffer[yofs + x * 2 + 2], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 0], sizeof(half));
+            memcpy(&pixel_buffer[yofs + x * 2 + 0], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 2], sizeof(half));
         }
     }
     SDL_UpdateTexture(texture, NULL, &pixel_buffer, vi_width * 2);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
-static void vi_scanout_32bit(n64_system_t* system) {
-    pre_scanout(system, SDL_PIXELFORMAT_RGBA8888);
-    int rdram_offset = system->vi.vi_origin & (N64_RDRAM_SIZE - 1);
-    SDL_UpdateTexture(texture, NULL, &system->mem.rdram[rdram_offset], vi_width * 4);
+static void vi_scanout_32bit() {
+    pre_scanout(SDL_PIXELFORMAT_RGBA8888);
+    int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
+    SDL_UpdateTexture(texture, NULL, &n64sys.mem.rdram[rdram_offset], vi_width * 4);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
-void render_screen_software(n64_system_t* system) {
-    n64_poll_input(system);
+void render_screen_software() {
+    n64_poll_input();
 
-    switch (system->vi.status.type) {
+    switch (n64sys.vi.status.type) {
         case VI_TYPE_BLANK:
             SDL_RenderClear(renderer);
             break;
         case VI_TYPE_RESERVED:
             logfatal("VI_TYPE_RESERVED");
         case VI_TYPE_16BIT:
-            vi_scanout_16bit(system);
+            vi_scanout_16bit();
             break;
         case VI_TYPE_32BIT:
-            vi_scanout_32bit(system);
+            vi_scanout_32bit();
             break;
         default:
-            logfatal("Unknown VI type: %d", system->vi.status.type);
+            logfatal("Unknown VI type: %d", n64sys.vi.status.type);
     }
 
     SDL_RenderPresent(renderer);
 }
 
-void n64_render_screen(n64_system_t* system) {
+void n64_render_screen() {
     switch (n64_video_type) {
         case OPENGL_VIDEO_TYPE:
             SDL_RenderPresent(renderer);
@@ -308,7 +308,7 @@ void n64_render_screen(n64_system_t* system) {
         case VULKAN_VIDEO_TYPE: // frame pushing handled elsewhere
             break;
         case SOFTWARE_VIDEO_TYPE:
-            render_screen_software(system);
+            render_screen_software();
             break;
         case UNKNOWN_VIDEO_TYPE:
         default:
@@ -321,7 +321,7 @@ void n64_render_screen(n64_system_t* system) {
         sdl_lastframe = ticks;
         sdl_fps = sdl_numframes;
         sdl_numframes = 0;
-        const char* game_name = system->mem.rom.game_name_db != NULL ? system->mem.rom.game_name_db : system->mem.rom.game_name_cartridge;
+        const char* game_name = n64sys.mem.rom.game_name_db != NULL ? n64sys.mem.rom.game_name_db : n64sys.mem.rom.game_name_cartridge;
         if (game_name == NULL || strcmp(game_name, "") == 0) {
             snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " %02d FPS", sdl_fps);
         } else {

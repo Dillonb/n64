@@ -199,28 +199,28 @@ INLINE word get_rsp_register(rsp_t* rsp, byte r) {
     }
 }
 
-bool rsp_acquire_semaphore(n64_system_t* system);
-void rsp_release_semaphore(n64_system_t* system);
+bool rsp_acquire_semaphore();
+void rsp_release_semaphore();
 
-INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
+INLINE word get_rsp_cp0_register(byte r) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: return system->rsp.io.shadow_mem_addr.raw;
+        case RSP_CP0_DMA_CACHE: return n64sys.rsp.io.shadow_mem_addr.raw;
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
         case RSP_CP0_DMA_DRAM:
-            return system->rsp.io.shadow_dmem_addr.raw;
+            return n64sys.rsp.io.shadow_dmem_addr.raw;
         case RSP_CP0_DMA_READ_LENGTH:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r);
         case RSP_CP0_DMA_WRITE_LENGTH:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r);
-        case RSP_CP0_SP_STATUS: return system->rsp.status.raw;
-        case RSP_CP0_DMA_FULL:  return system->rsp.status.dma_full;
-        case RSP_CP0_DMA_BUSY:  return system->rsp.status.dma_busy;
-        case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore(system);
+        case RSP_CP0_SP_STATUS: return n64sys.rsp.status.raw;
+        case RSP_CP0_DMA_FULL:  return n64sys.rsp.status.dma_full;
+        case RSP_CP0_DMA_BUSY:  return n64sys.rsp.status.dma_busy;
+        case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore();
         case RSP_CP0_CMD_START:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r);
-        case RSP_CP0_CMD_END:     return system->dpc.end;
-        case RSP_CP0_CMD_CURRENT: return system->dpc.current;
-        case RSP_CP0_CMD_STATUS:  return system->dpc.status.raw;
+        case RSP_CP0_CMD_END:     return n64sys.dpc.end;
+        case RSP_CP0_CMD_CURRENT: return n64sys.dpc.current;
+        case RSP_CP0_CMD_STATUS:  return n64sys.dpc.status.raw;
         case RSP_CP0_CMD_CLOCK:
             logwarn("Read from RDP clock: returning 0.");
             return 0;
@@ -235,20 +235,20 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     }
 }
 
-INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
+INLINE void set_rsp_cp0_register(byte r, word value) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: system->rsp.io.shadow_mem_addr.raw = value; break;
-        case RSP_CP0_DMA_DRAM:  system->rsp.io.shadow_dmem_addr.raw = value; break;
+        case RSP_CP0_DMA_CACHE: n64sys.rsp.io.shadow_mem_addr.raw = value; break;
+        case RSP_CP0_DMA_DRAM:  n64sys.rsp.io.shadow_dmem_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
-            system->rsp.io.dma.raw = value;
-            rsp_dma_read(&system->rsp);
+            n64sys.rsp.io.dma.raw = value;
+            rsp_dma_read(&n64sys.rsp);
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            system->rsp.io.dma.raw = value;
-            rsp_dma_write(&system->rsp);
+            n64sys.rsp.io.dma.raw = value;
+            rsp_dma_write(&n64sys.rsp);
             break;
         case RSP_CP0_SP_STATUS:
-            rsp_status_reg_write(system, value);
+            rsp_status_reg_write(value);
             break;
         case RSP_CP0_DMA_FULL:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r);
@@ -256,24 +256,24 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r);
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
-                rsp_release_semaphore(system);
+                rsp_release_semaphore();
             } else {
                 logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value);
             }
             break;
         }
         case RSP_CP0_CMD_START:
-            system->dpc.start = value & 0xFFFFFF;
-            system->dpc.current = system->dpc.start;
+            n64sys.dpc.start = value & 0xFFFFFF;
+            n64sys.dpc.current = n64sys.dpc.start;
             break;
         case RSP_CP0_CMD_END:
-            system->dpc.end = value & 0xFFFFFF;
-            rdp_run_command(system);
+            n64sys.dpc.end = value & 0xFFFFFF;
+            rdp_run_command();
             break;
         case RSP_CP0_CMD_CURRENT:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r);
         case RSP_CP0_CMD_STATUS:
-            rdp_status_reg_write(system, value);
+            rdp_status_reg_write(value);
             break;
         case RSP_CP0_CMD_CLOCK:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);

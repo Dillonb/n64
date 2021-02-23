@@ -23,8 +23,8 @@ static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent 
 #define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
 word rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
 
-#define FROM_RDRAM(system, address) word_from_byte_array(system->mem.rdram, WORD_ADDRESS(address))
-#define FROM_DMEM(system, address) word_from_byte_array(system->rsp.sp_dmem, address)
+#define FROM_RDRAM(address) word_from_byte_array(n64sys.mem.rdram, WORD_ADDRESS(address))
+#define FROM_DMEM(address) word_from_byte_array(n64sys.rsp.sp_dmem, address)
 
 static const int command_lengths[64] = {
         2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,
@@ -37,8 +37,8 @@ static const int command_lengths[64] = {
 
 
 void rdp_rendering_callback(int redrawn) {
-    n64_poll_input(mupen_interface_global_system);
-    n64_render_screen(mupen_interface_global_system);
+    n64_poll_input();
+    n64_render_screen();
 }
 
 #define ADDR_DPC_START_REG    0x04100000
@@ -57,53 +57,53 @@ void rdp_rendering_callback(int redrawn) {
     } while(false)
 
 void rdp_check_interrupts() {
-    on_interrupt_change(mupen_interface_global_system);
+    on_interrupt_change();
 }
 
-GFX_INFO get_gfx_info(n64_system_t* system) {
+GFX_INFO get_gfx_info() {
     GFX_INFO gfx_info;
-    gfx_info.HEADER = system->mem.rom.rom;
-    gfx_info.RDRAM = system->mem.rdram;
-    gfx_info.DMEM = system->rsp.sp_dmem;
-    gfx_info.IMEM = system->rsp.sp_imem;
+    gfx_info.HEADER = n64sys.mem.rom.rom;
+    gfx_info.RDRAM = n64sys.mem.rdram;
+    gfx_info.DMEM = n64sys.rsp.sp_dmem;
+    gfx_info.IMEM = n64sys.rsp.sp_imem;
 
-    gfx_info.MI_INTR_REG = &system->mi.intr.raw;
+    gfx_info.MI_INTR_REG = &n64sys.mi.intr.raw;
 
-    gfx_info.DPC_START_REG    = &system->dpc.start;
-    gfx_info.DPC_END_REG      = &system->dpc.end;
-    gfx_info.DPC_CURRENT_REG  = &system->dpc.current;
-    gfx_info.DPC_STATUS_REG   = &system->dpc.status.raw;
-    gfx_info.DPC_CLOCK_REG    = &system->dpc.clock;
-    gfx_info.DPC_BUFBUSY_REG  = &system->dpc.bufbusy;
-    gfx_info.DPC_PIPEBUSY_REG = &system->dpc.pipebusy;
-    gfx_info.DPC_TMEM_REG     = &system->dpc.tmem;
+    gfx_info.DPC_START_REG    = &n64sys.dpc.start;
+    gfx_info.DPC_END_REG      = &n64sys.dpc.end;
+    gfx_info.DPC_CURRENT_REG  = &n64sys.dpc.current;
+    gfx_info.DPC_STATUS_REG   = &n64sys.dpc.status.raw;
+    gfx_info.DPC_CLOCK_REG    = &n64sys.dpc.clock;
+    gfx_info.DPC_BUFBUSY_REG  = &n64sys.dpc.bufbusy;
+    gfx_info.DPC_PIPEBUSY_REG = &n64sys.dpc.pipebusy;
+    gfx_info.DPC_TMEM_REG     = &n64sys.dpc.tmem;
 
-    gfx_info.VI_STATUS_REG         = &system->vi.status.raw;
-    gfx_info.VI_ORIGIN_REG         = &system->vi.vi_origin;
-    gfx_info.VI_WIDTH_REG          = &system->vi.vi_width;
-    gfx_info.VI_INTR_REG           = &system->vi.vi_v_intr;
-    gfx_info.VI_V_CURRENT_LINE_REG = &system->vi.v_current;
-    gfx_info.VI_TIMING_REG         = &system->vi.vi_burst.raw;
-    gfx_info.VI_V_SYNC_REG         = &system->vi.vsync;
-    gfx_info.VI_H_SYNC_REG         = &system->vi.hsync;
-    gfx_info.VI_LEAP_REG           = &system->vi.leap;
-    gfx_info.VI_H_START_REG        = &system->vi.hstart;
-    gfx_info.VI_V_START_REG        = &system->vi.vstart.raw;
-    gfx_info.VI_V_BURST_REG        = &system->vi.vburst;
-    gfx_info.VI_X_SCALE_REG        = &system->vi.xscale;
-    gfx_info.VI_Y_SCALE_REG        = &system->vi.yscale;
+    gfx_info.VI_STATUS_REG         = &n64sys.vi.status.raw;
+    gfx_info.VI_ORIGIN_REG         = &n64sys.vi.vi_origin;
+    gfx_info.VI_WIDTH_REG          = &n64sys.vi.vi_width;
+    gfx_info.VI_INTR_REG           = &n64sys.vi.vi_v_intr;
+    gfx_info.VI_V_CURRENT_LINE_REG = &n64sys.vi.v_current;
+    gfx_info.VI_TIMING_REG         = &n64sys.vi.vi_burst.raw;
+    gfx_info.VI_V_SYNC_REG         = &n64sys.vi.vsync;
+    gfx_info.VI_H_SYNC_REG         = &n64sys.vi.hsync;
+    gfx_info.VI_LEAP_REG           = &n64sys.vi.leap;
+    gfx_info.VI_H_START_REG        = &n64sys.vi.hstart;
+    gfx_info.VI_V_START_REG        = &n64sys.vi.vstart.raw;
+    gfx_info.VI_V_BURST_REG        = &n64sys.vi.vburst;
+    gfx_info.VI_X_SCALE_REG        = &n64sys.vi.xscale;
+    gfx_info.VI_Y_SCALE_REG        = &n64sys.vi.yscale;
 
     gfx_info.CheckInterrupts = &rdp_check_interrupts;
 
     gfx_info.version = 2;
 
-    gfx_info.SP_STATUS_REG = &system->rsp.status.raw;
+    gfx_info.SP_STATUS_REG = &n64sys.rsp.status.raw;
     gfx_info.RDRAM_SIZE = &rdram_size_word;
 
     return gfx_info;
 }
 
-void load_rdp_plugin(n64_system_t* system, const char* filename) {
+void load_rdp_plugin(const char* filename) {
     char path[PATH_MAX] = "";
     if (filename[0] == '.' || filename[0] == '/') {
         snprintf(path, sizeof(path), "%s", filename);
@@ -116,7 +116,7 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
         logfatal("Failed to load RDP plugin. Please pass a path to a shared library file!");
     }
 
-    init_mupen_interface(system);
+    init_mupen_interface();
 
     LOAD_SYM(graphics_plugin.PluginStartup, "PluginStartup");
     LOAD_SYM(graphics_plugin.PluginGetVersion, "PluginGetVersion");
@@ -151,7 +151,7 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
 
     graphics_plugin.PluginStartup(NULL, NULL, NULL); // Null handle, null debug callbacks.
 
-    GFX_INFO gfx_info = get_gfx_info(system);
+    GFX_INFO gfx_info = get_gfx_info();
 
     graphics_plugin.InitiateGFX(gfx_info);
     graphics_plugin.RomOpen();
@@ -163,20 +163,20 @@ void load_rdp_plugin(n64_system_t* system, const char* filename) {
     printf("Loaded RDP plugin %s\n", plugin_name);
 }
 
-void write_word_dpcreg(n64_system_t* system, word address, word value) {
+void write_word_dpcreg(word address, word value) {
     switch (address) {
         case ADDR_DPC_START_REG:
-            system->dpc.start = value & 0xFFFFFF;
-            system->dpc.current = system->dpc.start;
+            n64sys.dpc.start = value & 0xFFFFFF;
+            n64sys.dpc.current = n64sys.dpc.start;
             break;
         case ADDR_DPC_END_REG:
-            system->dpc.end = value & 0xFFFFFF;
-            rdp_run_command(system);
+            n64sys.dpc.end = value & 0xFFFFFF;
+            rdp_run_command();
             break;
         case ADDR_DPC_CURRENT_REG:
             logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG");
         case ADDR_DPC_STATUS_REG:
-            rdp_status_reg_write(system, value);
+            rdp_status_reg_write(value);
             break;
         case ADDR_DPC_CLOCK_REG:
             logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CLOCK_REG");
@@ -191,24 +191,24 @@ void write_word_dpcreg(n64_system_t* system, word address, word value) {
     }
 }
 
-word read_word_dpcreg(n64_system_t* system, word address) {
+word read_word_dpcreg(word address) {
     switch (address) {
         case ADDR_DPC_START_REG:
-            return system->dpc.start;
+            return n64sys.dpc.start;
         case ADDR_DPC_END_REG:
-            return system->dpc.end;
+            return n64sys.dpc.end;
         case ADDR_DPC_CURRENT_REG:
-            return system->dpc.current;
+            return n64sys.dpc.current;
         case ADDR_DPC_STATUS_REG:
-            return system->dpc.status.raw;
+            return n64sys.dpc.status.raw;
         case ADDR_DPC_CLOCK_REG:
-            return system->dpc.clock;
+            return n64sys.dpc.clock;
         case ADDR_DPC_BUFBUSY_REG:
-            return system->dpc.bufbusy;
+            return n64sys.dpc.bufbusy;
         case ADDR_DPC_PIPEBUSY_REG:
-            return system->dpc.pipebusy;
+            return n64sys.dpc.pipebusy;
         case ADDR_DPC_TMEM_REG:
-            return system->dpc.tmem;
+            return n64sys.dpc.tmem;
         default:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address);
     }
@@ -220,17 +220,17 @@ void rdp_cleanup() {
     }
 }
 
-INLINE void rdp_enqueue_command(n64_system_t* system, int command_length, word* buffer) {
-    switch (system->video_type) {
+INLINE void rdp_enqueue_command(int command_length, word* buffer) {
+    switch (n64sys.video_type) {
         case UNKNOWN_VIDEO_TYPE:  logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
         case OPENGL_VIDEO_TYPE:   logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:   parallel_rdp_enqueue_command(command_length, buffer); break;
-        case SOFTWARE_VIDEO_TYPE: enqueue_command_softrdp(&system->softrdp_state, command_length, buffer); break;
+        case SOFTWARE_VIDEO_TYPE: enqueue_command_softrdp(&n64sys.softrdp_state, command_length, buffer); break;
     }
 }
 
-INLINE void rdp_on_full_sync(n64_system_t* system) {
-    switch (system->video_type) {
+INLINE void rdp_on_full_sync() {
+    switch (n64sys.video_type) {
         case UNKNOWN_VIDEO_TYPE:  logfatal("RDP on full sync with video type UNKNOWN_VIDEO_TYPE");
         case OPENGL_VIDEO_TYPE:   logfatal("RDP on full sync with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:   parallel_rdp_on_full_sync(); break;
@@ -238,10 +238,10 @@ INLINE void rdp_on_full_sync(n64_system_t* system) {
     }
 }
 
-void process_rdp_list(n64_system_t* system) {
+void process_rdp_list() {
     static int last_run_unprocessed_words = 0;
 
-    n64_dpc_t* dpc = &system->dpc;
+    n64_dpc_t* dpc = &n64sys.dpc;
 
     // tell the game to not touch RDP stuff while we work
     dpc->status.freeze = true;
@@ -268,7 +268,7 @@ void process_rdp_list(n64_system_t* system) {
     // because commands have variable lengths
     if (dpc->status.xbus_dmem_dma) {
         for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_DMEM(system, (current + i));
+            word command_word = FROM_DMEM(current + i);
             rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
         }
     } else {
@@ -277,7 +277,7 @@ void process_rdp_list(n64_system_t* system) {
             return;
         }
         for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_RDRAM(system, current + i);
+            word command_word = FROM_RDRAM(current + i);
             rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
         }
     }
@@ -315,11 +315,11 @@ void process_rdp_list(n64_system_t* system) {
 
         // Don't need to process commands under 8
         if (command >= 8) {
-            rdp_enqueue_command(system, command_length, &rdp_command_buffer[buf_index]);
+            rdp_enqueue_command(command_length, &rdp_command_buffer[buf_index]);
         }
 
         if (command == RDP_COMMAND_FULL_SYNC) {
-            rdp_on_full_sync(system);
+            rdp_on_full_sync();
             interrupt_raise(INTERRUPT_DP);
         }
 
@@ -335,38 +335,38 @@ void process_rdp_list(n64_system_t* system) {
     dpc->status.freeze = false;
 }
 
-void rdp_run_command(n64_system_t* system) {
-    //printf("Running commands from 0x%08X to 0x%08X\n", system->dpc.current, system->dpc.end);
-    switch (system->video_type) {
+void rdp_run_command() {
+    //printf("Running commands from 0x%08X to 0x%08X\n", n64sys.dpc.current, n64sys.dpc.end);
+    switch (n64sys.video_type) {
         case OPENGL_VIDEO_TYPE:
             graphics_plugin.ProcessRDPList();
             break;
         case VULKAN_VIDEO_TYPE:
         case SOFTWARE_VIDEO_TYPE:
-            process_rdp_list(system);
+            process_rdp_list();
             break;
         default:
             logfatal("Unknown video type");
     }
 }
 
-void rdp_update_screen(n64_system_t* system) {
-    switch (system->video_type) {
+void rdp_update_screen() {
+    switch (n64sys.video_type) {
         case OPENGL_VIDEO_TYPE:
             graphics_plugin.UpdateScreen();
             break;
         case VULKAN_VIDEO_TYPE:
-            update_screen_parallel_rdp(system);
+            update_screen_parallel_rdp();
             break;
         case SOFTWARE_VIDEO_TYPE:
-            n64_render_screen(system);
+            n64_render_screen();
             break;
         default:
             logfatal("Unknown video type");
     }
 }
 
-void rdp_status_reg_write(n64_system_t* system, word value) {
+void rdp_status_reg_write(word value) {
     union {
         word raw;
         struct {
@@ -386,14 +386,14 @@ void rdp_status_reg_write(n64_system_t* system, word value) {
 
     status_write.raw = value;
 
-    if (status_write.clear_xbus_dmem_dma) system->dpc.status.xbus_dmem_dma = false;
-    if (status_write.set_xbus_dmem_dma) system->dpc.status.xbus_dmem_dma = true;
+    if (status_write.clear_xbus_dmem_dma) n64sys.dpc.status.xbus_dmem_dma = false;
+    if (status_write.set_xbus_dmem_dma) n64sys.dpc.status.xbus_dmem_dma = true;
 
-    if (status_write.clear_freeze) system->dpc.status.freeze = false;
-    if (status_write.set_freeze) system->dpc.status.freeze = true;
+    if (status_write.clear_freeze) n64sys.dpc.status.freeze = false;
+    if (status_write.set_freeze) n64sys.dpc.status.freeze = true;
 
-    if (status_write.clear_flush) system->dpc.status.flush = false;
-    if (status_write.set_flush) system->dpc.status.flush = true;
+    if (status_write.clear_flush) n64sys.dpc.status.flush = false;
+    if (status_write.set_flush) n64sys.dpc.status.flush = true;
 
     if (status_write.clear_tmem_ctr) {
         //logwarn("Clear tmem ctr - deferring to RDP plugin");

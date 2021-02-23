@@ -78,52 +78,51 @@ int main(int argc, char** argv) {
         interpreter = true;
     }
 #endif
-    n64_system_t* system;
     if (rdp_plugin_path != NULL) {
         if (flags->argc != 1) {
             usage(flags);
             return 1;
         }
-        system = init_n64system(flags->argv[0], true, debug, OPENGL_VIDEO_TYPE, interpreter);
-        load_rdp_plugin(system, rdp_plugin_path);
+        init_n64system(flags->argv[0], true, debug, OPENGL_VIDEO_TYPE, interpreter);
+        load_rdp_plugin(rdp_plugin_path);
     } else if (software_mode) {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {
             rom_path = flags->argv[0];
         }
-        system = init_n64system(rom_path, true, debug, SOFTWARE_VIDEO_TYPE, interpreter);
-        init_softrdp(&system->softrdp_state, (byte*)&system->mem.rdram);
+        init_n64system(rom_path, true, debug, SOFTWARE_VIDEO_TYPE, interpreter);
+        init_softrdp(&n64sys.softrdp_state, (byte*)&n64sys.mem.rdram);
     } else {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {
             rom_path = flags->argv[0];
         }
-        system = init_n64system(rom_path, true, debug, VULKAN_VIDEO_TYPE, interpreter);
-        load_parallel_rdp(system);
+        init_n64system(rom_path, true, debug, VULKAN_VIDEO_TYPE, interpreter);
+        load_parallel_rdp();
         load_imgui_ui();
     }
     if (tas_movie_path != NULL) {
         load_tas_movie(tas_movie_path);
     }
     if (pif_rom_path) {
-        load_pif_rom(system, pif_rom_path);
+        load_pif_rom(pif_rom_path);
     } else if (access("pif.rom", F_OK) == 0) {
         logalways("Found PIF ROM at pif.rom, loading");
-        load_pif_rom(system, "pif.rom");
+        load_pif_rom("pif.rom");
     }
-    if (system->mem.rom.rom != NULL) {
-        pif_rom_execute(system);
+    if (n64sys.mem.rom.rom != NULL) {
+        pif_rom_execute();
     }
 #ifdef N64_DEBUG_MODE
     if (debug) {
         printf("Listening on 0.0.0.0:%d - Waiting for GDB to connect...\n", GDB_CPU_PORT);
-        system->debugger_state.broken = true;
+        n64sys.debugger_state.broken = true;
     }
 #endif
     cflags_free(flags);
-    while (system->mem.rom.rom == NULL && !n64_should_quit()) {
+    while (n64sys.mem.rom.rom == NULL && !n64_should_quit()) {
         update_screen_parallel_rdp_no_game();
     }
-    n64_system_loop(system);
-    n64_system_cleanup(system);
+    n64_system_loop();
+    n64_system_cleanup();
 }

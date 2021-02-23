@@ -10,8 +10,8 @@
 #define MAX_STEPS 10000000
 #define TEST_FAILED_REGISTER 30
 
-bool test_complete(n64_system_t* system) {
-    sdword test_failed = get_register(&system->cpu, TEST_FAILED_REGISTER);
+bool test_complete() {
+    sdword test_failed = get_register(&n64sys.cpu, TEST_FAILED_REGISTER);
     if (test_failed != 0) {
         if (test_failed != -1) {
             logfatal("Test #%ld failed.", test_failed);
@@ -30,23 +30,23 @@ int main(int argc, char** argv) {
 
     log_set_verbosity(LOG_VERBOSITY_DEBUG);
 
-    n64_system_t* system = init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE, false);
+    init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE, false);
     // Normally handled by the bootcode, we gotta do it ourselves.
     for (int i = 0; i < 1048576; i++) {
-        byte b = n64_read_byte(system, 0x10001000 + i);
-        n64_write_byte(system, 0x00001000 + i, b);
+        byte b = n64_read_byte(0x10001000 + i);
+        n64_write_byte(0x00001000 + i, b);
     }
 
-    set_pc_word_r4300i(&system->cpu, system->mem.rom.header.program_counter);
+    set_pc_word_r4300i(&n64sys.cpu, n64sys.mem.rom.header.program_counter);
 
-    loginfo("Initial PC: 0x%016lX\n", system->cpu.pc);
+    loginfo("Initial PC: 0x%016lX\n", n64sys.cpu.pc);
 
     int steps = 0;
-    for (; steps < MAX_STEPS && !test_complete(system); steps++) {
-        n64_system_step(system, false);
+    for (; steps < MAX_STEPS && !test_complete(); steps++) {
+        n64_system_step(false);
     }
 
-    if (!test_complete(system)) {
+    if (!test_complete()) {
         logfatal("Test timed out after %d steps\n", MAX_STEPS);
     }
 

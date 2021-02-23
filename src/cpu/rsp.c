@@ -5,17 +5,17 @@
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
 
-bool rsp_acquire_semaphore(n64_system_t* system) {
-    if (system->rsp.semaphore_held) {
+bool rsp_acquire_semaphore() {
+    if (n64sys.rsp.semaphore_held) {
         return false; // Semaphore is already held
     } else {
-        system->rsp.semaphore_held = true;
+        n64sys.rsp.semaphore_held = true;
         return true; // Acquired semaphore.
     }
 }
 
-void rsp_release_semaphore(n64_system_t* system) {
-    system->rsp.semaphore_held = false;
+void rsp_release_semaphore() {
+    n64sys.rsp.semaphore_held = false;
 }
 
 INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {

@@ -152,9 +152,4 @@ typedef struct rsp {
     void (*write_physical_word)(word, word);
 } rsp_t;
 
-INLINE void set_rsp_pc(rsp_t* rsp, half pc) {
-    rsp->pc = pc >> 2;
-    rsp->next_pc = rsp->pc + 1;
-}
-
 #endif //N64_RSP_TYPES_H

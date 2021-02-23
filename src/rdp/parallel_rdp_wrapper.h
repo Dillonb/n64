@@ -15,8 +15,8 @@ VkCommandBuffer get_vk_command_buffer();
 void submit_requested_vk_command_buffer();
 extern "C" {
 #endif
-    void load_parallel_rdp(n64_system_t* system);
-    void update_screen_parallel_rdp(n64_system_t* system);
+    void load_parallel_rdp();
+    void update_screen_parallel_rdp();
     void parallel_rdp_enqueue_command(int command_length, word* buffer);
     void parallel_rdp_on_full_sync();
     void update_screen_parallel_rdp_no_game();

@@ -2,6 +2,7 @@
 #include "r4300i_register_access.h"
 
 #include <math.h>
+#include <mem/n64bus.h>
 
 #define ORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
 #define ORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
@@ -1145,7 +1146,7 @@ MIPS_INSTR(mips_ll) {
     set_register(cpu, instruction.i.rt, (sdword)result);
 
     // Unique to ll
-    cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
+    cpu->cp0.lladdr = resolve_virtual_address(address);
     cpu->llbit = true;
 }
 
@@ -1167,7 +1168,7 @@ MIPS_INSTR(mips_lld) {
     set_register(cpu, instruction.i.rt, result);
 
     // Unique to lld
-    cpu->cp0.lladdr = cpu->resolve_virtual_address(address, &cpu->cp0);
+    cpu->cp0.lladdr = resolve_virtual_address(address);
     cpu->llbit = true;
 }
 
@@ -1182,7 +1183,7 @@ MIPS_INSTR(mips_sc) {
     }
 
     if (cpu->llbit) {
-        word physical_address = cpu->resolve_virtual_address(address, &cpu->cp0);
+        word physical_address = resolve_virtual_address(address);
 
         if (physical_address != cpu->cp0.lladdr) {
             logfatal("Undefined: SC physical address is NOT EQUAL to last lladdr!\n");
@@ -1214,7 +1215,7 @@ MIPS_INSTR(mips_scd) {
     }
 
     if (cpu->llbit) {
-        word physical_address = cpu->resolve_virtual_address(address, &cpu->cp0);
+        word physical_address = resolve_virtual_address(address);
 
         if (physical_address != cpu->cp0.lladdr) {
             logfatal("Undefined: SCD physical address is NOT EQUAL to last lladdr!\n");

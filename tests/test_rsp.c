@@ -14,15 +14,15 @@
 // Just to make sure we don't get caught in an infinite loop
 #define MAX_CYCLES 100000
 
-void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
+void load_rsp_imem(const char* rsp_path) {
     FILE* rsp = fopen(rsp_path, "rb");
-    size_t read = fread(system->rsp.sp_imem, 1, SP_IMEM_SIZE, rsp);
+    size_t read = fread(n64sys.rsp.sp_imem, 1, SP_IMEM_SIZE, rsp);
 
     // File is in big endian, byte swap it all.
     for (int i = 0; i < SP_IMEM_SIZE; i += 4) {
-        word instr = word_from_byte_array((byte*) &system->rsp.sp_imem, i);
+        word instr = word_from_byte_array((byte*) &n64sys.rsp.sp_imem, i);
         instr = be32toh(instr);
-        word_to_byte_array((byte*) &system->rsp.sp_imem, i, instr);
+        word_to_byte_array((byte*) &n64sys.rsp.sp_imem, i, instr);
     }
 
     if (read == 0) {
@@ -30,32 +30,32 @@ void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
     }
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
-        system->rsp.icache[i].instruction.raw = word_from_byte_array(system->rsp.sp_imem, i * 4);
-        system->rsp.icache[i].handler = cache_rsp_instruction;
+        n64sys.rsp.icache[i].instruction.raw = word_from_byte_array(n64sys.rsp.sp_imem, i * 4);
+        n64sys.rsp.icache[i].handler = cache_rsp_instruction;
     }
 }
 
-void load_rsp_dmem(n64_system_t* system, word* input, int input_size) {
+void load_rsp_dmem(word* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
-        n64_rsp_write_word(&system->rsp, i * 4, input[i]);
+        n64_rsp_write_word(&n64sys.rsp, i * 4, input[i]);
     }
 }
 
-bool run_test(n64_system_t* system, word* input, int input_size, word* output, int output_size) {
-    load_rsp_dmem(system, input, input_size / 4);
+bool run_test(word* input, int input_size, word* output, int output_size) {
+    load_rsp_dmem(input, input_size / 4);
 
-    system->rsp.status.halt = false;
-    system->rsp.pc = 0;
+    n64sys.rsp.status.halt = false;
+    n64sys.rsp.pc = 0;
 
     int cycles = 0;
 
-    while (!system->rsp.status.halt) {
+    while (!n64sys.rsp.status.halt) {
         if (cycles >= MAX_CYCLES) {
             logfatal("Test ran too long and was killed! Possible infinite loop?");
         }
 
         cycles++;
-        rsp_step(&system->rsp);
+        rsp_step(&n64sys.rsp);
     }
 
     bool failed = false;
@@ -82,7 +82,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
                 printf(" ");
             }
             if (i + b < output_size) {
-                byte actual = system->rsp.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
+                byte actual = n64sys.rsp.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
                 byte expected = ((byte*)output)[i + b];
 
                 if (actual != expected) {
@@ -107,10 +107,9 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
     return failed;
 }
 
-n64_system_t* load_test(const char* rsp_path) {
-    n64_system_t* system = init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, false);
-    load_rsp_imem(system, rsp_path);
-    return system;
+void load_test(const char* rsp_path) {
+    init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, false);
+    load_rsp_imem(rsp_path);
 }
 
 int main(int argc, char** argv) {
@@ -147,7 +146,7 @@ int main(int argc, char** argv) {
     char rsp_path[PATH_MAX];
     snprintf(rsp_path, PATH_MAX, "%s.rsp", test_name);
 
-    n64_system_t* system = load_test(rsp_path);
+    load_test(rsp_path);
 
     for (int i = 4; i < argc; i++) {
         const char* subtest_name = argv[i];
@@ -156,7 +155,7 @@ int main(int argc, char** argv) {
         byte output[output_size];
         fread(output, 1, output_size, output_data_handle);
 
-        bool subtest_failed = run_test(system, (word *) input, input_size, (word *) output, output_size);
+        bool subtest_failed = run_test((word *) input, input_size, (word *) output, output_size);
 
         if (subtest_failed) {
             printf("[%s %s] FAILED\n", test_name, subtest_name);
@@ -170,6 +169,5 @@ int main(int argc, char** argv) {
         }
     }
 
-    free(system);
     exit(failed);
 }

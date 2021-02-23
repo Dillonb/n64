@@ -106,7 +106,7 @@ void render_metrics_window() {
 }
 
 void render_ui() {
-    if (SDL_GetMouseFocus() || global_system->mem.rom.rom == nullptr) {
+    if (SDL_GetMouseFocus() || n64sys.mem.rom.rom == nullptr) {
         render_menubar();
     }
     if (show_metrics_window) { render_metrics_window(); }
@@ -114,9 +114,9 @@ void render_ui() {
 
     fileBrowser.Display();
     if (fileBrowser.HasSelected()) {
-        reset_n64system(global_system);
-        n64_load_rom(global_system, fileBrowser.GetSelected().string().c_str());
-        pif_rom_execute(global_system);
+        reset_n64system();
+        n64_load_rom(fileBrowser.GetSelected().string().c_str());
+        pif_rom_execute();
         fileBrowser.ClearSelected();
     }
 }

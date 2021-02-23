@@ -52,9 +52,9 @@ typedef struct n64_dynarec {
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
-int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec);
-n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size);
-void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address);
-void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec);
+int n64_dynarec_step();
+n64_dynarec_t* n64_dynarec_init(byte* codecache, size_t codecache_size);
+void invalidate_dynarec_page(word physical_address);
+void invalidate_dynarec_all_pages();
 
 #endif //N64_DYNAREC_H

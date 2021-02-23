@@ -259,13 +259,13 @@ RSP_INSTR(rsp_spc_jalr) {
 }
 
 RSP_INSTR(rsp_mfc0) {
-    sword value = get_rsp_cp0_register(global_system, instruction.r.rd);
+    sword value = get_rsp_cp0_register(instruction.r.rd);
     set_rsp_register(rsp, instruction.r.rt, value);
 }
 
 RSP_INSTR(rsp_mtc0) {
     word value = get_rsp_register(rsp, instruction.r.rt);
-    set_rsp_cp0_register(global_system, instruction.r.rd, value);
+    set_rsp_cp0_register(instruction.r.rd, value);
 }
 
 RSP_INSTR(rsp_bne) {

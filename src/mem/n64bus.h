@@ -5,8 +5,8 @@
 #include <system/n64system.h>
 #include "addresses.h"
 
-bool tlb_probe(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0);
-bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0);
+bool tlb_probe(dword vaddr, word* paddr, int* entry_number);
+bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number);
 
 #define REGION_XKUSEG 0x0000000000000000 ... 0x000000FFFFFFFFFF
 #define REGION_XBAD1  0x0000010000000000 ... 0x3FFFFFFFFFFFFFFF
@@ -20,7 +20,7 @@ bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number, cp0_t* cp0);
 #define REGION_CKSSEG 0xFFFFFFFFC0000000 ... 0xFFFFFFFFDFFFFFFF
 #define REGION_CKSEG3 0xFFFFFFFFE0000000 ... 0xFFFFFFFFFFFFFFFF
 
-INLINE word resolve_virtual_address_32bit(word address, cp0_t* cp0) {
+INLINE word resolve_virtual_address_32bit(word address) {
     word physical;
     switch (address >> 29) {
         // KSEG0
@@ -40,7 +40,7 @@ INLINE word resolve_virtual_address_32bit(word address, cp0_t* cp0) {
         case 0x1:
         case 0x2:
         case 0x3: {
-            if (!tlb_probe(address, &physical, NULL, cp0)) {
+            if (!tlb_probe(address, &physical, NULL)) {
                 logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KUSEG", address);
             }
             break;
@@ -50,7 +50,7 @@ INLINE word resolve_virtual_address_32bit(word address, cp0_t* cp0) {
             logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", address);
         // KSEG3
         case 0x7:
-            if (!tlb_probe(address, &physical, NULL, cp0)) {
+            if (!tlb_probe(address, &physical, NULL)) {
                 logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KSEG3", address);
             }
             break;
@@ -60,18 +60,18 @@ INLINE word resolve_virtual_address_32bit(word address, cp0_t* cp0) {
     return physical;
 }
 
-INLINE word resolve_virtual_address_64bit(dword address, cp0_t* cp0) {
+INLINE word resolve_virtual_address_64bit(dword address) {
     word physical;
     switch (address) {
         case REGION_XKUSEG:
-            if (!tlb_probe_64(address, &physical, NULL, cp0)) {
+            if (!tlb_probe_64(address, &physical, NULL)) {
                 logfatal("Unimplemented: page miss translating virtual address 0x%016lX in REGION_XKUSEG", address);
             }
             break;
     case REGION_XKSSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_XKSSEG) in 64 bit mode", address);
         case REGION_XKPHYS: {
-            if (!cp0->kernel_mode) {
+            if (!N64CP0.kernel_mode) {
                 logfatal("Access to XKPHYS address 0x%016lX when outside kernel mode!", address);
             }
             byte high_two_bits = (address >> 62) & 0b11;
@@ -123,26 +123,26 @@ INLINE word resolve_virtual_address_64bit(dword address, cp0_t* cp0) {
     return physical;
 }
 
-INLINE word resolve_virtual_address(dword address, cp0_t* cp0) {
-    if (cp0->is_64bit_addressing) {
-        return resolve_virtual_address_64bit(address, cp0);
+INLINE word resolve_virtual_address(dword address) {
+    if (n64sys.cpu.cp0.is_64bit_addressing) {
+        return resolve_virtual_address_64bit(address);
     } else {
-        return resolve_virtual_address_32bit(address, cp0);
+        return resolve_virtual_address_32bit(address);
     }
 }
 
 
-void n64_write_dword(n64_system_t* system, word address, dword value);
-dword n64_read_dword(n64_system_t* system, word address);
+void n64_write_dword(word address, dword value);
+dword n64_read_dword(word address);
 
-void n64_write_word(n64_system_t* system, word address, word value);
+void n64_write_word(word address, word value);
 word n64_read_word(word address);
 word n64_read_physical_word(word address);
 
-void n64_write_half(n64_system_t* system, word address, half value);
-half n64_read_half(n64_system_t* system, word address);
+void n64_write_half(word address, half value);
+half n64_read_half(word address);
 
-void n64_write_byte(n64_system_t* system, word address, byte value);
-byte n64_read_byte(n64_system_t* system, word address);
+void n64_write_byte(word address, byte value);
+byte n64_read_byte(word address);
 
 #endif //N64_N64BUS_H

@@ -100,11 +100,11 @@ public:
     }
 
     void poll_input() override {
-        n64_poll_input(global_system);
+        n64_poll_input();
     }
 
     void event_frame_tick(double frame, double elapsed) override {
-        n64_render_screen(global_system);
+        n64_render_screen();
     }
 };
 
@@ -249,7 +249,7 @@ static uint32_t fullscreen_quad_blit[] = {0x07230203,0x00010000,0x000d000a,0x000
 
 Program* fullscreen_quad_program;
 
-void load_parallel_rdp(n64_system_t* system) {
+void load_parallel_rdp() {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(new SDLWSIPlatform());
@@ -259,7 +259,7 @@ void load_parallel_rdp(n64_system_t* system) {
 
     fullscreen_quad_program = wsi->get_device().request_program(fullscreen_quad_vert, sizeof(fullscreen_quad_vert), fullscreen_quad_blit, sizeof(fullscreen_quad_blit));
 
-    auto aligned_rdram = reinterpret_cast<uintptr_t>(system->mem.rdram);
+    auto aligned_rdram = reinterpret_cast<uintptr_t>(n64sys.mem.rdram);
     uintptr_t offset = 0;
 
     if (wsi->get_device().get_device_features().supports_external_memory_host)
@@ -335,25 +335,25 @@ void update_screen(Util::IntrusivePtr<Image> image) {
     wsi->end_frame();
 }
 
-void update_screen_parallel_rdp(n64_system_t* system) {
+void update_screen_parallel_rdp() {
     if (unlikely(!command_processor)) {
         logfatal("Update screen without an initialized command processor");
     }
 
-    command_processor->set_vi_register(VIRegister::Control,      system->vi.status.raw);
-    command_processor->set_vi_register(VIRegister::Origin,       system->vi.vi_origin);
-    command_processor->set_vi_register(VIRegister::Width,        system->vi.vi_width);
-    command_processor->set_vi_register(VIRegister::Intr,         system->vi.vi_v_intr);
-    command_processor->set_vi_register(VIRegister::VCurrentLine, system->vi.v_current);
-    command_processor->set_vi_register(VIRegister::Timing,       system->vi.vi_burst.raw);
-    command_processor->set_vi_register(VIRegister::VSync,        system->vi.vsync);
-    command_processor->set_vi_register(VIRegister::HSync,        system->vi.hsync);
-    command_processor->set_vi_register(VIRegister::Leap,         system->vi.leap);
-    command_processor->set_vi_register(VIRegister::HStart,       system->vi.hstart);
-    command_processor->set_vi_register(VIRegister::VStart,       system->vi.vstart.raw);
-    command_processor->set_vi_register(VIRegister::VBurst,       system->vi.vburst);
-    command_processor->set_vi_register(VIRegister::XScale,       system->vi.xscale);
-    command_processor->set_vi_register(VIRegister::YScale,       system->vi.yscale);
+    command_processor->set_vi_register(VIRegister::Control,      n64sys.vi.status.raw);
+    command_processor->set_vi_register(VIRegister::Origin,       n64sys.vi.vi_origin);
+    command_processor->set_vi_register(VIRegister::Width,        n64sys.vi.vi_width);
+    command_processor->set_vi_register(VIRegister::Intr,         n64sys.vi.vi_v_intr);
+    command_processor->set_vi_register(VIRegister::VCurrentLine, n64sys.vi.v_current);
+    command_processor->set_vi_register(VIRegister::Timing,       n64sys.vi.vi_burst.raw);
+    command_processor->set_vi_register(VIRegister::VSync,        n64sys.vi.vsync);
+    command_processor->set_vi_register(VIRegister::HSync,        n64sys.vi.hsync);
+    command_processor->set_vi_register(VIRegister::Leap,         n64sys.vi.leap);
+    command_processor->set_vi_register(VIRegister::HStart,       n64sys.vi.hstart);
+    command_processor->set_vi_register(VIRegister::VStart,       n64sys.vi.vstart.raw);
+    command_processor->set_vi_register(VIRegister::VBurst,       n64sys.vi.vburst);
+    command_processor->set_vi_register(VIRegister::XScale,       n64sys.vi.xscale);
+    command_processor->set_vi_register(VIRegister::YScale,       n64sys.vi.yscale);
 
     RDP::ScanoutOptions opts;
     opts.persist_frame_on_invalid_input = true;

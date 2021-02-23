@@ -77,7 +77,7 @@ MIPS_INSTR(mips_tlbp) {
     unimplemented(cpu->cp0.is_64bit_addressing, "TLBP in 64 bit mode!");
     word entry_hi = cpu->cp0.entry_hi.raw   & 0xFFFFE0FF;
     int match;
-    if (tlb_probe(entry_hi, NULL, &match, &cpu->cp0)) {
+    if (tlb_probe(entry_hi, NULL, &match)) {
         cpu->cp0.index = match;
     } else {
         cpu->cp0.index = 0x80000000;

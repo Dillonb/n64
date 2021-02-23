@@ -608,8 +608,6 @@ typedef struct r4300i {
 
     dword (*read_dword)(dword);
     void (*write_dword)(dword, dword);
-
-    word (*resolve_virtual_address)(dword, cp0_t*);
 } r4300i_t;
 
 typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);

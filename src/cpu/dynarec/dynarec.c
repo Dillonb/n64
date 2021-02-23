@@ -8,13 +8,13 @@
 
 #define IS_PAGE_BOUNDARY(address) ((address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
 
-void* link_and_encode(n64_dynarec_t* dynarec, dasm_State** d) {
+void* link_and_encode(dasm_State** d) {
     size_t code_size;
     dasm_link(d, &code_size);
 #ifdef N64_LOG_COMPILATIONS
     printf("Generated %ld bytes of code\n", code_size);
 #endif
-    void* buf = dynarec_bumpalloc(dynarec, code_size);
+    void* buf = dynarec_bumpalloc(code_size);
     dasm_encode(d, buf);
 
     return buf;
@@ -126,7 +126,7 @@ INLINE void load_reg_3(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int*
     }
 }
 
-void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
+void compile_new_block(r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
     d = block_header();
@@ -283,7 +283,7 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
     } while (should_continue_block);
     flush_all(Dst, compile_time_cpu);
     end_block(Dst, block_length);
-    void* compiled = link_and_encode(dynarec, &d);
+    void* compiled = link_and_encode(&d);
     dasm_free(&d);
 
     block->run = compiled;
@@ -291,63 +291,63 @@ void compile_new_block(n64_dynarec_t* dynarec, r4300i_t* compile_time_cpu, n64_d
 
 
 int missing_block_handler(r4300i_t* cpu) {
-    word physical = resolve_virtual_address(cpu->pc, &cpu->cp0);
+    word physical = resolve_virtual_address(cpu->pc);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     // TODO: put the dynarec object inside the r4300i_t object to get rid of this need for global_system
-    n64_dynarec_block_t* block_list = global_system->dynarec->blockcache[outer_index];
+    n64_dynarec_block_t* block_list = n64sys.dynarec->blockcache[outer_index];
     word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
     n64_dynarec_block_t* block = &block_list[inner_index];
 
 #ifdef N64_LOG_COMPILATIONS
-    printf("Compilin' new block at 0x%08X / 0x%08X\n", global_system->cpu.pc, physical);
+    printf("Compilin' new block at 0x%08X / 0x%08X\n", N64CPU.pc, physical);
 #endif
 
-    compile_new_block(global_system->dynarec, cpu, block, cpu->pc, physical);
+    compile_new_block(cpu, block, cpu->pc, physical);
 
     return block->run(cpu);
 }
 
-int n64_dynarec_step(n64_system_t* system, n64_dynarec_t* dynarec) {
-    word physical = resolve_virtual_address(system->cpu.pc, &system->cpu.cp0);
+int n64_dynarec_step() {
+    word physical = resolve_virtual_address(N64CPU.pc);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
-    n64_dynarec_block_t* block_list = dynarec->blockcache[outer_index];
+    n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
     word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
     if (unlikely(block_list == NULL)) {
 #ifdef N64_LOG_COMPILATIONS
-        printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical, system->cpu.pc);
+        printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical, N64CPU.pc);
 #endif
-        block_list = dynarec_bumpalloc_zero(dynarec, BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
+        block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
             block_list[i].run = missing_block_handler;
         }
-        dynarec->blockcache[outer_index] = block_list;
+        N64DYNAREC->blockcache[outer_index] = block_list;
     }
 
     n64_dynarec_block_t* block = &block_list[inner_index];
 
 #ifdef LOG_ENABLED
     static long total_blocks_run;
-    logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", system->cpu.pc, ++total_blocks_run, (uintptr_t)block->run);
+    logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
 #endif
-    int taken = block->run(&system->cpu);
+    int taken = block->run(&N64CPU);
 #ifdef N64_LOG_JIT_SYNC_POINTS
-    printf("JITSYNC %d %08X ", taken, system->cpu.pc);
+    printf("JITSYNC %d %08X ", taken, N64CPU.pc);
     for (int i = 0; i < 32; i++) {
-        printf("%016lX", system->cpu.gpr[i]);
+        printf("%016lX", N64CPU.gpr[i]);
         if (i != 31) {
             printf(" ");
         }
     }
     printf("\n");
 #endif
-    logdebug("Done running block - took %d cycles - pc is now 0x%016lX", taken, system->cpu.pc);
+    logdebug("Done running block - took %d cycles - pc is now 0x%016lX", taken, N64CPU.pc);
 
     return taken * CYCLES_PER_INSTR;
 }
 
-n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t codecache_size) {
+n64_dynarec_t* n64_dynarec_init(byte* codecache, size_t codecache_size) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Trying to malloc %ld bytes\n", sizeof(n64_dynarec_t));
 #endif
@@ -368,9 +368,9 @@ n64_dynarec_t* n64_dynarec_init(n64_system_t* system, byte* codecache, size_t co
     return dynarec;
 }
 
-void invalidate_dynarec_page(n64_dynarec_t* dynarec, word physical_address) {
+void invalidate_dynarec_page(word physical_address) {
     word outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
-    dynarec->blockcache[outer_index] = NULL;
+    N64DYNAREC->blockcache[outer_index] = NULL;
 }
 
 void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec) {

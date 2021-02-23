@@ -37,7 +37,7 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
     }
 }
 
-void audio_init(n64_system_t* system) {
+void audio_init() {
     adjust_audio_sample_rate(AUDIO_SAMPLE_RATE);
     memset(&request, 0, sizeof(request));
 

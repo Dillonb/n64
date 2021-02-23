@@ -16,70 +16,70 @@
 #define ADDR_VI_X_SCALE_REG   0x04400030
 #define ADDR_VI_Y_SCALE_REG   0x04400034
 
-void write_word_vireg(n64_system_t* system, word address, word value) {
+void write_word_vireg(word address, word value) {
     switch (address) {
         case ADDR_VI_STATUS_REG: {
-            system->vi.status.raw = value;
+            n64sys.vi.status.raw = value;
             break;
         }
         case ADDR_VI_ORIGIN_REG:
-            system->vi.vi_origin = value & 0xFFFFFF;
+            n64sys.vi.vi_origin = value & 0xFFFFFF;
             loginfo("VI origin is now 0x%08X (wrote 0x%08X)", value & 0xFFFFFF, value);
             break;
         case ADDR_VI_WIDTH_REG: {
-            system->vi.vi_width = value & 0x7FF;
+            n64sys.vi.vi_width = value & 0x7FF;
             loginfo("VI width is now 0x%X (wrote 0x%08X)", value & 0xFFF, value);
             break;
         }
         case ADDR_VI_V_INTR_REG:
-            system->vi.vi_v_intr = value & 0x3FF;
+            n64sys.vi.vi_v_intr = value & 0x3FF;
             loginfo("VI interrupt is now 0x%X (wrote 0x%08X) will VI interrupt when v_current == %d", value & 0x3FF, value, value >> 1);
             break;
         case ADDR_VI_V_CURRENT_REG:
             loginfo("V_CURRENT written, V Intr cleared");
-            interrupt_lower(system, INTERRUPT_VI);
+            interrupt_lower(INTERRUPT_VI);
             break;
         case ADDR_VI_BURST_REG:
-            system->vi.vi_burst.raw = value;
+            n64sys.vi.vi_burst.raw = value;
             break;
         case ADDR_VI_V_SYNC_REG:
-            system->vi.vsync = value & 0x3FF;
-            if (system->vi.vsync != 0x20D) {
-                if (system->vi.vsync == 0x271) {
-                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D.) This looks like a PAL ROM. These are currently not supported.", system->vi.vsync);
-                } else if (system->vi.vsync == 0x20C) {
+            n64sys.vi.vsync = value & 0x3FF;
+            if (n64sys.vi.vsync != 0x20D) {
+                if (n64sys.vi.vsync == 0x271) {
+                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D.) This looks like a PAL ROM. These are currently not supported.", n64sys.vi.vsync);
+                } else if (n64sys.vi.vsync == 0x20C) {
                     logwarn("Wrote 0x20C to VI_VSYNC, this is (valid NTSC value) - 1, I've seen some games do this, no idea why, ignoring...");
                 } else {
-                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D)", system->vi.vsync);
+                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D)", n64sys.vi.vsync);
                 }
             }
             loginfo("VI vsync is now 0x%X / %d. VSYNC happens on halfline %d (wrote 0x%08X)", value & 0x3FF, value & 0x3FF, (value & 0x3FF) >> 1, value);
             break;
         case ADDR_VI_H_SYNC_REG:
-            system->vi.hsync = value & 0x3FF;
+            n64sys.vi.hsync = value & 0x3FF;
             loginfo("VI hsync is now 0x%X (wrote 0x%08X)", value & 0x3FF, value);
             break;
         case ADDR_VI_LEAP_REG:
-            system->vi.leap = value;
+            n64sys.vi.leap = value;
             loginfo("VI leap is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_H_START_REG:
-            system->vi.hstart = value;
+            n64sys.vi.hstart = value;
             loginfo("VI hstart is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_V_START_REG:
-            system->vi.vstart.raw = value;
+            n64sys.vi.vstart.raw = value;
             break;
         case ADDR_VI_V_BURST_REG:
-            system->vi.vburst = value;
+            n64sys.vi.vburst = value;
             loginfo("VI vburst is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_X_SCALE_REG:
-            system->vi.xscale = value;
+            n64sys.vi.xscale = value;
             loginfo("VI xscale is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_Y_SCALE_REG:
-            system->vi.yscale = value;
+            n64sys.vi.yscale = value;
             loginfo("VI yscale is now 0x%X (wrote 0x%08X)", value, value);
             break;
         default:
@@ -87,7 +87,7 @@ void write_word_vireg(n64_system_t* system, word address, word value) {
     }
 }
 
-word read_word_vireg(n64_system_t* system, word address) {
+word read_word_vireg(word address) {
     switch (address) {
         case ADDR_VI_STATUS_REG:
             logfatal("Reading of ADDR_VI_STATUS_REG is unsupported");
@@ -98,7 +98,7 @@ word read_word_vireg(n64_system_t* system, word address) {
         case ADDR_VI_V_INTR_REG:
             logfatal("Reading of ADDR_VI_V_INTR_REG is unsupported");
         case ADDR_VI_V_CURRENT_REG:
-            return system->vi.v_current << 1;
+            return n64sys.vi.v_current << 1;
         case ADDR_VI_BURST_REG:
             logfatal("Reading of ADDR_VI_BURST_REG is unsupported");
         case ADDR_VI_V_SYNC_REG:
@@ -122,11 +122,11 @@ word read_word_vireg(n64_system_t* system, word address) {
     }
 }
 
-void check_vi_interrupt(n64_system_t* system) {
-    if (system->vi.v_current == system->vi.vi_v_intr >> 1) {
-        logdebug("Checking for VI interrupt: %d == %d? YES", system->vi.v_current, system->vi.vi_v_intr >> 1);
+void check_vi_interrupt() {
+    if (n64sys.vi.v_current == n64sys.vi.vi_v_intr >> 1) {
+        logdebug("Checking for VI interrupt: %d == %d? YES", n64sys.vi.v_current, n64sys.vi.vi_v_intr >> 1);
         interrupt_raise(INTERRUPT_VI);
     } else {
-        logdebug("Checking for VI interrupt: %d == %d? nah", system->vi.v_current, system->vi.vi_v_intr >> 1);
+        logdebug("Checking for VI interrupt: %d == %d? nah", n64sys.vi.v_current, n64sys.vi.vi_v_intr >> 1);
     }
 }

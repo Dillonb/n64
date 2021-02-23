@@ -13,7 +13,7 @@
 #define ADDR_SP_PC_REG        0x04080000
 #define ADDR_SP_IBIST_REG     0x04080004
 
-word read_word_spreg(n64_system_t* system, word address);
-void write_word_spreg(n64_system_t* system, word address, word value);
-void rsp_status_reg_write(n64_system_t* system, word value);
+word read_word_spreg(word address);
+void write_word_spreg(word address, word value);
+void rsp_status_reg_write(word value);
 #endif //N64_RSP_INTERFACE_H
