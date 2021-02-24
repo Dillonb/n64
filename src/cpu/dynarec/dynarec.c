@@ -51,17 +51,17 @@ INLINE int get_valid_host_reg() {
     logfatal("Ran out of valid host regs! Should have flushed!");
 }
 
-INLINE void flush_reg(dasm_State** Dst, r4300i_t* cpu, int guest) {
+INLINE void flush_reg(dasm_State** Dst, int guest) {
     if (is_reg_loaded(guest)) {
         int host_reg = guest_reg_to_host_reg[guest];
-        flush_host_register_to_gpr(Dst, cpu, valid_host_regs[host_reg], guest);
+        flush_host_register_to_gpr(Dst, valid_host_regs[host_reg], guest);
         num_available_host_regs++;
     }
     guest_reg_loaded[guest] = false;
     host_reg_used[guest_reg_to_host_reg[guest]] = false;
 }
 
-INLINE int load_reg(dasm_State** Dst, r4300i_t* cpu, int guest) {
+INLINE int load_reg(dasm_State** Dst, int guest) {
     if (!is_reg_loaded(guest)) {
         guest_reg_loaded[guest] = true;
         int host_reg = get_valid_host_reg();
@@ -70,63 +70,63 @@ INLINE int load_reg(dasm_State** Dst, r4300i_t* cpu, int guest) {
         guest_reg_to_host_reg[guest] = host_reg;
         host_reg_used[host_reg] = true;
 
-        load_host_register_from_gpr(Dst, cpu, valid_host_regs[host_reg], guest);
+        load_host_register_from_gpr(Dst, valid_host_regs[host_reg], guest);
     }
     int valid_host_reg = valid_host_regs[guest_reg_to_host_reg[guest]];
     return valid_host_reg;
 }
 
-INLINE void flush_all(dasm_State** Dst, r4300i_t* cpu) {
+INLINE void flush_all(dasm_State** Dst) {
     for (int r = 0; r < 32; r++) {
         if (is_reg_loaded(r)) {
-            flush_reg(Dst, cpu, r);
+            flush_reg(Dst, r);
         }
     }
 }
 
-INLINE void load_reg_1(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1) {
+INLINE void load_reg_1(dasm_State** Dst, int* dest1, int r1) {
     bool r1_loaded = is_reg_loaded(r1);
 
     if (num_available_host_regs >= 1 || r1_loaded) {
-        *dest1 = load_reg(Dst, cpu, r1);
+        *dest1 = load_reg(Dst, r1);
     } else {
-        flush_all(Dst, cpu);
-        *dest1 = load_reg(Dst, cpu, r1);
+        flush_all(Dst);
+        *dest1 = load_reg(Dst, r1);
     }
 }
 
-INLINE void load_reg_2(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int* dest2, int r2) {
+INLINE void load_reg_2(dasm_State** Dst, int* dest1, int r1, int* dest2, int r2) {
     bool r1_loaded = is_reg_loaded(r1);
     bool r2_loaded = is_reg_loaded(r2);
 
     if (num_available_host_regs >= 2 || (r1_loaded && r2_loaded)) {
-        *dest1 = load_reg(Dst, cpu, r1);
-        *dest2 = load_reg(Dst, cpu, r2);
+        *dest1 = load_reg(Dst, r1);
+        *dest2 = load_reg(Dst, r2);
     } else {
-        flush_all(Dst, cpu);
-        *dest1 = load_reg(Dst, cpu, r1);
-        *dest2 = load_reg(Dst, cpu, r2);
+        flush_all(Dst);
+        *dest1 = load_reg(Dst, r1);
+        *dest2 = load_reg(Dst, r2);
     }
 }
 
-INLINE void load_reg_3(dasm_State** Dst, r4300i_t* cpu, int* dest1, int r1, int* dest2, int r2, int* dest3, int r3) {
+INLINE void load_reg_3(dasm_State** Dst, int* dest1, int r1, int* dest2, int r2, int* dest3, int r3) {
     bool r1_loaded = is_reg_loaded(r1);
     bool r2_loaded = is_reg_loaded(r2);
     bool r3_loaded = is_reg_loaded(r3);
 
     if (num_available_host_regs >= 3 || (r1_loaded && r2_loaded && r3_loaded)) {
-        *dest1 = load_reg(Dst, cpu, r1);
-        *dest2 = load_reg(Dst, cpu, r2);
-        *dest3 = load_reg(Dst, cpu, r3);
+        *dest1 = load_reg(Dst, r1);
+        *dest2 = load_reg(Dst, r2);
+        *dest3 = load_reg(Dst, r3);
     } else {
-        flush_all(Dst, cpu);
-        *dest1 = load_reg(Dst, cpu, r1);
-        *dest2 = load_reg(Dst, cpu, r2);
-        *dest3 = load_reg(Dst, cpu, r3);
+        flush_all(Dst);
+        *dest1 = load_reg(Dst, r1);
+        *dest2 = load_reg(Dst, r2);
+        *dest3 = load_reg(Dst, r3);
     }
 }
 
-void compile_new_block(r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
+void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
     d = block_header();
@@ -171,26 +171,26 @@ void compile_new_block(r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, d
         }
         switch (ir->format) {
             case CALL_INTERPRETER:
-                flush_all(Dst, compile_time_cpu);
+                flush_all(Dst);
                 break;
             case FORMAT_NOP:break; // Shouldn't touch any registers, so no need to do anything
             case SHIFT_CONST:
-                load_reg_2(Dst, compile_time_cpu, &arg_host_registers[0], instr.r.rt, &dest_host_register, instr.r.rd);
+                load_reg_2(Dst, &arg_host_registers[0], instr.r.rt, &dest_host_register, instr.r.rd);
                 break;
             case I_TYPE:
-                load_reg_2(Dst, compile_time_cpu, &arg_host_registers[0], instr.i.rs, &dest_host_register, instr.i.rt);
+                load_reg_2(Dst, &arg_host_registers[0], instr.i.rs, &dest_host_register, instr.i.rt);
                 break;
             case R_TYPE:
-                load_reg_3(Dst, compile_time_cpu, &arg_host_registers[0], instr.r.rt, &arg_host_registers[1], instr.r.rs, &dest_host_register, instr.r.rd);
+                load_reg_3(Dst, &arg_host_registers[0], instr.r.rt, &arg_host_registers[1], instr.r.rs, &dest_host_register, instr.r.rd);
                 break;
             case J_TYPE:
                 logfatal("Allocate regs for J_TYPE");
                 break;
             case MF_MULTREG:
-                load_reg_1(Dst, compile_time_cpu, &dest_host_register, instr.r.rd);
+                load_reg_1(Dst, &dest_host_register, instr.r.rd);
                 break;
             case MT_MULTREG:
-                load_reg_1(Dst, compile_time_cpu, &arg_host_registers[0], instr.r.rs);
+                load_reg_1(Dst, &arg_host_registers[0], instr.r.rs);
                 break;
         }
         ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);
@@ -206,20 +206,20 @@ void compile_new_block(r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, d
                 break;
             case BRANCH:
                 branch_in_block = true;
-                advance_pc(compile_time_cpu, Dst);
+                advance_pc(Dst);
                 if (prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY) {
                     // Check if the previous branch was taken.
 
                     // If the last branch wasn't taken, we can treat this the same as if the previous instruction wasn't a branch
-                    // just set the cpu->last_branch_taken to cpu->branch_taken and execute the next instruction.
+                    // just set the N64CPU.last_branch_taken to N64CPU.branch_taken and execute the next instruction.
 
                     // emit:
-                    // if (!cpu->last_branch_taken) cpu->last_branch_taken = cpu->branch_taken;
+                    // if (!N64CPU.last_branch_taken) N64CPU.last_branch_taken = N64CPU.branch_taken;
                     logfatal("Branch in a branch delay slot");
                 } else {
                     // If the last instruction wasn't a branch, no special behavior is needed. Just set up some state in case the next one is.
                     // emit:
-                    // cpu->last_branch_taken = cpu->branch_taken;
+                    // N64CPU.last_branch_taken = N64CPU.branch_taken;
                     //logfatal("unimp");
                 }
 
@@ -234,8 +234,8 @@ void compile_new_block(r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, d
                     logfatal("Branch in a branch likely delay slot");
                 } else {
                     // TODO: only need to flush all if we exit the block early
-                    flush_all(Dst, compile_time_cpu);
-                    post_branch_likely(Dst, compile_time_cpu, block_length);
+                    flush_all(Dst);
+                    post_branch_likely(Dst, block_length);
                 }
 
                 instr_ends_block = false;
@@ -281,7 +281,7 @@ void compile_new_block(r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, d
         virtual_address = next_virtual_address;
         prev_instr_category = ir->category;
     } while (should_continue_block);
-    flush_all(Dst, compile_time_cpu);
+    flush_all(Dst);
     end_block(Dst, block_length);
     void* compiled = link_and_encode(&d);
     dasm_free(&d);
@@ -290,10 +290,9 @@ void compile_new_block(r4300i_t* compile_time_cpu, n64_dynarec_block_t* block, d
 }
 
 
-int missing_block_handler(r4300i_t* cpu) {
-    word physical = resolve_virtual_address(cpu->pc);
+int missing_block_handler() {
+    word physical = resolve_virtual_address(N64CPU.pc);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
-    // TODO: put the dynarec object inside the r4300i_t object to get rid of this need for global_system
     n64_dynarec_block_t* block_list = n64sys.dynarec->blockcache[outer_index];
     word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
@@ -303,9 +302,9 @@ int missing_block_handler(r4300i_t* cpu) {
     printf("Compilin' new block at 0x%08X / 0x%08X\n", N64CPU.pc, physical);
 #endif
 
-    compile_new_block(cpu, block, cpu->pc, physical);
+    compile_new_block(block, N64CPU.pc, physical);
 
-    return block->run(cpu);
+    return block->run(&N64CPU);
 }
 
 int n64_dynarec_step() {

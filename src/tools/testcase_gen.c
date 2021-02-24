@@ -43,19 +43,18 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
         regargs[num_32bit_args + i] = regarg;
         immargs[num_32bit_args + i] = immarg;
     }
-    r4300i_t cpu;
-
+    memset(&N64CPU, 0, sizeof(N64CPU));
     for (int i = 0; i < num_cases; i++) {
         mips_instruction_t instruction;
         instruction.i.immediate = immargs[i];
 
         instruction.i.rt = 1;
         instruction.i.rs = 1;
-        cpu.gpr[1] = regargs[i];
+        N64CPU.gpr[1] = regargs[i];
 
-        handler(&cpu, instruction);
+        handler(instruction);
 
-        expected_result[i] = cpu.gpr[1];
+        expected_result[i] = N64CPU.gpr[1];
     }
 
     printf("align(4)\n");

@@ -3,7 +3,7 @@
 #include "r4300i.h"
 #include "mips_instruction_decode.h"
 
-#define MIPS_INSTR(NAME) void NAME(r4300i_t* cpu, mips_instruction_t instruction)
+#define MIPS_INSTR(NAME) void NAME(mips_instruction_t instruction)
 
 MIPS_INSTR(mips_nop);
 

@@ -616,38 +616,42 @@ typedef struct r4300i {
     void (*write_dword)(dword, dword);
 } r4300i_t;
 
-typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
+extern r4300i_t n64cpu;
+#define N64CPU n64cpu
+#define N64CP0 N64CPU.cp0
 
-void r4300i_step(r4300i_t* cpu);
-void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error);
+typedef void(*mipsinstr_handler_t)(mips_instruction_t);
+
+void r4300i_step();
+void r4300i_handle_exception(dword pc, word code, sword coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);
-void r4300i_interrupt_update(r4300i_t* cpu);
+void r4300i_interrupt_update();
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
 
-INLINE void set_pc_word_r4300i(r4300i_t* cpu, word new_pc) {
-    cpu->prev_pc = cpu->pc;
-    cpu->pc = (sdword)((sword)new_pc);
-    cpu->next_pc = cpu->pc + 4;
+INLINE void set_pc_word_r4300i(word new_pc) {
+    N64CPU.prev_pc = N64CPU.pc;
+    N64CPU.pc = (sdword)((sword)new_pc);
+    N64CPU.next_pc = N64CPU.pc + 4;
 }
 
-INLINE void set_pc_dword_r4300i(r4300i_t* cpu, dword new_pc) {
-    cpu->prev_pc = cpu->pc;
-    cpu->pc = new_pc;
-    cpu->next_pc = cpu->pc + 4;
+INLINE void set_pc_dword_r4300i(dword new_pc) {
+    N64CPU.prev_pc = N64CPU.pc;
+    N64CPU.pc = new_pc;
+    N64CPU.next_pc = N64CPU.pc + 4;
 }
 
-INLINE void cp0_status_updated(r4300i_t* cpu) {
-    bool exception = cpu->cp0.status.exl || cpu->cp0.status.erl;
+INLINE void cp0_status_updated() {
+    bool exception = N64CPU.cp0.status.exl || N64CPU.cp0.status.erl;
 
-    cpu->cp0.kernel_mode     =  exception || cpu->cp0.status.ksu == CPU_MODE_KERNEL;
-    cpu->cp0.supervisor_mode = !exception && cpu->cp0.status.ksu == CPU_MODE_SUPERVISOR;
-    cpu->cp0.user_mode       = !exception && cpu->cp0.status.ksu == CPU_MODE_USER;
-    cpu->cp0.is_64bit_addressing =
-            (cpu->cp0.kernel_mode && cpu->cp0.status.kx)
-            || (cpu->cp0.supervisor_mode && cpu->cp0.status.sx)
-               || (cpu->cp0.user_mode && cpu->cp0.status.ux);
+    N64CPU.cp0.kernel_mode     =  exception || N64CPU.cp0.status.ksu == CPU_MODE_KERNEL;
+    N64CPU.cp0.supervisor_mode = !exception && N64CPU.cp0.status.ksu == CPU_MODE_SUPERVISOR;
+    N64CPU.cp0.user_mode       = !exception && N64CPU.cp0.status.ksu == CPU_MODE_USER;
+    N64CPU.cp0.is_64bit_addressing =
+            (N64CPU.cp0.kernel_mode && N64CPU.cp0.status.kx)
+            || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
+               || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
 }
 
 #endif //N64_R4300I_H

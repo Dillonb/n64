@@ -186,7 +186,7 @@ INLINE int jit_system_step() {
 
     if (unlikely(N64CPU.interrupts > 0)) {
         if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
-            r4300i_handle_exception(&N64CPU, N64CPU.pc, EXCEPTION_INTERRUPT, -1);
+            r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, -1);
             return CYCLES_PER_INSTR;
         }
     }
@@ -198,7 +198,7 @@ INLINE int jit_system_step() {
         if (unlikely(oldcount < N64CP0.compare && newcount >= N64CP0.compare)) {
             N64CP0.cause.ip7 = true;
             loginfo("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, N64CP0.compare);
-            r4300i_interrupt_update(&N64CPU);
+            r4300i_interrupt_update();
         }
         N64CP0.count += taken;
         N64CP0.count &= 0x1FFFFFFFF;
@@ -378,7 +378,7 @@ void on_interrupt_change() {
     bool interrupt = n64sys.mi.intr.raw & n64sys.mi.intr_mask.raw;
     loginfo("ip2 is now: %d", interrupt);
     N64CP0.cause.ip2 = interrupt;
-    r4300i_interrupt_update(&N64CPU);
+    r4300i_interrupt_update();
 }
 
 void interrupt_raise(n64_interrupt_t interrupt) {

@@ -135,7 +135,7 @@ typedef struct n64_dpc {
 
 typedef struct n64_system {
     n64_mem_t mem;
-    r4300i_t cpu;
+    //r4300i_t cpu;
     rsp_t rsp;
     n64_video_type_t video_type;
     struct {
@@ -207,8 +207,6 @@ void interrupt_lower(n64_interrupt_t interrupt);
 void on_interrupt_change();
 void check_vsync();
 extern n64_system_t n64sys;
-#define N64CPU n64sys.cpu
-#define N64CP0 N64CPU.cp0
 #define N64RSP n64sys.rsp
 #define N64DYNAREC n64sys.dynarec
 #ifdef __cplusplus

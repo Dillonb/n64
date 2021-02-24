@@ -321,7 +321,7 @@ void cpu_step(r4300i_t* cpu) {
     cpu->next_pc += 4;
     cpu->branch = false;
 
-    r4300i_instruction_decode(pc, instruction)(cpu, instruction);
+    r4300i_instruction_decode(pc, instruction)(instruction);
     cpu->exception = false; // only used in dynarec
 }
 
@@ -344,7 +344,7 @@ int run_system_check_interrupt() {
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            r4300i_handle_exception(cpu, cpu->pc, EXCEPTION_INTERRUPT, -1);
+            r4300i_handle_exception(cpu->pc, EXCEPTION_INTERRUPT, -1);
             cpu->cp0.count += CYCLES_PER_INSTR;
             printf("Interrupt!\n");
             return CYCLES_PER_INSTR;

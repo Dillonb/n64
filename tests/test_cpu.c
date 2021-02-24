@@ -12,7 +12,7 @@
 #define sa_entry(_input, _sa, _output) {.input = _input, .sa = _sa, .output = _output}
 #define lohi_entry(_r1, _r2, _lo, _hi) {.r1 = _r1, .r2 = _r2, .lo = _lo, .hi = _hi}
 
-void run_testcase(const char *filename, void (*instr)(r4300i_t*, mips_instruction_t)) {
+void run_testcase(const char *filename, mipsinstr_handler_t instr) {
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
         logfatal("Unable to find testcase %s", filename);

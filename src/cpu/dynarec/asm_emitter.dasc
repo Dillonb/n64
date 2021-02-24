@@ -64,11 +64,11 @@ static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
 |.type cpu_state, r4300i_t, cpuState
 
 INLINE void run_handler(dasm_State** Dst, mips_instruction_t instr, word address, uintptr_t handler) {
-    | prepcall2 cpuState, instr
+    | prepcall1 instr
     // x86_64 cannot call a 64 bit immediate, put it into rax first
     | mov64 rax, handler
     | call rax
-    | postcall 2
+    | postcall 1
 }
 
 INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address) {
@@ -981,29 +981,29 @@ dasm_State* block_header() {
     return d;
 }
 
-void advance_pc(r4300i_t* compile_time_cpu, dasm_State** Dst) {
-    static_assert(sizeof(compile_time_cpu->pc) == 8, "PC must be 64 bits for this to work (using RAX)");
-    static_assert(sizeof(compile_time_cpu->next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
+void advance_pc(dasm_State** Dst) {
+    static_assert(sizeof(N64CPU.pc) == 8, "PC must be 64 bits for this to work (using RAX)");
+    static_assert(sizeof(N64CPU.next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
 
-    // cpu->branch = false;
+    // N64CPU.branch = false;
     | mov al, 0
     | mov cpu_state->branch, al
 
-    // cpu->prev_pc = cpu->pc;
+    // N64CPU.prev_pc = N64CPU.pc;
     | mov rax, cpu_state->pc
     | mov cpu_state->prev_pc, rax
 
-    // cpu->pc = cpu->next_pc;
+    // N64CPU.pc = N64CPU.next_pc;
     | mov rax, cpu_state->next_pc
     | mov cpu_state->pc, rax
 
-    // cpu->next_pc += 4;
+    // N64CPU.next_pc += 4;
     | add rax, 4
     | mov cpu_state->next_pc, rax
 }
 
 void clear_branch_flag(dasm_State** Dst) {
-    // cpu->branch = false;
+    // N64CPU.branch = false;
     | mov al, 0
     | mov cpu_state->branch, al
 }
@@ -1014,7 +1014,7 @@ void end_block(dasm_State** Dst, int block_length) {
     | epilogue // return block_length
 }
 
-void post_branch_likely(dasm_State** Dst, r4300i_t* compile_time_cpu, int block_length) {
+void post_branch_likely(dasm_State** Dst, int block_length) {
     | mov al, cpu_state->branch
     | cmp al, 0 // if (branch == true)
     | jne >1
@@ -1023,7 +1023,7 @@ void post_branch_likely(dasm_State** Dst, r4300i_t* compile_time_cpu, int block_
     | jmp >2
     |1:
     // If the branch WAS NOT taken, advance the PC.
-    advance_pc(compile_time_cpu, Dst);
+    advance_pc(Dst);
     |2:
 }
 
@@ -1057,15 +1057,15 @@ void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
     *num_valid_host_regs = used_host_regs;
 }
 
-void load_host_register_from_gpr(dasm_State** Dst, r4300i_t* cpu, byte host_reg, int guest_reg) {
-    uintptr_t src = (uintptr_t)&cpu->gpr[guest_reg];
+void load_host_register_from_gpr(dasm_State** Dst, byte host_reg, int guest_reg) {
+    uintptr_t src = (uintptr_t)&N64CPU.gpr[guest_reg];
     | mov64 rax, src
     | mov Rq(host_reg), [rax]
 }
 
-void flush_host_register_to_gpr(dasm_State** Dst, r4300i_t* cpu, int host_reg, int guest_reg) {
+void flush_host_register_to_gpr(dasm_State** Dst, int host_reg, int guest_reg) {
     if (guest_reg != 0) {
-        uintptr_t dst = (uintptr_t)&cpu->gpr[guest_reg];
+        uintptr_t dst = (uintptr_t)&N64CPU.gpr[guest_reg];
         | mov64 rax, dst
         | mov [rax], Rq(host_reg)
     }

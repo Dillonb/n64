@@ -92,11 +92,11 @@ void pif_rom_execute_hle() {
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
     memcpy(N64RSP.sp_dmem, n64sys.mem.rom.rom, sizeof(byte) * 0x1000);
 
-    set_pc_word_r4300i(&N64CPU, 0xA4000040);
+    set_pc_word_r4300i(0xA4000040);
 }
 
 void pif_rom_execute_lle() {
-    set_pc_word_r4300i(&N64CPU, 0x1FC00000 + SVREGION_KSEG1);
+    set_pc_word_r4300i(0x1FC00000 + SVREGION_KSEG1);
 }
 
 void pif_rom_execute() {

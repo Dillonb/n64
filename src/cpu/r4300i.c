@@ -47,34 +47,36 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi", "error_epc", "r31"
 };
 
-void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error) {
+r4300i_t n64cpu;
+
+void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
-    if (cpu->branch) {
-        unimplemented(cpu->cp0.status.exl, "handling branch delay when exl == true");
-        cpu->cp0.cause.branch_delay = true;
-        cpu->branch = false;
+    if (N64CPU.branch) {
+        unimplemented(N64CPU.cp0.status.exl, "handling branch delay when exl == true");
+        N64CPU.cp0.cause.branch_delay = true;
+        N64CPU.branch = false;
         pc -= 4;
     } else {
-        cpu->cp0.cause.branch_delay = false;
+        N64CPU.cp0.cause.branch_delay = false;
     }
 
-    if (!cpu->cp0.status.exl) {
-        cpu->cp0.EPC = pc;
-        cpu->cp0.status.exl = true;
+    if (!N64CPU.cp0.status.exl) {
+        N64CPU.cp0.EPC = pc;
+        N64CPU.cp0.status.exl = true;
     }
 
-    cpu->cp0.cause.exception_code = code;
+    N64CPU.cp0.cause.exception_code = code;
     if (coprocessor_error > 0) {
-        cpu->cp0.cause.coprocessor_error = coprocessor_error;
+        N64CPU.cp0.cause.coprocessor_error = coprocessor_error;
     }
 
-    if (cpu->cp0.status.bev) {
+    if (N64CPU.cp0.status.bev) {
         switch (code) {
             case EXCEPTION_COPROCESSOR_UNUSABLE:
                 logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.");
-                set_pc_word_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
@@ -84,14 +86,14 @@ void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocess
             case EXCEPTION_INTERRUPT:
             case EXCEPTION_COPROCESSOR_UNUSABLE:
             case EXCEPTION_TRAP:
-                set_pc_word_r4300i(cpu, 0x80000180);
+                set_pc_word_r4300i(0x80000180);
                 break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
         }
     }
-    cp0_status_updated(cpu);
-    cpu->exception = true;
+    cp0_status_updated();
+    N64CPU.exception = true;
 }
 
 INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr) {
@@ -556,44 +558,44 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
     }
 }
 
-void r4300i_step(r4300i_t* cpu) {
-    cpu->cp0.count += CYCLES_PER_INSTR;
-    cpu->cp0.count &= 0x1FFFFFFFF;
-    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
-        cpu->cp0.cause.ip7 = true;
+void r4300i_step() {
+    N64CPU.cp0.count += CYCLES_PER_INSTR;
+    N64CPU.cp0.count &= 0x1FFFFFFFF;
+    if (unlikely(N64CPU.cp0.count >> 1 == N64CPU.cp0.compare)) {
+        N64CPU.cp0.cause.ip7 = true;
         loginfo("Compare interrupt!");
-        r4300i_interrupt_update(cpu);
+        r4300i_interrupt_update();
     }
 
     /* Commented out for now since the game never actually reads cp0.random
-    if (cpu->cp0.random <= cpu->cp0.wired) {
-        cpu->cp0.random = 31;
+    if (N64CPU.cp0.random <= N64CPU.cp0.wired) {
+        N64CPU.cp0.random = 31;
     } else {
-        cpu->cp0.random--;
+        N64CPU.cp0.random--;
     }
      */
 
-    dword pc = cpu->pc;
+    dword pc = N64CPU.pc;
     mips_instruction_t instruction;
-    instruction.raw = cpu->read_word(pc);
+    instruction.raw = N64CPU.read_word(pc);
 
-    if (unlikely(cpu->interrupts > 0)) {
-        if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            r4300i_handle_exception(cpu, pc, EXCEPTION_INTERRUPT, -1);
+    if (unlikely(N64CPU.interrupts > 0)) {
+        if(N64CPU.cp0.status.ie && !N64CPU.cp0.status.exl && !N64CPU.cp0.status.erl) {
+            r4300i_handle_exception(pc, EXCEPTION_INTERRUPT, -1);
             return;
         }
     }
 
 
-    cpu->prev_pc = cpu->pc;
-    cpu->pc = cpu->next_pc;
-    cpu->next_pc += 4;
-    cpu->branch = false;
+    N64CPU.prev_pc = N64CPU.pc;
+    N64CPU.pc = N64CPU.next_pc;
+    N64CPU.next_pc += 4;
+    N64CPU.branch = false;
 
-    r4300i_instruction_decode(pc, instruction)(cpu, instruction);
-    cpu->exception = false; // only used in dynarec
+    r4300i_instruction_decode(pc, instruction)(instruction);
+    N64CPU.exception = false; // only used in dynarec
 }
 
-void r4300i_interrupt_update(r4300i_t* cpu) {
-    cpu->interrupts = cpu->cp0.cause.interrupt_pending & cpu->cp0.status.im;
+void r4300i_interrupt_update() {
+    N64CPU.interrupts = N64CPU.cp0.cause.interrupt_pending & N64CPU.cp0.status.im;
 }
