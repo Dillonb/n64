@@ -151,7 +151,7 @@ INLINE int jit_system_step() {
             cpu_steps -= 3;
         }
 
-        rsp_run(&N64RSP);
+        rsp_run();
     } else {
         N64RSP.steps = 0;
         cpu_steps = 0;
@@ -171,7 +171,7 @@ INLINE int interpreter_system_step() {
     }
 #endif
     int taken = CYCLES_PER_INSTR;
-    r4300i_step(&N64CPU);
+    r4300i_step();
     static int cpu_steps = 0;
     cpu_steps += taken;
 
@@ -184,7 +184,7 @@ INLINE int interpreter_system_step() {
             N64RSP.steps += 2;
             cpu_steps -= 3;
         }
-        rsp_run(&N64RSP);
+        rsp_run();
     }
 
     return taken;
@@ -195,9 +195,9 @@ void n64_system_step(bool dynarec) {
     if (dynarec) {
         jit_system_step();
     } else {
-        r4300i_step(&N64CPU);
+        r4300i_step();
         if (!N64RSP.status.halt) {
-            rsp_step(&N64RSP);
+            rsp_step();
         }
     }
 }

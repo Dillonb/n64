@@ -100,12 +100,12 @@ void write_word_spreg(word address, word value) {
             break;
         case ADDR_SP_RD_LEN_REG: {
             N64RSP.io.dma.raw = value;
-            rsp_dma_read(&N64RSP);
+            rsp_dma_read();
             break;
         }
         case ADDR_SP_WR_LEN_REG: {
             N64RSP.io.dma.raw = value;
-            rsp_dma_write(&N64RSP);
+            rsp_dma_write();
             break;
         }
         case ADDR_SP_STATUS_REG:

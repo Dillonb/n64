@@ -245,11 +245,11 @@ INLINE void set_rsp_cp0_register(byte r, word value) {
         case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dmem_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
             N64RSP.io.dma.raw = value;
-            rsp_dma_read(&N64RSP);
+            rsp_dma_read();
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
             N64RSP.io.dma.raw = value;
-            rsp_dma_write(&N64RSP);
+            rsp_dma_write();
             break;
         case RSP_CP0_SP_STATUS:
             rsp_status_reg_write(value);
