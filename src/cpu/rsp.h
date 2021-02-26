@@ -7,6 +7,7 @@
 #include <mem/addresses.h>
 #include <system/n64system.h>
 #include <rdp/rdp.h>
+#include <mem/n64bus.h>
 
 #include "rsp_types.h"
 #include "rsp_interface.h"
@@ -120,8 +121,8 @@ INLINE void rsp_dma_read() {
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
         word full_mem_addr = mem_address + (mem_addr_reg.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
         for (int j = 0; j < length; j += 4) {
-            word val = N64RSP.read_physical_word(dram_address + j);
-            N64RSP.write_physical_word(full_mem_addr + j, val);
+            word val = n64_read_physical_word(dram_address + j);
+            n64_write_physical_word(full_mem_addr + j, val);
         }
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
@@ -164,8 +165,8 @@ INLINE void rsp_dma_write() {
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
         word full_mem_addr = mem_address + (mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
         for (int j = 0; j < length; j += 4) {
-            word val = N64RSP.read_physical_word(full_mem_addr + j);
-            N64RSP.write_physical_word(dram_address + j, val);
+            word val = n64_read_physical_word(full_mem_addr + j);
+            n64_write_physical_word(dram_address + j, val);
         }
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;

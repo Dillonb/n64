@@ -914,7 +914,7 @@ MIPS_INSTR(mips_cp_neg_d) {
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    dword result  = N64CPU.read_dword(address);
+    dword result  = n64_read_dword(address);
     if ((address & 0b111) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
@@ -934,7 +934,7 @@ MIPS_INSTR(mips_lbu) {
     shalf offset = instruction.i.immediate;
     logtrace("LBU offset: %d", offset);
     dword address = get_register(instruction.i.rs) + offset;
-    byte value    = N64CPU.read_byte(address);
+    byte value    = n64_read_byte(address);
 
     set_register(instruction.i.rt, value); // zero extend
 }
@@ -943,7 +943,7 @@ MIPS_INSTR(mips_lhu) {
     shalf offset = instruction.i.immediate;
     logtrace("LHU offset: %d", offset);
     dword address = get_register(instruction.i.rs) + offset;
-    half value    = N64CPU.read_half(address);
+    half value    = n64_read_half(address);
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
@@ -954,7 +954,7 @@ MIPS_INSTR(mips_lhu) {
 MIPS_INSTR(mips_lh) {
     shalf offset = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    shalf value   = N64CPU.read_half(address);
+    shalf value   = n64_read_half(address);
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
@@ -969,7 +969,7 @@ MIPS_INSTR(mips_lw) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
-    sword value = N64CPU.read_word(address);
+    sword value = n64_read_word(address);
     set_register(instruction.i.rt, (sdword)value);
 }
 
@@ -980,7 +980,7 @@ MIPS_INSTR(mips_lwu) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
-    word value = N64CPU.read_word(address);
+    word value = n64_read_word(address);
     set_register(instruction.i.rt, value);
 }
 
@@ -989,7 +989,7 @@ MIPS_INSTR(mips_sb) {
     dword address = get_register(instruction.i.rs);
     address += offset;
     byte value = get_register(instruction.i.rt) & 0xFF;
-    N64CPU.write_byte(address, value);
+    n64_write_byte(address, value);
 }
 
 MIPS_INSTR(mips_sh) {
@@ -997,21 +997,21 @@ MIPS_INSTR(mips_sh) {
     dword address = get_register(instruction.i.rs);
     address += offset;
     half value = get_register(instruction.i.rt);
-    N64CPU.write_half(address, value);
+    n64_write_half(address, value);
 }
 
 MIPS_INSTR(mips_sw) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs);
     address += offset;
-    N64CPU.write_word(address, get_register(instruction.i.rt));
+    n64_write_word(address, get_register(instruction.i.rt));
 }
 
 MIPS_INSTR(mips_sd) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
     dword value = get_register(instruction.i.rt);
-    N64CPU.write_dword(address, value);
+    n64_write_dword(address, value);
 }
 
 MIPS_INSTR(mips_ori) {
@@ -1032,7 +1032,7 @@ MIPS_INSTR(mips_daddiu) {
 MIPS_INSTR(mips_lb) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    sbyte value   = N64CPU.read_byte(address);
+    sbyte value   = n64_read_byte(address);
 
     set_register(instruction.i.rt, (sdword)value);
 }
@@ -1045,7 +1045,7 @@ MIPS_INSTR(mips_ldc1) {
         logfatal("Address error exception: misaligned dword read!");
     }
 
-    dword value = N64CPU.read_dword(address);
+    dword value = n64_read_dword(address);
     set_fpu_register_dword(instruction.i.rt, value);
 }
 
@@ -1055,14 +1055,14 @@ MIPS_INSTR(mips_sdc1) {
     dword address = get_register(instruction.fi.base) + offset;
     dword value   = get_fpu_register_dword(instruction.fi.ft);
 
-    N64CPU.write_dword(address, value);
+    n64_write_dword(address, value);
 }
 
 MIPS_INSTR(mips_lwc1) {
     checkcp1;
     shalf offset  = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
-    word value    = N64CPU.read_word(address);
+    word value    = n64_read_word(address);
 
     set_fpu_register_word(instruction.fi.ft, value);
 }
@@ -1073,7 +1073,7 @@ MIPS_INSTR(mips_swc1) {
     dword address = get_register(instruction.fi.base) + offset;
     word value    = get_fpu_register_word(instruction.fi.ft);
 
-    N64CPU.write_word(address, value);
+    n64_write_word(address, value);
 }
 
 MIPS_INSTR(mips_lwl) {
@@ -1082,7 +1082,7 @@ MIPS_INSTR(mips_lwl) {
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF << shift;
-    word data = N64CPU.read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     sword result = (get_register(instruction.i.rt) & ~mask) | data << shift;
     set_register(instruction.i.rt, (sdword)result);
 }
@@ -1094,7 +1094,7 @@ MIPS_INSTR(mips_lwr) {
     word shift = 8 * ((address ^ 3) & 3);
 
     word mask = 0xFFFFFFFF >> shift;
-    word data = N64CPU.read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     sword result = (get_register(instruction.i.rt) & ~mask) | data >> shift;
     set_register(instruction.i.rt, (sdword)result);
 }
@@ -1105,9 +1105,9 @@ MIPS_INSTR(mips_swl) {
 
     word shift = 8 * ((address ^ 0) & 3);
     word mask = 0xFFFFFFFF >> shift;
-    word data = N64CPU.read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     word oldreg = get_register(instruction.i.rt);
-    N64CPU.write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
+    n64_write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
 }
 
 MIPS_INSTR(mips_swr) {
@@ -1116,9 +1116,9 @@ MIPS_INSTR(mips_swr) {
 
     word shift = 8 * ((address ^ 3) & 3);
     word mask = 0xFFFFFFFF << shift;
-    word data = N64CPU.read_word(address & ~3);
+    word data = n64_read_word(address & ~3);
     word oldreg = get_register(instruction.i.rt);
-    N64CPU.write_word(address & ~3, (data & ~mask) | oldreg << shift);
+    n64_write_word(address & ~3, (data & ~mask) | oldreg << shift);
 }
 
 MIPS_INSTR(mips_ldl) {
@@ -1126,7 +1126,7 @@ MIPS_INSTR(mips_ldl) {
     dword address = get_register(instruction.fi.base) + offset;
     int shift = 8 * ((address ^ 0) & 7);
     dword mask = (dword)0xFFFFFFFFFFFFFFFF << shift;
-    dword data = N64CPU.read_dword(address & ~7);
+    dword data = n64_read_dword(address & ~7);
     dword oldreg = get_register(instruction.i.rt);
 
     set_register(instruction.i.rt, (oldreg & ~mask) | (data << shift));
@@ -1137,7 +1137,7 @@ MIPS_INSTR(mips_ldr) {
     dword address = get_register(instruction.fi.base) + offset;
     int shift = 8 * ((address ^ 7) & 7);
     dword mask = (dword)0xFFFFFFFFFFFFFFFF >> shift;
-    dword data = N64CPU.read_dword(address & ~7);
+    dword data = n64_read_dword(address & ~7);
     dword oldreg = get_register(instruction.i.rt);
 
     set_register(instruction.i.rt, (oldreg & ~mask) | (data >> shift));
@@ -1150,9 +1150,9 @@ MIPS_INSTR(mips_sdl) {
     int shift = 8 * ((address ^ 0) & 7);
     dword mask = 0xFFFFFFFFFFFFFFFF;
     mask >>= shift;
-    dword data = N64CPU.read_dword(address & ~7);
+    dword data = n64_read_dword(address & ~7);
     dword oldreg = get_register(instruction.i.rt);
-    N64CPU.write_dword(address & ~7, (data & ~mask) | (oldreg >> shift));
+    n64_write_dword(address & ~7, (data & ~mask) | (oldreg >> shift));
 }
 
 MIPS_INSTR(mips_sdr) {
@@ -1162,16 +1162,16 @@ MIPS_INSTR(mips_sdr) {
     int shift = 8 * ((address ^ 7) & 7);
     dword mask = 0xFFFFFFFFFFFFFFFF ;
     mask <<= shift;
-    dword data = N64CPU.read_dword(address & ~7);
+    dword data = n64_read_dword(address & ~7);
     dword oldreg = get_register(instruction.i.rt);
-    N64CPU.write_dword(address & ~7, (data & ~mask) | (oldreg << shift));
+    n64_write_dword(address & ~7, (data & ~mask) | (oldreg << shift));
 }
 
 MIPS_INSTR(mips_ll) {
     // Identical to lw
     shalf offset = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    sword result  = N64CPU.read_word(address);
+    sword result  = n64_read_word(address);
 
     if ((address & 0b11) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
@@ -1194,7 +1194,7 @@ MIPS_INSTR(mips_lld) {
     // Identical to ld
     shalf offset = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    dword result  = N64CPU.read_dword(address);
+    dword result  = n64_read_dword(address);
 
     if ((address & 0b111) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
@@ -1224,7 +1224,7 @@ MIPS_INSTR(mips_sc) {
         }
 
         word value = get_register(instruction.i.rt);
-        N64CPU.write_word(address, value);
+        n64_write_word(address, value);
         set_register(instruction.i.rt, 1); // Success!
 
     } else {
@@ -1256,7 +1256,7 @@ MIPS_INSTR(mips_scd) {
         }
 
         dword value = get_register(instruction.i.rt);
-        N64CPU.write_dword(address, value);
+        n64_write_dword(address, value);
         set_register(instruction.i.rt, 1); // Success!
 
     } else {

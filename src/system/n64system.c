@@ -27,50 +27,6 @@ bool n64_should_quit() {
     return should_quit;
 }
 
-void write_physical_word_wrapper(word address, word value) {
-    n64_write_word(address, value);
-}
-
-dword virtual_read_dword_wrapper(dword address) {
-    word physical = resolve_virtual_address(address);
-    return n64_read_dword(physical);
-}
-
-void virtual_write_dword_wrapper(dword address, dword value) {
-    word physical = resolve_virtual_address(address);
-    n64_write_dword(physical, value);
-}
-
-word virtual_read_word_wrapper(dword address) {
-    word physical = resolve_virtual_address(address);
-    return n64_read_physical_word(physical);
-}
-
-void virtual_write_word_wrapper(dword address, word value) {
-    word physical = resolve_virtual_address(address);
-    n64_write_word(physical, value);
-}
-
-half virtual_read_half_wrapper(dword address) {
-    word physical = resolve_virtual_address(address);
-    return n64_read_half(physical);
-}
-
-void virtual_write_half_wrapper(dword address, half value) {
-    word physical = resolve_virtual_address(address);
-    n64_write_half(physical, value);
-}
-
-byte virtual_read_byte_wrapper(dword address) {
-    word physical = resolve_virtual_address(address);
-    return n64_read_byte(physical);
-}
-
-void virtual_write_byte_wrapper(dword address, byte value) {
-    word physical = resolve_virtual_address(address);
-    n64_write_byte(physical, value);
-}
-
 void n64_load_rom(const char* rom_path) {
     logalways("Loading %s", rom_path);
     load_n64rom(&n64sys.mem.rom, rom_path);
@@ -85,21 +41,6 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
     init_mem(&n64sys.mem);
 
     n64sys.video_type = video_type;
-
-    N64CPU.read_dword = &virtual_read_dword_wrapper;
-    N64CPU.write_dword = &virtual_write_dword_wrapper;
-
-    N64CPU.read_word = &virtual_read_word_wrapper;
-    N64CPU.write_word = &virtual_write_word_wrapper;
-
-    N64CPU.read_half = &virtual_read_half_wrapper;
-    N64CPU.write_half = &virtual_write_half_wrapper;
-
-    N64CPU.read_byte = &virtual_read_byte_wrapper;
-    N64CPU.write_byte = &virtual_write_byte_wrapper;
-
-    N64RSP.read_physical_word = &n64_read_physical_word;
-    N64RSP.write_physical_word = &write_physical_word_wrapper;
 
     if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
         logfatal("mprotect codecache failed! %s", strerror(errno));

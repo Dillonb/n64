@@ -214,9 +214,9 @@ void write_word_pireg(word address, word value) {
             logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", N64CPU.pc, dram_addr, cart_addr, length);
 
             for (int i = 0; i < length; i++) {
-                byte b = n64_read_byte(dram_addr + i);
+                byte b = n64_read_physical_byte(dram_addr + i);
                 logtrace("DRAM to CART: Copying 0x%02X from 0x%08X to 0x%08X", b, dram_addr + i, cart_addr + i);
-                n64_write_byte(cart_addr + i, b);
+                n64_write_physical_byte(cart_addr + i, b);
             }
 
             logdebug("DMA completed.");
@@ -245,16 +245,16 @@ void write_word_pireg(word address, word value) {
             }
 
             for (int i = 0; i < length; i++) {
-                byte b = n64_read_byte(cart_addr + i);
+                byte b = n64_read_physical_byte(cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
-                n64_write_byte(dram_addr + i, b);
+                n64_write_physical_byte(dram_addr + i, b);
             }
 
             logdebug("DMA completed.");
             static bool first_time = true;
             if (first_time) {
-                n64_write_word(0x318, N64_RDRAM_SIZE);
-                n64_write_word(0x3f0, N64_RDRAM_SIZE);
+                n64_write_physical_word(0x318, N64_RDRAM_SIZE);
+                n64_write_physical_word(0x3f0, N64_RDRAM_SIZE);
                 first_time = false;
             }
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] += length;
@@ -432,7 +432,7 @@ void pif_to_dram(word pif_address, word dram_address) {
 
     for (int i = 0; i < 64; i++) {
         byte value = n64sys.mem.pif_ram[i];
-        n64_write_byte(dram_address + i, value);
+        n64_write_physical_byte(dram_address + i, value);
     }
     interrupt_raise(INTERRUPT_SI);
 }
@@ -443,7 +443,7 @@ void dram_to_pif(word dram_address, word pif_address) {
     }
     unimplemented(pif_address != 0x1FC007C0, "SI DMA not to start of PIF RAM!");
     for (int i = 0; i < 64; i++) {
-        n64sys.mem.pif_ram[i] = n64_read_byte(dram_address + i);
+        n64sys.mem.pif_ram[i] = n64_read_physical_byte(dram_address + i);
     }
     process_pif_command();
     interrupt_raise(INTERRUPT_SI);
@@ -506,7 +506,7 @@ INLINE void invalidate_rsp_icache(word address) {
     N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
 }
 
-void n64_write_dword(word address, dword value) {
+void n64_write_physical_dword(word address, dword value) {
     logdebug("Writing 0x%016lX to [0x%08X]", value, address);
     invalidate_dynarec_page(address);
     switch (address) {
@@ -581,7 +581,7 @@ void n64_write_dword(word address, dword value) {
     }
 }
 
-dword n64_read_dword(word address) {
+dword n64_read_physical_dword(word address) {
     switch (address) {
         case REGION_RDRAM:
             return dword_from_byte_array((byte*) &n64sys.mem.rdram, DWORD_ADDRESS(address) - SREGION_RDRAM);
@@ -644,7 +644,7 @@ dword n64_read_dword(word address) {
 }
 
 
-void n64_write_word(word address, word value) {
+void n64_write_physical_word(word address, word value) {
     logdebug("Writing 0x%08X to [0x%08X]", value, address);
     invalidate_dynarec_page(WORD_ADDRESS(address));
     switch (address) {
@@ -723,7 +723,7 @@ void n64_write_word(word address, word value) {
     }
 }
 
-INLINE word _n64_read_word(word address) {
+word n64_read_physical_word(word address) {
     switch (address) {
         case REGION_RDRAM:
             return word_from_byte_array((byte*) &n64sys.mem.rdram, WORD_ADDRESS(address) - SREGION_RDRAM);
@@ -808,15 +808,7 @@ INLINE word _n64_read_word(word address) {
     }
 }
 
-word n64_read_word(word address) {
-    return _n64_read_word(resolve_virtual_address(address));
-}
-
-word n64_read_physical_word(word address) {
-    return _n64_read_word(address);
-}
-
-void n64_write_half(word address, half value) {
+void n64_write_physical_half(word address, half value) {
     logdebug("Writing 0x%04X to [0x%08X]", value, address);
     invalidate_dynarec_page(HALF_ADDRESS(address));
     switch (address) {
@@ -892,7 +884,7 @@ void n64_write_half(word address, half value) {
     }
 }
 
-half n64_read_half(word address) {
+half n64_read_physical_half(word address) {
     switch (address) {
         case REGION_RDRAM:
             return half_from_byte_array((byte*) &n64sys.mem.rdram, HALF_ADDRESS(address) - SREGION_RDRAM);
@@ -955,7 +947,7 @@ half n64_read_half(word address) {
     }
 }
 
-void n64_write_byte(word address, byte value) {
+void n64_write_physical_byte(word address, byte value) {
     logdebug("Writing 0x%02X to [0x%08X]", value, address);
     invalidate_dynarec_page(BYTE_ADDRESS(address));
     switch (address) {
@@ -1021,7 +1013,7 @@ void n64_write_byte(word address, byte value) {
     }
 }
 
-byte n64_read_byte(word address) {
+byte n64_read_physical_byte(word address) {
     switch (address) {
         case REGION_RDRAM:
             return n64sys.mem.rdram[BYTE_ADDRESS(address)];

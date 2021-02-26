@@ -33,8 +33,8 @@ int main(int argc, char** argv) {
     init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE, false);
     // Normally handled by the bootcode, we gotta do it ourselves.
     for (int i = 0; i < 1048576; i++) {
-        byte b = n64_read_byte(0x10001000 + i);
-        n64_write_byte(0x00001000 + i, b);
+        byte b = n64_read_physical_byte(0x10001000 + i);
+        n64_write_physical_byte(0x00001000 + i, b);
     }
 
     set_pc_word_r4300i(n64sys.mem.rom.header.program_counter);

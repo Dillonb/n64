@@ -147,9 +147,6 @@ typedef struct rsp {
 
     byte sp_dmem[SP_DMEM_SIZE];
     byte sp_imem[SP_IMEM_SIZE];
-
-    word (*read_physical_word)(word);
-    void (*write_physical_word)(word, word);
 } rsp_t;
 
 #endif //N64_RSP_TYPES_H

@@ -577,7 +577,7 @@ void r4300i_step() {
 
     dword pc = N64CPU.pc;
     mips_instruction_t instruction;
-    instruction.raw = N64CPU.read_word(pc);
+    instruction.raw = n64_read_word(pc);
 
     if (unlikely(N64CPU.interrupts > 0)) {
         if(N64CPU.cp0.status.ie && !N64CPU.cp0.status.exl && !N64CPU.cp0.status.erl) {

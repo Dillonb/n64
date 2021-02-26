@@ -602,18 +602,6 @@ typedef struct r4300i {
 
     // Did an exception just happen?
     bool exception;
-
-    byte (*read_byte)(dword);
-    void (*write_byte)(dword, byte);
-
-    half (*read_half)(dword);
-    void (*write_half)(dword, half);
-
-    word (*read_word)(dword);
-    void (*write_word)(dword, word);
-
-    dword (*read_dword)(dword);
-    void (*write_dword)(dword, dword);
 } r4300i_t;
 
 extern r4300i_t n64cpu;

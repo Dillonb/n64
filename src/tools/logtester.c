@@ -93,7 +93,7 @@ void check_rsp_log(FILE* fp) {
 
         N64RSP.pc = strtol(post_line, NULL, 16);
         word instr = strtol(post_line + 10, NULL, 16);
-        N64RSP.write_physical_word((N64RSP.pc & 0xFFF) + SREGION_SP_IMEM, instr);
+        n64_write_physical_word((N64RSP.pc & 0xFFF) + SREGION_SP_IMEM, instr);
 
         pre_line += 59; // Skip all the other stuff and get right to regs
         post_line += 59; // Skip all the other stuff and get right to regs
@@ -314,7 +314,7 @@ void check_cpu_log(FILE* fp) {
 void cpu_step(r4300i_t* cpu) {
     dword pc = cpu->pc;
     mips_instruction_t instruction;
-    instruction.raw = cpu->read_word(pc);
+    instruction.raw = n64_read_word(pc);
 
     cpu->prev_pc = cpu->pc;
     cpu->pc = cpu->next_pc;
