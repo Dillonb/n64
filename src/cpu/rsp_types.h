@@ -54,9 +54,9 @@ ASSERTWORD(rsp_status_t);
 
 typedef struct rsp rsp_t;
 
-void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr);
+void cache_rsp_instruction(mips_instruction_t instr);
 
-typedef void(*rspinstr_handler_t)(rsp_t*, mips_instruction_t);
+typedef void(*rspinstr_handler_t)(mips_instruction_t);
 
 typedef struct rsp_icache_entry {
     mips_instruction_t instruction;

@@ -5,6 +5,7 @@
 #include <cpu/rsp_interface.h>
 #include <rdp/rdp.h>
 #include <cpu/dynarec/dynarec.h>
+#include <rsp.h>
 
 #include "addresses.h"
 #include "pif.h"

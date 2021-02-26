@@ -1,13 +1,11 @@
 #include "n64system.h"
 
 #include <string.h>
-#include <unistd.h>
 
 #include <mem/n64bus.h>
 #include <frontend/render.h>
 #include <interface/vi.h>
 #include <interface/ai.h>
-#include <n64_rsp_bus.h>
 #include <cpu/rsp.h>
 #include <cpu/dynarec/dynarec.h>
 #include <sys/mman.h>

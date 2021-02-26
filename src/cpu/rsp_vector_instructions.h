@@ -4,7 +4,7 @@
 #include "mips_instruction_decode.h"
 #include "rsp_types.h"
 
-#define RSP_VECTOR_INSTR(NAME) void NAME(rsp_t* rsp, mips_instruction_t instruction)
+#define RSP_VECTOR_INSTR(NAME) void NAME(mips_instruction_t instruction)
 
 RSP_VECTOR_INSTR(rsp_lwc2_lbv);
 RSP_VECTOR_INSTR(rsp_lwc2_ldv);

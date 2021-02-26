@@ -1,4 +1,5 @@
 #include <frontend/tas_movie.h>
+#include <rsp.h>
 #include "pif.h"
 #include "n64bus.h"
 #include "backup.h"

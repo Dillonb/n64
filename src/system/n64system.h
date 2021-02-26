@@ -207,7 +207,6 @@ void interrupt_lower(n64_interrupt_t interrupt);
 void on_interrupt_change();
 void check_vsync();
 extern n64_system_t n64sys;
-#define N64RSP n64sys.rsp
 #define N64DYNAREC n64sys.dynarec
 #ifdef __cplusplus
 }

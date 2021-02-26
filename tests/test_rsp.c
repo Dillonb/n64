@@ -37,7 +37,7 @@ void load_rsp_imem(const char* rsp_path) {
 
 void load_rsp_dmem(word* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
-        n64_rsp_write_word(&N64RSP, i * 4, input[i]);
+        n64_rsp_write_word(i * 4, input[i]);
     }
 }
 
@@ -55,7 +55,7 @@ bool run_test(word* input, int input_size, word* output, int output_size) {
         }
 
         cycles++;
-        rsp_step(&N64RSP);
+        rsp_step();
     }
 
     bool failed = false;
