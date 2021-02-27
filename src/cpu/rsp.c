@@ -44,6 +44,30 @@ INLINE rspinstr_handler_t rsp_cp0_decode(word pc, mips_instruction_t instr) {
     }
 }
 
+INLINE bool rsp_cp0_endsblock(word pc, mips_instruction_t instr) {
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            case COP_MT: return true;
+            case COP_MF: return false;
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+            }
+        }
+    } else {
+        switch (instr.fr.funct) {
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    }
+}
+
 INLINE rspinstr_handler_t rsp_cp2_decode(word pc, mips_instruction_t instr) {
     if (instr.cp2_vec.is_vec) {
         switch (instr.cp2_vec.funct) {
@@ -147,11 +171,63 @@ INLINE rspinstr_handler_t rsp_special_decode(word pc, mips_instruction_t instr) 
     }
 }
 
+INLINE bool rsp_special_endsblock(word pc, mips_instruction_t instr) {
+    switch (instr.r.funct) {
+        case FUNCT_SLL:
+        case FUNCT_SRL:
+        case FUNCT_SRA:
+        case FUNCT_SRAV:
+        case FUNCT_SLLV:
+        case FUNCT_SRLV:
+        case FUNCT_JR:
+        case FUNCT_JALR:
+        case FUNCT_MULT:
+        case FUNCT_MULTU:
+        case FUNCT_DIV:
+        case FUNCT_DIVU:
+        case FUNCT_ADD:
+        case FUNCT_ADDU:
+        case FUNCT_AND:
+        case FUNCT_SUB:
+        case FUNCT_SUBU:
+        case FUNCT_OR:
+        case FUNCT_XOR:
+        case FUNCT_NOR:
+        case FUNCT_SLT:
+        case FUNCT_SLTU:
+            return false;
+
+        case FUNCT_BREAK:
+            return true;
+        default: {
+            char buf[50];
+            disassemble(pc, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS RSP Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+        }
+    }
+}
+
 INLINE rspinstr_handler_t rsp_regimm_decode(word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:   return rsp_ri_bltz;
         case RT_BGEZ:   return rsp_ri_bgez;
         case RT_BGEZAL: return rsp_ri_bgezal;
+        default: {
+            char buf[50];
+            disassemble(pc, instr.raw, buf, 50);
+            logfatal("other/unknown RSP REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
+        }
+    }
+}
+
+INLINE bool rsp_regimm_endsblock(word pc, mips_instruction_t instr) {
+    switch (instr.i.rt) {
+        case RT_BLTZ:
+        case RT_BGEZ:
+        case RT_BGEZAL:
+            return true;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -260,6 +336,64 @@ INLINE rspinstr_handler_t rsp_instruction_decode(word pc, mips_instruction_t ins
                          instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
 #endif
         }
+}
+
+INLINE bool rsp_instruction_endsblock(word pc, mips_instruction_t instr) {
+    if (instr.raw == 0) {
+        return false;
+    }
+    switch (instr.op) {
+        case OPC_BEQ:
+        case OPC_BEQL:
+        case OPC_BGTZ:
+        case OPC_BLEZ:
+        case OPC_BNE:
+        case OPC_BNEL:
+        case OPC_J:
+        case OPC_JAL:
+            return true;
+        case OPC_LUI:
+        case OPC_ADDIU:
+        case OPC_ADDI:
+        case OPC_ANDI:
+        case OPC_LBU:
+        case OPC_LHU:
+        case OPC_LH:
+        case OPC_LW:
+        case OPC_SB:
+        case OPC_SH:
+        case OPC_SW:
+        case OPC_ORI:
+        case OPC_SLTI:
+        case OPC_SLTIU:
+        case OPC_XORI:
+        case OPC_LB:
+        case OPC_LWL:
+        case OPC_LWR:
+        case OPC_SWL:
+        case OPC_SWR:
+            return false;
+
+        case OPC_CP0:      return rsp_cp0_endsblock(pc, instr);
+        case OPC_CP1:      logfatal("Checking if RSP CP1 instruction ends block!");     //return rsp_cp1_endsblock(pc, instr);
+        case OPC_CP2:      return false; // CP2 instructions can't branch or start DMAs
+        case OPC_SPCL:     return rsp_special_endsblock(pc, instr);
+        case OPC_REGIMM:   return rsp_regimm_endsblock(pc, instr);
+        case RSP_OPC_LWC2: return false; // CP2 instructions can't branch or start DMAs
+        case RSP_OPC_SWC2: return false; // CP2 instructions can't branch or start DMAs
+
+        default:
+#ifdef LOG_ENABLED
+            if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
+                    disassemble(pc, instr.raw, buf, 50);
+                }
+                logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                         instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+#else
+            logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [UNKNOWN]",
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
+#endif
+    }
 }
 
 void cache_rsp_instruction(mips_instruction_t instr) {
