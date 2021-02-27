@@ -36,8 +36,9 @@ void n64_load_rom(const char* rom_path) {
 }
 
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
-    // align to page boundary
     memset(&n64sys, 0x00, sizeof(n64_system_t));
+    memset(&N64CPU, 0x00, sizeof(N64CPU));
+    memset(&N64RSP, 0x00, sizeof(N64RSP));
     init_mem(&n64sys.mem);
 
     n64sys.video_type = video_type;
