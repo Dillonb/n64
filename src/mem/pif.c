@@ -226,7 +226,7 @@ void pif_command(sbyte cmdlen, byte reslen, int r_index, int* index, int* channe
             offset |= n64sys.mem.pif_ram[(*index)++];
 
             // low 5 bits are the CRC
-            byte crc = offset & 0x1F;
+            //byte crc = offset & 0x1F;
             // offset must be 32-byte aligned
             offset &= ~0x1F;
 
@@ -256,7 +256,7 @@ void pif_command(sbyte cmdlen, byte reslen, int r_index, int* index, int* channe
             offset |= n64sys.mem.pif_ram[(*index)++];
 
             // low 5 bits are the CRC
-            byte crc = offset & 0x1F;
+            //byte crc = offset & 0x1F;
             // offset must be 32-byte aligned
             offset &= ~0x1F;
             loginfo("mempack write: crc %02X offset: %d / 0x%04X", crc, offset, offset);
