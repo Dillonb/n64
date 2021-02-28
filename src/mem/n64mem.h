@@ -43,9 +43,8 @@ typedef enum n64_save_type {
     SAVE_NONE,
     SAVE_EEPROM_4k,
     SAVE_EEPROM_16k,
-    SAVE_EEPROM_256k,
     SAVE_FLASH_1m,
-    SAVE_SRAM_768k
+    SAVE_SRAM_256k
 } n64_save_type_t;
 
 typedef enum flash_state {
@@ -57,21 +56,21 @@ typedef enum flash_state {
 } flash_state_t;
 
 INLINE bool is_eeprom(n64_save_type_t type) {
-    return type == SAVE_EEPROM_4k || type == SAVE_EEPROM_16k || type == SAVE_EEPROM_256k;
+    return type == SAVE_EEPROM_4k || type == SAVE_EEPROM_16k;
 }
 
-INLINE bool assert_is_eeprom(n64_save_type_t save_type) {
+INLINE void assert_is_eeprom(n64_save_type_t save_type) {
     if (!is_eeprom(save_type)) {
         logfatal("Expected save type to be EEPROM, but was not! Is this game in the game DB?");
     }
 }
 
 INLINE bool is_sram(n64_save_type_t type) {
-    return type == SAVE_SRAM_768k;
+    return type == SAVE_SRAM_256k;
 }
 
-INLINE bool assert_is_sram(n64_save_type_t save_type) {
-    if (!is_eeprom(save_type)) {
+INLINE void assert_is_sram(n64_save_type_t save_type) {
+    if (!is_sram(save_type)) {
         logfatal("Expected save type to be SRAM, but was not! Is this game in the game DB?");
     }
 }
@@ -80,8 +79,8 @@ INLINE bool is_flash(n64_save_type_t type) {
     return type == SAVE_FLASH_1m;
 }
 
-INLINE bool assert_is_flash(n64_save_type_t save_type) {
-    if (!is_eeprom(save_type)) {
+INLINE void assert_is_flash(n64_save_type_t save_type) {
+    if (!is_flash(save_type)) {
         logfatal("Expected save type to be FLASH, but was not! Is this game in the game DB?");
     }
 }

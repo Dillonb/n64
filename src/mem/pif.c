@@ -230,8 +230,6 @@ void pif_command(sbyte cmdlen, byte reslen, int r_index, int* index, int* channe
             // offset must be 32-byte aligned
             offset &= ~0x1F;
 
-            loginfo("mempack read: crc %02X offset: %d", crc, offset);
-
             // The most significant bit in the address is not used for the mempak.
             // The game will identify whether the connected device is a mempak or something else by writing to
             // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
@@ -259,7 +257,6 @@ void pif_command(sbyte cmdlen, byte reslen, int r_index, int* index, int* channe
             //byte crc = offset & 0x1F;
             // offset must be 32-byte aligned
             offset &= ~0x1F;
-            loginfo("mempack write: crc %02X offset: %d / 0x%04X", crc, offset, offset);
 
             // The most significant bit in the address is not used for the mempak.
             // The game will identify whether the connected device is a mempak or something else by writing to

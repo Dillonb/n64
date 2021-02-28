@@ -178,13 +178,12 @@ void backup_write_word(word index, word value) {
             break;
         case SAVE_EEPROM_4k:
         case SAVE_EEPROM_16k:
-        case SAVE_EEPROM_256k:
             logfatal("Accessing cartridge backup with save type SAVE_EEPROM");
             break;
         case SAVE_FLASH_1m:
             flash_write_word(index, value);
             break;
-        case SAVE_SRAM_768k:
+        case SAVE_SRAM_256k:
             sram_write_word(index, value);
             break;
     }
@@ -196,14 +195,13 @@ word backup_read_word(word index) {
             return 0;
         case SAVE_EEPROM_4k:
         case SAVE_EEPROM_16k:
-        case SAVE_EEPROM_256k:
             logwarn("Accessing cartridge backup with save type SAVE_EEPROM, returning 0 for a word read");
             return 0;
         case SAVE_FLASH_1m:
             return flash_read_word(index);
             logfatal("Accessing cartridge backup with save type SAVE_FLASH");
             break;
-        case SAVE_SRAM_768k:
+        case SAVE_SRAM_256k:
             return sram_read_word(index);
             break;
         default:
@@ -220,13 +218,12 @@ void backup_write_byte(word index, byte value) {
             break;
         case SAVE_EEPROM_4k:
         case SAVE_EEPROM_16k:
-        case SAVE_EEPROM_256k:
             logfatal("Accessing cartridge backup with save type SAVE_EEPROM");
             break;
         case SAVE_FLASH_1m:
             flash_write_byte(index, value);
             break;
-        case SAVE_SRAM_768k:
+        case SAVE_SRAM_256k:
             sram_write_byte(index, value);
             break;
     }
@@ -238,13 +235,12 @@ byte backup_read_byte(word index) {
     switch (n64sys.mem.save_type) {
         case SAVE_EEPROM_4k:
         case SAVE_EEPROM_16k:
-        case SAVE_EEPROM_256k:
             logwarn("Accessing cartridge backup with save type SAVE_EEPROM, returning 0 for a byte read");
             return 0;
         case SAVE_FLASH_1m:
             return flash_read_byte(index);
             break;
-        case SAVE_SRAM_768k:
+        case SAVE_SRAM_256k:
             return sram_read_byte(index);
             break;
         default:
@@ -260,8 +256,7 @@ byte get_initial_value(n64_save_type_t save_type) {
         case SAVE_NONE:
         case SAVE_EEPROM_4k:
         case SAVE_EEPROM_16k:
-        case SAVE_EEPROM_256k:
-        case SAVE_SRAM_768k:
+        case SAVE_SRAM_256k:
             return 0x00;
         case SAVE_FLASH_1m:
             return 0xFF;
@@ -279,12 +274,10 @@ size_t get_save_size(n64_save_type_t save_type) {
             return 512;
         case SAVE_EEPROM_16k:
             return 2048;
-        case SAVE_EEPROM_256k:
+        case SAVE_SRAM_256k:
             return 32768;
         case SAVE_FLASH_1m:
             return 131072;
-        case SAVE_SRAM_768k:
-            return 98304;
         default:
             logfatal("Unknown save type!\n");
     }
