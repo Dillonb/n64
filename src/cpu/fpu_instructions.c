@@ -206,7 +206,7 @@ MIPS_INSTR(mips_cp_sub_s) {
 MIPS_INSTR(mips_cp_trunc_l_d) {
         checkcp1;
         double value = get_fpu_register_double(instruction.fr.fs);
-        dword truncated = value;
+        dword truncated = trunc(value);
         set_fpu_register_dword(instruction.fr.fd, truncated);
 }
 
@@ -223,7 +223,7 @@ MIPS_INSTR(mips_cp_round_l_d) {
 MIPS_INSTR(mips_cp_trunc_l_s) {
         checkcp1;
         float value = get_fpu_register_float(instruction.fr.fs);
-        dword truncated = value;
+        dword truncated = truncf(value);
         set_fpu_register_dword(instruction.fr.fd, truncated);
 }
 
@@ -240,7 +240,7 @@ MIPS_INSTR(mips_cp_round_l_s) {
 MIPS_INSTR(mips_cp_trunc_w_d) {
         checkcp1;
         double value = get_fpu_register_double(instruction.fr.fs);
-        word truncated = value;
+        word truncated = trunc(value);
         set_fpu_register_word(instruction.fr.fd, truncated);
 }
 
@@ -268,7 +268,7 @@ MIPS_INSTR(mips_cp_floor_w_d) {
 MIPS_INSTR(mips_cp_floor_w_s) {
         checkcp1;
         float value = get_fpu_register_float(instruction.fr.fs);
-        sword truncated = truncf(floorf(value));
+        sword truncated = floorf(value);
         set_fpu_register_word(instruction.fr.fd, truncated);
 }
 
