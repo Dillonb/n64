@@ -19,6 +19,8 @@
 #define defvte vu_reg_t vte = get_vte(&N64RSP.vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
 #define elementzero unimplemented(instruction.cp2_vec.e != 0, "element was not zero!")
 
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
 INLINE shalf clamp_signed(sdword value) {
     if (value < -32768) return -32768;
     if (value > 32767) return 32767;
@@ -186,12 +188,12 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
     logdebug("rsp_lwc2_ldv");
     word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
 
-    for (int i = 0; i < 8; i++) {
-        int element = i + instruction.v.element;
-        if (element > 15) {
-            break;
-        }
-        N64RSP.vu_regs[instruction.v.vt].bytes[15 - element] = n64_rsp_read_byte(address + i);
+    int start = instruction.v.element;
+    int end = MIN(start + 8, 16);
+
+    for (int i = start; i < end; i++) {
+        N64RSP.vu_regs[instruction.v.vt].bytes[15 - i] = n64_rsp_read_byte(address);
+        address++;
     }
 }
 
