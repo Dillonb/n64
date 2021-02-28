@@ -15,6 +15,11 @@
 #define UNORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
 #define UNORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
 
+#define checknansf(fs, ft) if (isnanf(fs) || isnanf(ft)) { logfatal("fs || ft == NaN!"); }
+#define checknansd(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
+#define checknanf(value) if (isnanf(value)) { logfatal("value == NaN!"); }
+#define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
+
 
 MIPS_INSTR(mips_mfc1) {
     checkcp1;
@@ -143,6 +148,7 @@ MIPS_INSTR(mips_cp_mul_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+    checknansd(fs, ft);
     double result = fs * ft;
     set_fpu_register_double(instruction.fr.fd, result);
 }
@@ -151,6 +157,7 @@ MIPS_INSTR(mips_cp_mul_s) {
     checkcp1;
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+    checknansf(fs, ft);
     float result = fs * ft;
     set_fpu_register_float(instruction.fr.fd, result);
 }
@@ -159,6 +166,10 @@ MIPS_INSTR(mips_cp_div_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+    checknansd(fs, ft);
+    if (ft == 0) {
+        logfatal("div by zero in div.d");
+    }
     double result = fs / ft;
     set_fpu_register_double(instruction.fr.fd, result);
 }
@@ -167,6 +178,10 @@ MIPS_INSTR(mips_cp_div_s) {
     checkcp1;
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+    checknansf(fs, ft);
+    if (ft == 0) {
+        logfatal("div by zero in div.s");
+    }
     float result = fs / ft;
     set_fpu_register_float(instruction.fr.fd, result);
 }
@@ -175,6 +190,7 @@ MIPS_INSTR(mips_cp_add_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+    checknansd(fs, ft);
     double result = fs + ft;
     set_fpu_register_double(instruction.fr.fd, result);
 }
@@ -183,6 +199,7 @@ MIPS_INSTR(mips_cp_add_s) {
     checkcp1;
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+    checknansf(fs, ft);
     float result = fs + ft;
     set_fpu_register_float(instruction.fr.fd, result);
 }
@@ -191,6 +208,7 @@ MIPS_INSTR(mips_cp_sub_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+    checknansd(fs, ft);
     double result = fs - ft;
     set_fpu_register_double(instruction.fr.fd, result);
 }
@@ -199,6 +217,7 @@ MIPS_INSTR(mips_cp_sub_s) {
     checkcp1;
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+    checknansf(fs, ft);
     float result = fs - ft;
     set_fpu_register_float(instruction.fr.fd, result);
 }
@@ -206,6 +225,7 @@ MIPS_INSTR(mips_cp_sub_s) {
 MIPS_INSTR(mips_cp_trunc_l_d) {
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
+    checknand(value);
     dword truncated = trunc(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -223,6 +243,7 @@ MIPS_INSTR(mips_cp_round_l_d) {
 MIPS_INSTR(mips_cp_trunc_l_s) {
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
+    checknanf(value);
     dword truncated = truncf(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -231,6 +252,7 @@ MIPS_INSTR(mips_cp_round_l_s) {
     logwarn("mips_cp_round_l_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
+    checknanf(value);
     PUSHROUND;
     dword truncated = roundf(value);
     POPROUND;
@@ -257,6 +279,7 @@ MIPS_INSTR(mips_cp_round_w_d) {
 MIPS_INSTR(mips_cp_trunc_w_s) {
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
+    checknanf(value);
     sword truncated = truncf(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -268,6 +291,7 @@ MIPS_INSTR(mips_cp_floor_w_d) {
 MIPS_INSTR(mips_cp_floor_w_s) {
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
+    checknanf(value);
     sword truncated = floorf(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -276,6 +300,7 @@ MIPS_INSTR(mips_cp_round_w_s) {
     logwarn("mips_cp_round_w_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
+    checknanf(value);
     PUSHROUND;
     sword truncated = roundf(value);
     POPROUND;
@@ -389,6 +414,7 @@ MIPS_INSTR(mips_cp_c_f_s) {
     /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+     checknansf(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_f_s");
 }
@@ -397,6 +423,7 @@ MIPS_INSTR(mips_cp_c_un_s) {
     /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+     checknansf(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_un_s");
 }
@@ -404,6 +431,7 @@ MIPS_INSTR(mips_cp_c_eq_s) {
     checkcp1;
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+    checknansf(fs, ft);
 
     N64CPU.fcr31.compare = fs == ft;
 }
@@ -452,6 +480,7 @@ MIPS_INSTR(mips_cp_c_sf_s) {
     /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+     checknansf(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_sf_s");
 }
@@ -460,6 +489,7 @@ MIPS_INSTR(mips_cp_c_ngle_s) {
     /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+     checknansf(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_ngle_s");
 }
@@ -468,6 +498,7 @@ MIPS_INSTR(mips_cp_c_seq_s) {
     /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+     checknansf(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_seq_s");
 }
@@ -476,6 +507,7 @@ MIPS_INSTR(mips_cp_c_ngl_s) {
     /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
+     checknansf(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_ngl_s");
 }
@@ -537,6 +569,7 @@ MIPS_INSTR(mips_cp_c_f_d) {
     /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+     checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_f_d");
 }
@@ -545,6 +578,7 @@ MIPS_INSTR(mips_cp_c_un_d) {
     /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+     checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_un_d");
 }
@@ -552,9 +586,7 @@ MIPS_INSTR(mips_cp_c_eq_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
-
-    unimplemented(isnan(fs), "fs is nan");
-    unimplemented(isnan(ft), "ft is nan");
+    checknansd(fs, ft);
 
     N64CPU.fcr31.compare = fs == ft;
 }
@@ -572,6 +604,7 @@ MIPS_INSTR(mips_cp_c_olt_d) {
     /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+     checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_olt_d");
 }
@@ -604,6 +637,7 @@ MIPS_INSTR(mips_cp_c_sf_d) {
     /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+     checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_sf_d");
 }
@@ -612,6 +646,7 @@ MIPS_INSTR(mips_cp_c_ngle_d) {
     /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+     checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_ngle_d");
 }
@@ -620,6 +655,7 @@ MIPS_INSTR(mips_cp_c_seq_d) {
     /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+     checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_seq_d");
 }
@@ -628,6 +664,7 @@ MIPS_INSTR(mips_cp_c_ngl_d) {
     /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+     checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_ngl_d");
 }
@@ -635,9 +672,7 @@ MIPS_INSTR(mips_cp_c_lt_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
-
-    unimplemented(isnan(fs), "fs is nan");
-    unimplemented(isnan(ft), "ft is nan");
+    checknansd(fs, ft);
 
     N64CPU.fcr31.compare = fs < ft;
 }
@@ -645,15 +680,14 @@ MIPS_INSTR(mips_cp_c_nge_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+    checknansd(fs, ft);
     N64CPU.fcr31.compare = !(fs >= ft);
 }
 MIPS_INSTR(mips_cp_c_le_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
-
-    unimplemented(isnan(fs), "fs is nan");
-    unimplemented(isnan(ft), "ft is nan");
+    checknansd(fs, ft);
 
     N64CPU.fcr31.compare = fs <= ft;
 }
@@ -661,12 +695,14 @@ MIPS_INSTR(mips_cp_c_ngt_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
+    checknansd(fs, ft);
     N64CPU.fcr31.compare = !(fs > ft);
 }
 
 MIPS_INSTR(mips_cp_mov_s) {
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
+    checknanf(value);
     set_fpu_register_float(instruction.fr.fd, value);
 }
 
@@ -679,6 +715,7 @@ MIPS_INSTR(mips_cp_mov_d) {
 MIPS_INSTR(mips_cp_neg_s) {
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
+    checknanf(value);
     set_fpu_register_float(instruction.fr.fd, -value);
 }
 
