@@ -68,6 +68,15 @@ MIPS_INSTR(mips_cfc1) {
             break;
         case 31:
             value = N64CPU.fcr31.raw;
+            if (N64CPU.fcr31.enable_inexact_operation) {
+                logfatal("FPU exception inexact operation enabled!\n");
+            }
+            if (N64CPU.fcr31.enable_overflow) {
+                logfatal("FPU exception overflow enabled!\n");
+            }
+            if (N64CPU.fcr31.enable_underflow) {
+                logfatal("FPU exception underflow enabled!\n");
+            }
             break;
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
