@@ -203,9 +203,10 @@ RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
     word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
     int e = instruction.v.element;
     int start = e >> 1;
+    int start_ofs = e & 1;
     int end = (start + 4);
 
-    for (int i = e; i < end; i++) {
+    for (int i = start; i < end; i++) {
         half val = n64_rsp_read_byte(address);
         int shift_amount = e & 7;
         if (shift_amount == 0) {
@@ -214,8 +215,11 @@ RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
         val <<= shift_amount;
         byte low = val & 0xFF;
         byte high = (val >> 8) & 0xFF;
-        N64RSP.vu_regs[instruction.v.vt].bytes[15 - ((i + 0) & 15)] = high;
-        N64RSP.vu_regs[instruction.v.vt].bytes[15 - ((i + 1) & 15)] = low;
+
+        int elem_byte = i * 2 + start_ofs;
+
+        N64RSP.vu_regs[instruction.v.vt].bytes[15 - ((elem_byte + 0) & 15)] = high;
+        N64RSP.vu_regs[instruction.v.vt].bytes[15 - ((elem_byte + 1) & 15)] = low;
         address += 4;
     }
 }
