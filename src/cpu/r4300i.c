@@ -332,7 +332,14 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_F:
-            logfatal("COP_FUNCT_C_F unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_f_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_f_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_UN:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -352,13 +359,41 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_UEQ:
-            logfatal("COP_FUNCT_C_UEQ unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ueq_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ueq_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_OLT:
-            logfatal("COP_FUNCT_C_OLT unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_olt_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_olt_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_ULT:
-            logfatal("COP_FUNCT_C_ULT unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ult_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ult_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_OLE:
-            logfatal("COP_FUNCT_C_OLE unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ole_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ole_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_ULE:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -369,13 +404,41 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_SF:
-            logfatal("COP_FUNCT_C_SF unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_sf_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_sf_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_NGLE:
-            logfatal("COP_FUNCT_C_NGLE unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ngle_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ngle_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_SEQ:
-            logfatal("COP_FUNCT_C_SEQ unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_seq_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_seq_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_NGL:
-            logfatal("COP_FUNCT_C_NGL unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ngl_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ngl_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_LT:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -386,7 +449,14 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_NGE:
-            logfatal("COP_FUNCT_C_NGE unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_nge_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_nge_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_LE:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -396,9 +466,15 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                 default:
                     logfatal("Undefined!");
             }
-            logfatal("COP_FUNCT_C_LE unimplemented");
         case COP_FUNCT_C_NGT:
-            logfatal("COP_FUNCT_C_NGT unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ngt_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ngt_s;
+                default:
+                    logfatal("Undefined!");
+            }
     }
 
     char buf[50];
