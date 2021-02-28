@@ -721,13 +721,12 @@ MIPS_INSTR(mips_spc_dmultu) {
 }
 
 MIPS_INSTR(mips_spc_ddiv) {
-    dword dividend = get_register(instruction.r.rs);
-    dword divisor  = get_register(instruction.r.rt);
+    __int128 dividend = (sdword)get_register(instruction.r.rs);
+    __int128 divisor  = (sdword)get_register(instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero exception");
-
-    dword quotient  = dividend / divisor;
-    dword remainder = dividend % divisor;
+    unimplemented(divisor == 0, "Divide by zero");
+    sdword quotient  = (sdword)(dividend / divisor);
+    sdword remainder = (sdword)(dividend % divisor);
 
     N64CPU.mult_lo = quotient;
     N64CPU.mult_hi = remainder;
@@ -737,7 +736,7 @@ MIPS_INSTR(mips_spc_ddivu) {
     dword dividend = get_register(instruction.r.rs);
     dword divisor  = get_register(instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero exception");
+    unimplemented(divisor == 0, "Divide by zero");
 
     dword quotient  = dividend / divisor;
     dword remainder = dividend % divisor;
