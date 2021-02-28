@@ -4,6 +4,7 @@
 #include <mem/n64bus.h>
 #include "disassemble.h"
 #include "mips_instructions.h"
+#include "fpu_instructions.h"
 #include "tlb_instructions.h"
 
 const char* register_names[] = {

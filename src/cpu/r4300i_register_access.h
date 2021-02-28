@@ -436,4 +436,42 @@ INLINE float get_fpu_register_float(byte r) {
     return floatvalue;
 }
 
+INLINE void link() {
+    dword pc = N64CPU.pc + 4;
+    set_register(R4300I_REG_LR, pc); // Skips the instruction in the delay slot on return
+}
+
+INLINE void branch_abs(dword address) {
+    N64CPU.next_pc = address;
+    N64CPU.branch = true;
+}
+
+INLINE void branch_abs_word(dword address) {
+    branch_abs((sdword)((sword)address));
+}
+
+INLINE void branch_offset(shalf offset) {
+    sword soffset = offset;
+    soffset *= 4;
+    // This is taking advantage of the fact that we add 4 to the PC after each instruction.
+    // Due to the compiler expecting pipelining, the address we get here will be 4 _too early_
+
+    branch_abs(N64CPU.pc + soffset);
+}
+
+INLINE void conditional_branch_likely(word offset, bool condition) {
+    if (condition) {
+        branch_offset(offset);
+    } else {
+        // Skip instruction in delay slot
+        set_pc_dword_r4300i(N64CPU.pc + 4);
+    }
+}
+
+INLINE void conditional_branch(word offset, bool condition) {
+    if (condition) {
+        branch_offset(offset);
+    }
+}
+
 #endif //N64_R4300I_REGISTER_ACCESS_H

@@ -8,8 +8,9 @@
 #include <sys/mman.h>
 
 #include <mem/n64bus.h>
-#include "mips_instructions.h"
 #include "disassemble.h"
+#include "mips_instructions.h"
+#include "fpu_instructions.h"
 #include "tlb_instructions.h"
 
 //#define N64_LOG_JIT_SYNC_POINTS
