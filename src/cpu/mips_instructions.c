@@ -32,7 +32,7 @@ void check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
 #if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
 __attribute__((__target__("no-sse")))
 #endif
-INLINE dword mult_64_to_128(dword lhs, dword rhs, dword *high) {
+INLINE dword multu_64_to_128(dword lhs, dword rhs, dword *high) {
         /*
          * GCC and Clang usually provide __uint128_t on 64-bit targets,
          * although Clang also defines it on WASM despite having to use
@@ -56,6 +56,52 @@ INLINE dword mult_64_to_128(dword lhs, dword rhs, dword *high) {
      * and takes advantage of UMAAL on ARMv6 to only need 4
      * calculations.
      */
+
+    /* First calculate all of the cross products. */
+    uint64_t lo_lo = (lhs & 0xFFFFFFFF) * (rhs & 0xFFFFFFFF);
+    uint64_t hi_lo = (lhs >> 32)        * (rhs & 0xFFFFFFFF);
+    uint64_t lo_hi = (lhs & 0xFFFFFFFF) * (rhs >> 32);
+    uint64_t hi_hi = (lhs >> 32)        * (rhs >> 32);
+
+    /* Now add the products together. These will never overflow. */
+    uint64_t cross = (lo_lo >> 32) + (hi_lo & 0xFFFFFFFF) + lo_hi;
+    uint64_t upper = (hi_lo >> 32) + (cross >> 32)        + hi_hi;
+
+    *high = upper;
+    return (cross << 32) | (lo_lo & 0xFFFFFFFF);
+#endif /* portable */
+}
+
+/* Prevents a partial vectorization from GCC. */
+#if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
+__attribute__((__target__("no-sse")))
+#endif
+INLINE dword mult_64_to_128(sdword lhs, sdword rhs, dword *high) {
+    /*
+     * GCC and Clang usually provide __uint128_t on 64-bit targets,
+     * although Clang also defines it on WASM despite having to use
+     * builtins for most purposes - including multiplication.
+     */
+#if defined(__SIZEOF_INT128__) && !defined(__wasm__)
+    __int128_t product = (__int128_t)lhs * (__int128_t)rhs;
+    *high = (sdword)(product >> 64);
+    return (sdword)(product & 0xFFFFFFFFFFFFFFFF);
+
+    /* Use the _mul128 intrinsic on MSVC x64 to hint for mulq. */
+#elif defined(_MSC_VER) && defined(_M_IX64)
+    #   pragma intrinsic(_mul128)
+    /* This intentionally has the same signature. */
+    return _mul128(lhs, rhs, high);
+
+#else
+    /*
+     * Fast yet simple grade school multiply that avoids
+     * 64-bit carries with the properties of multiplying by 11
+     * and takes advantage of UMAAL on ARMv6 to only need 4
+     * calculations.
+     */
+
+    logfatal("This code will be broken for signed multiplies!");
 
     /* First calculate all of the cross products. */
     uint64_t lo_lo = (lhs & 0xFFFFFFFF) * (rhs & 0xFFFFFFFF);
@@ -668,7 +714,7 @@ MIPS_INSTR(mips_spc_dmult) {
 
 MIPS_INSTR(mips_spc_dmultu) {
     dword result_upper;
-    dword result_lower = mult_64_to_128(get_register(instruction.r.rs), get_register(instruction.r.rt), &result_upper);
+    dword result_lower = multu_64_to_128(get_register(instruction.r.rs), get_register(instruction.r.rt), &result_upper);
 
     N64CPU.mult_lo = result_lower;
     N64CPU.mult_hi = result_upper;
