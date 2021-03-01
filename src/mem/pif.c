@@ -88,7 +88,7 @@ void pif_rom_execute_hle() {
     loginfo("CP0 status: cu2: %d", N64CP0.status.cu2);
     loginfo("CP0 status: cu3: %d", N64CP0.status.cu3);
 
-    n64_write_word(0x04300004, 0x01010101);
+    n64_write_physical_word(0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
     memcpy(N64RSP.sp_dmem, n64sys.mem.rom.rom, sizeof(byte) * 0x1000);
