@@ -30,7 +30,8 @@ static const gamedb_entry_t gamedb[] = {
         {"NJM", "EP", SAVE_EEPROM_4k,   "Earthworm Jim 3D"},
         {"NRS", "E",  SAVE_EEPROM_4k,   "Star Wars: Rogue Squadron"},
         {"NDP", "E",  SAVE_FLASH_1m,    "Dinosaur Planet"},
-        {"NGN", "E",  SAVE_EEPROM_4k,   "GoldenEye 007"}
+        {"NGN", "E",  SAVE_EEPROM_4k,   "GoldenEye 007"},
+        {"NYS", "E",  SAVE_EEPROM_16k,  "Yoshi's Story"}
 };
 
 #define GAMEDB_SIZE (sizeof(gamedb) / sizeof(gamedb_entry_t))
