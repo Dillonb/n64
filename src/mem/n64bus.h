@@ -146,35 +146,35 @@ half n64_read_physical_half(word address);
 void n64_write_physical_byte(word address, byte value);
 byte n64_read_physical_byte(word address);
 
-INLINE void n64_write_dword(word address, dword value) {
+INLINE void n64_write_dword(dword address, dword value) {
     n64_write_physical_dword(resolve_virtual_address(address), value);
 }
 
-INLINE dword n64_read_dword(word address) {
+INLINE dword n64_read_dword(dword address) {
     return n64_read_physical_dword(resolve_virtual_address(address));
 }
 
-INLINE void n64_write_word(word address, word value) {
+INLINE void n64_write_word(dword address, word value) {
     n64_write_physical_word(resolve_virtual_address(address), value);
 }
 
-INLINE word n64_read_word(word address) {
+INLINE word n64_read_word(dword address) {
     return n64_read_physical_word(resolve_virtual_address(address));
 }
 
-INLINE void n64_write_half(word address, half value) {
+INLINE void n64_write_half(dword address, half value) {
     n64_write_physical_half(resolve_virtual_address(address), value);
 }
 
-INLINE half n64_read_half(word address) {
+INLINE half n64_read_half(dword address) {
     return n64_read_physical_half(resolve_virtual_address(address));
 }
 
-INLINE void n64_write_byte(word address, byte value) {
+INLINE void n64_write_byte(dword address, byte value) {
     n64_write_physical_byte(resolve_virtual_address(address), value);
 }
 
-INLINE byte n64_read_byte(word address) {
+INLINE byte n64_read_byte(dword address) {
     return n64_read_physical_byte(resolve_virtual_address(address));
 }
 
