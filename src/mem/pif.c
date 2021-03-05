@@ -4,6 +4,23 @@
 #include "n64bus.h"
 #include "backup.h"
 
+#define PIF_COMMAND_CONTROLLER_ID 0x00
+#define PIF_COMMAND_READ_BUTTONS  0x01
+#define PIF_COMMAND_MEMPACK_READ  0x02
+#define PIF_COMMAND_MEMPACK_WRITE 0x03
+#define PIF_COMMAND_EEPROM_READ   0x04
+#define PIF_COMMAND_EEPROM_WRITE  0x05
+#define PIF_COMMAND_RESET         0xFF
+
+#define CMD_CMDLEN_INDEX 0
+#define CMD_RESLEN_INDEX 1
+#define CMD_COMMAND_INDEX 2
+#define CMD_START_INDEX 3
+
+#define CMD_DATA (&cmd[CMD_START_INDEX])
+
+static int pif_channel = 0;
+
 void pif_rom_execute_hle() {
     N64CPU.gpr[0] = 0;
     N64CPU.gpr[1] = 0;
@@ -130,6 +147,58 @@ void pif_rom_execute() {
     }
 }
 
+INLINE void pif_controller_reset(byte* cmd, byte* res) {
+
+}
+
+INLINE void pif_controller_id(byte* cmd, byte* res) {
+    if (pif_channel < 4) {
+        bool plugged_in = n64sys.si.controllers[pif_channel].plugged_in;
+        if (plugged_in) {
+            res[0] = 0x05;
+            res[1] = 0x00;
+            res[2] = 0x01; // Controller pak plugged in.
+        } else {
+            res[0] = 0x05;
+            res[1] = 0x00;
+            res[2] = 0x01;
+        }
+    } else if (pif_channel == 4) { // EEPROM is on channel 4, and sometimes 5.
+        res[0] = 0x00;
+        res[1] = 0x80;
+        res[2] = 0x00;
+    } else {
+        logfatal("Controller ID on unknown channel %d", pif_channel);
+    }
+    pif_channel++;
+}
+
+INLINE void pif_read_buttons(byte* cmd, byte* res) {
+    if (pif_channel < 4 && n64sys.si.controllers[pif_channel].plugged_in) {
+        if (tas_movie_loaded()) {
+            // Load inputs from TAS movie
+            n64_controller_t controller = tas_next_inputs();
+            res[0] = controller.byte1;
+            res[1] = controller.byte2;
+            res[2] = controller.joy_x;
+            res[3] = controller.joy_y;
+        } else {
+            // Load inputs normally
+            res[0] = n64sys.si.controllers[pif_channel].byte1;
+            res[1] = n64sys.si.controllers[pif_channel].byte2;
+            res[2] = n64sys.si.controllers[pif_channel].joy_x;
+            res[3] = n64sys.si.controllers[pif_channel].joy_y;
+        }
+        cmd[CMD_RESLEN_INDEX] |= 0x00; // Success!
+    } else {
+        cmd[CMD_RESLEN_INDEX] |= 0x80; // Device not present
+        res[0]  = 0x00;
+        res[1]  = 0x00;
+        res[2]  = 0x00;
+        res[3]  = 0x00;
+    }
+    pif_channel++;
+}
 
 byte data_crc(const byte* data) {
     byte crc = 0;
@@ -151,189 +220,149 @@ byte data_crc(const byte* data) {
     return crc;
 }
 
-#define PIF_COMMAND_CONTROLLER_ID 0x00
-#define PIF_COMMAND_READ_BUTTONS  0x01
-#define PIF_COMMAND_MEMPACK_READ  0x02
-#define PIF_COMMAND_MEMPACK_WRITE 0x03
-#define PIF_COMMAND_EEPROM_READ   0x04
-#define PIF_COMMAND_EEPROM_WRITE  0x05
-#define PIF_COMMAND_RESET         0xFF
 
-void pif_command(sbyte cmdlen, byte reslen, int r_index, int* index, int* channel) {
-    byte command = n64sys.mem.pif_ram[(*index)++];
-    switch (command) {
-        case PIF_COMMAND_RESET:
-        case PIF_COMMAND_CONTROLLER_ID: {
-            if (*channel < 4) {
-                bool plugged_in = n64sys.si.controllers[*channel].plugged_in;
-                if (plugged_in) {
-                    n64sys.mem.pif_ram[(*index)++] = 0x05;
-                    n64sys.mem.pif_ram[(*index)++] = 0x00;
-                    n64sys.mem.pif_ram[(*index)++] = 0x01; // Controller pak plugged in.
-                } else {
-                    n64sys.mem.pif_ram[(*index)++] = 0x05;
-                    n64sys.mem.pif_ram[(*index)++] = 0x00;
-                    n64sys.mem.pif_ram[(*index)++] = 0x01;
-                }
-            } else if (*channel == 4) { // EEPROM is on channel 4, and sometimes 5.
-                n64sys.mem.pif_ram[(*index)++] = 0x00;
-                n64sys.mem.pif_ram[(*index)++] = 0x80;
-                n64sys.mem.pif_ram[(*index)++] = 0x00;
-            } else {
-                logfatal("Controller ID on unknown channel %d", *channel);
-            }
-            (*channel)++;
-            break;
-        }
-        case PIF_COMMAND_READ_BUTTONS: {
-            byte bytes[4];
-            if (*channel < 4 && n64sys.si.controllers[*channel].plugged_in) {
-                if (tas_movie_loaded()) {
-                    // Load inputs from TAS movie
-                    n64_controller_t controller = tas_next_inputs();
-                    bytes[0] = controller.byte1;
-                    bytes[1] = controller.byte2;
-                    bytes[2] = controller.joy_x;
-                    bytes[3] = controller.joy_y;
-                } else {
-                    // Load inputs normally
-                    bytes[0] = n64sys.si.controllers[*channel].byte1;
-                    bytes[1] = n64sys.si.controllers[*channel].byte2;
-                    bytes[2] = n64sys.si.controllers[*channel].joy_x;
-                    bytes[3] = n64sys.si.controllers[*channel].joy_y;
-                }
-                n64sys.mem.pif_ram[r_index]   |= 0x00; // Success!
-                n64sys.mem.pif_ram[(*index)++] = bytes[0];
-                n64sys.mem.pif_ram[(*index)++] = bytes[1];
-                n64sys.mem.pif_ram[(*index)++] = bytes[2];
-                n64sys.mem.pif_ram[(*index)++] = bytes[3];
-            } else {
-                n64sys.mem.pif_ram[r_index]   |= 0x80; // Device not present
-                n64sys.mem.pif_ram[(*index)++] = 0x00;
-                n64sys.mem.pif_ram[(*index)++] = 0x00;
-                n64sys.mem.pif_ram[(*index)++] = 0x00;
-                n64sys.mem.pif_ram[(*index)++] = 0x00;
-            }
-            (*channel)++;
-            break;
-        }
-        case PIF_COMMAND_MEMPACK_READ: {
-            unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
-            unimplemented(reslen != 33, "Mempack read with reslen != 33");
-            init_mempack(&n64sys.mem, n64sys.rom_path);
-            // First two bytes in the command are the offset
-            half offset = n64sys.mem.pif_ram[(*index)++] << 8;
-            offset |= n64sys.mem.pif_ram[(*index)++];
+INLINE void pif_mempack_read(byte* cmd, byte* res) {
+    init_mempack(&n64sys.mem, n64sys.rom_path);
+    // First two bytes in the command are the offset
+    half offset = CMD_DATA[0] << 8;
+    offset |= CMD_DATA[1];
 
-            // low 5 bits are the CRC
-            //byte crc = offset & 0x1F;
-            // offset must be 32-byte aligned
-            offset &= ~0x1F;
+    // low 5 bits are the CRC
+    //byte crc = offset & 0x1F;
+    // offset must be 32-byte aligned
+    offset &= ~0x1F;
 
-            // The most significant bit in the address is not used for the mempak.
-            // The game will identify whether the connected device is a mempak or something else by writing to
-            // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
-            // something else, depending on the data it returns.
-            offset &= 0x7FE0;
+    // The most significant bit in the address is not used for the mempak.
+    // The game will identify whether the connected device is a mempak or something else by writing to
+    // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
+    // something else, depending on the data it returns.
+    offset &= 0x7FE0;
 
-            for (int i = 0; i < 32; i++) {
-                n64sys.mem.pif_ram[(*index)++] = n64sys.mem.mempack_data[offset + i];
-            }
-
-            // CRC byte
-            n64sys.mem.pif_ram[(*index)++] = data_crc(&n64sys.mem.mempack_data[offset]);
-
-            break;
-        }
-        case PIF_COMMAND_MEMPACK_WRITE: {
-            unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
-            unimplemented(reslen != 1, "Mempack write with reslen != 1");
-            init_mempack(&n64sys.mem, n64sys.rom_path);
-            // First two bytes in the command are the offset
-            half offset = n64sys.mem.pif_ram[(*index)++] << 8;
-            offset |= n64sys.mem.pif_ram[(*index)++];
-
-            // low 5 bits are the CRC
-            //byte crc = offset & 0x1F;
-            // offset must be 32-byte aligned
-            offset &= ~0x1F;
-
-            // The most significant bit in the address is not used for the mempak.
-            // The game will identify whether the connected device is a mempak or something else by writing to
-            // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
-            // something else, depending on the data it returns.
-            offset &= 0x7FE0;
-
-            int data_start_index = *index;
-            for (int i = 0; i < 32; i++) {
-                n64sys.mem.mempack_data[offset + i] = n64sys.mem.pif_ram[(*index)++];
-            }
-            n64sys.mem.mempack_data_dirty = true;
-            // CRC byte
-            n64sys.mem.pif_ram[(*index)++] = data_crc(&n64sys.mem.pif_ram[data_start_index]);
-            break;
-        }
-        case PIF_COMMAND_EEPROM_READ:
-            assert_is_eeprom(n64sys.mem.save_type);
-            unimplemented(cmdlen != 2, "EEPROM read with cmdlen != 2");
-            unimplemented(reslen != 8, "EEPROM read with reslen != 8");
-            unimplemented(n64sys.mem.save_data == NULL, "EEPROM read when save data is uninitialized! Is this game in the game DB?");
-            if (*channel == 4) {
-                byte offset = n64sys.mem.pif_ram[(*index)++];
-                if ((offset * 8) >= n64sys.mem.save_size) {
-                    logfatal("Out of range EEPROM read! offset: 0x%02X", offset);
-                }
-
-                for (int i = 0; i < 8; i++) {
-                    n64sys.mem.pif_ram[(*index)++] = n64sys.mem.save_data[(offset * 8) + i];
-                }
-            } else {
-                logfatal("EEPROM read on bad channel %d", *channel);
-            }
-            break;
-        case PIF_COMMAND_EEPROM_WRITE:
-            assert_is_eeprom(n64sys.mem.save_type);
-            unimplemented(cmdlen != 10, "EEPROM write with cmdlen != 10");
-            unimplemented(reslen != 1,  "EEPROM write with reslen != 1");
-            unimplemented(n64sys.mem.save_data == NULL, "EEPROM write when save data is uninitialized! Is this game in the game DB?");
-            if (*channel == 4) {
-                byte offset = n64sys.mem.pif_ram[(*index)++];
-                if ((offset * 8) >= n64sys.mem.save_size) {
-                    logfatal("Out of range EEPROM write! offset: 0x%02X", offset);
-                }
-
-                for (int i = 0; i < 8; i++) {
-                    n64sys.mem.save_data[(offset * 8) + i] = n64sys.mem.pif_ram[(*index)++];
-                }
-
-                n64sys.mem.pif_ram[(*index)++] = 0; // Error byte, I guess it always succeeds?
-            } else {
-                logfatal("EEPROM write on bad channel %d", *channel);
-            }
-            n64sys.mem.save_data_dirty = true;
-            break;
-        default:
-            logfatal("Unknown PIF command: %d", command);
+    for (int i = 0; i < 32; i++) {
+        res[i] = n64sys.mem.mempack_data[offset + i];
     }
+
+    // CRC byte
+    res[32] = data_crc(&n64sys.mem.mempack_data[offset]);
+}
+
+INLINE void pif_mempack_write(byte* cmd, byte* res) {
+    init_mempack(&n64sys.mem, n64sys.rom_path);
+    // First two bytes in the command are the offset
+    half offset = CMD_DATA[0] << 8;
+    offset |= CMD_DATA[1];
+
+    // low 5 bits are the CRC
+    //byte crc = offset & 0x1F;
+    // offset must be 32-byte aligned
+    offset &= ~0x1F;
+
+    // The most significant bit in the address is not used for the mempak.
+    // The game will identify whether the connected device is a mempak or something else by writing to
+    // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
+    // something else, depending on the data it returns.
+    offset &= 0x7FE0;
+
+    for (int i = 0; i < 32; i++) {
+        n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+    }
+    n64sys.mem.mempack_data_dirty = true;
+    // CRC byte
+    res[0] = data_crc(&n64sys.mem.mempack_data[offset]);
+}
+
+INLINE void pif_eeprom_read(byte* cmd, byte* res) {
+    assert_is_eeprom(n64sys.mem.save_type);
+    if (pif_channel == 4) {
+        byte offset = CMD_DATA[0];
+        if ((offset * 8) >= n64sys.mem.save_size) {
+            logfatal("Out of range EEPROM read! offset: 0x%02X", offset);
+        }
+
+        for (int i = 0; i < 8; i++) {
+            res[i] = n64sys.mem.save_data[(offset * 8) + i];
+        }
+    } else {
+        logfatal("EEPROM read on bad channel %d", pif_channel);
+    }
+}
+
+INLINE void pif_eeprom_write(byte* cmd, byte* res) {
+    assert_is_eeprom(n64sys.mem.save_type);
+    if (pif_channel == 4) {
+        byte offset = CMD_DATA[0];
+        if ((offset * 8) >= n64sys.mem.save_size) {
+            logfatal("Out of range EEPROM write! offset: 0x%02X", offset);
+        }
+
+        for (int i = 0; i < 8; i++) {
+            n64sys.mem.save_data[(offset * 8) + i] = CMD_DATA[1 + i];
+        }
+
+        res[0] = 0; // Error byte, I guess it always succeeds?
+    } else {
+        logfatal("EEPROM write on bad channel %d", pif_channel);
+    }
+    n64sys.mem.save_data_dirty = true;
 }
 
 void process_pif_command() {
     byte control = n64sys.mem.pif_ram[63];
     if (control == 1) {
+        pif_channel = 0;
         int i = 0;
-        int channel = 0;
         while (i < 63) {
-            byte t = n64sys.mem.pif_ram[i++] & 0x3F;
-            if (t == 0) {
-                channel++;
-            } else if (t == 0x3F) {
+            byte* cmd = &n64sys.mem.pif_ram[i++];
+            byte cmdlen = cmd[0] & 0x3F;
+
+            if (cmdlen == 0) {
+                pif_channel++;
+            } else if (cmdlen == 0x3F) {
                 continue;
-            } else if (t == 0x3E) {
+            } else if (cmdlen == 0x3E) {
                 break;
             } else {
-                int r_index = i;
-                byte r = n64sys.mem.pif_ram[i++] & 0x3F; // TODO: out of bounds access possible on invalid data
-                pif_command(t, r, r_index, &i, &channel);
+                byte reslen = n64sys.mem.pif_ram[i++] & 0x3F; // TODO: out of bounds access possible on invalid data
+                byte* res = &n64sys.mem.pif_ram[i + cmdlen];
+
+                switch (cmd[CMD_COMMAND_INDEX]) {
+                    case PIF_COMMAND_RESET:
+                        pif_controller_reset(cmd, res);
+                        pif_controller_id(cmd, res);
+                        break;
+                    case PIF_COMMAND_CONTROLLER_ID:
+                        pif_controller_id(cmd, res);
+                        break;
+                    case PIF_COMMAND_READ_BUTTONS:
+                        pif_read_buttons(cmd, res);
+                        break;
+                    case PIF_COMMAND_MEMPACK_READ:
+                        unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
+                        unimplemented(reslen != 33, "Mempack read with reslen != 33");
+                        pif_mempack_read(cmd, res);
+                        break;
+                    case PIF_COMMAND_MEMPACK_WRITE:
+                        unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
+                        unimplemented(reslen != 1, "Mempack write with reslen != 1");
+                        pif_mempack_write(cmd, res);
+                        break;
+                    case PIF_COMMAND_EEPROM_READ:
+                        unimplemented(cmdlen != 2, "EEPROM read with cmdlen != 2");
+                        unimplemented(reslen != 8, "EEPROM read with reslen != 8");
+                        unimplemented(n64sys.mem.save_data == NULL, "EEPROM read when save data is uninitialized! Is this game in the game DB?");
+                        pif_eeprom_read(cmd, res);
+                        break;
+                    case PIF_COMMAND_EEPROM_WRITE:
+                        unimplemented(cmdlen != 10, "EEPROM write with cmdlen != 10");
+                        unimplemented(reslen != 1,  "EEPROM write with reslen != 1");
+                        unimplemented(n64sys.mem.save_data == NULL, "EEPROM write when save data is uninitialized! Is this game in the game DB?");
+                        pif_eeprom_write(cmd, res);
+                        break;
+                    default:
+                        logfatal("Invalid PIF command: %X", cmd[0]);
+                }
+
+                i += cmdlen + reslen;
             }
         }
     }
