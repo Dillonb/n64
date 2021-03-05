@@ -327,13 +327,19 @@ void process_pif_command() {
 
                 switch (cmd[CMD_COMMAND_INDEX]) {
                     case PIF_COMMAND_RESET:
+                        unimplemented(cmdlen != 1, "Reset with cmdlen != 1");
+                        unimplemented(reslen != 3, "Reset with reslen != 3");
                         pif_controller_reset(cmd, res);
                         pif_controller_id(cmd, res);
                         break;
                     case PIF_COMMAND_CONTROLLER_ID:
+                        unimplemented(cmdlen != 1, "Controller id with cmdlen != 1");
+                        unimplemented(reslen != 3, "Controller id with reslen != 3");
                         pif_controller_id(cmd, res);
                         break;
                     case PIF_COMMAND_READ_BUTTONS:
+                        unimplemented(cmdlen != 1, "Read buttons with cmdlen != 1");
+                        unimplemented(reslen != 4, "Read buttons with reslen != 4");
                         pif_read_buttons(cmd, res);
                         break;
                     case PIF_COMMAND_MEMPACK_READ:
