@@ -20,8 +20,8 @@ static bool should_quit = false;
 
 n64_system_t n64sys;
 
-// 128MiB codecache
-#define CODECACHE_SIZE (1 << 27)
+// 32MiB codecache
+#define CODECACHE_SIZE (1 << 25)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 
 bool n64_should_quit() {
