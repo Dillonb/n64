@@ -177,7 +177,8 @@ MIPS_INSTR(mips_cp_div_d) {
     double ft = get_fpu_register_double(instruction.fr.ft);
     checknansd(fs, ft);
     if (ft == 0) {
-        logfatal("div by zero in div.d");
+        N64CPU.fcr31.cause_division_by_zero = true;
+        check_fpu_exception();
     }
     double result = fs / ft;
     set_fpu_register_double(instruction.fr.fd, result);
@@ -189,7 +190,8 @@ MIPS_INSTR(mips_cp_div_s) {
     float ft = get_fpu_register_float(instruction.fr.ft);
     checknansf(fs, ft);
     if (ft == 0) {
-        logfatal("div by zero in div.s");
+        N64CPU.fcr31.cause_division_by_zero = true;
+        check_fpu_exception();
     }
     float result = fs / ft;
     set_fpu_register_float(instruction.fr.fd, result);
