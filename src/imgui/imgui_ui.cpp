@@ -89,6 +89,9 @@ void render_menubar() {
 
             ImGui::EndMenu();
         }
+
+        ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+
         ImGui::EndMainMenuBar();
     }
 }
