@@ -56,6 +56,10 @@ void submit_requested_vk_command_buffer() {
     wsi->get_device().submit(requested_command_buffer);
 }
 
+bool is_framerate_unlocked() {
+    return wsi->get_present_mode() != PresentMode::SyncToVBlank;
+}
+
 void set_framerate_unlocked(bool unlocked) {
     if (unlocked) {
         wsi->set_present_mode(PresentMode::UnlockedForceTearing);

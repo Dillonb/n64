@@ -19,7 +19,6 @@ static bool show_imgui_demo_window = false;
 static bool show_settings_window = false;
 
 static bool is_fullscreen = false;
-static bool is_framerate_unlocked = false;
 
 #define METRICS_HISTORY_SECONDS 5
 
@@ -84,9 +83,8 @@ void render_menubar() {
                 }
             }
 
-            if (ImGui::MenuItem("Unlock Framerate", nullptr, is_framerate_unlocked)) {
-                is_framerate_unlocked = !is_framerate_unlocked;
-                set_framerate_unlocked(is_framerate_unlocked);
+            if (ImGui::MenuItem("Unlock Framerate", nullptr, is_framerate_unlocked())) {
+                set_framerate_unlocked(!is_framerate_unlocked());
             }
 
             ImGui::EndMenu();
