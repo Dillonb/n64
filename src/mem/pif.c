@@ -278,7 +278,7 @@ void process_pif_command() {
         int i = 0;
         while (i < 63) {
             byte* cmd = &n64sys.mem.pif_ram[i++];
-            byte cmdlen = cmd[0] & 0x3F;
+            byte cmdlen = cmd[CMD_CMDLEN_INDEX] & 0x3F;
 
             if (cmdlen == 0) {
                 pif_channel++;
@@ -330,7 +330,7 @@ void process_pif_command() {
                         pif_eeprom_write(cmd, res);
                         break;
                     default:
-                        logfatal("Invalid PIF command: %X", cmd[0]);
+                        logfatal("Invalid PIF command: %X", cmd[CMD_COMMAND_INDEX]);
                 }
 
                 i += cmdlen + reslen;
