@@ -2,7 +2,7 @@
 #define N64_TAS_MOVIE_H
 
 #include <assert.h>
-#include <system/n64system.h>
+#include "device.h"
 
 void load_tas_movie(const char* filename);
 n64_controller_t tas_next_inputs();

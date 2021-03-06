@@ -75,38 +75,6 @@ typedef union mi_intr {
     };
 } mi_intr_t;
 
-typedef struct n64_controller {
-    bool plugged_in;
-    union {
-        byte byte1;
-        struct {
-            bool dp_right:1;
-            bool dp_left:1;
-            bool dp_down:1;
-            bool dp_up:1;
-            bool start:1;
-            bool z:1;
-            bool b:1;
-            bool a:1;
-        };
-    };
-    union {
-        byte byte2;
-        struct {
-            bool c_right:1;
-            bool c_left:1;
-            bool c_down:1;
-            bool c_up:1;
-            bool r:1;
-            bool l:1;
-            bool zero:1;
-            bool joy_reset:1;
-        };
-    };
-    sbyte joy_x;
-    sbyte joy_y;
-} n64_controller_t;
-
 typedef struct n64_dpc {
     word start;
     word end;
