@@ -18,6 +18,9 @@ static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
 static bool show_settings_window = false;
 
+static bool is_fullscreen = false;
+static bool is_framerate_unlocked = false;
+
 #define METRICS_HISTORY_SECONDS 5
 
 #define METRICS_HISTORY_ITEMS ((METRICS_HISTORY_SECONDS) * 60)
@@ -68,6 +71,24 @@ void render_menubar() {
             if (ImGui::MenuItem("Metrics", nullptr, show_metrics_window)) { show_metrics_window = !show_metrics_window; }
             if (ImGui::MenuItem("Settings", nullptr, show_settings_window)) { show_settings_window = !show_settings_window; }
             if (ImGui::MenuItem("ImGui Demo Window", nullptr, show_imgui_demo_window)) { show_imgui_demo_window = !show_imgui_demo_window; }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("View")) {
+            if (ImGui::MenuItem("Fullscreen", nullptr, is_fullscreen)) {
+                is_fullscreen = !is_fullscreen;
+                if (is_fullscreen) {
+                    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP); // Fake fullscreen
+                } else {
+                    SDL_SetWindowFullscreen(window, 0); // Back to windowed
+                }
+            }
+
+            if (ImGui::MenuItem("Unlock Framerate", nullptr, is_framerate_unlocked)) {
+                is_framerate_unlocked = !is_framerate_unlocked;
+                set_framerate_unlocked(is_framerate_unlocked);
+            }
+
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();

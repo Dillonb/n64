@@ -20,6 +20,7 @@ extern "C" {
     void parallel_rdp_enqueue_command(int command_length, word* buffer);
     void parallel_rdp_on_full_sync();
     void update_screen_parallel_rdp_no_game();
+    void set_framerate_unlocked(bool unlocked);
 #ifdef __cplusplus
 };
 #endif

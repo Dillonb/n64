@@ -67,7 +67,7 @@ void video_init_vulkan() {
                               SDL_WINDOWPOS_UNDEFINED,
                               N64_SCREEN_X * SCREEN_SCALE,
                               N64_SCREEN_Y * SCREEN_SCALE,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     if (volkInitialize() != VK_SUCCESS) {
         logfatal("Failed to load Volk");
     }
