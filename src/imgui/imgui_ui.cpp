@@ -12,6 +12,7 @@
 #include <frontend/render_internal.h>
 #include <metrics.h>
 #include <mem/pif.h>
+#include <cpu/dynarec/dynarec.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
@@ -43,6 +44,7 @@ struct RingBuffer {
 RingBuffer<double> frame_times;
 RingBuffer<ImU64> block_complilations;
 RingBuffer<ImU64> rsp_steps;
+RingBuffer<ImU64> codecache_bytes_used;
 
 ImGui::FileBrowser fileBrowser;
 
@@ -77,6 +79,7 @@ void render_metrics_window() {
     rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
+    codecache_bytes_used.add_point(n64sys.dynarec->codecache_used);
 
     ImGui::Begin("Performance Metrics", &show_metrics_window);
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", frametime, ImGui::GetIO().Framerate);
@@ -100,6 +103,13 @@ void render_metrics_window() {
     ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Block Compilations Per Frame")) {
         ImPlot::PlotBars("Block compilations", block_complilations.data, METRICS_HISTORY_ITEMS, 1, 0, block_complilations.offset);
+        ImPlot::EndPlot();
+    }
+
+    ImPlot::SetNextPlotLimitsY(0, n64sys.dynarec->codecache_size, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Codecache bytes used")) {
+        ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, codecache_bytes_used.offset);
         ImPlot::EndPlot();
     }
 
