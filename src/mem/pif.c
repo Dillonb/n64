@@ -287,7 +287,11 @@ void process_pif_command() {
             } else if (cmdlen == 0x3E) {
                 break;
             } else {
-                byte reslen = n64sys.mem.pif_ram[i++] & 0x3F; // TODO: out of bounds access possible on invalid data
+                byte r = n64sys.mem.pif_ram[i++];
+                if (r == 0xFE) {
+                    continue;
+                }
+                byte reslen = r & 0x3F; // TODO: out of bounds access possible on invalid data
                 byte* res = &n64sys.mem.pif_ram[i + cmdlen];
 
                 switch (cmd[CMD_COMMAND_INDEX]) {
