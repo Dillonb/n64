@@ -4,6 +4,8 @@
 #include <util.h>
 #include <stdbool.h>
 
+#include <mem/n64mem.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,7 +30,7 @@ typedef enum n64_button {
 void update_button(int controller, n64_button_t button, bool held);
 void update_joyaxis_x(int controller, sbyte x);
 void update_joyaxis_y(int controller, sbyte y);
-void devices_init();
+void devices_init(n64_save_type_t save_type);
 void device_id_for_pif(int pif_channel, byte* res);
 bool device_read_buttons_for_pif(int pif_channel, byte* res);
 
@@ -63,6 +65,25 @@ typedef struct n64_controller {
     sbyte joy_x;
     sbyte joy_y;
 } n64_controller_t;
+
+typedef enum n64_joybus_device_type {
+    JOYBUS_NONE,
+    JOYBUS_CONTROLLER,
+    JOYBUS_DANCEPAD,
+    JOYBUS_VRU,
+    JOYBUS_MOUSE,
+    JOYBUS_RANDNET_KEYBOARD,
+    JOYBUS_DENSHA_DE_GO,
+    JOYBUS_4KB_EEPROM,
+    JOYBUS_16KB_EEPROM
+} n64_joybus_device_type_t;
+
+typedef struct n64_joybus_device {
+    n64_joybus_device_type_t type;
+    union {
+        n64_controller_t controller;
+    };
+} n64_joybus_device_t;
 
 #ifdef __cplusplus
 }

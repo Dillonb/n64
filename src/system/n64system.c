@@ -32,6 +32,7 @@ void n64_load_rom(const char* rom_path) {
     logalways("Loading %s", rom_path);
     load_n64rom(&n64sys.mem.rom, rom_path);
     gamedb_match(&n64sys);
+    devices_init(n64sys.mem.save_type);
     init_savedata(&n64sys.mem, rom_path);
     strcpy(n64sys.rom_path, rom_path);
 }
@@ -59,8 +60,6 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
     n64sys.use_interpreter = use_interpreter;
 
     reset_n64system();
-
-    devices_init();
 
     if (rom_path != NULL) {
         n64_load_rom(rom_path);

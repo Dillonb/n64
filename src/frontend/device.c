@@ -4,125 +4,192 @@
 #include <stdbool.h>
 #include <system/n64system.h>
 
-static n64_controller_t controllers[4];
+static n64_joybus_device_t joybus_devices[6];
 
 void update_button(int controller, n64_button_t button, bool held) {
     switch(button) {
         case N64_BUTTON_A:
-            controllers[controller].a = held;
+            joybus_devices[controller].controller.a = held;
             break;
 
         case N64_BUTTON_B:
-            controllers[controller].b = held;
+            joybus_devices[controller].controller.b = held;
             break;
 
         case N64_BUTTON_Z:
-            controllers[controller].z = held;
+            joybus_devices[controller].controller.z = held;
             break;
 
         case N64_BUTTON_DPAD_UP:
-            controllers[controller].dp_up = held;
+            joybus_devices[controller].controller.dp_up = held;
             break;
 
         case N64_BUTTON_DPAD_DOWN:
-            controllers[controller].dp_down = held;
+            joybus_devices[controller].controller.dp_down = held;
             break;
 
         case N64_BUTTON_DPAD_LEFT:
-            controllers[controller].dp_left = held;
+            joybus_devices[controller].controller.dp_left = held;
             break;
 
         case N64_BUTTON_DPAD_RIGHT:
-            controllers[controller].dp_right = held;
+            joybus_devices[controller].controller.dp_right = held;
             break;
 
         case N64_BUTTON_START:
-            controllers[controller].start = held;
+            joybus_devices[controller].controller.start = held;
             break;
 
         case N64_BUTTON_L:
-            controllers[controller].l = held;
+            joybus_devices[controller].controller.l = held;
             break;
 
         case N64_BUTTON_R:
-            controllers[controller].r = held;
+            joybus_devices[controller].controller.r = held;
             break;
 
         case N64_BUTTON_C_UP:
-            controllers[controller].c_up = held;
+            joybus_devices[controller].controller.c_up = held;
             break;
 
         case N64_BUTTON_C_DOWN:
-            controllers[controller].c_down = held;
+            joybus_devices[controller].controller.c_down = held;
             break;
 
         case N64_BUTTON_C_LEFT:
-            controllers[controller].c_left = held;
+            joybus_devices[controller].controller.c_left = held;
             break;
 
         case N64_BUTTON_C_RIGHT:
-            controllers[controller].c_right = held;
+            joybus_devices[controller].controller.c_right = held;
             break;
     }
 }
 
 void update_joyaxis_x(int controller, sbyte x) {
-    controllers[controller].joy_x = x;
+    joybus_devices[controller].controller.joy_x = x;
 }
 
 void update_joyaxis_y(int controller, sbyte y) {
-    controllers[controller].joy_y = y;
+    joybus_devices[controller].controller.joy_y = y;
 }
 
-void devices_init() {
-    controllers[0].plugged_in = true;
-    controllers[1].plugged_in = false;
-    controllers[2].plugged_in = false;
-    controllers[3].plugged_in = false;
+void devices_init(n64_save_type_t save_type) {
+    joybus_devices[0].type = JOYBUS_CONTROLLER;
+    joybus_devices[1].type = JOYBUS_NONE;
+    joybus_devices[2].type = JOYBUS_NONE;
+    joybus_devices[3].type = JOYBUS_NONE;
+    if (save_type == SAVE_EEPROM_4k) {
+        joybus_devices[4].type = JOYBUS_4KB_EEPROM;
+    } else if (save_type == SAVE_EEPROM_16k) {
+        joybus_devices[4].type = JOYBUS_16KB_EEPROM;
+    } else {
+        joybus_devices[4].type = JOYBUS_NONE;
+    }
+    joybus_devices[5].type = JOYBUS_NONE;
 }
 
 void device_id_for_pif(int pif_channel, byte* res) {
-    if (pif_channel < 4) {
-        if (controllers[pif_channel].plugged_in) {
-            res[0] = 0x05;
-            res[1] = 0x00;
-            res[2] = 0x01; // Controller pak plugged in.
-        } else {
-            res[0] = 0x05;
-            res[1] = 0x00;
-            res[2] = 0x02;
+    if (pif_channel < 6) {
+        switch (joybus_devices[pif_channel].type) {
+            case JOYBUS_NONE:
+                res[0] = 0x00;
+                res[1] = 0x00;
+                res[2] = 0x00;
+                break;
+            case JOYBUS_CONTROLLER:
+                res[0] = 0x05;
+                res[1] = 0x00;
+                res[2] = joybus_devices[pif_channel].controller.plugged_in ? 0x01 : 0x02;
+                break;
+            case JOYBUS_DANCEPAD:
+                res[0] = 0x05;
+                res[1] = 0x00;
+                res[2] = 0x00;
+                break;
+            case JOYBUS_VRU:
+                res[0] = 0x00;
+                res[1] = 0x01;
+                res[2] = 0x00;
+                break;
+            case JOYBUS_MOUSE:
+                res[0] = 0x02;
+                res[1] = 0x00;
+                res[2] = 0x00;
+                break;
+            case JOYBUS_RANDNET_KEYBOARD:
+                res[0] = 0x00;
+                res[1] = 0x02;
+                res[2] = 0x00;
+                break;
+            case JOYBUS_DENSHA_DE_GO:
+                res[0] = 0x20;
+                res[1] = 0x04;
+                res[2] = 0x00;
+                break;
+            case JOYBUS_4KB_EEPROM:
+                res[0] = 0x00;
+                res[1] = 0x80;
+                res[2] = 0x00;
+                break;
+            case JOYBUS_16KB_EEPROM:
+                res[0] = 0x00;
+                res[1] = 0xC0;
+                res[2] = 0x00;
+                break;
         }
-    } else if (pif_channel == 4) { // EEPROM is on channel 4, and sometimes 5.
-        res[0] = 0x00;
-        res[1] = 0x80;
-        res[2] = 0x00;
     } else {
-        logfatal("Controller ID on unknown channel %d", pif_channel);
+        logfatal("Device ID on unknown channel %d", pif_channel);
     }
 }
 
 bool device_read_buttons_for_pif(int pif_channel, byte* res) {
-    if (pif_channel < 4 && controllers[pif_channel].plugged_in) {
-        if (tas_movie_loaded()) {
-            // Load inputs from TAS movie
-            n64_controller_t controller = tas_next_inputs();
-            res[0] = controller.byte1;
-            res[1] = controller.byte2;
-            res[2] = controller.joy_x;
-            res[3] = controller.joy_y;
-        } else {
-            // Load inputs normally
-            res[0] = controllers[pif_channel].byte1;
-            res[1] = controllers[pif_channel].byte2;
-            res[2] = controllers[pif_channel].joy_x;
-            res[3] = controllers[pif_channel].joy_y;
-        }
-        return true; // Success!
-    } else {
+    if (pif_channel >= 6) {
         res[0]  = 0x00;
         res[1]  = 0x00;
         res[2]  = 0x00;
         res[3]  = 0x00;
         return false; // Device not present
     }
+
+    switch (joybus_devices[pif_channel].type) {
+        case JOYBUS_NONE:
+            res[0]  = 0x00;
+            res[1]  = 0x00;
+            res[2]  = 0x00;
+            res[3]  = 0x00;
+            return false; // Device not present
+        case JOYBUS_CONTROLLER:
+            if (tas_movie_loaded()) {
+                // Load inputs from TAS movie
+                n64_controller_t controller = tas_next_inputs();
+                res[0] = controller.byte1;
+                res[1] = controller.byte2;
+                res[2] = controller.joy_x;
+                res[3] = controller.joy_y;
+            } else {
+                // Load inputs normally
+                res[0] = joybus_devices[pif_channel].controller.byte1;
+                res[1] = joybus_devices[pif_channel].controller.byte2;
+                res[2] = joybus_devices[pif_channel].controller.joy_x;
+                res[3] = joybus_devices[pif_channel].controller.joy_y;
+            }
+            break;
+        case JOYBUS_DANCEPAD:
+            logfatal("read buttons from JOYBUS_DANCEPAD");
+        case JOYBUS_VRU:
+            logfatal("read buttons from JOYBUS_VRU");
+        case JOYBUS_MOUSE:
+            logfatal("read buttons from JOYBUS_MOUSE");
+        case JOYBUS_RANDNET_KEYBOARD:
+            logfatal("read buttons from JOYBUS_RANDNET_KEYBOARD");
+        case JOYBUS_DENSHA_DE_GO:
+            logfatal("read buttons from JOYBUS_DENSHA_DE_GO");
+        case JOYBUS_4KB_EEPROM:
+            logfatal("read buttons from JOYBUS_4KB_EEPROM");
+        case JOYBUS_16KB_EEPROM:
+            logfatal("read buttons from JOYBUS_16KB_EEPROM");
+    }
+
+    return true; // Success!
 }
