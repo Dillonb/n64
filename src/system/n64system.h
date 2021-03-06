@@ -1,5 +1,6 @@
 #ifndef N64_N64SYSTEM_H
 #define N64_N64SYSTEM_H
+#include <linux/limits.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -182,9 +183,6 @@ typedef struct n64_system {
             word precision;
         } dac;
     } ai;
-    struct {
-        n64_controller_t controllers[4];
-    } si;
     n64_dpc_t dpc;
     n64_debugger_state_t debugger_state;
     n64_dynarec_t *dynarec;

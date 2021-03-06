@@ -1,6 +1,7 @@
 #include <SDL.h>
 #include <mem/pif.h>
 #include "gamepad.h"
+#include "device.h"
 
 // TODO: support multiple controllers
 static SDL_GameController* controller = NULL;

@@ -16,6 +16,7 @@
 #include <log.h>
 #include <frontend/render.h>
 #include <rsp.h>
+#include <frontend/frontend.h>
 
 static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;

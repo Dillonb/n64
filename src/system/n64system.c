@@ -13,6 +13,7 @@
 #include <mem/backup.h>
 #include <frontend/game_db.h>
 #include <metrics.h>
+#include <frontend/device.h>
 
 static bool should_quit = false;
 
@@ -59,6 +60,8 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
 
     reset_n64system();
 
+    devices_init();
+
     if (rom_path != NULL) {
         n64_load_rom(rom_path);
     }
@@ -93,11 +96,6 @@ void reset_n64system() {
     n64sys.ai.dac.frequency = 44100;
     n64sys.ai.dac.precision = 16;
     n64sys.ai.dac.period = CPU_HERTZ / n64sys.ai.dac.frequency;
-
-    n64sys.si.controllers[0].plugged_in = true;
-    n64sys.si.controllers[1].plugged_in = false;
-    n64sys.si.controllers[2].plugged_in = false;
-    n64sys.si.controllers[3].plugged_in = false;
 
     N64CP0.status.bev = true;
     N64CP0.cause.raw  = 0xB000007C;

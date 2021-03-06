@@ -19,6 +19,8 @@ add_library(core
         mem/pif.c mem/pif.h
         interface/vi.c interface/vi.h interface/vi_reg.h
         frontend/render.c frontend/render.h frontend/render_internal.h
+        frontend/frontend.c frontend/frontend.h
+        frontend/device.c frontend/device.h
         interface/ai.c interface/ai.h
         mem/addresses.h
         frontend/tas_movie.c frontend/tas_movie.h

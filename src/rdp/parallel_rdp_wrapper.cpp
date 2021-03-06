@@ -8,6 +8,7 @@
 #include <mem/mem_util.h>
 #include <imgui/imgui_ui.h>
 #include <imgui_impl_vulkan.h>
+#include <frontend/frontend.h>
 
 using namespace Vulkan;
 using std::unique_ptr;

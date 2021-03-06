@@ -13,7 +13,6 @@ extern int SCREEN_SCALE;
 
 void render_init(n64_video_type_t video_type);
 void n64_render_screen();
-void n64_poll_input();
 
 #ifdef __cplusplus
 }

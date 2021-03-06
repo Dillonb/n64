@@ -1,5 +1,6 @@
 #include <frontend/tas_movie.h>
 #include <rsp.h>
+#include <frontend/device.h>
 #include "pif.h"
 #include "n64bus.h"
 #include "backup.h"
@@ -152,50 +153,15 @@ INLINE void pif_controller_reset(byte* cmd, byte* res) {
 }
 
 INLINE void pif_controller_id(byte* cmd, byte* res) {
-    if (pif_channel < 4) {
-        bool plugged_in = n64sys.si.controllers[pif_channel].plugged_in;
-        if (plugged_in) {
-            res[0] = 0x05;
-            res[1] = 0x00;
-            res[2] = 0x01; // Controller pak plugged in.
-        } else {
-            res[0] = 0x05;
-            res[1] = 0x00;
-            res[2] = 0x01;
-        }
-    } else if (pif_channel == 4) { // EEPROM is on channel 4, and sometimes 5.
-        res[0] = 0x00;
-        res[1] = 0x80;
-        res[2] = 0x00;
-    } else {
-        logfatal("Controller ID on unknown channel %d", pif_channel);
-    }
+    device_id_for_pif(pif_channel, res);
     pif_channel++;
 }
 
 INLINE void pif_read_buttons(byte* cmd, byte* res) {
-    if (pif_channel < 4 && n64sys.si.controllers[pif_channel].plugged_in) {
-        if (tas_movie_loaded()) {
-            // Load inputs from TAS movie
-            n64_controller_t controller = tas_next_inputs();
-            res[0] = controller.byte1;
-            res[1] = controller.byte2;
-            res[2] = controller.joy_x;
-            res[3] = controller.joy_y;
-        } else {
-            // Load inputs normally
-            res[0] = n64sys.si.controllers[pif_channel].byte1;
-            res[1] = n64sys.si.controllers[pif_channel].byte2;
-            res[2] = n64sys.si.controllers[pif_channel].joy_x;
-            res[3] = n64sys.si.controllers[pif_channel].joy_y;
-        }
+    if (device_read_buttons_for_pif(pif_channel, res)) {
         cmd[CMD_RESLEN_INDEX] |= 0x00; // Success!
     } else {
         cmd[CMD_RESLEN_INDEX] |= 0x80; // Device not present
-        res[0]  = 0x00;
-        res[1]  = 0x00;
-        res[2]  = 0x00;
-        res[3]  = 0x00;
     }
     pif_channel++;
 }
@@ -374,79 +340,6 @@ void process_pif_command() {
     }
 }
 
-
-void update_button(int controller, n64_button_t button, bool held) {
-    switch(button) {
-        case N64_BUTTON_A:
-            n64sys.si.controllers[controller].a = held;
-            break;
-
-        case N64_BUTTON_B:
-            n64sys.si.controllers[controller].b = held;
-            break;
-
-        case N64_BUTTON_Z:
-            n64sys.si.controllers[controller].z = held;
-            break;
-
-        case N64_BUTTON_DPAD_UP:
-            n64sys.si.controllers[controller].dp_up = held;
-            break;
-
-        case N64_BUTTON_DPAD_DOWN:
-            n64sys.si.controllers[controller].dp_down = held;
-            break;
-
-        case N64_BUTTON_DPAD_LEFT:
-            n64sys.si.controllers[controller].dp_left = held;
-            break;
-
-        case N64_BUTTON_DPAD_RIGHT:
-            n64sys.si.controllers[controller].dp_right = held;
-            break;
-
-        case N64_BUTTON_START:
-            n64sys.si.controllers[controller].start = held;
-            break;
-
-        case N64_BUTTON_L:
-            n64sys.si.controllers[controller].l = held;
-            break;
-
-        case N64_BUTTON_R:
-            n64sys.si.controllers[controller].r = held;
-            break;
-
-        case N64_BUTTON_C_UP:
-            n64sys.si.controllers[controller].c_up = held;
-            break;
-
-        case N64_BUTTON_C_DOWN:
-            n64sys.si.controllers[controller].c_down = held;
-            break;
-
-        case N64_BUTTON_C_LEFT:
-            n64sys.si.controllers[controller].c_left = held;
-            break;
-
-        case N64_BUTTON_C_RIGHT:
-            n64sys.si.controllers[controller].c_right = held;
-            break;
-    }
-}
-
-void update_joyaxis(int controller, sbyte x, sbyte y) {
-    n64sys.si.controllers[controller].joy_x = x;
-    n64sys.si.controllers[controller].joy_y = y;
-}
-
-void update_joyaxis_x(int controller, sbyte x) {
-    n64sys.si.controllers[controller].joy_x = x;
-}
-
-void update_joyaxis_y(int controller, sbyte y) {
-    n64sys.si.controllers[controller].joy_y = y;
-}
 
 void load_pif_rom(const char* pif_rom_path) {
     FILE *fp = fopen(pif_rom_path, "rb");
