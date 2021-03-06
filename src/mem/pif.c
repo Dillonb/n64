@@ -1,4 +1,5 @@
 #include <frontend/tas_movie.h>
+#include <frontend/gamepad.h>
 #include <rsp.h>
 #include "pif.h"
 #include "n64bus.h"
@@ -203,16 +204,27 @@ INLINE void pif_mempack_read(byte* cmd, byte* res) {
     // something else, depending on the data it returns.
     offset &= 0x7FE0;
 
-    for (int i = 0; i < 32; i++) {
-        res[i] = n64sys.mem.mempack_data[offset + i];
+    switch (get_controller_accessory_type(pif_channel)) {
+        case CONTROLLER_ACCESSORY_NONE:
+            logfatal("Reading from CONTROLLER_ACCESSORY_NONE");
+            break;
+        case CONTROLLER_ACCESSORY_MEMPACK:
+            for (int i = 0; i < 32; i++) {
+                res[i] = n64sys.mem.mempack_data[offset + i];
+            }
+            break;
+        case CONTROLLER_ACCESSORY_RUMBLE_PACK:
+            for (int i = 0; i < 32; i++) {
+                res[i] = 0x80;
+            }
+            break;
     }
 
     // CRC byte
-    res[32] = data_crc(&n64sys.mem.mempack_data[offset]);
+    res[32] = data_crc(&res[0]);
 }
 
 INLINE void pif_mempack_write(byte* cmd, byte* res) {
-    init_mempack(&n64sys.mem, n64sys.rom_path);
     // First two bytes in the command are the offset
     half offset = CMD_DATA[0] << 8;
     offset |= CMD_DATA[1];
@@ -228,12 +240,34 @@ INLINE void pif_mempack_write(byte* cmd, byte* res) {
     // something else, depending on the data it returns.
     offset &= 0x7FE0;
 
-    for (int i = 0; i < 32; i++) {
-        n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+    switch (get_controller_accessory_type(pif_channel)) {
+        case CONTROLLER_ACCESSORY_NONE:
+            logfatal("Mempack write CONTROLLER_ACCESSORY_NONE");
+            break;
+        case CONTROLLER_ACCESSORY_MEMPACK:
+            init_mempack(&n64sys.mem, n64sys.rom_path);
+            for (int i = 0; i < 32; i++) {
+                n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+            }
+            n64sys.mem.mempack_data_dirty = true;
+            break;
+        case CONTROLLER_ACCESSORY_RUMBLE_PACK: {
+            bool all_zeroes = true;
+            bool all_ones = true;
+            for (int i = 0; i < 32; i++) {
+                all_zeroes = all_zeroes && CMD_DATA[i + 2] == 0;
+                all_ones   = all_ones   && CMD_DATA[i + 2] == 1;
+            }
+            if (all_zeroes) {
+                gamepad_rumble_off(pif_channel);
+            } else if (all_ones) {
+                gamepad_rumble_on(pif_channel);
+            }
+            break;
+        }
     }
-    n64sys.mem.mempack_data_dirty = true;
     // CRC byte
-    res[0] = data_crc(&n64sys.mem.mempack_data[offset]);
+    res[0] = data_crc(&CMD_DATA[2]);
 }
 
 INLINE void pif_eeprom_read(byte* cmd, byte* res) {

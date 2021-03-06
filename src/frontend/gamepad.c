@@ -160,3 +160,15 @@ void gamepad_update_axis(byte axis, shalf value) {
             printf("axis %d %d\n", axis, value);
     }
 }
+
+void gamepad_rumble_on(int pif_channel) {
+    if (controller) {
+        SDL_GameControllerRumble(controller, 0xFFFF, 0xFFFF, 1000);
+    }
+}
+
+void gamepad_rumble_off(int pif_channel) {
+    if (controller) {
+        SDL_GameControllerRumble(controller, 0, 0, 0);
+    }
+}

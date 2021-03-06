@@ -76,6 +76,9 @@ void update_joyaxis_y(int controller, sbyte y) {
 
 void devices_init(n64_save_type_t save_type) {
     joybus_devices[0].type = JOYBUS_CONTROLLER;
+    // TODO: make this configurable
+    joybus_devices[0].controller.accessory_type = CONTROLLER_ACCESSORY_MEMPACK;
+
     joybus_devices[1].type = JOYBUS_NONE;
     joybus_devices[2].type = JOYBUS_NONE;
     joybus_devices[3].type = JOYBUS_NONE;
@@ -100,7 +103,7 @@ void device_id_for_pif(int pif_channel, byte* res) {
             case JOYBUS_CONTROLLER:
                 res[0] = 0x05;
                 res[1] = 0x00;
-                res[2] = joybus_devices[pif_channel].controller.plugged_in ? 0x01 : 0x02;
+                res[2] = joybus_devices[pif_channel].controller.accessory_type != CONTROLLER_ACCESSORY_NONE ? 0x01 : 0x02;
                 break;
             case JOYBUS_DANCEPAD:
                 res[0] = 0x05;
@@ -192,4 +195,14 @@ bool device_read_buttons_for_pif(int pif_channel, byte* res) {
     }
 
     return true; // Success!
+}
+
+n64_controller_accessory_type_t get_controller_accessory_type(int pif_channel) {
+    if (pif_channel >= 4) {
+        logfatal("Accessing controller accessory of out of range channel id %d", pif_channel);
+    } else if (joybus_devices[pif_channel].type != JOYBUS_CONTROLLER) {
+        logfatal("Accessing controller accessory of non-controller channel %d", pif_channel);
+    } else {
+        return joybus_devices[pif_channel].controller.accessory_type;
+    }
 }

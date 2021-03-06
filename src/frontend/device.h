@@ -27,15 +27,14 @@ typedef enum n64_button {
     N64_BUTTON_C_RIGHT,
 } n64_button_t;
 
-void update_button(int controller, n64_button_t button, bool held);
-void update_joyaxis_x(int controller, sbyte x);
-void update_joyaxis_y(int controller, sbyte y);
-void devices_init(n64_save_type_t save_type);
-void device_id_for_pif(int pif_channel, byte* res);
-bool device_read_buttons_for_pif(int pif_channel, byte* res);
+typedef enum n64_controller_accessory_type {
+    CONTROLLER_ACCESSORY_NONE,
+    CONTROLLER_ACCESSORY_MEMPACK,
+    CONTROLLER_ACCESSORY_RUMBLE_PACK
+} n64_controller_accessory_type_t;
 
 typedef struct n64_controller {
-    bool plugged_in;
+    n64_controller_accessory_type_t accessory_type;
     union {
         byte byte1;
         struct {
@@ -84,6 +83,14 @@ typedef struct n64_joybus_device {
         n64_controller_t controller;
     };
 } n64_joybus_device_t;
+
+void update_button(int controller, n64_button_t button, bool held);
+void update_joyaxis_x(int controller, sbyte x);
+void update_joyaxis_y(int controller, sbyte y);
+void devices_init(n64_save_type_t save_type);
+void device_id_for_pif(int pif_channel, byte* res);
+bool device_read_buttons_for_pif(int pif_channel, byte* res);
+n64_controller_accessory_type_t get_controller_accessory_type(int pif_channel);
 
 #ifdef __cplusplus
 }

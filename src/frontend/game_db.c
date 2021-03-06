@@ -6,7 +6,7 @@ static const gamedb_entry_t gamedb[] = {
         {"NPD", "E",  SAVE_EEPROM_16k,  "Perfect Dark"},
         {"NKT", "E",  SAVE_EEPROM_4k,   "Mario Kart 64"},
         {"CZL", "EJ", SAVE_SRAM_256k,   "The Legend of Zelda: Ocarina of Time"},
-        {"NSM", "E",  SAVE_EEPROM_4k,   "Super Mario 64"},
+        {"NSM", "EJ", SAVE_EEPROM_4k,   "Super Mario 64"},
         {"NPW", "E",  SAVE_EEPROM_4k,   "Pilotwings 64"},
         {"NEP", "E",  SAVE_EEPROM_16k,  "Star Wars Episode I Racer"},
         {"NDY", "E",  SAVE_EEPROM_4k,   "Diddy Kong Racing"},
