@@ -78,6 +78,7 @@ EXPORT int CALL ConfigGetParamBool(m64p_handle handle, const char* param) {
     PARAM("ViWidescreen",     false)
     PARAM("ViHideOverscan",   false)
     PARAM("ViIntegerScaling", false)
+    PARAM("BusyLoop",         false)
 
 
     logfatal("Unknown bool param: %s", param);
