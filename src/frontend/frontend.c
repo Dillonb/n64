@@ -2,8 +2,9 @@
 #include "device.h"
 #include "gamepad.h"
 
-#include <SDL.h>
 #include <log.h>
+
+static event_handler_t imgui_event_handler = NULL;
 
 void handle_event(SDL_Event* event) {
     switch (event->type) {
@@ -124,22 +125,12 @@ void handle_event(SDL_Event* event) {
 void n64_poll_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        /*
-        switch (event.type) {
-            case SDL_KEYDOWN
-            case SDL_KEYUP:
-            case SDL_TEXTEDITING:
-            case SDL_TEXTINPUT:
-            case SDL_KEYMAPCHANGED:
-                if ()
-
-                    case SDL_MOUSEMOTION:
-                    case SDL_MOUSEBUTTONDOWN:
-                    case SDL_MOUSEBUTTONUP:
-                    case SDL_MOUSEWHEEL:
+        if (imgui_event_handler == NULL || !imgui_event_handler(&event)) {
+            handle_event(&event);
         }
-         */
-        handle_event(&event);
     }
 }
 
+void register_imgui_event_handler(event_handler_t handler) {
+    imgui_event_handler = handler;
+}

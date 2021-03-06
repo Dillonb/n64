@@ -9,7 +9,7 @@
 #include <frontend/tas_movie.h>
 #include <signal.h>
 #include <imgui/imgui_ui.h>
-#include <rdp/softrdp.h>
+#include "frontend.h"
 
 void usage(cflags_t* flags) {
     cflags_print_usage(flags,
@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
         init_n64system(rom_path, true, debug, VULKAN_VIDEO_TYPE, interpreter);
         load_parallel_rdp();
         load_imgui_ui();
+        register_imgui_event_handler(imgui_handle_event);
     }
     if (tas_movie_path != NULL) {
         load_tas_movie(tas_movie_path);

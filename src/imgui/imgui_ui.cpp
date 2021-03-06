@@ -11,11 +11,11 @@
 
 #include <frontend/render_internal.h>
 #include <metrics.h>
-#include <SDL.h>
 #include <mem/pif.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
+static bool show_settings_window = false;
 
 #define METRICS_HISTORY_SECONDS 5
 
@@ -64,6 +64,7 @@ void render_menubar() {
         if (ImGui::BeginMenu("Window"))
         {
             if (ImGui::MenuItem("Metrics", nullptr, show_metrics_window)) { show_metrics_window = !show_metrics_window; }
+            if (ImGui::MenuItem("Settings", nullptr, show_settings_window)) { show_settings_window = !show_settings_window; }
             if (ImGui::MenuItem("ImGui Demo Window", nullptr, show_imgui_demo_window)) { show_imgui_demo_window = !show_imgui_demo_window; }
             ImGui::EndMenu();
         }
@@ -105,12 +106,18 @@ void render_metrics_window() {
     ImGui::End();
 }
 
+void render_settings_window() {
+    ImGui::Begin("Settings", &show_settings_window);
+    ImGui::End();
+}
+
 void render_ui() {
     if (SDL_GetMouseFocus() || n64sys.mem.rom.rom == nullptr) {
         render_menubar();
     }
     if (show_metrics_window) { render_metrics_window(); }
     if (show_imgui_demo_window) { ImGui::ShowDemoWindow(&show_imgui_demo_window); }
+    if (show_settings_window) { render_settings_window(); }
 
     fileBrowser.Display();
     if (fileBrowser.HasSelected()) {
@@ -284,4 +291,34 @@ ImDrawData* imgui_frame() {
 
     ImGui::Render();
     return ImGui::GetDrawData();
+}
+
+bool imgui_wants_mouse() {
+    return ImGui::GetIO().WantCaptureMouse;
+}
+
+bool imgui_wants_keyboard() {
+    return ImGui::GetIO().WantCaptureKeyboard;
+}
+
+bool imgui_handle_event(SDL_Event* event) {
+    bool captured = false;
+    switch (event->type) {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+        case SDL_TEXTEDITING:
+        case SDL_TEXTINPUT:
+        case SDL_KEYMAPCHANGED:
+            captured = imgui_wants_keyboard();
+            break;
+        case SDL_MOUSEMOTION:
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+        case SDL_MOUSEWHEEL:
+            captured = imgui_wants_mouse();
+            break;
+    }
+    ImGui_ImplSDL2_ProcessEvent(event);
+
+    return captured;
 }
