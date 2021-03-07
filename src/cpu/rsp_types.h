@@ -26,6 +26,14 @@ typedef union vu_reg {
     word words[4];
 } vu_reg_t;
 
+#ifdef N64_BIG_ENDIAN
+#define VU_BYTE_INDEX(i) (i)
+#define VU_ELEM_INDEX(i) (i)
+#else
+#define VU_BYTE_INDEX(i) (15 - (i))
+#define VU_ELEM_INDEX(i) (7 - (i))
+#endif
+
 static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
 
 typedef union rsp_types {
