@@ -94,7 +94,9 @@ typedef struct rsp {
 
     int steps;
 
+#ifdef N64_USE_SIMD
     vecr zero;
+#endif
 
     rsp_status_t status;
 

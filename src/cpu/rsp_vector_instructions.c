@@ -12,6 +12,7 @@
 #endif
 #include "rsp.h"
 #include "rsp_rom.h"
+#include "n64_rsp_bus.h"
 
 #define defvs vu_reg_t* vs = &N64RSP.vu_regs[instruction.cp2_vec.vs]
 #define defvt vu_reg_t* vt = &N64RSP.vu_regs[instruction.cp2_vec.vt]
@@ -42,6 +43,21 @@ INLINE shalf to_twosc(half onesc) {
     return onesc + (onesc >> 15);
 }
 
+#ifndef N64_USE_SIMD
+INLINE vu_reg_t broadcast(vu_reg_t* vt, int lane0, int lane1, int lane2, int lane3, int lane4, int lane5, int lane6, int lane7) {
+    vu_reg_t vte;
+    vte.elements[7 - 0] = vt->elements[7 - lane0];
+    vte.elements[7 - 1] = vt->elements[7 - lane1];
+    vte.elements[7 - 2] = vt->elements[7 - lane2];
+    vte.elements[7 - 3] = vt->elements[7 - lane3];
+    vte.elements[7 - 4] = vt->elements[7 - lane4];
+    vte.elements[7 - 5] = vt->elements[7 - lane5];
+    vte.elements[7 - 6] = vt->elements[7 - lane6];
+    vte.elements[7 - 7] = vt->elements[7 - lane7];
+    return vte;
+}
+#endif
+
 INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
     vu_reg_t vte;
     switch(e) {
@@ -51,42 +67,42 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
 #ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11110101), 0b11110101);
 #else
-            logfatal("UNIMPLEMENTED: SISD version of this");
+            vte = broadcast(vt, 0, 0, 2, 2, 4, 4, 6, 6);
 #endif
             break;
         case 3:
 #ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10100000), 0b10100000);
 #else
-            logfatal("UNIMPLEMENTED: SISD version of this");
+            vte = broadcast(vt, 1, 1, 3, 3, 5, 5, 7, 7);
 #endif
             break;
         case 4:
 #ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11111111), 0b11111111);
 #else
-            logfatal("UNIMPLEMENTED: SISD version of this");
+            vte = broadcast(vt, 0, 0, 0, 0, 4, 4, 4, 4);
 #endif
             break;
         case 5:
 #ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10101010), 0b10101010);
 #else
-            logfatal("UNIMPLEMENTED: SISD version of this");
+            vte = broadcast(vt, 1, 1, 1, 1, 5, 5, 5, 5);
 #endif
             break;
         case 6:
 #ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b01010101), 0b01010101);
 #else
-            logfatal("UNIMPLEMENTED: SISD version of this");
+            vte = broadcast(vt, 2, 2, 2, 2, 6, 6, 6, 6);
 #endif
             break;
         case 7:
 #ifdef N64_USE_SIMD
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b00000000), 0b00000000);
 #else
-            logfatal("UNIMPLEMENTED: SISD version of this");
+            vte = broadcast(vt, 3, 3, 3, 3, 7, 7, 7, 7);
 #endif
             break;
         case 8 ... 15: {
@@ -1070,7 +1086,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
 #else
     vd->elements[7 - de] = vte_elem;
     for (int i = 0; i < 8; i++) {
-        N64RSP.acc.l.elements[i] = vte[i];
+        N64RSP.acc.l.elements[i] = vte.elements[i];
     }
 #endif
 }
