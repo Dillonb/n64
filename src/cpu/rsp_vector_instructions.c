@@ -1389,7 +1389,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
-        N64RSP.acc.l.elements[i] = vt->elements[i];
+        N64RSP.acc.l.elements[i] = vte.elements[i];
     }
 #endif
 }
@@ -1405,7 +1405,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
-        N64RSP.acc.l.elements[i] = vt->elements[i];
+        N64RSP.acc.l.elements[i] = vte.elements[i];
     }
 #endif
     N64RSP.divin_loaded = true;
@@ -1436,7 +1436,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
-        N64RSP.acc.l.elements[i] = vt->elements[i];
+        N64RSP.acc.l.elements[i] = vte.elements[i];
     }
 #endif
 }
