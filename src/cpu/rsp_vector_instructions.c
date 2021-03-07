@@ -43,6 +43,19 @@ INLINE shalf to_twosc(half onesc) {
     return onesc + (onesc >> 15);
 }
 
+INLINE int CLZ(word value) {
+#if __has_builtin(__builtin_clz)
+    return __builtin_clz(value);
+#else
+    int leading_zeroes = 0;
+    for (int i = 0; i < 32 && (value & 0x80000000) == 0; i++) {
+        leading_zeroes++;
+        value <<= 1;
+    }
+    return leading_zeroes;
+#endif
+}
+
 #ifndef N64_USE_SIMD
 INLINE vu_reg_t broadcast(vu_reg_t* vt, int lane0, int lane1, int lane2, int lane3, int lane4, int lane5, int lane6, int lane7) {
     vu_reg_t vte;
@@ -156,7 +169,7 @@ word rcp(sword sinput) {
     }
 
     word input = abs(sinput);
-    int lshift = __builtin_clz(input) + 1;
+    int lshift = CLZ(input) + 1;
     int rshift = 32 - lshift;
     int index = (input << lshift) >> 23;
 
@@ -178,7 +191,7 @@ word rsq(sword sinput) {
     }
 
     word input = abs(sinput);
-    int lshift = __builtin_clz(input) + 1;
+    int lshift = CLZ(input) + 1;
     int rshift = (32 - lshift) >> 1; // Shifted by 1 instead of 0
     int index = (input << lshift) >> 24; // Shifted by 24 instead of 23
 
