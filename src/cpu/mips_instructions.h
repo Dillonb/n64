@@ -81,6 +81,7 @@ MIPS_INSTR(mips_spc_sllv);
 MIPS_INSTR(mips_spc_srlv);
 MIPS_INSTR(mips_spc_jr);
 MIPS_INSTR(mips_spc_jalr);
+MIPS_INSTR(mips_spc_syscall);
 MIPS_INSTR(mips_spc_mfhi);
 MIPS_INSTR(mips_spc_mthi);
 MIPS_INSTR(mips_spc_mflo);

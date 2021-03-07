@@ -612,6 +612,10 @@ MIPS_INSTR(mips_spc_jalr) {
     branch_abs(get_register(instruction.r.rs));
 }
 
+MIPS_INSTR(mips_spc_syscall) {
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_SYSCALL, -1);
+}
+
 MIPS_INSTR(mips_spc_mfhi) {
     set_register(instruction.r.rd, N64CPU.mult_hi);
 }

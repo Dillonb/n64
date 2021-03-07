@@ -87,6 +87,7 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_INTERRUPT:
             case EXCEPTION_COPROCESSOR_UNUSABLE:
             case EXCEPTION_TRAP:
+            case EXCEPTION_SYSCALL:
                 set_pc_word_r4300i(0x80000180);
                 break;
             default:
@@ -486,50 +487,51 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
 
 INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
-        case FUNCT_SLL:    return mips_spc_sll;
-        case FUNCT_SRL:    return mips_spc_srl;
-        case FUNCT_SRA:    return mips_spc_sra;
-        case FUNCT_SRAV:   return mips_spc_srav;
-        case FUNCT_SLLV:   return mips_spc_sllv;
-        case FUNCT_SRLV:   return mips_spc_srlv;
-        case FUNCT_JR:     return mips_spc_jr;
-        case FUNCT_JALR:   return mips_spc_jalr;
-        case FUNCT_MFHI:   return mips_spc_mfhi;
-        case FUNCT_MTHI:   return mips_spc_mthi;
-        case FUNCT_MFLO:   return mips_spc_mflo;
-        case FUNCT_MTLO:   return mips_spc_mtlo;
-        case FUNCT_DSLLV:  return mips_spc_dsllv;
-        case FUNCT_DSRLV:  return mips_spc_dsrlv;
-        case FUNCT_MULT:   return mips_spc_mult;
-        case FUNCT_MULTU:  return mips_spc_multu;
-        case FUNCT_DIV:    return mips_spc_div;
-        case FUNCT_DIVU:   return mips_spc_divu;
-        case FUNCT_DMULT:  return mips_spc_dmult;
-        case FUNCT_DMULTU: return mips_spc_dmultu;
-        case FUNCT_DDIV:   return mips_spc_ddiv;
-        case FUNCT_DDIVU:  return mips_spc_ddivu;
-        case FUNCT_ADD:    return mips_spc_add;
-        case FUNCT_ADDU:   return mips_spc_addu;
-        case FUNCT_AND:    return mips_spc_and;
-        case FUNCT_NOR:    return mips_spc_nor;
-        case FUNCT_SUB:    return mips_spc_sub;
-        case FUNCT_SUBU:   return mips_spc_subu;
-        case FUNCT_OR:     return mips_spc_or;
-        case FUNCT_XOR:    return mips_spc_xor;
-        case FUNCT_SLT:    return mips_spc_slt;
-        case FUNCT_SLTU:   return mips_spc_sltu;
-        case FUNCT_DADD:   return mips_spc_dadd;
-        case FUNCT_DADDU:  return mips_spc_daddu;
-        case FUNCT_DSUB:   return mips_spc_dsub;
-        case FUNCT_DSUBU:  return mips_spc_dsubu;
-        case FUNCT_TEQ:    return mips_spc_teq;
-        case FUNCT_TNE:    return mips_spc_tne;
-        case FUNCT_DSLL:   return mips_spc_dsll;
-        case FUNCT_DSRL:   return mips_spc_dsrl;
-        case FUNCT_DSRA:   return mips_spc_dsra;
-        case FUNCT_DSLL32: return mips_spc_dsll32;
-        case FUNCT_DSRL32: return mips_spc_dsrl32;
-        case FUNCT_DSRA32: return mips_spc_dsra32;
+        case FUNCT_SLL:     return mips_spc_sll;
+        case FUNCT_SRL:     return mips_spc_srl;
+        case FUNCT_SRA:     return mips_spc_sra;
+        case FUNCT_SRAV:    return mips_spc_srav;
+        case FUNCT_SLLV:    return mips_spc_sllv;
+        case FUNCT_SRLV:    return mips_spc_srlv;
+        case FUNCT_JR:      return mips_spc_jr;
+        case FUNCT_JALR:    return mips_spc_jalr;
+        case FUNCT_SYSCALL: return mips_spc_syscall;
+        case FUNCT_MFHI:    return mips_spc_mfhi;
+        case FUNCT_MTHI:    return mips_spc_mthi;
+        case FUNCT_MFLO:    return mips_spc_mflo;
+        case FUNCT_MTLO:    return mips_spc_mtlo;
+        case FUNCT_DSLLV:   return mips_spc_dsllv;
+        case FUNCT_DSRLV:   return mips_spc_dsrlv;
+        case FUNCT_MULT:    return mips_spc_mult;
+        case FUNCT_MULTU:   return mips_spc_multu;
+        case FUNCT_DIV:     return mips_spc_div;
+        case FUNCT_DIVU:    return mips_spc_divu;
+        case FUNCT_DMULT:   return mips_spc_dmult;
+        case FUNCT_DMULTU:  return mips_spc_dmultu;
+        case FUNCT_DDIV:    return mips_spc_ddiv;
+        case FUNCT_DDIVU:   return mips_spc_ddivu;
+        case FUNCT_ADD:     return mips_spc_add;
+        case FUNCT_ADDU:    return mips_spc_addu;
+        case FUNCT_AND:     return mips_spc_and;
+        case FUNCT_NOR:     return mips_spc_nor;
+        case FUNCT_SUB:     return mips_spc_sub;
+        case FUNCT_SUBU:    return mips_spc_subu;
+        case FUNCT_OR:      return mips_spc_or;
+        case FUNCT_XOR:     return mips_spc_xor;
+        case FUNCT_SLT:     return mips_spc_slt;
+        case FUNCT_SLTU:    return mips_spc_sltu;
+        case FUNCT_DADD:    return mips_spc_dadd;
+        case FUNCT_DADDU:   return mips_spc_daddu;
+        case FUNCT_DSUB:    return mips_spc_dsub;
+        case FUNCT_DSUBU:   return mips_spc_dsubu;
+        case FUNCT_TEQ:     return mips_spc_teq;
+        case FUNCT_TNE:     return mips_spc_tne;
+        case FUNCT_DSLL:    return mips_spc_dsll;
+        case FUNCT_DSRL:    return mips_spc_dsrl;
+        case FUNCT_DSRA:    return mips_spc_dsra;
+        case FUNCT_DSLL32:  return mips_spc_dsll32;
+        case FUNCT_DSRL32:  return mips_spc_dsrl32;
+        case FUNCT_DSRA32:  return mips_spc_dsra32;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
