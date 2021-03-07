@@ -251,12 +251,6 @@ void write_word_pireg(word address, word value) {
             }
 
             logdebug("DMA completed.");
-            static bool first_time = true;
-            if (first_time) {
-                n64_write_physical_word(0x318, N64_RDRAM_SIZE);
-                n64_write_physical_word(0x3f0, N64_RDRAM_SIZE);
-                first_time = false;
-            }
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] += length;
             n64sys.mem.pi_reg[PI_CART_ADDR_REG] += length;
             interrupt_raise(INTERRUPT_PI);
