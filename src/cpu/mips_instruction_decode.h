@@ -237,6 +237,6 @@ typedef union mips_instruction {
 #endif
     };
 
-} mips_instruction_t;
+} PACKED mips_instruction_t;
 
 #endif //N64_MIPS_INSTRUCTION_DECODE_H
