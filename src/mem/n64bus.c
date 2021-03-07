@@ -439,7 +439,6 @@ void dram_to_pif(word dram_address, word pif_address) {
     for (int i = 0; i < 64; i++) {
         n64sys.mem.pif_ram[i] = n64_read_physical_byte(dram_address + i);
     }
-    process_pif_command();
     interrupt_raise(INTERRUPT_SI);
 }
 
