@@ -25,6 +25,7 @@ static const gamedb_entry_t gamedb[] = {
         {"NBM", "E",  SAVE_EEPROM_4k,   "Bomberman 64"},
         {"NWR", "E",  SAVE_EEPROM_4k,   "Wave Race 64"},
         {"NBK", "E",  SAVE_EEPROM_4k,   "Banjo-Kazooie"},
+        {"NB7", "E",  SAVE_EEPROM_16k,  "Banjo-Tooie"},
         {"NPF", "E",  SAVE_FLASH_1m,    "Pokemon Snap"},
         {"NFX", "E",  SAVE_EEPROM_4k,   "Starfox 64"},
         {"NJM", "EP", SAVE_EEPROM_4k,   "Earthworm Jim 3D"},
