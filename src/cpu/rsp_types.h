@@ -39,6 +39,24 @@ static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
 typedef union rsp_types {
     word raw;
     struct {
+#ifdef N64_BIG_ENDIAN
+        unsigned:17;
+        bool signal_7:1;
+        bool signal_6:1;
+        bool signal_5:1;
+        bool signal_4:1;
+        bool signal_3:1;
+        bool signal_2:1;
+        bool signal_1:1;
+        bool signal_0:1;
+        bool intr_on_break:1;
+        bool single_step:1;
+        bool io_full:1;
+        bool dma_full:1;
+        bool dma_busy:1;
+        bool broke:1;
+        bool halt:1;
+#else
         bool halt:1;
         bool broke:1;
         bool dma_busy:1;
@@ -55,6 +73,7 @@ typedef union rsp_types {
         bool signal_6:1;
         bool signal_7:1;
         unsigned:17;
+#endif
     };
 } rsp_status_t;
 
