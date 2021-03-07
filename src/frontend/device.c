@@ -201,7 +201,7 @@ n64_controller_accessory_type_t get_controller_accessory_type(int pif_channel) {
     if (pif_channel >= 4) {
         logfatal("Accessing controller accessory of out of range channel id %d", pif_channel);
     } else if (joybus_devices[pif_channel].type != JOYBUS_CONTROLLER) {
-        logfatal("Accessing controller accessory of non-controller channel %d", pif_channel);
+        return CONTROLLER_ACCESSORY_NONE;
     } else {
         return joybus_devices[pif_channel].controller.accessory_type;
     }

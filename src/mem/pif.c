@@ -245,8 +245,7 @@ INLINE void pif_mempack_write(byte* cmd, byte* res) {
 
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
-            logfatal("Mempack write CONTROLLER_ACCESSORY_NONE");
-            break;
+            return;
         case CONTROLLER_ACCESSORY_MEMPACK:
             init_mempack(&n64sys.mem, n64sys.rom_path);
             for (int i = 0; i < 32; i++) {
