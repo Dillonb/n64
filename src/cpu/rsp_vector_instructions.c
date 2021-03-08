@@ -40,7 +40,7 @@ INLINE bool is_sign_extension(shalf high, shalf low) {
 }
 
 INLINE int CLZ(word value) {
-#if __has_builtin(__builtin_clz)
+#if __has_builtin (__builtin_clz)
     return __builtin_clz(value);
 #else
     int leading_zeroes = 0;
