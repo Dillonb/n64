@@ -39,10 +39,6 @@ INLINE bool is_sign_extension(shalf high, shalf low) {
     return false;
 }
 
-INLINE shalf to_twosc(half onesc) {
-    return onesc + (onesc >> 15);
-}
-
 INLINE int CLZ(word value) {
 #if __has_builtin(__builtin_clz)
     return __builtin_clz(value);
@@ -778,7 +774,7 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
         half vt_abs = sign_different ? ~vte_element : vte_element;
 
         // Compare using one's complement
-        bool gte = to_twosc(vs_element) >= to_twosc(vte_element);
+        bool gte = (shalf)vte_element <= (shalf)(sign_different ? 0xFFFF : vs_element);
         bool lte = (((sign_different ? vs_element : 0) + vte_element) & 0x8000) == 0x8000;
 
         // If the sign is different, check LTE, otherwise, check GTE.

@@ -293,10 +293,12 @@ INLINE void set_rsp_cp0_register(byte r, word value) {
 }
 
 INLINE sdword get_rsp_accumulator(int e) {
-    sdword val = (sdword)N64RSP.acc.h.elements[e] << 48;
-    val       |= (sdword)N64RSP.acc.m.elements[e] << 32;
-    val       |= (sdword)N64RSP.acc.l.elements[e] << 16;
-    val >>= 16;
+    sdword val = (sdword)N64RSP.acc.h.elements[e] << 32;
+    val       |= (sdword)N64RSP.acc.m.elements[e] << 16;
+    val       |= (sdword)N64RSP.acc.l.elements[e] << 0;
+    if ((val & 0x0000800000000000) != 0) {
+        val |= 0xFFFF000000000000;
+    }
     return val;
 }
 
