@@ -184,25 +184,19 @@ word read_word_pireg(word address) {
 void write_word_pireg(word address, word value) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
-            n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = value & ~1;
-            if (n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] != value) {
-                logwarn("Misaligned PI_DRAM_ADDR! 0x%08X force-aligned to 0x%08X.", value, n64sys.mem.pi_reg[PI_DRAM_ADDR_REG]);
-            }
+            n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = value;
             break;
         case ADDR_PI_CART_ADDR_REG:
-            n64sys.mem.pi_reg[PI_CART_ADDR_REG] = value & ~1;
-            if (n64sys.mem.pi_reg[PI_CART_ADDR_REG] != value) {
-                logwarn("Misaligned PI_CART_ADDR! 0x%08X force-aligned to 0x%08X.", value, n64sys.mem.pi_reg[PI_CART_ADDR_REG]);
-            }
+            n64sys.mem.pi_reg[PI_CART_ADDR_REG] = value;
             break;
         case ADDR_PI_RD_LEN_REG: {
             word length = (value & 0x00FFFFFF) + 1;
-            if (length & 0x7) {
-                length = (length + 0x7) & ~0x7;
+            if (length & 0x1) {
+                length = (length + 0x1) & ~0x1;
             }
             n64sys.mem.pi_reg[PI_RD_LEN_REG] = length;
-            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG];
-            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG];
+            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & ~1;
+            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x7FFFF8;
             if (cart_addr < SREGION_CART_2_1) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
@@ -227,12 +221,13 @@ void write_word_pireg(word address, word value) {
         }
         case ADDR_PI_WR_LEN_REG: {
             word length = (value & 0x00FFFFFF) + 1;
-            if (length & 0x7) {
-                length = (length + 0x7) & ~0x7;
+            if (length & 0x1) {
+                length = (length + 0x1) & ~0x1;
             }
             n64sys.mem.pi_reg[PI_WR_LEN_REG] = length;
-            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG];
-            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x7FFFFF;
+            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & ~1;
+            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x7FFFF8;
+
             if (cart_addr < SREGION_CART_2_1) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
