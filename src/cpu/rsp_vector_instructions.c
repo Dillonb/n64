@@ -40,8 +40,9 @@ INLINE bool is_sign_extension(shalf high, shalf low) {
 }
 
 INLINE int CLZ(word value) {
-#if __has_builtin (__builtin_clz)
+//#if __has_builtin (__builtin_clz)
     return __builtin_clz(value);
+    /*
 #else
     int leading_zeroes = 0;
     for (int i = 0; i < 32 && (value & 0x80000000) == 0; i++) {
@@ -50,6 +51,7 @@ INLINE int CLZ(word value) {
     }
     return leading_zeroes;
 #endif
+     */
 }
 
 #ifndef N64_USE_SIMD
