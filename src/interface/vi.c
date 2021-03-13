@@ -44,15 +44,8 @@ void write_word_vireg(word address, word value) {
             break;
         case ADDR_VI_V_SYNC_REG:
             n64sys.vi.vsync = value & 0x3FF;
-            if (n64sys.vi.vsync != 0x20D) {
-                if (n64sys.vi.vsync == 0x271) {
-                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D.) This looks like a PAL ROM. These are currently not supported.", n64sys.vi.vsync);
-                } else if (n64sys.vi.vsync == 0x20C) {
-                    logwarn("Wrote 0x20C to VI_VSYNC, this is (valid NTSC value) - 1, I've seen some games do this, no idea why, ignoring...");
-                } else {
-                    logfatal("Wrote 0x%X to VI_VSYNC: currently, only standard NTSC is supported (0x20D)", n64sys.vi.vsync);
-                }
-            }
+            n64sys.vi.num_halflines = n64sys.vi.vsync >> 1;
+            n64sys.vi.cycles_per_halfline = CPU_CYCLES_PER_FRAME / n64sys.vi.num_halflines;
             loginfo("VI vsync is now 0x%X / %d. VSYNC happens on halfline %d (wrote 0x%08X)", value & 0x3FF, value & 0x3FF, (value & 0x3FF) >> 1, value);
             break;
         case ADDR_VI_H_SYNC_REG:

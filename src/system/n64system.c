@@ -108,6 +108,9 @@ void reset_n64system() {
     memset(N64RSP.sp_imem, 0, SP_IMEM_SIZE);
     memset(n64sys.mem.pif_ram, 0, PIF_RAM_SIZE);
 
+    n64sys.vi.num_halflines = 262;
+    n64sys.vi.cycles_per_halfline = 1000;
+
     invalidate_dynarec_all_pages(n64sys.dynarec);
 }
 
@@ -209,28 +212,17 @@ void check_vsync() {
 void jit_system_loop() {
     int cycles = 0;
     while (!should_quit) {
-        for (n64sys.vi.v_current = 0; n64sys.vi.v_current < NUM_SHORTLINES; n64sys.vi.v_current++) {
+        for (n64sys.vi.v_current = 0; n64sys.vi.v_current < n64sys.vi.num_halflines; n64sys.vi.v_current++) {
             check_vi_interrupt();
-            check_vsync();
-            while (cycles <= SHORTLINE_CYCLES) {
+            while (cycles <= n64sys.vi.cycles_per_halfline) {
                 cycles += jit_system_step();
                 n64sys.debugger_state.steps = 0;
             }
-            cycles -= SHORTLINE_CYCLES;
-            ai_step(SHORTLINE_CYCLES);
-        }
-        for (; n64sys.vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; n64sys.vi.v_current++) {
-            check_vi_interrupt();
-            check_vsync();
-            while (cycles <= LONGLINE_CYCLES) {
-                cycles += jit_system_step();
-                n64sys.debugger_state.steps = 0;
-            }
-            cycles -= LONGLINE_CYCLES;
-            ai_step(LONGLINE_CYCLES);
+            cycles -= n64sys.vi.cycles_per_halfline;
+            ai_step(n64sys.vi.cycles_per_halfline);
         }
         check_vi_interrupt();
-        check_vsync();
+        rdp_update_screen();
 #ifdef N64_DEBUG_MODE
         if (n64sys.debugger_state.enabled) {
             debugger_tick();
