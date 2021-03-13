@@ -26,6 +26,8 @@ void sig_handler(int signum) {
     }
 }
 
+#define PIF_ROM_PATH (n64sys.mem.rom.header.country_code[0] == 'P' ? "pif.pal.rom" : "pif.rom")
+
 int main(int argc, char** argv) {
 
     signal(SIGUSR1, sig_handler);
@@ -107,9 +109,9 @@ int main(int argc, char** argv) {
     }
     if (pif_rom_path) {
         load_pif_rom(pif_rom_path);
-    } else if (access("pif.rom", F_OK) == 0) {
-        logalways("Found PIF ROM at pif.rom, loading");
-        load_pif_rom("pif.rom");
+    } else if (access(PIF_ROM_PATH, F_OK) == 0) {
+        logalways("Found PIF ROM at %s, loading", PIF_ROM_PATH);
+        load_pif_rom(PIF_ROM_PATH);
     }
     if (n64sys.mem.rom.rom != NULL) {
         pif_rom_execute();
