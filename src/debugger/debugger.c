@@ -45,7 +45,7 @@ const char* target_xml =
         "        <reg name=\"r31\" bitsize=\"64\"/>"
         "        <reg name=\"lo\" bitsize=\"64\" regnum=\"33\"/>"
         "        <reg name=\"hi\" bitsize=\"64\" regnum=\"34\"/>"
-        "        <reg name=\"pc\" bitsize=\"32\" regnum=\"37\"/>"
+        "        <reg name=\"pc\" bitsize=\"64\" regnum=\"37\"/>"
         "        </feature>"
         "<feature name=\"org.gnu.gdb.mips.cp0\">"
         "        <reg name=\"status\" bitsize=\"32\" regnum=\"32\"/>"
@@ -110,15 +110,15 @@ const char* memory_map =
     "<memory type=\"rom\" start=\"0xffffffffbfc00000\" length=\"0x7c0\"/>" // PIF ROM
 "</memory-map>";
 
-void n64_debug_start() {
+void n64_debug_start(void* user_data) {
     n64sys.debugger_state.broken = false;
 }
 
-void n64_debug_stop() {
+void n64_debug_stop(void* user_data) {
     n64sys.debugger_state.broken = true;
 }
 
-void n64_debug_step() {
+void n64_debug_step(void* user_data) {
     bool old_broken = n64sys.debugger_state.broken;
     n64sys.debugger_state.broken = false;
     n64_system_step(false);
@@ -126,7 +126,7 @@ void n64_debug_step() {
     n64sys.debugger_state.steps += 2;
 }
 
-void n64_debug_set_breakpoint(word address) {
+void n64_debug_set_breakpoint(void* user_data, word address) {
     n64_breakpoint_t* breakpoint = malloc(sizeof(n64_breakpoint_t));
     breakpoint->address = address;
     breakpoint->next = NULL;
@@ -145,7 +145,7 @@ void n64_debug_set_breakpoint(word address) {
     }
 }
 
-void n64_debug_clear_breakpoint(word address) {
+void n64_debug_clear_breakpoint(void* user_data, word address) {
     if (n64sys.debugger_state.breakpoints == NULL) {
         return; // No breakpoints set at all
     } else if (n64sys.debugger_state.breakpoints->address == address) {
@@ -166,18 +166,18 @@ void n64_debug_clear_breakpoint(word address) {
     }
 }
 
-ssize_t n64_debug_get_memory(char* buffer, size_t length, word address, size_t bytes) {
+ssize_t n64_debug_get_memory(void* user_data, char* buffer, size_t length, word address, size_t bytes) {
     printf("Checking memory at address 0x%08X\n", address);
     int printed = 0;
     for (int i = 0; i < bytes; i++) {
-        byte value = n64_read_byte(resolve_virtual_address(address + i));
+        byte value = n64_read_byte(address + i);
         printed += snprintf(buffer + (i*2), length, "%02X", value);
     }
     printf("Get memory: %ld bytes from 0x%08X: %d\n", bytes, address, printed);
     return printed + 1;
 }
 
-ssize_t n64_debug_get_register_value(char * buffer, size_t buffer_length, int reg) {
+ssize_t n64_debug_get_register_value(void* user_data, char * buffer, size_t buffer_length, int reg) {
     switch (reg) {
         case 0 ... 31:
             return snprintf(buffer, buffer_length, "%016lx", N64CPU.gpr[reg]);
@@ -201,7 +201,8 @@ ssize_t n64_debug_get_register_value(char * buffer, size_t buffer_length, int re
     }
 }
 
-ssize_t n64_debug_get_general_registers(char * buffer, size_t buffer_length) {
+ssize_t n64_debug_get_general_registers(void* user_data, char * buffer, size_t buffer_length) {
+    printf("The buffer length is %ld!\n", buffer_length);
     ssize_t printed = 0;
     for (int i = 0; i < 32; i++) {
         int ofs = i * 16; // 64 bit regs take up 16 ascii chars to print in hex
@@ -218,7 +219,7 @@ void debugger_init() {
     gdbstub_config_t config;
     memset(&config, 0, sizeof(gdbstub_config_t));
     config.port                  = GDB_CPU_PORT;
-    config.user_data             = system;
+    config.user_data             = NULL;
     config.start                 = (gdbstub_start_t) n64_debug_start;
     config.stop                  = (gdbstub_stop_t) n64_debug_stop;
     config.step                  = (gdbstub_step_t) n64_debug_step;
