@@ -1,6 +1,5 @@
 #ifndef N64_N64SYSTEM_H
 #define N64_N64SYSTEM_H
-#include <linux/limits.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -154,7 +153,9 @@ typedef struct n64_system {
         } dac;
     } ai;
     n64_dpc_t dpc;
+#ifndef N64_WIN
     n64_debugger_state_t debugger_state;
+#endif
     n64_dynarec_t *dynarec;
     softrdp_state_t softrdp_state;
     bool use_interpreter;

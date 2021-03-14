@@ -54,5 +54,5 @@ target_include_directories(parallel-rdp PUBLIC
         parallel-rdp-standalone/util)
 
 if(NOT WIN32)
-target_link_libraries(parallel-rdp dl)
+    target_link_libraries(parallel-rdp dl)
 endif()

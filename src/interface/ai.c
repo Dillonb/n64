@@ -3,11 +3,6 @@
 #include <frontend/audio.h>
 #include <mem/n64bus.h>
 
-INLINE int max(int x, int y) {
-    if (x > y) return x;
-    return y;
-}
-
 void write_word_aireg(word address, word value) {
     switch (address) {
         case ADDR_AI_DRAM_ADDR_REG:

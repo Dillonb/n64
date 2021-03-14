@@ -1,5 +1,7 @@
 #include <stdio.h>
+#ifndef N64_WIN
 #include <unistd.h>
+#endif
 #include <cflags.h>
 #include <log.h>
 #include <system/n64system.h>
@@ -18,6 +20,7 @@ void usage(cflags_t* flags) {
                        "https://github.com/Dillonb/n64");
 }
 
+#ifndef N64_WIN
 void sig_handler(int signum) {
     if (signum == SIGUSR1) {
         delayed_log_set_verbosity(LOG_VERBOSITY_DEBUG);
@@ -25,13 +28,30 @@ void sig_handler(int signum) {
         delayed_log_set_verbosity(LOG_VERBOSITY_WARN);
     }
 }
+#endif
 
 #define PIF_ROM_PATH (n64sys.mem.rom.header.country_code[0] == 'P' ? "pif.pal.rom" : "pif.rom")
 
+INLINE bool file_exists(const char* path) {
+#ifndef N64_WIN
+    return access(PIF_ROM_PATH, F_OK) == 0;
+#else
+    FILE* f = fopen(path, "r");
+    bool exists = false;
+    if (f) {
+        exists = true;
+        fclose(f);
+    }
+    return exists;
+#endif
+}
+
 int main(int argc, char** argv) {
 
+#ifndef N64_WIN
     signal(SIGUSR1, sig_handler);
     signal(SIGUSR2, sig_handler);
+#endif
 
     cflags_t* flags = cflags_init();
     cflags_flag_t * verbose = cflags_add_bool(flags, 'v', "verbose", NULL, "enables verbose output, repeat up to 4 times for more verbosity");
@@ -47,9 +67,11 @@ int main(int argc, char** argv) {
 
     bool debug = false;
 #ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
     char description[110];
     snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port %d for gdb. NOTE: implies -i!", GDB_CPU_PORT);
     cflags_add_bool(flags, 'd', "debug", &debug, description);
+#endif
 #endif
 
     const char* rdp_plugin_path = NULL;
@@ -109,7 +131,7 @@ int main(int argc, char** argv) {
     }
     if (pif_rom_path) {
         load_pif_rom(pif_rom_path);
-    } else if (access(PIF_ROM_PATH, F_OK) == 0) {
+    } else if (file_exists(PIF_ROM_PATH)) {
         logalways("Found PIF ROM at %s, loading", PIF_ROM_PATH);
         load_pif_rom(PIF_ROM_PATH);
     }
@@ -117,10 +139,12 @@ int main(int argc, char** argv) {
         pif_rom_execute();
     }
 #ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
     if (debug) {
         printf("Listening on 0.0.0.0:%d - Waiting for GDB to connect...\n", GDB_CPU_PORT);
         n64sys.debugger_state.broken = true;
     }
+#endif
 #endif
     cflags_free(flags);
     while (n64sys.mem.rom.rom == NULL && !n64_should_quit()) {

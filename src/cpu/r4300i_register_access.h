@@ -405,7 +405,7 @@ INLINE word get_fpu_register_word(byte r) {
 }
 
 INLINE void set_fpu_register_double(byte r, double value) {
-    static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
+    _Static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
 
     dword rawvalue;
     memcpy(&rawvalue, &value, sizeof(double));
@@ -413,7 +413,7 @@ INLINE void set_fpu_register_double(byte r, double value) {
 }
 
 INLINE double get_fpu_register_double(byte r) {
-    static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
+    _Static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
     double doublevalue;
     dword rawvalue = get_fpu_register_dword(r);
     memcpy(&doublevalue, &rawvalue, sizeof(double));
@@ -421,7 +421,7 @@ INLINE double get_fpu_register_double(byte r) {
 }
 
 INLINE void set_fpu_register_float(byte r, float value) {
-    static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
+    _Static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
 
     word rawvalue;
     memcpy(&rawvalue, &value, sizeof(float));
@@ -429,7 +429,7 @@ INLINE void set_fpu_register_float(byte r, float value) {
 }
 
 INLINE float get_fpu_register_float(byte r) {
-    static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
+    _Static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
     word rawvalue = get_fpu_register_word(r);
     float floatvalue;
     memcpy(&floatvalue, &rawvalue, sizeof(float));

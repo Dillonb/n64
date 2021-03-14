@@ -8,6 +8,18 @@
 #include "r4300i_register_access.h"
 
 #define checkcp1 do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
+#ifdef N64_WIN
+#define ORDERED_S(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
+#define ORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
+
+#define UNORDERED_S(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
+#define UNORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
+
+#define checknansf(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
+#define checknansd(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
+#define checknanf(value) if (isnan(value)) { logfatal("value == NaN!"); }
+#define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
+#else
 
 #define ORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
 #define ORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
@@ -19,6 +31,7 @@
 #define checknansd(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
 #define checknanf(value) if (isnanf(value)) { logfatal("value == NaN!"); }
 #define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
+#endif
 
 
 MIPS_INSTR(mips_mfc1) {

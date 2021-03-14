@@ -5,15 +5,24 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
-ADD_COMPILE_OPTIONS(-Wall -mssse3 -msse4.1)
+ADD_COMPILE_OPTIONS(-mssse3 -msse4.1)
 #ADD_COMPILE_OPTIONS(-DVULKAN_DEBUG)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DN64_DEBUG_MODE")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DN64_DEBUG_MODE")
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+
 if (MACOSX)
     message("Building on MacOS")
     ADD_COMPILE_DEFINITIONS(N64_MACOS)
+elseif(WIN32)
+    message("Building on Windows")
+    ADD_COMPILE_DEFINITIONS(N64_WIN NOMINMAX _CRT_SECURE_NO_WARNINGS)
+
+    ADD_COMPILE_OPTIONS(/EHa)
+
 else()
     message("Building on Linux? TODO: detect windows")
     ADD_LINK_OPTIONS(-export-dynamic) # TODO this works on GCC, need to figure out something for clang on Linux

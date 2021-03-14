@@ -24,7 +24,13 @@ typedef int64_t sdword;
 
 #define N64_APP_NAME "dgb n64"
 
-#define ASSERTWORD(type) static_assert(sizeof(type) == sizeof(word), #type " must be 32 bits");
-#define ASSERTDWORD(type) static_assert(sizeof(type) == sizeof(dword), #type " must be 64 bits");
+#define ASSERTWORD(type) _Static_assert(sizeof(type) == 4, #type " must be 32 bits")
+#define ASSERTDWORD(type) _Static_assert(sizeof(type) == 8, #type " must be 64 bits")
+
+#ifndef N64_WIN
+#include <linux/limits.h>
+#else
+#define PATH_MAX 0x1000
+#endif
 
 #endif

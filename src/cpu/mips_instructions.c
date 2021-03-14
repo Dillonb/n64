@@ -725,8 +725,8 @@ MIPS_INSTR(mips_spc_dmultu) {
 }
 
 MIPS_INSTR(mips_spc_ddiv) {
-    __int128 dividend = (sdword)get_register(instruction.r.rs);
-    __int128 divisor  = (sdword)get_register(instruction.r.rt);
+    sdword dividend = (sdword)get_register(instruction.r.rs);
+    sdword divisor  = (sdword)get_register(instruction.r.rt);
 
     unimplemented(divisor == 0, "Divide by zero");
     sdword quotient  = (sdword)(dividend / divisor);

@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <log.h>
-#include <zlib.h>
 #include <frontend/game_db.h>
 #include "n64rom.h"
 #include "mem_util.h"
@@ -24,7 +23,7 @@ void byteswap_to_be(byte* rom, size_t rom_size) {
             for (int i = 0; i < rom_size / 4; i++) {
                 word w;
                 memcpy(&w, rom + (i * 4), 4);
-                word swapped = __bswap_32(w);
+                word swapped = bswap_32(w);
                 memcpy(rom + (i * 4), &swapped, 4);
             }
             logalways("This is a .n64 file, byte swapping it!");
@@ -55,6 +54,40 @@ void byteswap_to_host(byte* rom, size_t rom_size) {
         memcpy(rom + (i * 4), &swapped, 4);
     }
 #endif
+}
+
+// https://rosettacode.org/wiki/CRC-32#C
+INLINE word crc32(word crc, const char *buf, size_t len)
+{
+    static word table[256];
+    static int have_table = 0;
+    word rem;
+    byte octet;
+    int i, j;
+    const char *p, *q;
+
+    if (have_table == 0) {
+        for (i = 0; i < 256; i++) {
+            rem = i;
+            for (j = 0; j < 8; j++) {
+                if (rem & 1) {
+                    rem >>= 1;
+                    rem ^= 0xedb88320;
+                } else
+                    rem >>= 1;
+            }
+            table[i] = rem;
+        }
+        have_table = 1;
+    }
+
+    crc = ~crc;
+    q = buf + len;
+    for (p = buf; p < q; p++) {
+        octet = *p;  /* Cast to unsigned octet. */
+        crc = (crc >> 8) ^ table[(crc & 0xff) ^ octet];
+    }
+    return ~crc;
 }
 
 void load_n64rom(n64_rom_t* rom, const char* path) {

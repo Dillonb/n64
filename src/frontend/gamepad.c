@@ -3,6 +3,10 @@
 #include "gamepad.h"
 #include "device.h"
 
+#ifndef M_PI
+#define M_PI                           3.14159265358979323846f
+#endif
+
 // TODO: support multiple controllers
 static SDL_GameController* controller = NULL;
 static SDL_Joystick* joystick = NULL;

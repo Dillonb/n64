@@ -1,11 +1,12 @@
 #include "rdp.h"
 #include <mem/mem_util.h>
 
+#ifndef N64_WIN
 #include <dlfcn.h>
+#endif
 #ifdef N64_MACOS
 #include <limits.h>
 #else
-#include <linux/limits.h>
 
 #endif
 #include <stdbool.h>
@@ -106,6 +107,9 @@ GFX_INFO get_gfx_info() {
 }
 
 void load_rdp_plugin(const char* filename) {
+#ifdef N64_WIN
+    logfatal("Loading RDP plugins is not supported on windows!");
+#else
     char path[PATH_MAX] = "";
     if (filename[0] == '.' || filename[0] == '/') {
         snprintf(path, sizeof(path), "%s", filename);
@@ -163,6 +167,7 @@ void load_rdp_plugin(const char* filename) {
     // TODO: check plugin version, API version, etc for compatibility
 
     printf("Loaded RDP plugin %s\n", plugin_name);
+#endif
 }
 
 void write_word_dpcreg(word address, word value) {
