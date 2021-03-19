@@ -209,7 +209,9 @@ INLINE void pif_mempack_read(byte* cmd, byte* res) {
 
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
-            logfatal("Reading from CONTROLLER_ACCESSORY_NONE");
+            for (int i = 0; i < 32; i++) {
+                res[i] = 0;
+            }
             break;
         case CONTROLLER_ACCESSORY_MEMPACK:
             for (int i = 0; i < 32; i++) {
