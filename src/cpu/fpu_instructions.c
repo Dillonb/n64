@@ -612,12 +612,12 @@ MIPS_INSTR(mips_cp_c_ueq_d) {
 }
 MIPS_INSTR(mips_cp_c_olt_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_olt_d");
+    checknansd(fs, ft);
+    ORDERED_D(fs, ft);
+
+    N64CPU.fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_ult_d) {
     checkcp1;
@@ -625,7 +625,6 @@ MIPS_INSTR(mips_cp_c_ult_d) {
     double ft = get_fpu_register_double(instruction.fr.ft);
     UNORDERED_D(fs, ft);
     N64CPU.fcr31.compare = fs < ft;
-    logfatal("Unimplemented: mips_cp_c_ult_d");
 }
 MIPS_INSTR(mips_cp_c_ole_d) {
     checkcp1;
