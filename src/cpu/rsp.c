@@ -272,8 +272,8 @@ INLINE void _rsp_step() {
     half pc = N64RSP.pc & 0x3FF;
     rsp_icache_entry_t* cache = &N64RSP.icache[pc];
 
-    N64RSP.prev_pc = pc;
-    N64RSP.pc = N64RSP.next_pc;
+    N64RSP.prev_pc = pc & 0x3FF;
+    N64RSP.pc = N64RSP.next_pc & 0x3FF;
     N64RSP.next_pc++;
 
     cache->handler(cache->instruction);
