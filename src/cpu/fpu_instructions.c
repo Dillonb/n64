@@ -109,7 +109,6 @@ INLINE int push_round_mode() {
         default:
             logfatal("Unknown rounding mode %d", N64CPU.fcr31.rounding_mode);
     }
-    //fesetround(FE_TOWARDZERO);
     return orig_round;
 }
 
