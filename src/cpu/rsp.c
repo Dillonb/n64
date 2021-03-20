@@ -277,6 +277,40 @@ INLINE void _rsp_step() {
     N64RSP.next_pc++;
 
     cache->handler(cache->instruction);
+
+#ifdef N64_RSP_LOG
+    printf("%04X %08X ", pc << 2, cache->instruction.raw);
+
+    for (int i = 0; i < 32; i++) {
+        printf("%08X ", N64RSP.gpr[i]);
+    }
+
+    for (int i = 0; i < 32; i++) {
+        for (int e = 0; e < 8; e++) {
+            printf("%04X", N64RSP.vu_regs[i].elements[e]);
+        }
+        printf(" ");
+    }
+
+    for (int e = 0; e < 8; e++) {
+        printf("%04X", N64RSP.acc.h.elements[e]);
+    }
+    printf(" ");
+
+    for (int e = 0; e < 8; e++) {
+        printf("%04X", N64RSP.acc.m.elements[e]);
+    }
+    printf(" ");
+
+    for (int e = 0; e < 8; e++) {
+        printf("%04X", N64RSP.acc.l.elements[e]);
+    }
+    printf(" ");
+
+    printf("%04X %04X %02X", rsp_get_vcc(), rsp_get_vco(), rsp_get_vce());
+
+    printf("\n");
+#endif
 }
 
 void rsp_step() {
