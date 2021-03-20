@@ -65,6 +65,8 @@ int main(int argc, char** argv) {
 #ifdef N64_USE_SIMD
             if (expected_vd[e] == 0x7FFF && N64RSP.vu_regs[3].elements[e] == 0x8000) {
                 printf("this is expected, the SIMD implementation is buggy!\n");
+            } else {
+                logfatal("VD mismatch!");
             }
 #else
             logfatal("VD mismatch!");
