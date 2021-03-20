@@ -4,6 +4,28 @@
 #include <cpu/rsp.h>
 #include <cpu/rsp_vector_instructions.h>
 
+void print_vureg_comparing_ln(vu_reg_t* reg, const half* compare) {
+    printf("Actual:   ");
+    for (int i = 0; i < 8; i++) {
+        if (compare[i] != reg->elements[i]) {
+            printf(COLOR_RED);
+        }
+        printf("%04X ", reg->elements[i]);
+        if (compare[i] != reg->elements[i]) {
+            printf(COLOR_END);
+        }
+    }
+    printf("\n");
+}
+
+void print_expected(const half* expected) {
+    printf("Expected: ");
+    for (int i = 0; i < 8; i++) {
+        printf("%04X ", expected[i]);
+    }
+    printf("\n");
+}
+
 int main(int argc, char** argv) {
     init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, false);
 
@@ -38,15 +60,23 @@ int main(int argc, char** argv) {
 
     for (int e = 0; e < 8; e++) {
         if (expected_vd[e] != N64RSP.vu_regs[3].elements[e]) {
+            print_expected(expected_vd);
+            print_vureg_comparing_ln(&N64RSP.vu_regs[3], expected_vd);
             logfatal("VD mismatch!");
         }
         if (expected_acch[e] != N64RSP.acc.h.elements[e]) {
+            print_expected(expected_acch);
+            print_vureg_comparing_ln(&N64RSP.acc.h, expected_vd);
             logfatal("acch mismatch!");
         }
         if (expected_accm[e] != N64RSP.acc.m.elements[e]) {
+            print_expected(expected_accm);
+            print_vureg_comparing_ln(&N64RSP.acc.m, expected_vd);
             logfatal("accm mismatch!");
         }
         if (expected_accl[e] != N64RSP.acc.l.elements[e]) {
+            print_expected(expected_accl);
+            print_vureg_comparing_ln(&N64RSP.acc.l, expected_vd);
             logfatal("accl mismatch!");
         }
     }
