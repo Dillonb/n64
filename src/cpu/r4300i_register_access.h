@@ -96,7 +96,6 @@ INLINE void set_cp0_register_word(byte r, word value) {
             N64CPU.cp0.page_mask.raw = value;
             break;
         case R4300I_CP0_REG_EPC:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "EPC written as word in 64 bit mode");
             N64CPU.cp0.EPC = (sdword)((sword)value);
             break;
         case R4300I_CP0_REG_CONFIG:
