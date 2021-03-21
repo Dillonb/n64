@@ -691,7 +691,25 @@ void n64_write_physical_word(word address, word value) {
             backup_write_word(address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
-            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            switch (address) {
+                case REGION_CART_ISVIEWER_BUFFER:
+                    word_to_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER, be32toh(value));
+                    break;
+                case CART_ISVIEWER_FLUSH: {
+                    if (value < CART_ISVIEWER_SIZE) {
+                        char* message = malloc(value + 1);
+                        memcpy(message, n64sys.mem.isviewer_buffer, value);
+                        message[value] = '\0';
+                        printf("%s", message);
+                        free(message);
+                    } else {
+                        logfatal("ISViewer buffer size is emulated at %d bytes, but received a flush command for %d bytes!", CART_ISVIEWER_SIZE, value);
+                    }
+                    break;
+                }
+                default:
+                    logalways("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            }
             return;
         case REGION_PIF_BOOT:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
@@ -757,6 +775,12 @@ word n64_read_physical_word(word address) {
         case REGION_CART_1_2: {
             word index = WORD_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size - 3) { // -3 because we're reading an entire word
+                switch (address) {
+                    case REGION_CART_ISVIEWER_BUFFER:
+                        return htobe32(word_from_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER));
+                    case CART_ISVIEWER_FLUSH:
+                        logfatal("Read from ISViewer flush!");
+                }
                 logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
                 return 0;
             } else {
