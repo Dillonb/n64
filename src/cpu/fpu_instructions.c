@@ -430,12 +430,9 @@ MIPS_INSTR(mips_cp_c_f_s) {
 }
 MIPS_INSTR(mips_cp_c_un_s) {
     checkcp1;
-    /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
-     checknansf(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_un_s");
+    N64CPU.fcr31.compare = isnanf(fs) || isnanf(ft);
 }
 MIPS_INSTR(mips_cp_c_eq_s) {
     checkcp1;
@@ -585,12 +582,9 @@ MIPS_INSTR(mips_cp_c_f_d) {
 }
 MIPS_INSTR(mips_cp_c_un_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_un_d");
+    N64CPU.fcr31.compare = isnan(fs) || isnan(ft);
 }
 MIPS_INSTR(mips_cp_c_eq_d) {
     checkcp1;
