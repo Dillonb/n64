@@ -534,6 +534,8 @@ COMP(mips_cp_mov_d, NORMAL, true);
 COMP(mips_cp_mov_s, NORMAL, true);
 COMP(mips_cp_neg_d, NORMAL, true);
 COMP(mips_cp_neg_s, NORMAL, true);
+COMP(mips_cp_c_un_d, NORMAL, true);
+COMP(mips_cp_c_un_s, NORMAL, true);
 COMP(mips_cp_c_eq_d, NORMAL, true);
 COMP(mips_cp_c_eq_s, NORMAL, true);
 COMP(mips_cp_c_lt_d, NORMAL, true);
@@ -808,7 +810,12 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
         case COP_FUNCT_C_F:
             logfatal("COP_FUNCT_C_F unimplemented");
         case COP_FUNCT_C_UN:
-            logfatal("COP_FUNCT_C_UN unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_un_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_un_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
                 CASEIR(FP_FMT_DOUBLE, mips_cp_c_eq_d);
