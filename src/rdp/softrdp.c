@@ -231,6 +231,46 @@ INLINE void triangle_edgewalker(softrdp_state_t* rdp, edge_coefficients_t* ec, s
     spans->num_spans = span_index;
 }
 
+typedef struct z_coefficients {
+    // Inverse depth
+    shalf z;
+    half z_f;
+
+    // Change in Z per change in Y coordinate
+    shalf dzdx;
+    half dzdx_f;
+
+    // Change in Z along major edge
+    shalf dzde;
+    half dzde_f;
+
+    // Change in Z per change in Y coordinate
+    shalf dzdy;
+    half dzdy_f;
+} z_coefficients_t;
+
+INLINE void get_zbuffer_coefficients(const word* buffer, word command_length, z_coefficients_t* coefficients) {
+    coefficients->z   = BITS(63 + 64, 48 + 64);
+    coefficients->z_f = BITS(47 + 64, 32 + 64);
+
+    coefficients->dzdx   = BITS(31 + 64, 16 + 64);
+    coefficients->dzdx_f = BITS(15 + 64,  0 + 64);
+
+    coefficients->dzde   = BITS(63 +  0, 48 +  0);
+    coefficients->dzde_f = BITS(47 +  0, 32 +  0);
+
+    coefficients->dzdy   = BITS(31 +  0, 16 +  0);
+    coefficients->dzdy_f = BITS(15 +  0,  0 +  0);
+
+
+    logalways("Z coefficients: z: %d.%d, dzdx: %d.%d, dzde: %d.%d, dzdy: %d.%d",
+              coefficients->z, coefficients->z_f,
+              coefficients->dzdx, coefficients->dzdx_f,
+              coefficients->dzde, coefficients->dzde_f,
+              coefficients->dzdy, coefficients->dzdy_f);
+}
+
+
 DEF_RDP_COMMAND(fill_triangle) {
     static edge_coefficients_t ec;
     get_edge_coefficients(buffer, command_length, &ec);
@@ -289,6 +329,14 @@ DEF_RDP_COMMAND(fill_triangle) {
 }
 
 DEF_RDP_COMMAND(fill_zbuffer_triangle) {
+    static edge_coefficients_t ec;
+    get_edge_coefficients(buffer, 8, &ec);
+
+    static z_coefficients_t zc;
+    get_zbuffer_coefficients(buffer + 8, 4, &zc);
+
+    static spans_t spans;
+    triangle_edgewalker(rdp, &ec, &spans);
     logfatal("rdp_fill_zbuffer_triangle unimplemented");
 }
 
@@ -547,7 +595,8 @@ DEF_RDP_COMMAND(set_texture_image) {
 }
 
 DEF_RDP_COMMAND(set_mask_image) {
-    logfatal("rdp_set_mask_image unimplemented");
+    rdp->z_image = BITS(25, 0);
+    logalways("Setting Zbuffer image to 0x%08X", rdp->z_image);
 }
 
 DEF_RDP_COMMAND(set_color_image) {
@@ -564,6 +613,8 @@ DEF_RDP_COMMAND(set_color_image) {
 
 void enqueue_command_softrdp(softrdp_state_t* rdp, int command_length, word* buffer) {
     rdp_command_t command = (buffer[0] >> 24) & 0x3F;
+
+    logalways("Command %02X", command);
 
     switch (command) {
         case RDP_COMMAND_FILL_TRIANGLE:                  EXEC_RDP_COMMAND(fill_triangle);
