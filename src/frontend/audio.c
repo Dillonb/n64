@@ -20,20 +20,19 @@ INLINE void release_audiostream_mutex() {
 void audio_callback(void* userdata, Uint8* stream, int length) {
     int gotten = 0;
     acquire_audiostream_mutex();
-    if (SDL_AudioStreamAvailable(audio_stream) > 0) {
+    int available = SDL_AudioStreamAvailable(audio_stream);
+    if (available > 0) {
         gotten = SDL_AudioStreamGet(audio_stream, stream, length);
     }
     release_audiostream_mutex();
 
-    if (gotten < length) {
-        int gotten_samples = gotten / sizeof(float);
-        float* out = (float*)stream;
-        out += gotten_samples;
+    int gotten_samples = gotten / sizeof(float);
+    float* out = (float*)stream;
+    out += gotten_samples;
 
-        for (int i = gotten_samples; i < length / sizeof(float); i++) {
-            float sample = 0;
-            *out++ = sample;
-        }
+    for (int i = gotten_samples; i < length / sizeof(float); i++) {
+        float sample = 0;
+        *out++ = sample;
     }
 }
 

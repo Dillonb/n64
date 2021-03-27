@@ -83,7 +83,7 @@ void sample() {
 
     shalf left  = data >> 16;
     shalf right = data >>  0;
-    audio_push_sample(left * 0.1, right * 0.1);
+    audio_push_sample(left, right);
 
     n64sys.ai.dma_address[0] += 4;
     n64sys.ai.dma_length[0]  -= 4;
