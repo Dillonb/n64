@@ -122,6 +122,17 @@ typedef struct edge_coefficients {
     half  dxldy_f;
 } edge_coefficients_t;
 
+typedef struct span {
+    int start;
+    int end;
+} span_t;
+
+typedef struct spans {
+    int start_y;
+    int num_spans;
+    span_t spans[1024];
+} spans_t;
+
 INLINE void get_edge_coefficients(const word* buffer, word command_length, edge_coefficients_t* coefficients) {
     coefficients->dir   = BIT(55 + 64 * 3);
     coefficients->level = BITS(53 + 64 * 3, 51 + 64 * 3);
@@ -156,109 +167,124 @@ INLINE void get_edge_coefficients(const word* buffer, word command_length, edge_
     coefficients->dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
 }
 
-DEF_RDP_COMMAND(fill_triangle) {
-    edge_coefficients_t ec;
-    get_edge_coefficients(buffer, command_length, &ec);
-
-    logalways("Filling triangle starting at %d, %d", ec.yh, ec.xh_i);
-
+INLINE void triangle_edgewalker(softrdp_state_t* rdp, edge_coefficients_t* ec, spans_t* spans) {
     word xstart;
     word xend;
 
     sword dxstart;
     sword dxend;
 
-    if (ec.dir) {
-        xstart = ec.xm_i << 16 | ec.xm_f;
-        xend = ec.xh_i << 16 | ec.xh_f;
+    if (ec->dir) {
+        xstart = ec->xm_i << 16 | ec->xm_f;
+        xend = ec->xh_i << 16 | ec->xh_f;
 
-        dxstart = ec.dxmdy_i << 16 | ec.dxmdy_f;
-        dxend = ec.dxhdy_i << 16 | ec.dxhdy_f;
+        dxstart = ec->dxmdy_i << 16 | ec->dxmdy_f;
+        dxend = ec->dxhdy_i << 16 | ec->dxhdy_f;
     } else {
-        xstart = ec.xh_i << 16 | ec.xh_f;
-        xend = ec.xm_i << 16 | ec.xm_f;
+        xstart = ec->xh_i << 16 | ec->xh_f;
+        xend = ec->xm_i << 16 | ec->xm_f;
 
-        dxstart = ec.dxhdy_i << 16 | ec.dxhdy_f;
-        dxend = ec.dxmdy_i << 16 | ec.dxmdy_f;
+        dxstart = ec->dxhdy_i << 16 | ec->dxhdy_f;
+        dxend = ec->dxmdy_i << 16 | ec->dxmdy_f;
     }
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
-    if (bytes_per_pixel == 2) {
-        ec.yh /= 2;
-        ec.ym /= 2;
-        ec.yl /= 2;
-    }
+    int yh = ec->yh / 4;
+    int ym = ec->ym / 4;
+    int yl = ec->yl / 4;
 
-    // Top half of triangle (between YH and YM)
-    for (int y = ec.yh; y < ec.ym; y += bytes_per_pixel) {
-        int yofs = (y * rdp->color_image.width);
+    logalways("Edgewalking triangle yh %d ym %d yl %d", yh, ym, yl);
 
-        int xmin = ((ec.dir ? xend : xstart) >> 16) * bytes_per_pixel;
-        int xmax = ((ec.dir ? xstart : xend) >> 16) * bytes_per_pixel;
+    spans->start_y = yh;
 
-        for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
-            word address = rdp->color_image.dram_addr + yofs + x;
-            if (bytes_per_pixel == 4) {
-                rdram_write32(rdp, address, rdp->fill_color);
-            } else if (bytes_per_pixel == 2) {
-                switch (rdp->other_modes.cycle_type) {
-                    case 0: {
-                        // hack, this is incorrect. Just use the blend color
-                        half color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
-                        rdram_write16(rdp, address ^ 2, color);
-                        break;
-                    }
-                    case 3:
-                        rdram_write16(rdp, address ^ 2, rdp->fill_color);
-                        break;
-                    default:
-                        logfatal("Fill triangle 16bpp unsupported cycle type: %d", rdp->other_modes.cycle_type);
-                }
-            }
-        }
+    int span_index = 0;
+
+    for (int y = yh; y < ym; y += 1) {
+        span_t* s = &spans->spans[span_index++];
+
+        s->start = ((ec->dir ? xend : xstart) >> 16);
+        s->end = ((ec->dir ? xstart : xend) >> 16);
+
         xstart += dxstart;
         xend += dxend;
     }
 
-    if (ec.dir) {
-        xstart = ec.xl_i << 16 | ec.xl_f;
-        dxstart = ec.dxldy_i << 16 | ec.dxldy_f;
+    if (ec->dir) {
+        xstart = ec->xl_i << 16 | ec->xl_f;
+        dxstart = ec->dxldy_i << 16 | ec->dxldy_f;
     } else {
-        xend = ec.xl_i << 16 | ec.xl_f;
-        dxend = ec.dxldy_i << 16 | ec.dxldy_f;
+        xend = ec->xl_i << 16 | ec->xl_f;
+        dxend = ec->dxldy_i << 16 | ec->dxldy_f;
     }
 
-    // Bottom half of triangle (between YM and YL)
-    for (int y = ec.ym; y < ec.yl; y += bytes_per_pixel) {
-        int yofs = (y * rdp->color_image.width);
+    for (int y = ym; y < yl; y += 1) {
+        span_t* s = &spans->spans[span_index++];
 
-        int xmin = ((ec.dir ? xend : xstart) >> 16) * bytes_per_pixel;
-        int xmax = ((ec.dir ? xstart : xend) >> 16) * bytes_per_pixel;
+        s->start = ((ec->dir ? xend : xstart) >> 16);
+        s->end = ((ec->dir ? xstart : xend) >> 16);
 
-        for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
-            word address = rdp->color_image.dram_addr + yofs + x;
-            if (bytes_per_pixel == 4) {
-                unimplemented(rdp->other_modes.cycle_type != 3, "Fill triangle 32bpp not in fill mode");
-                rdram_write32(rdp, address, rdp->fill_color);
-            } else if (bytes_per_pixel == 2) {
-                switch (rdp->other_modes.cycle_type) {
-                    case 0: {
-                        // hack, this is incorrect. Just use the blend color
-                        half color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
-                        rdram_write16(rdp, address ^ 2, color);
-                        break;
-                    }
-                    case 3:
-                        rdram_write16(rdp, address ^ 2, rdp->fill_color);
-                        break;
-                    default:
-                        logfatal("Fill triangle 16bpp unsupported cycle type: %d", rdp->other_modes.cycle_type);
-                }
-            }
-        }
         xstart += dxstart;
         xend += dxend;
+    }
+
+    spans->num_spans = span_index;
+}
+
+DEF_RDP_COMMAND(fill_triangle) {
+    static edge_coefficients_t ec;
+    get_edge_coefficients(buffer, command_length, &ec);
+    static spans_t spans;
+    triangle_edgewalker(rdp, &ec, &spans);
+
+    logalways("Filling triangle starting at %d, %d. from y=%d to y=%d (pixel %d to %d?)", ec.yh, ec.xh_i, ec.yh, ec.yl, ec.yh / 2, ec.yl / 2);
+
+    int bytes_per_pixel = get_bytes_per_pixel(rdp);
+
+    switch (bytes_per_pixel) {
+        case 2: {
+            // Select color
+            half color;
+            switch (rdp->other_modes.cycle_type) {
+                case 0:
+                    // hack, this is incorrect. Just use the blend color
+                    color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
+                    break;
+                case 3:
+                    color = rdp->fill_color;
+                    break;
+            }
+
+            // Fill in each span
+            for (int i = 0; i < spans.num_spans; i++) {
+                int y = spans.start_y + i;
+                span_t* s = &spans.spans[i];
+
+                word yofs = rdp->color_image.dram_addr + y * rdp->color_image.width * bytes_per_pixel;
+
+                for (int pixel = s->start; pixel < s->end; pixel++) {
+                    word addr = yofs + pixel * bytes_per_pixel;
+                    rdram_write16(rdp, addr ^ 2, color);
+                }
+            }
+            break;
+        }
+        case 4: {
+            for (int i = 0; i < spans.num_spans; i++) {
+                int y = spans.start_y + i;
+                span_t* s = &spans.spans[i];
+
+                word yofs = rdp->color_image.dram_addr + y * rdp->color_image.width * bytes_per_pixel;
+
+                for (int pixel = s->start; pixel < s->end; pixel++) {
+                    word addr = yofs + pixel * bytes_per_pixel;
+                    rdram_write32(rdp, addr, rdp->fill_color);
+                }
+            }
+            break;
+        }
+        default:
+            logfatal("Unsupported fill triangle bpp %d", bytes_per_pixel);
     }
 }
 
