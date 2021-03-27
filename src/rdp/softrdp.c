@@ -89,39 +89,78 @@ INLINE int get_bytes_per_pixel(softrdp_state_t* rdp) {
     }
 }
 
-DEF_RDP_COMMAND(fill_triangle) {
-    bool dir   = BIT(55 + 64 * 3);
-    //word level = BITS(53 + 64 * 3, 51 + 64 * 3);
-    //word tile  = BITS(50 + 64 * 3, 48 + 64 * 3);
+typedef struct edge_coefficients {
+    bool dir;
+    word level;
+    word tile;
 
     // Y position where the triangle starts
-    word yh = BITS(13 + 64 * 3, 0  + 64 * 3);
+    word yh;
     // Y position where the second minor line starts
-    word ym = BITS(29 + 64 * 3, 16 + 64 * 3);
+    word ym;
     // Y position where the triangle ends.
-    word yl = BITS(45 + 64 * 3, 32 + 64 * 3);
+    word yl;
 
     // X position where the major line starts
-    word xh_i    = BITS(63 + 64 * 1, 48 + 64 * 1);
-    word xh_f    = BITS(47 + 64 * 1, 32 + 64 * 1);
+    word xh_i;
+    word xh_f;
     // X position where the first minor line starts.
-    word xm_i    = BITS(63 + 64 * 0, 48 + 64 * 0);
-    word xm_f    = BITS(47 + 64 * 0, 32 + 64 * 0);
+    word xm_i;
+    word xm_f;
     // X position where the second minor line starts
-    word xl_i = BITS(63 + 64 * 2, 48 + 64 * 2);
-    word xl_f = BITS(47 + 64 * 2, 32 + 64 * 2);
-
-    logalways("Filling triangle starting at %d, %d", yh, xh_i);
+    word xl_i;
+    word xl_f;
 
     // Change in X per Y along the major line
-    shalf dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
-    half  dxhdy_f = BITS(15 + 64 * 1, 0  + 64 * 1);
+    shalf dxhdy_i;
+    half  dxhdy_f;
     // Change in X per Y along the first minor line
-    shalf dxmdy_i = BITS(31 + 64 * 0, 16 + 64 * 0);
-    half  dxmdy_f = BITS(15 + 64 * 0, 0  + 64 * 0);
+    shalf dxmdy_i;
+    half  dxmdy_f;
     // Change in X per Y along the second minor line
-    shalf dxldy_i = BITS(31 + 64 * 2, 16 + 64 * 2);
-    half  dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
+    shalf dxldy_i;
+    half  dxldy_f;
+} edge_coefficients_t;
+
+INLINE void get_edge_coefficients(const word* buffer, word command_length, edge_coefficients_t* coefficients) {
+    coefficients->dir   = BIT(55 + 64 * 3);
+    coefficients->level = BITS(53 + 64 * 3, 51 + 64 * 3);
+    coefficients->tile  = BITS(50 + 64 * 3, 48 + 64 * 3);
+
+    // Y position where the triangle starts
+    coefficients->yh = BITS(13 + 64 * 3, 0  + 64 * 3);
+    // Y position where the second minor line starts
+    coefficients->ym = BITS(29 + 64 * 3, 16 + 64 * 3);
+    // Y position where the triangle ends.
+    coefficients->yl = BITS(45 + 64 * 3, 32 + 64 * 3);
+
+    // X position where the major line starts
+    coefficients->xh_i    = BITS(63 + 64 * 1, 48 + 64 * 1);
+    coefficients->xh_f    = BITS(47 + 64 * 1, 32 + 64 * 1);
+    // X position where the first minor line starts.
+    coefficients->xm_i    = BITS(63 + 64 * 0, 48 + 64 * 0);
+    coefficients->xm_f    = BITS(47 + 64 * 0, 32 + 64 * 0);
+    // X position where the second minor line starts
+    coefficients->xl_i = BITS(63 + 64 * 2, 48 + 64 * 2);
+    coefficients->xl_f = BITS(47 + 64 * 2, 32 + 64 * 2);
+
+
+    // Change in X per Y along the major line
+    coefficients->dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
+    coefficients->dxhdy_f = BITS(15 + 64 * 1, 0  + 64 * 1);
+    // Change in X per Y along the first minor line
+    coefficients->dxmdy_i = BITS(31 + 64 * 0, 16 + 64 * 0);
+    coefficients->dxmdy_f = BITS(15 + 64 * 0, 0  + 64 * 0);
+    // Change in X per Y along the second minor line
+    coefficients->dxldy_i = BITS(31 + 64 * 2, 16 + 64 * 2);
+    coefficients->dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
+}
+
+DEF_RDP_COMMAND(fill_triangle) {
+    edge_coefficients_t ec;
+    get_edge_coefficients(buffer, command_length, &ec);
+
+    logalways("Filling triangle starting at %d, %d", ec.yh, ec.xh_i);
 
     word xstart;
     word xend;
@@ -129,34 +168,34 @@ DEF_RDP_COMMAND(fill_triangle) {
     sword dxstart;
     sword dxend;
 
-    if (dir) {
-        xstart = xm_i << 16 | xm_f;
-        xend = xh_i << 16 | xh_f;
+    if (ec.dir) {
+        xstart = ec.xm_i << 16 | ec.xm_f;
+        xend = ec.xh_i << 16 | ec.xh_f;
 
-        dxstart = dxmdy_i << 16 | dxmdy_f;
-        dxend = dxhdy_i << 16 | dxhdy_f;
+        dxstart = ec.dxmdy_i << 16 | ec.dxmdy_f;
+        dxend = ec.dxhdy_i << 16 | ec.dxhdy_f;
     } else {
-        xstart = xh_i << 16 | xh_f;
-        xend = xm_i << 16 | xm_f;
+        xstart = ec.xh_i << 16 | ec.xh_f;
+        xend = ec.xm_i << 16 | ec.xm_f;
 
-        dxstart = dxhdy_i << 16 | dxhdy_f;
-        dxend = dxmdy_i << 16 | dxmdy_f;
+        dxstart = ec.dxhdy_i << 16 | ec.dxhdy_f;
+        dxend = ec.dxmdy_i << 16 | ec.dxmdy_f;
     }
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
     if (bytes_per_pixel == 2) {
-        yh /= 2;
-        ym /= 2;
-        yl /= 2;
+        ec.yh /= 2;
+        ec.ym /= 2;
+        ec.yl /= 2;
     }
 
     // Top half of triangle (between YH and YM)
-    for (int y = yh; y < ym; y += bytes_per_pixel) {
+    for (int y = ec.yh; y < ec.ym; y += bytes_per_pixel) {
         int yofs = (y * rdp->color_image.width);
 
-        int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
-        int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
+        int xmin = ((ec.dir ? xend : xstart) >> 16) * bytes_per_pixel;
+        int xmax = ((ec.dir ? xstart : xend) >> 16) * bytes_per_pixel;
 
         for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
             word address = rdp->color_image.dram_addr + yofs + x;
@@ -182,20 +221,20 @@ DEF_RDP_COMMAND(fill_triangle) {
         xend += dxend;
     }
 
-    if (dir) {
-        xstart = xl_i << 16 | xl_f;
-        dxstart = dxldy_i << 16 | dxldy_f;
+    if (ec.dir) {
+        xstart = ec.xl_i << 16 | ec.xl_f;
+        dxstart = ec.dxldy_i << 16 | ec.dxldy_f;
     } else {
-        xend = xl_i << 16 | xl_f;
-        dxend = dxldy_i << 16 | dxldy_f;
+        xend = ec.xl_i << 16 | ec.xl_f;
+        dxend = ec.dxldy_i << 16 | ec.dxldy_f;
     }
 
     // Bottom half of triangle (between YM and YL)
-    for (int y = ym; y < yl; y += bytes_per_pixel) {
+    for (int y = ec.ym; y < ec.yl; y += bytes_per_pixel) {
         int yofs = (y * rdp->color_image.width);
 
-        int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
-        int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
+        int xmin = ((ec.dir ? xend : xstart) >> 16) * bytes_per_pixel;
+        int xmax = ((ec.dir ? xstart : xend) >> 16) * bytes_per_pixel;
 
         for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
             word address = rdp->color_image.dram_addr + yofs + x;
