@@ -129,6 +129,8 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr)
                 return mips_tlbr;
             case COP_FUNCT_ERET:
                 return mips_eret;
+            case COP_FUNCT_WAIT:
+                return mips_nop;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
