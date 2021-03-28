@@ -281,50 +281,24 @@ DEF_RDP_COMMAND(fill_triangle) {
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
-    switch (bytes_per_pixel) {
-        case 2: {
-            // Select color
-            half color;
-            switch (rdp->other_modes.cycle_type) {
-                case 0:
-                    // hack, this is incorrect. Just use the blend color
-                    color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
-                    break;
-                case 3:
-                    color = rdp->fill_color;
-                    break;
-            }
 
-            // Fill in each span
-            for (int i = 0; i < spans.num_spans; i++) {
-                int y = spans.start_y + i;
-                span_t* s = &spans.spans[i];
+    for (int i = 0; i < spans.num_spans; i++) {
+        int y = spans.start_y + i;
+        span_t* s = &spans.spans[i];
 
-                word yofs = rdp->color_image.dram_addr + y * rdp->color_image.width * bytes_per_pixel;
+        word yofs = rdp->color_image.dram_addr + y * rdp->color_image.width * bytes_per_pixel;
 
-                for (int pixel = s->start; pixel < s->end; pixel++) {
-                    word addr = yofs + pixel * bytes_per_pixel;
-                    rdram_write16(rdp, addr, color);
-                }
-            }
-            break;
+        for (int x = s->start * bytes_per_pixel; x < s->end * bytes_per_pixel; x += 2) {
+            word addr = yofs + x;
+
+            // Code below is optimized to remove the conditional.
+            // Essentially, the behavior is to use the upper bits of fill_color if we're on an even column,
+            // and the lower bits if we're on an odd column.
+
+            //half color = rdp->fill_color >> (addr % 4 == 0 ? 16 : 0);
+            half color = rdp->fill_color >> (16 - ((addr % 4) * 8));
+            rdram_write16(rdp, addr, color);
         }
-        case 4: {
-            for (int i = 0; i < spans.num_spans; i++) {
-                int y = spans.start_y + i;
-                span_t* s = &spans.spans[i];
-
-                word yofs = rdp->color_image.dram_addr + y * rdp->color_image.width * bytes_per_pixel;
-
-                for (int pixel = s->start; pixel < s->end; pixel++) {
-                    word addr = yofs + pixel * bytes_per_pixel;
-                    rdram_write32(rdp, addr, rdp->fill_color);
-                }
-            }
-            break;
-        }
-        default:
-            logfatal("Unsupported fill triangle bpp %d", bytes_per_pixel);
     }
 }
 
@@ -527,7 +501,7 @@ DEF_RDP_COMMAND(fill_rectangle) {
             word addr = rdp->color_image.dram_addr + yofs + x;
             // Endianness means we need to do this as two separate writes to support both 32bpp and 16bpp
             rdram_write16(rdp, addr + 0, rdp->fill_color >> 16);
-            rdram_write16(rdp, addr + 2, rdp->fill_color >> 0);
+            rdram_write16(rdp, addr + 2, rdp->fill_color >>  0);
         }
     }
 }
