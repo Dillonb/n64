@@ -1006,7 +1006,8 @@ void n64_write_physical_byte(word address, byte value) {
             backup_write_byte(address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            break;
         case REGION_PIF_BOOT:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
@@ -1068,7 +1069,8 @@ byte n64_read_physical_byte(word address) {
         case REGION_CART_1_2: {
             word index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size) {
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                return 0xFF;
             }
             return n64sys.mem.rom.rom[index];
         }
