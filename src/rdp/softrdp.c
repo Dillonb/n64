@@ -236,7 +236,7 @@ typedef struct z_coefficients {
     shalf z;
     half z_f;
 
-    // Change in Z per change in Y coordinate
+    // Change in Z per change in X coordinate
     shalf dzdx;
     half dzdx_f;
 
