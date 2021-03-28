@@ -43,7 +43,7 @@ INLINE void set_cp0_register_word(byte r, word value) {
         case R4300I_CP0_REG_RANDOM:
             break;
         case R4300I_CP0_REG_COUNT:
-            N64CPU.cp0.count = value << 1;
+            N64CPU.cp0.count = (dword)value << 1;
             break;
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
