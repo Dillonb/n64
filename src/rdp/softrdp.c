@@ -270,6 +270,14 @@ INLINE void get_zbuffer_coefficients(const word* buffer, word command_length, z_
               coefficients->dzdy, coefficients->dzdy_f);
 }
 
+INLINE half fill_for_addr(softrdp_state_t* rdp, word addr) {
+    // Code below is optimized to remove the conditional.
+    // Essentially, the behavior is to use the upper bits of fill_color if we're on an even column,
+    // and the lower bits if we're on an odd column.
+
+    // return rdp->fill_color >> (addr % 4 == 0 ? 16 : 0);
+    return rdp->fill_color >> (16 - ((addr % 4) * 8));
+}
 
 DEF_RDP_COMMAND(fill_triangle) {
     static edge_coefficients_t ec;
@@ -290,14 +298,7 @@ DEF_RDP_COMMAND(fill_triangle) {
 
         for (int x = s->start * bytes_per_pixel; x < s->end * bytes_per_pixel; x += 2) {
             word addr = yofs + x;
-
-            // Code below is optimized to remove the conditional.
-            // Essentially, the behavior is to use the upper bits of fill_color if we're on an even column,
-            // and the lower bits if we're on an odd column.
-
-            //half color = rdp->fill_color >> (addr % 4 == 0 ? 16 : 0);
-            half color = rdp->fill_color >> (16 - ((addr % 4) * 8));
-            rdram_write16(rdp, addr, color);
+            rdram_write16(rdp, addr, fill_for_addr(rdp, addr));
         }
     }
 }
@@ -497,11 +498,9 @@ DEF_RDP_COMMAND(fill_rectangle) {
 
     for (int y = yh; y < yl; y++) {
         int yofs = y * stride;
-        for (int x = x_start; x < x_end; x += 4) {
+        for (int x = x_start; x < x_end; x += 2) {
             word addr = rdp->color_image.dram_addr + yofs + x;
-            // Endianness means we need to do this as two separate writes to support both 32bpp and 16bpp
-            rdram_write16(rdp, addr + 0, rdp->fill_color >> 16);
-            rdram_write16(rdp, addr + 2, rdp->fill_color >>  0);
+            rdram_write16(rdp, addr, fill_for_addr(rdp, addr));
         }
     }
 }
