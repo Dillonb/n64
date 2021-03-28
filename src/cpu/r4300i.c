@@ -90,6 +90,9 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_SYSCALL:
                 set_pc_word_r4300i(0x80000180);
                 break;
+            case EXCEPTION_TLB_MISS_LOAD:
+                set_pc_word_r4300i(0x80000080);
+                break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
         }

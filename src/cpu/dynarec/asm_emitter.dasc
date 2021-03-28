@@ -441,7 +441,7 @@ IR_INFO(mips_spc_dsra32, NORMAL, SHIFT_CONST, false);
 COMP(mips_lbu, NORMAL, false);
 COMP(mips_lhu, NORMAL, false);
 COMP(mips_lh, NORMAL, false);
-COMP(mips_lw, NORMAL, false);
+COMP(mips_lw, NORMAL, true);
 COMP(mips_lwu, NORMAL, false);
 COMP(mips_sb, STORE, false);
 COMP(mips_sh, STORE, false);

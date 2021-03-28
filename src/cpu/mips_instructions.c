@@ -312,8 +312,13 @@ MIPS_INSTR(mips_lw) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
-    sword value = n64_read_word(address);
-    set_register(instruction.i.rt, (sdword)value);
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+    } else {
+        sword value = n64_read_physical_word(physical);
+        set_register(instruction.i.rt, (sdword)value);
+    }
 }
 
 MIPS_INSTR(mips_lwu) {
@@ -484,7 +489,7 @@ MIPS_INSTR(mips_ll) {
     set_register(instruction.i.rt, (sdword)result);
 
     // Unique to ll
-    N64CPU.cp0.lladdr = resolve_virtual_address(address);
+    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address);
     N64CPU.llbit = true;
 }
 
@@ -506,7 +511,7 @@ MIPS_INSTR(mips_lld) {
     set_register(instruction.i.rt, result);
 
     // Unique to lld
-    N64CPU.cp0.lladdr = resolve_virtual_address(address);
+    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address);
     N64CPU.llbit = true;
 }
 
@@ -521,7 +526,7 @@ MIPS_INSTR(mips_sc) {
     }
 
     if (N64CPU.llbit) {
-        word physical_address = resolve_virtual_address(address);
+        word physical_address = resolve_virtual_address_or_die(address);
 
         if (physical_address != N64CPU.cp0.lladdr) {
             logfatal("Undefined: SC physical address is NOT EQUAL to last lladdr!\n");
@@ -553,7 +558,7 @@ MIPS_INSTR(mips_scd) {
     }
 
     if (N64CPU.llbit) {
-        word physical_address = resolve_virtual_address(address);
+        word physical_address = resolve_virtual_address_or_die(address);
 
         if (physical_address != N64CPU.cp0.lladdr) {
             logfatal("Undefined: SCD physical address is NOT EQUAL to last lladdr!\n");
