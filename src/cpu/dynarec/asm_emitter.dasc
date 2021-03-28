@@ -477,6 +477,7 @@ COMP(mips_ri_bgezl, BRANCH_LIKELY, false);
 COMP(mips_ri_bgezal, BRANCH, false);
 COMP(mips_spc_jr, BRANCH, false);
 COMP(mips_spc_jalr, BRANCH, false);
+COMP(mips_spc_syscall, NORMAL, true);
 COMP(mips_cp_bc1tl, BRANCH_LIKELY, false);
 COMP(mips_cp_bc1fl, BRANCH_LIKELY, false);
 
@@ -596,6 +597,7 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_SRLV, mips_spc_srlv);
         CASEIR(FUNCT_JR, mips_spc_jr);
         CASEIR(FUNCT_JALR, mips_spc_jalr);
+        CASEIR(FUNCT_SYSCALL, mips_spc_syscall);
         CASEIR(FUNCT_MFHI, mips_spc_mfhi);
         CASEIR(FUNCT_MTHI, mips_spc_mthi);
         CASEIR(FUNCT_MFLO, mips_spc_mflo);
