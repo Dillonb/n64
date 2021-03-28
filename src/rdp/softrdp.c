@@ -72,7 +72,7 @@ INLINE void rdram_write32(softrdp_state_t* rdp, word address, word value) {
 }
 
 INLINE void rdram_write16(softrdp_state_t* rdp, word address, half value) {
-    memcpy(&rdp->rdram[address], &value, sizeof(half));
+    memcpy(&rdp->rdram[address ^ 2], &value, sizeof(half));
 }
 
 INLINE bool check_scissor(softrdp_state_t* rdp, int x, int y) {
@@ -304,7 +304,7 @@ DEF_RDP_COMMAND(fill_triangle) {
 
                 for (int pixel = s->start; pixel < s->end; pixel++) {
                     word addr = yofs + pixel * bytes_per_pixel;
-                    rdram_write16(rdp, addr ^ 2, color);
+                    rdram_write16(rdp, addr, color);
                 }
             }
             break;
@@ -503,42 +503,33 @@ DEF_RDP_COMMAND(set_tile) {
 }
 
 DEF_RDP_COMMAND(fill_rectangle) {
-    int xl = BITS(55, 44) / 4;
-    int yl = BITS(43, 32) / 4;
+    // Coordinates are in a 10.2 fixed point format, just discard the decimal places
+    int xl = BITS(55, 44) >> 2;
+    int yl = BITS(43, 32) >> 2;
 
-    int xh = BITS(23, 12) / 4;
-    int yh = BITS(11, 0) / 4;
+    int xh = BITS(23, 12) >> 2;
+    int yh = BITS(11, 0) >> 2;
 
-    logalways("Fill rectangle (%d, %d) (%d, %d)", xh, yh, xl, yl);
+    logalways("Fill rectangle (%d, %d) (%d, %d) with color %08X", xh, yh, xl, yl, rdp->fill_color);
 
-    unimplemented(rdp->color_image.format != 0, "Fill rect when color image format not RGBA");
+    unimplemented(rdp->color_image.format != 0, "Fill rect when color image format not RGBA (this may just work?)");
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
-    int y_range = (yl - yh) + 1;
-    int x_range = (xl - xh) + 1;
+    int x_start = xh * bytes_per_pixel;
+    int x_end = (xl + 1) * bytes_per_pixel;
 
-    logalways("y range: %d x range: %d", y_range, x_range);
+    int stride = rdp->color_image.width * bytes_per_pixel;
 
-    for (int y = 0; y < y_range; y++) {
-        int y_pixel = y + yh;
-        int yofs = (y_pixel * bytes_per_pixel * rdp->color_image.width);
-        for (int x = 0; x < x_range; x++) {
-            int x_pixel = x + xh;
-            int xofs = xh * bytes_per_pixel + (x * bytes_per_pixel);
-            word addr = rdp->color_image.dram_addr + yofs + xofs;
-            if (check_scissor(rdp, x_pixel, y_pixel)) {
-                if (bytes_per_pixel == 4) {
-                    unimplemented(rdp->other_modes.cycle_type != 3, "Fill rectangle 32bpp not in fill mode");
-                    rdram_write32(rdp, addr, rdp->fill_color);
-                } else if (bytes_per_pixel == 2) {
-                    unimplemented(rdp->other_modes.cycle_type != 3, "Fill rectangle 16bpp not in fill mode");
-                    rdram_write16(rdp, addr ^ 2, rdp->fill_color);
-                }
-            }
+    for (int y = yh; y < yl; y++) {
+        int yofs = y * stride;
+        for (int x = x_start; x < x_end; x += 4) {
+            word addr = rdp->color_image.dram_addr + yofs + x;
+            // Endianness means we need to do this as two separate writes to support both 32bpp and 16bpp
+            rdram_write16(rdp, addr + 0, rdp->fill_color >> 16);
+            rdram_write16(rdp, addr + 2, rdp->fill_color >> 0);
         }
     }
-
 }
 
 DEF_RDP_COMMAND(set_fill_color) {
