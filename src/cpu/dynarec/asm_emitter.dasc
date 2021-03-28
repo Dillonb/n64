@@ -113,6 +113,10 @@ void check_exception(dasm_State** Dst, word block_length) {
 
 COMPILER(mips_nop) {}
 IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
+COMPILER(mips_wait) {
+    *extra_cycles += 63; // for a total of 64
+}
+IR_INFO(mips_wait, NORMAL, FORMAT_NOP, false);
 COMPILER(mips_cache) {}
 IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
 
@@ -577,6 +581,7 @@ INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, word address) 
             CASEIR(COP_FUNCT_TLBP,       mips_tlbp);
             CASEIR(COP_FUNCT_TLBR_SUB,   mips_tlbr);
             CASEIR(COP_FUNCT_ERET,       mips_eret);
+            CASEIR(COP_FUNCT_WAIT,       mips_wait);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);

@@ -158,6 +158,7 @@
 #define COP_FUNCT_TRUNC_W    0b001101
 #define COP_FUNCT_FLOOR_W    0b001111
 #define COP_FUNCT_ERET       0b011000
+#define COP_FUNCT_WAIT       0b100000
 #define COP_FUNCT_CVT_S      0b100000
 #define COP_FUNCT_CVT_D      0b100001
 #define COP_FUNCT_CVT_W      0b100100
