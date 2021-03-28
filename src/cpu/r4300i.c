@@ -645,9 +645,9 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
 void r4300i_step() {
     N64CPU.cp0.count += CYCLES_PER_INSTR;
     N64CPU.cp0.count &= 0x1FFFFFFFF;
-    if (unlikely(N64CPU.cp0.count >> 1 == N64CPU.cp0.compare)) {
+    if (unlikely(N64CPU.cp0.count == (dword)N64CPU.cp0.compare << 1)) {
         N64CPU.cp0.cause.ip7 = true;
-        loginfo("Compare interrupt!");
+        loginfo("Compare interrupt! count = 0x%09lX compare << 1 = 0x%09lX", N64CP0.count, (dword)N64CP0.compare << 1);
         r4300i_interrupt_update();
     }
 
