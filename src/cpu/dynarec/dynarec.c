@@ -199,6 +199,11 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
         if (ir->exception_possible) {
             check_exception(Dst, block_length);
         }
+#ifdef N64_DEBUG_MODE
+        else {
+            check_exception_sanity(Dst, block_length);
+        }
+#endif
 
         switch (ir->category) {
             case NORMAL:
@@ -330,6 +335,7 @@ int n64_dynarec_step() {
     static long total_blocks_run;
     logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
 #endif
+    N64CPU.exception = false;
     int taken = block->run(&N64CPU);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, N64CPU.pc);

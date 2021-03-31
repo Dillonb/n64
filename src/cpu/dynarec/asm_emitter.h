@@ -167,6 +167,9 @@ dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address);
 void end_block(dasm_State** Dst, int block_length);
 void post_branch_likely(dasm_State** Dst, int block_length);
 void check_exception(dasm_State** Dst, word block_length);
+#ifdef N64_DEBUG_MODE
+void check_exception_sanity(dasm_State** Dst, word block_length);
+#endif
 void flush_prev_pc(dasm_State** Dst, dword prev_pc);
 void flush_pc(dasm_State** Dst, dword pc);
 void flush_next_pc(dasm_State** Dst, dword next_pc);

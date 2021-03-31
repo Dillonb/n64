@@ -102,6 +102,16 @@ void check_exception(dasm_State** Dst, word block_length) {
     |1:
 }
 
+#ifdef N64_DEBUG_MODE
+void check_exception_sanity(dasm_State** Dst, word block_length) {
+    // If an instruction is marked as not throwing an exception, check it anyway in debug mode.
+    | mov al, cpu_state->exception
+    | cmp al, 0
+    | je >1
+    | int3
+    |1:
+}
+#endif
 
 #define TAKEBRANCH take_branch(Dst, instr, address)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
@@ -487,7 +497,7 @@ COMP(mips_cp_bc1fl, BRANCH_LIKELY, false);
 
 // Instructions that don't make too much sense to optimize
 COMP(mips_mfc0, NORMAL, false);
-COMP(mips_mtc0, NORMAL, false);
+COMP(mips_mtc0, NORMAL, true);
 COMP(mips_tlbwi, TLB_WRITE, false);
 COMP(mips_tlbp, NORMAL, false);
 COMP(mips_tlbr, NORMAL, false);
