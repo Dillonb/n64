@@ -51,12 +51,14 @@ static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
       // Push callee-saved registers onto the stack so we don't trample them
       | push cpuState
       | push instrArg
+      | sub rsp, 8 // Stack needs to be 16 byte aligned. Return address + the two regs above + this == 32 bytes.
       // The CPU's state is passed in as argument 1
       | mov cpuState, rArg1
     |.endmacro
     // Called at the end of our block
     |.macro epilogue
       // Pop callee-saved registers off the stack and then return
+      | add rsp, 8
       | pop instrArg
       | pop cpuState
       | ret
