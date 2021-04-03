@@ -3,6 +3,10 @@
 #include "audio.h"
 
 #define AUDIO_SAMPLE_RATE 48000
+#define SYSTEM_SAMPLE_FORMAT AUDIO_F32SYS
+#define SYSTEM_SAMPLE_SIZE 4
+#define BYTES_PER_HALF_SECOND ((AUDIO_SAMPLE_RATE / 2) * SYSTEM_SAMPLE_SIZE)
+
 static SDL_AudioStream* audio_stream = NULL;
 static pthread_mutex_t audio_stream_mutex;
 SDL_AudioSpec audio_spec;
@@ -30,6 +34,10 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
     float* out = (float*)stream;
     out += gotten_samples;
 
+    if (gotten_samples < length / sizeof(float)) {
+        logwarn("AudioStream buffer underflow! You may hear crackling!");
+    }
+
     for (int i = gotten_samples; i < length / sizeof(float); i++) {
         float sample = 0;
         *out++ = sample;
@@ -41,7 +49,7 @@ void audio_init() {
     memset(&request, 0, sizeof(request));
 
     request.freq = AUDIO_SAMPLE_RATE;
-    request.format = AUDIO_F32SYS;
+    request.format = SYSTEM_SAMPLE_FORMAT;
     request.channels = 2;
     request.samples = 1024;
     request.callback = audio_callback;
@@ -70,7 +78,7 @@ void adjust_audio_sample_rate(int sample_rate) {
         SDL_FreeAudioStream(audio_stream);
     }
 
-    audio_stream = SDL_NewAudioStream(AUDIO_S16SYS, 2, sample_rate, AUDIO_F32SYS, 2, AUDIO_SAMPLE_RATE);
+    audio_stream = SDL_NewAudioStream(AUDIO_S16SYS, 2, sample_rate, SYSTEM_SAMPLE_FORMAT, 2, AUDIO_SAMPLE_RATE);
     release_audiostream_mutex();
 }
 
@@ -80,7 +88,10 @@ void audio_push_sample(shalf left, shalf right) {
             right
     };
 
-    if (SDL_AudioStreamAvailable(audio_stream) < (AUDIO_SAMPLE_RATE / 2)) {
+    int available_bytes = SDL_AudioStreamAvailable(audio_stream);
+    if (available_bytes < BYTES_PER_HALF_SECOND) {
         SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+    } else {
+        logwarn("Not pushing sample, there are already %d bytes available.", available_bytes);
     }
 }
