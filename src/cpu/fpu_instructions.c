@@ -241,11 +241,10 @@ MIPS_INSTR(mips_cp_trunc_l_d) {
 }
 
 MIPS_INSTR(mips_cp_round_l_d) {
-    logwarn("mips_cp_round_l_d used: this instruction is known to be buggy!");
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
     PUSHROUND;
-    dword truncated = round(value);
+    dword truncated = nearbyint(value);
     POPROUND;
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -259,12 +258,11 @@ MIPS_INSTR(mips_cp_trunc_l_s) {
 }
 
 MIPS_INSTR(mips_cp_round_l_s) {
-    logwarn("mips_cp_round_l_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     PUSHROUND;
-    dword truncated = roundf(value);
+    dword truncated = nearbyintf(value);
     POPROUND;
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -277,11 +275,10 @@ MIPS_INSTR(mips_cp_trunc_w_d) {
 }
 
 MIPS_INSTR(mips_cp_round_w_d) {
-    logwarn("mips_cp_round_w_d used: this instruction is known to be buggy!");
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
     PUSHROUND;
-    word truncated = round(value);
+    word truncated = nearbyint(value);
     POPROUND;
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -307,12 +304,11 @@ MIPS_INSTR(mips_cp_floor_w_s) {
 }
 
 MIPS_INSTR(mips_cp_round_w_s) {
-    logwarn("mips_cp_round_w_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     PUSHROUND;
-    sword truncated = roundf(value);
+    sword truncated = nearbyintf(value);
     POPROUND;
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
