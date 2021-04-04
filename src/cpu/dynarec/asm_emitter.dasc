@@ -155,10 +155,6 @@ IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
 COMPILER(mips_beq) {
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
-        // This is a branch-to-self, make it take extra cycles
-        if (instr.i.immediate == 0xFFFF) {
-            *extra_cycles = 63; // for a total of 64
-        }
         TAKEBRANCH;
     } else {
         // handle normally

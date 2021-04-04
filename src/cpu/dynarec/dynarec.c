@@ -126,6 +126,29 @@ INLINE void load_reg_3(dasm_State** Dst, int* dest1, int r1, int* dest2, int r2,
     }
 }
 
+bool branch_is_loop(mips_instruction_t instr, word block_length) {
+    switch (instr.op) {
+        case OPC_REGIMM: // REGIMM opcodes are only branches
+        case OPC_BEQ:
+        case OPC_BEQL:
+        case OPC_BGTZ:
+        case OPC_BGTZL:
+        case OPC_BLEZ:
+        case OPC_BLEZL:
+        case OPC_BNE:
+        case OPC_BNEL: {
+            // offset is in number of instructions, not bytes
+            shalf offset = instr.i.immediate;
+            offset = -offset;
+
+            return offset == block_length;
+        }
+
+        default:
+            return false;
+    }
+}
+
 void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
     mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
@@ -139,6 +162,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 
     bool should_continue_block = true;
     int block_length = 0;
+    int block_extra_cycles = 0;
 
 
     int instructions_left_in_block = -1;
@@ -147,9 +171,14 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 
     bool branch_in_block = false;
 
+    bool block_is_stable = true;
+    bool block_is_loop = false;
+
     do {
         mips_instruction_t instr;
         instr.raw = n64_read_physical_word(physical_address);
+
+        block_is_stable &= instruction_stable(instr);
 
         word next_physical_address = physical_address + 4;
         dword next_virtual_address = virtual_address + 4;
@@ -195,13 +224,13 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
         }
         ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);
         block_length++;
-        block_length += extra_cycles;
+        block_extra_cycles += extra_cycles;
         if (ir->exception_possible) {
-            check_exception(Dst, block_length);
+            check_exception(Dst, block_length + block_extra_cycles);
         }
 #ifdef N64_DEBUG_MODE
         else {
-            check_exception_sanity(Dst, block_length);
+            check_exception_sanity(Dst, block_length + block_extra_cycles);
         }
 #endif
 
@@ -230,6 +259,8 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 
                 instr_ends_block = false;
                 instructions_left_in_block = 1; // emit delay slot
+
+                block_is_loop = branch_is_loop(instr, block_length);
                 break;
 
             case BRANCH_LIKELY:
@@ -245,6 +276,8 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 
                 instr_ends_block = false;
                 instructions_left_in_block = 1; // emit delay slot
+
+                block_is_loop = branch_is_loop(instr, block_length);
                 break;
 
             case ERET:
@@ -286,8 +319,11 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
         virtual_address = next_virtual_address;
         prev_instr_category = ir->category;
     } while (should_continue_block);
+    if (block_is_stable && block_is_loop) {
+        block_extra_cycles += 64;
+    }
     flush_all(Dst);
-    end_block(Dst, block_length);
+    end_block(Dst, block_length + block_extra_cycles);
     void* compiled = link_and_encode(&d);
     dasm_free(&d);
 

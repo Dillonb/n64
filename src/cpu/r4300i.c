@@ -683,3 +683,54 @@ void r4300i_step() {
 void r4300i_interrupt_update() {
     N64CPU.interrupts = N64CPU.cp0.cause.interrupt_pending & N64CPU.cp0.status.im;
 }
+
+bool instruction_stable(mips_instruction_t instr) {
+    if (instr.raw == 0) {
+        return true; // NOP
+    }
+
+    switch (instr.op) {
+        // All branches are stable
+        case OPC_REGIMM: // REGIMM opcodes are only branches
+        case OPC_J:
+        case OPC_JAL:
+        case OPC_BEQ:
+        case OPC_BEQL:
+        case OPC_BGTZ:
+        case OPC_BGTZL:
+        case OPC_BLEZ:
+        case OPC_BLEZL:
+        case OPC_BNE:
+        case OPC_BNEL:
+        // Will always generate the same result given the same args
+        case OPC_ANDI:
+        case OPC_ORI:
+        case OPC_LUI:
+            return true;
+        // Loads are stable if they load from RAM
+        case OPC_LB:
+        case OPC_LBU:
+        case OPC_LH:
+        case OPC_LHU:
+        case OPC_LW:
+        case OPC_LWU:
+        case OPC_LWL:
+        case OPC_LWR:
+        case OPC_LD:
+        case OPC_LDL:
+        case OPC_LDR:
+            return false; // TODO need const propagation to properly detect if this is a RAM access
+        // Stores are stable if they store to RAM
+        case OPC_SB:
+        case OPC_SH:
+        case OPC_SW:
+        case OPC_SWL:
+        case OPC_SWR:
+        case OPC_SD:
+        case OPC_SDL:
+        case OPC_SDR:
+            return false; // TODO need const propagation to properly detect if this is a RAM access
+        default:
+            return false;
+    }
+}
