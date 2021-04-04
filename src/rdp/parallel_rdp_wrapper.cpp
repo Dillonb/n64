@@ -266,7 +266,8 @@ void load_parallel_rdp() {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(new SDLWSIPlatform());
-    if (!wsi->init(1, nullptr)) {
+    Context::SystemHandles handles;
+    if (!wsi->init(1, handles)) {
         logfatal("Failed to initialize WSI!");
     }
 
