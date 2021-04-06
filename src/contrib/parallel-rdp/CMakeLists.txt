@@ -38,10 +38,6 @@ add_library(parallel-rdp
         parallel-rdp-standalone/util/logging.hpp
         parallel-rdp-standalone/util/thread_id.cpp
         parallel-rdp-standalone/util/thread_id.hpp
-        parallel-rdp-standalone/spirv-cross/spirv_cross.cpp
-        parallel-rdp-standalone/spirv-cross/spirv_cfg.cpp
-        parallel-rdp-standalone/spirv-cross/spirv_parser.cpp
-        parallel-rdp-standalone/spirv-cross/spirv_cross_parsed_ir.cpp
         # C
         parallel-rdp-standalone/volk/volk.c
 )

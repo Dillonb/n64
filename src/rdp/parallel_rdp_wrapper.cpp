@@ -271,7 +271,21 @@ void load_parallel_rdp() {
         logfatal("Failed to initialize WSI!");
     }
 
-    fullscreen_quad_program = wsi->get_device().request_program(fullscreen_quad_vert, sizeof(fullscreen_quad_vert), fullscreen_quad_blit, sizeof(fullscreen_quad_blit));
+    ResourceLayout vert_layout;
+    ResourceLayout frag_layout;
+
+    vert_layout.input_mask = 1;
+    vert_layout.output_mask = 1;
+
+    frag_layout.input_mask = 1;
+    frag_layout.output_mask = 1;
+    frag_layout.spec_constant_mask = 1;
+
+    frag_layout.sets[0].sampled_image_mask = 1;
+    frag_layout.sets[0].fp_mask = 1;
+    frag_layout.sets[0].array_size[0] = 1;
+
+    fullscreen_quad_program = wsi->get_device().request_program(fullscreen_quad_vert, sizeof(fullscreen_quad_vert), fullscreen_quad_blit, sizeof(fullscreen_quad_blit), &vert_layout, &frag_layout);
 
     auto aligned_rdram = reinterpret_cast<uintptr_t>(n64sys.mem.rdram);
     uintptr_t offset = 0;
