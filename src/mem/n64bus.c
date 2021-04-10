@@ -682,7 +682,7 @@ void n64_write_physical_word(word address, word value) {
         case REGION_UNUSED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            backup_write_word(address - SREGION_CART_2_1, value);
+            logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_CART_1_1, this is the 64DD, ignoring!", value, address);
             return;
         case REGION_CART_1_1:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
@@ -766,10 +766,11 @@ word n64_read_physical_word(word address) {
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
-            return backup_read_word(address - SREGION_CART_2_1);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1 - This is the N64DD, returning FF because it is not emulated", address);
+            return 0xFF;
         case REGION_CART_1_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
-            return 0;
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning FF because it is not emulated", address);
+            return 0xFF;
         case REGION_CART_2_2:
             return backup_read_word(address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
@@ -998,7 +999,7 @@ void n64_write_physical_byte(word address, byte value) {
         case REGION_UNUSED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            backup_write_byte(address - SREGION_CART_2_1, value);
+            logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD!");
             return;
         case REGION_CART_1_1:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
