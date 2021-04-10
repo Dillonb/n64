@@ -653,10 +653,11 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
 }
 
 void on_tlb_exception(dword address) {
+    word vpn2 = address >> 13 & 0x7FFFF;
     N64CP0.bad_vaddr = address;
-    N64CP0.context.badvpn2 = address >> 13;
-    N64CP0.x_context.badvpn2 = address >> 13;
-    N64CP0.entry_hi.raw = address;
+    N64CP0.context.badvpn2 = vpn2;
+    N64CP0.x_context.badvpn2 = vpn2;
+    N64CP0.entry_hi.vpn2 = vpn2;
 }
 
 void r4300i_step() {
