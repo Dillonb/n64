@@ -17,3 +17,9 @@ The game would hang upon opening the pause menu. This is because the operating s
 Mario Kart 64, other games using EEPROM
 ---------------------------------------
 Game would hang upon completing a Grand Prix. This ended up being because EEPROM wasn't identified correctly in the PIF, when channel 4 was requested in a controller ID command.
+
+F-Zero X
+--------
+Expects the N64DD's status register at 0x05000508 to return 0xFFFFFFFF if the DD is absent. Or, I assume, the N64DD to be correctly emulated. Otherwise, it will hang indefinitely on a black screen.
+
+The read from the status register is performed at PC value 0x800C5A84. The hang happens at PC value 0x80414CF4.
