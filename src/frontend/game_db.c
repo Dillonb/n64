@@ -33,7 +33,8 @@ static const gamedb_entry_t gamedb[] = {
         {"NDP", "E",  SAVE_FLASH_1m,    "Dinosaur Planet"},
         {"NGN", "E",  SAVE_EEPROM_4k,   "GoldenEye 007"},
         {"NYS", "E",  SAVE_EEPROM_16k,  "Yoshi's Story"},
-        {"NRE", "E",  SAVE_SRAM_256k,   "Resident Evil 2"}
+        {"NRE", "E",  SAVE_SRAM_256k,   "Resident Evil 2"},
+        {"NOB", "E",  SAVE_SRAM_256k,   "Ogre Battle 64: Person of Lordly Caliber"}
 };
 
 #define GAMEDB_SIZE (sizeof(gamedb) / sizeof(gamedb_entry_t))
