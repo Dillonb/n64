@@ -188,7 +188,7 @@ ssize_t n64_debug_get_register_value(void* user_data, char * buffer, size_t buff
         case 34:
             return snprintf(buffer, buffer_length, "%016lx", N64CPU.mult_hi);
         case 35:
-            return snprintf(buffer, buffer_length, "%08x", N64CP0.bad_vaddr);
+            return snprintf(buffer, buffer_length, "%016lx", N64CP0.bad_vaddr);
         case 36:
             return snprintf(buffer, buffer_length, "%08x", N64CP0.cause.raw);
         case 37:

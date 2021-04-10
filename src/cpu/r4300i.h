@@ -481,17 +481,40 @@ typedef union watch_lo {
 
 ASSERTWORD(watch_lo_t);
 
+typedef union cp0_context {
+    word raw;
+    struct {
+        unsigned:4;
+        unsigned badvpn2:19;
+        unsigned ptebase:9;
+    };
+} cp0_context_t;
+
+ASSERTWORD(cp0_context_t);
+
+typedef union cp0_x_context {
+    dword raw;
+    struct {
+        unsigned:4;
+        unsigned badvpn2:27;
+        unsigned r:2;
+        unsigned ptebase:31;
+    } PACKED;
+} cp0_x_context_t;
+
+ASSERTDWORD(cp0_x_context_t);
+
 typedef struct cp0 {
     word index;
     word random;
     cp0_entry_lo_t entry_lo0;
     cp0_entry_lo_t entry_lo1;
-    word context;
+    cp0_context_t context;
     dword context_64;
     cp0_page_mask_t page_mask;
     word wired;
     word r7;
-    word bad_vaddr;
+    dword bad_vaddr;
     dword count;
     cp0_entry_hi_t entry_hi;
     cp0_entry_hi_64_t entry_hi_64;
@@ -504,7 +527,7 @@ typedef struct cp0 {
     word lladdr;
     watch_lo_t watch_lo;
     word watch_hi;
-    dword x_context;
+    cp0_x_context_t x_context;
     word r21;
     word r22;
     word r23;
@@ -613,6 +636,7 @@ extern r4300i_t n64cpu;
 
 typedef void(*mipsinstr_handler_t)(mips_instruction_t);
 
+void on_tlb_exception(dword address);
 void r4300i_step();
 void r4300i_handle_exception(dword pc, word code, sword coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);

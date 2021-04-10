@@ -116,7 +116,7 @@ INLINE void set_cp0_register_word(byte r, word value) {
         case R4300I_CP0_REG_CONTEXT:
             unimplemented(N64CPU.cp0.is_64bit_addressing, "Context written as word in 64 bit mode");
             unimplemented(value != 0, "cp0 context written with non-zero value");
-            N64CPU.cp0.context = value;
+            N64CPU.cp0.context.raw = value;
             break;
         case R4300I_CP0_REG_LLADDR:
             N64CPU.cp0.lladdr = value;
@@ -148,7 +148,7 @@ INLINE word get_cp0_register_word(byte r) {
             return N64CPU.cp0.entry_lo1.raw;
         case R4300I_CP0_REG_CONTEXT:
             unimplemented(N64CPU.cp0.is_64bit_addressing, "context read as word in 64 bit mode");
-            return N64CPU.cp0.context;
+            return N64CPU.cp0.context.raw;
         case R4300I_CP0_REG_PAGEMASK:
             return N64CPU.cp0.page_mask.raw;
         case R4300I_CP0_REG_WIRED:
@@ -182,7 +182,7 @@ INLINE word get_cp0_register_word(byte r) {
         case R4300I_CP0_REG_WATCHHI:
             return N64CPU.cp0.watch_hi;
         case R4300I_CP0_REG_XCONTEXT:
-            return N64CPU.cp0.x_context;
+            return N64CPU.cp0.x_context.raw;
         case R4300I_CP0_REG_21:
             return N64CPU.cp0.r21;
         case R4300I_CP0_REG_22:
@@ -261,7 +261,7 @@ INLINE void set_cp0_register_dword(byte r, dword value) {
             logfatal("Writing CP0 register R4300I_CP0_REG_WATCHHI as dword!");
         case R4300I_CP0_REG_XCONTEXT:
             unimplemented(value != 0, "cp0 xcontext written with non-zero value in 64 bit mode!");
-            N64CPU.cp0.x_context = value;
+            N64CPU.cp0.x_context.raw = value;
             break;
         case R4300I_CP0_REG_21:
             logfatal("Writing CP0 register R4300I_CP0_REG_21 as dword!");

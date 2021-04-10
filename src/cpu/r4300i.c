@@ -51,6 +51,7 @@ const char* cp0_register_names[] = {
 r4300i_t n64cpu;
 
 void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
+    bool old_exl = N64CP0.status.exl;
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
@@ -91,7 +92,13 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
                 set_pc_word_r4300i(0x80000180);
                 break;
             case EXCEPTION_TLB_MISS_LOAD:
-                set_pc_word_r4300i(0x80000080);
+                if (old_exl) {
+                    set_pc_word_r4300i(0x80000180);
+                } else if (N64CP0.is_64bit_addressing){
+                    set_pc_word_r4300i(0x80000080);
+                } else {
+                    set_pc_word_r4300i(0x80000000);
+                }
                 break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
@@ -643,6 +650,13 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
     }
 }
 
+void on_tlb_exception(dword address) {
+    N64CP0.bad_vaddr = address;
+    N64CP0.context.badvpn2 = address >> 13;
+    N64CP0.x_context.badvpn2 = address >> 13;
+    N64CP0.entry_hi.raw = address;
+}
+
 void r4300i_step() {
     N64CPU.cp0.count += CYCLES_PER_INSTR;
     N64CPU.cp0.count &= 0x1FFFFFFFF;
@@ -661,8 +675,16 @@ void r4300i_step() {
      */
 
     dword pc = N64CPU.pc;
+    word physical_pc;
+    if (!resolve_virtual_address(pc, &physical_pc)) {
+        // tlb exception
+        logalways("TLB exception on loading an instruction!");
+        on_tlb_exception(pc);
+        r4300i_handle_exception(pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        return;
+    }
     mips_instruction_t instruction;
-    instruction.raw = n64_read_word(pc);
+    instruction.raw = n64_read_physical_word(physical_pc);
 
     if (unlikely(N64CPU.interrupts > 0)) {
         if(N64CPU.cp0.status.ie && !N64CPU.cp0.status.exl && !N64CPU.cp0.status.erl) {

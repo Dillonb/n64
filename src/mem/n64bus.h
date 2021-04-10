@@ -21,29 +21,28 @@ bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number);
 #define REGION_CKSSEG 0xFFFFFFFFC0000000 ... 0xFFFFFFFFDFFFFFFF
 #define REGION_CKSEG3 0xFFFFFFFFE0000000 ... 0xFFFFFFFFFFFFFFFF
 
-INLINE word resolve_virtual_address_32bit(word address) {
-    word physical;
+INLINE bool resolve_virtual_address_32bit(word address, word* physical) {
     switch (address >> 29) {
         // KSEG0
         case 0x4:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
-            physical = address - SVREGION_KSEG0;
-            logtrace("KSEG0: Translated 0x%08X to 0x%08X", address, physical);
+            *physical = address - SVREGION_KSEG0;
+            logtrace("KSEG0: Translated 0x%08X to 0x%08X", address, *physical);
             break;
         // KSEG1
         case 0x5:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
-            physical = address - SVREGION_KSEG1;
-            logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, physical);
+            *physical = address - SVREGION_KSEG1;
+            logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, *physical);
             break;
         // KUSEG
         case 0x0:
         case 0x1:
         case 0x2:
         case 0x3: {
-            if (!tlb_probe(address, &physical, NULL)) {
+            if (!tlb_probe(address, physical, NULL)) {
                 dump_tlb(address);
-                logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KUSEG", address);
+                return false;
             }
             break;
         }
@@ -52,15 +51,15 @@ INLINE word resolve_virtual_address_32bit(word address) {
             logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", address);
         // KSEG3
         case 0x7:
-            if (!tlb_probe(address, &physical, NULL)) {
+            if (!tlb_probe(address, physical, NULL)) {
                 dump_tlb(address);
-                logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KSEG3", address);
+                return false;
             }
             break;
         default:
             logfatal("PANIC! should never end up here.");
     }
-    return physical;
+    return true;
 }
 
 INLINE bool resolve_virtual_address_64bit(dword address, word* physical) {
@@ -130,8 +129,7 @@ INLINE bool resolve_virtual_address(dword virtual, word* physical) {
     if (N64CP0.is_64bit_addressing) {
         return resolve_virtual_address_64bit(virtual, physical);
     } else {
-        *physical = resolve_virtual_address_32bit(virtual);
-        return true;
+        return resolve_virtual_address_32bit(virtual, physical);
     }
 }
 

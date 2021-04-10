@@ -20,7 +20,7 @@ dword get_vpn(dword address, word page_mask_raw) {
 }
 
 void dump_tlb(dword vaddr) {
-    printf("TLB error at address %016lX, dumping TLB state:\n\n", vaddr);
+    printf("TLB error at address %016lX and PC %016lX, dumping TLB state:\n\n", vaddr, N64CPU.pc);
     printf("   entry VPN  vaddr VPN  page size  lo0 valid  lo1 valid\n");
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = N64CP0.tlb[i];

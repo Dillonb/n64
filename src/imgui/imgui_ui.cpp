@@ -54,7 +54,7 @@ ImGui::FileBrowser fileBrowser;
 void save_rdram_dump(bool bswap) {
     char dump_path[PATH_MAX];
     strcpy(dump_path, n64sys.rom_path);
-    strncat(dump_path, ".rdram", PATH_MAX);
+    strncat(dump_path, ".rdram", PATH_MAX - 1);
 
     FILE* dump = fopen(dump_path, "wb");
 
