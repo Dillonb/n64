@@ -133,6 +133,18 @@ INLINE word get_cp0_count() {
     return (word)shifted;
 }
 
+INLINE word get_cp0_wired() {
+    return N64CP0.wired & 0b111111;
+}
+
+INLINE word get_cp0_random() {
+    int upper = 31 - get_cp0_wired();
+    int val = rand() % upper;
+    val += get_cp0_wired();
+
+    return val;
+}
+
 INLINE word get_cp0_register_word(byte r) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:

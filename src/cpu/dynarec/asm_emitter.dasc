@@ -810,7 +810,7 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
                     logfatal("Undefined!");
             }
 
-        case COP_FUNCT_MOV:
+        case COP_FUNCT_TLBWR_MOV:
             switch (instr.fr.fmt) {
                 CASEIR(FP_FMT_DOUBLE, mips_cp_mov_d);
                 CASEIR(FP_FMT_SINGLE, mips_cp_mov_s);

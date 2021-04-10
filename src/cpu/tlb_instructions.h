@@ -11,5 +11,6 @@
 MIPS_INSTR(mips_tlbwi);
 MIPS_INSTR(mips_tlbp);
 MIPS_INSTR(mips_tlbr);
+MIPS_INSTR(mips_tlbwr);
 
 #endif //N64_TLB_INSTRUCTIONS_H

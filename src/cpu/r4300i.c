@@ -138,6 +138,8 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr)
                 return mips_eret;
             case COP_FUNCT_WAIT:
                 return mips_nop;
+            case COP_FUNCT_TLBWR_MOV:
+                return mips_tlbwr;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -326,7 +328,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
             }
 
 
-        case COP_FUNCT_MOV:
+        case COP_FUNCT_TLBWR_MOV:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
                     return mips_cp_mov_d;

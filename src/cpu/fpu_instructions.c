@@ -749,9 +749,15 @@ MIPS_INSTR(mips_lwc1) {
     checkcp1;
     shalf offset  = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
-    word value    = n64_read_word(address);
 
-    set_fpu_register_word(instruction.fi.ft, value);
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+    } else {
+        word value = n64_read_physical_word(physical);
+        set_fpu_register_word(instruction.fi.ft, value);
+    }
 }
 
 MIPS_INSTR(mips_swc1) {
