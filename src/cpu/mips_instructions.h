@@ -88,6 +88,7 @@ MIPS_INSTR(mips_spc_mflo);
 MIPS_INSTR(mips_spc_mtlo);
 MIPS_INSTR(mips_spc_dsllv);
 MIPS_INSTR(mips_spc_dsrlv);
+MIPS_INSTR(mips_spc_dsrav);
 MIPS_INSTR(mips_spc_mult);
 MIPS_INSTR(mips_spc_multu);
 MIPS_INSTR(mips_spc_div);

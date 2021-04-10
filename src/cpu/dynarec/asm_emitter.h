@@ -29,6 +29,7 @@ COMPILER(mips_spc_mflo);
 COMPILER(mips_spc_mtlo);
 COMPILER(mips_spc_dsllv);
 COMPILER(mips_spc_dsrlv);
+COMPILER(mips_spc_dsrav);
 COMPILER(mips_spc_mult);
 COMPILER(mips_spc_multu);
 COMPILER(mips_spc_div);

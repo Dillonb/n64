@@ -321,6 +321,7 @@ COMPILER(mips_spc_dsrlv) {
 }
 IR_INFO(mips_spc_dsrlv, NORMAL, R_TYPE, false);
 
+COMP(mips_spc_dsrav, NORMAL, false);
 COMP(mips_spc_mult, NORMAL, false);
 COMP(mips_spc_multu, NORMAL, false);
 COMP(mips_spc_div, NORMAL, false);
@@ -617,6 +618,7 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_MTLO, mips_spc_mtlo);
         CASEIR(FUNCT_DSLLV, mips_spc_dsllv);
         CASEIR(FUNCT_DSRLV, mips_spc_dsrlv);
+        CASEIR(FUNCT_DSRAV, mips_spc_dsrav);
         CASEIR(FUNCT_MULT, mips_spc_mult);
         CASEIR(FUNCT_MULTU, mips_spc_multu);
         CASEIR(FUNCT_DIV, mips_spc_div);
