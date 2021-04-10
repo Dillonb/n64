@@ -19,6 +19,20 @@ dword get_vpn(dword address, word page_mask_raw) {
     return vpn;
 }
 
+void dump_tlb(dword vaddr) {
+    printf("TLB error at address %016lX, dumping TLB state:\n\n", vaddr);
+    printf("   entry VPN  vaddr VPN  page size  lo0 valid  lo1 valid\n");
+    for (int i = 0; i < 32; i++) {
+        tlb_entry_t entry = N64CP0.tlb[i];
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
+        word page_size = mask + 1;
+        word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
+        word vaddr_vpn = get_vpn(vaddr, entry.page_mask.raw);
+
+        printf("%02d %08X   %08X   %08X   %d          %d\n", i, entry_vpn, vaddr_vpn, page_size, entry.entry_lo0.valid, entry.entry_lo1.valid);
+    }
+}
+
 bool tlb_probe(dword vaddr, word* paddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = N64CP0.tlb[i];

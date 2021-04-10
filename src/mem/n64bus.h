@@ -5,6 +5,7 @@
 #include <system/n64system.h>
 #include "addresses.h"
 
+void dump_tlb(dword vaddr);
 bool tlb_probe(dword vaddr, word* paddr, int* entry_number);
 bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number);
 
@@ -41,6 +42,7 @@ INLINE word resolve_virtual_address_32bit(word address) {
         case 0x2:
         case 0x3: {
             if (!tlb_probe(address, &physical, NULL)) {
+                dump_tlb(address);
                 logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KUSEG", address);
             }
             break;
@@ -51,6 +53,7 @@ INLINE word resolve_virtual_address_32bit(word address) {
         // KSEG3
         case 0x7:
             if (!tlb_probe(address, &physical, NULL)) {
+                dump_tlb(address);
                 logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KSEG3", address);
             }
             break;
