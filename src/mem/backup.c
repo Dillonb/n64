@@ -4,23 +4,8 @@
 #define SAVE_DATA_DEBOUNCE_FRAMES 60
 #define MEMPACK_SIZE 32768
 
-void sram_write_word(word index, word value) {
-    assert_is_sram(n64sys.mem.save_type);
-    if (index >= n64sys.mem.save_size - 3) {
-        logfatal("Out of range SRAM write! index 0x%08X\n", index);
-    }
-    word_to_byte_array(n64sys.mem.save_data, index, htobe32(value));
-    n64sys.mem.save_data_dirty = true;
-}
-
-word sram_read_word(word index) {
-    assert_is_sram(n64sys.mem.save_type);
-    if (index >= n64sys.mem.save_size - 3) {
-        logwarn("Out of range SRAM read! index 0x%08X\n", index);
-        return 0;
-    }
-
-    return be32toh(word_from_byte_array(n64sys.mem.save_data, index));
+word sram_read_word() {
+    return 0xFFFFFFFF;
 }
 
 void sram_write_byte(word index, byte value) {
@@ -184,7 +169,6 @@ void backup_write_word(word index, word value) {
             flash_write_word(index, value);
             break;
         case SAVE_SRAM_256k:
-            sram_write_word(index, value);
             break;
     }
 }
@@ -202,7 +186,7 @@ word backup_read_word(word index) {
             logfatal("Accessing cartridge backup with save type SAVE_FLASH");
             break;
         case SAVE_SRAM_256k:
-            return sram_read_word(index);
+            return sram_read_word();
             break;
         default:
             logfatal("Backup read word with unknown save type");
