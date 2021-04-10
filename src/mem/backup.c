@@ -256,8 +256,9 @@ byte get_initial_value(n64_save_type_t save_type) {
         case SAVE_NONE:
         case SAVE_EEPROM_4k:
         case SAVE_EEPROM_16k:
-        case SAVE_SRAM_256k:
             return 0x00;
+        case SAVE_SRAM_256k:
+            return 0xFF;
         case SAVE_FLASH_1m:
             return 0xFF;
         default:
