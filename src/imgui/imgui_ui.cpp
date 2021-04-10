@@ -12,6 +12,7 @@
 #include <frontend/render_internal.h>
 #include <metrics.h>
 #include <mem/pif.h>
+#include <mem/mem_util.h>
 #include <cpu/dynarec/dynarec.h>
 
 static bool show_metrics_window = false;
@@ -50,6 +51,27 @@ RingBuffer<ImU64> codecache_bytes_used;
 
 ImGui::FileBrowser fileBrowser;
 
+void save_rdram_dump(bool bswap) {
+    char dump_path[PATH_MAX];
+    strcpy(dump_path, n64sys.rom_path);
+    strncat(dump_path, ".rdram", PATH_MAX);
+
+    FILE* dump = fopen(dump_path, "wb");
+
+    for (int i = 0; i < N64_RDRAM_SIZE; i += 4) {
+        word w;
+        memcpy(&w, &n64sys.mem.rdram[i], sizeof(word));
+        if (bswap) {
+            w = bswap_32(w);
+        }
+        fwrite(&w, sizeof(word), 1, dump);
+    }
+
+    fclose(dump);
+
+    logalways("Dumped RDRAM to %s", dump_path);
+}
+
 void render_menubar() {
     if (ImGui::BeginMainMenuBar())
     {
@@ -57,6 +79,22 @@ void render_menubar() {
         {
             if (ImGui::MenuItem("Load ROM")) {
                 fileBrowser.Open();
+            }
+
+            if (ImGui::MenuItem("Save RDRAM dump (big endian)")) {
+#ifdef N64_BIG_ENDIAN
+                save_rdram_dump(false);
+#else
+                save_rdram_dump(true);
+#endif
+            }
+
+            if (ImGui::MenuItem("Save RDRAM dump (little endian)")) {
+#ifdef N64_BIG_ENDIAN
+                save_rdram_dump(true);
+#else
+                save_rdram_dump(false);
+#endif
             }
 
             if (ImGui::MenuItem("Quit")) {
