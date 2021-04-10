@@ -138,7 +138,7 @@ INLINE word get_cp0_wired() {
 }
 
 INLINE word get_cp0_random() {
-    int upper = 31 - get_cp0_wired();
+    int upper = 32 - get_cp0_wired();
     int val = rand() % upper;
     val += get_cp0_wired();
 
