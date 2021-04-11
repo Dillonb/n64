@@ -217,7 +217,7 @@ These registers are used for exceptions and interrupts.
   When a TLB exception is thrown, this register is automatically loaded with the address of the failed translation.
 
 * Cause
-  Contains details on the exception or interrupt that occurred. More information can be found in the interrupts section.
+  Contains details on the exception or interrupt that occurred. Only the low two bits of the Interrupt Pending field can be written to using MTC0, the rest are read-only and set by hardware when an exception is thrown. More information can be found in the interrupts section.
 
   +-------+------------------------------------------------------------------------------------------------------+
   | Bit   | Description                                                                                          |
