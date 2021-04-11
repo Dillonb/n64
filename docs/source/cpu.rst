@@ -214,7 +214,31 @@ CP0 Exception/Interrupt Registers
 These registers are used for exceptions and interrupts.
 
 * BadVAddr
+  When a TLB exception is thrown, this register is automatically loaded with the address of the failed translation.
+
 * Cause
+  Contains details on the exception or interrupt that occurred. More information can be found in the interrupts section.
+
+  +-------+------------------------------------------------------------------------------------------------------+
+  | Bit   | Description                                                                                          |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 0-1   | Unused (always zero)                                                                                 |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 2-6   | Exception code (which exception/interrupt occurred?)                                                 |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 7     | Unused (always zero)                                                                                 |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 8-15  | Interrupt Pending (which interrupts are waiting to be serviced? Used with Interrupt Mask on $Status) |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 16-27 | Unused (always zero)                                                                                 |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 28-29 | Coprocessor error (which coprocessor threw the exception, often not used)                            |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 30    | Unused (always zero)                                                                                 |
+  +-------+------------------------------------------------------------------------------------------------------+
+  | 31    | Branch delay (did the exception/interrupt occur in a branch delay slot?)                             |
+  +-------+------------------------------------------------------------------------------------------------------+
+
 * EPC
 * ErrorEPC
 * WatchLo
@@ -237,3 +261,48 @@ These registers don't fit cleanly into any other category.
 * Config
 * LLAddr
 * Status
+
+  +-------+---------------------------------------------------------------------------------------+
+  | Bit   | Description                                                                           |
+  +-------+---------------------------------------------------------------------------------------+
+  | 0     | ie - global interrupt enable (should interrupts be handled?)                          |
+  +-------+---------------------------------------------------------------------------------------+
+  | 1     | exl - exception level (are we currently handling an exception?)                       |
+  +-------+---------------------------------------------------------------------------------------+
+  | 2     | erl - error level (are we currently handling an error?)                               |
+  +-------+---------------------------------------------------------------------------------------+
+  | 3-4   | ksu - execution mode (00 = kernel, 01 = supervisor, 10 = user)                        |
+  +-------+---------------------------------------------------------------------------------------+
+  | 5     | ux - 64 bit addressing enabled in user mode                                           |
+  +-------+---------------------------------------------------------------------------------------+
+  | 6     | sx - 64 bit addressing enabled in supervisor mode                                     |
+  +-------+---------------------------------------------------------------------------------------+
+  | 7     | kx - 64 bit addressing enabled in kernel mode                                         |
+  +-------+---------------------------------------------------------------------------------------+
+  | 8-15  | im - interrupt mask (&'d against interrupt pending in $Cause)                         |
+  +-------+---------------------------------------------------------------------------------------+
+  | 16-24 | ds - diagnostic status (described below)                                              |
+  +-------+---------------------------------------------------------------------------------------+
+  | 25    | re - reverse endianness (0 = big endian, 1 = little endian)                           |
+  +-------+---------------------------------------------------------------------------------------+
+  | 26    | fr - enables additional floating point registers (0 = 16 regs, 1 = 32 regs)           |
+  +-------+---------------------------------------------------------------------------------------+
+  | 27    | rp - enable low power mode. Run the CPU at 1/4th clock speed                          |
+  +-------+---------------------------------------------------------------------------------------+
+  | 28    | cu0 - Coprocessor 0 enabled (this bit is ignored by the N64, CP0 is always enabled!)  |
+  +-------+---------------------------------------------------------------------------------------+
+  | 29    | cu1 - Coprocessor 1 enabled - if this bit is 0, all CP1 instructions throw exceptions |
+  +-------+---------------------------------------------------------------------------------------+
+  | 30    | cu2 - Coprocessor 2 enabled (this bit is ignored by the N64, there is no CP2!)        |
+  +-------+---------------------------------------------------------------------------------------+
+  | 31    | cu3 - Coprocessor 3 enabled (this bit is ignored by the N64, there is no CP3!)        |
+  +-------+---------------------------------------------------------------------------------------+
+
+CP1 (FPU) Registers
+-------------------
+TODO
+
+Instructions
+------------
+
+See either the official manual, or `this fantastic wiki page <https://n64brew.dev/wiki/MIPS_III_instructions>`_
