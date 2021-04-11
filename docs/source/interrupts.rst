@@ -16,6 +16,8 @@ In hardware, this is implemented as a circuit that outputs a 1 when any two corr
    // Should we send an interrupt to the CPU?
    bool interrupt_fired = (MI_INTR_REG & MI_INTR_MASK_REG) != 0;
 
+Now, we're ready to talk about what happens inside the CPU.
+
 The MIPS CPU inside the N64 has eight possible interrupts that can be requested. These correspond to the eight bits in the "Interrupt Pending" field in the CP0 $Cause register.
 
 +----------------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
