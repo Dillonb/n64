@@ -51,27 +51,6 @@ RingBuffer<ImU64> codecache_bytes_used;
 
 ImGui::FileBrowser fileBrowser;
 
-void save_rdram_dump(bool bswap) {
-    char dump_path[PATH_MAX];
-    strcpy(dump_path, n64sys.rom_path);
-    strncat(dump_path, ".rdram", PATH_MAX - 1);
-
-    FILE* dump = fopen(dump_path, "wb");
-
-    for (int i = 0; i < N64_RDRAM_SIZE; i += 4) {
-        word w;
-        memcpy(&w, &n64sys.mem.rdram[i], sizeof(word));
-        if (bswap) {
-            w = bswap_32(w);
-        }
-        fwrite(&w, sizeof(word), 1, dump);
-    }
-
-    fclose(dump);
-
-    logalways("Dumped RDRAM to %s", dump_path);
-}
-
 void render_menubar() {
     if (ImGui::BeginMainMenuBar())
     {
