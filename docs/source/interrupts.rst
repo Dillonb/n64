@@ -5,9 +5,9 @@ Interrupts on the N64 are a multi-layered system. The N64 hardware raises and lo
 
 There are two important registers in the MI that are used for interrupt handling. MI_INTR_REG, and MI_INTR_MASK_REG.
 
-MI_INTR_REG is not programmer-writeable, and each bit is controlled individually by a different component's interrupt. For example, the peripheral interface (PI) will set bit 4 in MI_INTR_REG when a PI DMA completes, and hold it high until it is lowered through a write to PI_STATUS_REG.
+MI_INTR_REG is not writable by the program. Each bit is instead controlled individually by a different component's interrupt. For example, the peripheral interface (PI) will set bit 4 in MI_INTR_REG when a PI DMA completes, and hold it high until it is lowered through a write to PI_STATUS_REG.
 
-MI_INTR_MASK_REG is programmer-writeable, and is used to enable and disable certain interrupts. If a programmer wishes to ignore PI interrupts, they will set bit 4 of MI_INTR_MASK_REG to 0, and to 1 if they wish to enable PI interrupts.
+MI_INTR_MASK_REG *is* writable by the program, and is used to enable and disable certain interrupts. If a programmer wishes to ignore PI interrupts, they will set bit 4 of MI_INTR_MASK_REG to 0, and to 1 if they wish to enable PI interrupts.
 
 In hardware, this is implemented as a circuit that outputs a 1 when any two corresponding bits are both 1. Most likely with a series of AND gates tied together with a single OR gate, if I had to guess. Because of this, the interrupts are *technically* checked every cycle, but in an emulator you only need to check when either register is written. The check can be implemented like this. Remember, none of this is happening inside the CPU.
 
