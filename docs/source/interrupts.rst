@@ -65,4 +65,85 @@ When an interrupt is determined to be serviced, an exception is thrown, with exc
 Exceptions
 ==========
 
-TODO
+Exceptions are how the N64 handles both errors in instructions and interrupts.
+
+Exception Codes
+---------------
+
+There are a lot of exceptions. It's worth noting that to get games booting, you pretty much only need the interrupt exception. To get games fully working, you need the interrupt exception and the coprocessor unusable exception for CP1. Games will boot without the CP1 unusuable exception, but will have mild to serious glitches.
+
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Name                          | Code | Cop. Err  | Description                                                                                                                  |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Interrupt                     | 0    | Undefined | Thrown when an interrupt occurs.                                                                                             |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| TLB Modification              | 1    | Undefined | Thrown when a TLB page marked read-only is written to                                                                        |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| TLB Miss - Load               | 2    | Undefined | Thrown when no valid TLB entry is found when translating an address to be used for a load (instruction fetch or data access) |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| TLB Miss - Store              | 3    | Undefined | Thrown when no valid TLB entry is found when translating an address to be used for a store (data access)                     |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Address Error - Load          | 4    | Undefined | Thrown when data or an instruction is loaded from an unaligned address.                                                      |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Address Error - Store         | 5    | Undefined | Thrown when data is stored to an unaligned address.                                                                          |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Bus Error - Instruction Fetch | 6    | Undefined | Hardware bus error (timeouts, data corruption, invalid physical memory addresses) when fetching an instruction.              |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Bus Error - Load/Store        | 7    | Undefined | Hardware bus error (timeouts, data corruption, invalid physical memory addresses) when loading or storing data.              |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Syscall                       | 8    | Undefined | Thrown by the SYSCALL MIPS instruction.                                                                                      |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Breakpoint                    | 9    | Undefined | Thrown by the BREAK MIPS instruction                                                                                         |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Reserved Instruction          | 10   | Undefined | Thrown when an invalid instruction is executed. Details below.                                                               |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Coprocessor Unusable          | 11   | Cop. used | Thrown when a coprocessor instruction is used when that coprocessor is disabled. Note that CP0 is never disabled.            |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Arithmetic Overflow           | 12   | Undefined | Thrown by arithmetic instructions when their operations overflow.                                                            |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Trap                          | 13   | Undefined | Thrown by the TRAP family of MIPS instructions.                                                                              |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Floating Point                | 15   | Undefined | Thrown by the FPU when an error case is hit.                                                                                 |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Watch                         | 23   | Undefined | Thrown when a load or store matches the address specified in the CP0 $WatchLo and $WatchHi registers.                        |
++-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
+
+Reserved Instruction Exception cases:
+  - Undefined opcode
+  - Undefined SPECIAL sub-opcode
+  - Undefined REGIMM sub-opcode
+  - 64 bit operation run in 32 bit mode. Note that in kernel mode, 64 bit operations are *always valid*, regardless if KX (enable 64 bit addressing in kernel mode) is set or not.
+
+Exception Handling Process
+--------------------------
+
+When an exception is thrown, the CPU will update some state inside CP0, and set the program counter to the address of the appropriate exception handler. This address varies depending on the type of exception, and on some state within CP0.
+
+Here is a description on what happens, step by step.
+
+1. If the program counter is currently inside a branch delay slot, set the branch delay bit in $Cause (bit 31) to 1. Otherwise, set this bit to 0.
+2. If the EXL bit is currently 0, set the $EPC register in CP0 to the current PC. Then, set the EXL bit to 1.
+   A. If we are currently in a branch delay slot, instead set EPC to the address of the *branch that we are currently in the delay slot of, i.e. current_pc - 4.*
+3. Set the exception code bit in the CP0 $Cause register to the code of the exception that was thrown.
+4. If the coprocessor error is a defined value, i.e. for the coprocessor unusable exception, set the coprocessor error field in $Cause to the coprocessor that caused the error. Otherwise, the value of this field is undefined behavior in hardware, so it *shouldn't* matter what you emulate this as.
+5. Jump to the exception vector. A detailed description on how to find the correct exception vector is found on pages 180 through 181 of the manual, and described in less detail below.
+   A. Note that there is no "delay slot" executed when jumping to the exception vector, execution jumps there immediately.
+
+Exception Vector Locations
+--------------------------
+
+Note that all of these addresses are sign extended to 64 bits.
+
+The reset and NMI exceptions always jump to 0xBFC0'0000. You'll note that this is the base address of the PIF ROM - jumping here will start execution over from scratch.
+
+The locations of the rest of the vectors depend on the BEV bit. This bit is set by the boot process to let hardware know how much of the system's initialization has happened. If BEV=1, we are early in the boot process, and exception vectors should use different code than they will later on. I personally have never run into an exception early enough in the boot process for BEV to be 1, but it's good to check it anyway, just in case.
+
+When BEV is 0, exceptions are handled in a cached region, since it's assumed the cache has already been initialized.
+    - 32 bit TLB exceptions jump to 0x8000'0000 when EXL = 0, and 0x8000'0180 when EXL = 1.
+    - 64 bit TLB exceptions jump to 0x8000'0080 when EXL = 1, and 0x8000'0180 when EXL = 1.
+    - All other exceptions jump to 0x8000'0180.
+
+When BEV is 1, exceptions are handled in an *uncached* region, since it's assumed the cache has *not* been initialized yet.
+    - 32 bit TLB exceptions jump to 0xBFC0'0200 when EXL = 0, and 0xBFC0'0380 when EXL = 1.
+    - 64 bit TLB exceptions jump to 0xBFC0'0280 when EXL = 1, and 0xBFC0'0380 when EXL = 1.
+    - All other exceptions jump to 0xBFC0'0380.
