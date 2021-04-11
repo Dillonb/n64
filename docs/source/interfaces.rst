@@ -149,7 +149,46 @@ Reads
 
 Video Interface
 ===============
-TODO
+
+0x04400000 - VI_STATUS_REG/VI_CONTROL_REG
+-----------------------------------------
+Can be called the VI_STATUS_REG, or the VI_CONTROL REG, whichever you prefer.
+
+This register describes the format of the framebuffer in RDRAM, as well as enables and disables effects such as gamma, dithering, anti-aliasing, etc.
+
++-----+----------------------------------------+
+| Bit | Explanation                            |
++-----+----------------------------------------+
+| 0-1 | Framebuffer bits-per-pixel (see below) |
++-----+----------------------------------------+
+| 2   | Gamma dither enable                    |
++-----+----------------------------------------+
+| 3   | Gamma enable                           |
++-----+----------------------------------------+
+| 4   | Divot enable                           |
++-----+----------------------------------------+
+| 5   | Reserved (always zero)                 |
++-----+----------------------------------------+
+| 6   | Serrate                                |
++-----+----------------------------------------+
+| 7   | Reserved (for diagnostics)             |
++-----+----------------------------------------+
+| 8-9 | Anti-alias mode (see below)            |
++-----+----------------------------------------+
+
+
+Framebuffer bits per pixel:
+  0. Blank
+  1. Reserved
+  2. RGBA 5553 "16" bits per pixel (should be able to ignore alpha channel and treat this as RGBA5551)
+  3. RGBA 8888 32 bits per pixel
+
+Anti-alias mode:
+  0. Anti-alias and resample (always fetch extra lines)
+  1. Anti-alias and resample (fetch extra lines if needed)
+  2. Resample only (treat as all fully covered)
+  3. No anti-aliasing or resampling, no interpolation.
+
 
 Audio Interface
 ===============
