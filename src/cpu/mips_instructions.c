@@ -652,7 +652,7 @@ MIPS_INSTR(mips_spc_dsrlv) {
 
 MIPS_INSTR(mips_spc_dsrav) {
     sdword value = get_register(instruction.r.rt);
-    sdword result = value >> (get_register(instruction.r.rs) & 0b11111);
+    sdword result = value >> (get_register(instruction.r.rs) & 0b111111);
     set_register(instruction.r.rd, result);
 }
 
