@@ -44,8 +44,6 @@ Set some CP0 registers to initial values:
 
 All other registers are left at zero.
 
-The value 0x01010101 is then written to physical memory address 0x04300004 (through 0xA4300004 most likely, but that doesn't matter for our purposes here)
-
 The first 0x1000 bytes from the cartridge are then copied to SP DMEM. This is implemented as a copy of 0x1000 bytes from 0xB0000000 to 0xA4000000.
 
 The program counter is then set to 0xA4000040. Note that this skips the first 0x40 bytes of the ROM, as this is where the header is stored. Also note that execution begins with the CPU executing out of SP DMEM.
