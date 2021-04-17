@@ -18,7 +18,7 @@ In hardware, this is implemented as a circuit that outputs a 1 when any two corr
 
 Now, we're ready to talk about what happens inside the CPU.
 
-The MIPS CPU inside the N64 has eight possible interrupts that can be requested. These correspond to the eight bits in the "Interrupt Pending" field in the CP0 $Cause register.
+The MIPS CPU inside the N64 has eight possible interrupts that can be requested. These correspond to the eight bits in the "Interrupt Pending" field in the COP0 $Cause register.
 
 +----------------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
 | Bit                  | Description                                                                                                                                        |
@@ -37,7 +37,7 @@ The MIPS CPU inside the N64 has eight possible interrupts that can be requested.
 +----------------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
 | 6 (bit 14 of $Cause) | ip6 - Connected to the Indy dev kit's RDB port. Set to 1 when a value is written.                                                                  |
 +----------------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
-| 7 (bit 15 of $Cause) | ip7 - This is connected to the $Count/$Compare interrupt mechanism inside CP0, described in the CP0 Timing Registers section.                      |
+| 7 (bit 15 of $Cause) | ip7 - This is connected to the $Count/$Compare interrupt mechanism inside COP0, described in the COP0 Timing Registers section.                    |
 +----------------------+----------------------------------------------------------------------------------------------------------------------------------------------------+
 
 As with MI_INTR_REG and MI_INTR_MASK_REG, the interrupt pending field also has a corresponding mask field. It's located at bits 8-15 of $Status. Again, as with the MI registers, these two fields are &'d together, and an interrupt is serviced if the two have any corresponding bits both set to 1.
@@ -70,7 +70,7 @@ Exceptions are how the N64 handles both errors in instructions and interrupts.
 Exception Codes
 ---------------
 
-There are a lot of exceptions. It's worth noting that to get games booting, you pretty much only need the interrupt exception. To get games fully working, you need the interrupt exception and the coprocessor unusable exception for CP1. Games will boot without the CP1 unusuable exception, but will have mild to serious glitches.
+There are a lot of exceptions. It's worth noting that to get games booting, you pretty much only need the interrupt exception. To get games fully working, you need the interrupt exception and the coprocessor unusable exception for COP1. Games will boot without the COP1 unusuable exception, but will have mild to serious glitches.
 
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
 | Name                          | Code | Cop. Err  | Description                                                                                                                  |
@@ -97,7 +97,7 @@ There are a lot of exceptions. It's worth noting that to get games booting, you 
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
 | Reserved Instruction          | 10   | Undefined | Thrown when an invalid instruction is executed. Details below.                                                               |
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
-| Coprocessor Unusable          | 11   | Cop. used | Thrown when a coprocessor instruction is used when that coprocessor is disabled. Note that CP0 is never disabled.            |
+| Coprocessor Unusable          | 11   | Cop. used | Thrown when a coprocessor instruction is used when that coprocessor is disabled. Note that COP0 is never disabled.           |
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
 | Arithmetic Overflow           | 12   | Undefined | Thrown by arithmetic instructions when their operations overflow.                                                            |
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
@@ -105,7 +105,7 @@ There are a lot of exceptions. It's worth noting that to get games booting, you 
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
 | Floating Point                | 15   | Undefined | Thrown by the FPU when an error case is hit.                                                                                 |
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
-| Watch                         | 23   | Undefined | Thrown when a load or store matches the address specified in the CP0 $WatchLo and $WatchHi registers.                        |
+| Watch                         | 23   | Undefined | Thrown when a load or store matches the address specified in the COP0 $WatchLo and $WatchHi registers.                       |
 +-------------------------------+------+-----------+------------------------------------------------------------------------------------------------------------------------------+
 
 Reserved Instruction Exception cases:
@@ -117,14 +117,14 @@ Reserved Instruction Exception cases:
 Exception Handling Process
 --------------------------
 
-When an exception is thrown, the CPU will update some state inside CP0, and set the program counter to the address of the appropriate exception handler. This address varies depending on the type of exception, and on some state within CP0.
+When an exception is thrown, the CPU will update some state inside COP0, and set the program counter to the address of the appropriate exception handler. This address varies depending on the type of exception, and on some state within COP0.
 
 Here is a description on what happens, step by step.
 
 1. If the program counter is currently inside a branch delay slot, set the branch delay bit in $Cause (bit 31) to 1. Otherwise, set this bit to 0.
-2. If the EXL bit is currently 0, set the $EPC register in CP0 to the current PC. Then, set the EXL bit to 1.
+2. If the EXL bit is currently 0, set the $EPC register in COP0 to the current PC. Then, set the EXL bit to 1.
    A. If we are currently in a branch delay slot, instead set EPC to the address of the *branch that we are currently in the delay slot of, i.e. current_pc - 4.*
-3. Set the exception code bit in the CP0 $Cause register to the code of the exception that was thrown.
+3. Set the exception code bit in the COP0 $Cause register to the code of the exception that was thrown.
 4. If the coprocessor error is a defined value, i.e. for the coprocessor unusable exception, set the coprocessor error field in $Cause to the coprocessor that caused the error. Otherwise, the value of this field is undefined behavior in hardware, so it *shouldn't* matter what you emulate this as.
 5. Jump to the exception vector. A detailed description on how to find the correct exception vector is found on pages 180 through 181 of the manual, and described in less detail below.
    A. Note that there is no "delay slot" executed when jumping to the exception vector, execution jumps there immediately.

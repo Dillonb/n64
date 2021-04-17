@@ -81,7 +81,7 @@ As I've mentioned many times by now, r0 is hardwired to 0, and r31, or $ra, is u
 
 The various other names are useful for assembly programmers who need to know what registers are conventionally used for what purposes.
 
-CP0 Registers
+COP0 Registers
 -------------
 
 +-----------------+---------------+----------------------------------+
@@ -152,7 +152,7 @@ CP0 Registers
 | 31              | 31            | ??                               |
 +-----------------+---------------+----------------------------------+
 
-CP0 TLB Registers
+COP0 TLB Registers
 ^^^^^^^^^^^^^^^^^
 
 These registers are used to query and control the TLB. Please see the TLB section for more information.
@@ -164,7 +164,7 @@ These registers are used to query and control the TLB. Please see the TLB sectio
 * PageMask
 * Context
 
-CP0 Random Number Registers
+COP0 Random Number Registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 These registers are used to generate random values.
@@ -183,7 +183,7 @@ Holds a random value between the value of Wired and 0x1F (31)
 
 Provides the lower bound for the random value held in Random.
 
-CP0 Timing Registers
+COP0 Timing Registers
 ^^^^^^^^^^^^^^^^^^^^
 
 Since the N64 has no timers, these registers are the only way the system can tell how much time has passed.
@@ -200,7 +200,7 @@ Fire an interrupt when Count equals this value. This interrupt sets the ip7 bit 
 
 Writes to this register clear said interrupt, and sets the ip7 bit in Cause to 0.
 
-CP0 Cache Registers
+COP0 Cache Registers
 ^^^^^^^^^^^^^^^^^^^
 
 These registers are used for the cache, which is not documented here yet.
@@ -208,7 +208,7 @@ These registers are used for the cache, which is not documented here yet.
 * TagLo
 * TagHi
 
-CP0 Exception/Interrupt Registers
+COP0 Exception/Interrupt Registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 These registers are used for exceptions and interrupts.
@@ -252,7 +252,7 @@ These registers are used for exceptions and interrupts.
 
   The N64 does not generate a cache error, so this register is never written to by hardware.
 
-CP0 Other Registers
+COP0 Other Registers
 ^^^^^^^^^^^^^^^^^^^
 
 These registers don't fit cleanly into any other category.
@@ -289,16 +289,16 @@ These registers don't fit cleanly into any other category.
   +-------+---------------------------------------------------------------------------------------+
   | 27    | rp - enable low power mode. Run the CPU at 1/4th clock speed                          |
   +-------+---------------------------------------------------------------------------------------+
-  | 28    | cu0 - Coprocessor 0 enabled (this bit is ignored by the N64, CP0 is always enabled!)  |
+  | 28    | cu0 - Coprocessor 0 enabled (this bit is ignored by the N64, COP0 is always enabled!) |
   +-------+---------------------------------------------------------------------------------------+
-  | 29    | cu1 - Coprocessor 1 enabled - if this bit is 0, all CP1 instructions throw exceptions |
+  | 29    | cu1 - Coprocessor 1 enabled - if this bit is 0, all COP1 instructions throw exceptions|
   +-------+---------------------------------------------------------------------------------------+
-  | 30    | cu2 - Coprocessor 2 enabled (this bit is ignored by the N64, there is no CP2!)        |
+  | 30    | cu2 - Coprocessor 2 enabled (this bit is ignored by the N64, there is no COP2!)       |
   +-------+---------------------------------------------------------------------------------------+
-  | 31    | cu3 - Coprocessor 3 enabled (this bit is ignored by the N64, there is no CP3!)        |
+  | 31    | cu3 - Coprocessor 3 enabled (this bit is ignored by the N64, there is no COP3!)       |
   +-------+---------------------------------------------------------------------------------------+
 
-CP1 (FPU) Registers
+COP1 (FPU) Registers
 -------------------
 TODO
 

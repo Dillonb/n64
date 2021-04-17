@@ -28,7 +28,7 @@ Set four GPRs to initial values:
 
 All other registers are left at zero.
 
-Set some CP0 registers to initial values:
+Set some COP0 registers to initial values:
 
 +-----------------+---------------+--------------+
 | Register Number | Register Name | Set to value |
