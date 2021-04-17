@@ -250,10 +250,12 @@ INLINE void pif_mempack_write(byte* cmd, byte* res) {
             return;
         case CONTROLLER_ACCESSORY_MEMPACK:
             init_mempack(&n64sys.mem, n64sys.rom_path);
+            bool data_changed = false;
             for (int i = 0; i < 32; i++) {
                 n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+                data_changed |= (n64sys.mem.mempack_data[offset + i] != CMD_DATA[i + 2]);
             }
-            n64sys.mem.mempack_data_dirty = true;
+            n64sys.mem.mempack_data_dirty |= data_changed;
             break;
         case CONTROLLER_ACCESSORY_RUMBLE_PACK: {
             bool all_zeroes = true;
