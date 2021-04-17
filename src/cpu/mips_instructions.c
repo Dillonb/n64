@@ -196,7 +196,7 @@ MIPS_INSTR(mips_cache) {
 }
 
 MIPS_INSTR(mips_j) {
-    word target = instruction.j.target;
+    dword target = instruction.j.target;
     target <<= 2;
     target |= ((N64CPU.pc - 4) & 0xFFFFFFFFF0000000); // PC is 4 ahead
 
@@ -206,7 +206,7 @@ MIPS_INSTR(mips_j) {
 MIPS_INSTR(mips_jal) {
     link();
 
-    word target = instruction.j.target;
+    dword target = instruction.j.target;
     target <<= 2;
     target |= ((N64CPU.pc - 4) & 0xFFFFFFFFF0000000); // PC is 4 ahead
 
