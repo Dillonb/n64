@@ -3,6 +3,7 @@
 #include "gamepad.h"
 
 #include <log.h>
+#include <rdp/parallel_rdp_wrapper.h>
 
 static event_handler_t imgui_event_handler = NULL;
 
@@ -57,6 +58,9 @@ void handle_event(SDL_Event* event) {
                 case SDLK_RETURN:
                     update_button(0, N64_BUTTON_START, true);
                     break;
+
+                case SDLK_u:
+                    set_framerate_unlocked(!is_framerate_unlocked());
             }
             break;
         }
