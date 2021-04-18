@@ -686,8 +686,8 @@ MIPS_INSTR(mips_spc_multu) {
 }
 
 MIPS_INSTR(mips_spc_div) {
-    sdword dividend = get_register(instruction.r.rs);
-    sdword divisor  = get_register(instruction.r.rt);
+    sword dividend = get_register(instruction.r.rs);
+    sword divisor  = get_register(instruction.r.rt);
 
     if (divisor == 0) {
         logwarn("Divide by zero");
@@ -708,12 +708,12 @@ MIPS_INSTR(mips_spc_div) {
 }
 
 MIPS_INSTR(mips_spc_divu) {
-    dword dividend = get_register(instruction.r.rs);
-    dword divisor  = get_register(instruction.r.rt);
+    word dividend = get_register(instruction.r.rs);
+    word divisor  = get_register(instruction.r.rt);
 
     if (divisor == 0) {
         N64CPU.mult_lo = 0xFFFFFFFFFFFFFFFF;
-        N64CPU.mult_hi = dividend;
+        N64CPU.mult_hi = (sword)dividend;
     } else {
         sword quotient  = dividend / divisor;
         sword remainder = dividend % divisor;
