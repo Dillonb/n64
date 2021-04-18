@@ -108,7 +108,7 @@ void flash_write_word(word index, word value) {
             case FLASH_COMMAND_WRITE:            flash_command_write(); break;
             case FLASH_COMMAND_READ:             flash_command_read(); break;
 
-            default: logfatal("Unknown (probably invalid) flash command: %02X", command);
+            default: logwarn("Unknown (probably invalid) flash command: %02X", command);
         }
     } else {
         logwarn("Ignoring write of 0x%08X to flash status register", value);
