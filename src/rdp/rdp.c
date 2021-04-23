@@ -168,11 +168,11 @@ void load_rdp_plugin(const char* filename) {
 void write_word_dpcreg(word address, word value) {
     switch (address) {
         case ADDR_DPC_START_REG:
-            n64sys.dpc.start = value & 0xFFFFFF;
+            n64sys.dpc.start = value & 0xFFFFF8;
             n64sys.dpc.current = n64sys.dpc.start;
             break;
         case ADDR_DPC_END_REG:
-            n64sys.dpc.end = value & 0xFFFFFF;
+            n64sys.dpc.end = value & 0xFFFFF8;
             rdp_run_command();
             break;
         case ADDR_DPC_CURRENT_REG:
@@ -335,6 +335,7 @@ void process_rdp_list() {
     dpc->current = end;
 
     dpc->status.freeze = false;
+    dpc->status.cbuf_ready = true;
 }
 
 void rdp_run_command() {

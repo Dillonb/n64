@@ -267,11 +267,11 @@ INLINE void set_rsp_cp0_register(byte r, word value) {
             break;
         }
         case RSP_CP0_CMD_START:
-            n64sys.dpc.start = value & 0xFFFFFF;
+            n64sys.dpc.start = value & 0xFFFFF8;
             n64sys.dpc.current = n64sys.dpc.start;
             break;
         case RSP_CP0_CMD_END:
-            n64sys.dpc.end = value & 0xFFFFFF;
+            n64sys.dpc.end = value & 0xFFFFF8;
             rdp_run_command();
             break;
         case RSP_CP0_CMD_CURRENT:
