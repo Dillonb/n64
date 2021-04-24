@@ -393,7 +393,8 @@ void rdp_status_reg_write(word value) {
     if (status_write.set_xbus_dmem_dma) n64sys.dpc.status.xbus_dmem_dma = true;
 
     if (status_write.clear_freeze) n64sys.dpc.status.freeze = false;
-    if (status_write.set_freeze) n64sys.dpc.status.freeze = true;
+    // Seems to break games (banjo-tooie and banjo-kazooie) if this bit actually works.
+    // if (status_write.set_freeze) n64sys.dpc.status.freeze = true;
 
     if (status_write.clear_flush) n64sys.dpc.status.flush = false;
     if (status_write.set_flush) n64sys.dpc.status.flush = true;
