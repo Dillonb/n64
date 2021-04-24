@@ -88,6 +88,7 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_INTERRUPT:
             case EXCEPTION_COPROCESSOR_UNUSABLE:
             case EXCEPTION_TRAP:
+            case EXCEPTION_BREAKPOINT:
             case EXCEPTION_SYSCALL:
                 set_pc_word_r4300i(0x80000180);
                 break;

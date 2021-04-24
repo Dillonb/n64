@@ -400,6 +400,7 @@ IR_INFO(mips_spc_daddu, NORMAL, R_TYPE, false);
 COMP(mips_spc_dsub, NORMAL, false);
 COMP(mips_spc_dsubu, NORMAL, false);
 COMP(mips_spc_teq, NORMAL, true);
+COMP(mips_spc_break, NORMAL, true);
 
 COMPILER(mips_spc_dsll) {
     BAILZERO(instr.r.rd);
@@ -648,6 +649,7 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_DSLL32, mips_spc_dsll32);
         CASEIR(FUNCT_DSRL32, mips_spc_dsrl32);
         CASEIR(FUNCT_DSRA32, mips_spc_dsra32);
+        CASEIR(FUNCT_BREAK, mips_spc_break);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);

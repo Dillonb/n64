@@ -895,6 +895,10 @@ MIPS_INSTR(mips_spc_teq) {
     }
 }
 
+MIPS_INSTR(mips_spc_break) {
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_BREAKPOINT, -1);
+}
+
 MIPS_INSTR(mips_spc_tne) {
     dword rs = get_register(instruction.r.rs);
     dword rt = get_register(instruction.r.rt);
