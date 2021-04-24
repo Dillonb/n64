@@ -33,6 +33,9 @@ typedef enum n64_controller_accessory_type {
     CONTROLLER_ACCESSORY_RUMBLE_PACK
 } n64_controller_accessory_type_t;
 
+#define JOYAXIS_MIN (-62)
+#define JOYAXIS_MAX (62)
+
 typedef struct n64_controller {
     n64_controller_accessory_type_t accessory_type;
     union {
