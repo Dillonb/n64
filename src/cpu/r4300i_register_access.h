@@ -121,6 +121,9 @@ INLINE void set_cp0_register_word(byte r, word value) {
         case R4300I_CP0_REG_LLADDR:
             N64CPU.cp0.lladdr = value;
             break;
+        case R4300I_CP0_REG_ERR_EPC:
+            N64CP0.error_epc = (sdword)((sword)value);
+            break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
     }
