@@ -14,6 +14,8 @@
 #define PIF_COMMAND_EEPROM_WRITE  0x05
 #define PIF_COMMAND_RESET         0xFF
 
+#define MEMPACK_SIZE 0x8000
+
 #define CMD_CMDLEN_INDEX 0
 #define CMD_RESLEN_INDEX 1
 #define CMD_COMMAND_INDEX 2
@@ -202,21 +204,14 @@ INLINE void pif_mempack_read(byte* cmd, byte* res) {
     // offset must be 32-byte aligned
     offset &= ~0x1F;
 
-    // The most significant bit in the address is not used for the mempak.
-    // The game will identify whether the connected device is a mempak or something else by writing to
-    // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
-    // something else, depending on the data it returns.
-    offset &= 0x7FE0;
-
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
-            for (int i = 0; i < 32; i++) {
-                res[i] = 0;
-            }
             break;
         case CONTROLLER_ACCESSORY_MEMPACK:
-            for (int i = 0; i < 32; i++) {
-                res[i] = n64sys.mem.mempack_data[offset + i];
+            if (offset <= MEMPACK_SIZE - 0x20) {
+                for (int i = 0; i < 32; i++) {
+                    res[i] = n64sys.mem.mempack_data[offset + i];
+                }
             }
             break;
         case CONTROLLER_ACCESSORY_RUMBLE_PACK:
@@ -240,23 +235,19 @@ INLINE void pif_mempack_write(byte* cmd, byte* res) {
     // offset must be 32-byte aligned
     offset &= ~0x1F;
 
-    // The most significant bit in the address is not used for the mempak.
-    // The game will identify whether the connected device is a mempak or something else by writing to
-    // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
-    // something else, depending on the data it returns.
-    offset &= 0x7FE0;
-
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
-            return;
+            break;
         case CONTROLLER_ACCESSORY_MEMPACK:
-            init_mempack(&n64sys.mem, n64sys.rom_path);
-            bool data_changed = false;
-            for (int i = 0; i < 32; i++) {
-                n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
-                data_changed |= (n64sys.mem.mempack_data[offset + i] != CMD_DATA[i + 2]);
+            if (offset <= MEMPACK_SIZE - 0x20) {
+                init_mempack(&n64sys.mem, n64sys.rom_path);
+                bool data_changed = false;
+                for (int i = 0; i < 32; i++) {
+                    data_changed |= (n64sys.mem.mempack_data[offset + i] != CMD_DATA[i + 2]);
+                    n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+                }
+                n64sys.mem.mempack_data_dirty |= data_changed;
             }
-            n64sys.mem.mempack_data_dirty |= data_changed;
             break;
         case CONTROLLER_ACCESSORY_RUMBLE_PACK: {
             bool all_zeroes = true;
