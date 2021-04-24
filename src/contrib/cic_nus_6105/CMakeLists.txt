@@ -1,0 +1,1 @@
+add_library(cic_nus_6105 n64_cic_nus_6105.c n64_cic_nus_6105.h)

@@ -1,6 +1,7 @@
 #include <frontend/tas_movie.h>
 #include <frontend/gamepad.h>
 #include <rsp.h>
+#include <n64_cic_nus_6105.h>
 #include "pif.h"
 #include "n64bus.h"
 #include "backup.h"
@@ -311,9 +312,34 @@ INLINE void pif_eeprom_write(byte* cmd, byte* res) {
     n64sys.mem.save_data_dirty = true;
 }
 
+void cic_challenge() {
+    byte challenge[30];
+    byte response[30];
+
+    printf("CIC challenge: ");
+
+    // Split 15 bytes into 30 nibbles
+    for (int i = 0; i < 15; i++) {
+        printf("%02X", n64sys.mem.pif_ram[0x30 + i]);
+
+        challenge[i * 2 + 0]   = (n64sys.mem.pif_ram[0x30 + i] >> 4) & 0x0F;
+        challenge[i * 2 + 1]  =  (n64sys.mem.pif_ram[0x30 + i] >> 0) & 0x0F;
+    }
+    printf("\n");
+
+    n64_cic_nus_6105((char*)challenge, (char*)response, CHL_LEN - 2);
+
+    printf("Challenge response: ");
+    for (int i = 0; i < 15; i++) {
+        n64sys.mem.pif_ram[0x30 + i] = (response[i * 2] << 4) + response[i * 2 + 1];
+        printf("%02X", n64sys.mem.pif_ram[0x30 + i]);
+    }
+    printf("\n");
+}
+
 void process_pif_command() {
     byte control = n64sys.mem.pif_ram[63];
-    if (control == 1) {
+    if (control & 1) {
         pif_channel = 0;
         int i = 0;
         while (i < 63) {
@@ -380,6 +406,19 @@ void process_pif_command() {
                 i += cmdlen + reslen;
             }
         }
+    }
+
+    if (control & 2) {
+        cic_challenge();
+        n64sys.mem.pif_ram[63] &= ~2;
+    }
+
+    if (control & 0x08) {
+        n64sys.mem.pif_ram[63] &= ~8;
+    }
+
+    if (control & 0x30) {
+        n64sys.mem.pif_ram[63] = 0x80;
     }
 }
 

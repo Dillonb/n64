@@ -448,6 +448,7 @@ void dram_to_pif(word dram_address, word pif_address) {
     for (int i = 0; i < 64; i++) {
         n64sys.mem.pif_ram[i] = n64_read_physical_byte(dram_address + i);
     }
+    process_pif_command();
     interrupt_raise(INTERRUPT_SI);
 }
 
@@ -569,6 +570,7 @@ void n64_write_physical_dword(word address, dword value) {
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             dword_to_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe64(value));
+            process_pif_command();
             logfatal("Writing dword 0x%016lX to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
@@ -729,6 +731,7 @@ void n64_write_physical_word(word address, word value) {
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             word_to_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe32(value));
+            process_pif_command();
             logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
@@ -815,12 +818,6 @@ word n64_read_physical_word(word address) {
             }
         }
         case REGION_PIF_RAM: {
-            if (address == 0x1FC007FC && n64sys.mem.pif_ram[63] == 0x30) {
-                // TODO Hack to get PIF ROM booting
-                // TODO I'm pretty sure this is where the CIC is also supposed to write the checksum out.
-                logwarn("Applying hack to get the PIF rom to boot, if you see this message in the middle of a game, something's wrong!");
-                n64sys.mem.pif_ram[63] = 0x80;
-            }
             return be32toh(word_from_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM));
         }
         case REGION_RESERVED:
@@ -897,6 +894,7 @@ void n64_write_physical_half(word address, half value) {
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             half_to_byte_array((byte*) &n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe16(value));
+            process_pif_command();
             logfatal("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
@@ -1027,6 +1025,7 @@ void n64_write_physical_byte(word address, byte value) {
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             n64sys.mem.pif_ram[address - SREGION_PIF_RAM] = value;
+            process_pif_command();
             logfatal("Writing byte to PIF RAM");
             break;
         case REGION_RESERVED:

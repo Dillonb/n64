@@ -1,6 +1,6 @@
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 find_package(SDL2 REQUIRED)
-INCLUDE_DIRECTORIES(SYSTEM "contrib/include" "contrib/imgui" ${SDL2_INCLUDE_DIR} "common" "." "cpu")
+INCLUDE_DIRECTORIES(SYSTEM "contrib/include" "contrib/imgui" "contrib/cic_nus_6105" ${SDL2_INCLUDE_DIR} "common" "." "cpu")
 
 add_subdirectory(common)
 add_subdirectory(cpu)
@@ -8,6 +8,7 @@ add_subdirectory(rdp)
 add_subdirectory(debugger)
 add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
+add_subdirectory(contrib/cic_nus_6105)
 add_subdirectory(tools)
 
 add_library(core
@@ -29,7 +30,7 @@ add_library(core
         mem/backup.c mem/backup.h
         frontend/game_db.c frontend/game_db.h)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} z)
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} z cic_nus_6105)
 
 add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)
