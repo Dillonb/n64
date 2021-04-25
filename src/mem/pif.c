@@ -352,6 +352,8 @@ void process_pif_command() {
                 byte* res = &n64sys.mem.pif_ram[i + cmdlen];
 
                 switch (cmd[CMD_COMMAND_INDEX]) {
+                    case 0xFE:
+                        continue;
                     case PIF_COMMAND_RESET:
                         unimplemented(cmdlen != 1, "Reset with cmdlen != 1");
                         unimplemented(reslen != 3, "Reset with reslen != 3");
