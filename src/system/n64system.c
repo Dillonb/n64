@@ -109,6 +109,7 @@ void reset_n64system() {
     memset(n64sys.mem.pif_ram, 0, PIF_RAM_SIZE);
 
     n64sys.vi.num_halflines = 262;
+    n64sys.vi.num_fields = 1;
     n64sys.vi.cycles_per_halfline = 1000;
 
     invalidate_dynarec_all_pages(n64sys.dynarec);
@@ -212,17 +213,21 @@ void check_vsync() {
 void jit_system_loop() {
     int cycles = 0;
     while (!should_quit) {
-        for (n64sys.vi.v_current = 0; n64sys.vi.v_current < n64sys.vi.num_halflines; n64sys.vi.v_current++) {
-            check_vi_interrupt();
-            while (cycles <= n64sys.vi.cycles_per_halfline) {
-                cycles += jit_system_step();
-                n64sys.debugger_state.steps = 0;
+        for (int field = 0; field < n64sys.vi.num_fields; field++) {
+            for (int line = 0; line < n64sys.vi.num_halflines; line++) {
+                n64sys.vi.v_current = (line << 1) + field;
+                check_vi_interrupt();
+
+                while (cycles <= n64sys.vi.cycles_per_halfline) {
+                    cycles += jit_system_step();
+                    n64sys.debugger_state.steps = 0;
+                }
+                cycles -= n64sys.vi.cycles_per_halfline;
+                ai_step(n64sys.vi.cycles_per_halfline);
             }
-            cycles -= n64sys.vi.cycles_per_halfline;
-            ai_step(n64sys.vi.cycles_per_halfline);
+            check_vi_interrupt();
+            rdp_update_screen();
         }
-        check_vi_interrupt();
-        rdp_update_screen();
 #ifdef N64_DEBUG_MODE
         if (n64sys.debugger_state.enabled) {
             debugger_tick();
@@ -240,17 +245,21 @@ update_delayed_log_verbosity();
 void interpreter_system_loop() {
     int cycles = 0;
     while (!should_quit) {
-        for (n64sys.vi.v_current = 0; n64sys.vi.v_current < n64sys.vi.num_halflines; n64sys.vi.v_current++) {
-            check_vi_interrupt();
-            while (cycles <= n64sys.vi.cycles_per_halfline) {
-                cycles += interpreter_system_step();
-                n64sys.debugger_state.steps = 0;
+        for (int field = 0; field < n64sys.vi.num_fields; field++) {
+            for (int line = 0; line < n64sys.vi.num_halflines; line++) {
+                n64sys.vi.v_current = (line << 1) + field;
+                check_vi_interrupt();
+
+                while (cycles <= n64sys.vi.cycles_per_halfline) {
+                    cycles += interpreter_system_step();
+                    n64sys.debugger_state.steps = 0;
+                }
+                cycles -= n64sys.vi.cycles_per_halfline;
+                ai_step(n64sys.vi.cycles_per_halfline);
             }
-            cycles -= n64sys.vi.cycles_per_halfline;
-            ai_step(n64sys.vi.cycles_per_halfline);
+            check_vi_interrupt();
+            rdp_update_screen();
         }
-        check_vi_interrupt();
-        rdp_update_screen();
 #ifdef N64_DEBUG_MODE
         if (n64sys.debugger_state.enabled) {
             debugger_tick();

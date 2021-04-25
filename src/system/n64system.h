@@ -120,6 +120,7 @@ typedef struct n64_system {
         vi_burst_t vi_burst;
         word vsync;
         int num_halflines;
+        int num_fields;
         int cycles_per_halfline;
         word hsync;
         word leap;
