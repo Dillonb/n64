@@ -41,3 +41,9 @@ Uses CIC-NUS-6105's "challenge/response" process through the PIF. The game will 
 Banjo Tooie / Banjo Kazooie
 ---------------------------
 Sets the dpc_status.freeze bit to 1, which causes the game's graphics to hang indefinitely. A simple solution is simply never allowing this bit to be set to 1 through writes to the DPC status register, but I'm sure there's something more complicated going on.
+
+Star Wars: Rogue Squadron
+-------------------------
+The game worked fine, except it would draw a black screen instead of the title screen. The intro and even in-game worked perfectly fine.
+
+The solution ended up being that I needed to respect the serrate bit in VI Status.
