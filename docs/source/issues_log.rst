@@ -34,11 +34,11 @@ Paper Mario's rand_int() function performs a DIVU with 0xFFFFFFFF / x. My DIVU i
 
 This was causing random event probabilities to be very incorrect, which, long story short, ended up causing a hang.
 
-Banjo Tooie
+Banjo-Tooie
 -----------
 Uses CIC-NUS-6105's "challenge/response" process through the PIF. The game will hang if this is not implemented.
 
-Banjo Tooie / Banjo Kazooie
+Banjo-Tooie / Banjo-Kazooie
 ---------------------------
 Sets the dpc_status.freeze bit to 1, which causes the game's graphics to hang indefinitely. A simple solution is simply never allowing this bit to be set to 1 through writes to the DPC status register, but I'm sure there's something more complicated going on.
 
