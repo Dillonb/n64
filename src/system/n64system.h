@@ -129,7 +129,7 @@ typedef struct n64_system {
             word raw;
             struct {
                 unsigned vend:10;
-                unsigned:5;
+                unsigned:6;
                 unsigned vstart:10;
                 unsigned:6;
             };
