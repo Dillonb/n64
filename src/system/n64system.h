@@ -135,7 +135,16 @@ typedef struct n64_system {
             };
         } vstart;
         word vburst;
-        word xscale;
+        union {
+            word raw;
+            struct {
+                unsigned scale_decimal:10;
+                unsigned scale_integer:2;
+                unsigned subpixel_offset_decimal:10;
+                unsigned subpixel_offset_integer:2;
+                unsigned:4;
+            };
+        } xscale;
         word yscale;
         word v_current;
     } vi;

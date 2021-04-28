@@ -70,7 +70,7 @@ void write_word_vireg(word address, word value) {
             loginfo("VI vburst is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_X_SCALE_REG:
-            n64sys.vi.xscale = value;
+            n64sys.vi.xscale.raw = value;
             loginfo("VI xscale is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_Y_SCALE_REG:

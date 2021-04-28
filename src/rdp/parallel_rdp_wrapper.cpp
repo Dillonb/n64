@@ -380,7 +380,7 @@ void update_screen_parallel_rdp() {
     command_processor->set_vi_register(VIRegister::HStart,       n64sys.vi.hstart);
     command_processor->set_vi_register(VIRegister::VStart,       n64sys.vi.vstart.raw);
     command_processor->set_vi_register(VIRegister::VBurst,       n64sys.vi.vburst);
-    command_processor->set_vi_register(VIRegister::XScale,       n64sys.vi.xscale);
+    command_processor->set_vi_register(VIRegister::XScale,       n64sys.vi.xscale.raw);
     command_processor->set_vi_register(VIRegister::YScale,       n64sys.vi.yscale);
 
     RDP::ScanoutOptions opts;
