@@ -154,6 +154,10 @@ void pif_rom_execute() {
     }
 }
 
+INLINE void pif_channel_reset(int channel) {
+
+}
+
 INLINE void pif_controller_reset(byte* cmd, byte* res) {
 
 }
@@ -328,6 +332,15 @@ void cic_challenge() {
     printf("\n");
 }
 
+const char* pif_ram_as_str() {
+    static char buf[129];
+    memset(buf, 0x00, 129);
+    for (int i = 0; i < 64; i++) {
+        sprintf(buf + (i * 2), "%02X", n64sys.mem.pif_ram[i]);
+    }
+    return buf;
+}
+
 void process_pif_command() {
     byte control = n64sys.mem.pif_ram[63];
     if (control & 1) {
@@ -339,21 +352,22 @@ void process_pif_command() {
 
             if (cmdlen == 0) {
                 pif_channel++;
+            } else if (cmdlen == 0x3D) { // 0xFD in PIF RAM = send reset signal to this pif channel
+                pif_channel_reset(pif_channel);
+                pif_channel++;
+            } else if (cmdlen == 0x3E) { // 0xFE in PIF RAM = end of commands
+                break;
             } else if (cmdlen == 0x3F) {
                 continue;
-            } else if (cmdlen == 0x3E) {
-                break;
             } else {
                 byte r = n64sys.mem.pif_ram[i++];
-                if (r == 0xFE) {
-                    continue;
+                if (r == 0xFE) { // 0xFE in PIF RAM = end of commands.
+                    break;
                 }
                 byte reslen = r & 0x3F; // TODO: out of bounds access possible on invalid data
                 byte* res = &n64sys.mem.pif_ram[i + cmdlen];
 
                 switch (cmd[CMD_COMMAND_INDEX]) {
-                    case 0xFE:
-                        continue;
                     case PIF_COMMAND_RESET:
                         unimplemented(cmdlen != 1, "Reset with cmdlen != 1");
                         unimplemented(reslen != 3, "Reset with reslen != 3");
