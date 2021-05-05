@@ -124,21 +124,26 @@ void pif_rom_execute_lle() {
 void pif_rom_execute() {
     switch (n64sys.mem.rom.cic_type) {
         case CIC_NUS_6101_7102:
+            logalways("Initializing PIF and CIC: CIC_NUS_6101_7102");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x00043F3F);
             n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6102_7101:
+            logalways("Initializing PIF and CIC: CIC_NUS_6102_7101");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x00003F3F);
             n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6103_7103:
+            logalways("Initializing PIF and CIC: CIC_NUS_6103_7103");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000783F);
             break;
         case CIC_NUS_6105_7105:
+            logalways("Initializing PIF and CIC: CIC_NUS_6105_7105");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000913F);
             n64_write_physical_word(SREGION_RDRAM + 0x3F0, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6106_7106:
+            logalways("Initializing PIF and CIC: CIC_NUS_6106_7106");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000853F);
             break;
         case UNKNOWN_CIC_TYPE:
