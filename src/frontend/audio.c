@@ -34,9 +34,11 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
     float* out = (float*)stream;
     out += gotten_samples;
 
+    /*
     if (gotten_samples < length / sizeof(float)) {
         logwarn("AudioStream buffer underflow! You may hear crackling! We're %d bytes short.", length - gotten);
     }
+     */
 
     for (int i = gotten_samples; i < length / sizeof(float); i++) {
         float sample = 0;
