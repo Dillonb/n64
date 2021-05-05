@@ -136,6 +136,7 @@ void pif_rom_execute() {
         case CIC_NUS_6103_7103:
             logalways("Initializing PIF and CIC: CIC_NUS_6103_7103");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000783F);
+            n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6105_7105:
             logalways("Initializing PIF and CIC: CIC_NUS_6105_7105");
