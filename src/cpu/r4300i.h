@@ -198,6 +198,7 @@
 #define FUNCT_JR      0b001000
 #define FUNCT_JALR    0b001001
 #define FUNCT_SYSCALL 0b001100
+#define FUNCT_SYNC    0b001111
 #define FUNCT_MFHI    0b010000
 #define FUNCT_MTHI    0b010001
 #define FUNCT_MFLO    0b010010

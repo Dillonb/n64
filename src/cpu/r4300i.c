@@ -549,6 +549,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
         case FUNCT_DSRL32:  return mips_spc_dsrl32;
         case FUNCT_DSRA32:  return mips_spc_dsra32;
         case FUNCT_BREAK:   return mips_spc_break;
+        case FUNCT_SYNC:    return mips_nop;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);

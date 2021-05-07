@@ -650,6 +650,7 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_DSRL32, mips_spc_dsrl32);
         CASEIR(FUNCT_DSRA32, mips_spc_dsra32);
         CASEIR(FUNCT_BREAK, mips_spc_break);
+        CASEIR(FUNCT_SYNC, mips_nop);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
