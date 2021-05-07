@@ -2,6 +2,7 @@
 #include "tas_movie.h"
 
 #include <stdbool.h>
+#include <math.h>
 #include <system/n64system.h>
 
 static n64_joybus_device_t joybus_devices[6];
@@ -68,19 +69,74 @@ void update_button(int controller, n64_button_t button, bool held) {
 
 sbyte trim_gamepad_axis(shalf raw) {
     // INT16_MIN through INT16_MAX to -84 through +84
-    sbyte trimmed = (shalf)raw / 390;
+    return (shalf)raw / 390;
+}
 
-    // Deadzone
-    if (abs(trimmed) < 16) {
-        trimmed = 0;
+double d_sign(double x) {
+    if (x > 0) {
+        return 1;
+    } else if (x < 0) {
+        return -1;
+    } else {
+        return 0;
     }
+}
 
-    return trimmed;
+double d_min(double x, double y) {
+    if (x < y) {
+        return x;
+    } else {
+        return y;
+    }
+}
+
+double d_abs(double x) {
+    if (x < 0) {
+        return -x;
+    } else {
+        return x;
+    }
+}
+
+double copysign(double to, double from) {
+    if (d_sign(from) == d_sign(to)) {
+        return to;
+    } else {
+        return -to;
+    }
 }
 
 void clamp_gamepad(n64_controller_t* controller) {
-    controller->joy_x = trim_gamepad_axis(controller->raw_x);
-    controller->joy_y = -(trim_gamepad_axis(controller->raw_y) + 1);
+    double ax = trim_gamepad_axis(controller->raw_x);
+    double ay = -trim_gamepad_axis(controller->raw_y);
+
+    // Thanks merrymage
+
+    double len = sqrt(ax*ax+ay*ay);
+    if (len < 16.0f) {
+        len = 0;
+    } else if (len > 85.0f) {
+        len = 85.0f / len;
+    } else {
+        len = (len - 16.0f) * 85.0f / (85.0f - 16.0f) / len;
+    }
+    ax *= len;
+    ay *= len;
+
+    //bound diagonals to an octagonal range {-68 ... +68}
+    if(ax != 0.0f && ay != 0.0f) {
+        double slope = ay / ax;
+        double edgex = copysign(85.0f / (d_abs(slope) + 16.0f / 69.0f), ax);
+        double edgey = copysign(d_min(d_abs(edgex * slope), 85.0f / (1.0f / d_abs(slope) + 16.0f / 69.0f)), ay);
+        edgex = edgey / slope;
+
+        double scale = sqrt(edgex*edgex+edgey*edgey) / 85.0f;
+        ax *= scale;
+        ay *= scale;
+    }
+
+    controller->joy_x = ax;
+    controller->joy_y = ay;
 }
 
 void update_joyaxis_x(int controller, shalf x) {
