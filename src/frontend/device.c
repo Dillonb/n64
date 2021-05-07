@@ -66,12 +66,31 @@ void update_button(int controller, n64_button_t button, bool held) {
     }
 }
 
-void update_joyaxis_x(int controller, sbyte x) {
-    joybus_devices[controller].controller.joy_x = x;
+sbyte trim_gamepad_axis(shalf raw) {
+    // INT16_MIN through INT16_MAX to -84 through +84
+    sbyte trimmed = (shalf)raw / 390;
+
+    // Deadzone
+    if (abs(trimmed) < 16) {
+        trimmed = 0;
+    }
+
+    return trimmed;
 }
 
-void update_joyaxis_y(int controller, sbyte y) {
-    joybus_devices[controller].controller.joy_y = y;
+void clamp_gamepad(n64_controller_t* controller) {
+    controller->joy_x = trim_gamepad_axis(controller->raw_x);
+    controller->joy_y = -(trim_gamepad_axis(controller->raw_y) + 1);
+}
+
+void update_joyaxis_x(int controller, shalf x) {
+    joybus_devices[controller].controller.raw_x = x;
+    clamp_gamepad(&joybus_devices[controller].controller);
+}
+
+void update_joyaxis_y(int controller, shalf y) {
+    joybus_devices[controller].controller.raw_y = y;
+    clamp_gamepad(&joybus_devices[controller].controller);
 }
 
 void devices_init(n64_save_type_t save_type) {

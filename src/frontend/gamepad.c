@@ -139,14 +139,12 @@ void update_right_joyaxis(byte axis, shalf value) {
 }
 
 void gamepad_update_axis(byte axis, shalf value) {
-    shalf trimmed = value >> 9;
-    shalf inverted = -(trimmed + 1);
     switch (axis) {
         case SDL_CONTROLLER_AXIS_LEFTX:
-            update_joyaxis_x(0, trimmed);
+            update_joyaxis_x(0, value);
             break;
         case SDL_CONTROLLER_AXIS_LEFTY:
-            update_joyaxis_y(0, inverted);
+            update_joyaxis_y(0, value);
             break;
         case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
         case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
