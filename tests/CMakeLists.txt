@@ -2,9 +2,11 @@ enable_testing()
 
 INCLUDE_DIRECTORIES(SYSTEM "../src/contrib/include" "../src/common" "../src")
 
+if (NOT WIN32)
 add_executable(test_cpu test_cpu.c unit.h)
 target_link_libraries(test_cpu r4300i common core)
 add_test(test_cpu test_cpu)
+endif()
 
 add_executable(test_gamepad_trim test_gamepad_trim.c)
 target_link_libraries(test_gamepad_trim core)
@@ -39,6 +41,7 @@ if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/n64-tests)
     endif()
 endif()
 
+if (NOT WIN32)
 add_executable(test_rsp test_rsp.c unit.h)
 target_link_libraries(test_rsp rsp r4300i core common)
 
@@ -84,3 +87,4 @@ configure_file(testcases/cpu/bltzl.testcase bltzl.testcase COPYONLY)
 configure_file(testcases/cpu/multu.testcase multu.testcase COPYONLY)
 configure_file(testcases/cpu/slt.testcase slt.testcase COPYONLY)
 configure_file(testcases/cpu/xor.testcase xor.testcase COPYONLY)
+endif()
