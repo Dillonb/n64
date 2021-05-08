@@ -17,3 +17,33 @@ The game would hang upon opening the pause menu. This is because the operating s
 Mario Kart 64, other games using EEPROM
 ---------------------------------------
 Game would hang upon completing a Grand Prix. This ended up being because EEPROM wasn't identified correctly in the PIF, when channel 4 was requested in a controller ID command.
+
+F-Zero X
+--------
+Expects the N64DD's status register at 0x05000508 to return 0xFFFFFFFF if the DD is absent. Or, I assume, the N64DD to be correctly emulated. Otherwise, it will hang indefinitely on a black screen.
+
+The read from the status register is performed at PC value 0x800C5A84. The hang happens at PC value 0x80414CF4.
+
+Paper Mario
+-----------
+The game would hang when Mario falls off the veranda behind the goombas' house. The cause ended up being that my DIVU instruction was broken.
+
+DIV is best implemented with 64 bit signed integers, to guard against an INT_MIN / -1 case. When implementing DIVU, I copypasted my DIV implementation and made the 64 bit integers unsigned.
+
+Paper Mario's rand_int() function performs a DIVU with 0xFFFFFFFF / x. My DIVU implementation was calculating this as 0xFFFFFFFF'FFFFFFFF / x. With a signed divide, this is fine, since both of those numbers represent negative one. With an unsigned divide, however, they give different results.
+
+This was causing random event probabilities to be very incorrect, which, long story short, ended up causing a hang.
+
+Banjo-Tooie
+-----------
+Uses CIC-NUS-6105's "challenge/response" process through the PIF. The game will hang if this is not implemented.
+
+Banjo-Tooie / Banjo-Kazooie
+---------------------------
+Sets the dpc_status.freeze bit to 1, which causes the game's graphics to hang indefinitely. A simple solution is simply never allowing this bit to be set to 1 through writes to the DPC status register, but I'm sure there's something more complicated going on.
+
+Star Wars: Rogue Squadron
+-------------------------
+The game worked fine, except it would draw a black screen instead of the title screen. The intro and even in-game worked perfectly fine.
+
+The solution ended up being that I needed to respect the serrate bit in VI Status.

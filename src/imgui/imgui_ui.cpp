@@ -12,6 +12,7 @@
 #include <frontend/render_internal.h>
 #include <metrics.h>
 #include <mem/pif.h>
+#include <mem/mem_util.h>
 #include <cpu/dynarec/dynarec.h>
 
 static bool show_metrics_window = false;
@@ -57,6 +58,22 @@ void render_menubar() {
         {
             if (ImGui::MenuItem("Load ROM")) {
                 fileBrowser.Open();
+            }
+
+            if (ImGui::MenuItem("Save RDRAM dump (big endian)")) {
+#ifdef N64_BIG_ENDIAN
+                save_rdram_dump(false);
+#else
+                save_rdram_dump(true);
+#endif
+            }
+
+            if (ImGui::MenuItem("Save RDRAM dump (little endian)")) {
+#ifdef N64_BIG_ENDIAN
+                save_rdram_dump(true);
+#else
+                save_rdram_dump(false);
+#endif
             }
 
             if (ImGui::MenuItem("Quit")) {

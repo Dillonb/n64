@@ -2,6 +2,7 @@
 #define N64_N64MEM_H
 
 #include "n64rom.h"
+#include "addresses.h"
 #include <log.h>
 #include <util.h>
 #include <limits.h>
@@ -96,6 +97,7 @@ typedef struct n64_mem {
     char save_file_path[PATH_MAX];
     char mempack_file_path[PATH_MAX];
     n64_save_type_t save_type;
+    byte isviewer_buffer[CART_ISVIEWER_SIZE];
 
     byte* save_data;
     bool save_data_dirty;
@@ -119,6 +121,8 @@ typedef struct n64_mem {
 
 } n64_mem_t;
 
+
+void save_rdram_dump(bool bswap);
 void init_mem(n64_mem_t* mem);
 
 #endif //N64_N64MEM_H

@@ -29,6 +29,7 @@ COMPILER(mips_spc_mflo);
 COMPILER(mips_spc_mtlo);
 COMPILER(mips_spc_dsllv);
 COMPILER(mips_spc_dsrlv);
+COMPILER(mips_spc_dsrav);
 COMPILER(mips_spc_mult);
 COMPILER(mips_spc_multu);
 COMPILER(mips_spc_div);
@@ -167,6 +168,9 @@ dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address);
 void end_block(dasm_State** Dst, int block_length);
 void post_branch_likely(dasm_State** Dst, int block_length);
 void check_exception(dasm_State** Dst, word block_length);
+#ifdef N64_DEBUG_MODE
+void check_exception_sanity(dasm_State** Dst, word block_length);
+#endif
 void flush_prev_pc(dasm_State** Dst, dword prev_pc);
 void flush_pc(dasm_State** Dst, dword pc);
 void flush_next_pc(dasm_State** Dst, dword next_pc);

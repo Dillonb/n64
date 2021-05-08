@@ -24,7 +24,6 @@ add_library(parallel-rdp
         parallel-rdp-standalone/vulkan/semaphore_manager.cpp
         parallel-rdp-standalone/vulkan/shader.cpp
         parallel-rdp-standalone/vulkan/texture_format.cpp
-        parallel-rdp-standalone/vulkan/thread_id.cpp
         parallel-rdp-standalone/vulkan/wsi.cpp
         parallel-rdp-standalone/vulkan/wsi.hpp
         parallel-rdp-standalone/vulkan/wsi_timing.cpp
@@ -35,10 +34,10 @@ add_library(parallel-rdp
         parallel-rdp-standalone/util/timeline_trace_file.hpp
         parallel-rdp-standalone/util/thread_name.cpp
         parallel-rdp-standalone/util/thread_name.hpp
-        parallel-rdp-standalone/spirv-cross/spirv_cross.cpp
-        parallel-rdp-standalone/spirv-cross/spirv_cfg.cpp
-        parallel-rdp-standalone/spirv-cross/spirv_parser.cpp
-        parallel-rdp-standalone/spirv-cross/spirv_cross_parsed_ir.cpp
+        parallel-rdp-standalone/util/logging.cpp
+        parallel-rdp-standalone/util/logging.hpp
+        parallel-rdp-standalone/util/thread_id.cpp
+        parallel-rdp-standalone/util/thread_id.hpp
         # C
         parallel-rdp-standalone/volk/volk.c
 )

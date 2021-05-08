@@ -22,5 +22,6 @@ While my goal is to be as clear and accessible as possible, I expect readers to 
    boot_process
    tlb
    cpu
+   interrupts
    interfaces
    issues_log

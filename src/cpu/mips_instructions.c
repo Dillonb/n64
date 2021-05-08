@@ -196,21 +196,21 @@ MIPS_INSTR(mips_cache) {
 }
 
 MIPS_INSTR(mips_j) {
-    word target = instruction.j.target;
+    dword target = instruction.j.target;
     target <<= 2;
-    target |= ((N64CPU.pc - 4) & 0xF0000000); // PC is 4 ahead
+    target |= ((N64CPU.pc - 4) & 0xFFFFFFFFF0000000); // PC is 4 ahead
 
-    branch_abs_word(target);
+    branch_abs(target);
 }
 
 MIPS_INSTR(mips_jal) {
     link();
 
-    word target = instruction.j.target;
+    dword target = instruction.j.target;
     target <<= 2;
-    target |= ((N64CPU.pc - 4) & 0xF0000000); // PC is 4 ahead
+    target |= ((N64CPU.pc - 4) & 0xFFFFFFFFF0000000); // PC is 4 ahead
 
-    branch_abs_word(target);
+    branch_abs(target);
 }
 
 MIPS_INSTR(mips_slti) {
@@ -312,8 +312,14 @@ MIPS_INSTR(mips_lw) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
-    sword value = n64_read_word(address);
-    set_register(instruction.i.rt, (sdword)value);
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+    } else {
+        sword value = n64_read_physical_word(physical);
+        set_register(instruction.i.rt, (sdword)value);
+    }
 }
 
 MIPS_INSTR(mips_lwu) {
@@ -484,7 +490,7 @@ MIPS_INSTR(mips_ll) {
     set_register(instruction.i.rt, (sdword)result);
 
     // Unique to ll
-    N64CPU.cp0.lladdr = resolve_virtual_address(address);
+    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address);
     N64CPU.llbit = true;
 }
 
@@ -506,7 +512,7 @@ MIPS_INSTR(mips_lld) {
     set_register(instruction.i.rt, result);
 
     // Unique to lld
-    N64CPU.cp0.lladdr = resolve_virtual_address(address);
+    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address);
     N64CPU.llbit = true;
 }
 
@@ -521,7 +527,7 @@ MIPS_INSTR(mips_sc) {
     }
 
     if (N64CPU.llbit) {
-        word physical_address = resolve_virtual_address(address);
+        word physical_address = resolve_virtual_address_or_die(address);
 
         if (physical_address != N64CPU.cp0.lladdr) {
             logfatal("Undefined: SC physical address is NOT EQUAL to last lladdr!\n");
@@ -553,7 +559,7 @@ MIPS_INSTR(mips_scd) {
     }
 
     if (N64CPU.llbit) {
-        word physical_address = resolve_virtual_address(address);
+        word physical_address = resolve_virtual_address_or_die(address);
 
         if (physical_address != N64CPU.cp0.lladdr) {
             logfatal("Undefined: SCD physical address is NOT EQUAL to last lladdr!\n");
@@ -644,6 +650,12 @@ MIPS_INSTR(mips_spc_dsrlv) {
     set_register(instruction.r.rd, val);
 }
 
+MIPS_INSTR(mips_spc_dsrav) {
+    sdword value = get_register(instruction.r.rt);
+    sdword result = value >> (get_register(instruction.r.rs) & 0b111111);
+    set_register(instruction.r.rd, result);
+}
+
 MIPS_INSTR(mips_spc_mult) {
     sword multiplicand_1 = get_register(instruction.r.rs);
     sword multiplicand_2 = get_register(instruction.r.rt);
@@ -674,8 +686,8 @@ MIPS_INSTR(mips_spc_multu) {
 }
 
 MIPS_INSTR(mips_spc_div) {
-    sdword dividend = get_register(instruction.r.rs);
-    sdword divisor  = get_register(instruction.r.rt);
+    sdword dividend = (sword)get_register(instruction.r.rs);
+    sdword divisor  = (sword)get_register(instruction.r.rt);
 
     if (divisor == 0) {
         logwarn("Divide by zero");
@@ -696,16 +708,19 @@ MIPS_INSTR(mips_spc_div) {
 }
 
 MIPS_INSTR(mips_spc_divu) {
-    dword dividend = get_register(instruction.r.rs);
-    dword divisor  = get_register(instruction.r.rt);
+    word dividend = get_register(instruction.r.rs);
+    word divisor  = get_register(instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero exception");
+    if (divisor == 0) {
+        N64CPU.mult_lo = 0xFFFFFFFFFFFFFFFF;
+        N64CPU.mult_hi = (sword)dividend;
+    } else {
+        sword quotient  = dividend / divisor;
+        sword remainder = dividend % divisor;
 
-    sword quotient  = dividend / divisor;
-    sword remainder = dividend % divisor;
-
-    N64CPU.mult_lo = quotient;
-    N64CPU.mult_hi = remainder;
+        N64CPU.mult_lo = quotient;
+        N64CPU.mult_hi = remainder;
+    }
 }
 
 MIPS_INSTR(mips_spc_dmult) {
@@ -728,25 +743,37 @@ MIPS_INSTR(mips_spc_ddiv) {
     sdword dividend = (sdword)get_register(instruction.r.rs);
     sdword divisor  = (sdword)get_register(instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero");
-    sdword quotient  = (sdword)(dividend / divisor);
-    sdword remainder = (sdword)(dividend % divisor);
+    if (divisor == 0) {
+        logwarn("Divide by zero");
+        N64CPU.mult_hi = dividend;
+        if (dividend >= 0) {
+            N64CPU.mult_lo = (sdword)-1;
+        } else {
+            N64CPU.mult_lo = (sdword)1;
+        }
+    } else {
+        sdword quotient  = (sdword)(dividend / divisor);
+        sdword remainder = (sdword)(dividend % divisor);
 
-    N64CPU.mult_lo = quotient;
-    N64CPU.mult_hi = remainder;
+        N64CPU.mult_lo = quotient;
+        N64CPU.mult_hi = remainder;
+    }
 }
 
 MIPS_INSTR(mips_spc_ddivu) {
     dword dividend = get_register(instruction.r.rs);
     dword divisor  = get_register(instruction.r.rt);
 
-    unimplemented(divisor == 0, "Divide by zero");
+    if (divisor == 0) {
+        N64CPU.mult_lo = 0xFFFFFFFFFFFFFFFF;
+        N64CPU.mult_hi = dividend;
+    } else {
+        dword quotient  = dividend / divisor;
+        dword remainder = dividend % divisor;
 
-    dword quotient  = dividend / divisor;
-    dword remainder = dividend % divisor;
-
-    N64CPU.mult_lo = quotient;
-    N64CPU.mult_hi = remainder;
+        N64CPU.mult_lo = quotient;
+        N64CPU.mult_hi = remainder;
+    }
 }
 
 MIPS_INSTR(mips_spc_add) {
@@ -866,6 +893,10 @@ MIPS_INSTR(mips_spc_teq) {
     if (rs == rt) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
     }
+}
+
+MIPS_INSTR(mips_spc_break) {
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_BREAKPOINT, -1);
 }
 
 MIPS_INSTR(mips_spc_tne) {

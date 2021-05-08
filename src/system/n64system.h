@@ -119,6 +119,7 @@ typedef struct n64_system {
         vi_burst_t vi_burst;
         word vsync;
         int num_halflines;
+        int num_fields;
         int cycles_per_halfline;
         word hsync;
         word leap;
@@ -127,13 +128,22 @@ typedef struct n64_system {
             word raw;
             struct {
                 unsigned vend:10;
-                unsigned:5;
+                unsigned:6;
                 unsigned vstart:10;
                 unsigned:6;
             };
         } vstart;
         word vburst;
-        word xscale;
+        union {
+            word raw;
+            struct {
+                unsigned scale_decimal:10;
+                unsigned scale_integer:2;
+                unsigned subpixel_offset_decimal:10;
+                unsigned subpixel_offset_integer:2;
+                unsigned:4;
+            };
+        } xscale;
         word yscale;
         word v_current;
     } vi;

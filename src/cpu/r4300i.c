@@ -51,6 +51,7 @@ const char* cp0_register_names[] = {
 r4300i_t n64cpu;
 
 void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
+    bool old_exl = N64CP0.status.exl;
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
@@ -87,8 +88,18 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_INTERRUPT:
             case EXCEPTION_COPROCESSOR_UNUSABLE:
             case EXCEPTION_TRAP:
+            case EXCEPTION_BREAKPOINT:
             case EXCEPTION_SYSCALL:
                 set_pc_word_r4300i(0x80000180);
+                break;
+            case EXCEPTION_TLB_MISS_LOAD:
+                if (old_exl) {
+                    set_pc_word_r4300i(0x80000180);
+                } else if (N64CP0.is_64bit_addressing){
+                    set_pc_word_r4300i(0x80000080);
+                } else {
+                    set_pc_word_r4300i(0x80000000);
+                }
                 break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
@@ -126,6 +137,10 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr)
                 return mips_tlbr;
             case COP_FUNCT_ERET:
                 return mips_eret;
+            case COP_FUNCT_WAIT:
+                return mips_nop;
+            case COP_FUNCT_TLBWR_MOV:
+                return mips_tlbwr;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -314,7 +329,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
             }
 
 
-        case COP_FUNCT_MOV:
+        case COP_FUNCT_TLBWR_MOV:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
                     return mips_cp_mov_d;
@@ -502,6 +517,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
         case FUNCT_MTLO:    return mips_spc_mtlo;
         case FUNCT_DSLLV:   return mips_spc_dsllv;
         case FUNCT_DSRLV:   return mips_spc_dsrlv;
+        case FUNCT_DSRAV:   return mips_spc_dsrav;
         case FUNCT_MULT:    return mips_spc_mult;
         case FUNCT_MULTU:   return mips_spc_multu;
         case FUNCT_DIV:     return mips_spc_div;
@@ -532,6 +548,8 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
         case FUNCT_DSLL32:  return mips_spc_dsll32;
         case FUNCT_DSRL32:  return mips_spc_dsrl32;
         case FUNCT_DSRA32:  return mips_spc_dsra32;
+        case FUNCT_BREAK:   return mips_spc_break;
+        case FUNCT_SYNC:    return mips_nop;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -637,12 +655,20 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
     }
 }
 
+void on_tlb_exception(dword address) {
+    word vpn2 = address >> 13 & 0x7FFFF;
+    N64CP0.bad_vaddr = address;
+    N64CP0.context.badvpn2 = vpn2;
+    N64CP0.x_context.badvpn2 = vpn2;
+    N64CP0.entry_hi.vpn2 = vpn2;
+}
+
 void r4300i_step() {
     N64CPU.cp0.count += CYCLES_PER_INSTR;
     N64CPU.cp0.count &= 0x1FFFFFFFF;
-    if (unlikely(N64CPU.cp0.count >> 1 == N64CPU.cp0.compare)) {
+    if (unlikely(N64CPU.cp0.count == (dword)N64CPU.cp0.compare << 1)) {
         N64CPU.cp0.cause.ip7 = true;
-        loginfo("Compare interrupt!");
+        loginfo("Compare interrupt! count = 0x%09lX compare << 1 = 0x%09lX", N64CP0.count, (dword)N64CP0.compare << 1);
         r4300i_interrupt_update();
     }
 
@@ -655,8 +681,16 @@ void r4300i_step() {
      */
 
     dword pc = N64CPU.pc;
+    word physical_pc;
+    if (!resolve_virtual_address(pc, &physical_pc)) {
+        // tlb exception
+        logalways("TLB exception on loading an instruction!");
+        on_tlb_exception(pc);
+        r4300i_handle_exception(pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        return;
+    }
     mips_instruction_t instruction;
-    instruction.raw = n64_read_word(pc);
+    instruction.raw = n64_read_physical_word(physical_pc);
 
     if (unlikely(N64CPU.interrupts > 0)) {
         if(N64CPU.cp0.status.ie && !N64CPU.cp0.status.exl && !N64CPU.cp0.status.erl) {
@@ -677,4 +711,55 @@ void r4300i_step() {
 
 void r4300i_interrupt_update() {
     N64CPU.interrupts = N64CPU.cp0.cause.interrupt_pending & N64CPU.cp0.status.im;
+}
+
+bool instruction_stable(mips_instruction_t instr) {
+    if (instr.raw == 0) {
+        return true; // NOP
+    }
+
+    switch (instr.op) {
+        // All branches are stable
+        case OPC_REGIMM: // REGIMM opcodes are only branches
+        case OPC_J:
+        case OPC_JAL:
+        case OPC_BEQ:
+        case OPC_BEQL:
+        case OPC_BGTZ:
+        case OPC_BGTZL:
+        case OPC_BLEZ:
+        case OPC_BLEZL:
+        case OPC_BNE:
+        case OPC_BNEL:
+        // Will always generate the same result given the same args
+        case OPC_ANDI:
+        case OPC_ORI:
+        case OPC_LUI:
+            return true;
+        // Loads are stable if they load from RAM
+        case OPC_LB:
+        case OPC_LBU:
+        case OPC_LH:
+        case OPC_LHU:
+        case OPC_LW:
+        case OPC_LWU:
+        case OPC_LWL:
+        case OPC_LWR:
+        case OPC_LD:
+        case OPC_LDL:
+        case OPC_LDR:
+            return false; // TODO need const propagation to properly detect if this is a RAM access
+        // Stores are stable if they store to RAM
+        case OPC_SB:
+        case OPC_SH:
+        case OPC_SW:
+        case OPC_SWL:
+        case OPC_SWR:
+        case OPC_SD:
+        case OPC_SDL:
+        case OPC_SDR:
+            return false; // TODO need const propagation to properly detect if this is a RAM access
+        default:
+            return false;
+    }
 }

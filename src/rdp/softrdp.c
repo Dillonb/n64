@@ -72,7 +72,7 @@ INLINE void rdram_write32(softrdp_state_t* rdp, word address, word value) {
 }
 
 INLINE void rdram_write16(softrdp_state_t* rdp, word address, half value) {
-    memcpy(&rdp->rdram[address], &value, sizeof(half));
+    memcpy(&rdp->rdram[address ^ 2], &value, sizeof(half));
 }
 
 INLINE bool check_scissor(softrdp_state_t* rdp, int x, int y) {
@@ -89,141 +89,229 @@ INLINE int get_bytes_per_pixel(softrdp_state_t* rdp) {
     }
 }
 
-DEF_RDP_COMMAND(fill_triangle) {
-    bool dir   = BIT(55 + 64 * 3);
-    //word level = BITS(53 + 64 * 3, 51 + 64 * 3);
-    //word tile  = BITS(50 + 64 * 3, 48 + 64 * 3);
+typedef struct edge_coefficients {
+    bool dir;
+    word level;
+    word tile;
 
     // Y position where the triangle starts
-    word yh = BITS(13 + 64 * 3, 0  + 64 * 3);
+    word yh;
     // Y position where the second minor line starts
-    word ym = BITS(29 + 64 * 3, 16 + 64 * 3);
+    word ym;
     // Y position where the triangle ends.
-    word yl = BITS(45 + 64 * 3, 32 + 64 * 3);
+    word yl;
 
     // X position where the major line starts
-    word xh_i    = BITS(63 + 64 * 1, 48 + 64 * 1);
-    word xh_f    = BITS(47 + 64 * 1, 32 + 64 * 1);
+    word xh_i;
+    word xh_f;
     // X position where the first minor line starts.
-    word xm_i    = BITS(63 + 64 * 0, 48 + 64 * 0);
-    word xm_f    = BITS(47 + 64 * 0, 32 + 64 * 0);
+    word xm_i;
+    word xm_f;
     // X position where the second minor line starts
-    word xl_i = BITS(63 + 64 * 2, 48 + 64 * 2);
-    word xl_f = BITS(47 + 64 * 2, 32 + 64 * 2);
-
-    logalways("Filling triangle starting at %d, %d", yh, xh_i);
+    word xl_i;
+    word xl_f;
 
     // Change in X per Y along the major line
-    shalf dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
-    half  dxhdy_f = BITS(15 + 64 * 1, 0  + 64 * 1);
+    shalf dxhdy_i;
+    half  dxhdy_f;
     // Change in X per Y along the first minor line
-    shalf dxmdy_i = BITS(31 + 64 * 0, 16 + 64 * 0);
-    half  dxmdy_f = BITS(15 + 64 * 0, 0  + 64 * 0);
+    shalf dxmdy_i;
+    half  dxmdy_f;
     // Change in X per Y along the second minor line
-    shalf dxldy_i = BITS(31 + 64 * 2, 16 + 64 * 2);
-    half  dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
+    shalf dxldy_i;
+    half  dxldy_f;
+} edge_coefficients_t;
 
+typedef struct span {
+    int start;
+    int end;
+} span_t;
+
+typedef struct spans {
+    int start_y;
+    int num_spans;
+    span_t spans[1024];
+} spans_t;
+
+INLINE void get_edge_coefficients(const word* buffer, word command_length, edge_coefficients_t* coefficients) {
+    coefficients->dir   = BIT(55 + 64 * 3);
+    coefficients->level = BITS(53 + 64 * 3, 51 + 64 * 3);
+    coefficients->tile  = BITS(50 + 64 * 3, 48 + 64 * 3);
+
+    // Y position where the triangle starts
+    coefficients->yh = BITS(13 + 64 * 3, 0  + 64 * 3);
+    // Y position where the second minor line starts
+    coefficients->ym = BITS(29 + 64 * 3, 16 + 64 * 3);
+    // Y position where the triangle ends.
+    coefficients->yl = BITS(45 + 64 * 3, 32 + 64 * 3);
+
+    // X position where the major line starts
+    coefficients->xh_i    = BITS(63 + 64 * 1, 48 + 64 * 1);
+    coefficients->xh_f    = BITS(47 + 64 * 1, 32 + 64 * 1);
+    // X position where the first minor line starts.
+    coefficients->xm_i    = BITS(63 + 64 * 0, 48 + 64 * 0);
+    coefficients->xm_f    = BITS(47 + 64 * 0, 32 + 64 * 0);
+    // X position where the second minor line starts
+    coefficients->xl_i = BITS(63 + 64 * 2, 48 + 64 * 2);
+    coefficients->xl_f = BITS(47 + 64 * 2, 32 + 64 * 2);
+
+
+    // Change in X per Y along the major line
+    coefficients->dxhdy_i = BITS(31 + 64 * 1, 16 + 64 * 1);
+    coefficients->dxhdy_f = BITS(15 + 64 * 1, 0  + 64 * 1);
+    // Change in X per Y along the first minor line
+    coefficients->dxmdy_i = BITS(31 + 64 * 0, 16 + 64 * 0);
+    coefficients->dxmdy_f = BITS(15 + 64 * 0, 0  + 64 * 0);
+    // Change in X per Y along the second minor line
+    coefficients->dxldy_i = BITS(31 + 64 * 2, 16 + 64 * 2);
+    coefficients->dxldy_f = BITS(15 + 64 * 2, 0  + 64 * 2);
+}
+
+INLINE void triangle_edgewalker(softrdp_state_t* rdp, edge_coefficients_t* ec, spans_t* spans) {
     word xstart;
     word xend;
 
     sword dxstart;
     sword dxend;
 
-    if (dir) {
-        xstart = xm_i << 16 | xm_f;
-        xend = xh_i << 16 | xh_f;
+    if (ec->dir) {
+        xstart = ec->xm_i << 16 | ec->xm_f;
+        xend = ec->xh_i << 16 | ec->xh_f;
 
-        dxstart = dxmdy_i << 16 | dxmdy_f;
-        dxend = dxhdy_i << 16 | dxhdy_f;
+        dxstart = ec->dxmdy_i << 16 | ec->dxmdy_f;
+        dxend = ec->dxhdy_i << 16 | ec->dxhdy_f;
     } else {
-        xstart = xh_i << 16 | xh_f;
-        xend = xm_i << 16 | xm_f;
+        xstart = ec->xh_i << 16 | ec->xh_f;
+        xend = ec->xm_i << 16 | ec->xm_f;
 
-        dxstart = dxhdy_i << 16 | dxhdy_f;
-        dxend = dxmdy_i << 16 | dxmdy_f;
+        dxstart = ec->dxhdy_i << 16 | ec->dxhdy_f;
+        dxend = ec->dxmdy_i << 16 | ec->dxmdy_f;
     }
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
-    if (bytes_per_pixel == 2) {
-        yh /= 2;
-        ym /= 2;
-        yl /= 2;
-    }
+    int yh = ec->yh / 4;
+    int ym = ec->ym / 4;
+    int yl = ec->yl / 4;
 
-    // Top half of triangle (between YH and YM)
-    for (int y = yh; y < ym; y += bytes_per_pixel) {
-        int yofs = (y * rdp->color_image.width);
+    logalways("Edgewalking triangle yh %d ym %d yl %d", yh, ym, yl);
 
-        int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
-        int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
+    spans->start_y = yh;
 
-        for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
-            word address = rdp->color_image.dram_addr + yofs + x;
-            if (bytes_per_pixel == 4) {
-                rdram_write32(rdp, address, rdp->fill_color);
-            } else if (bytes_per_pixel == 2) {
-                switch (rdp->other_modes.cycle_type) {
-                    case 0: {
-                        // hack, this is incorrect. Just use the blend color
-                        half color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
-                        rdram_write16(rdp, address ^ 2, color);
-                        break;
-                    }
-                    case 3:
-                        rdram_write16(rdp, address ^ 2, rdp->fill_color);
-                        break;
-                    default:
-                        logfatal("Fill triangle 16bpp unsupported cycle type: %d", rdp->other_modes.cycle_type);
-                }
-            }
-        }
+    int span_index = 0;
+
+    for (int y = yh; y < ym; y += 1) {
+        span_t* s = &spans->spans[span_index++];
+
+        s->start = ((ec->dir ? xend : xstart) >> 16);
+        s->end = ((ec->dir ? xstart : xend) >> 16);
+
         xstart += dxstart;
         xend += dxend;
     }
 
-    if (dir) {
-        xstart = xl_i << 16 | xl_f;
-        dxstart = dxldy_i << 16 | dxldy_f;
+    if (ec->dir) {
+        xstart = ec->xl_i << 16 | ec->xl_f;
+        dxstart = ec->dxldy_i << 16 | ec->dxldy_f;
     } else {
-        xend = xl_i << 16 | xl_f;
-        dxend = dxldy_i << 16 | dxldy_f;
+        xend = ec->xl_i << 16 | ec->xl_f;
+        dxend = ec->dxldy_i << 16 | ec->dxldy_f;
     }
 
-    // Bottom half of triangle (between YM and YL)
-    for (int y = ym; y < yl; y += bytes_per_pixel) {
-        int yofs = (y * rdp->color_image.width);
+    for (int y = ym; y < yl; y += 1) {
+        span_t* s = &spans->spans[span_index++];
 
-        int xmin = ((dir ? xend : xstart) >> 16) * bytes_per_pixel;
-        int xmax = ((dir ? xstart : xend) >> 16) * bytes_per_pixel;
+        s->start = ((ec->dir ? xend : xstart) >> 16);
+        s->end = ((ec->dir ? xstart : xend) >> 16);
 
-        for (int x = MIN(xmin, xmax); x < MAX(xmin, xmax); x += bytes_per_pixel) {
-            word address = rdp->color_image.dram_addr + yofs + x;
-            if (bytes_per_pixel == 4) {
-                unimplemented(rdp->other_modes.cycle_type != 3, "Fill triangle 32bpp not in fill mode");
-                rdram_write32(rdp, address, rdp->fill_color);
-            } else if (bytes_per_pixel == 2) {
-                switch (rdp->other_modes.cycle_type) {
-                    case 0: {
-                        // hack, this is incorrect. Just use the blend color
-                        half color = (rdp->blend_color.r >> 3) << 11 | (rdp->blend_color.g >> 3) << 6 | (rdp->blend_color.b >> 3) << 1 | 1;
-                        rdram_write16(rdp, address ^ 2, color);
-                        break;
-                    }
-                    case 3:
-                        rdram_write16(rdp, address ^ 2, rdp->fill_color);
-                        break;
-                    default:
-                        logfatal("Fill triangle 16bpp unsupported cycle type: %d", rdp->other_modes.cycle_type);
-                }
-            }
-        }
         xstart += dxstart;
         xend += dxend;
+    }
+
+    spans->num_spans = span_index;
+}
+
+typedef struct z_coefficients {
+    // Inverse depth
+    shalf z;
+    half z_f;
+
+    // Change in Z per change in X coordinate
+    shalf dzdx;
+    half dzdx_f;
+
+    // Change in Z along major edge
+    shalf dzde;
+    half dzde_f;
+
+    // Change in Z per change in Y coordinate
+    shalf dzdy;
+    half dzdy_f;
+} z_coefficients_t;
+
+INLINE void get_zbuffer_coefficients(const word* buffer, word command_length, z_coefficients_t* coefficients) {
+    coefficients->z   = BITS(63 + 64, 48 + 64);
+    coefficients->z_f = BITS(47 + 64, 32 + 64);
+
+    coefficients->dzdx   = BITS(31 + 64, 16 + 64);
+    coefficients->dzdx_f = BITS(15 + 64,  0 + 64);
+
+    coefficients->dzde   = BITS(63 +  0, 48 +  0);
+    coefficients->dzde_f = BITS(47 +  0, 32 +  0);
+
+    coefficients->dzdy   = BITS(31 +  0, 16 +  0);
+    coefficients->dzdy_f = BITS(15 +  0,  0 +  0);
+
+
+    logalways("Z coefficients: z: %d.%d, dzdx: %d.%d, dzde: %d.%d, dzdy: %d.%d",
+              coefficients->z, coefficients->z_f,
+              coefficients->dzdx, coefficients->dzdx_f,
+              coefficients->dzde, coefficients->dzde_f,
+              coefficients->dzdy, coefficients->dzdy_f);
+}
+
+INLINE half fill_for_addr(softrdp_state_t* rdp, word addr) {
+    // Code below is optimized to remove the conditional.
+    // Essentially, the behavior is to use the upper bits of fill_color if we're on an even column,
+    // and the lower bits if we're on an odd column.
+
+    // return rdp->fill_color >> (addr % 4 == 0 ? 16 : 0);
+    return rdp->fill_color >> (16 - ((addr % 4) * 8));
+}
+
+DEF_RDP_COMMAND(fill_triangle) {
+    static edge_coefficients_t ec;
+    get_edge_coefficients(buffer, command_length, &ec);
+    static spans_t spans;
+    triangle_edgewalker(rdp, &ec, &spans);
+
+    logalways("Filling triangle starting at %d, %d. from y=%d to y=%d (pixel %d to %d?)", ec.yh, ec.xh_i, ec.yh, ec.yl, ec.yh / 2, ec.yl / 2);
+
+    int bytes_per_pixel = get_bytes_per_pixel(rdp);
+
+
+    for (int i = 0; i < spans.num_spans; i++) {
+        int y = spans.start_y + i;
+        span_t* s = &spans.spans[i];
+
+        word yofs = rdp->color_image.dram_addr + y * rdp->color_image.width * bytes_per_pixel;
+
+        for (int x = s->start * bytes_per_pixel; x < s->end * bytes_per_pixel; x += 2) {
+            word addr = yofs + x;
+            rdram_write16(rdp, addr, fill_for_addr(rdp, addr));
+        }
     }
 }
 
 DEF_RDP_COMMAND(fill_zbuffer_triangle) {
+    static edge_coefficients_t ec;
+    get_edge_coefficients(buffer, 8, &ec);
+
+    static z_coefficients_t zc;
+    get_zbuffer_coefficients(buffer + 8, 4, &zc);
+
+    static spans_t spans;
+    triangle_edgewalker(rdp, &ec, &spans);
     logfatal("rdp_fill_zbuffer_triangle unimplemented");
 }
 
@@ -390,42 +478,31 @@ DEF_RDP_COMMAND(set_tile) {
 }
 
 DEF_RDP_COMMAND(fill_rectangle) {
-    int xl = BITS(55, 44) / 4;
-    int yl = BITS(43, 32) / 4;
+    // Coordinates are in a 10.2 fixed point format, just discard the decimal places
+    int xl = BITS(55, 44) >> 2;
+    int yl = BITS(43, 32) >> 2;
 
-    int xh = BITS(23, 12) / 4;
-    int yh = BITS(11, 0) / 4;
+    int xh = BITS(23, 12) >> 2;
+    int yh = BITS(11, 0) >> 2;
 
-    logalways("Fill rectangle (%d, %d) (%d, %d)", xh, yh, xl, yl);
+    logalways("Fill rectangle (%d, %d) (%d, %d) with color %08X", xh, yh, xl, yl, rdp->fill_color);
 
-    unimplemented(rdp->color_image.format != 0, "Fill rect when color image format not RGBA");
+    unimplemented(rdp->color_image.format != 0, "Fill rect when color image format not RGBA (this may just work?)");
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
-    int y_range = (yl - yh) + 1;
-    int x_range = (xl - xh) + 1;
+    int x_start = xh * bytes_per_pixel;
+    int x_end = (xl + 1) * bytes_per_pixel;
 
-    logalways("y range: %d x range: %d", y_range, x_range);
+    int stride = rdp->color_image.width * bytes_per_pixel;
 
-    for (int y = 0; y < y_range; y++) {
-        int y_pixel = y + yh;
-        int yofs = (y_pixel * bytes_per_pixel * rdp->color_image.width);
-        for (int x = 0; x < x_range; x++) {
-            int x_pixel = x + xh;
-            int xofs = xh * bytes_per_pixel + (x * bytes_per_pixel);
-            word addr = rdp->color_image.dram_addr + yofs + xofs;
-            if (check_scissor(rdp, x_pixel, y_pixel)) {
-                if (bytes_per_pixel == 4) {
-                    unimplemented(rdp->other_modes.cycle_type != 3, "Fill rectangle 32bpp not in fill mode");
-                    rdram_write32(rdp, addr, rdp->fill_color);
-                } else if (bytes_per_pixel == 2) {
-                    unimplemented(rdp->other_modes.cycle_type != 3, "Fill rectangle 16bpp not in fill mode");
-                    rdram_write16(rdp, addr ^ 2, rdp->fill_color);
-                }
-            }
+    for (int y = yh; y < yl; y++) {
+        int yofs = y * stride;
+        for (int x = x_start; x < x_end; x += 2) {
+            word addr = rdp->color_image.dram_addr + yofs + x;
+            rdram_write16(rdp, addr, fill_for_addr(rdp, addr));
         }
     }
-
 }
 
 DEF_RDP_COMMAND(set_fill_color) {
@@ -482,7 +559,8 @@ DEF_RDP_COMMAND(set_texture_image) {
 }
 
 DEF_RDP_COMMAND(set_mask_image) {
-    logfatal("rdp_set_mask_image unimplemented");
+    rdp->z_image = BITS(25, 0);
+    logalways("Setting Zbuffer image to 0x%08X", rdp->z_image);
 }
 
 DEF_RDP_COMMAND(set_color_image) {
@@ -499,6 +577,8 @@ DEF_RDP_COMMAND(set_color_image) {
 
 void enqueue_command_softrdp(softrdp_state_t* rdp, int command_length, word* buffer) {
     rdp_command_t command = (buffer[0] >> 24) & 0x3F;
+
+    logalways("Command %02X", command);
 
     switch (command) {
         case RDP_COMMAND_FILL_TRIANGLE:                  EXEC_RDP_COMMAND(fill_triangle);

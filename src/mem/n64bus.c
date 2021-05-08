@@ -19,6 +19,20 @@ dword get_vpn(dword address, word page_mask_raw) {
     return vpn;
 }
 
+void dump_tlb(dword vaddr) {
+    printf("TLB error at address %016lX and PC %016lX, dumping TLB state:\n\n", vaddr, N64CPU.pc);
+    printf("   entry VPN  vaddr VPN  page size  lo0 valid  lo1 valid\n");
+    for (int i = 0; i < 32; i++) {
+        tlb_entry_t entry = N64CP0.tlb[i];
+        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
+        word page_size = mask + 1;
+        word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
+        word vaddr_vpn = get_vpn(vaddr, entry.page_mask.raw);
+
+        printf("%02d %08X   %08X   %08X   %d          %d\n", i, entry_vpn, vaddr_vpn, page_size, entry.entry_lo0.valid, entry.entry_lo1.valid);
+    }
+}
+
 bool tlb_probe(dword vaddr, word* paddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = N64CP0.tlb[i];
@@ -434,6 +448,7 @@ void dram_to_pif(word dram_address, word pif_address) {
     for (int i = 0; i < 64; i++) {
         n64sys.mem.pif_ram[i] = n64_read_physical_byte(dram_address + i);
     }
+    process_pif_command();
     interrupt_raise(INTERRUPT_SI);
 }
 
@@ -555,6 +570,7 @@ void n64_write_physical_dword(word address, dword value) {
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             dword_to_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe64(value));
+            process_pif_command();
             logfatal("Writing dword 0x%016lX to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
@@ -682,7 +698,7 @@ void n64_write_physical_word(word address, word value) {
         case REGION_UNUSED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            backup_write_word(address - SREGION_CART_2_1, value);
+            logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_CART_1_1, this is the 64DD, ignoring!", value, address);
             return;
         case REGION_CART_1_1:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
@@ -691,12 +707,31 @@ void n64_write_physical_word(word address, word value) {
             backup_write_word(address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
-            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            switch (address) {
+                case REGION_CART_ISVIEWER_BUFFER:
+                    word_to_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER, be32toh(value));
+                    break;
+                case CART_ISVIEWER_FLUSH: {
+                    if (value < CART_ISVIEWER_SIZE) {
+                        char* message = malloc(value + 1);
+                        memcpy(message, n64sys.mem.isviewer_buffer, value);
+                        message[value] = '\0';
+                        printf("%s", message);
+                        free(message);
+                    } else {
+                        logfatal("ISViewer buffer size is emulated at %d bytes, but received a flush command for %d bytes!", CART_ISVIEWER_SIZE, value);
+                    }
+                    break;
+                }
+                default:
+                    logalways("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            }
             return;
         case REGION_PIF_BOOT:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             word_to_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe32(value));
+            process_pif_command();
             logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
@@ -748,15 +783,22 @@ word n64_read_physical_word(word address) {
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART_2_1:
-            return backup_read_word(address - SREGION_CART_2_1);
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1 - This is the N64DD, returning FF because it is not emulated", address);
+            return 0xFF;
         case REGION_CART_1_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
-            return 0;
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning FF because it is not emulated", address);
+            return 0xFF;
         case REGION_CART_2_2:
             return backup_read_word(address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             word index = WORD_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size - 3) { // -3 because we're reading an entire word
+                switch (address) {
+                    case REGION_CART_ISVIEWER_BUFFER:
+                        return htobe32(word_from_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER));
+                    case CART_ISVIEWER_FLUSH:
+                        logfatal("Read from ISViewer flush!");
+                }
                 logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
                 return 0;
             } else {
@@ -776,12 +818,6 @@ word n64_read_physical_word(word address) {
             }
         }
         case REGION_PIF_RAM: {
-            if (address == 0x1FC007FC && n64sys.mem.pif_ram[63] == 0x30) {
-                // TODO Hack to get PIF ROM booting
-                // TODO I'm pretty sure this is where the CIC is also supposed to write the checksum out.
-                logwarn("Applying hack to get the PIF rom to boot, if you see this message in the middle of a game, something's wrong!");
-                n64sys.mem.pif_ram[63] = 0x80;
-            }
             return be32toh(word_from_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM));
         }
         case REGION_RESERVED:
@@ -858,6 +894,7 @@ void n64_write_physical_half(word address, half value) {
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             half_to_byte_array((byte*) &n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe16(value));
+            process_pif_command();
             logfatal("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
@@ -974,7 +1011,7 @@ void n64_write_physical_byte(word address, byte value) {
         case REGION_UNUSED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            backup_write_byte(address - SREGION_CART_2_1, value);
+            logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD!");
             return;
         case REGION_CART_1_1:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
@@ -982,11 +1019,13 @@ void n64_write_physical_byte(word address, byte value) {
             backup_write_byte(address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            break;
         case REGION_PIF_BOOT:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             n64sys.mem.pif_ram[address - SREGION_PIF_RAM] = value;
+            process_pif_command();
             logfatal("Writing byte to PIF RAM");
             break;
         case REGION_RESERVED:
@@ -1044,7 +1083,8 @@ byte n64_read_physical_byte(word address) {
         case REGION_CART_1_2: {
             word index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size) {
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                return 0xFF;
             }
             return n64sys.mem.rom.rom[index];
         }

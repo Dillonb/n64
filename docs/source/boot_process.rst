@@ -28,7 +28,7 @@ Set four GPRs to initial values:
 
 All other registers are left at zero.
 
-Set some CP0 registers to initial values:
+Set some COP0 registers to initial values:
 
 +-----------------+---------------+--------------+
 | Register Number | Register Name | Set to value |
@@ -43,8 +43,6 @@ Set some CP0 registers to initial values:
 +-----------------+---------------+--------------+
 
 All other registers are left at zero.
-
-The value 0x01010101 is then written to physical memory address 0x04300004 (through 0xA4300004 most likely, but that doesn't matter for our purposes here)
 
 The first 0x1000 bytes from the cartridge are then copied to SP DMEM. This is implemented as a copy of 0x1000 bytes from 0xB0000000 to 0xA4000000.
 

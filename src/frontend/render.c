@@ -109,22 +109,22 @@ void render_init(n64_video_type_t video_type) {
     gamepad_init();
 }
 
-#define yscale_to_height(yscale) ((15 * (yscale)) / 64)
-
 static word last_vi_type = 0;
-static word last_yscale = 0;
 static word vi_height = 0;
 static word vi_width = 0;
 
 INLINE void pre_scanout(SDL_PixelFormatEnum pixel_format) {
-    vi_width = n64sys.vi.vi_width;
-    if (n64sys.vi.yscale != last_yscale) {
-        last_yscale = n64sys.vi.yscale;
-        vi_height = yscale_to_height(last_yscale);
-    }
+    int new_height = n64sys.vi.vstart.vend - n64sys.vi.vstart.vstart;
+    bool should_recreate_texture = false;
 
-    if (last_vi_type != n64sys.vi.status.type) {
+    should_recreate_texture |= new_height != vi_height;
+    should_recreate_texture |= last_vi_type != n64sys.vi.status.type;
+    should_recreate_texture |= vi_width != n64sys.vi.vi_width;
+
+    if (should_recreate_texture) {
         last_vi_type = n64sys.vi.status.type;
+        vi_height = new_height;
+        vi_width = n64sys.vi.vi_width;
         if (texture != NULL) {
             SDL_DestroyTexture(texture);
         }
@@ -135,7 +135,7 @@ INLINE void pre_scanout(SDL_PixelFormatEnum pixel_format) {
 
 static void vi_scanout_16bit() {
     pre_scanout(SDL_PIXELFORMAT_RGBA5551);
-    int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
+    const int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
     for (int y = 0; y < vi_height; y++) {
         int yofs = (y * vi_width * 2);
         for (int x = 0; x < vi_width; x += 2) {
@@ -150,7 +150,8 @@ static void vi_scanout_16bit() {
 static void vi_scanout_32bit() {
     pre_scanout(SDL_PIXELFORMAT_RGBA8888);
     int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
-    SDL_UpdateTexture(texture, NULL, &n64sys.mem.rdram[rdram_offset], vi_width * 4);
+    int yofs = n64sys.vi.vstart.vstart * vi_width * 4;
+    SDL_UpdateTexture(texture, NULL, &n64sys.mem.rdram[rdram_offset + yofs], vi_width * 4);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 

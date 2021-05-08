@@ -119,6 +119,8 @@ typedef struct softrdp_state {
     } combine;
 
     softrdp_tile_t tiles[8];
+
+    uint32_t z_image;
 } softrdp_state_t;
 
 void init_softrdp(softrdp_state_t* state, uint8_t* rdramptr);

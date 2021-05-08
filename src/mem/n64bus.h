@@ -5,6 +5,7 @@
 #include <system/n64system.h>
 #include "addresses.h"
 
+void dump_tlb(dword vaddr);
 bool tlb_probe(dword vaddr, word* paddr, int* entry_number);
 bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number);
 
@@ -20,28 +21,28 @@ bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number);
 #define REGION_CKSSEG 0xFFFFFFFFC0000000 ... 0xFFFFFFFFDFFFFFFF
 #define REGION_CKSEG3 0xFFFFFFFFE0000000 ... 0xFFFFFFFFFFFFFFFF
 
-INLINE word resolve_virtual_address_32bit(word address) {
-    word physical;
+INLINE bool resolve_virtual_address_32bit(word address, word* physical) {
     switch (address >> 29) {
         // KSEG0
         case 0x4:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
-            physical = address - SVREGION_KSEG0;
-            logtrace("KSEG0: Translated 0x%08X to 0x%08X", address, physical);
+            *physical = address - SVREGION_KSEG0;
+            logtrace("KSEG0: Translated 0x%08X to 0x%08X", address, *physical);
             break;
         // KSEG1
         case 0x5:
             // Unmapped translation. Subtract the base address of the space to get the physical address.
-            physical = address - SVREGION_KSEG1;
-            logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, physical);
+            *physical = address - SVREGION_KSEG1;
+            logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, *physical);
             break;
         // KUSEG
         case 0x0:
         case 0x1:
         case 0x2:
         case 0x3: {
-            if (!tlb_probe(address, &physical, NULL)) {
-                logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KUSEG", address);
+            if (!tlb_probe(address, physical, NULL)) {
+                dump_tlb(address);
+                return false;
             }
             break;
         }
@@ -50,22 +51,23 @@ INLINE word resolve_virtual_address_32bit(word address) {
             logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", address);
         // KSEG3
         case 0x7:
-            if (!tlb_probe(address, &physical, NULL)) {
-                logfatal("Unimplemented: page miss translating virtual address 0x%08X in VREGION_KSEG3", address);
+            if (!tlb_probe(address, physical, NULL)) {
+                dump_tlb(address);
+                return false;
             }
             break;
         default:
             logfatal("PANIC! should never end up here.");
     }
-    return physical;
+    return true;
 }
 
-INLINE word resolve_virtual_address_64bit(dword address) {
-    word physical;
+INLINE bool resolve_virtual_address_64bit(dword address, word* physical) {
     switch (address) {
         case REGION_XKUSEG:
-            if (!tlb_probe_64(address, &physical, NULL)) {
-                logfatal("Unimplemented: page miss translating virtual address 0x%016lX in REGION_XKUSEG", address);
+            if (!tlb_probe_64(address, physical, NULL)) {
+                logwarn("Page miss translating virtual address 0x%016lX in REGION_XKUSEG", address);
+                return false;
             }
             break;
     case REGION_XKSSEG:
@@ -88,9 +90,9 @@ INLINE word resolve_virtual_address_64bit(dword address) {
             if (!valid) {
                 logfatal("Invalid XKPHYS address 0x%016lX! bits in the range of 58:32 are set.", address);
             }
-            physical = address & 0xFFFFFFFF;
+            *physical = address & 0xFFFFFFFF;
 
-            logwarn("XKPHYS: Translated 0x%016lX to 0x%08X", address, physical);
+            logwarn("XKPHYS: Translated 0x%016lX to 0x%08X", address, *physical);
             break;
         }
         case REGION_XKSEG:
@@ -98,14 +100,14 @@ INLINE word resolve_virtual_address_64bit(dword address) {
         case REGION_CKSEG0:
             // Identical to kseg0 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.
-            physical = address - SVREGION_KSEG0; // Implies cutting off the high 32 bits
-            logtrace("CKSEG0: Translated 0x%016lX to 0x%08X", address, physical);
+            *physical = address - SVREGION_KSEG0; // Implies cutting off the high 32 bits
+            logtrace("CKSEG0: Translated 0x%016lX to 0x%08X", address, *physical);
             break;
         case REGION_CKSEG1:
             // Identical to kseg1 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.
-            physical = address - SVREGION_KSEG1; // Implies cutting off the high 32 bits
-            logtrace("KSEG1: Translated 0x%016lX to 0x%08X", address, physical);
+            *physical = address - SVREGION_KSEG1; // Implies cutting off the high 32 bits
+            logtrace("KSEG1: Translated 0x%016lX to 0x%08X", address, *physical);
             break;
         case REGION_CKSSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_CKSSEG) in 64 bit mode", address);
@@ -120,19 +122,24 @@ INLINE word resolve_virtual_address_64bit(dword address) {
             logfatal("Resolving virtual address 0x%016lX in 64 bit mode", address);
     }
 
+    return true;
+}
+
+INLINE bool resolve_virtual_address(dword virtual, word* physical) {
+    if (N64CP0.is_64bit_addressing) {
+        return resolve_virtual_address_64bit(virtual, physical);
+    } else {
+        return resolve_virtual_address_32bit(virtual, physical);
+    }
+}
+
+INLINE word resolve_virtual_address_or_die(dword virtual) {
+    word physical;
+    if (!resolve_virtual_address(virtual, &physical)) {
+        logfatal("Unhandled TLB exception at 0x%016lX!", virtual);
+    }
     return physical;
 }
-
-INLINE word resolve_virtual_address(dword address) {
-    word addr;
-    if (N64CP0.is_64bit_addressing) {
-        addr = resolve_virtual_address_64bit(address);
-    } else {
-        addr = resolve_virtual_address_32bit(address);
-    }
-    return addr;
-}
-
 
 void n64_write_physical_dword(word address, dword value);
 dword n64_read_physical_dword(word address);
@@ -147,35 +154,35 @@ void n64_write_physical_byte(word address, byte value);
 byte n64_read_physical_byte(word address);
 
 INLINE void n64_write_dword(dword address, dword value) {
-    n64_write_physical_dword(resolve_virtual_address(address), value);
+    n64_write_physical_dword(resolve_virtual_address_or_die(address), value);
 }
 
 INLINE dword n64_read_dword(dword address) {
-    return n64_read_physical_dword(resolve_virtual_address(address));
+    return n64_read_physical_dword(resolve_virtual_address_or_die(address));
 }
 
 INLINE void n64_write_word(dword address, word value) {
-    n64_write_physical_word(resolve_virtual_address(address), value);
+    n64_write_physical_word(resolve_virtual_address_or_die(address), value);
 }
 
 INLINE word n64_read_word(dword address) {
-    return n64_read_physical_word(resolve_virtual_address(address));
+    return n64_read_physical_word(resolve_virtual_address_or_die(address));
 }
 
 INLINE void n64_write_half(dword address, half value) {
-    n64_write_physical_half(resolve_virtual_address(address), value);
+    n64_write_physical_half(resolve_virtual_address_or_die(address), value);
 }
 
 INLINE half n64_read_half(dword address) {
-    return n64_read_physical_half(resolve_virtual_address(address));
+    return n64_read_physical_half(resolve_virtual_address_or_die(address));
 }
 
 INLINE void n64_write_byte(dword address, byte value) {
-    n64_write_physical_byte(resolve_virtual_address(address), value);
+    n64_write_physical_byte(resolve_virtual_address_or_die(address), value);
 }
 
 INLINE byte n64_read_byte(dword address) {
-    return n64_read_physical_byte(resolve_virtual_address(address));
+    return n64_read_physical_byte(resolve_virtual_address_or_die(address));
 }
 
 #endif //N64_N64BUS_H

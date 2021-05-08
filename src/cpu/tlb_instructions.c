@@ -1,7 +1,8 @@
 #include "tlb_instructions.h"
+#include "r4300i_register_access.h"
 #include <mem/n64bus.h>
 
-void tlbwi_32b() {
+void tlbwi_32b(int index) {
     cp0_entry_hi_t entry_hi;
     entry_hi.raw = N64CP0.entry_hi.raw   & 0xFFFFE0FF;
 
@@ -13,8 +14,6 @@ void tlbwi_32b() {
 
     cp0_page_mask_t page_mask;
     page_mask.raw = N64CP0.page_mask.raw & 0x01FFE000;
-
-    int index = N64CP0.index & 0x3F;
 
     if (index >= 32) {
         logfatal("TLBWI to TLB index %d", index);
@@ -30,7 +29,7 @@ void tlbwi_32b() {
 
 }
 
-void tlbwi_64b() {
+void tlbwi_64b(int index) {
     cp0_entry_hi_64_t entry_hi;
     entry_hi.raw = N64CP0.entry_hi_64.raw & 0xC00000FFFFFFE0FF;
 
@@ -42,8 +41,6 @@ void tlbwi_64b() {
 
     cp0_page_mask_t page_mask;
     page_mask.raw = N64CP0.page_mask.raw & 0x01FFE000;
-
-    int index = N64CP0.index & 0x3F;
 
     if (index >= 32) {
         logfatal("TLBWI to TLB index %d", index);
@@ -64,10 +61,13 @@ void tlbwi_64b() {
 // registers to the TLB pfn indicated by the index register.
 MIPS_INSTR(mips_tlbwi) {
     // TODO - these are mostly identical, can collapse
+
+    int index = N64CP0.index & 0x3F;
+
     if (N64CP0.is_64bit_addressing) {
-        tlbwi_64b();
+        tlbwi_64b(index);
     } else {
-        tlbwi_32b();
+        tlbwi_32b(index);
     }
 }
 
@@ -99,4 +99,9 @@ MIPS_INSTR(mips_tlbr) {
 
     N64CP0.entry_lo0.g = entry.entry_hi.g;
     N64CP0.entry_lo1.g = entry.entry_hi.g;
+}
+
+MIPS_INSTR(mips_tlbwr) {
+    unimplemented(N64CP0.is_64bit_addressing, "tlbwr in 64 bit mode");
+    tlbwi_32b(get_cp0_random());
 }

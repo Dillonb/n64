@@ -3,6 +3,7 @@
 #include "gamepad.h"
 
 #include <log.h>
+#include <rdp/parallel_rdp_wrapper.h>
 
 static event_handler_t imgui_event_handler = NULL;
 
@@ -28,25 +29,25 @@ void handle_event(SDL_Event* event) {
 
                 case SDLK_UP:
                 case SDLK_w:
-                    update_joyaxis_y(0, INT8_MAX);
+                    update_joyaxis_y(0, JOYAXIS_MAX);
                     //update_button(0, DPAD_UP, true);
                     break;
 
                 case SDLK_DOWN:
                 case SDLK_s:
-                    update_joyaxis_y(0, INT8_MIN);
+                    update_joyaxis_y(0, JOYAXIS_MIN);
                     //update_button(0, DPAD_DOWN, true);
                     break;
 
                 case SDLK_LEFT:
                 case SDLK_a:
-                    update_joyaxis_x(0, INT8_MIN);
+                    update_joyaxis_x(0, JOYAXIS_MIN);
                     //update_button(0, DPAD_LEFT, true);
                     break;
 
                 case SDLK_RIGHT:
                 case SDLK_d:
-                    update_joyaxis_x(0, INT8_MAX);
+                    update_joyaxis_x(0, JOYAXIS_MAX);
                     //update_button(0, DPAD_RIGHT, true);
                     break;
 
@@ -57,6 +58,9 @@ void handle_event(SDL_Event* event) {
                 case SDLK_RETURN:
                     update_button(0, N64_BUTTON_START, true);
                     break;
+
+                case SDLK_u:
+                    set_framerate_unlocked(!is_framerate_unlocked());
             }
             break;
         }

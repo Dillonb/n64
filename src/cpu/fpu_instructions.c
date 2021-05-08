@@ -122,7 +122,6 @@ INLINE int push_round_mode() {
         default:
             logfatal("Unknown rounding mode %d", N64CPU.fcr31.rounding_mode);
     }
-    //fesetround(FE_TOWARDZERO);
     return orig_round;
 }
 
@@ -255,11 +254,10 @@ MIPS_INSTR(mips_cp_trunc_l_d) {
 }
 
 MIPS_INSTR(mips_cp_round_l_d) {
-    logwarn("mips_cp_round_l_d used: this instruction is known to be buggy!");
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
     PUSHROUND;
-    dword truncated = round(value);
+    dword truncated = nearbyint(value);
     POPROUND;
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -273,12 +271,11 @@ MIPS_INSTR(mips_cp_trunc_l_s) {
 }
 
 MIPS_INSTR(mips_cp_round_l_s) {
-    logwarn("mips_cp_round_l_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     PUSHROUND;
-    dword truncated = roundf(value);
+    dword truncated = nearbyintf(value);
     POPROUND;
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -291,11 +288,10 @@ MIPS_INSTR(mips_cp_trunc_w_d) {
 }
 
 MIPS_INSTR(mips_cp_round_w_d) {
-    logwarn("mips_cp_round_w_d used: this instruction is known to be buggy!");
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
     PUSHROUND;
-    word truncated = round(value);
+    word truncated = nearbyint(value);
     POPROUND;
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -321,12 +317,11 @@ MIPS_INSTR(mips_cp_floor_w_s) {
 }
 
 MIPS_INSTR(mips_cp_round_w_s) {
-    logwarn("mips_cp_round_w_s used: this instruction is known to be buggy!");
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     PUSHROUND;
-    sword truncated = roundf(value);
+    sword truncated = nearbyintf(value);
     POPROUND;
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -444,12 +439,9 @@ MIPS_INSTR(mips_cp_c_f_s) {
 }
 MIPS_INSTR(mips_cp_c_un_s) {
     checkcp1;
-    /*
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
-     checknansf(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_un_s");
+    N64CPU.fcr31.compare = isnanf(fs) || isnanf(ft);
 }
 MIPS_INSTR(mips_cp_c_eq_s) {
     checkcp1;
@@ -599,12 +591,9 @@ MIPS_INSTR(mips_cp_c_f_d) {
 }
 MIPS_INSTR(mips_cp_c_un_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_un_d");
+    N64CPU.fcr31.compare = isnan(fs) || isnan(ft);
 }
 MIPS_INSTR(mips_cp_c_eq_d) {
     checkcp1;
@@ -625,12 +614,12 @@ MIPS_INSTR(mips_cp_c_ueq_d) {
 }
 MIPS_INSTR(mips_cp_c_olt_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double(instruction.fr.fs);
     double ft = get_fpu_register_double(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_olt_d");
+    checknansd(fs, ft);
+    ORDERED_D(fs, ft);
+
+    N64CPU.fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_ult_d) {
     checkcp1;
@@ -638,7 +627,6 @@ MIPS_INSTR(mips_cp_c_ult_d) {
     double ft = get_fpu_register_double(instruction.fr.ft);
     UNORDERED_D(fs, ft);
     N64CPU.fcr31.compare = fs < ft;
-    logfatal("Unimplemented: mips_cp_c_ult_d");
 }
 MIPS_INSTR(mips_cp_c_ole_d) {
     checkcp1;
@@ -774,9 +762,15 @@ MIPS_INSTR(mips_lwc1) {
     checkcp1;
     shalf offset  = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
-    word value    = n64_read_word(address);
 
-    set_fpu_register_word(instruction.fi.ft, value);
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+    } else {
+        word value = n64_read_physical_word(physical);
+        set_fpu_register_word(instruction.fi.ft, value);
+    }
 }
 
 MIPS_INSTR(mips_swc1) {

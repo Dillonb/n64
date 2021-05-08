@@ -1,6 +1,7 @@
 #include <frontend/tas_movie.h>
 #include <frontend/gamepad.h>
 #include <rsp.h>
+#include <n64_cic_nus_6105.h>
 #include "pif.h"
 #include "n64bus.h"
 #include "backup.h"
@@ -12,6 +13,8 @@
 #define PIF_COMMAND_EEPROM_READ   0x04
 #define PIF_COMMAND_EEPROM_WRITE  0x05
 #define PIF_COMMAND_RESET         0xFF
+
+#define MEMPACK_SIZE 0x8000
 
 #define CMD_CMDLEN_INDEX 0
 #define CMD_RESLEN_INDEX 1
@@ -121,21 +124,27 @@ void pif_rom_execute_lle() {
 void pif_rom_execute() {
     switch (n64sys.mem.rom.cic_type) {
         case CIC_NUS_6101_7102:
+            logalways("Initializing PIF and CIC: CIC_NUS_6101_7102");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x00043F3F);
             n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6102_7101:
+            logalways("Initializing PIF and CIC: CIC_NUS_6102_7101");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x00003F3F);
             n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6103_7103:
+            logalways("Initializing PIF and CIC: CIC_NUS_6103_7103");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000783F);
+            n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6105_7105:
+            logalways("Initializing PIF and CIC: CIC_NUS_6105_7105");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000913F);
             n64_write_physical_word(SREGION_RDRAM + 0x3F0, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6106_7106:
+            logalways("Initializing PIF and CIC: CIC_NUS_6106_7106");
             n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000853F);
             break;
         case UNKNOWN_CIC_TYPE:
@@ -149,6 +158,10 @@ void pif_rom_execute() {
         logalways("PIF rom loaded, executing it...");
         pif_rom_execute_lle();
     }
+}
+
+INLINE void pif_channel_reset(int channel) {
+
 }
 
 INLINE void pif_controller_reset(byte* cmd, byte* res) {
@@ -201,19 +214,14 @@ INLINE void pif_mempack_read(byte* cmd, byte* res) {
     // offset must be 32-byte aligned
     offset &= ~0x1F;
 
-    // The most significant bit in the address is not used for the mempak.
-    // The game will identify whether the connected device is a mempak or something else by writing to
-    // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
-    // something else, depending on the data it returns.
-    offset &= 0x7FE0;
-
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
-            logfatal("Reading from CONTROLLER_ACCESSORY_NONE");
             break;
         case CONTROLLER_ACCESSORY_MEMPACK:
-            for (int i = 0; i < 32; i++) {
-                res[i] = n64sys.mem.mempack_data[offset + i];
+            if (offset <= MEMPACK_SIZE - 0x20) {
+                for (int i = 0; i < 32; i++) {
+                    res[i] = n64sys.mem.mempack_data[offset + i];
+                }
             }
             break;
         case CONTROLLER_ACCESSORY_RUMBLE_PACK:
@@ -237,21 +245,19 @@ INLINE void pif_mempack_write(byte* cmd, byte* res) {
     // offset must be 32-byte aligned
     offset &= ~0x1F;
 
-    // The most significant bit in the address is not used for the mempak.
-    // The game will identify whether the connected device is a mempak or something else by writing to
-    // 0x8000, then reading from 0x0000. If the device returns the same data, it's a mempak. Otherwise, it's
-    // something else, depending on the data it returns.
-    offset &= 0x7FE0;
-
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
-            return;
+            break;
         case CONTROLLER_ACCESSORY_MEMPACK:
-            init_mempack(&n64sys.mem, n64sys.rom_path);
-            for (int i = 0; i < 32; i++) {
-                n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+            if (offset <= MEMPACK_SIZE - 0x20) {
+                init_mempack(&n64sys.mem, n64sys.rom_path);
+                bool data_changed = false;
+                for (int i = 0; i < 32; i++) {
+                    data_changed |= (n64sys.mem.mempack_data[offset + i] != CMD_DATA[i + 2]);
+                    n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+                }
+                n64sys.mem.mempack_data_dirty |= data_changed;
             }
-            n64sys.mem.mempack_data_dirty = true;
             break;
         case CONTROLLER_ACCESSORY_RUMBLE_PACK: {
             bool all_zeroes = true;
@@ -307,9 +313,43 @@ INLINE void pif_eeprom_write(byte* cmd, byte* res) {
     n64sys.mem.save_data_dirty = true;
 }
 
+void cic_challenge() {
+    byte challenge[30];
+    byte response[30];
+
+    printf("CIC challenge: ");
+
+    // Split 15 bytes into 30 nibbles
+    for (int i = 0; i < 15; i++) {
+        printf("%02X", n64sys.mem.pif_ram[0x30 + i]);
+
+        challenge[i * 2 + 0]   = (n64sys.mem.pif_ram[0x30 + i] >> 4) & 0x0F;
+        challenge[i * 2 + 1]  =  (n64sys.mem.pif_ram[0x30 + i] >> 0) & 0x0F;
+    }
+    printf("\n");
+
+    n64_cic_nus_6105((char*)challenge, (char*)response, CHL_LEN - 2);
+
+    printf("Challenge response: ");
+    for (int i = 0; i < 15; i++) {
+        n64sys.mem.pif_ram[0x30 + i] = (response[i * 2] << 4) + response[i * 2 + 1];
+        printf("%02X", n64sys.mem.pif_ram[0x30 + i]);
+    }
+    printf("\n");
+}
+
+const char* pif_ram_as_str() {
+    static char buf[129];
+    memset(buf, 0x00, 129);
+    for (int i = 0; i < 64; i++) {
+        sprintf(buf + (i * 2), "%02X", n64sys.mem.pif_ram[i]);
+    }
+    return buf;
+}
+
 void process_pif_command() {
     byte control = n64sys.mem.pif_ram[63];
-    if (control == 1) {
+    if (control & 1) {
         pif_channel = 0;
         int i = 0;
         while (i < 63) {
@@ -318,14 +358,17 @@ void process_pif_command() {
 
             if (cmdlen == 0) {
                 pif_channel++;
+            } else if (cmdlen == 0x3D) { // 0xFD in PIF RAM = send reset signal to this pif channel
+                pif_channel_reset(pif_channel);
+                pif_channel++;
+            } else if (cmdlen == 0x3E) { // 0xFE in PIF RAM = end of commands
+                break;
             } else if (cmdlen == 0x3F) {
                 continue;
-            } else if (cmdlen == 0x3E) {
-                break;
             } else {
                 byte r = n64sys.mem.pif_ram[i++];
-                if (r == 0xFE) {
-                    continue;
+                if (r == 0xFE) { // 0xFE in PIF RAM = end of commands.
+                    break;
                 }
                 byte reslen = r & 0x3F; // TODO: out of bounds access possible on invalid data
                 byte* res = &n64sys.mem.pif_ram[i + cmdlen];
@@ -376,6 +419,19 @@ void process_pif_command() {
                 i += cmdlen + reslen;
             }
         }
+    }
+
+    if (control & 2) {
+        cic_challenge();
+        n64sys.mem.pif_ram[63] &= ~2;
+    }
+
+    if (control & 0x08) {
+        n64sys.mem.pif_ram[63] &= ~8;
+    }
+
+    if (control & 0x30) {
+        n64sys.mem.pif_ram[63] = 0x80;
     }
 }
 

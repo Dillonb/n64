@@ -20,6 +20,8 @@ void write_word_vireg(word address, word value) {
     switch (address) {
         case ADDR_VI_STATUS_REG: {
             n64sys.vi.status.raw = value;
+            // If serrate = 1, render two fields for an interlaced frame.
+            n64sys.vi.num_fields = n64sys.vi.status.serrate ? 2 : 1;
             break;
         }
         case ADDR_VI_ORIGIN_REG:
@@ -46,7 +48,7 @@ void write_word_vireg(word address, word value) {
             n64sys.vi.vsync = value & 0x3FF;
             n64sys.vi.num_halflines = n64sys.vi.vsync >> 1;
             n64sys.vi.cycles_per_halfline = CPU_CYCLES_PER_FRAME / n64sys.vi.num_halflines;
-            loginfo("VI vsync is now 0x%X / %d. VSYNC happens on halfline %d (wrote 0x%08X)", value & 0x3FF, value & 0x3FF, (value & 0x3FF) >> 1, value);
+            loginfo("VI vsync is now 0x%X / %d, wrote 0x%08X", value & 0x3FF, value & 0x3FF, value);
             break;
         case ADDR_VI_H_SYNC_REG:
             n64sys.vi.hsync = value & 0x3FF;
@@ -68,7 +70,7 @@ void write_word_vireg(word address, word value) {
             loginfo("VI vburst is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_X_SCALE_REG:
-            n64sys.vi.xscale = value;
+            n64sys.vi.xscale.raw = value;
             loginfo("VI xscale is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_Y_SCALE_REG:
@@ -91,7 +93,7 @@ word read_word_vireg(word address) {
         case ADDR_VI_V_INTR_REG:
             logfatal("Reading of ADDR_VI_V_INTR_REG is unsupported");
         case ADDR_VI_V_CURRENT_REG:
-            return n64sys.vi.v_current << 1;
+            return n64sys.vi.v_current;
         case ADDR_VI_BURST_REG:
             logfatal("Reading of ADDR_VI_BURST_REG is unsupported");
         case ADDR_VI_V_SYNC_REG:
@@ -116,10 +118,10 @@ word read_word_vireg(word address) {
 }
 
 void check_vi_interrupt() {
-    if (n64sys.vi.v_current == n64sys.vi.vi_v_intr >> 1) {
-        logdebug("Checking for VI interrupt: %d == %d? YES", n64sys.vi.v_current, n64sys.vi.vi_v_intr >> 1);
+    if ((n64sys.vi.v_current & 0x3FE) == n64sys.vi.vi_v_intr) {
+        logdebug("Checking for VI interrupt: %d == %d? YES", n64sys.vi.v_current % 0x3FE, n64sys.vi.vi_v_intr);
         interrupt_raise(INTERRUPT_VI);
     } else {
-        logdebug("Checking for VI interrupt: %d == %d? nah", n64sys.vi.v_current, n64sys.vi.vi_v_intr >> 1);
+        logdebug("Checking for VI interrupt: %d == %d? nah", n64sys.vi.v_current & 0x3FE, n64sys.vi.vi_v_intr);
     }
 }

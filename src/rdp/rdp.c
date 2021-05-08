@@ -173,11 +173,11 @@ void load_rdp_plugin(const char* filename) {
 void write_word_dpcreg(word address, word value) {
     switch (address) {
         case ADDR_DPC_START_REG:
-            n64sys.dpc.start = value & 0xFFFFFF;
+            n64sys.dpc.start = value & 0xFFFFF8;
             n64sys.dpc.current = n64sys.dpc.start;
             break;
         case ADDR_DPC_END_REG:
-            n64sys.dpc.end = value & 0xFFFFFF;
+            n64sys.dpc.end = value & 0xFFFFF8;
             rdp_run_command();
             break;
         case ADDR_DPC_CURRENT_REG:
@@ -340,6 +340,7 @@ void process_rdp_list() {
     dpc->current = end;
 
     dpc->status.freeze = false;
+    dpc->status.cbuf_ready = true;
 }
 
 void rdp_run_command() {
@@ -397,7 +398,8 @@ void rdp_status_reg_write(word value) {
     if (status_write.set_xbus_dmem_dma) n64sys.dpc.status.xbus_dmem_dma = true;
 
     if (status_write.clear_freeze) n64sys.dpc.status.freeze = false;
-    if (status_write.set_freeze) n64sys.dpc.status.freeze = true;
+    // Seems to break games (banjo-tooie and banjo-kazooie) if this bit actually works.
+    // if (status_write.set_freeze) n64sys.dpc.status.freeze = true;
 
     if (status_write.clear_flush) n64sys.dpc.status.flush = false;
     if (status_write.set_flush) n64sys.dpc.status.flush = true;

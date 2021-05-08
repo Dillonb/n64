@@ -53,12 +53,14 @@ _Static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
       // Push callee-saved registers onto the stack so we don't trample them
       | push cpuState
       | push instrArg
+      | sub rsp, 8 // Stack needs to be 16 byte aligned. Return address + the two regs above + this == 32 bytes.
       // The CPU's state is passed in as argument 1
       | mov cpuState, rArg1
     |.endmacro
     // Called at the end of our block
     |.macro epilogue
       // Pop callee-saved registers off the stack and then return
+      | add rsp, 8
       | pop instrArg
       | pop cpuState
       | ret
@@ -104,6 +106,16 @@ void check_exception(dasm_State** Dst, word block_length) {
     |1:
 }
 
+#ifdef N64_DEBUG_MODE
+void check_exception_sanity(dasm_State** Dst, word block_length) {
+    // If an instruction is marked as not throwing an exception, check it anyway in debug mode.
+    | mov al, cpu_state->exception
+    | cmp al, 0
+    | je >1
+    | int3
+    |1:
+}
+#endif
 
 #define TAKEBRANCH take_branch(Dst, instr, address)
 #define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
@@ -115,6 +127,10 @@ void check_exception(dasm_State** Dst, word block_length) {
 
 COMPILER(mips_nop) {}
 IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
+COMPILER(mips_wait) {
+    *extra_cycles += 63; // for a total of 64
+}
+IR_INFO(mips_wait, NORMAL, FORMAT_NOP, false);
 COMPILER(mips_cache) {}
 IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
 
@@ -141,10 +157,6 @@ IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
 COMPILER(mips_beq) {
     // Compile as an unconditional branch
     if (instr.i.rs == 0 && instr.i.rt == 0) {
-        // This is a branch-to-self, make it take extra cycles
-        if (instr.i.immediate == 0xFFFF) {
-            *extra_cycles = 63; // for a total of 64
-        }
         TAKEBRANCH;
     } else {
         // handle normally
@@ -311,6 +323,7 @@ COMPILER(mips_spc_dsrlv) {
 }
 IR_INFO(mips_spc_dsrlv, NORMAL, R_TYPE, false);
 
+COMP(mips_spc_dsrav, NORMAL, false);
 COMP(mips_spc_mult, NORMAL, false);
 COMP(mips_spc_multu, NORMAL, false);
 COMP(mips_spc_div, NORMAL, false);
@@ -389,6 +402,7 @@ IR_INFO(mips_spc_daddu, NORMAL, R_TYPE, false);
 COMP(mips_spc_dsub, NORMAL, false);
 COMP(mips_spc_dsubu, NORMAL, false);
 COMP(mips_spc_teq, NORMAL, true);
+COMP(mips_spc_break, NORMAL, true);
 
 COMPILER(mips_spc_dsll) {
     BAILZERO(instr.r.rd);
@@ -439,7 +453,7 @@ IR_INFO(mips_spc_dsra32, NORMAL, SHIFT_CONST, false);
 COMP(mips_lbu, NORMAL, false);
 COMP(mips_lhu, NORMAL, false);
 COMP(mips_lh, NORMAL, false);
-COMP(mips_lw, NORMAL, false);
+COMP(mips_lw, NORMAL, true);
 COMP(mips_lwu, NORMAL, false);
 COMP(mips_sb, STORE, false);
 COMP(mips_sh, STORE, false);
@@ -479,12 +493,13 @@ COMP(mips_ri_bgezl, BRANCH_LIKELY, false);
 COMP(mips_ri_bgezal, BRANCH, false);
 COMP(mips_spc_jr, BRANCH, false);
 COMP(mips_spc_jalr, BRANCH, false);
+COMP(mips_spc_syscall, NORMAL, true);
 COMP(mips_cp_bc1tl, BRANCH_LIKELY, false);
 COMP(mips_cp_bc1fl, BRANCH_LIKELY, false);
 
 // Instructions that don't make too much sense to optimize
 COMP(mips_mfc0, NORMAL, false);
-COMP(mips_mtc0, NORMAL, false);
+COMP(mips_mtc0, NORMAL, true);
 COMP(mips_tlbwi, TLB_WRITE, false);
 COMP(mips_tlbp, NORMAL, false);
 COMP(mips_tlbr, NORMAL, false);
@@ -536,6 +551,8 @@ COMP(mips_cp_mov_d, NORMAL, true);
 COMP(mips_cp_mov_s, NORMAL, true);
 COMP(mips_cp_neg_d, NORMAL, true);
 COMP(mips_cp_neg_s, NORMAL, true);
+COMP(mips_cp_c_un_d, NORMAL, true);
+COMP(mips_cp_c_un_s, NORMAL, true);
 COMP(mips_cp_c_eq_d, NORMAL, true);
 COMP(mips_cp_c_eq_s, NORMAL, true);
 COMP(mips_cp_c_lt_d, NORMAL, true);
@@ -576,6 +593,7 @@ INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, word address) 
             CASEIR(COP_FUNCT_TLBP,       mips_tlbp);
             CASEIR(COP_FUNCT_TLBR_SUB,   mips_tlbr);
             CASEIR(COP_FUNCT_ERET,       mips_eret);
+            CASEIR(COP_FUNCT_WAIT,       mips_wait);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);
@@ -596,12 +614,14 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_SRLV, mips_spc_srlv);
         CASEIR(FUNCT_JR, mips_spc_jr);
         CASEIR(FUNCT_JALR, mips_spc_jalr);
+        CASEIR(FUNCT_SYSCALL, mips_spc_syscall);
         CASEIR(FUNCT_MFHI, mips_spc_mfhi);
         CASEIR(FUNCT_MTHI, mips_spc_mthi);
         CASEIR(FUNCT_MFLO, mips_spc_mflo);
         CASEIR(FUNCT_MTLO, mips_spc_mtlo);
         CASEIR(FUNCT_DSLLV, mips_spc_dsllv);
         CASEIR(FUNCT_DSRLV, mips_spc_dsrlv);
+        CASEIR(FUNCT_DSRAV, mips_spc_dsrav);
         CASEIR(FUNCT_MULT, mips_spc_mult);
         CASEIR(FUNCT_MULTU, mips_spc_multu);
         CASEIR(FUNCT_DIV, mips_spc_div);
@@ -631,6 +651,8 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_DSLL32, mips_spc_dsll32);
         CASEIR(FUNCT_DSRL32, mips_spc_dsrl32);
         CASEIR(FUNCT_DSRA32, mips_spc_dsra32);
+        CASEIR(FUNCT_BREAK, mips_spc_break);
+        CASEIR(FUNCT_SYNC, mips_nop);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -793,7 +815,7 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
                     logfatal("Undefined!");
             }
 
-        case COP_FUNCT_MOV:
+        case COP_FUNCT_TLBWR_MOV:
             switch (instr.fr.fmt) {
                 CASEIR(FP_FMT_DOUBLE, mips_cp_mov_d);
                 CASEIR(FP_FMT_SINGLE, mips_cp_mov_s);
@@ -810,7 +832,12 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) 
         case COP_FUNCT_C_F:
             logfatal("COP_FUNCT_C_F unimplemented");
         case COP_FUNCT_C_UN:
-            logfatal("COP_FUNCT_C_UN unimplemented");
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_un_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_un_s);
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
                 CASEIR(FP_FMT_DOUBLE, mips_cp_c_eq_d);

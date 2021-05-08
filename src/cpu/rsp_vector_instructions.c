@@ -864,10 +864,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
         sdword acc_delta = prod;
         acc_delta *= 2;
         sdword acc = get_rsp_accumulator(e) + acc_delta;
+        set_rsp_accumulator(e, acc);
+        acc = get_rsp_accumulator(e);
 
         shalf result = clamp_signed(acc >> 16);
 
-        set_rsp_accumulator(e, acc);
         vd->elements[e] = result;
     }
 }
@@ -891,10 +892,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
         sdword acc_delta = prod;
         acc_delta *= 2;
         sdword acc = get_rsp_accumulator(e) + acc_delta;
+        set_rsp_accumulator(e, acc);
+        acc = get_rsp_accumulator(e);
 
         half result = clamp_unsigned(acc >> 16);
 
-        set_rsp_accumulator(e, acc);
         vd->elements[e] = result;
     }
 }
@@ -926,10 +928,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
 
         dword acc_delta = (dword)uprod << 16;
         sdword acc = get_rsp_accumulator(e) + acc_delta;
-
-        shalf result = clamp_signed((sword)(acc >> 16));
-
         set_rsp_accumulator(e, acc);
+        acc = get_rsp_accumulator(e);
+
+        shalf result = clamp_signed(acc >> 16);
+
         vd->elements[e] = result;
     }
 #endif
@@ -998,10 +1001,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
         sdword acc_delta = prod;
         sdword acc = get_rsp_accumulator(e);
         acc += acc_delta;
+        set_rsp_accumulator(e, acc);
+        acc = get_rsp_accumulator(e);
 
         shalf result = clamp_signed(acc >> 16);
 
-        set_rsp_accumulator(e, acc);
         vd->elements[e] = result;
     }
 #endif
@@ -1127,7 +1131,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
         shalf multiplicand2 = vs->elements[e];
         sword prod = multiplicand1 * multiplicand2;
 
-        dword acc = (sdword)prod;
+        sdword acc = (sdword)prod;
 
         shalf result = clamp_signed(acc);
 
