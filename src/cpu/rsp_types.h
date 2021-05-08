@@ -26,8 +26,6 @@ typedef union vu_reg {
     word words[4];
 } vu_reg_t;
 
-_Static_assert(sizeof(vu_reg_t) == sizeof(word) * 4, "Correct size of vu_reg_t");
-
 #ifdef N64_BIG_ENDIAN
 #define VU_BYTE_INDEX(i) (i)
 #define VU_ELEM_INDEX(i) (i)
