@@ -26,14 +26,14 @@ The goals of this project are to create a low-level emulator with good compatibi
 - GDB stub for debugging
 
 # Limitations & TODOs
-- Only Linux is currently supported, as I use Linux-specific features. This is planned to be fixed.
-- The dynamic recompiler currently only supports x86_64 with the System-V calling convention. Microsoft's x86_64 calling convention, as well as aarch64 support is planned.
+- Only Linux and Windows are currently supported. MacOS support is not currently possible, since parallel-rdp does not support it.
+- The dynamic recompiler currently only supports x86_64. aarch64 support is planned in the (distant) future.
 - Only little-endian host platforms are planned to be supported.
 - Only gcc and clang will be supported. I unapologetically use extensions like case ranges and binary literals.
 - Only software that uses NTSC video modes is currently supported. This is planned to be fixed.
 
 # Building
-Currently, only Linux on x86_64 is supported.
+For Linux:
 
 1. Install dependencies: SDL2, Vulkan, and optionally Capstone
 2. Run the following commands:
@@ -42,7 +42,9 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 ```
+For Windows:
 
+TODO
 
 # Running
 Run with no parameters to use the default settings and load your ROM using the GUI, or run with options:
