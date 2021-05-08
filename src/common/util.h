@@ -27,9 +27,12 @@ typedef int64_t sdword;
 #ifdef N64_WIN
 #define ASSERTWORD(type) _Static_assert(sizeof(type) == 4, "must be 32 bits")
 #define ASSERTDWORD(type) _Static_assert(sizeof(type) == 8, "must be 64 bits")
-#else
+#elif defined(__cplusplus)
 #define ASSERTWORD(type) static_assert(sizeof(type) == 4, #type " must be 32 bits")
 #define ASSERTDWORD(type) static_assert(sizeof(type) == 8, #type " must be 64 bits")
+#else
+#define ASSERTWORD(type) _Static_assert(sizeof(type) == 4, #type " must be 32 bits")
+#define ASSERTDWORD(type) _Static_assert(sizeof(type) == 8, #type " must be 64 bits")
 #endif
 
 #ifndef N64_WIN
