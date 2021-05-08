@@ -1,7 +1,6 @@
 #ifndef N64_MIPS_INSTRUCTION_DECODE_H
 #define N64_MIPS_INSTRUCTION_DECODE_H
 
-#include <stdbool.h>
 #include <util.h>
 
 typedef union mips_instruction {
@@ -9,23 +8,23 @@ typedef union mips_instruction {
 
     struct {
 #ifdef N64_BIG_ENDIAN
-        bool op0:1;
-        bool op1:1;
-        bool op2:1;
-        bool op3:1;
-        bool op4:1;
-        bool op5:1;
+        unsigned op0:1;
+        unsigned op1:1;
+        unsigned op2:1;
+        unsigned op3:1;
+        unsigned op4:1;
+        unsigned op5:1;
         unsigned:26;
 #else
         unsigned:26;
-        bool op5:1;
-        bool op4:1;
-        bool op3:1;
-        bool op2:1;
-        bool op1:1;
-        bool op0:1;
+        unsigned op5:1;
+        unsigned op4:1;
+        unsigned op3:1;
+        unsigned op2:1;
+        unsigned op1:1;
+        unsigned op0:1;
 #endif
-    };
+    } PACKED;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -35,7 +34,7 @@ typedef union mips_instruction {
         unsigned:26;
         unsigned op:6;
 #endif
-    };
+    } PACKED;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -49,7 +48,7 @@ typedef union mips_instruction {
         unsigned rs:5;
         unsigned op:6;
 #endif
-    } i;
+    } PACKED i;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -63,7 +62,7 @@ typedef union mips_instruction {
         unsigned base:5;
         unsigned op:6;
 #endif
-    } fi;
+    } PACKED fi;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -73,7 +72,7 @@ typedef union mips_instruction {
         unsigned target:26;
         unsigned op:6;
 #endif
-    } j;
+    } PACKED j;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -91,7 +90,7 @@ typedef union mips_instruction {
         unsigned rs:5;
         unsigned op:6;
 #endif
-    } r;
+    } PACKED r;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -109,7 +108,7 @@ typedef union mips_instruction {
         unsigned fmt:5;
         unsigned op:6;
 #endif
-    } fr;
+    } PACKED fr;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -127,12 +126,12 @@ typedef union mips_instruction {
         unsigned base:5;
         unsigned op:6;
 #endif
-    } v;
+    } PACKED v;
 
     struct {
 #ifdef N64_BIG_ENDIAN
         unsigned op:6;
-        bool is_vec:1;
+        unsigned is_vec:1;
         unsigned e:4;
         unsigned vt:5;
         unsigned vs:5;
@@ -144,10 +143,10 @@ typedef union mips_instruction {
         unsigned vs:5;
         unsigned vt:5;
         unsigned e:4;
-        bool is_vec:1;
+        unsigned is_vec:1;
         unsigned op:6;
 #endif
-    } cp2_vec;
+    } PACKED cp2_vec;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -165,7 +164,7 @@ typedef union mips_instruction {
         unsigned funct:5;
         unsigned op:6;
 #endif
-    } cp2_regmove;
+    } PACKED cp2_regmove;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -185,7 +184,7 @@ typedef union mips_instruction {
         unsigned funct0:1;
         unsigned:26;
 #endif
-    };
+    } PACKED;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -205,7 +204,7 @@ typedef union mips_instruction {
         unsigned rt0:1;
         unsigned:11;
 #endif
-    };
+    } PACKED;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -225,7 +224,7 @@ typedef union mips_instruction {
         unsigned rs0:1;
         unsigned:6;
 #endif
-    };
+    } PACKED;
 
     struct {
 #ifdef N64_BIG_ENDIAN
@@ -235,8 +234,10 @@ typedef union mips_instruction {
         unsigned last11:11;
         unsigned:21;
 #endif
-    };
+    } PACKED;
 
 } PACKED mips_instruction_t;
+
+ASSERTWORD(mips_instruction_t);
 
 #endif //N64_MIPS_INSTRUCTION_DECODE_H
