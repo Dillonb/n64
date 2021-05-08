@@ -16,6 +16,12 @@ jobs:
         run: |
           vcpkg install sdl2:x64-windows
 
+      - name: Build N64
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:\Users\dillo\Documents\GitHub\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+
   build-linux:
     runs-on: ubuntu-20.04
 
