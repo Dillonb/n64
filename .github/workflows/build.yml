@@ -14,7 +14,7 @@ jobs:
 
       - name: Setup SDL2
         run: |
-          vcpkg install sdl2:x64-windows
+          vcpkg install sdl2[vulkan]:x64-windows
 
       - name: Build N64
         run: |
