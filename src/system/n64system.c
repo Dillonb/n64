@@ -10,8 +10,11 @@
 #include <cpu/dynarec/dynarec.h>
 #ifndef N64_WIN
 #include <sys/mman.h>
-#endif
 #include <errno.h>
+#else
+#include <windows.h>
+#include <memoryapi.h>
+#endif
 #include <mem/backup.h>
 #include <frontend/game_db.h>
 #include <metrics.h>
@@ -41,7 +44,28 @@ void n64_load_rom(const char* rom_path) {
 
 void mprotect_codecache() {
 #ifdef N64_WIN
-    logalways("WARNING! not mprotecting codecache on windows. Implement me!");
+    DWORD oldProtect = 0;
+    if (!VirtualProtect(&codecache, CODECACHE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        LPVOID lpMsgBuf;
+        DWORD error = GetLastError();
+
+        DWORD bufLen = FormatMessage(
+                FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                FORMAT_MESSAGE_FROM_SYSTEM |
+                FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL,
+                error,
+                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPTSTR) &lpMsgBuf,
+                0, NULL );
+        LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
+
+        if (bufLen) {
+            logfatal("VirtualProtect codecache failed! Code: dec %lu hex %lX Message: %s", error, error, lpMsgStr);
+        } else {
+            logfatal("VirtualProtect codecache failed! Code: %lu", error);
+        }
+    }
 #else
     if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
         logfatal("mprotect codecache failed! %s", strerror(errno));
