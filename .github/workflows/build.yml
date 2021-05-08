@@ -24,10 +24,6 @@ jobs:
           cmake --build .
         shell: cmd
 
-      - name: Tree
-        run: |
-          tree
-
       - name: Collect files
         run: |
           mkdir upload
