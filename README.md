@@ -47,6 +47,7 @@ For Windows:
 1. Install dependencies: Visual Studio 2019 with the clang workload, vcpkg, CMake.
 2. Run the following commands, replacing the vcpkg path with where you installed it:
 ```bash
+vcpkg install sdl2[vulkan]:x64-windows
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release -T clangcl -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
