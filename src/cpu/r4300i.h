@@ -596,7 +596,7 @@ typedef union fgr {
     struct {
         word lo:32;
         word hi:32;
-    } __attribute__((packed));
+    } PACKED;
 } fgr_t;
 
 ASSERTDWORD(fgr_t);
