@@ -496,10 +496,10 @@ ASSERTWORD(cp0_context_t);
 typedef union cp0_x_context {
     dword raw;
     struct {
-        unsigned:4;
-        unsigned badvpn2:27;
-        unsigned r:2;
-        unsigned ptebase:31;
+        dword:4;
+        dword badvpn2:27;
+        dword r:2;
+        dword ptebase:31;
     } PACKED;
 } cp0_x_context_t;
 

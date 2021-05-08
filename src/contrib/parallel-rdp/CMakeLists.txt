@@ -52,6 +52,8 @@ target_include_directories(parallel-rdp PUBLIC
         parallel-rdp-standalone/vulkan-headers/include
         parallel-rdp-standalone/util)
 
-if(NOT WIN32)
+if(WIN32)
+    target_compile_definitions(parallel-rdp PUBLIC VK_USE_PLATFORM_WIN32_KHR)
+else()
     target_link_libraries(parallel-rdp dl)
 endif()

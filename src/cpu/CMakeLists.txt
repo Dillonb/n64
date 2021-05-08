@@ -15,7 +15,7 @@ if (NOT WIN32)
 endif()
 
 if (WIN32)
-    set(DYNASM_EXTRA_FLAGS "-D WIN")
+    set(DYNASM_EXTRA_FLAGS -D WIN)
 endif()
 
 add_custom_command(OUTPUT asm_emitter.c

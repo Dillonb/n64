@@ -234,7 +234,9 @@ void jit_system_loop() {
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
                     cycles += jit_system_step();
+#ifndef N64_WIN
                     n64sys.debugger_state.steps = 0;
+#endif
                 }
                 cycles -= n64sys.vi.cycles_per_halfline;
                 ai_step(n64sys.vi.cycles_per_halfline);

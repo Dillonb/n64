@@ -19,6 +19,9 @@
 #define checknansd(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
 #define checknanf(value) if (isnan(value)) { logfatal("value == NaN!"); }
 #define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
+
+#define isnanf isnan
+
 #else
 
 #define ORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
