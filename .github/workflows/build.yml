@@ -21,13 +21,14 @@ jobs:
           mkdir build
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -T clangcl -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
-          cmake --build .
+          cmake --build . --config Release
         shell: cmd
 
       - name: Collect files
         run: |
           mkdir upload
-          move build\Debug\n64.exe upload
+          move build\Release\n64.exe upload
+          move build\Release\SDL2.dll upload
 
       - name: Upload files
         uses: actions/upload-artifact@master
