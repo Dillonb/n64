@@ -12,6 +12,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Install Ninja
+        run: |
+          - choco install ninja
+
       - name: Setup SDL2
         run: |
           vcpkg install sdl2:x64-windows
@@ -20,7 +24,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+          cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -T clangcl -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+          ninja
 
   build-linux:
     runs-on: ubuntu-20.04
