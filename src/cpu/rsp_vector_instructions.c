@@ -292,7 +292,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
     int address_offset = address & 7;
     address &= ~7;
 
-    for(uint elem = 0; elem < 8; elem++) {
+    for(int elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
         half value = n64_rsp_read_byte(address + element_offset);
@@ -367,7 +367,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_luv) {
     int address_offset = address & 7;
     address &= ~7;
 
-    for(uint elem = 0; elem < 8; elem++) {
+    for (int elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
         half value = n64_rsp_read_byte(address + element_offset);
@@ -520,7 +520,7 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 
     int start = instruction.v.element;
     int end = start + 8;
-    for(uint offset = start; offset < end; offset++) {
+    for(int offset = start; offset < end; offset++) {
         if((offset & 15) < 8) {
             n64_rsp_write_byte(address++, N64RSP.vu_regs[instruction.v.vt].elements[VU_ELEM_INDEX(offset & 7)] >> 7);
         } else {

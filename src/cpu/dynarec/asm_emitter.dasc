@@ -5,7 +5,9 @@
 
 #include <dynasm/dasm_proto.h>
 #include <dynasm/dasm_x86.h>
+#ifndef N64_WIN
 #include <sys/mman.h>
+#endif
 
 #include <mem/n64bus.h>
 #include "disassemble.h"
@@ -20,7 +22,7 @@
 #error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
 #endif
 
-static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
+_Static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
 
 |.if X64
 |.arch x64
@@ -1010,8 +1012,8 @@ dasm_State* block_header() {
 }
 
 void advance_pc(dasm_State** Dst) {
-    static_assert(sizeof(N64CPU.pc) == 8, "PC must be 64 bits for this to work (using RAX)");
-    static_assert(sizeof(N64CPU.next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
+    _Static_assert(sizeof(N64CPU.pc) == 8, "PC must be 64 bits for this to work (using RAX)");
+    _Static_assert(sizeof(N64CPU.next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
 
     // N64CPU.branch = false;
     | mov al, 0

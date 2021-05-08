@@ -8,8 +8,13 @@
 #include <interface/ai.h>
 #include <cpu/rsp.h>
 #include <cpu/dynarec/dynarec.h>
+#ifndef N64_WIN
 #include <sys/mman.h>
 #include <errno.h>
+#else
+#include <windows.h>
+#include <memoryapi.h>
+#endif
 #include <mem/backup.h>
 #include <frontend/game_db.h>
 #include <metrics.h>
@@ -37,6 +42,37 @@ void n64_load_rom(const char* rom_path) {
     strcpy(n64sys.rom_path, rom_path);
 }
 
+void mprotect_codecache() {
+#ifdef N64_WIN
+    DWORD oldProtect = 0;
+    if (!VirtualProtect(&codecache, CODECACHE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        LPVOID lpMsgBuf;
+        DWORD error = GetLastError();
+
+        DWORD bufLen = FormatMessage(
+                FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                FORMAT_MESSAGE_FROM_SYSTEM |
+                FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL,
+                error,
+                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPTSTR) &lpMsgBuf,
+                0, NULL );
+        LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
+
+        if (bufLen) {
+            logfatal("VirtualProtect codecache failed! Code: dec %lu hex %lX Message: %s", error, error, lpMsgStr);
+        } else {
+            logfatal("VirtualProtect codecache failed! Code: %lu", error);
+        }
+    }
+#else
+    if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        logfatal("mprotect codecache failed! %s", strerror(errno));
+    }
+#endif
+}
+
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
     memset(&n64sys, 0x00, sizeof(n64_system_t));
     memset(&N64CPU, 0x00, sizeof(N64CPU));
@@ -45,18 +81,18 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
 
     n64sys.video_type = video_type;
 
-    if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
-        logfatal("mprotect codecache failed! %s", strerror(errno));
-    }
+    mprotect_codecache();
     n64sys.dynarec = n64_dynarec_init(codecache, CODECACHE_SIZE);
 
     if (enable_frontend) {
         render_init(video_type);
     }
+#ifndef N64_WIN
     n64sys.debugger_state.enabled = enable_debug;
     if (enable_debug) {
         debugger_init();
     }
+#endif
     n64sys.use_interpreter = use_interpreter;
 
     reset_n64system();
@@ -164,6 +200,7 @@ INLINE int jit_system_step() {
 
 INLINE int interpreter_system_step() {
 #ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
     if (n64sys.debugger_state.enabled && check_breakpoint(&n64sys.debugger_state, N64CPU.pc)) {
         debugger_breakpoint_hit();
     }
@@ -171,6 +208,7 @@ INLINE int interpreter_system_step() {
         usleep(1000);
         debugger_tick();
     }
+#endif
 #endif
     int taken = CYCLES_PER_INSTR;
     r4300i_step();
@@ -220,7 +258,9 @@ void jit_system_loop() {
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
                     cycles += jit_system_step();
+#ifndef N64_WIN
                     n64sys.debugger_state.steps = 0;
+#endif
                 }
                 cycles -= n64sys.vi.cycles_per_halfline;
                 ai_step(n64sys.vi.cycles_per_halfline);
@@ -229,12 +269,14 @@ void jit_system_loop() {
             rdp_update_screen();
         }
 #ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
         if (n64sys.debugger_state.enabled) {
             debugger_tick();
         }
 #endif
+#endif
 #ifdef LOG_ENABLED
-update_delayed_log_verbosity();
+        update_delayed_log_verbosity();
 #endif
         persist_backup();
         reset_all_metrics();
@@ -252,7 +294,9 @@ void interpreter_system_loop() {
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
                     cycles += interpreter_system_step();
+#ifndef N64_WIN
                     n64sys.debugger_state.steps = 0;
+#endif
                 }
                 cycles -= n64sys.vi.cycles_per_halfline;
                 ai_step(n64sys.vi.cycles_per_halfline);
@@ -261,9 +305,11 @@ void interpreter_system_loop() {
             rdp_update_screen();
         }
 #ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
         if (n64sys.debugger_state.enabled) {
             debugger_tick();
         }
+#endif
 #endif
 #ifdef LOG_ENABLED
         update_delayed_log_verbosity();
@@ -288,7 +334,9 @@ void n64_system_cleanup() {
         free(n64sys.dynarec);
         n64sys.dynarec = NULL;
     }
+#ifndef N64_WIN
     debugger_cleanup();
+#endif
 
     free(n64sys.mem.rom.rom);
     n64sys.mem.rom.rom = NULL;

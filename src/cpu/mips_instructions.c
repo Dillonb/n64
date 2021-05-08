@@ -740,8 +740,8 @@ MIPS_INSTR(mips_spc_dmultu) {
 }
 
 MIPS_INSTR(mips_spc_ddiv) {
-    __int128 dividend = (sdword)get_register(instruction.r.rs);
-    __int128 divisor  = (sdword)get_register(instruction.r.rt);
+    sdword dividend = (sdword)get_register(instruction.r.rs);
+    sdword divisor  = (sdword)get_register(instruction.r.rt);
 
     if (divisor == 0) {
         logwarn("Divide by zero");

@@ -9,10 +9,17 @@ configure_file(../contrib/tools/dynasm/dasm_x64.lua dynasm/dasm_x64.lua COPYONLY
 configure_file(../contrib/tools/dynasm/dasm_x86.lua dynasm/dasm_x86.lua COPYONLY)
 
 add_executable(minilua ../contrib/tools/minilua.c)
-target_link_libraries(minilua m)
+
+if (NOT WIN32)
+    target_link_libraries(minilua m)
+endif()
+
+if (WIN32)
+    set(DYNASM_EXTRA_FLAGS -D WIN)
+endif()
 
 add_custom_command(OUTPUT asm_emitter.c
-        COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 -o asm_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/asm_emitter.dasc
+        COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 ${DYNASM_EXTRA_FLAGS} -o asm_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/asm_emitter.dasc
         MAIN_DEPENDENCY dynarec/asm_emitter.dasc
         DEPENDS minilua)
 
@@ -36,7 +43,10 @@ add_library(rsp
         mips_instruction_decode.h)
 
 TARGET_LINK_LIBRARIES(rsp    disassemble)
-TARGET_LINK_LIBRARIES(r4300i disassemble m common)
+TARGET_LINK_LIBRARIES(r4300i disassemble common)
+if (NOT WIN32)
+    TARGET_LINK_LIBRARIES(r4300i m)
+endif()
 
 find_package(Capstone)
 

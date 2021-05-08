@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include "util.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef enum metric {
     METRIC_BLOCK_COMPILATION = 0,
     METRIC_RSP_STEPS,
@@ -28,5 +31,9 @@ INLINE void reset_all_metrics() {
         n64_metric_data[i] = 0;
     }
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //N64_METRICS_H

@@ -94,9 +94,9 @@ void render_menubar() {
             if (ImGui::MenuItem("Fullscreen", nullptr, is_fullscreen)) {
                 is_fullscreen = !is_fullscreen;
                 if (is_fullscreen) {
-                    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP); // Fake fullscreen
+                    SDL_SetWindowFullscreen(get_window_handle(), SDL_WINDOW_FULLSCREEN_DESKTOP); // Fake fullscreen
                 } else {
-                    SDL_SetWindowFullscreen(window, 0); // Back to windowed
+                    SDL_SetWindowFullscreen(get_window_handle(), 0); // Back to windowed
                 }
             }
 
@@ -289,7 +289,7 @@ void load_imgui_ui() {
     }
 
     // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForVulkan(window);
+    ImGui_ImplSDL2_InitForVulkan(get_window_handle());
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = g_Instance;
     init_info.PhysicalDevice = g_PhysicalDevice;
@@ -333,7 +333,7 @@ void load_imgui_ui() {
 
 ImDrawData* imgui_frame() {
     ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplSDL2_NewFrame(get_window_handle());
     ImGui::NewFrame();
 
     render_ui();

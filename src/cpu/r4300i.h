@@ -252,62 +252,62 @@
 typedef union cp0_status {
     word raw;
     struct {
-        bool ie:1;
-        bool exl:1;
-        bool erl:1;
-        byte ksu:2;
-        bool ux:1;
-        bool sx:1;
-        bool kx:1;
-        byte im:8;
+        unsigned ie:1;
+        unsigned exl:1;
+        unsigned erl:1;
+        unsigned ksu:2;
+        unsigned ux:1;
+        unsigned sx:1;
+        unsigned kx:1;
+        unsigned im:8;
         unsigned ds:9;
-        bool re:1;
-        bool fr:1;
-        bool rp:1;
-        bool cu0:1;
-        bool cu1:1;
-        bool cu2:1;
-        bool cu3:1;
+        unsigned re:1;
+        unsigned fr:1;
+        unsigned rp:1;
+        unsigned cu0:1;
+        unsigned cu1:1;
+        unsigned cu2:1;
+        unsigned cu3:1;
     } PACKED;
     struct {
         unsigned:16;
-        bool de:1;
-        bool ce:1;
-        bool ch:1;
-        bool:1;
-        bool sr:1;
-        bool ts:1;
-        bool bev:1;
-        bool:1;
-        bool its:1;
+        unsigned de:1;
+        unsigned ce:1;
+        unsigned ch:1;
+        unsigned:1;
+        unsigned sr:1;
+        unsigned ts:1;
+        unsigned bev:1;
+        unsigned:1;
+        unsigned its:1;
         unsigned:7;
     } PACKED;
-} cp0_status_t;
+} PACKED cp0_status_t;
 
 ASSERTWORD(cp0_status_t);
 
 typedef union cp0_cause {
     struct {
-        byte:8;
-        byte interrupt_pending:8;
+        unsigned:8;
+        unsigned interrupt_pending:8;
         unsigned:16;
     };
     struct {
-        byte:2;
-        byte exception_code:5;
-        bool:1;
-        bool ip0:1;
-        bool ip1:1;
-        bool ip2:1;
-        bool ip3:1;
-        bool ip4:1;
-        bool ip5:1;
-        bool ip6:1;
-        bool ip7:1;
+        unsigned:2;
+        unsigned exception_code:5;
+        unsigned:1;
+        unsigned ip0:1;
+        unsigned ip1:1;
+        unsigned ip2:1;
+        unsigned ip3:1;
+        unsigned ip4:1;
+        unsigned ip5:1;
+        unsigned ip6:1;
+        unsigned ip7:1;
         unsigned:12;
-        byte coprocessor_error:2;
-        bool:1;
-        bool branch_delay:1;
+        unsigned coprocessor_error:2;
+        unsigned:1;
+        unsigned branch_delay:1;
     };
     word raw;
 } cp0_cause_t;
@@ -317,9 +317,9 @@ ASSERTWORD(cp0_cause_t);
 typedef union cp0_entry_lo {
     word raw;
     struct {
-        bool g:1;
-        bool v:1;
-        bool d:1;
+        unsigned g:1;
+        unsigned v:1;
+        unsigned d:1;
         unsigned c:3;
         unsigned pfn:20;
         unsigned:6;
@@ -353,11 +353,11 @@ ASSERTWORD(cp0_entry_hi_t);
 #define CP0_ENTRY_HI_64_READ_MASK 0xC00000FFFFFFE0FF
 typedef union cp0_entry_hi_64 {
     struct {
-        unsigned asid:8;
-        unsigned:5;
-        unsigned vpn2:27;
-        unsigned fill:22;
-        unsigned r:2;
+        dword asid:8;
+        dword:5;
+        dword vpn2:27;
+        dword fill:22;
+        dword r:2;
     } PACKED;
     dword raw;
 } cp0_entry_hi_64_t;
@@ -369,9 +369,9 @@ typedef struct tlb_entry {
     union {
         struct {
             unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
+            unsigned valid:1;
+            unsigned dirty:1;
+            unsigned c:3;
             unsigned pfn:20;
             unsigned:6;
         };
@@ -381,9 +381,9 @@ typedef struct tlb_entry {
     union {
         struct {
             unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
+            unsigned valid:1;
+            unsigned dirty:1;
+            unsigned c:3;
             unsigned pfn:20;
             unsigned:6;
         };
@@ -395,7 +395,7 @@ typedef struct tlb_entry {
         struct {
             unsigned asid:8;
             unsigned:4;
-            bool g:1;
+            unsigned g:1;
             unsigned vpn2:19;
         };
     } entry_hi;
@@ -424,19 +424,19 @@ typedef struct tlb_entry_64 {
             bool dirty:1;
             byte c:3;
             unsigned pfn:20;
-            unsigned long:38;
+            dword:38;
         };
         word raw;
     } entry_lo0;
 
     union {
         struct {
-            unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
-            unsigned pfn:20;
-            unsigned long:38;
+            dword:1;
+            dword valid:1;
+            dword dirty:1;
+            dword c:3;
+            dword pfn:20;
+            dword:38;
         };
         word raw;
     } entry_lo1;
@@ -444,20 +444,20 @@ typedef struct tlb_entry_64 {
     union {
         word raw;
         struct {
-            unsigned asid:8;
-            unsigned:4;
-            bool g:1;
-            unsigned vpn2:27;
-            unsigned:22;
-            unsigned r:2;
+            dword asid:8;
+            dword:4;
+            dword g:1;
+            dword vpn2:27;
+            dword:22;
+            dword r:2;
         };
     } entry_hi;
 
     union {
         struct {
-            unsigned:13;
-            unsigned mask:12;
-            unsigned long:39;
+            dword:13;
+            dword mask:12;
+            dword:39;
         };
         dword raw;
     } page_mask;
@@ -473,9 +473,9 @@ typedef struct tlb_entry_64 {
 typedef union watch_lo {
     word raw;
     struct {
-        bool w:1;
-        bool r:1;
-        bool:1;
+        unsigned w:1;
+        unsigned r:1;
+        unsigned:1;
         unsigned paddr0:29;
     };
 } watch_lo_t;
@@ -496,10 +496,10 @@ ASSERTWORD(cp0_context_t);
 typedef union cp0_x_context {
     dword raw;
     struct {
-        unsigned:4;
-        unsigned badvpn2:27;
-        unsigned r:2;
-        unsigned ptebase:31;
+        dword:4;
+        dword badvpn2:27;
+        dword r:2;
+        dword ptebase:31;
     } PACKED;
 } cp0_x_context_t;
 
@@ -558,34 +558,33 @@ typedef union fcr31 {
     word raw;
 
     struct {
-        byte rounding_mode:2;
-        bool flag_inexact_operation:1;
-        bool flag_underflow:1;
-        bool flag_overflow:1;
-        bool flag_division_by_zero:1;
-        bool flag_invalid_operation:1;
-        bool enable_inexact_operation:1;
-        bool enable_underflow:1;
-        bool enable_overflow:1;
-        bool enable_division_by_zero:1;
-        bool enable_invalid_operation:1;
-        bool cause_inexact_operation:1;
-        bool cause_underflow:1;
-        bool cause_overflow:1;
-        bool cause_division_by_zero:1;
-        bool cause_invalid_operation:1;
-        bool cause_unimplemented_operation:1;
+        unsigned rounding_mode:2;
+        unsigned flag_inexact_operation:1;
+        unsigned flag_underflow:1;
+        unsigned flag_overflow:1;
+        unsigned flag_division_by_zero:1;
+        unsigned flag_invalid_operation:1;
+        unsigned enable_inexact_operation:1;
+        unsigned enable_underflow:1;
+        unsigned enable_overflow:1;
+        unsigned enable_division_by_zero:1;
+        unsigned enable_invalid_operation:1;
+        unsigned cause_inexact_operation:1;
+        unsigned cause_underflow:1;
+        unsigned cause_overflow:1;
+        unsigned cause_division_by_zero:1;
+        unsigned cause_invalid_operation:1;
+        unsigned cause_unimplemented_operation:1;
         unsigned:5;
-        bool compare:1;
-        bool fs:1;
+        unsigned compare:1;
+        unsigned fs:1;
         unsigned:7;
     } PACKED;
 
     struct {
         unsigned:7;
-        // these types are half to make GCC happy, since they cross the size of a byte.
-        half enable:5;
-        half cause:6;
+        unsigned enable:5;
+        unsigned cause:6;
         unsigned:14;
     } PACKED;
 } fcr31_t;
@@ -597,7 +596,7 @@ typedef union fgr {
     struct {
         word lo:32;
         word hi:32;
-    } __attribute__((packed));
+    } PACKED;
 } fgr_t;
 
 ASSERTDWORD(fgr_t);

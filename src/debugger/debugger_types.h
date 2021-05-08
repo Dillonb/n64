@@ -1,6 +1,7 @@
 #ifndef N64_DEBUGGER_TYPES
 #define N64_DEBUGGER_TYPES
 
+#ifndef N64_WIN
 #include <gdbstub.h>
 
 typedef struct n64_breakpoint n64_breakpoint_t;
@@ -29,4 +30,5 @@ INLINE bool check_breakpoint(n64_debugger_state_t* state, word address) {
     }
     return false;
 }
+#endif
 #endif

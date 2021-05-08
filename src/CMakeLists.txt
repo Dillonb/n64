@@ -30,7 +30,7 @@ add_library(core
         mem/backup.c mem/backup.h
         frontend/game_db.c frontend/game_db.h)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} z cic_nus_6105)
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105)
 
 add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)
