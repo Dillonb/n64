@@ -24,6 +24,17 @@ jobs:
           cmake --build .
         shell: cmd
 
+      - name: Collect files
+        run: |
+          mkdir upload
+          move build\Debug\n64.exe upload
+
+      - name: Upload files
+        uses: actions/upload-artifact@master
+        with:
+          name: n64-windows
+          path: upload
+
   build-linux:
     runs-on: ubuntu-20.04
 
