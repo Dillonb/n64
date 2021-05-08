@@ -19,7 +19,7 @@ if (WIN32)
 endif()
 
 add_custom_command(OUTPUT asm_emitter.c
-        COMMAND ../../minilua ARGS dynasm/dynasm.lua -D X64 ${DYNASM_EXTRA_FLAGS} -o asm_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/asm_emitter.dasc
+        COMMAND $<TARGET_FILE:minilua> ARGS dynasm/dynasm.lua -D X64 ${DYNASM_EXTRA_FLAGS} -o asm_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/asm_emitter.dasc
         MAIN_DEPENDENCY dynarec/asm_emitter.dasc
         DEPENDS minilua)
 
