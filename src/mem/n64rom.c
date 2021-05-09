@@ -175,3 +175,13 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     loginfo("Loaded %s", rom->game_name_cartridge);
     logdebug("The program counter starts at: 0x%08X", rom->header.program_counter);
 }
+
+bool is_rom_pal(n64_rom_t* rom) {
+    static const char pal_codes[] = {'D', 'F', 'I', 'P', 'S', 'U', 'X', 'Y'};
+    for (int i = 0; i < 8; i++) {
+        if (rom->header.country_code[0] == pal_codes[i]) {
+            return true;
+        }
+    }
+    return false;
+}

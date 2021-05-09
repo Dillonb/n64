@@ -30,7 +30,7 @@ void sig_handler(int signum) {
 }
 #endif
 
-#define PIF_ROM_PATH (n64sys.mem.rom.header.country_code[0] == 'P' ? "pif.pal.rom" : "pif.rom")
+#define PIF_ROM_PATH (is_rom_pal(&n64sys.mem.rom) ? "pif.pal.rom" : "pif.rom")
 
 INLINE bool file_exists(const char* path) {
 #ifndef N64_WIN

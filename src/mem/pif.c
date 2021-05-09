@@ -151,7 +151,7 @@ void pif_rom_execute_hle() {
             N64CPU.mult_hi = 0x000000003FC18657;
             N64CPU.mult_lo = 0x000000003103E121;
 
-            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+            if (is_rom_pal(&n64sys.mem.rom)) {
                 N64CPU.gpr[20] = 0x0000000000000000;
                 N64CPU.gpr[23] = 0x0000000000000006;
                 N64CPU.gpr[31] = 0xFFFFFFFFA4001554;
@@ -195,7 +195,7 @@ void pif_rom_execute_hle() {
             N64CPU.mult_lo = 0x0000000018B63D28;
             N64CPU.mult_hi = 0x00000000625C2BBE;
 
-            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+            if (is_rom_pal(&n64sys.mem.rom)) {
                 N64CPU.gpr[20] = 0x0000000000000000;
                 N64CPU.gpr[23] = 0x0000000000000006;
                 N64CPU.gpr[31] = 0xFFFFFFFFA4001554;
@@ -239,7 +239,7 @@ void pif_rom_execute_hle() {
             N64CPU.mult_lo = 0x0000000056584D60;
             N64CPU.mult_hi = 0x000000004BE35D1F;
 
-            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+            if (is_rom_pal(&n64sys.mem.rom)) {
                 N64CPU.gpr[20] = 0x0000000000000000;
                 N64CPU.gpr[23] = 0x0000000000000006;
                 N64CPU.gpr[31] = 0xFFFFFFFFA4001554;
@@ -291,7 +291,7 @@ void pif_rom_execute_hle() {
             N64CPU.mult_lo = 0x000000007A3C07F4;
             N64CPU.mult_hi = 0x0000000023953898;
 
-            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+            if (is_rom_pal(&n64sys.mem.rom)) {
                 N64CPU.gpr[20] = 0x0000000000000000;
                 N64CPU.gpr[23] = 0x0000000000000006;
                 N64CPU.gpr[31] = 0xFFFFFFFFA4001554;

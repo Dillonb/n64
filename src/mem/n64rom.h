@@ -2,6 +2,7 @@
 #define N64_N64ROM_H
 #include <stdio.h>
 #include <util.h>
+#include <stdbool.h>
 
 typedef struct n64_header {
     byte initial_values[4];
@@ -42,5 +43,7 @@ typedef struct n64_rom {
 } n64_rom_t;
 
 void load_n64rom(n64_rom_t* rom, const char* path);
+
+bool is_rom_pal(n64_rom_t* rom);
 
 #endif //N64_N64ROM_H
