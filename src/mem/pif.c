@@ -152,7 +152,9 @@ void pif_rom_execute_hle() {
             N64CPU.mult_lo = 0x000000003103E121;
 
             if (n64sys.mem.rom.header.country_code[0] == 'P') {
-                logfatal("PIF HLE: PAL unsupported for CIC_NUS_7101");
+                N64CPU.gpr[20] = 0x0000000000000000;
+                N64CPU.gpr[23] = 0x0000000000000006;
+                N64CPU.gpr[31] = 0xFFFFFFFFA4001554;
             }
 
             break;
