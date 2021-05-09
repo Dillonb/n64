@@ -38,8 +38,12 @@ void pif_rom_execute_hle() {
     switch (n64sys.mem.rom.cic_type) {
         case UNKNOWN_CIC_TYPE:
             logalways("Unknown CIC type, the game may not boot! Assuming 6102 and hoping for the best...");
+
+        case CIC_NUS_6101_7102:
+            logfatal("Unimplemented: CIC_NUS_6101_7102");
+            break;
+
         case CIC_NUS_6102_7101:
-            N64CPU.gpr[0] = 0x0000000000000000;
             N64CPU.gpr[1] = 0x0000000000000001;
             N64CPU.gpr[2] = 0x000000000EBDA536;
             N64CPU.gpr[3] = 0x000000000EBDA536;
@@ -70,16 +74,61 @@ void pif_rom_execute_hle() {
             N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
             N64CPU.gpr[30] = 0x0000000000000000;
             N64CPU.gpr[31] = 0xFFFFFFFFA4001550;
+
+            N64CPU.mult_hi = 0x000000003FC18657;
+            N64CPU.mult_lo = 0x000000003103E121;
             break;
-        case CIC_NUS_6101_7102:
-            logfatal("Unimplemented: CIC_NUS_6101_7102");
-            break;
+
         case CIC_NUS_6103_7103:
             logfatal("Unimplemented: CIC_NUS_6103_7103");
             break;
+
         case CIC_NUS_6105_7105:
-            logfatal("Unimplemented: CIC_NUS_6105_7105");
+            N64CPU.gpr[0] = 0x0000000000000000;
+            N64CPU.gpr[1] = 0x0000000000000000;
+            N64CPU.gpr[2] = 0xFFFFFFFFF58B0FBF;
+            N64CPU.gpr[3] = 0xFFFFFFFFF58B0FBF;
+            N64CPU.gpr[4] = 0x0000000000000FBF;
+            N64CPU.gpr[5] = 0xFFFFFFFFDECAAAD1;
+            N64CPU.gpr[6] = 0xFFFFFFFFA4001F0C;
+            N64CPU.gpr[7] = 0xFFFFFFFFA4001F08;
+            N64CPU.gpr[8] = 0x00000000000000C0;
+            N64CPU.gpr[9] = 0x0000000000000000;
+            N64CPU.gpr[10] = 0x0000000000000040;
+            N64CPU.gpr[11] = 0xFFFFFFFFA4000040;
+            N64CPU.gpr[12] = 0xFFFFFFFF9651F81E;
+            N64CPU.gpr[13] = 0x000000002D42AAC5;
+            N64CPU.gpr[14] = 0x00000000489B52CF;
+            N64CPU.gpr[15] = 0x0000000056584D60;
+            N64CPU.gpr[16] = 0x0000000000000000;
+            N64CPU.gpr[17] = 0x0000000000000000;
+            N64CPU.gpr[18] = 0x0000000000000000;
+            N64CPU.gpr[19] = 0x0000000000000000;
+            N64CPU.gpr[20] = 0x0000000000000001;
+            N64CPU.gpr[21] = 0x0000000000000000;
+            N64CPU.gpr[23] = 0x0000000000000000;
+            N64CPU.gpr[24] = 0x0000000000000002;
+            N64CPU.gpr[25] = 0xFFFFFFFFCDCE565F;
+            N64CPU.gpr[26] = 0x0000000000000000;
+            N64CPU.gpr[27] = 0x0000000000000000;
+            N64CPU.gpr[28] = 0x0000000000000000;
+            N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
+            N64CPU.gpr[30] = 0x0000000000000000;
+            N64CPU.gpr[31] = 0xFFFFFFFFA4001550;
+
+            N64CPU.mult_lo = 0x0000000056584D60;
+            N64CPU.mult_hi = 0x000000004BE35D1F;
+
+            n64_write_physical_word(SREGION_SP_IMEM + 0x0000, 0x3C0DBFC0);
+            n64_write_physical_word(SREGION_SP_IMEM + 0x0004, 0x8DA807FC);
+            n64_write_physical_word(SREGION_SP_IMEM + 0x0008, 0x25AD07C0);
+            n64_write_physical_word(SREGION_SP_IMEM + 0x000C, 0x31080080);
+            n64_write_physical_word(SREGION_SP_IMEM + 0x0010, 0x5500FFFC);
+            n64_write_physical_word(SREGION_SP_IMEM + 0x0014, 0x3C0DBFC0);
+            n64_write_physical_word(SREGION_SP_IMEM + 0x0018, 0x8DA80024);
+            n64_write_physical_word(SREGION_SP_IMEM + 0x001C, 0x3C0BB000);
             break;
+
         case CIC_NUS_6106_7106:
             logfatal("Unimplemented: CIC_NUS_6106_7106");
             break;
