@@ -10,6 +10,17 @@ The goals of this project are to create a low-level emulator with good compatibi
 
 ![Mario Face](https://media.githubusercontent.com/media/Dillonb/n64/master/screenshots/mario.png)
 
+# Download
+
+As the emulator is still in heavy development, there are no stable releases. The files linked below are built automatically every time code is pushed to this repository.
+
+There may be problems. Feel free to [open an issue](https://github.com/Dillonb/n64/issues/new) if you find one!
+
+You'll need a fast CPU and a modern GPU that supports Vulkan 1.1.
+
+- [Latest Linux version](https://nightly.link/Dillonb/n64/workflows/build/master/n64-linux.zip)
+- [Latest Windows version](https://nightly.link/Dillonb/n64/workflows/build/master/n64-windows.zip)
+
 # Links
 - [TODO List](https://github.com/Dillonb/n64/projects/1)
 - [Compatibility List](https://github.com/Dillonb/n64/projects/2)
