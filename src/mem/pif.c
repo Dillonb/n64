@@ -78,7 +78,41 @@ void pif_rom_execute_hle() {
             break;
 
         case CIC_NUS_7102:
-            logfatal("PIF HLE: Unimplemented CIC_NUS_7102");
+            N64CPU.gpr[0] = 0x0000000000000000;
+            N64CPU.gpr[1] = 0x0000000000000001;
+            N64CPU.gpr[2] = 0x000000001E324416;
+            N64CPU.gpr[3] = 0x000000001E324416;
+            N64CPU.gpr[4] = 0x0000000000004416;
+            N64CPU.gpr[5] = 0x000000000EC5D9AF;
+            N64CPU.gpr[6] = 0xFFFFFFFFA4001F0C;
+            N64CPU.gpr[7] = 0xFFFFFFFFA4001F08;
+            N64CPU.gpr[8] = 0x00000000000000C0;
+            N64CPU.gpr[9] = 0x0000000000000000;
+            N64CPU.gpr[10] = 0x0000000000000040;
+            N64CPU.gpr[11] = 0xFFFFFFFFA4000040;
+            N64CPU.gpr[12] = 0x00000000495D3D7B;
+            N64CPU.gpr[13] = 0xFFFFFFFF8B3DFA1E;
+            N64CPU.gpr[14] = 0x000000004798E4D4;
+            N64CPU.gpr[15] = 0xFFFFFFFFF1D30682;
+            N64CPU.gpr[16] = 0x0000000000000000;
+            N64CPU.gpr[17] = 0x0000000000000000;
+            N64CPU.gpr[18] = 0x0000000000000000;
+            N64CPU.gpr[19] = 0x0000000000000000;
+            N64CPU.gpr[20] = 0x0000000000000000;
+            N64CPU.gpr[21] = 0x0000000000000000;
+            N64CPU.gpr[22] = 0x000000000000003F;
+            N64CPU.gpr[23] = 0x0000000000000007;
+            N64CPU.gpr[24] = 0x0000000000000000;
+            N64CPU.gpr[25] = 0x0000000013D05CAB;
+            N64CPU.gpr[26] = 0x0000000000000000;
+            N64CPU.gpr[27] = 0x0000000000000000;
+            N64CPU.gpr[28] = 0x0000000000000000;
+            N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
+            N64CPU.gpr[30] = 0x0000000000000000;
+            N64CPU.gpr[31] = 0xFFFFFFFFA4001554;
+
+            N64CPU.mult_lo = 0xFFFFFFFFF1D30682;
+            N64CPU.mult_hi = 0x0000000010054A98;
             break;
 
         case CIC_NUS_6102_7101:
@@ -116,6 +150,11 @@ void pif_rom_execute_hle() {
 
             N64CPU.mult_hi = 0x000000003FC18657;
             N64CPU.mult_lo = 0x000000003103E121;
+
+            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+                logfatal("PIF HLE: PAL unsupported for CIC_NUS_7101");
+            }
+
             break;
 
         case CIC_NUS_6103_7103:
@@ -153,6 +192,11 @@ void pif_rom_execute_hle() {
 
             N64CPU.mult_lo = 0x0000000018B63D28;
             N64CPU.mult_hi = 0x00000000625C2BBE;
+
+            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+                logfatal("PIF HLE: PAL unsupported for CIC_NUS_7103");
+            }
+
             break;
 
         case CIC_NUS_6105_7105:
@@ -190,6 +234,12 @@ void pif_rom_execute_hle() {
 
             N64CPU.mult_lo = 0x0000000056584D60;
             N64CPU.mult_hi = 0x000000004BE35D1F;
+
+            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+                N64CPU.gpr[20] = 0x0000000000000000;
+                N64CPU.gpr[23] = 0x0000000000000006;
+                N64CPU.gpr[31] = 0xFFFFFFFFA4001554;
+            }
 
             n64_write_physical_word(SREGION_SP_IMEM + 0x0000, 0x3C0DBFC0);
             n64_write_physical_word(SREGION_SP_IMEM + 0x0004, 0x8DA807FC);
@@ -236,6 +286,11 @@ void pif_rom_execute_hle() {
 
             N64CPU.mult_lo = 0x000000007A3C07F4;
             N64CPU.mult_hi = 0x0000000023953898;
+
+            if (n64sys.mem.rom.header.country_code[0] == 'P') {
+                logfatal("PIF HLE: PAL unsupported for CIC_NUS_7106");
+            }
+
             break;
     }
 
