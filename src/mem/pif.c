@@ -40,10 +40,45 @@ void pif_rom_execute_hle() {
             logalways("Unknown CIC type, the game may not boot! Assuming 6102 and hoping for the best...");
 
         case CIC_NUS_6101_7102:
-            logfatal("Unimplemented: CIC_NUS_6101_7102");
+            N64CPU.gpr[0] = 0x0000000000000000;
+            N64CPU.gpr[1] = 0x0000000000000000;
+            N64CPU.gpr[2] = 0xFFFFFFFFDF6445CC;
+            N64CPU.gpr[3] = 0xFFFFFFFFDF6445CC;
+            N64CPU.gpr[4] = 0x00000000000045CC;
+            N64CPU.gpr[5] = 0x0000000073EE317A;
+            N64CPU.gpr[6] = 0xFFFFFFFFA4001F0C;
+            N64CPU.gpr[7] = 0xFFFFFFFFA4001F08;
+            N64CPU.gpr[8] = 0x00000000000000C0;
+            N64CPU.gpr[9] = 0x0000000000000000;
+            N64CPU.gpr[10] = 0x0000000000000040;
+            N64CPU.gpr[11] = 0xFFFFFFFFA4000040;
+            N64CPU.gpr[12] = 0xFFFFFFFFC7601FAC;
+            N64CPU.gpr[13] = 0xFFFFFFFFC7601FAC;
+            N64CPU.gpr[14] = 0xFFFFFFFFB48E2ED6;
+            N64CPU.gpr[15] = 0xFFFFFFFFBA1A7D4B;
+            N64CPU.gpr[16] = 0x0000000000000000;
+            N64CPU.gpr[17] = 0x0000000000000000;
+            N64CPU.gpr[18] = 0x0000000000000000;
+            N64CPU.gpr[19] = 0x0000000000000000;
+            N64CPU.gpr[20] = 0x0000000000000001;
+            N64CPU.gpr[21] = 0x0000000000000000;
+            N64CPU.gpr[22] = 0x000000000000003F;
+            N64CPU.gpr[23] = 0x0000000000000001;
+            N64CPU.gpr[24] = 0x0000000000000002;
+            N64CPU.gpr[25] = 0xFFFFFFFF905F4718;
+            N64CPU.gpr[26] = 0x0000000000000000;
+            N64CPU.gpr[27] = 0x0000000000000000;
+            N64CPU.gpr[28] = 0x0000000000000000;
+            N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
+            N64CPU.gpr[30] = 0x0000000000000000;
+            N64CPU.gpr[31] = 0xFFFFFFFFA4001550;
+
+            N64CPU.mult_lo = 0xFFFFFFFFBA1A7D4B;
+            N64CPU.mult_hi = 0xFFFFFFFF997EC317;
             break;
 
         case CIC_NUS_6102_7101:
+            N64CPU.gpr[0] = 0x0000000000000000;
             N64CPU.gpr[1] = 0x0000000000000001;
             N64CPU.gpr[2] = 0x000000000EBDA536;
             N64CPU.gpr[3] = 0x000000000EBDA536;
