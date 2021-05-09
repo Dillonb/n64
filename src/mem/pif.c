@@ -80,7 +80,41 @@ void pif_rom_execute_hle() {
             break;
 
         case CIC_NUS_6103_7103:
-            logfatal("Unimplemented: CIC_NUS_6103_7103");
+            N64CPU.gpr[0] = 0x0000000000000000;
+            N64CPU.gpr[1] = 0x0000000000000001;
+            N64CPU.gpr[2] = 0x0000000049A5EE96;
+            N64CPU.gpr[3] = 0x0000000049A5EE96;
+            N64CPU.gpr[4] = 0x000000000000EE96;
+            N64CPU.gpr[5] = 0xFFFFFFFFD4646273;
+            N64CPU.gpr[6] = 0xFFFFFFFFA4001F0C;
+            N64CPU.gpr[7] = 0xFFFFFFFFA4001F08;
+            N64CPU.gpr[8] = 0x00000000000000C0;
+            N64CPU.gpr[9] = 0x0000000000000000;
+            N64CPU.gpr[10] = 0x0000000000000040;
+            N64CPU.gpr[11] = 0xFFFFFFFFA4000040;
+            N64CPU.gpr[12] = 0xFFFFFFFFCE9DFBF7;
+            N64CPU.gpr[13] = 0xFFFFFFFFCE9DFBF7;
+            N64CPU.gpr[14] = 0x000000001AF99984;
+            N64CPU.gpr[15] = 0x0000000018B63D28;
+            N64CPU.gpr[16] = 0x0000000000000000;
+            N64CPU.gpr[17] = 0x0000000000000000;
+            N64CPU.gpr[18] = 0x0000000000000000;
+            N64CPU.gpr[19] = 0x0000000000000000;
+            N64CPU.gpr[20] = 0x0000000000000001;
+            N64CPU.gpr[21] = 0x0000000000000000;
+            N64CPU.gpr[22] = 0x0000000000000078;
+            N64CPU.gpr[23] = 0x0000000000000000;
+            N64CPU.gpr[24] = 0x0000000000000000;
+            N64CPU.gpr[25] = 0xFFFFFFFF825B21C9;
+            N64CPU.gpr[26] = 0x0000000000000000;
+            N64CPU.gpr[27] = 0x0000000000000000;
+            N64CPU.gpr[28] = 0x0000000000000000;
+            N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
+            N64CPU.gpr[30] = 0x0000000000000000;
+            N64CPU.gpr[31] = 0xFFFFFFFFA4001550;
+
+            N64CPU.mult_lo = 0x0000000018B63D28;
+            N64CPU.mult_hi = 0x00000000625C2BBE;
             break;
 
         case CIC_NUS_6105_7105:
