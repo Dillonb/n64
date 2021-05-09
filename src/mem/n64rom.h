@@ -21,7 +21,8 @@ typedef struct n64_header {
 
 typedef enum n64_cic_type {
     UNKNOWN_CIC_TYPE,
-    CIC_NUS_6101_7102,
+    CIC_NUS_6101,
+    CIC_NUS_7102,
     CIC_NUS_6102_7101,
     CIC_NUS_6103_7103,
     CIC_NUS_6105_7105,

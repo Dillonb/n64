@@ -141,8 +141,10 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     word checksum = crc32(0, &rom->rom[0x40], 0x9c0);
 
     switch (checksum) {
-        case 0x1DEB51A9:
-            rom->cic_type = CIC_NUS_6101_7102;
+        case 0xEC8B1325: // 7102
+            rom->cic_type = CIC_NUS_7102;
+        case 0x1DEB51A9: // 6101
+            rom->cic_type = CIC_NUS_6101;
             break;
 
         case 0xC08E5BD6:
