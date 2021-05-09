@@ -30,7 +30,7 @@ The goals of this project are to create a low-level emulator with good compatibi
 - The dynamic recompiler currently only supports x86_64. aarch64 support is planned in the (distant) future.
 - Only little-endian host platforms are planned to be supported.
 - Only gcc and clang will be supported. I unapologetically use extensions like case ranges and binary literals.
-- Only software that uses NTSC video modes is currently supported. This is planned to be fixed.
+- Only software that uses NTSC video modes is currently supported. PAL games will work, but will run at an incorrect framerate. This is planned to be fixed.
 
 # Building
 For Linux:
@@ -76,7 +76,7 @@ https://github.com/Dillonb/n64
 ## CPU
 An interpreter and a basic dynamic recompiler are available, able to be switched at launch time with a command line flag.
 
-The dynamic recompiler currently only supports the System-V calling convention.
+The dynamic recompiler currently only supports x86_64.
 
 ## RSP
 Reasonably complete, enough for most games to run.
