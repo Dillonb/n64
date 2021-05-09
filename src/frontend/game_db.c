@@ -188,6 +188,18 @@ static const gamedb_entry_t gamedb[] = {
 
 #define GAMEDB_SIZE (sizeof(gamedb) / sizeof(gamedb_entry_t))
 
+// Special case for Japanese Kirby 64, which has different save types for different revisions
+// (thanks CEN64)
+void check_kirby_special_case(n64_system_t* system) {
+    n64_rom_t* rom = &system->mem.rom;
+    if (strcmp(rom->code, "NK4") == 0) {
+        if(rom->rom[0x3E] == 'J' && rom->rom[0x3F] < 2){
+            logalways("This looks like an early revision of Japanese Kirby 64, using SRAM instead of EEPROM!");
+            system->mem.save_type = SAVE_SRAM_256k;
+        }
+    }
+}
+
 void gamedb_match(n64_system_t* system) {
     n64_rom_t* rom = &system->mem.rom;
     for (int i = 0; i < GAMEDB_SIZE; i++) {
@@ -204,6 +216,7 @@ void gamedb_match(n64_system_t* system) {
             if (matches_region) {
                 system->mem.save_type = gamedb[i].save_type;
                 system->mem.rom.game_name_db = gamedb[i].name;
+                check_kirby_special_case(system);
                 logalways("Loaded %s", gamedb[i].name);
                 return;
             } else {
