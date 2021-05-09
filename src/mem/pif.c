@@ -23,41 +23,69 @@
 
 #define CMD_DATA (&cmd[CMD_START_INDEX])
 
+const word cic_seeds[] = {
+        0x0,
+        0x00043F3F, // CIC_NUS_6101_7102
+        0x00003F3F, // CIC_NUS_6102_7101
+        0x0000783F, // CIC_NUS_6103_7103
+        0x0000913F, // CIC_NUS_6105_7105
+        0x0000853F, // CIC_NUS_6106_7106
+};
+
 static int pif_channel = 0;
 
 void pif_rom_execute_hle() {
-    N64CPU.gpr[0] = 0;
-    N64CPU.gpr[1] = 0;
-    N64CPU.gpr[2] = 0;
-    N64CPU.gpr[3] = 0;
-    N64CPU.gpr[4] = 0;
-    N64CPU.gpr[5] = 0;
-    N64CPU.gpr[6] = 0;
-    N64CPU.gpr[7] = 0;
-    N64CPU.gpr[8] = 0;
-    N64CPU.gpr[9] = 0;
-    N64CPU.gpr[10] = 0;
-    N64CPU.gpr[11] = 0;
-    N64CPU.gpr[12] = 0;
-    N64CPU.gpr[13] = 0;
-    N64CPU.gpr[14] = 0;
-    N64CPU.gpr[15] = 0;
-    N64CPU.gpr[16] = 0;
-    N64CPU.gpr[17] = 0;
-    N64CPU.gpr[18] = 0;
-    N64CPU.gpr[19] = 0;
-    N64CPU.gpr[20] = 0x1;
-    N64CPU.gpr[21] = 0;
-    N64CPU.gpr[22] = 0x3F;
-    N64CPU.gpr[23] = 0;
-    N64CPU.gpr[24] = 0;
-    N64CPU.gpr[25] = 0;
-    N64CPU.gpr[26] = 0;
-    N64CPU.gpr[27] = 0;
-    N64CPU.gpr[28] = 0;
-    N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
-    N64CPU.gpr[30] = 0;
-    N64CPU.gpr[31] = 0;
+    switch (n64sys.mem.rom.cic_type) {
+        case UNKNOWN_CIC_TYPE:
+            logalways("Unknown CIC type, the game may not boot! Assuming 6102 and hoping for the best...");
+        case CIC_NUS_6102_7101:
+            N64CPU.gpr[0] = 0x0000000000000000;
+            N64CPU.gpr[1] = 0x0000000000000001;
+            N64CPU.gpr[2] = 0x000000000EBDA536;
+            N64CPU.gpr[3] = 0x000000000EBDA536;
+            N64CPU.gpr[4] = 0x000000000000A536;
+            N64CPU.gpr[5] = 0xFFFFFFFFC0F1D859;
+            N64CPU.gpr[6] = 0xFFFFFFFFA4001F0C;
+            N64CPU.gpr[7] = 0xFFFFFFFFA4001F08;
+            N64CPU.gpr[8] = 0x00000000000000C0;
+            N64CPU.gpr[9] = 0x0000000000000000;
+            N64CPU.gpr[10] = 0x0000000000000040;
+            N64CPU.gpr[11] = 0xFFFFFFFFA4000040;
+            N64CPU.gpr[12] = 0xFFFFFFFFED10D0B3;
+            N64CPU.gpr[13] = 0x000000001402A4CC;
+            N64CPU.gpr[14] = 0x000000002DE108EA;
+            N64CPU.gpr[15] = 0x000000003103E121;
+            N64CPU.gpr[16] = 0x0000000000000000;
+            N64CPU.gpr[17] = 0x0000000000000000;
+            N64CPU.gpr[18] = 0x0000000000000000;
+            N64CPU.gpr[19] = 0x0000000000000000;
+            N64CPU.gpr[20] = 0x0000000000000001;
+            N64CPU.gpr[21] = 0x0000000000000000;
+            N64CPU.gpr[23] = 0x0000000000000000;
+            N64CPU.gpr[24] = 0x0000000000000000;
+            N64CPU.gpr[25] = 0xFFFFFFFF9DEBB54F;
+            N64CPU.gpr[26] = 0x0000000000000000;
+            N64CPU.gpr[27] = 0x0000000000000000;
+            N64CPU.gpr[28] = 0x0000000000000000;
+            N64CPU.gpr[29] = 0xFFFFFFFFA4001FF0;
+            N64CPU.gpr[30] = 0x0000000000000000;
+            N64CPU.gpr[31] = 0xFFFFFFFFA4001550;
+            break;
+        case CIC_NUS_6101_7102:
+            logfatal("Unimplemented: CIC_NUS_6101_7102");
+            break;
+        case CIC_NUS_6103_7103:
+            logfatal("Unimplemented: CIC_NUS_6103_7103");
+            break;
+        case CIC_NUS_6105_7105:
+            logfatal("Unimplemented: CIC_NUS_6105_7105");
+            break;
+        case CIC_NUS_6106_7106:
+            logfatal("Unimplemented: CIC_NUS_6106_7106");
+            break;
+    }
+
+    N64CPU.gpr[22] = (cic_seeds[n64sys.mem.rom.cic_type] >> 8) & 0xFF; // bits 8 through 15 of the cic seed goes here
 
     //N64CP0.index         = 0;
     N64CP0.random        = 0x0000001F;
@@ -122,30 +150,26 @@ void pif_rom_execute_lle() {
 }
 
 void pif_rom_execute() {
+    n64_write_physical_word(SREGION_PIF_RAM + 0x24, cic_seeds[n64sys.mem.rom.cic_type]);
     switch (n64sys.mem.rom.cic_type) {
         case CIC_NUS_6101_7102:
             logalways("Initializing PIF and CIC: CIC_NUS_6101_7102");
-            n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x00043F3F);
             n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6102_7101:
             logalways("Initializing PIF and CIC: CIC_NUS_6102_7101");
-            n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x00003F3F);
             n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6103_7103:
             logalways("Initializing PIF and CIC: CIC_NUS_6103_7103");
-            n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000783F);
             n64_write_physical_word(SREGION_RDRAM + 0x318, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6105_7105:
             logalways("Initializing PIF and CIC: CIC_NUS_6105_7105");
-            n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000913F);
             n64_write_physical_word(SREGION_RDRAM + 0x3F0, N64_RDRAM_SIZE);
             break;
         case CIC_NUS_6106_7106:
-            logalways("Initializing PIF and CIC: CIC_NUS_6106_7106");
-            n64_write_physical_word(SREGION_PIF_RAM + 0x24, 0x0000853F);
+            logalways("Initializing PIF and CIC: CIC_NUS_6106_7106 (if the game doesn't boot, maybe RDRAM size needs to be written somewhere?)");
             break;
         case UNKNOWN_CIC_TYPE:
             logwarn("Unknown CIC type, not writing seed to PIF RAM! The game may not boot!");
