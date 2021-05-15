@@ -1,4 +1,5 @@
 #include "n64system.h"
+#include "scheduler.h"
 
 #include <string.h>
 
@@ -19,6 +20,7 @@
 #include <frontend/game_db.h>
 #include <metrics.h>
 #include <frontend/device.h>
+#include <interface/si.h>
 
 static bool should_quit = false;
 
@@ -149,6 +151,8 @@ void reset_n64system() {
     n64sys.vi.cycles_per_halfline = 1000;
 
     invalidate_dynarec_all_pages(n64sys.dynarec);
+
+    scheduler_reset();
 }
 
 INLINE int jit_system_step() {
@@ -248,6 +252,16 @@ void check_vsync() {
     }
 }
 
+void handle_scheduler_event(scheduler_event_t* event) {
+    switch (event->type) {
+        case SCHEDULER_SI_DMA_COMPLETE:
+            on_si_dma_complete();
+            break;
+        default:
+            logfatal("");
+    }
+}
+
 void jit_system_loop() {
     int cycles = 0;
     while (!should_quit) {
@@ -257,7 +271,12 @@ void jit_system_loop() {
                 check_vi_interrupt();
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
-                    cycles += jit_system_step();
+                    int taken = jit_system_step();
+                    static scheduler_event_t event;
+                    if (scheduler_tick(taken, &event)) {
+                        handle_scheduler_event(&event);
+                    }
+                    cycles += taken;
 #ifndef N64_WIN
                     n64sys.debugger_state.steps = 0;
 #endif

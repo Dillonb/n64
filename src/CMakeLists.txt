@@ -28,7 +28,9 @@ add_library(core
         frontend/audio.c frontend/audio.h
         frontend/gamepad.c frontend/gamepad.h
         mem/backup.c mem/backup.h
-        frontend/game_db.c frontend/game_db.h)
+        frontend/game_db.c frontend/game_db.h
+        system/scheduler.c system/scheduler.h
+        interface/si.c interface/si.h)
 
 target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105)
 

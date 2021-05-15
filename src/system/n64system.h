@@ -162,6 +162,9 @@ typedef struct n64_system {
             word precision;
         } dac;
     } ai;
+    struct {
+        bool dma_busy;
+    } si;
     n64_dpc_t dpc;
 #ifndef N64_WIN
     n64_debugger_state_t debugger_state;

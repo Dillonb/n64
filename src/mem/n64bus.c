@@ -6,6 +6,7 @@
 #include <rdp/rdp.h>
 #include <cpu/dynarec/dynarec.h>
 #include <rsp.h>
+#include <interface/si.h>
 
 #include "addresses.h"
 #include "pif.h"
@@ -221,6 +222,7 @@ void write_word_pireg(word address, word value) {
 
             logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", N64CPU.pc, dram_addr, cart_addr, length);
 
+            // TODO: takes 9 cycles per byte to run in reality
             for (int i = 0; i < length; i++) {
                 byte b = n64_read_physical_byte(dram_addr + i);
                 logtrace("DRAM to CART: Copying 0x%02X from 0x%08X to 0x%08X", b, dram_addr + i, cart_addr + i);
@@ -253,6 +255,7 @@ void write_word_pireg(word address, word value) {
                 cart_addr = 0x08000000 | ((cart_addr & 0xFFFFF) << 1);
             }
 
+            // TODO: takes 9 cycles per byte to run in reality
             for (int i = 0; i < length; i++) {
                 byte b = n64_read_physical_byte(cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
@@ -423,72 +426,6 @@ word read_word_mireg(word address) {
             return n64sys.mi.intr_mask.raw;
         default:
             logfatal("Read from unknown MI register: 0x%08X", address);
-    }
-}
-
-void pif_to_dram(word pif_address, word dram_address) {
-    if ((dram_address & 1) != 0) {
-        logfatal("PIF to DRAM on unaligned address");
-    }
-    unimplemented(pif_address != 0x1FC007C0, "SI DMA not from start of PIF RAM!");
-    process_pif_command();
-
-    for (int i = 0; i < 64; i++) {
-        byte value = n64sys.mem.pif_ram[i];
-        n64_write_physical_byte(dram_address + i, value);
-    }
-    interrupt_raise(INTERRUPT_SI);
-}
-
-void dram_to_pif(word dram_address, word pif_address) {
-    if ((dram_address & 1) != 0) {
-        logfatal("DRAM to PIF on unaligned address");
-    }
-    unimplemented(pif_address != 0x1FC007C0, "SI DMA not to start of PIF RAM!");
-    for (int i = 0; i < 64; i++) {
-        n64sys.mem.pif_ram[i] = n64_read_physical_byte(dram_address + i);
-    }
-    process_pif_command();
-    interrupt_raise(INTERRUPT_SI);
-}
-
-void write_word_sireg(word address, word value) {
-    switch (address) {
-        case ADDR_SI_DRAM_ADDR_REG:
-            n64sys.mem.si_reg.dram_address = value;
-            break;
-        case ADDR_SI_PIF_ADDR_RD64B_REG:
-            pif_to_dram(value, n64sys.mem.si_reg.dram_address & 0x1FFFFFFF);
-            break;
-        case ADDR_SI_PIF_ADDR_WR64B_REG:
-            dram_to_pif(n64sys.mem.si_reg.dram_address & 0x1FFFFFFF, value);
-            break;
-        case ADDR_SI_STATUS_REG:
-            interrupt_lower(INTERRUPT_SI);
-            break;
-        default:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address);
-    }
-}
-
-word read_word_sireg(word address) {
-    switch (address) {
-        case ADDR_SI_DRAM_ADDR_REG:
-            logfatal("Reading from unimplemented SI register: ADDR_SI_DRAM_ADDR_REG");
-        case ADDR_SI_PIF_ADDR_RD64B_REG:
-            logfatal("Reading from unimplemented SI register: ADDR_SI_PIF_ADDR_RD64B_REG");
-        case ADDR_SI_PIF_ADDR_WR64B_REG:
-            logfatal("Reading from unimplemented SI register: ADDR_SI_PIF_ADDR_WR64B_REG");
-        case ADDR_SI_STATUS_REG: {
-            word value = 0;
-            value |= (false << 0); // DMA busy
-            value |= (false << 1); // IO read busy
-            value |= (false << 3); // DMA error
-            value |= (n64sys.mi.intr.si << 12); // SI interrupt
-            return value;
-        }
-        default:
-            logfatal("Reading from unknown SI register: 0x%08X", address);
     }
 }
 
