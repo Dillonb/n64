@@ -235,24 +235,6 @@ INLINE int interpreter_system_step() {
     return taken;
 }
 
-// This is used for debugging tools, it's fine for now if timing is a little off.
-void n64_system_step(bool dynarec) {
-    if (dynarec) {
-        jit_system_step();
-    } else {
-        r4300i_step();
-        if (!N64RSP.status.halt) {
-            rsp_step();
-        }
-    }
-}
-
-void check_vsync() {
-    if (n64sys.vi.v_current == n64sys.vi.vsync >> 1) {
-        rdp_update_screen();
-    }
-}
-
 void handle_scheduler_event(scheduler_event_t* event) {
     switch (event->type) {
         case SCHEDULER_SI_DMA_COMPLETE:
@@ -263,6 +245,32 @@ void handle_scheduler_event(scheduler_event_t* event) {
             break;
         default:
             logfatal("");
+    }
+}
+
+// This is used for debugging tools, it's fine for now if timing is a little off.
+void n64_system_step(bool dynarec) {
+    int taken;
+    if (dynarec) {
+        taken = jit_system_step();
+    } else {
+        r4300i_step();
+        taken = 1;
+        if (!N64RSP.status.halt) {
+            rsp_step();
+        }
+    }
+
+
+    scheduler_event_t event;
+    if (scheduler_tick(taken, &event)) {
+        handle_scheduler_event(&event);
+    }
+}
+
+void check_vsync() {
+    if (n64sys.vi.v_current == n64sys.vi.vsync >> 1) {
+        rdp_update_screen();
     }
 }
 
