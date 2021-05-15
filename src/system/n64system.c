@@ -312,7 +312,12 @@ void interpreter_system_loop() {
                 check_vi_interrupt();
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
-                    cycles += interpreter_system_step();
+                    int taken = interpreter_system_step();
+                    static scheduler_event_t event;
+                    if (scheduler_tick(taken, &event)) {
+                        handle_scheduler_event(&event);
+                    }
+                    cycles += taken;
 #ifndef N64_WIN
                     n64sys.debugger_state.steps = 0;
 #endif
