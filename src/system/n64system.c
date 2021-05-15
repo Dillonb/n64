@@ -21,6 +21,7 @@
 #include <metrics.h>
 #include <frontend/device.h>
 #include <interface/si.h>
+#include <interface/pi.h>
 
 static bool should_quit = false;
 
@@ -256,6 +257,9 @@ void handle_scheduler_event(scheduler_event_t* event) {
     switch (event->type) {
         case SCHEDULER_SI_DMA_COMPLETE:
             on_si_dma_complete();
+            break;
+        case SCHEDULER_PI_DMA_COMPLETE:
+            on_pi_dma_complete();
             break;
         default:
             logfatal("");

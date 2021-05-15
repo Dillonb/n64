@@ -1,7 +1,11 @@
 #include <mem/addresses.h>
 #include <system/n64system.h>
 #include <mem/n64bus.h>
+#include <system/scheduler.h>
 #include "pi.h"
+
+// 9 cycles measured through $Count
+#define PI_DMA_CYCLES_PER_BYTE (9 * 2)
 
 word read_word_pireg(word address) {
     switch (address) {
@@ -15,7 +19,7 @@ word read_word_pireg(word address) {
             return n64sys.mem.pi_reg[PI_WR_LEN_REG];
         case ADDR_PI_STATUS_REG: {
             word value = 0;
-            value |= (0 << 0); // Is PI DMA active?
+            value |= (n64sys.pi.dma_busy << 0); // Is PI DMA active?
             value |= (0 << 1); // Is PI IO busy?
             value |= (0 << 2); // PI IO error?
             value |= (n64sys.mi.intr.pi << 3); // PI interrupt?
@@ -75,10 +79,13 @@ void write_word_pireg(word address, word value) {
                 n64_write_physical_byte(cart_addr + i, b);
             }
 
-            logdebug("DMA completed.");
+            int complete_in = length * PI_DMA_CYCLES_PER_BYTE;
+            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
+            n64sys.pi.dma_busy = true;
+
+            logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] += length;
             n64sys.mem.pi_reg[PI_CART_ADDR_REG] += length;
-            interrupt_raise(INTERRUPT_PI);
             break;
         }
         case ADDR_PI_WR_LEN_REG: {
@@ -107,11 +114,13 @@ void write_word_pireg(word address, word value) {
                 n64_write_physical_byte(dram_addr + i, b);
             }
 
-            logdebug("DMA completed.");
+            int complete_in = length * PI_DMA_CYCLES_PER_BYTE;
+            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
+            n64sys.pi.dma_busy = true;
+
+            logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] += length;
             n64sys.mem.pi_reg[PI_CART_ADDR_REG] += length;
-
-            interrupt_raise(INTERRUPT_PI);
             break;
         }
         case ADDR_PI_STATUS_REG: {
@@ -149,3 +158,7 @@ void write_word_pireg(word address, word value) {
     }
 }
 
+void on_pi_dma_complete() {
+    interrupt_raise(INTERRUPT_PI);
+    n64sys.pi.dma_busy = false;
+}

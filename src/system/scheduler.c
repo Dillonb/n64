@@ -60,7 +60,16 @@ void scheduler_enqueue_absolute(dword at_ticks, scheduler_event_type_t event_typ
     if (scheduler_list == NULL) {
         scheduler_list = ins;
     } else {
-        logfatal("Scheduling more than one event not yet implemented");
+        // Find the first node with a rank smaller than the node we're inserting
+        // that either has a null next node OR a next node with a larger rank than the one we're inserting.
+
+        scheduler_event_node_t* n = scheduler_list;
+        while (n->next != NULL && n->next->event.time < at_ticks) {
+            n = n->next;
+        }
+        scheduler_event_node_t* old_next = n->next;
+        n->next = ins;
+        ins->next = old_next;
     }
 }
 

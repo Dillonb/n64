@@ -5,7 +5,8 @@
 #include <stdbool.h>
 
 typedef enum scheduler_event_type {
-    SCHEDULER_SI_DMA_COMPLETE
+    SCHEDULER_SI_DMA_COMPLETE,
+    SCHEDULER_PI_DMA_COMPLETE,
 } scheduler_event_type_t;
 
 typedef struct scheduler_event {

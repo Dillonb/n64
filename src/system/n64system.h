@@ -166,6 +166,9 @@ typedef struct n64_system {
         bool dma_busy;
         bool dma_to_dram;
     } si;
+    struct {
+        bool dma_busy;
+    } pi;
     n64_dpc_t dpc;
 #ifndef N64_WIN
     n64_debugger_state_t debugger_state;
