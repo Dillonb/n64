@@ -145,6 +145,8 @@ void render_metrics_window() {
     ImGui::Begin("Performance Metrics", &show_metrics_window);
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", frametime, ImGui::GetIO().Framerate);
 
+    ImPlot::GetStyle().AntiAliasedLines = true;
+
     ImPlot::SetNextPlotLimitsY(0, frame_times.max(), ImGuiCond_Always, 0);
     ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Frame Times")) {
