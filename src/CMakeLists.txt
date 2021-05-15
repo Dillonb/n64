@@ -12,25 +12,29 @@ add_subdirectory(contrib/cic_nus_6105)
 add_subdirectory(tools)
 
 add_library(core
-        mem/mem_util.h
         system/n64system.c system/n64system.h
+        system/scheduler.c system/scheduler.h
+
+        mem/mem_util.h
+        mem/addresses.h
         mem/n64rom.c mem/n64rom.h
         mem/n64mem.c mem/n64mem.h
         mem/n64bus.c mem/n64bus.h
         mem/pif.c mem/pif.h
+        mem/backup.c mem/backup.h
+
         interface/vi.c interface/vi.h interface/vi_reg.h
+        interface/si.c interface/si.h
+        interface/pi.c interface/pi.h
+        interface/ai.c interface/ai.h
+
         frontend/render.c frontend/render.h frontend/render_internal.h
         frontend/frontend.c frontend/frontend.h
         frontend/device.c frontend/device.h
-        interface/ai.c interface/ai.h
-        mem/addresses.h
         frontend/tas_movie.c frontend/tas_movie.h
         frontend/audio.c frontend/audio.h
         frontend/gamepad.c frontend/gamepad.h
-        mem/backup.c mem/backup.h
-        frontend/game_db.c frontend/game_db.h
-        system/scheduler.c system/scheduler.h
-        interface/si.c interface/si.h)
+        frontend/game_db.c frontend/game_db.h)
 
 target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105)
 
