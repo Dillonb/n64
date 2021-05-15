@@ -29,17 +29,23 @@ static bool is_fullscreen = false;
 template<typename T>
 struct RingBuffer {
     int offset;
-    T max;
     T data[METRICS_HISTORY_ITEMS];
     RingBuffer() {
         offset = 0;
-        max = 0;
         memset(data, 0, sizeof(data));
     }
-    void add_point(T point) {
-        if (point > max) {
-            max = point;
+
+    T max() {
+        T max_ = 0;
+        for (int i = 0; i < METRICS_HISTORY_ITEMS; i++) {
+            if (data[i] > max_) {
+                max_ = data[i];
+            }
         }
+        return max_;
+    }
+
+    void add_point(T point) {
         data[offset++] = point;
         offset %= METRICS_HISTORY_ITEMS;
     }
@@ -50,6 +56,12 @@ RingBuffer<ImU64> block_complilations;
 RingBuffer<ImU64> rsp_steps;
 RingBuffer<ImU64> codecache_bytes_used;
 RingBuffer<ImU64> audiostream_bytes_available;
+RingBuffer<ImU64> si_interrupts;
+RingBuffer<ImU64> pi_interrupts;
+RingBuffer<ImU64> ai_interrupts;
+RingBuffer<ImU64> dp_interrupts;
+RingBuffer<ImU64> sp_interrupts;
+
 
 ImGui::FileBrowser fileBrowser;
 
@@ -123,17 +135,24 @@ void render_metrics_window() {
     codecache_bytes_used.add_point(n64sys.dynarec->codecache_used);
     audiostream_bytes_available.add_point(get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
 
+    si_interrupts.add_point(get_metric(METRIC_SI_INTERRUPT));
+    pi_interrupts.add_point(get_metric(METRIC_PI_INTERRUPT));
+    ai_interrupts.add_point(get_metric(METRIC_AI_INTERRUPT));
+    dp_interrupts.add_point(get_metric(METRIC_DP_INTERRUPT));
+    sp_interrupts.add_point(get_metric(METRIC_SP_INTERRUPT));
+
+
     ImGui::Begin("Performance Metrics", &show_metrics_window);
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", frametime, ImGui::GetIO().Framerate);
 
-    ImPlot::SetNextPlotLimitsY(0, frame_times.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsY(0, frame_times.max(), ImGuiCond_Always, 0);
     ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Frame Times")) {
         ImPlot::PlotLine("Frame Time (ms)", frame_times.data, METRICS_HISTORY_ITEMS, 1, 0, frame_times.offset);
         ImPlot::EndPlot();
     }
 
-    ImPlot::SetNextPlotLimitsY(0, rsp_steps.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsY(0, rsp_steps.max(), ImGuiCond_Always, 0);
     ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("RSP Steps Per Frame")) {
         ImPlot::PlotLine("RSP Steps", rsp_steps.data, METRICS_HISTORY_ITEMS, 1, 0, rsp_steps.offset);
@@ -141,7 +160,7 @@ void render_metrics_window() {
     }
 
     ImGui::Text("Block compilations this frame: %ld", get_metric(METRIC_BLOCK_COMPILATION));
-    ImPlot::SetNextPlotLimitsY(0, block_complilations.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsY(0, block_complilations.max(), ImGuiCond_Always, 0);
     ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Block Compilations Per Frame")) {
         ImPlot::PlotBars("Block compilations", block_complilations.data, METRICS_HISTORY_ITEMS, 1, 0, block_complilations.offset);
@@ -156,10 +175,24 @@ void render_metrics_window() {
     }
 
     ImGui::Text("Audio stream bytes available: %ld", get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
-    ImPlot::SetNextPlotLimitsY(0, audiostream_bytes_available.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsY(0, audiostream_bytes_available.max(), ImGuiCond_Always, 0);
     ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Audio Stream Bytes Available")) {
         ImPlot::PlotLine("Audio Stream Bytes Available", audiostream_bytes_available.data, METRICS_HISTORY_ITEMS, 1, 0, audiostream_bytes_available.offset);
+        ImPlot::EndPlot();
+    }
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+    int interruptsMax = MAX(MAX(MAX(MAX(si_interrupts.max(), pi_interrupts.max()), ai_interrupts.max()), dp_interrupts.max()), sp_interrupts.max());
+    ImPlot::SetNextPlotLimitsY(0, interruptsMax, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Interrupts Per Frame")) {
+        ImPlot::PlotLine("SI Interrupts", si_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, si_interrupts.offset);
+        ImPlot::PlotLine("PI Interrupts", pi_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, pi_interrupts.offset);
+        ImPlot::PlotLine("AI Interrupts", ai_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, ai_interrupts.offset);
+        ImPlot::PlotLine("DP Interrupts", dp_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, dp_interrupts.offset);
+        ImPlot::PlotLine("SP Interrupts", sp_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, sp_interrupts.offset);
         ImPlot::EndPlot();
     }
 

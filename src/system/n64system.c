@@ -412,22 +412,27 @@ void interrupt_raise(n64_interrupt_t interrupt) {
             break;
         case INTERRUPT_SI:
             loginfo("Raising SI interrupt");
+            mark_metric(METRIC_SI_INTERRUPT);
             n64sys.mi.intr.si = true;
             break;
         case INTERRUPT_PI:
             loginfo("Raising PI interrupt");
+            mark_metric(METRIC_PI_INTERRUPT);
             n64sys.mi.intr.pi = true;
             break;
         case INTERRUPT_AI:
             loginfo("Raising AI interrupt");
+            mark_metric(METRIC_AI_INTERRUPT);
             n64sys.mi.intr.ai = true;
             break;
         case INTERRUPT_DP:
             loginfo("Raising DP interrupt");
+            mark_metric(METRIC_DP_INTERRUPT);
             n64sys.mi.intr.dp = true;
             break;
         case INTERRUPT_SP:
             loginfo("Raising SP interrupt");
+            mark_metric(METRIC_SP_INTERRUPT);
             n64sys.mi.intr.sp = true;
             break;
         default:
