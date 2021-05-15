@@ -3,6 +3,8 @@
 #include <windows.h>
 #else
 #include <pthread.h>
+#include <metrics.h>
+
 #endif
 #include "audio.h"
 
@@ -41,6 +43,7 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
     int gotten = 0;
     acquire_audiostream_mutex();
     int available = SDL_AudioStreamAvailable(audio_stream);
+    set_metric(METRIC_AUDIOSTREAM_AVAILABLE, available);
     if (available > 0) {
         gotten = SDL_AudioStreamGet(audio_stream, stream, length);
     }

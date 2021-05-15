@@ -266,26 +266,32 @@ void jit_system_loop() {
     int cycles = 0;
     while (!should_quit) {
         for (int field = 0; field < n64sys.vi.num_fields; field++) {
+            int this_frame_cycles = 0;
             for (int line = 0; line < n64sys.vi.num_halflines; line++) {
                 n64sys.vi.v_current = (line << 1) + field;
                 check_vi_interrupt();
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
                     int taken = jit_system_step();
+                    ai_step(taken);
                     static scheduler_event_t event;
                     if (scheduler_tick(taken, &event)) {
                         handle_scheduler_event(&event);
                     }
                     cycles += taken;
+                    this_frame_cycles += taken;
 #ifndef N64_WIN
                     n64sys.debugger_state.steps = 0;
 #endif
                 }
                 cycles -= n64sys.vi.cycles_per_halfline;
-                ai_step(n64sys.vi.cycles_per_halfline);
             }
             check_vi_interrupt();
             rdp_update_screen();
+
+            // Catch up audio if we didn't run the CPU long enough this frame
+            int missed_cycles = CPU_CYCLES_PER_FRAME - this_frame_cycles;
+            ai_step(missed_cycles);
         }
 #ifdef N64_DEBUG_MODE
 #ifndef N64_WIN
@@ -307,26 +313,32 @@ void interpreter_system_loop() {
     int cycles = 0;
     while (!should_quit) {
         for (int field = 0; field < n64sys.vi.num_fields; field++) {
+            int this_frame_cycles = 0;
             for (int line = 0; line < n64sys.vi.num_halflines; line++) {
                 n64sys.vi.v_current = (line << 1) + field;
                 check_vi_interrupt();
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
                     int taken = interpreter_system_step();
+                    ai_step(taken);
                     static scheduler_event_t event;
                     if (scheduler_tick(taken, &event)) {
                         handle_scheduler_event(&event);
                     }
                     cycles += taken;
+                    this_frame_cycles += taken;
 #ifndef N64_WIN
                     n64sys.debugger_state.steps = 0;
 #endif
                 }
                 cycles -= n64sys.vi.cycles_per_halfline;
-                ai_step(n64sys.vi.cycles_per_halfline);
             }
             check_vi_interrupt();
             rdp_update_screen();
+
+            // Catch up audio if we didn't run the CPU long enough this frame
+            int missed_cycles = CPU_CYCLES_PER_FRAME - this_frame_cycles;
+            ai_step(missed_cycles);
         }
 #ifdef N64_DEBUG_MODE
 #ifndef N64_WIN

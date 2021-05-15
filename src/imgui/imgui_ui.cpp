@@ -14,6 +14,7 @@
 #include <mem/pif.h>
 #include <mem/mem_util.h>
 #include <cpu/dynarec/dynarec.h>
+#include <frontend/audio.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
@@ -48,6 +49,7 @@ RingBuffer<double> frame_times;
 RingBuffer<ImU64> block_complilations;
 RingBuffer<ImU64> rsp_steps;
 RingBuffer<ImU64> codecache_bytes_used;
+RingBuffer<ImU64> audiostream_bytes_available;
 
 ImGui::FileBrowser fileBrowser;
 
@@ -119,6 +121,7 @@ void render_metrics_window() {
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
     codecache_bytes_used.add_point(n64sys.dynarec->codecache_used);
+    audiostream_bytes_available.add_point(get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
 
     ImGui::Begin("Performance Metrics", &show_metrics_window);
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", frametime, ImGui::GetIO().Framerate);
@@ -149,6 +152,14 @@ void render_metrics_window() {
     ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Codecache bytes used")) {
         ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, codecache_bytes_used.offset);
+        ImPlot::EndPlot();
+    }
+
+    ImGui::Text("Audio stream bytes available: %ld", get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
+    ImPlot::SetNextPlotLimitsY(0, audiostream_bytes_available.max, ImGuiCond_Always, 0);
+    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Audio Stream Bytes Available")) {
+        ImPlot::PlotLine("Audio Stream Bytes Available", audiostream_bytes_available.data, METRICS_HISTORY_ITEMS, 1, 0, audiostream_bytes_available.offset);
         ImPlot::EndPlot();
     }
 

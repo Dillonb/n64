@@ -9,6 +9,7 @@ extern "C" {
 typedef enum metric {
     METRIC_BLOCK_COMPILATION = 0,
     METRIC_RSP_STEPS,
+    METRIC_AUDIOSTREAM_AVAILABLE,
     NUM_METRICS
 } metric_t;
 
@@ -24,6 +25,10 @@ INLINE void mark_metric_multiple(metric_t metric, int times) {
 
 INLINE uint64_t get_metric(metric_t metric) {
     return n64_metric_data[metric];
+}
+
+INLINE void set_metric(metric_t metric, uint64_t value) {
+    n64_metric_data[metric] = value;
 }
 
 INLINE void reset_all_metrics() {
