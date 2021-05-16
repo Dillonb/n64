@@ -1,12 +1,11 @@
+#include "audio.h"
 #include <SDL_audio.h>
+#include <metrics.h>
 #ifdef N64_WIN
 #include <windows.h>
 #else
 #include <pthread.h>
-#include <metrics.h>
-
 #endif
-#include "audio.h"
 
 #define AUDIO_SAMPLE_RATE 48000
 #define SYSTEM_SAMPLE_FORMAT AUDIO_F32SYS
