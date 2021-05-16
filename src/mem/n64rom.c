@@ -90,12 +90,59 @@ INLINE word crc32(word crc, const char *buf, size_t len)
     return ~crc;
 }
 
+// Because I'm lazy - if I specified the wrong file extension, try all the possible extensions.
+FILE* openrom_fuzzy(const char* path) {
+    static const char* extensions[] = {"n64", "v64", "z64", "N64", "V64", "Z64"};
+    static const int num_extensions = 6;
+
+    {
+        FILE *fp = fopen(path, "rb");
+
+        if (fp != NULL) {
+            return fp;
+        }
+    }
+
+    int pathlen = strlen(path);
+    const char* ext = &path[pathlen - 3];
+
+    bool matches_any = false;
+    for (int i = 0; i < num_extensions; i++) {
+        if (strcmp(ext, extensions[i]) == 0) {
+            matches_any = true;
+            break;
+        }
+    }
+
+    if (!matches_any) {
+        return NULL;
+    }
+
+    char newpath[pathlen + 1];
+    strcpy(newpath, path);
+    for (int i = 0; i < num_extensions; i++) {
+        newpath[pathlen - 3] = extensions[i][0];
+        newpath[pathlen - 2] = extensions[i][1];
+        newpath[pathlen - 1] = extensions[i][2];
+
+        logalways("Trying %s...", newpath);
+
+        FILE* possible_fp = fopen(newpath, "rb");
+        if (possible_fp != NULL) {
+            logalways("Found the ROM at %s!", newpath);
+            return possible_fp;
+        }
+    }
+
+    return NULL;
+}
+
 void load_n64rom(n64_rom_t* rom, const char* path) {
     if (rom->rom != NULL) {
         free(rom->rom);
         rom->rom = NULL;
     }
-    FILE *fp = fopen(path, "rb");
+    FILE *fp = openrom_fuzzy(path);
 
     if (fp == NULL) {
         logfatal("Error opening the file! Are you sure it's a valid ROM and that it exists?");
