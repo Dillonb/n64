@@ -277,21 +277,32 @@ MIPS_INSTR(mips_lbu) {
     shalf offset = instruction.i.immediate;
     logtrace("LBU offset: %d", offset);
     dword address = get_register(instruction.i.rs) + offset;
-    byte value    = n64_read_byte(address);
-
-    set_register(instruction.i.rt, value); // zero extend
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+    } else {
+        byte value = n64_read_physical_byte(physical);
+        set_register(instruction.i.rt, value); // zero extend
+    }
 }
 
 MIPS_INSTR(mips_lhu) {
     shalf offset = instruction.i.immediate;
     logtrace("LHU offset: %d", offset);
     dword address = get_register(instruction.i.rs) + offset;
-    half value    = n64_read_half(address);
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
-    set_register(instruction.i.rt, value); // zero extend
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+    } else {
+        half value = n64_read_physical_half(physical);
+        set_register(instruction.i.rt, value); // zero extend
+    }
 }
 
 MIPS_INSTR(mips_lh) {
@@ -338,7 +349,14 @@ MIPS_INSTR(mips_sb) {
     dword address = get_register(instruction.i.rs);
     address += offset;
     byte value = get_register(instruction.i.rt) & 0xFF;
-    n64_write_byte(address, value);
+
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+    } else {
+        n64_write_physical_byte(physical, value);
+    }
 }
 
 MIPS_INSTR(mips_sh) {
@@ -346,7 +364,13 @@ MIPS_INSTR(mips_sh) {
     dword address = get_register(instruction.i.rs);
     address += offset;
     half value = get_register(instruction.i.rt);
-    n64_write_half(address, value);
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+    } else {
+        n64_write_physical_half(physical, value);
+    }
 }
 
 MIPS_INSTR(mips_sw) {
@@ -390,11 +414,18 @@ MIPS_INSTR(mips_lwl) {
     shalf offset  = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
 
-    word shift = 8 * ((address ^ 0) & 3);
-    word mask = 0xFFFFFFFF << shift;
-    word data = n64_read_word(address & ~3);
-    sword result = (get_register(instruction.i.rt) & ~mask) | data << shift;
-    set_register(instruction.i.rt, (sdword)result);
+
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+    } else {
+        word shift = 8 * ((address ^ 0) & 3);
+        word mask = 0xFFFFFFFF << shift;
+        word data = n64_read_physical_word(physical & ~3);
+        sword result = (get_register(instruction.i.rt) & ~mask) | data << shift;
+        set_register(instruction.i.rt, (sdword)result);
+    }
 }
 
 MIPS_INSTR(mips_lwr) {
@@ -413,22 +444,33 @@ MIPS_INSTR(mips_swl) {
     shalf offset  = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
 
-    word shift = 8 * ((address ^ 0) & 3);
-    word mask = 0xFFFFFFFF >> shift;
-    word data = n64_read_word(address & ~3);
-    word oldreg = get_register(instruction.i.rt);
-    n64_write_word(address & ~3, (data & ~mask) | (oldreg >> shift));
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+    } else {
+        word shift = 8 * ((address ^ 0) & 3);
+        word mask = 0xFFFFFFFF >> shift;
+        word data = n64_read_physical_word(physical & ~3);
+        word oldreg = get_register(instruction.i.rt);
+        n64_write_physical_word(physical & ~3, (data & ~mask) | (oldreg >> shift));
+    }
 }
 
 MIPS_INSTR(mips_swr) {
     shalf offset  = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
-
-    word shift = 8 * ((address ^ 3) & 3);
-    word mask = 0xFFFFFFFF << shift;
-    word data = n64_read_word(address & ~3);
-    word oldreg = get_register(instruction.i.rt);
-    n64_write_word(address & ~3, (data & ~mask) | oldreg << shift);
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+    } else {
+        word shift = 8 * ((address ^ 3) & 3);
+        word mask = 0xFFFFFFFF << shift;
+        word data = n64_read_physical_word(physical & ~3);
+        word oldreg = get_register(instruction.i.rt);
+        n64_write_physical_word(physical & ~3, (data & ~mask) | oldreg << shift);
+    }
 }
 
 MIPS_INSTR(mips_ldl) {

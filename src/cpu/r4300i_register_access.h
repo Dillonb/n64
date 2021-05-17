@@ -78,18 +78,15 @@ INLINE void set_cp0_register_word(byte r, word value) {
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "EntryLo0 written as word in 64 bit mode");
             N64CPU.cp0.entry_lo0.raw = value;
             break;
         case R4300I_CP0_REG_ENTRYLO1:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "EntryLo1 written as word in 64 bit mode");
             N64CPU.cp0.entry_lo1.raw = value;
             break;
         case 7:
             logfatal("CP0 Reg 7 write?");
             break;
         case R4300I_CP0_REG_ENTRYHI:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "Entry hi written as word in 64 bit mode");
             N64CPU.cp0.entry_hi.raw = value;
             break;
         case R4300I_CP0_REG_PAGEMASK:
@@ -156,13 +153,10 @@ INLINE word get_cp0_register_word(byte r) {
             logalways("WARNING! Stubbed read from Random!");
             return 1;
         case R4300I_CP0_REG_ENTRYLO0:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "entrylo0 read as word in 64 bit mode");
             return N64CPU.cp0.entry_lo0.raw;
         case R4300I_CP0_REG_ENTRYLO1:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "entrylo1 read as word in 64 bit mode");
             return N64CPU.cp0.entry_lo1.raw;
         case R4300I_CP0_REG_CONTEXT:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "context read as word in 64 bit mode");
             return N64CPU.cp0.context.raw;
         case R4300I_CP0_REG_PAGEMASK:
             return N64CPU.cp0.page_mask.raw;
@@ -171,7 +165,6 @@ INLINE word get_cp0_register_word(byte r) {
         case R4300I_CP0_REG_7:
             return N64CPU.cp0.r7;
         case R4300I_CP0_REG_BADVADDR:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "bad vaddr read as word in 64 bit mode");
             return N64CPU.cp0.bad_vaddr;
         case R4300I_CP0_REG_COUNT:
             return get_cp0_count();

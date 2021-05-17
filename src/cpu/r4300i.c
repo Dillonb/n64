@@ -93,6 +93,7 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
                 set_pc_word_r4300i(0x80000180);
                 break;
             case EXCEPTION_TLB_MISS_LOAD:
+            case EXCEPTION_TLB_MISS_STORE:
                 if (old_exl) {
                     set_pc_word_r4300i(0x80000180);
                 } else if (N64CP0.is_64bit_addressing){

@@ -7,7 +7,6 @@
 
 void dump_tlb(dword vaddr);
 bool tlb_probe(dword vaddr, word* paddr, int* entry_number);
-bool tlb_probe_64(dword vaddr, word* paddr, int* entry_number);
 
 #define REGION_XKUSEG 0x0000000000000000 ... 0x000000FFFFFFFFFF
 #define REGION_XBAD1  0x0000010000000000 ... 0x3FFFFFFFFFFFFFFF
@@ -65,7 +64,7 @@ INLINE bool resolve_virtual_address_32bit(word address, word* physical) {
 INLINE bool resolve_virtual_address_64bit(dword address, word* physical) {
     switch (address) {
         case REGION_XKUSEG:
-            if (!tlb_probe_64(address, physical, NULL)) {
+            if (!tlb_probe(address, physical, NULL)) {
                 logwarn("Page miss translating virtual address 0x%016lX in REGION_XKUSEG", address);
                 return false;
             }

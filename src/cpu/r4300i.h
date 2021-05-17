@@ -416,60 +416,6 @@ typedef struct tlb_entry {
 
 } tlb_entry_t;
 
-typedef struct tlb_entry_64 {
-    union {
-        struct {
-            unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
-            unsigned pfn:20;
-            dword:38;
-        };
-        word raw;
-    } entry_lo0;
-
-    union {
-        struct {
-            dword:1;
-            dword valid:1;
-            dword dirty:1;
-            dword c:3;
-            dword pfn:20;
-            dword:38;
-        };
-        word raw;
-    } entry_lo1;
-
-    union {
-        word raw;
-        struct {
-            dword asid:8;
-            dword:4;
-            dword g:1;
-            dword vpn2:27;
-            dword:22;
-            dword r:2;
-        };
-    } entry_hi;
-
-    union {
-        struct {
-            dword:13;
-            dword mask:12;
-            dword:39;
-        };
-        dword raw;
-    } page_mask;
-
-    // "parsed"
-    bool global;
-    bool valid;
-    byte asid;
-    // not present in 32 bit TLB
-    byte region;
-} tlb_entry_64_t;
-
 typedef union watch_lo {
     word raw;
     struct {
@@ -542,7 +488,6 @@ typedef struct cp0 {
     word r31;
 
     tlb_entry_t    tlb[32];
-    tlb_entry_64_t tlb_64[32];
 
     bool kernel_mode;
     bool supervisor_mode;
