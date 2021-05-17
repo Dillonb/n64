@@ -125,8 +125,6 @@ FILE* openrom_fuzzy(const char* path) {
         newpath[pathlen - 2] = extensions[i][1];
         newpath[pathlen - 1] = extensions[i][2];
 
-        logalways("Trying %s...", newpath);
-
         FILE* possible_fp = fopen(newpath, "rb");
         if (possible_fp != NULL) {
             logalways("Found the ROM at %s!", newpath);
