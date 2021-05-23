@@ -918,10 +918,10 @@
     "developer": "Paradigm",
     "publisher": "EA",
     "genre": "Racing",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MINOR_ISSUES",
+    "notes": "Major performance issues. Heavy use of self-modifying code.",
     "path": "beetle_adventure_racing.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Big Mountain 2000",
@@ -930,10 +930,10 @@
     "developer": "Imagineer",
     "publisher": "Southpeak",
     "genre": "Sports",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MAJOR_ISSUES",
+    "notes": "Hang when you back out of the menus after retiring from a race",
     "path": "bigmountain2000.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Bio F.R.E.A.K.S.",
@@ -942,10 +942,10 @@
     "developer": "Saffire",
     "publisher": "Midway",
     "genre": "Fighting",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "biofreaks.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Blues Brothers 2000",
@@ -954,10 +954,10 @@
     "developer": "Player 1",
     "publisher": "Titus",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MINOR_ISSUES",
+    "notes": "Unable to repair controller pak, works when another game's mempak is copied",
     "path": "bluesbrothers.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Bomberman 64",
@@ -966,10 +966,10 @@
     "developer": "Hudson",
     "publisher": "Nintendo",
     "genre": "Action",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bomberman64.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Bomberman 64: The Second Attack",
@@ -978,10 +978,10 @@
     "developer": "Hudson",
     "publisher": "Vatical",
     "genre": "Action",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bomberman_second_attack.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Bomberman Hero",
@@ -990,10 +990,10 @@
     "developer": "Hudson",
     "publisher": "Nintendo",
     "genre": "Action",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bomberman_hero.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Brunswick Circuit Pro Bowling",
@@ -1002,10 +1002,10 @@
     "developer": "Point of view",
     "publisher": "THQ",
     "genre": "Sports",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MINOR_ISSUES",
+    "notes": "Jittery video. Interlaced mode?",
     "path": "brunswick_bowling.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Buck Bumble",
@@ -1014,10 +1014,10 @@
     "developer": "Argonaut",
     "publisher": "Ubisoft",
     "genre": "Action",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "buckbumble.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Bust-A-Move 2: Arcade Edition",
@@ -1026,10 +1026,10 @@
     "developer": "Taito",
     "publisher": "Taito",
     "genre": "Puzzle",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bust_a_move_2.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Castlevania 64 (Rev2)",
@@ -1038,10 +1038,10 @@
     "developer": "Konami",
     "publisher": "Konami",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "castlevania.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Castlevania: Legacy of Darkness",
@@ -1050,10 +1050,10 @@
     "developer": "Konami",
     "publisher": "Konami",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "castlevania_lod.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Chameleon Twist (Rev 1)",
@@ -1062,10 +1062,10 @@
     "developer": "J. System Supply",
     "publisher": "Sunsoft",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "BROKEN",
+    "notes": "Stuck at a warning screen thinking my rumble pak is broken.",
     "path": "chameleon_twist.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Charlie Blast's Territory",
@@ -1074,10 +1074,10 @@
     "developer": "Realtime",
     "publisher": "Kemco",
     "genre": "Puzzle",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "charlie_blast.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Chopper Attack",
@@ -1086,10 +1086,10 @@
     "developer": "SETA",
     "publisher": "Midway",
     "genre": "Flight",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "chopper_attack.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "ClayFighter 63 1/3 Sculptor's Cut",
@@ -1098,10 +1098,10 @@
     "developer": "Interplay",
     "publisher": "Interplay",
     "genre": "Fighting",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "clay_fighter_sculptors_cut.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Command and Conquer",
@@ -1110,10 +1110,10 @@
     "developer": "Westwood",
     "publisher": "Nintendo",
     "genre": "Strategy",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "FULLY_PLAYABLE",
+    "notes": "Performance issues",
     "path": "command_and_conquer.n64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Conker's Bad Fur Day",
@@ -1122,10 +1122,10 @@
     "developer": "Rare",
     "publisher": "Rare",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "BROKEN",
+    "notes": "TLB problems, RSP IMEM loaded with junk",
     "path": "conker.n64",
-    "date_tested": ""
+    "date_tested": "2021-05-23"
   },
   {
     "name": "Cruis'n World",
