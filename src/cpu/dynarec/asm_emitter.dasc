@@ -309,21 +309,28 @@ IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
 
 COMPILER(mips_spc_dsllv) {
     BAILZERO(instr.r.rd);
-    | mov Rq(dreg), Rq(aregs[0])
     | mov rcx, Rq(aregs[1])
+    | mov Rq(dreg), Rq(aregs[0])
     | shl Rq(dreg), cl
 }
 IR_INFO(mips_spc_dsllv, NORMAL, R_TYPE, false);
 
 COMPILER(mips_spc_dsrlv) {
     BAILZERO(instr.r.rd);
-    | mov Rq(dreg), Rq(aregs[0])
     | mov rcx, Rq(aregs[1])
+    | mov Rq(dreg), Rq(aregs[0])
     | shr Rq(dreg), cl
 }
 IR_INFO(mips_spc_dsrlv, NORMAL, R_TYPE, false);
 
-COMP(mips_spc_dsrav, NORMAL, false);
+COMPILER(mips_spc_dsrav) {
+    BAILZERO(instr.r.rd);
+    | mov rcx, Rq(aregs[1])
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rq(dreg), cl
+}
+IR_INFO(mips_spc_dsrav, NORMAL, R_TYPE, false);
+
 COMP(mips_spc_mult, NORMAL, false);
 COMP(mips_spc_multu, NORMAL, false);
 COMP(mips_spc_div, NORMAL, false);
@@ -364,8 +371,21 @@ COMPILER(mips_spc_nor) {
 }
 IR_INFO(mips_spc_nor, NORMAL, R_TYPE, false);
 
-COMP(mips_spc_sub, NORMAL, false);
-COMP(mips_spc_subu, NORMAL, false);
+COMPILER(mips_spc_sub) {
+    BAILZERO(instr.r.rd);
+    | mov eax, Rd(aregs[1])
+    | sub eax, Rd(aregs[0])
+    | movsxd Rq(dreg), eax
+}
+IR_INFO(mips_spc_sub, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_subu) {
+    BAILZERO(instr.r.rd);
+    | mov eax, Rd(aregs[1])
+    | sub eax, Rd(aregs[0])
+    | movsxd Rq(dreg), eax
+}
+IR_INFO(mips_spc_subu, NORMAL, R_TYPE, false);
 
 COMPILER(mips_spc_or) {
     BAILZERO(instr.r.rd);
@@ -399,8 +419,22 @@ COMPILER(mips_spc_daddu) {
 }
 IR_INFO(mips_spc_daddu, NORMAL, R_TYPE, false);
 
-COMP(mips_spc_dsub, NORMAL, false);
-COMP(mips_spc_dsubu, NORMAL, false);
+COMPILER(mips_spc_dsub) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[1])
+    | sub rax, Rq(aregs[0])
+    | mov Rq(dreg), rax
+}
+IR_INFO(mips_spc_dsub, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_dsubu) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[1])
+    | sub rax, Rq(aregs[0])
+    | mov Rq(dreg), rax
+}
+IR_INFO(mips_spc_dsubu, NORMAL, R_TYPE, false);
+
 COMP(mips_spc_teq, NORMAL, true);
 COMP(mips_spc_break, NORMAL, true);
 
