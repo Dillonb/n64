@@ -8,6 +8,8 @@
 #include <system/n64system.h>
 #include <rdp/rdp.h>
 #include <mem/n64bus.h>
+#include <dynarec/dynarec.h>
+#include <mem/mem_util.h>
 
 #include "rsp_types.h"
 #include "rsp_interface.h"
@@ -97,6 +99,22 @@
 extern rsp_t n64rsp;
 #define N64RSP n64rsp
 
+INLINE void quick_invalidate_rsp_icache(word address) {
+    int index = address / 4;
+
+    N64RSP.icache[index].handler = cache_rsp_instruction;
+    N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
+}
+
+INLINE void invalidate_rsp_icache(word address) {
+    if (address >= SREGION_SP_IMEM) {
+        address -= SREGION_SP_IMEM;
+    }
+    address -= (address % 4);
+
+    quick_invalidate_rsp_icache(address);
+}
+
 INLINE void rsp_dma_read() {
     word length = N64RSP.io.dma.length + 1;
 
@@ -106,7 +124,7 @@ INLINE void rsp_dma_read() {
     length = (length + 0x7) & ~0x7;
 
     if (mem_addr_reg.address + length > 0x1000) {
-        logfatal("RSP DMA READ would read off the end of memory!\n");
+        logfatal("RSP DMA READ would read off the end of memory!");
     }
 
     word dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
@@ -119,10 +137,14 @@ INLINE void rsp_dma_read() {
     }
 
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
-        word full_mem_addr = mem_address + (mem_addr_reg.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j += 4) {
-            word val = n64_read_physical_word(dram_address + j);
-            n64_write_physical_word(full_mem_addr + j, val);
+        byte* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        byte* rdram = n64sys.mem.rdram + dram_address;
+        memcpy(mem, rdram, length);
+
+        if (mem_addr_reg.imem) {
+            for (int j = 0; j < length; j += 4) {
+                quick_invalidate_rsp_icache(mem_address + j);
+            }
         }
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
@@ -150,7 +172,7 @@ INLINE void rsp_dma_write() {
     length = (length + 0x7) & ~0x7;
 
     if (mem_addr.address + length > 0x1000) {
-        logfatal("RSP DMA WRITE would write off the end of memory!\n");
+        logfatal("RSP DMA WRITE would write off the end of memory!");
     }
 
     word dram_address = dram_addr.address & RSP_DRAM_ADDR_MASK;
@@ -163,10 +185,14 @@ INLINE void rsp_dma_write() {
     }
 
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
-        word full_mem_addr = mem_address + (mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j += 4) {
-            word val = n64_read_physical_word(full_mem_addr + j);
-            n64_write_physical_word(dram_address + j, val);
+        byte* mem = (mem_addr.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        byte* rdram = n64sys.mem.rdram + dram_address;
+        memcpy(rdram, mem, length);
+
+        // Invalidate all pages touched by the DMA
+        // This is probably unnecessary, since why would someone be copying code from the RSP to the CPU and then executing it?
+        for (int j = 0; j < length; j += BLOCKCACHE_PAGE_SIZE) {
+            invalidate_dynarec_page(dram_address + j);
         }
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;

@@ -251,18 +251,6 @@ word read_unused(word address) {
     return 0;
 }
 
-INLINE void invalidate_rsp_icache(word address) {
-    if (address >= SREGION_SP_IMEM) {
-        address -= SREGION_SP_IMEM;
-    }
-    address -= (address % 4);
-
-    int index = address / 4;
-
-    N64RSP.icache[index].handler = cache_rsp_instruction;
-    N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
-}
-
 void n64_write_physical_dword(word address, dword value) {
     logdebug("Writing 0x%016lX to [0x%08X]", value, address);
     invalidate_dynarec_page(address);
