@@ -22,6 +22,7 @@
 #include <frontend/device.h>
 #include <interface/si.h>
 #include <interface/pi.h>
+#include <dynarec/rsp_dynarec.h>
 
 static bool should_quit = false;
 
@@ -31,6 +32,10 @@ n64_system_t n64sys;
 // 32MiB codecache
 #define CODECACHE_SIZE (1 << 25)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
+
+// 32MiB RSP codecache
+#define RSP_CODECACHE_SIZE (1 << 25)
+static byte rsp_codecache[RSP_CODECACHE_SIZE] __attribute__((aligned(4096)));
 
 bool n64_should_quit() {
     return should_quit;
@@ -69,9 +74,13 @@ void mprotect_codecache() {
             logfatal("VirtualProtect codecache failed! Code: %lu", error);
         }
     }
+    logfatal("lol windows");
 #else
     if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
         logfatal("mprotect codecache failed! %s", strerror(errno));
+    }
+    if (mprotect(&rsp_codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        logfatal("mprotect rsp codecache failed! %s", strerror(errno));
     }
 #endif
 }
@@ -86,6 +95,7 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
 
     mprotect_codecache();
     n64sys.dynarec = n64_dynarec_init(codecache, CODECACHE_SIZE);
+    N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
 
     if (enable_frontend) {
         render_init(video_type);
@@ -194,7 +204,7 @@ INLINE int jit_system_step() {
             cpu_steps -= 3;
         }
 
-        rsp_run();
+        rsp_dynarec_run();
     } else {
         N64RSP.steps = 0;
         cpu_steps = 0;

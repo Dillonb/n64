@@ -14,6 +14,8 @@
 #include "mips_instructions.h"
 #include "fpu_instructions.h"
 #include "tlb_instructions.h"
+#include "rsp_instructions.h"
+#include "rsp_vector_instructions.h"
 
 //#define N64_LOG_JIT_SYNC_POINTS
 //#define N64_LOG_COMPILATIONS
@@ -67,6 +69,7 @@ _Static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
     |.endmacro
 |.endif // TODO x86 version? ARM version?
 |.type cpu_state, r4300i_t, cpuState
+|.type rsp_state, rsp_t, cpuState
 
 INLINE void run_handler(dasm_State** Dst, mips_instruction_t instr, word address, uintptr_t handler) {
     | prepcall1 instr
@@ -1022,6 +1025,350 @@ dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address) {
     }
 }
 
+COMP(rsp_lui, NORMAL, false);
+COMP(rsp_addi, NORMAL, false);
+COMP(rsp_andi, NORMAL, false);
+COMP(rsp_lbu, NORMAL, false);
+COMP(rsp_lhu, NORMAL, false);
+COMP(rsp_lh, NORMAL, false);
+COMP(rsp_lw, NORMAL, false);
+COMP(rsp_beq, NORMAL, false);
+COMP(rsp_bgtz, NORMAL, false);
+COMP(rsp_blez, NORMAL, false);
+COMP(rsp_bne, NORMAL, false);
+COMP(rsp_sb, NORMAL, false);
+COMP(rsp_sh, NORMAL, false);
+COMP(rsp_sw, NORMAL, false);
+COMP(rsp_ori, NORMAL, false);
+COMP(rsp_j, NORMAL, false);
+COMP(rsp_jal, NORMAL, false);
+COMP(rsp_slti, NORMAL, false);
+COMP(rsp_sltiu, NORMAL, false);
+COMP(rsp_xori, NORMAL, false);
+COMP(rsp_lb, NORMAL, false);
+
+COMP(rsp_mtc0, NORMAL, false);
+COMP(rsp_mfc0, NORMAL, false);
+
+COMP(rsp_vec_vabs, NORMAL, false);
+COMP(rsp_vec_vadd, NORMAL, false);
+COMP(rsp_vec_vaddc, NORMAL, false);
+COMP(rsp_vec_vand, NORMAL, false);
+COMP(rsp_vec_vch, NORMAL, false);
+COMP(rsp_vec_vcl, NORMAL, false);
+COMP(rsp_vec_vcr, NORMAL, false);
+COMP(rsp_vec_veq, NORMAL, false);
+COMP(rsp_vec_vge, NORMAL, false);
+COMP(rsp_vec_vlt, NORMAL, false);
+COMP(rsp_vec_vmacf, NORMAL, false);
+COMP(rsp_vec_vmacq, NORMAL, false);
+COMP(rsp_vec_vmacu, NORMAL, false);
+COMP(rsp_vec_vmadh, NORMAL, false);
+COMP(rsp_vec_vmadl, NORMAL, false);
+COMP(rsp_vec_vmadm, NORMAL, false);
+COMP(rsp_vec_vmadn, NORMAL, false);
+COMP(rsp_vec_vmov, NORMAL, false);
+COMP(rsp_vec_vmrg, NORMAL, false);
+COMP(rsp_vec_vmudh, NORMAL, false);
+COMP(rsp_vec_vmudl, NORMAL, false);
+COMP(rsp_vec_vmudm, NORMAL, false);
+COMP(rsp_vec_vmudn, NORMAL, false);
+COMP(rsp_vec_vmulf, NORMAL, false);
+COMP(rsp_vec_vmulq, NORMAL, false);
+COMP(rsp_vec_vmulu, NORMAL, false);
+COMP(rsp_vec_vnand, NORMAL, false);
+COMP(rsp_vec_vne, NORMAL, false);
+COMP(rsp_vec_vnop, NORMAL, false);
+COMP(rsp_vec_vnor, NORMAL, false);
+COMP(rsp_vec_vnxor, NORMAL, false);
+COMP(rsp_vec_vor, NORMAL, false);
+COMP(rsp_vec_vrcp, NORMAL, false);
+COMP(rsp_vec_vrcph_vrsqh, NORMAL, false);
+COMP(rsp_vec_vrcpl, NORMAL, false);
+COMP(rsp_vec_vrndn, NORMAL, false);
+COMP(rsp_vec_vrndp, NORMAL, false);
+COMP(rsp_vec_vrsq, NORMAL, false);
+COMP(rsp_vec_vrsql, NORMAL, false);
+COMP(rsp_vec_vsar, NORMAL, false);
+COMP(rsp_vec_vsub, NORMAL, false);
+COMP(rsp_vec_vsubc, NORMAL, false);
+COMP(rsp_vec_vxor, NORMAL, false);
+
+COMP(rsp_cfc2, NORMAL, false);
+COMP(rsp_ctc2, NORMAL, false);
+COMP(rsp_mfc2, NORMAL, false);
+COMP(rsp_mtc2, NORMAL, false);
+
+COMP(rsp_spc_sll, NORMAL, false);
+COMP(rsp_spc_srl, NORMAL, false);
+COMP(rsp_spc_sra, NORMAL, false);
+COMP(rsp_spc_srav, NORMAL, false);
+COMP(rsp_spc_sllv, NORMAL, false);
+COMP(rsp_spc_srlv, NORMAL, false);
+COMP(rsp_spc_jr, NORMAL, false);
+COMP(rsp_spc_jalr, NORMAL, false);
+COMP(rsp_spc_add, NORMAL, false);
+COMP(rsp_spc_and, NORMAL, false);
+COMP(rsp_spc_sub, NORMAL, false);
+COMP(rsp_spc_or, NORMAL, false);
+COMP(rsp_spc_xor, NORMAL, false);
+COMP(rsp_spc_nor, NORMAL, false);
+COMP(rsp_spc_slt, NORMAL, false);
+COMP(rsp_spc_sltu, NORMAL, false);
+
+COMP(rsp_spc_break, NORMAL, false);
+
+COMP(rsp_ri_bltz, NORMAL, false);
+COMP(rsp_ri_bgez, NORMAL, false);
+COMP(rsp_ri_bgezal, NORMAL, false);
+
+COMP(rsp_lwc2_lbv, NORMAL, false);
+COMP(rsp_lwc2_ldv, NORMAL, false);
+COMP(rsp_lwc2_lfv, NORMAL, false);
+COMP(rsp_lwc2_lhv, NORMAL, false);
+COMP(rsp_lwc2_llv, NORMAL, false);
+COMP(rsp_lwc2_lpv, NORMAL, false);
+COMP(rsp_lwc2_lqv, NORMAL, false);
+COMP(rsp_lwc2_lrv, NORMAL, false);
+COMP(rsp_lwc2_lsv, NORMAL, false);
+COMP(rsp_lwc2_ltv, NORMAL, false);
+COMP(rsp_lwc2_luv, NORMAL, false);
+
+COMP(rsp_swc2_sbv, NORMAL, false);
+COMP(rsp_swc2_sdv, NORMAL, false);
+COMP(rsp_swc2_sfv, NORMAL, false);
+COMP(rsp_swc2_shv, NORMAL, false);
+COMP(rsp_swc2_slv, NORMAL, false);
+COMP(rsp_swc2_spv, NORMAL, false);
+COMP(rsp_swc2_sqv, NORMAL, false);
+COMP(rsp_swc2_srv, NORMAL, false);
+COMP(rsp_swc2_ssv, NORMAL, false);
+COMP(rsp_swc2_stv, NORMAL, false);
+COMP(rsp_swc2_suv, NORMAL, false);
+
+dynarec_ir_t* rsp_cp0_ir(mips_instruction_t instr, word address) {
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            CASEIR(COP_MT, rsp_mtc0);
+            CASEIR(COP_MF, rsp_mfc0);
+            default: {
+                static char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+            }
+        }
+    } else {
+        switch (instr.fr.funct) {
+            default: {
+                static char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    }
+}
+
+dynarec_ir_t* rsp_cp2_ir(mips_instruction_t instr, word address) {
+    if (instr.cp2_vec.is_vec) {
+        switch (instr.cp2_vec.funct) {
+            CASEIR(FUNCT_RSP_VEC_VABS, rsp_vec_vabs);
+            CASEIR(FUNCT_RSP_VEC_VADD, rsp_vec_vadd);
+            CASEIR(FUNCT_RSP_VEC_VADDC, rsp_vec_vaddc);
+            CASEIR(FUNCT_RSP_VEC_VAND, rsp_vec_vand);
+            CASEIR(FUNCT_RSP_VEC_VCH, rsp_vec_vch);
+            CASEIR(FUNCT_RSP_VEC_VCL, rsp_vec_vcl);
+            CASEIR(FUNCT_RSP_VEC_VCR, rsp_vec_vcr);
+            CASEIR(FUNCT_RSP_VEC_VEQ, rsp_vec_veq);
+            CASEIR(FUNCT_RSP_VEC_VGE, rsp_vec_vge);
+            CASEIR(FUNCT_RSP_VEC_VLT, rsp_vec_vlt);
+            CASEIR(FUNCT_RSP_VEC_VMACF, rsp_vec_vmacf);
+            CASEIR(FUNCT_RSP_VEC_VMACQ, rsp_vec_vmacq);
+            CASEIR(FUNCT_RSP_VEC_VMACU, rsp_vec_vmacu);
+            CASEIR(FUNCT_RSP_VEC_VMADH, rsp_vec_vmadh);
+            CASEIR(FUNCT_RSP_VEC_VMADL, rsp_vec_vmadl);
+            CASEIR(FUNCT_RSP_VEC_VMADM, rsp_vec_vmadm);
+            CASEIR(FUNCT_RSP_VEC_VMADN, rsp_vec_vmadn);
+            CASEIR(FUNCT_RSP_VEC_VMOV, rsp_vec_vmov);
+            CASEIR(FUNCT_RSP_VEC_VMRG, rsp_vec_vmrg);
+            CASEIR(FUNCT_RSP_VEC_VMUDH, rsp_vec_vmudh);
+            CASEIR(FUNCT_RSP_VEC_VMUDL, rsp_vec_vmudl);
+            CASEIR(FUNCT_RSP_VEC_VMUDM, rsp_vec_vmudm);
+            CASEIR(FUNCT_RSP_VEC_VMUDN, rsp_vec_vmudn);
+            CASEIR(FUNCT_RSP_VEC_VMULF, rsp_vec_vmulf);
+            CASEIR(FUNCT_RSP_VEC_VMULQ, rsp_vec_vmulq);
+            CASEIR(FUNCT_RSP_VEC_VMULU, rsp_vec_vmulu);
+            CASEIR(FUNCT_RSP_VEC_VNAND, rsp_vec_vnand);
+            CASEIR(FUNCT_RSP_VEC_VNE, rsp_vec_vne);
+            CASEIR(FUNCT_RSP_VEC_VNOP, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_VNOR, rsp_vec_vnor);
+            CASEIR(FUNCT_RSP_VEC_VNXOR, rsp_vec_vnxor);
+            CASEIR(FUNCT_RSP_VEC_VOR , rsp_vec_vor);
+            CASEIR(FUNCT_RSP_VEC_VRCP, rsp_vec_vrcp);
+            CASEIR(FUNCT_RSP_VEC_VRCPH, rsp_vec_vrcph_vrsqh);
+            CASEIR(FUNCT_RSP_VEC_VRCPL, rsp_vec_vrcpl);
+            CASEIR(FUNCT_RSP_VEC_VRNDN, rsp_vec_vrndn);
+            CASEIR(FUNCT_RSP_VEC_VRNDP, rsp_vec_vrndp);
+            CASEIR(FUNCT_RSP_VEC_VRSQ, rsp_vec_vrsq);
+            CASEIR(FUNCT_RSP_VEC_VRSQH, rsp_vec_vrcph_vrsqh);
+            CASEIR(FUNCT_RSP_VEC_VRSQL, rsp_vec_vrsql);
+            CASEIR(FUNCT_RSP_VEC_VSAR, rsp_vec_vsar);
+            CASEIR(FUNCT_RSP_VEC_VSUB, rsp_vec_vsub);
+            CASEIR(FUNCT_RSP_VEC_VSUBC, rsp_vec_vsubc);
+            CASEIR(FUNCT_RSP_VEC_VXOR, rsp_vec_vxor);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("Invalid RSP CP2 VEC [0x%08X]=0x%08X | Capstone thinks it's %s", address, instr.raw, buf);
+            }
+        }
+    } else {
+        switch (instr.cp2_regmove.funct) {
+            CASEIR(COP_CF, rsp_cfc2);
+            CASEIR(COP_CT, rsp_ctc2);
+            CASEIR(COP_MF, rsp_mfc2);
+            CASEIR(COP_MT, rsp_mtc2);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("Invalid RSP CP2 regmove instruction! [0x%08x]=0x%08x | Capstone thinks it's %s", address, instr.raw, buf);
+            }
+        }
+    }
+}
+
+dynarec_ir_t* rsp_special_ir(mips_instruction_t instr, word address) {
+    switch (instr.r.funct) {
+        CASEIR(FUNCT_SLL, rsp_spc_sll);
+        CASEIR(FUNCT_SRL, rsp_spc_srl);
+        CASEIR(FUNCT_SRA, rsp_spc_sra);
+        CASEIR(FUNCT_SRAV, rsp_spc_srav);
+        CASEIR(FUNCT_SLLV, rsp_spc_sllv);
+        CASEIR(FUNCT_SRLV, rsp_spc_srlv);
+        CASEIR(FUNCT_JR, rsp_spc_jr);
+        CASEIR(FUNCT_JALR, rsp_spc_jalr);
+        CASEIR(FUNCT_ADD, rsp_spc_add);
+        CASEIR(FUNCT_ADDU, rsp_spc_add);
+        CASEIR(FUNCT_AND, rsp_spc_and);
+        CASEIR(FUNCT_SUB, rsp_spc_sub);
+        CASEIR(FUNCT_SUBU, rsp_spc_sub);
+        CASEIR(FUNCT_OR, rsp_spc_or);
+        CASEIR(FUNCT_XOR, rsp_spc_xor);
+        CASEIR(FUNCT_NOR, rsp_spc_nor);
+        CASEIR(FUNCT_SLT, rsp_spc_slt);
+        CASEIR(FUNCT_SLTU, rsp_spc_sltu);
+
+        CASEIR(FUNCT_BREAK, rsp_spc_break);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS RSP Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+        }
+    }
+}
+
+dynarec_ir_t* rsp_regimm_ir(mips_instruction_t instr, word address) {
+    switch (instr.i.rt) {
+        CASEIR(RT_BLTZ, rsp_ri_bltz);
+        CASEIR(RT_BGEZ, rsp_ri_bgez);
+        CASEIR(RT_BGEZAL, rsp_ri_bgezal);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown RSP REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
+        }
+    }
+}
+
+dynarec_ir_t* rsp_lwc2_ir(mips_instruction_t instr, word address) {
+    switch (instr.v.funct) {
+        CASEIR(LWC2_LBV, rsp_lwc2_lbv);
+        CASEIR(LWC2_LDV, rsp_lwc2_ldv);
+        CASEIR(LWC2_LFV, rsp_lwc2_lfv);
+        CASEIR(LWC2_LHV, rsp_lwc2_lhv);
+        CASEIR(LWC2_LLV, rsp_lwc2_llv);
+        CASEIR(LWC2_LPV, rsp_lwc2_lpv);
+        CASEIR(LWC2_LQV, rsp_lwc2_lqv);
+        CASEIR(LWC2_LRV, rsp_lwc2_lrv);
+        CASEIR(LWC2_LSV, rsp_lwc2_lsv);
+        CASEIR(LWC2_LTV, rsp_lwc2_ltv);
+        CASEIR(LWC2_LUV, rsp_lwc2_luv);
+        default:
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
+    }
+}
+
+dynarec_ir_t* rsp_swc2_ir(mips_instruction_t instr, word address) {
+    switch (instr.v.funct) {
+        CASEIR(LWC2_LBV, rsp_swc2_sbv);
+        CASEIR(LWC2_LDV, rsp_swc2_sdv);
+        CASEIR(LWC2_LFV, rsp_swc2_sfv);
+        CASEIR(LWC2_LHV, rsp_swc2_shv);
+        CASEIR(LWC2_LLV, rsp_swc2_slv);
+        CASEIR(LWC2_LPV, rsp_swc2_spv);
+        CASEIR(LWC2_LQV, rsp_swc2_sqv);
+        CASEIR(LWC2_LRV, rsp_swc2_srv);
+        CASEIR(LWC2_LSV, rsp_swc2_ssv);
+        CASEIR(LWC2_LTV, rsp_swc2_stv);
+        CASEIR(LWC2_LUV, rsp_swc2_suv);
+        default:
+            logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);
+    }
+}
+
+dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, word address) {
+    if (instr.raw == 0) {
+        return &ir_mips_nop;
+    }
+    switch (instr.op) {
+        CASEIR(OPC_LUI, rsp_lui);
+        CASEIR(OPC_ADDIU, rsp_addi);
+        CASEIR(OPC_ADDI, rsp_addi);
+        CASEIR(OPC_ANDI, rsp_andi);
+        CASEIR(OPC_LBU, rsp_lbu);
+        CASEIR(OPC_LHU, rsp_lhu);
+        CASEIR(OPC_LH, rsp_lh);
+        CASEIR(OPC_LW, rsp_lw);
+        CASEIR(OPC_BEQ, rsp_beq);
+        CASEIR(OPC_BGTZ, rsp_bgtz);
+        CASEIR(OPC_BLEZ, rsp_blez);
+        CASEIR(OPC_BNE, rsp_bne);
+        CASEIR(OPC_SB, rsp_sb);
+        CASEIR(OPC_SH, rsp_sh);
+        CASEIR(OPC_SW, rsp_sw);
+        CASEIR(OPC_ORI, rsp_ori);
+        CASEIR(OPC_J, rsp_j);
+        CASEIR(OPC_JAL, rsp_jal);
+        CASEIR(OPC_SLTI, rsp_slti);
+        CASEIR(OPC_SLTIU, rsp_sltiu);
+        CASEIR(OPC_XORI, rsp_xori);
+        CASEIR(OPC_LB, rsp_lb);
+        case OPC_CP0:      return rsp_cp0_ir(instr, address);
+        case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!");     //return rsp_cp1_ir(instr, address);
+        case OPC_CP2:      return rsp_cp2_ir(instr, address);
+        case OPC_SPCL:     return rsp_special_ir(instr, address);
+        case OPC_REGIMM:   return rsp_regimm_ir(instr, address);
+        case RSP_OPC_LWC2: return rsp_lwc2_ir(instr, address);
+        case RSP_OPC_SWC2: return rsp_swc2_ir(instr, address);
+
+        default:
+#ifdef LOG_ENABLED
+            static char buf[50];
+            if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
+                disassemble(address, instr.raw, buf, 50);
+            }
+            logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                 instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+#else
+            logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [UNKNOWN]",
+                 instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
+#endif
+    }
+}
+
 dasm_State* block_header() {
     dasm_State* d;
     unsigned npc = 8; // number of dynamic labels
@@ -1066,6 +1413,22 @@ void advance_pc(dasm_State** Dst) {
     | mov cpu_state->next_pc, rax
 }
 
+void advance_rsp_pc(dasm_State** Dst) {
+    // N64RSP.prev_pc = N64RSP.pc & 0x3FF;
+    | mov eax, rsp_state->pc
+    | and eax, 0x3FF
+    | mov rsp_state->prev_pc, eax
+
+    // N64RSP.pc = N64RSP.next_pc & 0x3FF;
+    | mov eax, rsp_state->next_pc
+    | and eax, 0x3FF
+    | mov rsp_state->pc, eax
+
+    // N64RSP.next_pc++;
+    | inc eax
+    | mov rsp_state->next_pc, eax
+}
+
 void clear_branch_flag(dasm_State** Dst) {
     // N64CPU.branch = false;
     | mov al, 0
@@ -1074,6 +1437,11 @@ void clear_branch_flag(dasm_State** Dst) {
 
 void end_block(dasm_State** Dst, int block_length) {
     clear_branch_flag(Dst);
+    | mov eax, block_length
+    | epilogue // return block_length
+}
+
+void end_rsp_block(dasm_State** Dst, int block_length) {
     | mov eax, block_length
     | epilogue // return block_length
 }

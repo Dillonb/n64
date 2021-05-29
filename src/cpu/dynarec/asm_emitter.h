@@ -164,8 +164,11 @@ COMPILER(mips_cp_c_le_s);
 dasm_State* block_header();
 void clear_branch_flag(dasm_State** Dst);
 void advance_pc(dasm_State** Dst);
+void advance_rsp_pc(dasm_State** Dst);
 dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address);
+dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, word address);
 void end_block(dasm_State** Dst, int block_length);
+void end_rsp_block(dasm_State** Dst, int block_length);
 void post_branch_likely(dasm_State** Dst, int block_length);
 void check_exception(dasm_State** Dst, word block_length);
 #ifdef N64_DEBUG_MODE
