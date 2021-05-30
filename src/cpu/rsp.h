@@ -8,7 +8,7 @@
 #include <system/n64system.h>
 #include <rdp/rdp.h>
 #include <mem/n64bus.h>
-#include <dynarec/dynarec.h>
+#include <cpu/dynarec/dynarec.h>
 #include <mem/mem_util.h>
 
 #include "rsp_types.h"
