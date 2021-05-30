@@ -1414,11 +1414,6 @@ void advance_pc(dasm_State** Dst) {
 }
 
 void advance_rsp_pc(dasm_State** Dst) {
-    // N64RSP.prev_pc = N64RSP.pc & 0x3FF;
-    | mov eax, rsp_state->pc
-    | and eax, 0x3FF
-    | mov rsp_state->prev_pc, eax
-
     // N64RSP.pc = N64RSP.next_pc & 0x3FF;
     | mov eax, rsp_state->next_pc
     | and eax, 0x3FF
@@ -1472,6 +1467,21 @@ void flush_pc(dasm_State** Dst, dword pc) {
 void flush_next_pc(dasm_State** Dst, dword next_pc) {
     | mov rax, next_pc
     | mov cpu_state->next_pc, rax
+}
+
+void flush_rsp_prev_pc(dasm_State** Dst, half prev_pc) {
+    | mov ax, prev_pc
+    | mov rsp_state->prev_pc, ax
+}
+
+void flush_rsp_pc(dasm_State** Dst, half pc) {
+    | mov ax, pc
+    | mov rsp_state->pc, ax
+}
+
+void flush_rsp_next_pc(dasm_State** Dst, half next_pc) {
+    | mov ax, next_pc
+    | mov rsp_state->next_pc, ax
 }
 
 void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {

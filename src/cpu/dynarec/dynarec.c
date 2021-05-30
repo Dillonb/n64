@@ -20,10 +20,6 @@ static void* link_and_encode(dasm_State** d) {
     return buf;
 }
 
-INLINE bool is_branch(dynarec_instruction_category_t category) {
-    return category == BRANCH || category == BRANCH_LIKELY;
-}
-
 static int arg_host_registers[] = {0, 0};
 static int dest_host_register = 0;
 static int valid_host_regs[32];

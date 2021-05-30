@@ -16,7 +16,9 @@ void* rsp_link_and_encode(dasm_State** d) {
     return buf;
 }
 
-void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
+#define NEXT(address) ((address + 4) & 0xFFF)
+
+void compile_new_rsp_block(rsp_dynarec_block_t* block, half address) {
     static dasm_State* d;
     static dasm_State** Dst;
 
@@ -28,6 +30,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
     bool should_continue_block = true;
     word extra_cycles = 0;
     int instructions_left_in_block = -1;
+    bool branch_in_block = false;
 
     dynarec_instruction_category_t prev_instr_category = NORMAL;
 
@@ -35,12 +38,18 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
         static mips_instruction_t instr;
         instr.raw = word_from_byte_array(N64RSP.sp_imem, address);
 
-        word next_address = (address + 4) & 0xFFF;
+        half next_address = NEXT(address);
 
         instructions_left_in_block--;
 
         dynarec_ir_t* ir = rsp_instruction_ir(instr, address);
-        advance_rsp_pc(Dst);
+        if (is_branch(ir->category)) {
+            flush_rsp_pc(Dst, next_address >> 2);
+            flush_rsp_next_pc(Dst, NEXT(next_address) >> 2);
+        }
+
+        //advance_rsp_pc(Dst);
+
         ir->compiler(Dst, instr, address, NULL, 0, &extra_cycles);
         block_length++;
         block_extra_cycles += extra_cycles;
@@ -50,6 +59,8 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
                 should_continue_block = instructions_left_in_block != 0;
                 break;
             case BRANCH:
+                advance_rsp_pc(Dst);
+                branch_in_block = true;
                 if (prev_instr_category == BRANCH) {
                     // Check if the previous branch was taken.
 
@@ -81,6 +92,11 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
         address = next_address;
         prev_instr_category = ir->category;
     } while(should_continue_block);
+
+    if (!branch_in_block) {
+        flush_rsp_pc(Dst, address >> 2);
+        flush_rsp_next_pc(Dst, NEXT(address) >> 2);
+    }
 
     end_rsp_block(Dst, block_length + block_extra_cycles);
     void* compiled = rsp_link_and_encode(Dst);
