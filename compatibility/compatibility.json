@@ -1134,10 +1134,10 @@
     "developer": "Midway",
     "publisher": "Midway",
     "genre": "Racing",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "cruisn_world.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "CyberTiger",
@@ -1146,10 +1146,10 @@
     "developer": "Saffire",
     "publisher": "EA",
     "genre": "Sports",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "FULLY_PLAYABLE",
+    "notes": "Minor slowdowns",
     "path": "cybertiger.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Daikatana",
@@ -1170,10 +1170,10 @@
     "developer": "Kronos",
     "publisher": "Vic Tokai",
     "genre": "Fighting",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "FULLY_PLAYABLE",
+    "notes": "niikii",
     "path": "darkrift.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Destruction Derby 64",
@@ -1182,10 +1182,10 @@
     "developer": "Looking |Glass",
     "publisher": "THQ",
     "genre": "Racing",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "destruction_derby.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Diddy Kong Racing (Rev 1)",
@@ -1194,10 +1194,10 @@
     "developer": "Rare",
     "publisher": "Nintendo",
     "genre": "Racing",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "diddykongracing.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Disney's Tarzan",
@@ -1206,10 +1206,10 @@
     "developer": "Eurocom",
     "publisher": "Activision",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "tarzan.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Donald Duck: Goin' Quackers",
@@ -1230,10 +1230,10 @@
     "developer": "Nintendo",
     "publisher": "Nintendo",
     "genre": "Puzzle",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "drmario.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Dual Heroes",
@@ -1242,10 +1242,10 @@
     "developer": "Hudson",
     "publisher": "Electro Brain",
     "genre": "Fighting",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "dualheroes.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Duck Dodgers Starring Daffy Duck",
@@ -1254,8 +1254,8 @@
     "developer": "Paradigm",
     "publisher": "Atari",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MAJOR_ISSUES",
+    "notes": "Data stored near code causes recompiler issues, major slowdowns",
     "path": "duckdodgers.z64",
     "date_tested": ""
   },
@@ -1278,10 +1278,10 @@
     "developer": "Vis Entertainment",
     "publisher": "Interplay",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "earthworm_jim.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "ECW Hardcore Revolution",
@@ -1326,10 +1326,10 @@
     "developer": "Left Field",
     "publisher": "Nintendo",
     "genre": "Racing",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "excitebike.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "F-1 World Grand Prix",
@@ -1338,10 +1338,10 @@
     "developer": "Paradigm",
     "publisher": "Video System",
     "genre": "Racing",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MAJOR_ISSUES",
+    "notes": "Data stored near code causes recompiler issues, major performance problems.",
     "path": "f1worldgp.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "FIFA '99",
@@ -1350,10 +1350,10 @@
     "developer": "EA",
     "publisher": "EA",
     "genre": "Sports",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "fifa99.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "FIFA: Road to World Cup",
@@ -1368,28 +1368,28 @@
     "date_tested": ""
   },
   {
-    "name": "Fighter Destiny 2",
-    "region": "USA",
-    "year": "2000",
-    "developer": "Imagineer",
-    "publisher": "Southpeak",
-    "genre": "Fighting",
-    "compatibility": "UNTESTED",
-    "notes": "",
-    "path": "fighters_destiny_2.z64",
-    "date_tested": ""
-  },
-  {
     "name": "Fighters Destiny",
     "region": "USA",
     "year": "1998",
     "developer": "Imagineer",
     "publisher": "Ocean",
     "genre": "Fighting",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "fighters_destiny.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
+  },
+  {
+    "name": "Fighter Destiny 2",
+    "region": "USA",
+    "year": "2000",
+    "developer": "Imagineer",
+    "publisher": "Southpeak",
+    "genre": "Fighting",
+    "compatibility": "FULLY_PLAYABLE",
+    "notes": "",
+    "path": "fighters_destiny_2.z64",
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Flying Dragon",
@@ -1398,10 +1398,10 @@
     "developer": "Culture Brain",
     "publisher": "Natsume",
     "genre": "Fighting",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "flying_dragon.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Forsaken 64",
@@ -1410,10 +1410,10 @@
     "developer": "Probe",
     "publisher": "Iguana",
     "genre": "FPS",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "BROKEN",
+    "notes": "hang when repairing controller pack, hang when going ingame",
     "path": "forsaken_64.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Fox Sports College Hoops '99",
@@ -1422,10 +1422,10 @@
     "developer": "Z-Axis",
     "publisher": "Fox Interactive",
     "genre": "Sports",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MINOR_ISSUES",
+    "notes": "Intro movie plays way too fast",
     "path": "fox_college_hoops.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "F-Zero X",
@@ -1434,10 +1434,10 @@
     "developer": "Nintendo",
     "publisher": "Nintendo",
     "genre": "Racing",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "fzero.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Gex 3: Deep Cover Gecko",
@@ -1446,10 +1446,10 @@
     "developer": "Gratuitous Games",
     "publisher": "Crave",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "gex3.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Glover",
@@ -1458,10 +1458,10 @@
     "developer": "Interactive Studios",
     "publisher": "Hasbro",
     "genre": "Platform",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "glover.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Golden Nugget 64",
@@ -1470,10 +1470,10 @@
     "developer": "Westwood",
     "publisher": "EA",
     "genre": "Gambling",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "golden_nugget.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Goldeneye",
@@ -1482,10 +1482,10 @@
     "developer": "Rare",
     "publisher": "Nintendo",
     "genre": "FPS",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "BROKEN",
+    "notes": "TLB issues",
     "path": "goldeneye.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Harvest Moon 64",
@@ -1494,10 +1494,10 @@
     "developer": "Toy Box",
     "publisher": "Natsume",
     "genre": "Simulation",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "harvestmoon.v64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Hercules: The Legendary Journeys",
@@ -1506,8 +1506,8 @@
     "developer": "Player 1",
     "publisher": "Titus",
     "genre": "Adventure",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MINOR_ISSUES",
+    "notes": "Unable to repair controller pack, crackly audio",
     "path": "hercules.z64",
     "date_tested": ""
   },
@@ -1518,7 +1518,7 @@
     "developer": "Software Creations",
     "publisher": "GT Interactive",
     "genre": "FPS",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "hexen.z64",
     "date_tested": ""
@@ -3246,10 +3246,10 @@
     "developer": "Boss Game",
     "publisher": "Midway",
     "genre": "Sports",
-    "compatibility": "UNTESTED",
-    "notes": "",
+    "compatibility": "MAJOR_ISSUES",
+    "notes": "No audio, known hardware bug",
     "path": "twisted_edge.z64",
-    "date_tested": ""
+    "date_tested": "2021-05-30"
   },
   {
     "name": "Vigilante 8",
