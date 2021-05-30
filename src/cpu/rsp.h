@@ -107,11 +107,7 @@ INLINE void quick_invalidate_rsp_icache(word address) {
 }
 
 INLINE void invalidate_rsp_icache(word address) {
-    if (address >= SREGION_SP_IMEM) {
-        address -= SREGION_SP_IMEM;
-    }
-    address -= (address % 4);
-
+    address &= ~3;
     quick_invalidate_rsp_icache(address);
 }
 
