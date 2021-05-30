@@ -17,7 +17,7 @@ typedef enum dynarec_instruction_category {
     BRANCH,
     BRANCH_LIKELY,
     TLB_WRITE,
-    ERET
+    BLOCK_ENDER
 } dynarec_instruction_category_t;
 
 typedef enum instruction_format {

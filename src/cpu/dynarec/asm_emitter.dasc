@@ -540,7 +540,7 @@ COMP(mips_mtc0, NORMAL, true);
 COMP(mips_tlbwi, TLB_WRITE, false);
 COMP(mips_tlbp, NORMAL, false);
 COMP(mips_tlbr, NORMAL, false);
-COMP(mips_eret, ERET, false);
+COMP(mips_eret, BLOCK_ENDER, false);
 
 
 // CP1 stuff
@@ -1032,16 +1032,16 @@ COMP(rsp_lbu, NORMAL, false);
 COMP(rsp_lhu, NORMAL, false);
 COMP(rsp_lh, NORMAL, false);
 COMP(rsp_lw, NORMAL, false);
-COMP(rsp_beq, NORMAL, false);
-COMP(rsp_bgtz, NORMAL, false);
-COMP(rsp_blez, NORMAL, false);
-COMP(rsp_bne, NORMAL, false);
+COMP(rsp_beq, BRANCH, false);
+COMP(rsp_bgtz, BRANCH, false);
+COMP(rsp_blez, BRANCH, false);
+COMP(rsp_bne, BRANCH, false);
 COMP(rsp_sb, NORMAL, false);
 COMP(rsp_sh, NORMAL, false);
 COMP(rsp_sw, NORMAL, false);
 COMP(rsp_ori, NORMAL, false);
-COMP(rsp_j, NORMAL, false);
-COMP(rsp_jal, NORMAL, false);
+COMP(rsp_j, BRANCH, false);
+COMP(rsp_jal, BRANCH, false);
 COMP(rsp_slti, NORMAL, false);
 COMP(rsp_sltiu, NORMAL, false);
 COMP(rsp_xori, NORMAL, false);
@@ -1105,8 +1105,8 @@ COMP(rsp_spc_sra, NORMAL, false);
 COMP(rsp_spc_srav, NORMAL, false);
 COMP(rsp_spc_sllv, NORMAL, false);
 COMP(rsp_spc_srlv, NORMAL, false);
-COMP(rsp_spc_jr, NORMAL, false);
-COMP(rsp_spc_jalr, NORMAL, false);
+COMP(rsp_spc_jr, BRANCH, false);
+COMP(rsp_spc_jalr, BRANCH, false);
 COMP(rsp_spc_add, NORMAL, false);
 COMP(rsp_spc_and, NORMAL, false);
 COMP(rsp_spc_sub, NORMAL, false);
@@ -1116,11 +1116,11 @@ COMP(rsp_spc_nor, NORMAL, false);
 COMP(rsp_spc_slt, NORMAL, false);
 COMP(rsp_spc_sltu, NORMAL, false);
 
-COMP(rsp_spc_break, NORMAL, false);
+COMP(rsp_spc_break, BLOCK_ENDER, false);
 
-COMP(rsp_ri_bltz, NORMAL, false);
-COMP(rsp_ri_bgez, NORMAL, false);
-COMP(rsp_ri_bgezal, NORMAL, false);
+COMP(rsp_ri_bltz, BRANCH, false);
+COMP(rsp_ri_bgez, BRANCH, false);
+COMP(rsp_ri_bgezal, BRANCH, false);
 
 COMP(rsp_lwc2_lbv, NORMAL, false);
 COMP(rsp_lwc2_ldv, NORMAL, false);

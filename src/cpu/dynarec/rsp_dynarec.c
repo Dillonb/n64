@@ -27,10 +27,17 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
     int block_extra_cycles = 0;
     bool should_continue_block = true;
     word extra_cycles = 0;
+    int instructions_left_in_block = -1;
+
+    dynarec_instruction_category_t prev_instr_category = NORMAL;
 
     do {
         static mips_instruction_t instr;
         instr.raw = word_from_byte_array(N64RSP.sp_imem, address);
+
+        word next_address = (address + 4) & 0xFFF;
+
+        instructions_left_in_block--;
 
         dynarec_ir_t* ir = rsp_instruction_ir(instr, address);
         advance_rsp_pc(Dst);
@@ -38,8 +45,41 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
         block_length++;
         block_extra_cycles += extra_cycles;
 
-        // limit ourselves to one instruction per block for now
-        should_continue_block = false;
+        switch (ir->category) {
+            case NORMAL:
+                should_continue_block = instructions_left_in_block != 0;
+                break;
+            case BRANCH:
+                if (prev_instr_category == BRANCH) {
+                    // Check if the previous branch was taken.
+
+                    // If the last branch wasn't taken, we can treat this the same as if the previous instruction wasn't a branch
+                    // just set the N64CPU.last_branch_taken to N64CPU.branch_taken and execute the next instruction.
+
+                    // emit:
+                    // if (!N64CPU.last_branch_taken) N64CPU.last_branch_taken = N64CPU.branch_taken;
+                    logfatal("Branch in a branch delay slot");
+                } else {
+                    // If the last instruction wasn't a branch, no special behavior is needed. Just set up some state in case the next one is.
+                    // emit:
+                    // N64CPU.last_branch_taken = N64CPU.branch_taken;
+                    //logfatal("unimp");
+                }
+
+                should_continue_block = true;
+                instructions_left_in_block = 1; // emit delay slot
+
+                break;
+
+            case BLOCK_ENDER:
+                should_continue_block = false;
+                break;
+
+            default:
+                logfatal("Unknown dynarec instruction type");
+        }
+        address = next_address;
+        prev_instr_category = ir->category;
     } while(should_continue_block);
 
     end_rsp_block(Dst, block_length + block_extra_cycles);
@@ -52,7 +92,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, word address) {
 int rsp_missing_block_handler() {
     word pc = N64RSP.pc & 0x3FF;
     rsp_dynarec_block_t* block = &N64RSPDYNAREC->blockcache[pc];
-    compile_new_rsp_block(block, N64RSP.pc << 2);
+    compile_new_rsp_block(block, (N64RSP.pc << 2) & 0xFFF);
     return block->run(&N64RSP);
 }
 

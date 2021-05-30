@@ -280,7 +280,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
                 block_is_loop = branch_is_loop(instr, block_length);
                 break;
 
-            case ERET:
+            case BLOCK_ENDER:
                 branch_in_block = true;
                 instr_ends_block = true;
                 break;
