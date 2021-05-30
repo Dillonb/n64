@@ -24,10 +24,15 @@ void write_word_vireg(word address, word value) {
             n64sys.vi.num_fields = n64sys.vi.status.serrate ? 2 : 1;
             break;
         }
-        case ADDR_VI_ORIGIN_REG:
-            n64sys.vi.vi_origin = value & 0xFFFFFF;
+        case ADDR_VI_ORIGIN_REG: {
+            word masked = value & 0xFFFFFF;
+            if (n64sys.vi.vi_origin != masked) {
+                n64sys.vi.swaps++;
+            }
+            n64sys.vi.vi_origin = masked;
             loginfo("VI origin is now 0x%08X (wrote 0x%08X)", value & 0xFFFFFF, value);
             break;
+        }
         case ADDR_VI_WIDTH_REG: {
             n64sys.vi.vi_width = value & 0x7FF;
             loginfo("VI width is now 0x%X (wrote 0x%08X)", value & 0xFFF, value);

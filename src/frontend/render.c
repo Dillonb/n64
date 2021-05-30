@@ -22,6 +22,7 @@ word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
 word sdl_numframes = 0;
 word sdl_fps = 0;
+word game_fps = 0;
 char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
 
 SDL_Window* get_window_handle() {
@@ -198,11 +199,13 @@ void n64_render_screen() {
         sdl_lastframe = ticks;
         sdl_fps = sdl_numframes;
         sdl_numframes = 0;
+        game_fps = n64sys.vi.swaps;
+        n64sys.vi.swaps = 0;
         const char* game_name = n64sys.mem.rom.game_name_db != NULL ? n64sys.mem.rom.game_name_db : n64sys.mem.rom.game_name_cartridge;
         if (game_name == NULL || strcmp(game_name, "") == 0) {
-            snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " %02d FPS", sdl_fps);
+            snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " %02d emulator FPS / %02d game FPS", sdl_fps, game_fps);
         } else {
-            snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d FPS", game_name, sdl_fps);
+            snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d emulator FPS / %02d game FPS", game_name, sdl_fps, game_fps);
         }
         SDL_SetWindowTitle(window, sdl_wintitle);
     }

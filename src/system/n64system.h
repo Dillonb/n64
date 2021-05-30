@@ -146,6 +146,7 @@ typedef struct n64_system {
         } xscale;
         word yscale;
         word v_current;
+        int swaps;
     } vi;
     struct {
         bool dma_enable;
