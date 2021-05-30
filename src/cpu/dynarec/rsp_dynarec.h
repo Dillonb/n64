@@ -3,7 +3,7 @@
 
 #include <util.h>
 #include <stdlib.h>
-#include <rsp_types.h>
+#include <cpu/rsp_types.h>
 
 // Temporarily just the same size as IMEM
 #define RSP_BLOCKCACHE_SIZE (0x1000 / 4)

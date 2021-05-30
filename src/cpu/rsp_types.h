@@ -7,7 +7,7 @@
 #include <emmintrin.h>
 #endif
 #include <util.h>
-#include <dynarec/rsp_dynarec.h>
+#include <cpu/dynarec/rsp_dynarec.h>
 #include "mips_instruction_decode.h"
 
 #define vecr __m128i
