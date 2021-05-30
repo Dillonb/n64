@@ -450,10 +450,10 @@
     "developer": "EA",
     "publisher": "EA",
     "genre": "Sports",
-    "compatibility": "UNTESTED",
-    "notes": "",
-    "path": "",
-    "date_tested": ""
+    "compatibility": "BROKEN",
+    "notes": "Null pointer dereference",
+    "path": "fifa_soccer_64.z64",
+    "date_tested": "2021-05-29"
   },
   {
     "name": "Gauntlet Legends",
