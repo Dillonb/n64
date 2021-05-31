@@ -107,8 +107,7 @@ INLINE void quick_invalidate_rsp_icache(word address) {
 }
 
 INLINE void invalidate_rsp_icache(word address) {
-    address &= 0xFFC;
-    quick_invalidate_rsp_icache(address);
+    quick_invalidate_rsp_icache(address & 0xFFC);
 }
 
 INLINE void rsp_dma_read() {
