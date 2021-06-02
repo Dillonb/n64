@@ -7,6 +7,7 @@
 #include <emmintrin.h>
 #endif
 #include <util.h>
+#include <cpu/dynarec/rsp_dynarec.h>
 #include "mips_instruction_decode.h"
 
 #define vecr __m128i
@@ -111,7 +112,11 @@ typedef union dram_addr {
 
 ASSERTWORD(dram_addr_t);
 
+typedef struct rsp_dynarec rsp_dynarec_t;
+
 typedef struct rsp {
+    rsp_dynarec_t *dynarec;
+
     word gpr[32];
     half prev_pc;
     half pc;

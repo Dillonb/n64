@@ -17,8 +17,12 @@ typedef enum dynarec_instruction_category {
     BRANCH,
     BRANCH_LIKELY,
     TLB_WRITE,
-    ERET
+    BLOCK_ENDER
 } dynarec_instruction_category_t;
+
+INLINE bool is_branch(dynarec_instruction_category_t category) {
+    return category == BRANCH || category == BRANCH_LIKELY;
+}
 
 typedef enum instruction_format {
     CALL_INTERPRETER,

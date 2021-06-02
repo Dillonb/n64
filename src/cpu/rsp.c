@@ -199,7 +199,7 @@ INLINE rspinstr_handler_t rsp_swc2_decode(word pc, mips_instruction_t instr) {
 
 INLINE rspinstr_handler_t rsp_instruction_decode(word pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
-        char buf[50];
+        static char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
             disassemble(pc, instr.raw, buf, 50);
             logdebug("RSP [0x%08X]=0x%08X %s", pc, instr.raw, buf);
@@ -324,6 +324,17 @@ void rsp_run() {
         N64RSP.steps--;
         run_for++;
         _rsp_step();
+    }
+    mark_metric_multiple(METRIC_RSP_STEPS, run_for);
+}
+
+void rsp_dynarec_run() {
+    int run_for = 0;
+    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
+    while (N64RSP.steps > 0) {
+        int taken = rsp_dynarec_step();
+        N64RSP.steps -= taken;
+        run_for += taken;
     }
     mark_metric_multiple(METRIC_RSP_STEPS, run_for);
 }

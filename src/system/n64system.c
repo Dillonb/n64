@@ -22,6 +22,7 @@
 #include <frontend/device.h>
 #include <interface/si.h>
 #include <interface/pi.h>
+#include <dynarec/rsp_dynarec.h>
 
 static bool should_quit = false;
 
@@ -31,6 +32,10 @@ n64_system_t n64sys;
 // 32MiB codecache
 #define CODECACHE_SIZE (1 << 25)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
+
+// 32MiB RSP codecache
+#define RSP_CODECACHE_SIZE (1 << 25)
+static byte rsp_codecache[RSP_CODECACHE_SIZE] __attribute__((aligned(4096)));
 
 bool n64_should_quit() {
     return should_quit;
@@ -45,33 +50,47 @@ void n64_load_rom(const char* rom_path) {
     strcpy(n64sys.rom_path, rom_path);
 }
 
+void mprotect_error(const char* thing) {
+#ifdef N64_WIN
+    LPVOID lpMsgBuf;
+    DWORD error = GetLastError();
+
+    DWORD bufLen = FormatMessage(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER |
+            FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL,
+            error,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPTSTR) &lpMsgBuf,
+            0, NULL );
+    LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
+
+    if (bufLen) {
+        logfatal("VirtualProtect %s failed! Code: dec %lu hex %lX Message: %s", thing, error, error, lpMsgStr);
+    } else {
+        logfatal("VirtualProtect %s failed! Code: %lu", thing, error);
+    }
+#else
+    logfatal("mprotect %s failed! %s", thing, strerror(errno));
+#endif
+}
+
 void mprotect_codecache() {
 #ifdef N64_WIN
     DWORD oldProtect = 0;
     if (!VirtualProtect(&codecache, CODECACHE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-        LPVOID lpMsgBuf;
-        DWORD error = GetLastError();
-
-        DWORD bufLen = FormatMessage(
-                FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                FORMAT_MESSAGE_FROM_SYSTEM |
-                FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL,
-                error,
-                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR) &lpMsgBuf,
-                0, NULL );
-        LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
-
-        if (bufLen) {
-            logfatal("VirtualProtect codecache failed! Code: dec %lu hex %lX Message: %s", error, error, lpMsgStr);
-        } else {
-            logfatal("VirtualProtect codecache failed! Code: %lu", error);
-        }
+        mprotect_error("codecache");
+    }
+    if (!VirtualProtect(&rsp_codecache, CODECACHE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        mprotect_error("rsp codecache");
     }
 #else
     if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
-        logfatal("mprotect codecache failed! %s", strerror(errno));
+        mprotect_error("codecache");
+    }
+    if (mprotect(&rsp_codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        mprotect_error("rsp codecache");
     }
 #endif
 }
@@ -86,6 +105,7 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
 
     mprotect_codecache();
     n64sys.dynarec = n64_dynarec_init(codecache, CODECACHE_SIZE);
+    N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
 
     if (enable_frontend) {
         render_init(video_type);
@@ -194,7 +214,7 @@ INLINE int jit_system_step() {
             cpu_steps -= 3;
         }
 
-        rsp_run();
+        rsp_dynarec_run();
     } else {
         N64RSP.steps = 0;
         cpu_steps = 0;

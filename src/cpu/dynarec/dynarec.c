@@ -8,7 +8,7 @@
 
 #define IS_PAGE_BOUNDARY(address) ((address & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
 
-void* link_and_encode(dasm_State** d) {
+static void* link_and_encode(dasm_State** d) {
     size_t code_size;
     dasm_link(d, &code_size);
 #ifdef N64_LOG_COMPILATIONS
@@ -18,10 +18,6 @@ void* link_and_encode(dasm_State** d) {
     dasm_encode(d, buf);
 
     return buf;
-}
-
-INLINE bool is_branch(dynarec_instruction_category_t category) {
-    return category == BRANCH || category == BRANCH_LIKELY;
 }
 
 static int arg_host_registers[] = {0, 0};
@@ -280,7 +276,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
                 block_is_loop = branch_is_loop(instr, block_length);
                 break;
 
-            case ERET:
+            case BLOCK_ENDER:
                 branch_in_block = true;
                 instr_ends_block = true;
                 break;
@@ -331,7 +327,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 }
 
 
-int missing_block_handler() {
+static int missing_block_handler() {
     word physical = resolve_virtual_address_or_die(N64CPU.pc);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = n64sys.dynarec->blockcache[outer_index];

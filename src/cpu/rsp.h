@@ -98,12 +98,14 @@
 
 extern rsp_t n64rsp;
 #define N64RSP n64rsp
+#define N64RSPDYNAREC n64rsp.dynarec
 
 INLINE void quick_invalidate_rsp_icache(word address) {
     int index = address / 4;
 
     N64RSP.icache[index].handler = cache_rsp_instruction;
     N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
+    N64RSPDYNAREC->blockcache[index].run = NULL;
 }
 
 INLINE void invalidate_rsp_icache(word address) {
@@ -393,6 +395,7 @@ INLINE void rsp_set_vce(half vce) {
 
 void rsp_step();
 void rsp_run();
+void rsp_dynarec_run();
 vu_reg_t ext_get_vte(vu_reg_t* vt, byte e);
 
 #endif //N64_RSP_H

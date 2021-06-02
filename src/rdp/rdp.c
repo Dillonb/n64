@@ -93,7 +93,7 @@ GFX_INFO get_gfx_info() {
     gfx_info.VI_H_START_REG        = &n64sys.vi.hstart;
     gfx_info.VI_V_START_REG        = &n64sys.vi.vstart.raw;
     gfx_info.VI_V_BURST_REG        = &n64sys.vi.vburst;
-    gfx_info.VI_X_SCALE_REG        = &n64sys.vi.xscale;
+    gfx_info.VI_X_SCALE_REG        = &n64sys.vi.xscale.raw;
     gfx_info.VI_Y_SCALE_REG        = &n64sys.vi.yscale;
 
     gfx_info.CheckInterrupts = &rdp_check_interrupts;
