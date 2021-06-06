@@ -64,7 +64,7 @@ void write_word_vireg(word address, word value) {
             loginfo("VI leap is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_H_START_REG:
-            n64sys.vi.hstart = value;
+            n64sys.vi.hstart.raw = value;
             loginfo("VI hstart is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_V_START_REG:
@@ -79,7 +79,7 @@ void write_word_vireg(word address, word value) {
             loginfo("VI xscale is now 0x%X (wrote 0x%08X)", value, value);
             break;
         case ADDR_VI_Y_SCALE_REG:
-            n64sys.vi.yscale = value;
+            n64sys.vi.yscale.raw = value;
             loginfo("VI yscale is now 0x%X (wrote 0x%08X)", value, value);
             break;
         default:

@@ -377,11 +377,11 @@ void update_screen_parallel_rdp() {
     command_processor->set_vi_register(VIRegister::VSync,        n64sys.vi.vsync);
     command_processor->set_vi_register(VIRegister::HSync,        n64sys.vi.hsync);
     command_processor->set_vi_register(VIRegister::Leap,         n64sys.vi.leap);
-    command_processor->set_vi_register(VIRegister::HStart,       n64sys.vi.hstart);
+    command_processor->set_vi_register(VIRegister::HStart,       n64sys.vi.hstart.raw);
     command_processor->set_vi_register(VIRegister::VStart,       n64sys.vi.vstart.raw);
     command_processor->set_vi_register(VIRegister::VBurst,       n64sys.vi.vburst);
     command_processor->set_vi_register(VIRegister::XScale,       n64sys.vi.xscale.raw);
-    command_processor->set_vi_register(VIRegister::YScale,       n64sys.vi.yscale);
+    command_processor->set_vi_register(VIRegister::YScale,       n64sys.vi.yscale.raw);
 
     RDP::ScanoutOptions opts;
     opts.persist_frame_on_invalid_input = true;

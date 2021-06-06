@@ -115,17 +115,23 @@ static word vi_height = 0;
 static word vi_width = 0;
 
 INLINE void pre_scanout(SDL_PixelFormatEnum pixel_format) {
-    int new_height = n64sys.vi.vstart.vend - n64sys.vi.vstart.vstart;
+    float y_scale = (float)n64sys.vi.yscale.scale / 1024;
+    float x_scale = (float)n64sys.vi.xscale.scale / 1024;
+
+    int new_height = ((n64sys.vi.vstart.end - n64sys.vi.vstart.start) >> 1) * y_scale;
+    int new_width  = ((n64sys.vi.hstart.end - n64sys.vi.hstart.start) >> 0) * x_scale;
+
     bool should_recreate_texture = false;
 
     should_recreate_texture |= new_height != vi_height;
+    should_recreate_texture |= new_width != vi_width;
+
     should_recreate_texture |= last_vi_type != n64sys.vi.status.type;
-    should_recreate_texture |= vi_width != n64sys.vi.vi_width;
 
     if (should_recreate_texture) {
         last_vi_type = n64sys.vi.status.type;
         vi_height = new_height;
-        vi_width = n64sys.vi.vi_width;
+        vi_width = new_width;
         if (texture != NULL) {
             SDL_DestroyTexture(texture);
         }
@@ -151,7 +157,7 @@ static void vi_scanout_16bit() {
 static void vi_scanout_32bit() {
     pre_scanout(SDL_PIXELFORMAT_RGBA8888);
     int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
-    int yofs = n64sys.vi.vstart.vstart * vi_width * 4;
+    int yofs = (n64sys.vi.vstart.start >> 1) * vi_width * 4;
     SDL_UpdateTexture(texture, NULL, &n64sys.mem.rdram[rdram_offset + yofs], vi_width * 4);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 }

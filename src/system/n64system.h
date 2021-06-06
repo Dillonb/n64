@@ -101,6 +101,32 @@ typedef struct n64_dpc {
     word tmem;
 } n64_dpc_t;
 
+typedef union axis_scale {
+    word raw;
+    struct {
+        unsigned scale_decimal:10;
+        unsigned scale_integer:2;
+        unsigned subpixel_offset_decimal:10;
+        unsigned subpixel_offset_integer:2;
+        unsigned:4;
+    };
+    struct {
+        unsigned scale:12;
+        unsigned subpixel_offset:12;
+        unsigned:4;
+    };
+} axis_scale_t;
+
+typedef union axis_start {
+    word raw;
+    struct {
+        unsigned end:10;
+        unsigned:6;
+        unsigned start:10;
+        unsigned:6;
+    };
+} axis_start_t;
+
 typedef struct n64_system {
     n64_mem_t mem;
     //r4300i_t cpu;
@@ -123,28 +149,11 @@ typedef struct n64_system {
         int cycles_per_halfline;
         word hsync;
         word leap;
-        word hstart;
-        union {
-            word raw;
-            struct {
-                unsigned vend:10;
-                unsigned:6;
-                unsigned vstart:10;
-                unsigned:6;
-            };
-        } vstart;
+        axis_start_t hstart;
+        axis_start_t vstart;
         word vburst;
-        union {
-            word raw;
-            struct {
-                unsigned scale_decimal:10;
-                unsigned scale_integer:2;
-                unsigned subpixel_offset_decimal:10;
-                unsigned subpixel_offset_integer:2;
-                unsigned:4;
-            };
-        } xscale;
-        word yscale;
+        axis_scale_t xscale;
+        axis_scale_t yscale;
         word v_current;
         int swaps;
     } vi;
