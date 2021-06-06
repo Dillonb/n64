@@ -115,11 +115,11 @@ static word vi_height = 0;
 static word vi_width = 0;
 
 INLINE void pre_scanout(SDL_PixelFormatEnum pixel_format) {
-    float y_scale = (float)n64sys.vi.yscale.scale / 1024;
-    float x_scale = (float)n64sys.vi.xscale.scale / 1024;
+    float y_scale = (float)n64sys.vi.yscale.scale / 1024.0;
+    float x_scale = (float)n64sys.vi.xscale.scale / 1024.0;
 
-    int new_height = ((n64sys.vi.vstart.end - n64sys.vi.vstart.start) >> 1) * y_scale;
-    int new_width  = ((n64sys.vi.hstart.end - n64sys.vi.hstart.start) >> 0) * x_scale;
+    int new_height = ceilf((float)((n64sys.vi.vstart.end - n64sys.vi.vstart.start) >> 1) * y_scale);
+    int new_width  = ceilf((float)((n64sys.vi.hstart.end - n64sys.vi.hstart.start) >> 0) * x_scale);
 
     bool should_recreate_texture = false;
 
