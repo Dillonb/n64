@@ -251,18 +251,156 @@ INLINE void triangle_edgewalker(softrdp_state_t* rdp, edge_coefficients_t* ec, s
     spans->num_spans = span_index;
 }
 
+INLINE blender_source_t from_1a(int value) {
+    switch (value) {
+        case 0: return BLENDER_PIXEL_COLOR;
+        case 1: return BLENDER_MEMORY_COLOR;
+        case 2: return BLENDER_BLEND_COLOR;
+        case 3: return BLENDER_FOG_COLOR;
+        default: logfatal("Unknown 1a blender source: %d", value);
+    }
+}
+
+INLINE blender_source_t from_1b(int value) {
+    switch(value) {
+        case 0: return BLENDER_PIXEL_ALPHA;
+        case 1: return BLENDER_PRIMITIVE_ALPHA;
+        case 2: return BLENDER_SHADE_ALPHA;
+        case 3: return BLENDER_ZERO;
+        default: logfatal("Unknown 1b blender source: %d", value);
+    }
+}
+
+INLINE blender_source_t from_2a(int value) {
+    switch(value) {
+        case 0: return BLENDER_PIXEL_COLOR;
+        case 1: return BLENDER_MEMORY_COLOR;
+        case 2: return BLENDER_BLEND_COLOR;
+        case 3: return BLENDER_FOG_COLOR;
+        default: logfatal("Unknown 2a blender source: %d", value);
+    }
+}
+
+INLINE blender_source_t from_2b(int value) {
+    switch (value) {
+        case 0: return BLENDER_ONE_MINUS_ALPHA;
+        case 1: return BLENDER_MEMORY_ALPHA;
+        case 2: return BLENDER_ONE;
+        case 3: return BLENDER_ZERO;
+        default: logfatal("Unknown 2b blender source: %d", value);
+    }
+}
+
+uint8_t get_blender_alpha(softrdp_state_t* rdp, blender_source_t source) {
+    switch (source) {
+        case BLENDER_PIXEL_ALPHA:
+            // TODO
+            return 0xFF;
+        case BLENDER_PRIMITIVE_ALPHA:
+            logfatal("BLENDER_PRIMITIVE_ALPHA");
+        case BLENDER_SHADE_ALPHA:
+            logfatal("BLENDER_SHADE_ALPHA");
+        case BLENDER_ONE_MINUS_ALPHA:
+            // TODO
+            return 0xFF;
+        case BLENDER_MEMORY_ALPHA:
+            logfatal("BLENDER_MEMORY_ALPHA");
+        case BLENDER_ONE:
+            logfatal("BLENDER_ONE");
+        case BLENDER_ZERO:
+            logfatal("BLENDER_ZERO");
+
+        case BLENDER_PIXEL_COLOR:
+        case BLENDER_MEMORY_COLOR:
+        case BLENDER_BLEND_COLOR:
+            logfatal("Getting color value from get_blender_alpha function!");
+    }
+}
+
+color_32bpp_t get_blender_color(softrdp_state_t* rdp, blender_source_t source) {
+    switch(source) {
+        case BLENDER_PIXEL_COLOR:
+            // TODO: Output of color combiner
+            return {.raw = 0xFFFFFFFF };
+        case BLENDER_MEMORY_COLOR:
+            logfatal("BLENDER_MEMORY_COLOR");
+            break;
+        case BLENDER_BLEND_COLOR:
+            return rdp->blend_color;
+        case BLENDER_FOG_COLOR:
+            logfatal("BLENDER_FOG_COLOR");
+            break;
+        case BLENDER_PIXEL_ALPHA:
+        case BLENDER_PRIMITIVE_ALPHA:
+        case BLENDER_SHADE_ALPHA:
+        case BLENDER_ONE_MINUS_ALPHA:
+        case BLENDER_MEMORY_ALPHA:
+        case BLENDER_ONE:
+        case BLENDER_ZERO:
+            logfatal("Getting alpha value from get_blender_color function!");
+    }
+}
+
+color_32bpp_t blender(softrdp_state_t* rdp, int cycle) {
+    color_32bpp_t _1a = get_blender_color(rdp, rdp->other_modes.blender_config[cycle].source_1a);
+    uint8_t _1b       = get_blender_alpha(rdp, rdp->other_modes.blender_config[cycle].source_1b);
+    color_32bpp_t _2a = get_blender_color(rdp, rdp->other_modes.blender_config[cycle].source_2a);
+    uint8_t _2b       = get_blender_alpha(rdp, rdp->other_modes.blender_config[cycle].source_2b);
+
+    // TODO: (1a * 1b + 2a * 2b) / (1b + 2b)
+    return _1a;
+}
+
+color_16bpp_t convert_32bpp_to_16bpp(color_32bpp_t color) {
+    color_16bpp_t converted;
+    static_assert(sizeof(color_16bpp_t) == 2, "16bpp color should be 16 bits");
+    converted.a = 1;
+    converted.r = color.r >> 3;
+    converted.g = color.g >> 3;
+    converted.b = color.b >> 3;
+    return converted;
+}
+
+uint32_t convert_32bpp_to_packed_16bpp(color_32bpp_t color) {
+    color_16bpp_t converted = convert_32bpp_to_16bpp(color);
+    return ((uint32_t)converted.raw << 16) | converted.raw;
+}
+
 INLINE uint16_t fill_for_addr(softrdp_state_t* rdp, uint32_t addr) {
+    uint32_t color = 0;
+    color_32bpp_t blender_color;
+    switch (rdp->other_modes.cycle_type) {
+        case 0: // 1-cycle mode: run entire pipeline
+
+            // color combiner: cycle 1 value
+            // blender: cycle 0 value
+
+            blender_color = blender(rdp, 0);
+            if (get_bytes_per_pixel(rdp) == 2) {
+                color = convert_32bpp_to_packed_16bpp(blender_color);
+            } else {
+                color = blender_color.raw;
+            }
+            break;
+        case 1: // 2-cycle mode: runs the pipeline twice
+            logfatal("2-cycle mode");
+            break;
+        case 2: // Copy mode: copies from TMEM to framebuffer
+            logfatal("Copy mode");
+            break;
+        case 3: // Fill mode: just runs the rasterizer
+            color = rdp->fill_color;
+            break;
+        default:
+            logfatal("fill_for_addr(): unknown cycle type %d", rdp->other_modes.cycle_type);
+    }
+
     // Code below is optimized to remove the conditional.
     // Essentially, the behavior is to use the upper bits of fill_color if we're on an even column,
     // and the lower bits if we're on an odd column.
 
     // return rdp->fill_color >> (addr % 4 == 0 ? 16 : 0);
-    switch (rdp->other_modes.cycle_type) {
-        case 3:
-            return rdp->fill_color >> (16 - ((addr % 4) * 8));
-        default:
-            logfatal("fill_for_addr(): unknown cycle type %d", rdp->other_modes.cycle_type);
-    }
+    return color >> (16 - ((addr % 4) * 8));
 }
 
 INLINE void rdram_write16(softrdp_state_t* rdp, uint32_t address, uint16_t value) {
@@ -287,7 +425,10 @@ DEF_RDP_COMMAND(fill_triangle) {
 
         uint32_t yofs = rdp->color_image.dram_addr + y * rdp->color_image.width * bytes_per_pixel;
 
-        for (int x = s->start * bytes_per_pixel; x < s->end * bytes_per_pixel; x += 2) {
+        int x_start = s->start < s->end ? s->start : s->end;
+        int x_end = s->end > s->start ? s->end : s->start;
+
+        for (int x = x_start * bytes_per_pixel; x < x_end * bytes_per_pixel; x += 2) {
             uint32_t addr = yofs + x;
             rdram_write16(rdp, addr, fill_for_addr(rdp, addr));
         }
@@ -412,17 +553,17 @@ DEF_RDP_COMMAND(set_other_modes) {
     rdp->other_modes.rgb_dither_sel   = get_bits(buffer[0], 39, 38);
     rdp->other_modes.alpha_dither_sel = get_bits(buffer[0], 37, 36);
 
-    rdp->other_modes.b_m1a_0 = get_bits(buffer[0], 31, 30);
-    rdp->other_modes.b_m1a_1 = get_bits(buffer[0], 29, 28);
+    rdp->other_modes.blender_config[0].source_1a = from_1a(get_bits(buffer[0], 31, 30));
+    rdp->other_modes.blender_config[1].source_1a = from_1a(get_bits(buffer[0], 29, 28));
 
-    rdp->other_modes.b_m1b_0 = get_bits(buffer[0], 27, 26);
-    rdp->other_modes.b_m1b_1 = get_bits(buffer[0], 25, 24);
+    rdp->other_modes.blender_config[0].source_1b = from_1b(get_bits(buffer[0], 27, 26));
+    rdp->other_modes.blender_config[1].source_1b = from_1b(get_bits(buffer[0], 25, 24));
 
-    rdp->other_modes.b_m2a_0 = get_bits(buffer[0], 23, 22);
-    rdp->other_modes.b_m2a_1 = get_bits(buffer[0], 21, 20);
+    rdp->other_modes.blender_config[0].source_2a = from_2a(get_bits(buffer[0], 23, 22));
+    rdp->other_modes.blender_config[1].source_2a = from_2a(get_bits(buffer[0], 21, 20));
 
-    rdp->other_modes.b_m2b_0 = get_bits(buffer[0], 19, 18);
-    rdp->other_modes.b_m2b_1 = get_bits(buffer[0], 17, 16);
+    rdp->other_modes.blender_config[0].source_2b = from_2b(get_bits(buffer[0], 19, 18));
+    rdp->other_modes.blender_config[1].source_2b = from_2b(get_bits(buffer[0], 17, 16));
 
     rdp->other_modes.force_blend      = get_bit(buffer[0], 14);
     rdp->other_modes.alpha_cvg_select = get_bit(buffer[0], 13);
@@ -516,9 +657,9 @@ DEF_RDP_COMMAND(set_fog_color) {
 }
 
 DEF_RDP_COMMAND(set_blend_color) {
-    rdp->blend_color.r = get_bits(buffer[0], 61, 56);
-    rdp->blend_color.g = get_bits(buffer[0], 31, 24);
-    rdp->blend_color.b = get_bits(buffer[0], 23, 16);
+    rdp->blend_color.r = get_bits(buffer[0], 31, 24);
+    rdp->blend_color.g = get_bits(buffer[0], 23, 16);
+    rdp->blend_color.b = get_bits(buffer[0], 15, 8);
     rdp->blend_color.a = get_bits(buffer[0], 7, 0);
 
     logalways("Blend color: #%02X%02X%02X alpha %02X", rdp->blend_color.r, rdp->blend_color.g, rdp->blend_color.b, rdp->blend_color.a);
@@ -533,6 +674,7 @@ DEF_RDP_COMMAND(set_env_color) {
 }
 
 DEF_RDP_COMMAND(set_combine) {
+    logalways("Set combine: %016lX", buffer[0]);
     rdp->combine.sub_a_R_0 = get_bits(buffer[0], 55, 52);
     rdp->combine.mul_R_0   = get_bits(buffer[0], 51, 47);
     rdp->combine.sub_a_A_0 = get_bits(buffer[0], 46, 44);

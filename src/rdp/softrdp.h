@@ -22,6 +22,50 @@ typedef struct softrdp_tile {
     uint8_t shift_s;
 } softrdp_tile_t;
 
+typedef enum blender_source {
+    // colors
+    BLENDER_PIXEL_COLOR,
+    BLENDER_MEMORY_COLOR,
+    BLENDER_BLEND_COLOR,
+    BLENDER_FOG_COLOR,
+
+    // Alphas
+    BLENDER_PIXEL_ALPHA,
+    BLENDER_PRIMITIVE_ALPHA,
+    BLENDER_SHADE_ALPHA,
+    BLENDER_ONE_MINUS_ALPHA,
+    BLENDER_MEMORY_ALPHA,
+    BLENDER_ONE,
+    BLENDER_ZERO
+} blender_source_t;
+
+typedef struct blender_config {
+    blender_source_t source_1a;
+    blender_source_t source_1b;
+    blender_source_t source_2a;
+    blender_source_t source_2b;
+} blender_config_t;
+
+typedef union color_32bpp {
+    uint32_t raw;
+    struct {
+        uint8_t a;
+        uint8_t b;
+        uint8_t g;
+        uint8_t r;
+    };
+} __attribute__((__packed__)) color_32bpp_t;
+
+typedef union color_16bpp {
+    uint16_t raw;
+    struct {
+        uint16_t a:1;
+        uint16_t b:5;
+        uint16_t g:5;
+        uint16_t r:5;
+    };
+} __attribute__((__packed__)) color_16bpp_t;
+
 typedef struct softrdp_state {
     uint8_t* rdram;
 
@@ -45,9 +89,7 @@ typedef struct softrdp_state {
         uint32_t dram_addr;
     } color_image;
 
-    struct {
-        uint8_t r, g, b, a;
-    } blend_color;
+    color_32bpp_t blend_color;
 
     struct {
         uint8_t format;
@@ -74,17 +116,7 @@ typedef struct softrdp_state {
         uint8_t rgb_dither_sel;
         uint8_t alpha_dither_sel;
 
-        uint8_t b_m1a_0;
-        uint8_t b_m1a_1;
-
-        uint8_t b_m1b_0;
-        uint8_t b_m1b_1;
-
-        uint8_t b_m2a_0;
-        uint8_t b_m2a_1;
-
-        uint8_t b_m2b_0;
-        uint8_t b_m2b_1;
+        blender_config_t blender_config[2]; // one config for each cycle
 
         bool force_blend;
         bool alpha_cvg_select;
