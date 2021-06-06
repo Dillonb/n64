@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct softrdp_tile {
     uint8_t format;
     uint8_t size;
@@ -125,5 +129,9 @@ typedef struct softrdp_state {
 
 void init_softrdp(softrdp_state_t* state, uint8_t* rdramptr);
 #define full_sync_softrdp() do {} while(0)
-void enqueue_command_softrdp(softrdp_state_t* state, int command_length, uint32_t* buffer);
+void enqueue_command_softrdp(softrdp_state_t* rdp, int command_length, uint64_t* buffer);
+#endif
+
+#ifdef __cplusplus
+}
 #endif

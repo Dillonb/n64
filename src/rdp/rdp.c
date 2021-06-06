@@ -232,7 +232,7 @@ INLINE void rdp_enqueue_command(int command_length, word* buffer) {
         case UNKNOWN_VIDEO_TYPE:  logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
         case OPENGL_VIDEO_TYPE:   logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:   parallel_rdp_enqueue_command(command_length, buffer); break;
-        case SOFTWARE_VIDEO_TYPE: enqueue_command_softrdp(&n64sys.softrdp_state, command_length, buffer); break;
+        case SOFTWARE_VIDEO_TYPE: enqueue_command_softrdp(&n64sys.softrdp_state, command_length, (uint64_t*)buffer); break;
     }
 }
 
