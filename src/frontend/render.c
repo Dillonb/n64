@@ -157,8 +157,7 @@ static void vi_scanout_16bit() {
 static void vi_scanout_32bit() {
     pre_scanout(SDL_PIXELFORMAT_RGBA8888);
     int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
-    int yofs = (n64sys.vi.vstart.start >> 1) * vi_width * 4;
-    SDL_UpdateTexture(texture, NULL, &n64sys.mem.rdram[rdram_offset + yofs], vi_width * 4);
+    SDL_UpdateTexture(texture, NULL, &n64sys.mem.rdram[rdram_offset], vi_width * 4);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
