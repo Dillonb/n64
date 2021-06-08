@@ -56,12 +56,14 @@ void write_word_pireg(word address, word value) {
             break;
         case ADDR_PI_RD_LEN_REG: {
             word length = (value & 0x00FFFFFF) + 1;
-            if (length & 0x1) {
-                length = (length + 0x1) & ~0x1;
+            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
+            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
+
+            if (dram_addr & 0x7) {
+                length -= dram_addr & 0x7;
             }
             n64sys.mem.pi_reg[PI_RD_LEN_REG] = length;
-            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & ~1;
-            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x7FFFF8;
+
             if (cart_addr < SREGION_CART_2_1) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
@@ -84,18 +86,19 @@ void write_word_pireg(word address, word value) {
             n64sys.pi.dma_busy = true;
 
             logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
-            n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] += length;
-            n64sys.mem.pi_reg[PI_CART_ADDR_REG] += length;
+            n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = dram_addr + length;
+            n64sys.mem.pi_reg[PI_CART_ADDR_REG] = cart_addr + length;
             break;
         }
         case ADDR_PI_WR_LEN_REG: {
             word length = (value & 0x00FFFFFF) + 1;
-            if (length & 0x1) {
-                length = (length + 0x1) & ~0x1;
+            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
+            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
+
+            if (dram_addr & 0x7) {
+                length -= dram_addr & 0x7;
             }
             n64sys.mem.pi_reg[PI_WR_LEN_REG] = length;
-            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & ~1;
-            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x7FFFF8;
 
             if (cart_addr < SREGION_CART_2_1) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
@@ -119,8 +122,8 @@ void write_word_pireg(word address, word value) {
             n64sys.pi.dma_busy = true;
 
             logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
-            n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] += length;
-            n64sys.mem.pi_reg[PI_CART_ADDR_REG] += length;
+            n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = dram_addr + length;
+            n64sys.mem.pi_reg[PI_CART_ADDR_REG] = cart_addr + length;
             break;
         }
         case ADDR_PI_STATUS_REG: {
