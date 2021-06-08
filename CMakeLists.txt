@@ -22,7 +22,6 @@ elseif(WIN32)
 
 else()
     message("Building on Linux? TODO: detect windows")
-    ADD_LINK_OPTIONS(-export-dynamic) # TODO this works on GCC, need to figure out something for clang on Linux
 endif()
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
@@ -46,5 +45,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(N64_TARGET n64)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 include(CTest)
+message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    ADD_LINK_OPTIONS(-export-dynamic) # Allows the angrylion shared library to be loaded
+endif()
 add_subdirectory(src)
 add_subdirectory(tests)
