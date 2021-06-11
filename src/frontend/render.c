@@ -10,6 +10,11 @@
 #include <glad/gl.h>
 #include <volk.h>
 
+// prior to 2.0.10, this was anonymous enum
+#if SDL_COMPILEDVERSION <  SDL_VERSIONNUM(2, 0, 10)
+    typedef int SDL_PixelFormatEnum;
+#endif
+
 int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;
 SDL_Window* window = NULL;
