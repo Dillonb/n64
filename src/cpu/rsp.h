@@ -208,22 +208,12 @@ INLINE void rsp_dma_write() {
 }
 
 INLINE void set_rsp_register(byte r, word value) {
-    if (r != 0) {
-        if (r < 64) {
-            N64RSP.gpr[r] = value;
-        } else {
-            logfatal("Write to invalid RSP register: %d", r);
-        }
-    }
+    N64RSP.gpr[r] = value;
+    N64RSP.gpr[0] = 0;
 }
 
 INLINE word get_rsp_register(byte r) {
-    if (r < 64) {
-        word value = N64RSP.gpr[r];
-        return value;
-    } else {
-        logfatal("Attempted to read invalid RSP register: %d", r);
-    }
+    return N64RSP.gpr[r];
 }
 
 bool rsp_acquire_semaphore();

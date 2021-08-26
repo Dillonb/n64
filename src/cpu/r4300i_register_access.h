@@ -5,9 +5,8 @@
 
 INLINE void set_register(byte r, dword value) {
     logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
-    if (r != 0) {
-        N64CPU.gpr[r] = value;
-    }
+    N64CPU.gpr[r] = value;
+    N64CPU.gpr[0] = 0;
 }
 
 INLINE dword get_register(byte r) {
