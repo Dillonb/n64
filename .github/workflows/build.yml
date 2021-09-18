@@ -60,7 +60,7 @@ jobs:
           git clone https://github.com/ARM9/bass.git
           cd bass/bass
           make
-          sudo mv bass /bin/
+          sudo mv ./out/bass /bin/
 
       - name: Build N64
         run: |
