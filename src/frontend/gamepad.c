@@ -9,13 +9,11 @@
 
 // TODO: support multiple controllers
 static SDL_GameController* controller = NULL;
-static SDL_Joystick* joystick = NULL;
 
 void gamepad_refresh() {
     if (controller != NULL) {
         SDL_GameControllerClose(controller);
         controller = NULL;
-        joystick = NULL;
     }
 
     bool found_one = false;
@@ -26,9 +24,6 @@ void gamepad_refresh() {
                 logalways("Detected game controller!");
                 found_one = true;
                 controller = SDL_GameControllerOpen(i);
-                if (controller) {
-                    joystick = SDL_GameControllerGetJoystick(controller);
-                }
             } else {
                 logalways("Found more than one game controller, using the first one detected!");
             }
