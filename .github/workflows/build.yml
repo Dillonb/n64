@@ -59,8 +59,9 @@ jobs:
           sudo mv chksum64 /bin/
           git clone https://github.com/ARM9/bass.git
           cd bass/bass
+          git checkout v14
           make
-          sudo mv ./out/bass /bin/
+          sudo mv bass /bin/
 
       - name: Build N64
         run: |
