@@ -204,7 +204,7 @@ MIPS_INSTR(mips_j) {
 }
 
 MIPS_INSTR(mips_jal) {
-    link();
+    link(R4300I_REG_LR);
 
     dword target = instruction.j.target;
     target <<= 2;
@@ -656,7 +656,7 @@ MIPS_INSTR(mips_spc_jr) {
 }
 
 MIPS_INSTR(mips_spc_jalr) {
-    link();
+    link(instruction.r.rd);
     branch_abs(get_register(instruction.r.rs));
 }
 
@@ -1007,13 +1007,13 @@ MIPS_INSTR(mips_ri_bgezl) {
 }
 
 MIPS_INSTR(mips_ri_bltzal) {
-    link();
+    link(R4300I_REG_LR);
     sdword reg = get_register(instruction.i.rs);
     conditional_branch(instruction.i.immediate, reg < 0);
 }
 
 MIPS_INSTR(mips_ri_bgezal) {
-    link();
+    link(R4300I_REG_LR);
     sdword reg = get_register(instruction.i.rs);
     conditional_branch(instruction.i.immediate, reg >= 0);
 }

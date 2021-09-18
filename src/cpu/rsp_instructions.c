@@ -18,8 +18,8 @@ INLINE void rsp_conditional_branch(word offset, bool condition) {
     }
 }
 
-INLINE void rsp_link() {
-    set_rsp_register(RSP_REG_LR, (N64RSP.pc << 2) + 4); // Skips the instruction in the delay slot on return
+INLINE void rsp_link(int reg) {
+    set_rsp_register(reg, (N64RSP.pc << 2) + 4); // Skips the instruction in the delay slot on return
 }
 
 RSP_INSTR(rsp_nop) {}
@@ -225,7 +225,7 @@ RSP_INSTR(rsp_j) {
 }
 
 RSP_INSTR(rsp_jal) {
-    rsp_link();
+    rsp_link(RSP_REG_LR);
     rsp_branch_abs(instruction.j.target);
 }
 
@@ -254,7 +254,7 @@ RSP_INSTR(rsp_spc_jr) {
 }
 
 RSP_INSTR(rsp_spc_jalr) {
-    rsp_link();
+    rsp_link(instruction.r.rd);
     rsp_branch_abs(get_rsp_register(instruction.r.rs) >> 2);
 }
 
@@ -297,7 +297,7 @@ RSP_INSTR(rsp_ri_bgez) {
 }
 
 RSP_INSTR(rsp_ri_bgezal) {
-        rsp_link();
+        rsp_link(RSP_REG_LR);
         sword reg = get_rsp_register(instruction.i.rs);
         rsp_conditional_branch(instruction.i.immediate, reg >= 0);
 }

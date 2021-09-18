@@ -442,9 +442,9 @@ INLINE float get_fpu_register_float(byte r) {
     return floatvalue;
 }
 
-INLINE void link() {
+INLINE void link(int reg) {
     dword pc = N64CPU.pc + 4;
-    set_register(R4300I_REG_LR, pc); // Skips the instruction in the delay slot on return
+    set_register(reg, pc); // Skips the instruction in the delay slot on return
 }
 
 INLINE void branch_abs(dword address) {
