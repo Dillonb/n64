@@ -49,12 +49,16 @@ void write_word_sireg(word address, word value) {
         case ADDR_SI_PIF_ADDR_RD64B_REG:
             n64sys.si.dma_to_dram = true;
             n64sys.si.dma_busy = true;
+            value &= 0x1FFFFFFF;
+            n64sys.mem.si_reg.pif_address = value;
             unimplemented(value != 0x1FC007C0, "SI DMA not from start of PIF RAM!");
             scheduler_enqueue_relative(SI_DMA_DELAY, SCHEDULER_SI_DMA_COMPLETE);
             break;
         case ADDR_SI_PIF_ADDR_WR64B_REG:
             n64sys.si.dma_to_dram = false;
             n64sys.si.dma_busy = true;
+            value &= 0x1FFFFFFF;
+            n64sys.mem.si_reg.pif_address = value;
             unimplemented(value != 0x1FC007C0, "SI DMA not to start of PIF RAM!");
             scheduler_enqueue_relative(SI_DMA_DELAY, SCHEDULER_SI_DMA_COMPLETE);
             break;
@@ -69,11 +73,11 @@ void write_word_sireg(word address, word value) {
 word read_word_sireg(word address) {
     switch (address) {
         case ADDR_SI_DRAM_ADDR_REG:
-            logfatal("Reading from unimplemented SI register: ADDR_SI_DRAM_ADDR_REG");
+            return n64sys.mem.si_reg.dram_address;
         case ADDR_SI_PIF_ADDR_RD64B_REG:
-            logfatal("Reading from unimplemented SI register: ADDR_SI_PIF_ADDR_RD64B_REG");
+            return n64sys.mem.si_reg.pif_address;
         case ADDR_SI_PIF_ADDR_WR64B_REG:
-            logfatal("Reading from unimplemented SI register: ADDR_SI_PIF_ADDR_WR64B_REG");
+            return n64sys.mem.si_reg.pif_address;
         case ADDR_SI_STATUS_REG: {
             word value = 0;
             value |= (n64sys.si.dma_busy << 0); // DMA busy
@@ -83,6 +87,7 @@ word read_word_sireg(word address) {
             return value;
         }
         default:
-            logfatal("Reading from unknown SI register: 0x%08X", address);
+            logwarn("Reading from unknown SI register: 0x%08X", address);
+            return 0xFFFFFFFF;
     }
 }

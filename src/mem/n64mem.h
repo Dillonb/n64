@@ -38,6 +38,7 @@ typedef enum pi_reg {
 
 typedef struct si_reg {
     word dram_address;
+    word pif_address;
 } si_reg_t;
 
 typedef enum n64_save_type {
