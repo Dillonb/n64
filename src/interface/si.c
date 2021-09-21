@@ -86,8 +86,19 @@ word read_word_sireg(word address) {
             value |= (n64sys.mi.intr.si << 12); // SI interrupt
             return value;
         }
+        case ADDR_SI_UNKNOWN_REG_08:
+            logwarn("Reading from unknown SI register: 0x04800008 - returning 0xFFFFFFFF.");
+            return 0xFFFFFFFF; // Value is not hardware accurate. Need more research.
+        case ADDR_SI_UNKNOWN_REG_0C:
+            logwarn("Reading from unknown SI register: 0x0480000C - returning 0.");
+            return 0; // Reasonably sure this one is correct.
+        case ADDR_SI_UNKNOWN_REG_14:
+            logwarn("Reading from unknown SI register: 0x04800014 - returning 0xFFFFFFFF.");
+            return 0xFFFFFFFF; // Value is not hardware accurate. Need more research.
+        case ADDR_SI_UNKNOWN_REG_1C:
+            logwarn("Reading from unknown SI register: 0x0480001C - returning 0xFFFFFFFF.");
+            return 0xFFFFFFFF; // Value is not hardware accurate. Need more research.
         default:
-            logwarn("Reading from unknown SI register: 0x%08X", address);
-            return 0xFFFFFFFF;
+            logfatal("Reading from unknown SI register: 0x%08X", address);
     }
 }
