@@ -81,26 +81,26 @@ GFX_INFO get_gfx_info() {
     gfx_info.DPC_PIPEBUSY_REG = &n64sys.dpc.pipebusy;
     gfx_info.DPC_TMEM_REG     = &n64sys.dpc.tmem;
 
-    gfx_info.VI_STATUS_REG         = &n64sys.vi.status.raw;
-    gfx_info.VI_ORIGIN_REG         = &n64sys.vi.vi_origin;
-    gfx_info.VI_WIDTH_REG          = &n64sys.vi.vi_width;
-    gfx_info.VI_INTR_REG           = &n64sys.vi.vi_v_intr;
-    gfx_info.VI_V_CURRENT_LINE_REG = &n64sys.vi.v_current;
-    gfx_info.VI_TIMING_REG         = &n64sys.vi.vi_burst.raw;
-    gfx_info.VI_V_SYNC_REG         = &n64sys.vi.vsync;
-    gfx_info.VI_H_SYNC_REG         = &n64sys.vi.hsync;
-    gfx_info.VI_LEAP_REG           = &n64sys.vi.leap;
-    gfx_info.VI_H_START_REG        = &n64sys.vi.hstart;
-    gfx_info.VI_V_START_REG        = &n64sys.vi.vstart.raw;
-    gfx_info.VI_V_BURST_REG        = &n64sys.vi.vburst;
-    gfx_info.VI_X_SCALE_REG        = &n64sys.vi.xscale.raw;
-    gfx_info.VI_Y_SCALE_REG        = &n64sys.vi.yscale;
+    gfx_info.VI_STATUS_REG         = (unsigned int*) &n64sys.vi.status.raw;
+    gfx_info.VI_ORIGIN_REG         = (unsigned int*) &n64sys.vi.vi_origin;
+    gfx_info.VI_WIDTH_REG          = (unsigned int*) &n64sys.vi.vi_width;
+    gfx_info.VI_INTR_REG           = (unsigned int*) &n64sys.vi.vi_v_intr;
+    gfx_info.VI_V_CURRENT_LINE_REG = (unsigned int*) &n64sys.vi.v_current;
+    gfx_info.VI_TIMING_REG         = (unsigned int*) &n64sys.vi.vi_burst;
+    gfx_info.VI_V_SYNC_REG         = (unsigned int*) &n64sys.vi.vsync;
+    gfx_info.VI_H_SYNC_REG         = (unsigned int*) &n64sys.vi.hsync;
+    gfx_info.VI_LEAP_REG           = (unsigned int*) &n64sys.vi.leap;
+    gfx_info.VI_H_START_REG        = (unsigned int*) &n64sys.vi.hstart;
+    gfx_info.VI_V_START_REG        = (unsigned int*) &n64sys.vi.vstart;
+    gfx_info.VI_V_BURST_REG        = (unsigned int*) &n64sys.vi.vburst;
+    gfx_info.VI_X_SCALE_REG        = (unsigned int*) &n64sys.vi.xscale;
+    gfx_info.VI_Y_SCALE_REG        = (unsigned int*) &n64sys.vi.yscale;
 
     gfx_info.CheckInterrupts = &rdp_check_interrupts;
 
     gfx_info.version = 2;
 
-    gfx_info.SP_STATUS_REG = &N64RSP.status.raw;
+    gfx_info.SP_STATUS_REG = (unsigned int*) &N64RSP.status;
     gfx_info.RDRAM_SIZE = &rdram_size_word;
 
     return gfx_info;
