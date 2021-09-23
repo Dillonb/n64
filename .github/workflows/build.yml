@@ -35,6 +35,40 @@ jobs:
         with:
           name: n64-windows
           path: upload
+          
+  build-windows-debug:
+    runs-on: windows-2019
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+        with:
+          submodules: true
+
+      - name: Setup SDL2
+        run: |
+          vcpkg install sdl2[vulkan]:x64-windows
+
+      - name: Build N64
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug -T clangcl -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+          cmake --build . --config Debug
+        shell: cmd
+
+      - name: Collect files
+        run: |
+          mkdir upload
+          move build\Release\n64.exe upload
+          move build\Release\SDL2.dll upload
+
+      - name: Upload files
+        uses: actions/upload-artifact@master
+        with:
+          name: n64-windows-debug
+          path: upload
+
 
   build-linux:
     runs-on: ubuntu-20.04
