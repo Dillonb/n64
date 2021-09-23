@@ -60,8 +60,8 @@ jobs:
       - name: Collect files
         run: |
           mkdir upload
-          move build\Release\n64.exe upload
-          move build\Release\SDL2.dll upload
+          move build\Debug\n64.exe upload
+          move build\Debug\SDL2.dll upload
 
       - name: Upload files
         uses: actions/upload-artifact@master
