@@ -47,7 +47,9 @@ void n64_load_rom(const char* rom_path) {
     gamedb_match(&n64sys);
     devices_init(n64sys.mem.save_type);
     init_savedata(&n64sys.mem, rom_path);
-    strcpy(n64sys.rom_path, rom_path);
+    if (n64sys.rom_path != rom_path) {
+        strcpy(n64sys.rom_path, rom_path);
+    }
 }
 
 void mprotect_error(const char* thing) {
