@@ -97,10 +97,12 @@ void render_menubar() {
         }
 
         if (ImGui::BeginMenu("Emulation")) {
-            if(strcmp(n64sys.rom_path, "") != 0) {
-                reset_n64system();
-                n64_load_rom(n64sys.rom_path);
-                pif_rom_execute();
+            if(ImGui::MenuItem("Reset")) {
+                if(strcmp(n64sys.rom_path, "") != 0) {
+                    reset_n64system();
+                    n64_load_rom(n64sys.rom_path);
+                    pif_rom_execute();
+                }
             }
             ImGui::EndMenu();
         }
