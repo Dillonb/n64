@@ -1,4 +1,5 @@
-build
-build-release
-cmake-build-*
+*build*
 .idea
+.cache
+.vscode
+*.json

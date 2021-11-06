@@ -47,7 +47,9 @@ void n64_load_rom(const char* rom_path) {
     gamedb_match(&n64sys);
     devices_init(n64sys.mem.save_type);
     init_savedata(&n64sys.mem, rom_path);
-    strcpy(n64sys.rom_path, rom_path);
+    if (n64sys.rom_path != rom_path) {
+        strcpy(n64sys.rom_path, rom_path);
+    }
 }
 
 void mprotect_error(const char* thing) {
@@ -144,7 +146,9 @@ void reset_n64system() {
         N64RSP.icache[i].handler = cache_rsp_instruction;
     }
 
-    N64RSP.status.halt = true; // RSP starts halted
+    // RSP starts halted with PC 0
+    N64RSP.status.halt = true;
+    N64RSP.prev_pc = N64RSP.pc = N64RSP.next_pc = 0;
 
     n64sys.vi.vi_v_intr = 256;
 
