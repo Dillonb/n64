@@ -61,7 +61,7 @@ jobs:
         run: |
           mkdir upload
           move build\Debug\n64.exe upload
-          move build\Debug\SDL2.dll upload
+          move build\Debug\SDL2d.dll upload
 
       - name: Upload files
         uses: actions/upload-artifact@master
