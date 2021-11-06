@@ -146,7 +146,9 @@ void reset_n64system() {
         N64RSP.icache[i].handler = cache_rsp_instruction;
     }
 
-    N64RSP.status.halt = true; // RSP starts halted
+    // RSP starts halted with PC 0
+    N64RSP.status.halt = true;
+    N64RSP.prev_pc = N64RSP.pc = N64RSP.next_pc = 0;
 
     n64sys.vi.vi_v_intr = 256;
 
