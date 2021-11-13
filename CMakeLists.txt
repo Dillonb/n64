@@ -21,7 +21,7 @@ elseif(WIN32)
     ADD_COMPILE_OPTIONS(/EHa)
 
 else()
-    message("Building on Linux? TODO: detect windows")
+    message("Building on Linux")
 endif()
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
