@@ -148,6 +148,7 @@ void load_parallel_rdp() {
     frag_layout.input_mask = 1;
     frag_layout.output_mask = 1;
     frag_layout.spec_constant_mask = 1;
+    frag_layout.push_constant_size = 4 * sizeof(float);
 
     frag_layout.sets[0].sampled_image_mask = 1;
     frag_layout.sets[0].fp_mask = 1;
@@ -181,13 +182,32 @@ void draw_fullscreen_textured_quad(Util::IntrusivePtr<Image> image, Util::Intrus
     cmd->set_texture(0, 0, image->get_view(), Vulkan::StockSampler::LinearClamp);
     cmd->set_program(fullscreen_quad_program);
     cmd->set_quad_state();
-    auto *data = static_cast<float *>(cmd->allocate_vertex_data(0, 6 * sizeof(float), 2 * sizeof(float)));
+    auto data = static_cast<float*>(cmd->allocate_vertex_data(0, 6 * sizeof(float), 2 * sizeof(float)));
     *data++ = -1.0f;
     *data++ = -3.0f;
     *data++ = -1.0f;
     *data++ = +1.0f;
     *data++ = +3.0f;
     *data++ = +1.0f;
+
+    int sdlWinWidth, sdlWinHeight;
+    SDL_GetWindowSize(window, &sdlWinWidth, &sdlWinHeight);
+
+    float zoom = std::min(
+            (float)sdlWinWidth / wsi->get_platform().get_surface_width(),
+            (float)sdlWinHeight / wsi->get_platform().get_surface_height());
+
+    float width = (wsi->get_platform().get_surface_width() / (float)sdlWinWidth) * zoom;
+    float height = (wsi->get_platform().get_surface_height() / (float)sdlWinHeight) * zoom;
+
+    float uniform_data[] = {
+            // Size
+            width, height,
+            // Offset
+            (1.0f - width) * 0.5f,
+            (1.0f - height) * 0.5f};
+
+    cmd->push_constants(uniform_data, 0, sizeof(uniform_data));
 
     cmd->set_vertex_attrib(0, 0, VK_FORMAT_R32G32_SFLOAT, 0);
     cmd->set_depth_test(false, false);
