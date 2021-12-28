@@ -14,6 +14,7 @@ jobs:
 
       - name: Setup SDL2
         run: |
+          vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
 
       - name: Build N64
@@ -47,6 +48,7 @@ jobs:
 
       - name: Setup SDL2
         run: |
+          vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
 
       - name: Build N64
@@ -81,6 +83,10 @@ jobs:
 
       - name: Setup SDL2
         run: |
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+          sudo apt update
+          sudo apt install shaderc
           sudo apt-get update -y -qq
           sudo apt-get install libsdl2-dev
 
