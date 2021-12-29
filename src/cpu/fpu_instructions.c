@@ -61,18 +61,6 @@ MIPS_INSTR(mips_dmtc1) {
     set_fpu_register_dword(instruction.r.rd, value);
 }
 
-MIPS_INSTR(mips_eret) {
-    if (N64CPU.cp0.status.erl) {
-        set_pc_dword_r4300i(N64CPU.cp0.error_epc);
-        N64CPU.cp0.status.erl = false;
-    } else {
-        set_pc_dword_r4300i(N64CPU.cp0.EPC);
-        N64CPU.cp0.status.exl = false;
-    }
-    cp0_status_updated();
-    N64CPU.llbit = false;
-}
-
 MIPS_INSTR(mips_cfc1) {
     checkcp1;
     byte fs = instruction.r.rd;
