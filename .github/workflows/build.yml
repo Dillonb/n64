@@ -12,7 +12,7 @@ jobs:
         with:
           submodules: true
 
-      - name: Setup SDL2
+      - name: Setup dependencies
         run: |
           vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
@@ -46,7 +46,7 @@ jobs:
         with:
           submodules: true
 
-      - name: Setup SDL2
+      - name: Setup dependencies
         run: |
           vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
