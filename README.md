@@ -23,7 +23,7 @@ You'll need a fast CPU and a modern GPU that supports Vulkan 1.1.
 
 # Links
 - [TODO List](https://github.com/Dillonb/n64/projects/1)
-- [Compatibility List](https://github.com/Dillonb/n64/projects/2)
+- [Compatibility List](https://github.com/users/Dillonb/projects/1/views/1)
 - [My Test Suite](https://github.com/dillonb/n64-tests)
 - [My Documentation](https://n64.readthedocs.io/)
 
