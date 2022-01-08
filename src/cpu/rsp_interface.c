@@ -80,7 +80,7 @@ word read_word_spreg(word address) {
         case ADDR_SP_WR_LEN_REG:
             return N64RSP.io.dma.raw;
         case ADDR_SP_PC_REG:
-            return N64RSP.pc;
+            return (N64RSP.pc << 2) & 0xFFF;
         case ADDR_SP_STATUS_REG:
             return N64RSP.status.raw;
         case ADDR_SP_DMA_BUSY_REG:
