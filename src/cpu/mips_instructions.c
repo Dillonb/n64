@@ -628,14 +628,14 @@ MIPS_INSTR(mips_spc_srl) {
 }
 
 MIPS_INSTR(mips_spc_sra) {
-    sword value = get_register(instruction.r.rt);
-    sword result = value >> instruction.r.sa;
+    sdword value = get_register(instruction.r.rt);
+    sword result = (sdword)(value >> (dword)instruction.r.sa);
     set_register(instruction.r.rd, (sdword) result);
 }
 
 MIPS_INSTR(mips_spc_srav) {
-    sword value = get_register(instruction.r.rt);
-    sword result = value >> (get_register(instruction.r.rs) & 0b11111);
+    sdword value = get_register(instruction.r.rt);
+    sword result = (sdword)(value >> (get_register(instruction.r.rs) & 0b11111));
     set_register(instruction.r.rd, (sdword) result);
 }
 

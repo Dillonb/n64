@@ -58,7 +58,7 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
     }
 
     printf("align(4)\n");
-    printf("NumCases: \n\tdd $%08X\n\n", num_cases);
+    printf("NumCases: \n\tdw $%08X\n\n", num_cases);
     printf("align(8)\n");
     printf("RegArgs:\n");
     for (int i = 0; i < num_cases; i++) {
@@ -73,6 +73,59 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
     printf("\nImmArgs:\n");
     for (int i = 0; i < num_cases; i++) {
         printf("\tdh $%04X\n", immargs[i]);
+    }
+}
+
+void gen_shift(char* name, mipsinstr_handler_t handler) {
+    const int num_64bit_args = 1500;
+    const int num_32bit_args = 1500;
+
+    int num_cases = num_32bit_args + num_64bit_args;
+    int num_results = num_cases * 32;
+
+    dword regargs[num_cases];
+    dword expected_result[num_results];
+
+    static_assert(RAND_MAX == 2147483647, "this code depends on RAND_MAX being int32_max");
+
+    for (int i = 0; i < num_32bit_args; i++) {
+        sword regarg = rand() << 1;
+        regargs[i] = (sdword)regarg;
+    }
+
+    for (int i = 0; i < num_64bit_args; i++) {
+        dword regarg = rand();
+        regarg <<= 32;
+        regarg |= rand();
+        regargs[num_32bit_args + i] = regarg;
+    }
+    memset(&N64CPU, 0, sizeof(N64CPU));
+    for (int i = 0; i < num_cases; i++) {
+        for (int sa = 0; sa < 32; sa++) {
+            mips_instruction_t instruction;
+            instruction.r.sa = sa;
+
+            instruction.r.rt = 1;
+            instruction.r.rd = 1;
+            N64CPU.gpr[1] = regargs[i];
+
+            handler(instruction);
+
+            expected_result[i * 32 + sa] = N64CPU.gpr[1];
+        }
+    }
+
+    printf("align(4)\n");
+    printf("NumCases: \n\tdw $%08X\n\n", num_cases);
+    printf("align(8)\n");
+    printf("RegArgs:\n");
+    for (int i = 0; i < num_cases; i++) {
+        printf("\tdd $%016lX\n", regargs[i]);
+    }
+    printf("align(8)\n");
+    printf("Expected:\n");
+    for (int i = 0; i < num_results; i++) {
+        printf("\tdd $%016lX\n", expected_result[i]);
     }
 }
 
@@ -258,7 +311,7 @@ int main(int argc, char** argv) {
             logfatal("Unimplemented type: RSRTRD");
             break;
         case SHIFT:
-            logfatal("Unimplemented type: SHIFT");
+            gen_shift(instruction_name, instruction_handler);
             break;
         case MULT:
             logfatal("Unimplemented type: MULT");
