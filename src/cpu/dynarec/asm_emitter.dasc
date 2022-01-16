@@ -248,7 +248,7 @@ IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
 COMPILER(mips_spc_sra) {
     BAILZERO(instr.r.rd);
     | mov Rq(dreg), Rq(aregs[0])
-    | sar Rd(dreg), instr.r.sa
+    | sar Rq(dreg), instr.r.sa
     | movsxd Rq(dreg), Rd(dreg)
 }
 IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
@@ -257,7 +257,7 @@ COMPILER(mips_spc_srav) {
     BAILZERO(instr.r.rd);
     | mov rax, Rq(aregs[0])
     | mov rcx, Rq(aregs[1])
-    | sar eax, cl
+    | sar rax, cl
     | movsxd Rq(dreg), eax
 }
 IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
