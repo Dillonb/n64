@@ -257,6 +257,7 @@ COMPILER(mips_spc_srav) {
     BAILZERO(instr.r.rd);
     | mov rax, Rq(aregs[0])
     | mov rcx, Rq(aregs[1])
+    | and cl, 31
     | sar rax, cl
     | movsxd Rq(dreg), eax
 }
