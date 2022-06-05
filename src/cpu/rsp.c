@@ -91,10 +91,30 @@ INLINE rspinstr_handler_t rsp_cp2_decode(word pc, mips_instruction_t instr) {
             case FUNCT_RSP_VEC_VSUB:  return rsp_vec_vsub;
             case FUNCT_RSP_VEC_VSUBC: return rsp_vec_vsubc;
             case FUNCT_RSP_VEC_VXOR:  return rsp_vec_vxor;
+            case FUNCT_RSP_VEC_0x12:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x16:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x17:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x18:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x19:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1A:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1B:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1C:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1E:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1F:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x2E:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x2F:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x38:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x39:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3A:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3B:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3C:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3D:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3E:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3F:  return rsp_nop; // TODO, undocumented
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
-                logfatal("Invalid RSP CP2 VEC [0x%08X]=0x%08X | Capstone thinks it's %s", pc, instr.raw, buf);
+                logfatal("Invalid RSP CP2 VEC with FUNCT 0x%02X [0x%08X]=0x%08X | Capstone thinks it's %s", instr.cp2_vec.funct, pc, instr.raw, buf);
             }
         }
     } else {
@@ -149,9 +169,10 @@ INLINE rspinstr_handler_t rsp_special_decode(word pc, mips_instruction_t instr) 
 
 INLINE rspinstr_handler_t rsp_regimm_decode(word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
-        case RT_BLTZ:   return rsp_ri_bltz;
-        case RT_BGEZ:   return rsp_ri_bgez;
-        case RT_BGEZAL: return rsp_ri_bgezal;
+        case RT_BLTZ:     return rsp_ri_bltz;
+        case RT_BLTZAL:   return rsp_ri_bltzal;
+        case RT_BGEZ:     return rsp_ri_bgez;
+        case RT_BGEZAL:   return rsp_ri_bgezal;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -174,6 +195,7 @@ INLINE rspinstr_handler_t rsp_lwc2_decode(word pc, mips_instruction_t instr) {
         case LWC2_LSV: return rsp_lwc2_lsv;
         case LWC2_LTV: return rsp_lwc2_ltv;
         case LWC2_LUV: return rsp_lwc2_luv;
+        case LWC2_0xA: return rsp_nop; // TODO, undocumented
         default:
             logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
     }
@@ -192,6 +214,8 @@ INLINE rspinstr_handler_t rsp_swc2_decode(word pc, mips_instruction_t instr) {
         case LWC2_LSV: return rsp_swc2_ssv;
         case LWC2_LTV: return rsp_swc2_stv;
         case LWC2_LUV: return rsp_swc2_suv;
+        case LWC2_0xA: return rsp_nop; // TODO, undocumented
+
         default:
             logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);
     }
@@ -217,7 +241,7 @@ INLINE rspinstr_handler_t rsp_instruction_decode(word pc, mips_instruction_t ins
             case OPC_LHU:   return rsp_lhu;
             case OPC_LH:    return rsp_lh;
             case OPC_LW:    return rsp_lw;
-            //case OPC_LWU:   return rsp_lwu;
+            case OPC_LWU:   return rsp_lw;
             case OPC_BEQ:   return rsp_beq;
             //case OPC_BEQL:  return rsp_beql;
             case OPC_BGTZ:  return rsp_bgtz;

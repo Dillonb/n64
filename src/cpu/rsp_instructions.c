@@ -287,17 +287,23 @@ RSP_INSTR(rsp_blez) {
 }
 
 RSP_INSTR(rsp_ri_bltz) {
-        sword reg = get_rsp_register(instruction.i.rs);
-        rsp_conditional_branch(instruction.i.immediate, reg < 0);
+    sword reg = get_rsp_register(instruction.i.rs);
+    rsp_conditional_branch(instruction.i.immediate, reg < 0);
+}
+
+RSP_INSTR(rsp_ri_bltzal) {
+    rsp_link(RSP_REG_LR);
+    sword reg = get_rsp_register(instruction.i.rs);
+    rsp_conditional_branch(instruction.i.immediate, reg < 0);
 }
 
 RSP_INSTR(rsp_ri_bgez) {
-        sword reg = get_rsp_register(instruction.i.rs);
-        rsp_conditional_branch(instruction.i.immediate, reg >= 0);
+    sword reg = get_rsp_register(instruction.i.rs);
+    rsp_conditional_branch(instruction.i.immediate, reg >= 0);
 }
 
 RSP_INSTR(rsp_ri_bgezal) {
-        rsp_link(RSP_REG_LR);
-        sword reg = get_rsp_register(instruction.i.rs);
-        rsp_conditional_branch(instruction.i.immediate, reg >= 0);
+    rsp_link(RSP_REG_LR);
+    sword reg = get_rsp_register(instruction.i.rs);
+    rsp_conditional_branch(instruction.i.immediate, reg >= 0);
 }

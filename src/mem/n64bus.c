@@ -307,7 +307,8 @@ void n64_write_physical_dword(word address, dword value) {
         case REGION_CART_2_2:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
         case REGION_CART_1_2:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            logwarn("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            break;
         case REGION_PIF_BOOT:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
@@ -470,7 +471,8 @@ void n64_write_physical_word(word address, word value) {
             }
             return;
         case REGION_PIF_BOOT:
-            logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
+            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
+            break;
         case REGION_PIF_RAM:
             word_to_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe32(value));
             process_pif_command();
@@ -637,7 +639,6 @@ void n64_write_physical_half(word address, half value) {
         case REGION_PIF_RAM:
             half_to_byte_array((byte*) &n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe16(value));
             process_pif_command();
-            logfatal("Writing half 0x%04X to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
             logfatal("Writing half 0x%04X to address 0x%08X in unsupported region: REGION_RESERVED", value, address);
@@ -701,7 +702,6 @@ half n64_read_physical_half(word address) {
         case REGION_PIF_BOOT:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
         case REGION_PIF_RAM:
-            logfatal("READHALF FROM PIF RAM\n");
             return be16toh(half_from_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM));
         case REGION_RESERVED:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_RESERVED", address);
@@ -768,7 +768,6 @@ void n64_write_physical_byte(word address, byte value) {
         case REGION_PIF_RAM:
             n64sys.mem.pif_ram[address - SREGION_PIF_RAM] = value;
             process_pif_command();
-            logfatal("Writing byte to PIF RAM");
             break;
         case REGION_RESERVED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value, address);
@@ -843,7 +842,6 @@ byte n64_read_physical_byte(word address) {
             }
         }
         case REGION_PIF_RAM:
-            logfatal("Reading from PIF RAM\n");
             return n64sys.mem.pif_ram[address - SREGION_PIF_RAM];
         case REGION_RESERVED:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RESERVED", address);

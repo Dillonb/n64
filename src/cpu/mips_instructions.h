@@ -128,5 +128,6 @@ MIPS_INSTR(mips_ri_bgez);
 MIPS_INSTR(mips_ri_bgezl);
 MIPS_INSTR(mips_ri_bltzal);
 MIPS_INSTR(mips_ri_bgezal);
+MIPS_INSTR(mips_ri_bgezall);
 
 #endif //N64_MIPS_INSTRUCTIONS_H

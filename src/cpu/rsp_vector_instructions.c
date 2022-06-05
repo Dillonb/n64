@@ -18,7 +18,6 @@
 #define defvt vu_reg_t* vt = &N64RSP.vu_regs[instruction.cp2_vec.vt]
 #define defvd vu_reg_t* vd = &N64RSP.vu_regs[instruction.cp2_vec.vd]
 #define defvte vu_reg_t vte = get_vte(&N64RSP.vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
-#define elementzero unimplemented(instruction.cp2_vec.e != 0, "element was not zero!")
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
@@ -544,8 +543,11 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
         case 2: { // VCE
             value = rsp_get_vce();
             break;
-            default:
-                logfatal("CFC2 from unknown VU control register: %d", instruction.r.rd);
+        }
+        default: {
+            logwarn("CFC2 from unknown VU control register: %d", instruction.r.rd);
+            value = 0;
+            break;
         }
     }
 
@@ -576,8 +578,10 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
             }
             break;
         }
-        default:
-            logfatal("CTC2 to unknown VU control register: %d", instruction.r.rd);
+        default: {
+            logwarn("CTC2 to unknown VU control register: %d", instruction.r.rd);
+            break;
+        }
     }
 }
 
@@ -875,8 +879,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmacq) {
     logdebug("rsp_vec_vmacq");
-    logfatal("Unimplemented: rsp_vec_vmacq");
-    elementzero;
+    logwarn("Unimplemented: rsp_vec_vmacq");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacu) {
@@ -1236,8 +1239,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmulq) {
     logdebug("rsp_vec_vmulq");
-    logfatal("Unimplemented: rsp_vec_vmulq");
-    elementzero;
+    logwarn("Unimplemented: rsp_vec_vmulq");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
@@ -1377,14 +1379,12 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
     logdebug("rsp_vec_vrndn");
-    logfatal("Unimplemented: rsp_vec_vrndn");
-    elementzero;
+    logwarn("Unimplemented: rsp_vec_vrndn");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndp) {
     logdebug("rsp_vec_vrndp");
-    logfatal("Unimplemented: rsp_vec_vrndp");
-    elementzero;
+    logwarn("Unimplemented: rsp_vec_vrndp");
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {

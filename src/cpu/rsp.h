@@ -46,6 +46,9 @@
 #define LWC2_LTV 0b01011
 #define LWC2_LUV 0b00111
 
+// Undocumented
+#define LWC2_0xA 0b01010
+
 #define FUNCT_RSP_VEC_VABS  0b010011
 #define FUNCT_RSP_VEC_VADD  0b010000
 #define FUNCT_RSP_VEC_VADDC 0b010100
@@ -91,6 +94,28 @@
 #define FUNCT_RSP_VEC_VSUBC 0b010101
 #define FUNCT_RSP_VEC_VXOR  0b101100
 
+// Undocumented
+#define FUNCT_RSP_VEC_0x12  0b010010
+#define FUNCT_RSP_VEC_0x16  0b010110
+#define FUNCT_RSP_VEC_0x17  0b010111
+#define FUNCT_RSP_VEC_0x18  0b011000
+#define FUNCT_RSP_VEC_0x19  0b011001
+#define FUNCT_RSP_VEC_0x1A  0b011010
+#define FUNCT_RSP_VEC_0x1B  0b011011
+#define FUNCT_RSP_VEC_0x1C  0b011100
+#define FUNCT_RSP_VEC_0x1E  0b011110
+#define FUNCT_RSP_VEC_0x1F  0b011111
+#define FUNCT_RSP_VEC_0x2E  0b101110
+#define FUNCT_RSP_VEC_0x2F  0b101111
+#define FUNCT_RSP_VEC_0x38  0b111000
+#define FUNCT_RSP_VEC_0x39  0b111001
+#define FUNCT_RSP_VEC_0x3A  0b111010
+#define FUNCT_RSP_VEC_0x3B  0b111011
+#define FUNCT_RSP_VEC_0x3C  0b111100
+#define FUNCT_RSP_VEC_0x3D  0b111101
+#define FUNCT_RSP_VEC_0x3E  0b111110
+#define FUNCT_RSP_VEC_0x3F  0b111111
+
 #define RSP_DRAM_ADDR_MASK 0xFFFFF8
 #define RSP_MEM_ADDR_MASK 0xFF8
 
@@ -120,8 +145,11 @@ INLINE void rsp_dma_read() {
 
     length = (length + 0x7) & ~0x7;
 
-    if (mem_addr_reg.address + length > 0x1000) {
-        logfatal("RSP DMA READ would read off the end of memory!");
+    word last_addr = mem_addr_reg.address + length;
+    if (last_addr > 0x1000) {
+        word overshoot = last_addr - 0x1000;
+        length -= overshoot;
+        logwarn("RSP DMA READ would read off the end of memory! Truncating DMA (this is probably the wrong behavior)");
     }
 
     word dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
@@ -226,9 +254,9 @@ INLINE word get_rsp_cp0_register(byte r) {
         case RSP_CP0_DMA_DRAM:
             return N64RSP.io.shadow_dmem_addr.raw;
         case RSP_CP0_DMA_READ_LENGTH:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r);
+            return 0;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r);
+            return 0;
         case RSP_CP0_SP_STATUS: return N64RSP.status.raw;
         case RSP_CP0_DMA_FULL:  return N64RSP.status.dma_full;
         case RSP_CP0_DMA_BUSY:  return N64RSP.status.dma_busy;

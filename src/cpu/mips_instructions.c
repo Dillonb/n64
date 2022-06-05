@@ -3,28 +3,34 @@
 
 #include <mem/n64bus.h>
 
-void check_sword_add_overflow(sword addend1, sword addend2, sword result) {
+bool check_sword_add_overflow(sword addend1, sword addend2, sword result) {
     if (addend1 > 0 && addend2 > 0) {
         if (result < 0) {
-            logfatal("Integer overflow exception");
+            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+            return false;
         }
     } else if (addend1 < 0 && addend2 < 0) {
         if (result > 0) {
-            logfatal("Integer overflow exception");
+            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+            return false;
         }
     }
+    return true;
 }
 
-void check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
+bool check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
     if (addend1 > 0 && addend2 > 0) {
         if (result < 0) {
-            logfatal("Integer overflow exception");
+            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+            return false;
         }
     } else if (addend1 < 0 && addend2 < 0) {
         if (result > 0) {
-            logfatal("Integer overflow exception");
+            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+            return false;
         }
     }
+    return true;
 }
 
 // https://stackoverflow.com/questions/25095741/how-can-i-multiply-64-bit-operands-and-get-128-bit-result-portably/58381061#58381061
@@ -124,8 +130,9 @@ MIPS_INSTR(mips_addi) {
     sword reg_addend = get_register(instruction.i.rs);
     shalf imm_addend = instruction.i.immediate;
     sword result = imm_addend + reg_addend;
-    check_sword_add_overflow(imm_addend, reg_addend, result);
-    set_register(instruction.i.rt, (sdword)result);
+    if (check_sword_add_overflow(imm_addend, reg_addend, result)) {
+        set_register(instruction.i.rt, (sdword)result);
+    }
 }
 
 MIPS_INSTR(mips_addiu) {
@@ -140,8 +147,9 @@ MIPS_INSTR(mips_daddi) {
     shalf  addend1 = instruction.i.immediate;
     sdword addend2 = get_register(instruction.i.rs);
     sdword result = addend1 + addend2;
-    check_sdword_add_overflow(addend1, addend2, result);
-    set_register(instruction.i.rt, result);
+    if (check_sdword_add_overflow(addend1, addend2, result)) {
+        set_register(instruction.i.rt, result);
+    }
 }
 
 
@@ -320,7 +328,8 @@ MIPS_INSTR(mips_lw) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, -1);
+        return;
     }
 
     word physical;
@@ -824,9 +833,9 @@ MIPS_INSTR(mips_spc_add) {
     sword addend2 = get_register(instruction.r.rt);
 
     sword result = addend1 + addend2;
-    check_sword_add_overflow(addend1, addend2, result);
-
-    set_register(instruction.r.rd, (sdword)result);
+    if (check_sword_add_overflow(addend1, addend2, result)) {
+        set_register(instruction.r.rd, (sdword)result);
+    }
 }
 
 MIPS_INSTR(mips_spc_addu) {
@@ -903,8 +912,9 @@ MIPS_INSTR(mips_spc_dadd) {
     sdword addend1 = get_register(instruction.r.rs);
     sdword addend2 = get_register(instruction.r.rt);
     sdword result = addend1 + addend2;
-    check_sdword_add_overflow(addend1, addend2, result);
-    set_register(instruction.r.rd, result);
+    if (check_sdword_add_overflow(addend1, addend2, result)) {
+        set_register(instruction.r.rd, result);
+    }
 }
 
 MIPS_INSTR(mips_spc_daddu) {
@@ -1016,6 +1026,12 @@ MIPS_INSTR(mips_ri_bgezal) {
     link(R4300I_REG_LR);
     sdword reg = get_register(instruction.i.rs);
     conditional_branch(instruction.i.immediate, reg >= 0);
+}
+
+MIPS_INSTR(mips_ri_bgezall) {
+    link(R4300I_REG_LR);
+    sdword reg = get_register(instruction.i.rs);
+    conditional_branch_likely(instruction.i.immediate, reg >= 0);
 }
 
 MIPS_INSTR(mips_eret) {

@@ -241,12 +241,13 @@
 
 
 // REGIMM
-#define RT_BLTZ   0b00000
-#define RT_BLTZL  0b00010
-#define RT_BGEZ   0b00001
-#define RT_BGEZL  0b00011
-#define RT_BLTZAL 0b10000
-#define RT_BGEZAL 0b10001
+#define RT_BLTZ    0b00000
+#define RT_BLTZL   0b00010
+#define RT_BGEZ    0b00001
+#define RT_BGEZL   0b00011
+#define RT_BLTZAL  0b10000
+#define RT_BGEZAL  0b10001
+#define RT_BGEZALL 0b10011
 
 
 typedef union cp0_status {

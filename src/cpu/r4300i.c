@@ -90,6 +90,8 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_TRAP:
             case EXCEPTION_BREAKPOINT:
             case EXCEPTION_SYSCALL:
+            case EXCEPTION_ADDRESS_ERROR_LOAD:
+            case EXCEPTION_ARITHMETIC_OVERFLOW:
                 set_pc_word_r4300i(0x80000180);
                 break;
             case EXCEPTION_TLB_MISS_LOAD:
@@ -562,12 +564,13 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
 
 INLINE mipsinstr_handler_t r4300i_regimm_decode(dword pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
-        case RT_BLTZ:   return mips_ri_bltz;
-        case RT_BLTZL:  return mips_ri_bltzl;
-        case RT_BGEZ:   return mips_ri_bgez;
-        case RT_BGEZL:  return mips_ri_bgezl;
-        case RT_BLTZAL: return mips_ri_bltzal;
-        case RT_BGEZAL: return mips_ri_bgezal;
+        case RT_BLTZ:    return mips_ri_bltz;
+        case RT_BLTZL:   return mips_ri_bltzl;
+        case RT_BGEZ:    return mips_ri_bgez;
+        case RT_BGEZL:   return mips_ri_bgezl;
+        case RT_BLTZAL:  return mips_ri_bltzal;
+        case RT_BGEZAL:  return mips_ri_bgezal;
+        case RT_BGEZALL: return mips_ri_bgezall;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);

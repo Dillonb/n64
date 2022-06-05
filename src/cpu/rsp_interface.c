@@ -35,7 +35,8 @@ typedef union sp_status_write {
 
 ASSERTWORD(sp_status_write_t);
 
-#define CLEAR_SET(VAL, CLEAR, SET) do { unimplemented((CLEAR) && (SET), "Both clear and set are set"); if (CLEAR) {(VAL) = false; } if (SET) { (VAL) = true; } } while(0)
+// If both CLEAR and SET are set, don't change anything. Otherwise either clear or set it.
+#define CLEAR_SET(VAL, CLEAR, SET) do { if ((CLEAR) && !(SET)) {(VAL) = false; } if ((SET) && !(CLEAR)) { (VAL) = true; } } while(0)
 
 INLINE void set_rsp_pc(half pc) {
     N64RSP.pc = pc >> 2;
@@ -85,6 +86,8 @@ word read_word_spreg(word address) {
             return N64RSP.status.raw;
         case ADDR_SP_DMA_BUSY_REG:
             return 0; // DMA not busy, since it's instant.
+        case ADDR_SP_SEMAPHORE_REG:
+            return N64RSP.semaphore_held;
         default:
             logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address);
     }

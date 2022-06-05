@@ -50,6 +50,7 @@ RSP_INSTR(rsp_bgtz);
 RSP_INSTR(rsp_blez);
 
 RSP_INSTR(rsp_ri_bltz);
+RSP_INSTR(rsp_ri_bltzal);
 RSP_INSTR(rsp_ri_bgez);
 RSP_INSTR(rsp_ri_bgezal);
 
