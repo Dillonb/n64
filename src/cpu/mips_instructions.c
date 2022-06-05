@@ -966,6 +966,43 @@ MIPS_INSTR(mips_spc_tne) {
     }
 }
 
+MIPS_INSTR(mips_spc_tge) {
+    sdword rs = get_register(instruction.r.rs);
+    sdword rt = get_register(instruction.r.rt);
+
+    if (rs >= rt) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_spc_tgeu) {
+    dword rs = get_register(instruction.r.rs);
+    dword rt = get_register(instruction.r.rt);
+
+    if (rs >= rt) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_spc_tlt) {
+    sdword rs = get_register(instruction.r.rs);
+    sdword rt = get_register(instruction.r.rt);
+
+    if (rs < rt) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_spc_tltu) {
+    dword rs = get_register(instruction.r.rs);
+    dword rt = get_register(instruction.r.rt);
+
+    if (rs < rt) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+
 MIPS_INSTR(mips_spc_dsll) {
     dword value = get_register(instruction.r.rt);
     value <<= instruction.r.sa;
@@ -1052,3 +1089,56 @@ MIPS_INSTR(mips_eret) {
     N64CPU.llbit = false;
 }
 
+MIPS_INSTR(mips_ri_tgei) {
+    sdword rs = get_register(instruction.i.rs);
+    shalf imm = instruction.i.immediate;
+
+    if (rs >= imm) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_ri_tgeiu) {
+    dword rs = get_register(instruction.i.rs);
+    dword imm = (sdword)(((shalf)instruction.i.immediate));
+
+    if (rs >= imm) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_ri_tlti) {
+    sdword rs = get_register(instruction.i.rs);
+    shalf imm = instruction.i.immediate;
+
+    if (rs < imm) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_ri_tltiu) {
+    dword rs = get_register(instruction.i.rs);
+    dword imm = (sdword)(((shalf)instruction.i.immediate));
+
+    if (rs < imm) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_ri_teqi) {
+    sdword rs = get_register(instruction.i.rs);
+    shalf imm = instruction.i.immediate;
+
+    if (rs == imm) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}
+
+MIPS_INSTR(mips_ri_tnei) {
+    sdword rs = get_register(instruction.i.rs);
+    shalf imm = instruction.i.immediate;
+
+    if (rs != imm) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+    }
+}

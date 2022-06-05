@@ -228,6 +228,10 @@
 #define FUNCT_DADDU   0b101101
 #define FUNCT_DSUB    0b101110
 #define FUNCT_DSUBU   0b101111
+#define FUNCT_TGE     0b110000
+#define FUNCT_TGEU    0b110001
+#define FUNCT_TLT     0b110010
+#define FUNCT_TLTU    0b110011
 #define FUNCT_TEQ     0b110100
 #define FUNCT_TNE     0b110110
 #define FUNCT_DSLL    0b111000
@@ -245,6 +249,12 @@
 #define RT_BLTZL   0b00010
 #define RT_BGEZ    0b00001
 #define RT_BGEZL   0b00011
+#define RT_TGEI    0b01000
+#define RT_TGEIU   0b01001
+#define RT_TLTI    0b01010
+#define RT_TLTIU   0b01011
+#define RT_TEQI    0b01100
+#define RT_TNEI    0b01110
 #define RT_BLTZAL  0b10000
 #define RT_BGEZAL  0b10001
 #define RT_BGEZALL 0b10011

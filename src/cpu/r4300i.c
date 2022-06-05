@@ -543,6 +543,10 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
         case FUNCT_DADDU:   return mips_spc_daddu;
         case FUNCT_DSUB:    return mips_spc_dsub;
         case FUNCT_DSUBU:   return mips_spc_dsubu;
+        case FUNCT_TGE:     return mips_spc_tge;
+        case FUNCT_TGEU:    return mips_spc_tgeu;
+        case FUNCT_TLT:     return mips_spc_tlt;
+        case FUNCT_TLTU:    return mips_spc_tltu;
         case FUNCT_TEQ:     return mips_spc_teq;
         case FUNCT_TNE:     return mips_spc_tne;
         case FUNCT_DSLL:    return mips_spc_dsll;
@@ -571,6 +575,12 @@ INLINE mipsinstr_handler_t r4300i_regimm_decode(dword pc, mips_instruction_t ins
         case RT_BLTZAL:  return mips_ri_bltzal;
         case RT_BGEZAL:  return mips_ri_bgezal;
         case RT_BGEZALL: return mips_ri_bgezall;
+        case RT_TGEI:    return mips_ri_tgei;
+        case RT_TGEIU:   return mips_ri_tgeiu;
+        case RT_TLTI:    return mips_ri_tlti;
+        case RT_TLTIU:   return mips_ri_tltiu;
+        case RT_TEQI:    return mips_ri_teqi;
+        case RT_TNEI:    return mips_ri_tnei;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
