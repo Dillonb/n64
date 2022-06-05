@@ -149,7 +149,7 @@ INLINE word get_cp0_register_word(byte r) {
         case R4300I_CP0_REG_INDEX:
             return N64CPU.cp0.index & 0x8000003F;
         case R4300I_CP0_REG_RANDOM:
-            logalways("WARNING! Stubbed read from Random!");
+            logwarn("Stubbed read from Random!");
             return ((uint)rand()) % 32;
         case R4300I_CP0_REG_ENTRYLO0:
             return N64CPU.cp0.entry_lo0.raw;
