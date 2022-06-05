@@ -135,7 +135,7 @@ INLINE bool resolve_virtual_address(dword virtual, word* physical) {
 INLINE word resolve_virtual_address_or_die(dword virtual) {
     word physical;
     if (!resolve_virtual_address(virtual, &physical)) {
-        logfatal("Unhandled TLB exception at 0x%016lX!", virtual);
+        logfatal("Unhandled TLB exception at 0x%016lX! Stop calling resolve_virtual_address_or_die() here!", virtual);
     }
     return physical;
 }

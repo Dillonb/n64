@@ -386,7 +386,13 @@ MIPS_INSTR(mips_sw) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs);
     address += offset;
-    n64_write_word(address, get_register(instruction.i.rt));
+    word physical;
+    if (!resolve_virtual_address(address, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+    } else {
+        n64_write_physical_word(physical, get_register(instruction.i.rt));
+    }
 }
 
 MIPS_INSTR(mips_sd) {
