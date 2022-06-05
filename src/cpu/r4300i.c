@@ -72,6 +72,8 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
     N64CPU.cp0.cause.exception_code = code;
     if (coprocessor_error > 0) {
         N64CPU.cp0.cause.coprocessor_error = coprocessor_error;
+    } else {
+        N64CPU.cp0.cause.coprocessor_error = 0;
     }
 
     if (N64CPU.cp0.status.bev) {
