@@ -440,15 +440,15 @@ typedef union watch_lo {
 ASSERTWORD(watch_lo_t);
 
 typedef union cp0_context {
-    word raw;
+    dword raw;
     struct {
-        unsigned:4;
-        unsigned badvpn2:19;
-        unsigned ptebase:9;
+        dword:4;
+        dword badvpn2:19;
+        dword ptebase:41;
     };
 } cp0_context_t;
 
-ASSERTWORD(cp0_context_t);
+ASSERTDWORD(cp0_context_t);
 
 typedef union cp0_x_context {
     dword raw;
@@ -468,7 +468,6 @@ typedef struct cp0 {
     cp0_entry_lo_t entry_lo0;
     cp0_entry_lo_t entry_lo1;
     cp0_context_t context;
-    dword context_64;
     cp0_page_mask_t page_mask;
     word wired;
     word r7;

@@ -328,6 +328,7 @@ MIPS_INSTR(mips_lw) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
+        on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, -1);
         return;
     }

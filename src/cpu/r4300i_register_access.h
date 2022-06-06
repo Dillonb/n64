@@ -230,8 +230,7 @@ INLINE void set_cp0_register_dword(byte r, dword value) {
             N64CPU.cp0.entry_lo1.raw = value;
             break;
         case R4300I_CP0_REG_CONTEXT:
-            //unimplemented(value != 0, "cp0 context written with non-zero value in 64 bit mode!");
-            N64CPU.cp0.context_64 = value;
+            N64CPU.cp0.context.raw = value;
             break;
         case R4300I_CP0_REG_PAGEMASK:
             logfatal("Writing CP0 register R4300I_CP0_REG_PAGEMASK as dword!");
@@ -316,7 +315,7 @@ INLINE dword get_cp0_register_dword(byte r) {
         case R4300I_CP0_REG_ENTRYLO1:
             return N64CP0.entry_lo1.raw;
         case R4300I_CP0_REG_CONTEXT:
-            return N64CPU.cp0.context_64;
+            return N64CPU.cp0.context.raw;
         case R4300I_CP0_REG_PAGEMASK:
             logfatal("Reading CP0 register R4300I_CP0_REG_PAGEMASK as dword!");
         case R4300I_CP0_REG_WIRED:
