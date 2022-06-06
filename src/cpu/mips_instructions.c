@@ -33,6 +33,8 @@ bool check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
     return true;
 }
 
+#define check_address_error(mask, virtual) (((!N64CP0.is_64bit_addressing) && (sword)(virtual) != (virtual)) || (((virtual) & (mask)) != 0))
+
 // https://stackoverflow.com/questions/25095741/how-can-i-multiply-64-bit-operands-and-get-128-bit-result-portably/58381061#58381061
 /* Prevents a partial vectorization from GCC. */
 #if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
@@ -266,8 +268,10 @@ MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
     dword result  = n64_read_dword(address);
-    if ((address & 0b111) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+    if (check_address_error(0b111, address)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, -1);
+        return;
     }
     set_register(instruction.i.rt, result);
 }
@@ -327,7 +331,7 @@ MIPS_INSTR(mips_lh) {
 MIPS_INSTR(mips_lw) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    if ((address & 0b11) > 0) {
+    if (check_address_error(0b11, address)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, -1);
         return;
@@ -389,7 +393,7 @@ MIPS_INSTR(mips_sw) {
     address += offset;
     word physical;
 
-    if ((address & 0b11) > 0) {
+    if (check_address_error(0b11, address)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_STORE, -1);
         return;
