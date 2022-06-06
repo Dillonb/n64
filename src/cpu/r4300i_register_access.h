@@ -239,8 +239,7 @@ INLINE void set_cp0_register_dword(byte r, dword value) {
             logfatal("Writing CP0 register R4300I_CP0_REG_WIRED as dword!");
         case R4300I_CP0_REG_7:
             logfatal("Writing CP0 register R4300I_CP0_REG_7 as dword!");
-        case R4300I_CP0_REG_BADVADDR:
-            N64CP0.bad_vaddr = value;
+        case R4300I_CP0_REG_BADVADDR: // read only
             break;
         case R4300I_CP0_REG_COUNT:
             logfatal("Writing CP0 register R4300I_CP0_REG_COUNT as dword!");
