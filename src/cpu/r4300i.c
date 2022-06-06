@@ -93,6 +93,7 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_BREAKPOINT:
             case EXCEPTION_SYSCALL:
             case EXCEPTION_ADDRESS_ERROR_LOAD:
+            case EXCEPTION_ADDRESS_ERROR_STORE:
             case EXCEPTION_ARITHMETIC_OVERFLOW:
                 set_pc_word_r4300i(0x80000180);
                 break;

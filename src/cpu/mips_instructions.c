@@ -388,6 +388,13 @@ MIPS_INSTR(mips_sw) {
     dword address = get_register(instruction.i.rs);
     address += offset;
     word physical;
+
+    if ((address & 0b11) > 0) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_STORE, -1);
+        return;
+    }
+
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
