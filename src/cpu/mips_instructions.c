@@ -3,36 +3,7 @@
 
 #include <mem/n64bus.h>
 
-bool check_sword_add_overflow(sword addend1, sword addend2, sword result) {
-    if (addend1 > 0 && addend2 > 0) {
-        if (result < 0) {
-            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
-            return false;
-        }
-    } else if (addend1 < 0 && addend2 < 0) {
-        if (result > 0) {
-            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
-            return false;
-        }
-    }
-    return true;
-}
-
-bool check_sdword_add_overflow(sdword addend1, sdword addend2, sdword result) {
-    if (addend1 > 0 && addend2 > 0) {
-        if (result < 0) {
-            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
-            return false;
-        }
-    } else if (addend1 < 0 && addend2 < 0) {
-        if (result > 0) {
-            r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
-            return false;
-        }
-    }
-    return true;
-}
-
+#define check_signed_overflow(op1, op2, res)  (((~((op1) ^ (op2)) & ((op1) ^ (res))) >> ((sizeof(res) * 8) - 1)) & 1)
 #define check_address_error(mask, virtual) (((!N64CP0.is_64bit_addressing) && (sword)(virtual) != (virtual)) || (((virtual) & (mask)) != 0))
 
 // https://stackoverflow.com/questions/25095741/how-can-i-multiply-64-bit-operands-and-get-128-bit-result-portably/58381061#58381061
@@ -129,11 +100,13 @@ INLINE dword mult_64_to_128(sdword lhs, sdword rhs, dword *high) {
 MIPS_INSTR(mips_nop) {}
 
 MIPS_INSTR(mips_addi) {
-    sword reg_addend = get_register(instruction.i.rs);
-    shalf imm_addend = instruction.i.immediate;
-    sword result = imm_addend + reg_addend;
-    if (check_sword_add_overflow(imm_addend, reg_addend, result)) {
-        set_register(instruction.i.rt, (sdword)result);
+    word reg_addend = get_register(instruction.i.rs);
+    word imm_addend = (sword)((shalf)instruction.i.immediate);
+    word result = imm_addend + reg_addend;
+    if (check_signed_overflow(reg_addend, imm_addend, result)) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+    } else {
+        set_register(instruction.i.rt, (sdword)((sword)(result)));
     }
 }
 
@@ -146,10 +119,13 @@ MIPS_INSTR(mips_addiu) {
 }
 
 MIPS_INSTR(mips_daddi) {
-    shalf  addend1 = instruction.i.immediate;
-    sdword addend2 = get_register(instruction.i.rs);
-    sdword result = addend1 + addend2;
-    if (check_sdword_add_overflow(addend1, addend2, result)) {
+    dword addend1 = (sdword)((shalf)instruction.i.immediate);
+    dword addend2 = get_register(instruction.i.rs);
+    dword result = addend1 + addend2;
+
+    if (check_signed_overflow(addend1, addend2, result)) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+    } else {
         set_register(instruction.i.rt, result);
     }
 }
@@ -423,9 +399,9 @@ MIPS_INSTR(mips_xori) {
 }
 
 MIPS_INSTR(mips_daddiu) {
-    shalf  addend1 = instruction.i.immediate;
-    sdword addend2 = get_register(instruction.i.rs);
-    sdword result = addend1 + addend2;
+    dword addend1 = (sdword)((shalf)instruction.i.immediate);
+    dword addend2 = get_register(instruction.i.rs);
+    dword result = addend1 + addend2;
     set_register(instruction.i.rt, result);
 }
 
@@ -846,13 +822,14 @@ MIPS_INSTR(mips_spc_ddivu) {
 }
 
 MIPS_INSTR(mips_spc_add) {
+    word addend1 = get_register(instruction.r.rs);
+    word addend2 = get_register(instruction.r.rt);
 
-    sword addend1 = get_register(instruction.r.rs);
-    sword addend2 = get_register(instruction.r.rt);
-
-    sword result = addend1 + addend2;
-    if (check_sword_add_overflow(addend1, addend2, result)) {
-        set_register(instruction.r.rd, (sdword)result);
+    word result = addend1 + addend2;
+    if (check_signed_overflow(addend1, addend2, result)) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+    } else {
+        set_register(instruction.r.rd, (sdword)((sword)result));
     }
 }
 
@@ -927,18 +904,21 @@ MIPS_INSTR(mips_spc_sltu) {
 }
 
 MIPS_INSTR(mips_spc_dadd) {
-    sdword addend1 = get_register(instruction.r.rs);
-    sdword addend2 = get_register(instruction.r.rt);
-    sdword result = addend1 + addend2;
-    if (check_sdword_add_overflow(addend1, addend2, result)) {
+    dword addend1 = get_register(instruction.r.rs);
+    dword addend2 = get_register(instruction.r.rt);
+    dword result = addend1 + addend2;
+
+    if (check_signed_overflow(addend1, addend2, result)) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+    } else {
         set_register(instruction.r.rd, result);
     }
 }
 
 MIPS_INSTR(mips_spc_daddu) {
-    sdword addend1 = get_register(instruction.r.rs);
-    sdword addend2 = get_register(instruction.r.rt);
-    sdword result = addend1 + addend2;
+    dword addend1 = get_register(instruction.r.rs);
+    dword addend2 = get_register(instruction.r.rt);
+    dword result = addend1 + addend2;
     set_register(instruction.r.rd, result);
 }
 
