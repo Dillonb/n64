@@ -164,6 +164,7 @@ typedef struct n64_system {
         int dma_count;
         word dma_length[2];
         word dma_address[2];
+        bool dma_address_carry;
         int cycles;
 
         struct {

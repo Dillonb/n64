@@ -79,14 +79,19 @@ void sample() {
         return;
     }
 
+    word address_hi = ((n64sys.ai.dma_address[0] >> 13) + n64sys.ai.dma_address_carry) & 0x7ff;
+    n64sys.ai.dma_address[0] = (address_hi << 13) | n64sys.ai.dma_address[0] & 0x1fff;
     word data = n64_read_physical_word(n64sys.ai.dma_address[0]);
 
     shalf left  = data >> 16;
     shalf right = data >>  0;
     audio_push_sample(left, right);
 
-    n64sys.ai.dma_address[0] += 4;
-    n64sys.ai.dma_length[0]  -= 4;
+    word address_lo = (n64sys.ai.dma_address[0] + 4) & 0x1fff;
+    n64sys.ai.dma_address[0] = (n64sys.ai.dma_address[0] & ~0x1fff) | address_lo;
+    n64sys.ai.dma_address_carry = (address_lo == 0);
+    n64sys.ai.dma_length[0] -= 4;
+
     if(!n64sys.ai.dma_length[0]) {
         interrupt_raise(INTERRUPT_AI);
         if(--n64sys.ai.dma_count > 0) { // If we have another DMA pending, start on that one.
