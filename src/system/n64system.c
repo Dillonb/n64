@@ -164,7 +164,7 @@ void reset_n64system() {
     N64CP0.cause.raw  = 0xB000007C;
     N64CP0.EPC        = 0xFFFFFFFFFFFFFFFF;
     N64CP0.PRId       = 0x00000B22;
-    N64CP0.config     = 0x70000000;
+    N64CP0.config     = 0x7006E463;
     N64CP0.error_epc  = 0xFFFFFFFFFFFFFFFF;
 
     memset(n64sys.mem.rdram, 0, N64_RDRAM_SIZE);

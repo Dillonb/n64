@@ -68,7 +68,7 @@
 #define R4300I_CP0_REG_31       31
 
 #define CP0_STATUS_WRITE_MASK 0xFF57FFFF
-#define CP0_CONFIG_WRITE_MASK 0x0FFFFFFF
+#define CP0_CONFIG_WRITE_MASK 0x0F00800F
 
 #define CPU_MODE_KERNEL 0
 #define CPU_MODE_SUPERVISOR 1 /* TODO this is probably wrong */
@@ -352,18 +352,6 @@ ASSERTWORD(cp0_page_mask_t);
 
 typedef union cp0_entry_hi {
     struct {
-        unsigned asid:8;
-        unsigned:5;
-        unsigned vpn2:19;
-    };
-    word raw;
-} cp0_entry_hi_t;
-
-ASSERTWORD(cp0_entry_hi_t);
-
-#define CP0_ENTRY_HI_64_READ_MASK 0xC00000FFFFFFE0FF
-typedef union cp0_entry_hi_64 {
-    struct {
         dword asid:8;
         dword:5;
         dword vpn2:27;
@@ -371,9 +359,11 @@ typedef union cp0_entry_hi_64 {
         dword r:2;
     } PACKED;
     dword raw;
-} cp0_entry_hi_64_t;
+} cp0_entry_hi_t;
 
-ASSERTDWORD(cp0_entry_hi_64_t);
+ASSERTDWORD(cp0_entry_hi_t);
+
+#define CP0_ENTRY_HI_WRITE_MASK 0xC00000FFFFFFE0FF
 
 
 typedef struct tlb_entry {
@@ -474,7 +464,6 @@ typedef struct cp0 {
     dword bad_vaddr;
     dword count;
     cp0_entry_hi_t entry_hi;
-    cp0_entry_hi_64_t entry_hi_64;
     word compare;
     cp0_status_t status;
     cp0_cause_t cause;
