@@ -79,7 +79,7 @@ word read_word_rdramreg(word address) {
     }
 
     if (address < ADDR_RDRAM_REG_FIRST || address > ADDR_RDRAM_REG_LAST) {
-        logfatal("In RDRAM register write handler with out of bounds address 0x%08X", address);
+        logfatal("In RDRAM register read handler with out of bounds address 0x%08X", address);
     }
     switch (address) {
         case ADDR_RDRAM_CONFIG_REG:
