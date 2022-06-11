@@ -15,22 +15,14 @@ void tlbwi_32b(int index) {
     cp0_page_mask_t page_mask;
     page_mask.raw = N64CP0.page_mask.raw & 0x01FFE000;
 
-    for (int i = 0; i < 12; i+=2) {
-        word pair = (page_mask.mask >> i) & 3;
-        switch (pair & 3) {
-            // Valid cases
-            case 0b00:
-            case 0b11:
-                break;
-            // Invalid cases
-            case 0b01: // Set both bits to 0
-                page_mask.mask &= ~(0b11 << i);
-                break;
-            case 0b10: // Set both bits to 1
-                page_mask.mask |= (0b11 << i);
-                break;
-        }
-    }
+    // For each pair of bits:
+    // 00 -> 00
+    // 01 -> 00
+    // 10 -> 11
+    // 11 -> 11
+    // The top bit sets the value of both bits.
+    word top = page_mask.mask & 0b101010101010;
+    page_mask.mask = top | (top >> 1);
 
     if (index >= 32) {
         logfatal("TLBWI to TLB index %d", index);
