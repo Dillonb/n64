@@ -82,9 +82,6 @@ INLINE void set_cp0_register_word(byte r, word value) {
         case R4300I_CP0_REG_ENTRYLO1:
             N64CPU.cp0.entry_lo1.raw = value & 0x3FFFFFFF;
             break;
-        case 7:
-            logfatal("CP0 Reg 7 write?");
-            break;
         case R4300I_CP0_REG_ENTRYHI:
             N64CPU.cp0.entry_hi.raw = value & CP0_ENTRY_HI_WRITE_MASK;
             break;
@@ -120,6 +117,22 @@ INLINE void set_cp0_register_word(byte r, word value) {
             break;
         case R4300I_CP0_REG_ERR_EPC:
             N64CP0.error_epc = (sdword)((sword)value);
+            break;
+        case R4300I_CP0_REG_PRID:
+            break; // Read only
+        case R4300I_CP0_REG_PARITYER:
+            N64CP0.parity_error = value & 0xFF; // ???
+            break;
+        case R4300I_CP0_REG_CACHEER:
+            break; // Read only?
+        case R4300I_CP0_REG_7:
+        case R4300I_CP0_REG_21:
+        case R4300I_CP0_REG_22:
+        case R4300I_CP0_REG_23:
+        case R4300I_CP0_REG_24:
+        case R4300I_CP0_REG_25:
+        case R4300I_CP0_REG_31:
+            N64CP0.unused_reg = value;
             break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
@@ -175,8 +188,6 @@ INLINE word get_cp0_register_word(byte r) {
             return N64CPU.cp0.page_mask.raw;
         case R4300I_CP0_REG_WIRED:
             return N64CPU.cp0.wired;
-        case R4300I_CP0_REG_7:
-            return N64CPU.cp0.r7;
         case R4300I_CP0_REG_BADVADDR:
             return N64CPU.cp0.bad_vaddr;
         case R4300I_CP0_REG_COUNT:
@@ -204,16 +215,6 @@ INLINE word get_cp0_register_word(byte r) {
             return N64CPU.cp0.watch_hi;
         case R4300I_CP0_REG_XCONTEXT:
             return N64CPU.cp0.x_context.raw;
-        case R4300I_CP0_REG_21:
-            return N64CPU.cp0.r21;
-        case R4300I_CP0_REG_22:
-            return N64CPU.cp0.r22;
-        case R4300I_CP0_REG_23:
-            return N64CPU.cp0.r23;
-        case R4300I_CP0_REG_24:
-            return N64CPU.cp0.r24;
-        case R4300I_CP0_REG_25:
-            return N64CPU.cp0.r25;
         case R4300I_CP0_REG_PARITYER:
             return N64CPU.cp0.parity_error;
         case R4300I_CP0_REG_CACHEER:
@@ -224,8 +225,14 @@ INLINE word get_cp0_register_word(byte r) {
             return N64CPU.cp0.tag_hi;
         case R4300I_CP0_REG_ERR_EPC:
             return N64CPU.cp0.error_epc & 0xFFFFFFFF;
+        case R4300I_CP0_REG_7:
+        case R4300I_CP0_REG_21:
+        case R4300I_CP0_REG_22:
+        case R4300I_CP0_REG_23:
+        case R4300I_CP0_REG_24:
+        case R4300I_CP0_REG_25:
         case R4300I_CP0_REG_31:
-            return N64CPU.cp0.r31;
+            return N64CPU.cp0.unused_reg;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
     }

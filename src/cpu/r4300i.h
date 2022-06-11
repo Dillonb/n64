@@ -471,7 +471,6 @@ typedef struct cp0 {
     cp0_context_t context;
     cp0_page_mask_t page_mask;
     word wired;
-    word r7;
     dword bad_vaddr;
     dword count;
     cp0_entry_hi_t entry_hi;
@@ -485,17 +484,13 @@ typedef struct cp0 {
     watch_lo_t watch_lo;
     word watch_hi;
     cp0_x_context_t x_context;
-    word r21;
-    word r22;
-    word r23;
-    word r24;
-    word r25;
     word parity_error;
     word cache_error;
     word tag_lo;
     word tag_hi;
     dword error_epc;
-    word r31;
+
+    dword unused_reg;
 
     tlb_entry_t    tlb[32];
     tlb_error_t tlb_error;
