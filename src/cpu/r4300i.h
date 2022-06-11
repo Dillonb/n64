@@ -581,6 +581,7 @@ typedef struct r4300i {
     // In a branch delay slot?
     bool branch;
     bool prev_branch;
+    bool branch_likely_taken;
 
     // Did an exception just happen?
     bool exception;

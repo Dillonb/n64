@@ -1443,7 +1443,7 @@ void end_rsp_block(dasm_State** Dst, int block_length) {
 }
 
 void post_branch_likely(dasm_State** Dst, int block_length) {
-    | mov al, cpu_state->branch
+    | mov al, cpu_state->branch_likely_taken;
     | cmp al, 0 // if (branch == true)
     | jne >1
     // If the branch WAS taken, end the block.
