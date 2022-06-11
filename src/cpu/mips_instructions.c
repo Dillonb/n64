@@ -1176,3 +1176,7 @@ MIPS_INSTR(mips_ri_tnei) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
     }
 }
+
+MIPS_INSTR(mips_invalid) {
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_RESERVED_INSTR, -1);
+}

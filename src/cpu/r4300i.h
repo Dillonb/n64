@@ -128,6 +128,8 @@
 #define OPC_SC     0b111000
 #define OPC_SCD    0b111100
 
+#define OPC_RDHWR  0b011111
+
 // Coprocessor
 #define COP_MF    0b00000
 #define COP_DMF   0b00001

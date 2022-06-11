@@ -95,6 +95,7 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_ADDRESS_ERROR_STORE:
             case EXCEPTION_ARITHMETIC_OVERFLOW:
             case EXCEPTION_TLB_MODIFICATION:
+            case EXCEPTION_RESERVED_INSTR:
                 set_pc_word_r4300i(0x80000180);
                 break;
             case EXCEPTION_TLB_MISS_LOAD:
@@ -658,6 +659,8 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
         case OPC_LLD:    return mips_lld;
         case OPC_SC:     return mips_sc;
         case OPC_SCD:    return mips_scd;
+
+        case OPC_RDHWR: return mips_invalid;
         default:
 #ifdef LOG_ENABLED
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {

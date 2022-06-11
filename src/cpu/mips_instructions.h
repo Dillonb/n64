@@ -141,4 +141,6 @@ MIPS_INSTR(mips_ri_tltiu);
 MIPS_INSTR(mips_ri_teqi);
 MIPS_INSTR(mips_ri_tnei);
 
+MIPS_INSTR(mips_invalid);
+
 #endif //N64_MIPS_INSTRUCTIONS_H
