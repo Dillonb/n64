@@ -52,12 +52,14 @@ bool tlb_probe(dword vaddr, word* paddr, int* entry_number) {
 
         if (!odd) {
             if (!(entry.entry_lo0.valid)) {
-                continue;
+                N64CP0.tlb_error = TLB_ERROR_INVALID;
+                return false;
             }
             pfn = entry.entry_lo0.pfn;
         } else {
             if (!(entry.entry_lo1.valid)) {
-                continue;
+                N64CP0.tlb_error = TLB_ERROR_INVALID;
+                return false;
             }
             pfn = entry.entry_lo1.pfn;
         }
@@ -70,6 +72,7 @@ bool tlb_probe(dword vaddr, word* paddr, int* entry_number) {
         }
         return true;
     }
+    N64CP0.tlb_error = TLB_ERROR_MISS;
     return false;
 }
 

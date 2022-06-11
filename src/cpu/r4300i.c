@@ -98,7 +98,7 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
                 break;
             case EXCEPTION_TLB_MISS_LOAD:
             case EXCEPTION_TLB_MISS_STORE:
-                if (old_exl) {
+                if (old_exl || N64CP0.tlb_error == TLB_ERROR_INVALID) {
                     set_pc_word_r4300i(0x80000180);
                 } else if (N64CP0.is_64bit_addressing){
                     set_pc_word_r4300i(0x80000080);
@@ -707,7 +707,7 @@ void r4300i_step() {
         // tlb exception
         logalways("TLB exception on loading an instruction!");
         on_tlb_exception(pc);
-        r4300i_handle_exception(pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        r4300i_handle_exception(pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
         return;
     }
     mips_instruction_t instruction;

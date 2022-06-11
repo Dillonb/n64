@@ -268,7 +268,7 @@ MIPS_INSTR(mips_lbu) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
         byte value = n64_read_physical_byte(physical);
         set_register(instruction.i.rt, value); // zero extend
@@ -286,7 +286,7 @@ MIPS_INSTR(mips_lhu) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
         half value = n64_read_physical_half(physical);
         set_register(instruction.i.rt, value); // zero extend
@@ -316,7 +316,7 @@ MIPS_INSTR(mips_lw) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
         sword value = n64_read_physical_word(physical);
         set_register(instruction.i.rt, (sdword)value);
@@ -343,7 +343,7 @@ MIPS_INSTR(mips_sb) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
         n64_write_physical_byte(physical, value);
     }
@@ -357,7 +357,7 @@ MIPS_INSTR(mips_sh) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
         n64_write_physical_half(physical, value);
     }
@@ -377,7 +377,7 @@ MIPS_INSTR(mips_sw) {
 
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
         n64_write_physical_word(physical, get_register(instruction.i.rt));
     }
@@ -421,7 +421,7 @@ MIPS_INSTR(mips_lwl) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
         word shift = 8 * ((address ^ 0) & 3);
         word mask = 0xFFFFFFFF << shift;
@@ -450,7 +450,7 @@ MIPS_INSTR(mips_swl) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
         word shift = 8 * ((address ^ 0) & 3);
         word mask = 0xFFFFFFFF >> shift;
@@ -466,7 +466,7 @@ MIPS_INSTR(mips_swr) {
     word physical;
     if (!resolve_virtual_address(address, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_STORE, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
         word shift = 8 * ((address ^ 3) & 3);
         word mask = 0xFFFFFFFF << shift;

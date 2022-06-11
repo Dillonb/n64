@@ -391,15 +391,7 @@ typedef struct tlb_entry {
         word raw;
     } entry_lo1;
 
-    union {
-        word raw;
-        struct {
-            unsigned asid:8;
-            unsigned:4;
-            unsigned g:1;
-            unsigned vpn2:19;
-        };
-    } entry_hi;
+    cp0_entry_hi_t entry_hi;
 
     union {
         struct {
@@ -452,6 +444,25 @@ typedef union cp0_x_context {
 
 ASSERTDWORD(cp0_x_context_t);
 
+typedef enum tlb_error {
+    TLB_ERROR_NONE,
+    TLB_ERROR_MISS,
+    TLB_ERROR_INVALID,
+    TLB_ERROR_MODIFICATION
+} tlb_error_t;
+
+inline word get_tlb_exception_code(tlb_error_t error, bool load) {
+    switch (error) {
+        case TLB_ERROR_NONE:
+            logfatal("Getting TLB exception code when no error occurred!");
+        case TLB_ERROR_INVALID:
+        case TLB_ERROR_MISS:
+            return load ? EXCEPTION_TLB_MISS_LOAD : EXCEPTION_TLB_MISS_STORE;
+        case TLB_ERROR_MODIFICATION:
+            return EXCEPTION_TLB_MODIFICATION;
+    }
+}
+
 typedef struct cp0 {
     word index;
     word random;
@@ -487,6 +498,7 @@ typedef struct cp0 {
     word r31;
 
     tlb_entry_t    tlb[32];
+    tlb_error_t tlb_error;
 
     bool kernel_mode;
     bool supervisor_mode;
