@@ -92,7 +92,11 @@ INLINE bool resolve_virtual_address_64bit(dword address, bool write, word* physi
             break;
         }
         case REGION_XKSEG:
-            logfatal("Resolving virtual address 0x%016lX (REGION_XKSEG) in 64 bit mode", address);
+            if (!tlb_probe(address, write, physical, NULL)) {
+                logwarn("Page miss translating virtual address 0x%016lX in REGION_XKSEG", address);
+                return false;
+            }
+            break;
         case REGION_CKSEG0:
             // Identical to kseg0 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.

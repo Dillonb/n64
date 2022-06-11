@@ -243,13 +243,20 @@ MIPS_INSTR(mips_dmtc0) {
 MIPS_INSTR(mips_ld) {
     shalf offset = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    dword result  = n64_read_dword(address);
     if (check_address_error(0b111, address)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, -1);
         return;
     }
-    set_register(instruction.i.rt, result);
+
+    word physical;
+    if (!resolve_virtual_address(address, false, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
+    } else {
+        dword value = n64_read_physical_dword(physical);
+        set_register(instruction.i.rt, value);
+    }
 }
 
 MIPS_INSTR(mips_lui) {
@@ -387,7 +394,20 @@ MIPS_INSTR(mips_sd) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
     dword value = get_register(instruction.i.rt);
-    n64_write_dword(address, value);
+
+    word physical;
+    if (check_address_error(0b111, address)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_STORE, -1);
+        return;
+    }
+
+    if (!resolve_virtual_address(address, true, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
+    } else {
+        n64_write_physical_dword(physical, value);
+    }
 }
 
 MIPS_INSTR(mips_ori) {
@@ -408,9 +428,15 @@ MIPS_INSTR(mips_daddiu) {
 MIPS_INSTR(mips_lb) {
     shalf offset  = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    sbyte value   = n64_read_byte(address);
 
-    set_register(instruction.i.rt, (sdword)value);
+    word physical;
+    if (!resolve_virtual_address(address, false, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
+    } else {
+        sbyte value = n64_read_physical_byte(physical);
+        set_register(instruction.i.rt, (sdword)value);
+    }
 }
 
 MIPS_INSTR(mips_lwl) {
@@ -502,12 +528,18 @@ MIPS_INSTR(mips_sdl) {
     shalf offset = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
 
-    int shift = 8 * ((address ^ 0) & 7);
-    dword mask = 0xFFFFFFFFFFFFFFFF;
-    mask >>= shift;
-    dword data = n64_read_dword(address & ~7);
-    dword oldreg = get_register(instruction.i.rt);
-    n64_write_dword(address & ~7, (data & ~mask) | (oldreg >> shift));
+    word physical;
+    if (!resolve_virtual_address(address, true, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
+    } else {
+        int shift = 8 * ((address ^ 0) & 7);
+        dword mask = 0xFFFFFFFFFFFFFFFF;
+        mask >>= shift;
+        dword data = n64_read_dword(address & ~7);
+        dword oldreg = get_register(instruction.i.rt);
+        n64_write_dword(address & ~7, (data & ~mask) | (oldreg >> shift));
+    }
 }
 
 MIPS_INSTR(mips_sdr) {
