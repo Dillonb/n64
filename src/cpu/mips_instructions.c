@@ -303,12 +303,18 @@ MIPS_INSTR(mips_lhu) {
 MIPS_INSTR(mips_lh) {
     shalf offset = instruction.i.immediate;
     dword address = get_register(instruction.i.rs) + offset;
-    shalf value   = n64_read_half(address);
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
 
-    set_register(instruction.i.rt, (sdword)value);
+    word physical;
+    if (!resolve_virtual_address(address, false, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
+    } else {
+        shalf value = n64_read_physical_half(physical);
+        set_register(instruction.i.rt, (sdword)value); // zero extend
+    }
 }
 
 MIPS_INSTR(mips_lw) {
