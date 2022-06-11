@@ -261,6 +261,11 @@
 #define RT_BGEZAL  0b10001
 #define RT_BGEZALL 0b10011
 
+typedef enum bus_access {
+    BUS_LOAD,
+    BUS_STORE
+} bus_access_t;
+
 
 typedef union cp0_status {
     word raw;
@@ -451,13 +456,13 @@ typedef enum tlb_error {
     TLB_ERROR_MODIFICATION
 } tlb_error_t;
 
-static inline word get_tlb_exception_code(tlb_error_t error, bool load) {
+static inline word get_tlb_exception_code(tlb_error_t error, bus_access_t bus_access) {
     switch (error) {
         case TLB_ERROR_NONE:
             logfatal("Getting TLB exception code when no error occurred!");
         case TLB_ERROR_INVALID:
         case TLB_ERROR_MISS:
-            return load ? EXCEPTION_TLB_MISS_LOAD : EXCEPTION_TLB_MISS_STORE;
+            return bus_access == BUS_LOAD ? EXCEPTION_TLB_MISS_LOAD : EXCEPTION_TLB_MISS_STORE;
         case TLB_ERROR_MODIFICATION:
             return EXCEPTION_TLB_MODIFICATION;
     }

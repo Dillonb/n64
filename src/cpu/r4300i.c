@@ -707,10 +707,10 @@ void r4300i_step() {
 
     dword pc = N64CPU.pc;
     word physical_pc;
-    if (!resolve_virtual_address(pc, false, &physical_pc)) {
+    if (!resolve_virtual_address(pc, BUS_LOAD, &physical_pc)) {
         // tlb exception
         on_tlb_exception(pc);
-        r4300i_handle_exception(pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
+        r4300i_handle_exception(pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
         return;
     }
     mips_instruction_t instruction;

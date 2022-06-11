@@ -37,7 +37,7 @@ void dump_tlb(dword vaddr) {
 }
 */
 
-bool tlb_probe(dword vaddr, bool write, word* paddr, int* entry_number) {
+bool tlb_probe(dword vaddr, bus_access_t bus_access, word* paddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = N64CP0.tlb[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;
@@ -62,7 +62,7 @@ bool tlb_probe(dword vaddr, bool write, word* paddr, int* entry_number) {
                 N64CP0.tlb_error = TLB_ERROR_INVALID;
                 return false;
             }
-            if (write && !(entry.entry_lo0.dirty)) {
+            if (bus_access == BUS_STORE && !(entry.entry_lo0.dirty)) {
                 N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
                 return false;
             }
@@ -72,7 +72,7 @@ bool tlb_probe(dword vaddr, bool write, word* paddr, int* entry_number) {
                 N64CP0.tlb_error = TLB_ERROR_INVALID;
                 return false;
             }
-            if (write && !(entry.entry_lo1.dirty)) {
+            if (bus_access == BUS_STORE && !(entry.entry_lo1.dirty)) {
                 N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
                 return false;
             }
