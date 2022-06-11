@@ -108,6 +108,10 @@ void check_exception(dasm_State** Dst, word block_length) {
     // }
     |1:
 }
+void set_prev_branch_flag(dasm_State** Dst, bool value) {
+    | mov al, value
+    | mov cpu_state->prev_branch, al
+}
 
 #ifdef N64_DEBUG_MODE
 void check_exception_sanity(dasm_State** Dst, word block_length) {

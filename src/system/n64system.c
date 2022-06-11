@@ -193,6 +193,7 @@ INLINE int jit_system_step() {
 
     if (unlikely(N64CPU.interrupts > 0)) {
         if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
+            N64CPU.prev_branch = N64CPU.branch;
             r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, -1);
             return CYCLES_PER_INSTR;
         }

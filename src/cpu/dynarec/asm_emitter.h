@@ -171,6 +171,7 @@ void end_block(dasm_State** Dst, int block_length);
 void end_rsp_block(dasm_State** Dst, int block_length);
 void post_branch_likely(dasm_State** Dst, int block_length);
 void check_exception(dasm_State** Dst, word block_length);
+void set_prev_branch_flag(dasm_State** Dst, bool value);
 #ifdef N64_DEBUG_MODE
 void check_exception_sanity(dasm_State** Dst, word block_length);
 #endif

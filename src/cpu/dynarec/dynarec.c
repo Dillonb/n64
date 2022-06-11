@@ -218,6 +218,9 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
                 load_reg_1(Dst, &arg_host_registers[0], instr.r.rs);
                 break;
         }
+        if (ir->exception_possible) {
+            set_prev_branch_flag(Dst, prev_instr_category == BRANCH || prev_instr_category == BRANCH_LIKELY);
+        }
         ir->compiler(Dst, instr, physical_address, arg_host_registers, dest_host_register, &extra_cycles);
         block_length++;
         block_extra_cycles += extra_cycles;
