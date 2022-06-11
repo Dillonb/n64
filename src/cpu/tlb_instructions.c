@@ -64,6 +64,7 @@ MIPS_INSTR(mips_tlbr) {
 
     N64CP0.entry_lo0.g = entry.entry_hi.g;
     N64CP0.entry_lo1.g = entry.entry_hi.g;
+    N64CP0.page_mask.raw = entry.page_mask.raw;
 }
 
 MIPS_INSTR(mips_tlbwr) {
