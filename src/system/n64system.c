@@ -138,6 +138,7 @@ void reset_n64system() {
         n64sys.mem.mempack_data = NULL;
     }
     N64CPU.branch = false;
+    N64CPU.prev_branch = false;
     N64CPU.exception = false;
 
 

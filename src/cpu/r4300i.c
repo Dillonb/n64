@@ -55,10 +55,9 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
     // In a branch delay slot, set EPC to the branch PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
-    if (N64CPU.branch) {
+    if (N64CPU.prev_branch) {
         unimplemented(N64CPU.cp0.status.exl, "handling branch delay when exl == true");
         N64CPU.cp0.cause.branch_delay = true;
-        N64CPU.branch = false;
         pc -= 4;
     } else {
         N64CPU.cp0.cause.branch_delay = false;
@@ -699,6 +698,9 @@ void r4300i_step() {
     }
      */
 
+    N64CPU.prev_branch = N64CPU.branch;
+    N64CPU.branch = false;
+
     dword pc = N64CPU.pc;
     word physical_pc;
     if (!resolve_virtual_address(pc, &physical_pc)) {
@@ -722,7 +724,6 @@ void r4300i_step() {
     N64CPU.prev_pc = N64CPU.pc;
     N64CPU.pc = N64CPU.next_pc;
     N64CPU.next_pc += 4;
-    N64CPU.branch = false;
 
     r4300i_instruction_decode(pc, instruction)(instruction);
     N64CPU.exception = false; // only used in dynarec

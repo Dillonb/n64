@@ -458,10 +458,6 @@ INLINE void branch_abs(dword address) {
     N64CPU.branch = true;
 }
 
-INLINE void branch_abs_word(dword address) {
-    branch_abs((sdword)((sword)address));
-}
-
 INLINE void branch_offset(shalf offset) {
     sword soffset = offset;
     soffset *= 4;
@@ -472,6 +468,7 @@ INLINE void branch_offset(shalf offset) {
 }
 
 INLINE void conditional_branch_likely(word offset, bool condition) {
+    N64CPU.branch = true;
     if (condition) {
         branch_offset(offset);
     } else {
@@ -481,6 +478,7 @@ INLINE void conditional_branch_likely(word offset, bool condition) {
 }
 
 INLINE void conditional_branch(word offset, bool condition) {
+    N64CPU.branch = true;
     if (condition) {
         branch_offset(offset);
     }
