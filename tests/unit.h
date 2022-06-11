@@ -105,13 +105,14 @@ void test_instr_branch(case_branch_instr test_case, mipsinstr_handler_t instr, c
     mips_instruction_t i;
     i.i.rs = r1;
     i.i.rt = r2;
+    i.i.immediate = 1; // skip one instruction
 
     set_register(r1, test_case.r1);
     set_register(r2, test_case.r2);
 
     instr(i);
 
-    bool taken = N64CPU.branch;
+    bool taken = N64CPU.next_pc == 4;
 
     if (taken != test_case.taken) {
         failed("%s: (r%d)0x%016lX, (r%d)0x%016lX | Expected: %s but got %s", instr_name, r1, test_case.r1, r2, test_case.r2, taken_macro(test_case.taken), taken_macro(taken))
