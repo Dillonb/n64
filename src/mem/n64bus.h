@@ -112,7 +112,11 @@ INLINE bool resolve_virtual_address_64bit(dword address, bool write, word* physi
         case REGION_CKSSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_CKSSEG) in 64 bit mode", address);
         case REGION_CKSEG3:
-            logfatal("Resolving virtual address 0x%016lX (REGION_CKSEG3) in 64 bit mode", address);
+            if (!tlb_probe(address, write, physical, NULL)) {
+                logwarn("Page miss translating virtual address 0x%016lX in REGION_CKSEG3", address);
+                return false;
+            }
+            break;
 
         case REGION_XBAD1:
         case REGION_XBAD2:
