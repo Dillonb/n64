@@ -404,8 +404,6 @@ typedef struct tlb_entry {
 
     // "parsed"
     bool global;
-    bool valid;
-    byte asid;
 
 } tlb_entry_t;
 
@@ -451,7 +449,7 @@ typedef enum tlb_error {
     TLB_ERROR_MODIFICATION
 } tlb_error_t;
 
-inline word get_tlb_exception_code(tlb_error_t error, bool load) {
+static inline word get_tlb_exception_code(tlb_error_t error, bool load) {
     switch (error) {
         case TLB_ERROR_NONE:
             logfatal("Getting TLB exception code when no error occurred!");

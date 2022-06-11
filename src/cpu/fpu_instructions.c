@@ -755,7 +755,7 @@ MIPS_INSTR(mips_lwc1) {
     dword address = get_register(instruction.fi.base) + offset;
 
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, false, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
     } else {

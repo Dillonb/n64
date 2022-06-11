@@ -21,6 +21,7 @@ dword get_vpn(dword address, word page_mask_raw) {
     return vpn;
 }
 
+/* Keeping this in case I need it again
 void dump_tlb(dword vaddr) {
     printf("TLB error at address %016lX and PC %016lX, dumping TLB state:\n\n", vaddr, N64CPU.pc);
     printf("   entry VPN  vaddr VPN  page size  lo0 valid  lo1 valid\n");
@@ -34,8 +35,9 @@ void dump_tlb(dword vaddr) {
         printf("%02d %08X   %08X   %08X   %d          %d\n", i, entry_vpn, vaddr_vpn, page_size, entry.entry_lo0.valid, entry.entry_lo1.valid);
     }
 }
+*/
 
-bool tlb_probe(dword vaddr, word* paddr, int* entry_number) {
+bool tlb_probe(dword vaddr, bool write, word* paddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = N64CP0.tlb[i];
         word mask = (entry.page_mask.mask << 12) | 0x0FFF;
@@ -50,15 +52,28 @@ bool tlb_probe(dword vaddr, word* paddr, int* entry_number) {
         word odd = vaddr & page_size;
         word pfn;
 
+        if (!entry.global && N64CP0.entry_hi.asid != entry.entry_hi.asid) {
+            N64CP0.tlb_error = TLB_ERROR_MISS;
+            return false;
+        }
+
         if (!odd) {
             if (!(entry.entry_lo0.valid)) {
                 N64CP0.tlb_error = TLB_ERROR_INVALID;
+                return false;
+            }
+            if (write && !(entry.entry_lo0.dirty)) {
+                N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
                 return false;
             }
             pfn = entry.entry_lo0.pfn;
         } else {
             if (!(entry.entry_lo1.valid)) {
                 N64CP0.tlb_error = TLB_ERROR_INVALID;
+                return false;
+            }
+            if (write && !(entry.entry_lo1.dirty)) {
+                N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
                 return false;
             }
             pfn = entry.entry_lo1.pfn;

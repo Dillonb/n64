@@ -94,6 +94,7 @@ void r4300i_handle_exception(dword pc, word code, sword coprocessor_error) {
             case EXCEPTION_ADDRESS_ERROR_LOAD:
             case EXCEPTION_ADDRESS_ERROR_STORE:
             case EXCEPTION_ARITHMETIC_OVERFLOW:
+            case EXCEPTION_TLB_MODIFICATION:
                 set_pc_word_r4300i(0x80000180);
                 break;
             case EXCEPTION_TLB_MISS_LOAD:
@@ -703,9 +704,8 @@ void r4300i_step() {
 
     dword pc = N64CPU.pc;
     word physical_pc;
-    if (!resolve_virtual_address(pc, &physical_pc)) {
+    if (!resolve_virtual_address(pc, false, &physical_pc)) {
         // tlb exception
-        logalways("TLB exception on loading an instruction!");
         on_tlb_exception(pc);
         r4300i_handle_exception(pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
         return;

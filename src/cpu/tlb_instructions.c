@@ -41,8 +41,6 @@ void tlbwi_32b(int index) {
     N64CP0.tlb[index].page_mask.raw = page_mask.raw;
 
     N64CP0.tlb[index].global = entry_lo0.g && entry_lo1.g;
-    N64CP0.tlb[index].valid  = entry_lo0.v || entry_lo1.v;
-    N64CP0.tlb[index].asid   = entry_hi.asid;
 
 }
 
@@ -59,7 +57,7 @@ MIPS_INSTR(mips_tlbwi) {
 MIPS_INSTR(mips_tlbp) {
     word entry_hi = N64CP0.entry_hi.raw   & 0xFFFFE0FF;
     int match;
-    if (tlb_probe(entry_hi, NULL, &match)) {
+    if (tlb_probe(entry_hi, false, NULL, &match)) {
         N64CP0.index = match;
     } else {
         N64CP0.index = 0x80000000;
@@ -85,6 +83,5 @@ MIPS_INSTR(mips_tlbr) {
 }
 
 MIPS_INSTR(mips_tlbwr) {
-    unimplemented(N64CP0.is_64bit_addressing, "tlbwr in 64 bit mode");
     tlbwi_32b(get_cp0_random());
 }

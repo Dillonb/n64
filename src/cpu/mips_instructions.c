@@ -266,7 +266,7 @@ MIPS_INSTR(mips_lbu) {
     logtrace("LBU offset: %d", offset);
     dword address = get_register(instruction.i.rs) + offset;
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, false, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
@@ -284,7 +284,7 @@ MIPS_INSTR(mips_lhu) {
     }
 
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, false, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
@@ -314,7 +314,7 @@ MIPS_INSTR(mips_lw) {
     }
 
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, false, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
@@ -341,7 +341,7 @@ MIPS_INSTR(mips_sb) {
     byte value = get_register(instruction.i.rt) & 0xFF;
 
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, true, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
@@ -355,7 +355,7 @@ MIPS_INSTR(mips_sh) {
     address += offset;
     half value = get_register(instruction.i.rt);
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, true, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
@@ -375,7 +375,7 @@ MIPS_INSTR(mips_sw) {
         return;
     }
 
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, true, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
@@ -419,7 +419,7 @@ MIPS_INSTR(mips_lwl) {
 
 
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, false, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, true), -1);
     } else {
@@ -448,7 +448,7 @@ MIPS_INSTR(mips_swl) {
     dword address = get_register(instruction.fi.base) + offset;
 
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, true, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
@@ -464,7 +464,7 @@ MIPS_INSTR(mips_swr) {
     shalf offset  = instruction.fi.offset;
     dword address = get_register(instruction.fi.base) + offset;
     word physical;
-    if (!resolve_virtual_address(address, &physical)) {
+    if (!resolve_virtual_address(address, true, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, false), -1);
     } else {
@@ -535,7 +535,7 @@ MIPS_INSTR(mips_ll) {
     set_register(instruction.i.rt, (sdword)result);
 
     // Unique to ll
-    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address);
+    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address, false);
     N64CPU.llbit = true;
 }
 
@@ -557,7 +557,7 @@ MIPS_INSTR(mips_lld) {
     set_register(instruction.i.rt, result);
 
     // Unique to lld
-    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address);
+    N64CPU.cp0.lladdr = resolve_virtual_address_or_die(address, false);
     N64CPU.llbit = true;
 }
 
@@ -572,7 +572,7 @@ MIPS_INSTR(mips_sc) {
     }
 
     if (N64CPU.llbit) {
-        word physical_address = resolve_virtual_address_or_die(address);
+        word physical_address = resolve_virtual_address_or_die(address, true);
 
         if (physical_address != N64CPU.cp0.lladdr) {
             logfatal("Undefined: SC physical address is NOT EQUAL to last lladdr!\n");
@@ -604,7 +604,7 @@ MIPS_INSTR(mips_scd) {
     }
 
     if (N64CPU.llbit) {
-        word physical_address = resolve_virtual_address_or_die(address);
+        word physical_address = resolve_virtual_address_or_die(address, true);
 
         if (physical_address != N64CPU.cp0.lladdr) {
             logfatal("Undefined: SCD physical address is NOT EQUAL to last lladdr!\n");

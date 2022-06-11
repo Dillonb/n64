@@ -331,7 +331,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 
 
 static int missing_block_handler() {
-    word physical = resolve_virtual_address_or_die(N64CPU.pc);
+    word physical = resolve_virtual_address_or_die(N64CPU.pc, false);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = n64sys.dynarec->blockcache[outer_index];
     word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
@@ -348,7 +348,7 @@ static int missing_block_handler() {
 }
 
 int n64_dynarec_step() {
-    word physical = resolve_virtual_address_or_die(N64CPU.pc);
+    word physical = resolve_virtual_address_or_die(N64CPU.pc, false);
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
     word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
