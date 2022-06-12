@@ -254,8 +254,8 @@ RSP_INSTR(rsp_spc_jr) {
 }
 
 RSP_INSTR(rsp_spc_jalr) {
-    rsp_link(instruction.r.rd);
     rsp_branch_abs(get_rsp_register(instruction.r.rs) >> 2);
+    rsp_link(instruction.r.rd);
 }
 
 RSP_INSTR(rsp_mfc0) {
@@ -292,9 +292,9 @@ RSP_INSTR(rsp_ri_bltz) {
 }
 
 RSP_INSTR(rsp_ri_bltzal) {
-    rsp_link(RSP_REG_LR);
     sword reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg < 0);
+    rsp_link(RSP_REG_LR);
 }
 
 RSP_INSTR(rsp_ri_bgez) {
@@ -303,7 +303,7 @@ RSP_INSTR(rsp_ri_bgez) {
 }
 
 RSP_INSTR(rsp_ri_bgezal) {
-    rsp_link(RSP_REG_LR);
     sword reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg >= 0);
+    rsp_link(RSP_REG_LR);
 }
