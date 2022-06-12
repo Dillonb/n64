@@ -63,7 +63,6 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
     switch (address) {
         case REGION_XKUSEG:
             if (!tlb_probe(address, bus_access, physical, NULL)) {
-                logwarn("Page miss translating virtual address 0x%016lX in REGION_XKUSEG", address);
                 return false;
             }
             break;
@@ -92,7 +91,6 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
         }
         case REGION_XKSEG:
             if (!tlb_probe(address, bus_access, physical, NULL)) {
-                logwarn("Page miss translating virtual address 0x%016lX in REGION_XKSEG", address);
                 return false;
             }
             break;
@@ -112,7 +110,6 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
             logfatal("Resolving virtual address 0x%016lX (REGION_CKSSEG) in 64 bit mode", address);
         case REGION_CKSEG3:
             if (!tlb_probe(address, bus_access, physical, NULL)) {
-                logwarn("Page miss translating virtual address 0x%016lX in REGION_CKSEG3", address);
                 return false;
             }
             break;

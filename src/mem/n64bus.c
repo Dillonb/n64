@@ -276,6 +276,9 @@ word read_unused(word address) {
 }
 
 void n64_write_physical_dword(word address, dword value) {
+    if (address & 0b111) {
+        logfatal("Tried to write to unaligned DWORD");
+    }
     logdebug("Writing 0x%016lX to [0x%08X]", value, address);
     invalidate_dynarec_page(address);
     switch (address) {
@@ -353,6 +356,9 @@ void n64_write_physical_dword(word address, dword value) {
 }
 
 dword n64_read_physical_dword(word address) {
+    if (address & 0b111) {
+        logfatal("Tried to load from unaligned DWORD");
+    }
     switch (address) {
         case REGION_RDRAM:
             return dword_from_byte_array((byte*) &n64sys.mem.rdram, DWORD_ADDRESS(address) - SREGION_RDRAM);
@@ -416,6 +422,9 @@ dword n64_read_physical_dword(word address) {
 
 
 void n64_write_physical_word(word address, word value) {
+    if (address & 0b11) {
+        logfatal("Tried to write to unaligned WORD");
+    }
     logdebug("Writing 0x%08X to [0x%08X]", value, address);
     invalidate_dynarec_page(WORD_ADDRESS(address));
     switch (address) {
@@ -515,6 +524,9 @@ void n64_write_physical_word(word address, word value) {
 }
 
 word n64_read_physical_word(word address) {
+    if (address & 0b11) {
+        logfatal("Tried to load from unaligned WORD");
+    }
     switch (address) {
         case REGION_RDRAM:
             return word_from_byte_array((byte*) &n64sys.mem.rdram, WORD_ADDRESS(address) - SREGION_RDRAM);
@@ -601,6 +613,9 @@ word n64_read_physical_word(word address) {
 }
 
 void n64_write_physical_half(word address, half value) {
+    if (address & 0b1) {
+        logfatal("Tried to write to unaligned HALF");
+    }
     logdebug("Writing 0x%04X to [0x%08X]", value, address);
     invalidate_dynarec_page(HALF_ADDRESS(address));
     switch (address) {
@@ -677,6 +692,9 @@ void n64_write_physical_half(word address, half value) {
 }
 
 half n64_read_physical_half(word address) {
+    if (address & 0b1) {
+        logfatal("Tried to load from unaligned HALF");
+    }
     switch (address) {
         case REGION_RDRAM:
             return half_from_byte_array((byte*) &n64sys.mem.rdram, HALF_ADDRESS(address) - SREGION_RDRAM);

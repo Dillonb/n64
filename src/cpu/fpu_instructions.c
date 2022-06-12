@@ -736,8 +736,14 @@ MIPS_INSTR(mips_ldc1) {
         logfatal("Address error exception: misaligned dword read!");
     }
 
-    dword value = n64_read_dword(address);
-    set_fpu_register_dword(instruction.i.rt, value);
+    word physical;
+    if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
+    } else {
+        dword value = n64_read_physical_dword(physical);
+        set_fpu_register_dword(instruction.i.rt, value);
+    }
 }
 
 MIPS_INSTR(mips_sdc1) {
@@ -746,7 +752,13 @@ MIPS_INSTR(mips_sdc1) {
     dword address = get_register(instruction.fi.base) + offset;
     dword value   = get_fpu_register_dword(instruction.fi.ft);
 
-    n64_write_dword(address, value);
+    word physical;
+    if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
+    } else {
+        n64_write_physical_dword(physical, value);
+    }
 }
 
 MIPS_INSTR(mips_lwc1) {
@@ -757,7 +769,7 @@ MIPS_INSTR(mips_lwc1) {
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, 0);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         word value = n64_read_physical_word(physical);
         set_fpu_register_word(instruction.fi.ft, value);
