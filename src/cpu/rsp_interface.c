@@ -53,10 +53,10 @@ void rsp_status_reg_write(word value) {
     }
 
     CLEAR_SET(N64RSP.status.broke,         write.clear_broke,         false);
-    if (write.clear_intr) {
+    if (write.clear_intr && !write.set_intr) {
         interrupt_lower(INTERRUPT_SP);
     }
-    if (write.set_intr) {
+    if (write.set_intr && !write.clear_intr) {
         interrupt_raise(INTERRUPT_SP);
     }
     CLEAR_SET(N64RSP.status.single_step,   write.clear_sstep,         write.set_sstep);
