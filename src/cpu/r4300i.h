@@ -71,8 +71,8 @@
 #define CP0_CONFIG_WRITE_MASK 0x0F00800F
 
 #define CPU_MODE_KERNEL 0
-#define CPU_MODE_SUPERVISOR 1 /* TODO this is probably wrong */
-#define CPU_MODE_USER 2 /* TODO this is probably wrong */
+#define CPU_MODE_SUPERVISOR 1
+#define CPU_MODE_USER 2
 
 #define OPC_CP0    0b010000
 #define OPC_CP1    0b010001
