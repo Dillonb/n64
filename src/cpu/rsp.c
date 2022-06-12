@@ -9,10 +9,10 @@ rsp_t n64rsp;
 
 bool rsp_acquire_semaphore() {
     if (N64RSP.semaphore_held) {
-        return false; // Semaphore is already held
+        return true; // Semaphore is already held
     } else {
         N64RSP.semaphore_held = true;
-        return true; // Acquired semaphore.
+        return false; // Acquired semaphore.
     }
 }
 

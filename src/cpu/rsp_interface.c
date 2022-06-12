@@ -87,7 +87,7 @@ word read_word_spreg(word address) {
         case ADDR_SP_DMA_BUSY_REG:
             return 0; // DMA not busy, since it's instant.
         case ADDR_SP_SEMAPHORE_REG:
-            return N64RSP.semaphore_held;
+            return rsp_acquire_semaphore();
         default:
             logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address);
     }
@@ -119,11 +119,7 @@ void write_word_spreg(word address, word value) {
         case ADDR_SP_DMA_BUSY_REG:
             logfatal("Write to unsupported SP reg: ADDR_SP_DMA_BUSY_REG");
         case ADDR_SP_SEMAPHORE_REG:
-            if (value == 0) {
-                rsp_release_semaphore();
-            } else {
-                logfatal("Wrote non-zero value 0x%08X to SP reg ADDR_SP_SEMAPHORE_REG", value);
-            }
+            rsp_release_semaphore();
         case ADDR_SP_PC_REG:
             set_rsp_pc(value);
             break;
