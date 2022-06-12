@@ -486,7 +486,12 @@ RSP_VECTOR_INSTR(rsp_swc2_ssv) {
     word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
 
     int element = instruction.v.element;
-    n64_rsp_write_half(address, N64RSP.vu_regs[instruction.v.vt].elements[VU_ELEM_INDEX(element / 2)]);
+
+    byte hi = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((element + 0) & 15)];
+    byte lo = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((element + 1) & 15)];
+    half value = (half)hi << 8 | lo;
+
+    n64_rsp_write_half(address, value);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {
