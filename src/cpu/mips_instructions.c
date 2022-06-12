@@ -707,8 +707,8 @@ MIPS_INSTR(mips_spc_jr) {
 }
 
 MIPS_INSTR(mips_spc_jalr) {
-    link(instruction.r.rd);
     branch_abs(get_register(instruction.r.rs));
+    link(instruction.r.rd);
 }
 
 MIPS_INSTR(mips_spc_syscall) {
@@ -1100,21 +1100,21 @@ MIPS_INSTR(mips_ri_bgezl) {
 }
 
 MIPS_INSTR(mips_ri_bltzal) {
-    link(R4300I_REG_LR);
     sdword reg = get_register(instruction.i.rs);
     conditional_branch(instruction.i.immediate, reg < 0);
+    link(R4300I_REG_LR);
 }
 
 MIPS_INSTR(mips_ri_bgezal) {
-    link(R4300I_REG_LR);
     sdword reg = get_register(instruction.i.rs);
     conditional_branch(instruction.i.immediate, reg >= 0);
+    link(R4300I_REG_LR);
 }
 
 MIPS_INSTR(mips_ri_bgezall) {
-    link(R4300I_REG_LR);
     sdword reg = get_register(instruction.i.rs);
     conditional_branch_likely(instruction.i.immediate, reg >= 0);
+    link(R4300I_REG_LR);
 }
 
 MIPS_INSTR(mips_eret) {
