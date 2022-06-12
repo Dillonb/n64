@@ -3,17 +3,8 @@
 #include <mem/n64bus.h>
 
 void tlbwi_32b(int index) {
-    cp0_entry_hi_t entry_hi;
-    entry_hi.raw = N64CP0.entry_hi.raw   & CP0_ENTRY_HI_WRITE_MASK;
-
-    cp0_entry_lo_t entry_lo0;
-    entry_lo0.raw = N64CP0.entry_lo0.raw & 0x3FFFFFF;
-
-    cp0_entry_lo_t entry_lo1;
-    entry_lo1.raw = N64CP0.entry_lo1.raw & 0x3FFFFFF;
-
     cp0_page_mask_t page_mask;
-    page_mask.raw = N64CP0.page_mask.raw & 0x01FFE000;
+    page_mask = N64CP0.page_mask;
 
     // For each pair of bits:
     // 00 -> 00
@@ -27,12 +18,13 @@ void tlbwi_32b(int index) {
     if (index >= 32) {
         logfatal("TLBWI to TLB index %d", index);
     }
-    N64CP0.tlb[index].entry_hi.raw  = entry_hi.raw;
-    N64CP0.tlb[index].entry_lo0.raw = entry_lo0.raw;
-    N64CP0.tlb[index].entry_lo1.raw = entry_lo1.raw;
+    N64CP0.tlb[index].entry_hi.raw  = N64CP0.entry_hi.raw;
+    // Note: different masks than the Cop0 registers for entry_lo0 and 1, so another mask is needed here
+    N64CP0.tlb[index].entry_lo0.raw = N64CP0.entry_lo0.raw & 0x03FFFFFE;
+    N64CP0.tlb[index].entry_lo1.raw = N64CP0.entry_lo1.raw & 0x03FFFFFE;
     N64CP0.tlb[index].page_mask.raw = page_mask.raw;
 
-    N64CP0.tlb[index].global = entry_lo0.g && entry_lo1.g;
+    N64CP0.tlb[index].global = N64CP0.entry_lo0.g && N64CP0.entry_lo1.g;
 
 }
 
@@ -66,8 +58,8 @@ MIPS_INSTR(mips_tlbr) {
     tlb_entry_t entry = N64CP0.tlb[index];
 
     N64CP0.entry_hi.raw  = entry.entry_hi.raw & ~((dword)entry.page_mask.raw);
-    N64CP0.entry_lo0.raw = entry.entry_lo0.raw;
-    N64CP0.entry_lo1.raw = entry.entry_lo1.raw;
+    N64CP0.entry_lo0.raw = entry.entry_lo0.raw & CP0_ENTRY_LO_WRITE_MASK;
+    N64CP0.entry_lo1.raw = entry.entry_lo1.raw & CP0_ENTRY_LO_WRITE_MASK;
 
     N64CP0.entry_lo0.g = entry.global;
     N64CP0.entry_lo1.g = entry.global;

@@ -370,7 +370,9 @@ typedef union cp0_entry_hi {
 
 ASSERTDWORD(cp0_entry_hi_t);
 
+#define CP0_ENTRY_LO_WRITE_MASK 0x3FFFFFFF
 #define CP0_ENTRY_HI_WRITE_MASK 0xC00000FFFFFFE0FF
+#define CP0_PAGEMASK_WRITE_MASK 0x1FFE000
 
 
 typedef struct tlb_entry {

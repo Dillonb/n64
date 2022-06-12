@@ -77,16 +77,16 @@ INLINE void set_cp0_register_word(byte r, word value) {
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
-            N64CPU.cp0.entry_lo0.raw = value & 0x3FFFFFFF;
+            N64CPU.cp0.entry_lo0.raw = value & CP0_ENTRY_LO_WRITE_MASK;
             break;
         case R4300I_CP0_REG_ENTRYLO1:
-            N64CPU.cp0.entry_lo1.raw = value & 0x3FFFFFFF;
+            N64CPU.cp0.entry_lo1.raw = value & CP0_ENTRY_LO_WRITE_MASK;
             break;
         case R4300I_CP0_REG_ENTRYHI:
             N64CPU.cp0.entry_hi.raw = value & CP0_ENTRY_HI_WRITE_MASK;
             break;
         case R4300I_CP0_REG_PAGEMASK:
-            N64CPU.cp0.page_mask.raw = value & 0x1FFE000;
+            N64CPU.cp0.page_mask.raw = value & CP0_PAGEMASK_WRITE_MASK;
             break;
         case R4300I_CP0_REG_EPC:
             N64CPU.cp0.EPC = (sdword)((sword)value);
@@ -245,10 +245,10 @@ INLINE void set_cp0_register_dword(byte r, dword value) {
         case R4300I_CP0_REG_RANDOM:
             logfatal("Writing CP0 register R4300I_CP0_REG_RANDOM as dword!");
         case R4300I_CP0_REG_ENTRYLO0:
-            N64CPU.cp0.entry_lo0.raw = value & 0x3FFFFFFF;
+            N64CPU.cp0.entry_lo0.raw = value & CP0_ENTRY_LO_WRITE_MASK;
             break;
         case R4300I_CP0_REG_ENTRYLO1:
-            N64CPU.cp0.entry_lo1.raw = value & 0x3FFFFFFF;
+            N64CPU.cp0.entry_lo1.raw = value & CP0_ENTRY_LO_WRITE_MASK;
             break;
         case R4300I_CP0_REG_CONTEXT:
             N64CPU.cp0.context.raw = (value & 0xFFFFFFFFFF800000) | (N64CPU.cp0.context.raw & 0x7FFFFF);
