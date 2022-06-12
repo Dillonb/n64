@@ -1113,8 +1113,8 @@ MIPS_INSTR(mips_ri_bgezal) {
 
 MIPS_INSTR(mips_ri_bgezall) {
     sdword reg = get_register(instruction.i.rs);
-    conditional_branch_likely(instruction.i.immediate, reg >= 0);
     link(R4300I_REG_LR);
+    conditional_branch_likely(instruction.i.immediate, reg >= 0);
 }
 
 MIPS_INSTR(mips_eret) {
