@@ -531,7 +531,7 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 RSP_VECTOR_INSTR(rsp_cfc2) {
     logdebug("rsp_cfc2");
     shalf value = 0;
-    switch (instruction.r.rd) {
+    switch (instruction.r.rd & 3) {
         case 0: { // VCO
             value = rsp_get_vco();
             break;
@@ -540,13 +540,9 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
             value = rsp_get_vcc();
             break;
         }
-        case 2: { // VCE
+        case 2:
+        case 3: { // VCE
             value = rsp_get_vce();
-            break;
-        }
-        default: {
-            logwarn("CFC2 from unknown VU control register: %d", instruction.r.rd);
-            value = 0;
             break;
         }
     }
@@ -557,7 +553,7 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
 RSP_VECTOR_INSTR(rsp_ctc2) {
     logdebug("rsp_ctc2");
     half value = get_rsp_register(instruction.r.rt) & 0xFFFF;
-    switch (instruction.r.rd) {
+    switch (instruction.r.rd & 3) {
         case 0: { // VCO
             for (int i = 0; i < 8; i++) {
                 N64RSP.vco.h.elements[VU_ELEM_INDEX(i)] = FLAGREG_BOOL(((value >> (i + 8)) & 1) == 1);
@@ -572,14 +568,11 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
             }
             break;
         }
-        case 2: { // VCE
+        case 2:
+        case 3: { // VCE
             for (int i = 0; i < 8; i++) {
                 N64RSP.vce.elements[VU_ELEM_INDEX(i)] = FLAGREG_BOOL(((value >> i) & 1) == 1);
             }
-            break;
-        }
-        default: {
-            logwarn("CTC2 to unknown VU control register: %d", instruction.r.rd);
             break;
         }
     }
