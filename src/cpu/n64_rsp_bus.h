@@ -7,7 +7,7 @@
 
 #include "rsp.h"
 
-#define RSP_BYTE(addr) (N64RSP.sp_dmem[BYTE_ADDRESS(addr)])
+#define RSP_BYTE(addr) (N64RSP.sp_dmem[BYTE_ADDRESS(addr) & 0xFFF])
 
 #define GET_RSP_HALF(addr) ((RSP_BYTE(addr) << 8) | RSP_BYTE((addr) + 1))
 #define SET_RSP_HALF(addr, value) do { RSP_BYTE(addr) = ((value) >> 8) & 0xFF; RSP_BYTE((addr) + 1) = (value) & 0xFF;} while(0)
