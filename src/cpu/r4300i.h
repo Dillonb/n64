@@ -598,7 +598,7 @@ typedef void(*mipsinstr_handler_t)(mips_instruction_t);
 
 void on_tlb_exception(dword address);
 void r4300i_step();
-void r4300i_handle_exception(dword pc, word code, sword coprocessor_error);
+void r4300i_handle_exception(dword pc, word code, int coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);
 void r4300i_interrupt_update();
 bool instruction_stable(mips_instruction_t instr);

@@ -105,7 +105,7 @@ MIPS_INSTR(mips_addi) {
     word imm_addend = (sword)((shalf)instruction.i.immediate);
     word result = imm_addend + reg_addend;
     if (check_signed_overflow_add(reg_addend, imm_addend, result)) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
     } else {
         set_register(instruction.i.rt, (sdword)((sword)(result)));
     }
@@ -125,7 +125,7 @@ MIPS_INSTR(mips_daddi) {
     dword result = addend1 + addend2;
 
     if (check_signed_overflow_add(addend1, addend2, result)) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
     } else {
         set_register(instruction.i.rt, result);
     }
@@ -246,14 +246,14 @@ MIPS_INSTR(mips_ld) {
     dword address = get_register(instruction.i.rs) + offset;
     if (check_address_error(0b111, address)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, 0);
         return;
     }
 
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         dword value = n64_read_physical_dword(physical);
         set_register(instruction.i.rt, value);
@@ -276,7 +276,7 @@ MIPS_INSTR(mips_lbu) {
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         byte value = n64_read_physical_byte(physical);
         set_register(instruction.i.rt, value); // zero extend
@@ -294,7 +294,7 @@ MIPS_INSTR(mips_lhu) {
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         half value = n64_read_physical_half(physical);
         set_register(instruction.i.rt, value); // zero extend
@@ -311,7 +311,7 @@ MIPS_INSTR(mips_lh) {
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         shalf value = n64_read_physical_half(physical);
         set_register(instruction.i.rt, (sdword)value); // zero extend
@@ -323,14 +323,14 @@ MIPS_INSTR(mips_lw) {
     dword address = get_register(instruction.i.rs) + offset;
     if (check_address_error(0b11, address)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, 0);
         return;
     }
 
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         sword value = n64_read_physical_word(physical);
         set_register(instruction.i.rt, (sdword)value);
@@ -357,7 +357,7 @@ MIPS_INSTR(mips_sb) {
     word physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         n64_write_physical_byte(physical, value);
     }
@@ -371,7 +371,7 @@ MIPS_INSTR(mips_sh) {
     word physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         n64_write_physical_half(physical, value);
     }
@@ -385,13 +385,13 @@ MIPS_INSTR(mips_sw) {
 
     if (check_address_error(0b11, address)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_STORE, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_STORE, 0);
         return;
     }
 
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         n64_write_physical_word(physical, get_register(instruction.i.rt));
     }
@@ -405,13 +405,13 @@ MIPS_INSTR(mips_sd) {
     word physical;
     if (check_address_error(0b111, address)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_STORE, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_STORE, 0);
         return;
     }
 
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         n64_write_physical_dword(physical, value);
     }
@@ -439,7 +439,7 @@ MIPS_INSTR(mips_lb) {
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         sbyte value = n64_read_physical_byte(physical);
         set_register(instruction.i.rt, (sdword)value);
@@ -454,7 +454,7 @@ MIPS_INSTR(mips_lwl) {
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         word shift = 8 * ((address ^ 0) & 3);
         word mask = 0xFFFFFFFF << shift;
@@ -483,7 +483,7 @@ MIPS_INSTR(mips_swl) {
     word physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         word shift = 8 * ((address ^ 0) & 3);
         word mask = 0xFFFFFFFF >> shift;
@@ -499,7 +499,7 @@ MIPS_INSTR(mips_swr) {
     word physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         word shift = 8 * ((address ^ 3) & 3);
         word mask = 0xFFFFFFFF << shift;
@@ -538,7 +538,7 @@ MIPS_INSTR(mips_sdl) {
     word physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         int shift = 8 * ((address ^ 0) & 7);
         dword mask = 0xFFFFFFFFFFFFFFFF;
@@ -570,7 +570,7 @@ MIPS_INSTR(mips_ll) {
     sword result;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), -1);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         result = n64_read_physical_word(physical);
     }
@@ -713,7 +713,7 @@ MIPS_INSTR(mips_spc_jalr) {
 }
 
 MIPS_INSTR(mips_spc_syscall) {
-    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_SYSCALL, -1);
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_SYSCALL, 0);
 }
 
 MIPS_INSTR(mips_spc_mfhi) {
@@ -876,7 +876,7 @@ MIPS_INSTR(mips_spc_add) {
 
     word result = addend1 + addend2;
     if (check_signed_overflow_add(addend1, addend2, result)) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
     } else {
         set_register(instruction.r.rd, (sdword)((sword)result));
     }
@@ -906,7 +906,7 @@ MIPS_INSTR(mips_spc_sub) {
     sword result = operand1 - operand2;
 
     if (check_signed_overflow_sub(operand1, operand2, result)) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
     } else {
         set_register(instruction.r.rd, (sdword)result);
     }
@@ -964,7 +964,7 @@ MIPS_INSTR(mips_spc_dadd) {
     dword result = addend1 + addend2;
 
     if (check_signed_overflow_add(addend1, addend2, result)) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
     } else {
         set_register(instruction.r.rd, result);
     }
@@ -983,7 +983,7 @@ MIPS_INSTR(mips_spc_dsub) {
     sdword difference = minuend - subtrahend;
 
     if (check_signed_overflow_sub(minuend, subtrahend, difference)) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
     } else {
         set_register(instruction.r.rd, difference);
     }
@@ -1001,12 +1001,12 @@ MIPS_INSTR(mips_spc_teq) {
     dword rt = get_register(instruction.r.rt);
 
     if (rs == rt) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
 MIPS_INSTR(mips_spc_break) {
-    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_BREAKPOINT, -1);
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_BREAKPOINT, 0);
 }
 
 MIPS_INSTR(mips_spc_tne) {
@@ -1014,7 +1014,7 @@ MIPS_INSTR(mips_spc_tne) {
     dword rt = get_register(instruction.r.rt);
 
     if (rs != rt) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1023,7 +1023,7 @@ MIPS_INSTR(mips_spc_tge) {
     sdword rt = get_register(instruction.r.rt);
 
     if (rs >= rt) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1032,7 +1032,7 @@ MIPS_INSTR(mips_spc_tgeu) {
     dword rt = get_register(instruction.r.rt);
 
     if (rs >= rt) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1041,7 +1041,7 @@ MIPS_INSTR(mips_spc_tlt) {
     sdword rt = get_register(instruction.r.rt);
 
     if (rs < rt) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1050,7 +1050,7 @@ MIPS_INSTR(mips_spc_tltu) {
     dword rt = get_register(instruction.r.rt);
 
     if (rs < rt) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1146,7 +1146,7 @@ MIPS_INSTR(mips_ri_tgei) {
     shalf imm = instruction.i.immediate;
 
     if (rs >= imm) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1155,7 +1155,7 @@ MIPS_INSTR(mips_ri_tgeiu) {
     dword imm = (sdword)(((shalf)instruction.i.immediate));
 
     if (rs >= imm) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1164,7 +1164,7 @@ MIPS_INSTR(mips_ri_tlti) {
     shalf imm = instruction.i.immediate;
 
     if (rs < imm) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1173,7 +1173,7 @@ MIPS_INSTR(mips_ri_tltiu) {
     dword imm = (sdword)(((shalf)instruction.i.immediate));
 
     if (rs < imm) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1182,7 +1182,7 @@ MIPS_INSTR(mips_ri_teqi) {
     shalf imm = instruction.i.immediate;
 
     if (rs == imm) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
@@ -1191,10 +1191,10 @@ MIPS_INSTR(mips_ri_tnei) {
     shalf imm = instruction.i.immediate;
 
     if (rs != imm) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
     }
 }
 
 MIPS_INSTR(mips_invalid) {
-    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_RESERVED_INSTR, -1);
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_RESERVED_INSTR, 0);
 }

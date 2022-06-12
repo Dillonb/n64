@@ -757,7 +757,7 @@ MIPS_INSTR(mips_lwc1) {
     word physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, -1);
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TLB_MISS_LOAD, 0);
     } else {
         word value = n64_read_physical_word(physical);
         set_fpu_register_word(instruction.fi.ft, value);
