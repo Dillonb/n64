@@ -5,6 +5,7 @@
 #include <system/n64system.h>
 #include "addresses.h"
 
+tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number);
 bool tlb_probe(dword vaddr, bus_access_t bus_access, word* paddr, int* entry_number);
 
 #define REGION_XKUSEG 0x0000000000000000 ... 0x000000FFFFFFFFFF

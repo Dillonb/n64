@@ -37,58 +37,64 @@ void dump_tlb(dword vaddr) {
 }
 */
 
-bool tlb_probe(dword vaddr, bus_access_t bus_access, word* paddr, int* entry_number) {
+tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
-        tlb_entry_t entry = N64CP0.tlb[i];
-        word mask = (entry.page_mask.mask << 12) | 0x0FFF;
-        word page_size = mask + 1;
-        word entry_vpn = get_vpn(entry.entry_hi.raw, entry.page_mask.raw);
-        word vaddr_vpn = get_vpn(vaddr, entry.page_mask.raw);
+        tlb_entry_t *entry = &N64CP0.tlb[i];
+        word entry_vpn = get_vpn(entry->entry_hi.raw, entry->page_mask.raw);
+        word vaddr_vpn = get_vpn(vaddr, entry->page_mask.raw);
 
-        if (entry_vpn != vaddr_vpn) {
-            continue;
+        bool vaddr_match = entry_vpn == vaddr_vpn;
+        bool asid_match = entry->global || (N64CP0.entry_hi.asid == entry->entry_hi.asid);
+
+        if (vaddr_match && asid_match) {
+            if (entry_number) {
+                *entry_number = i;
+            }
+            return entry;
         }
+    }
+    return NULL;
+}
 
-        word odd = vaddr & page_size;
-        word pfn;
+bool tlb_probe(dword vaddr, bus_access_t bus_access, word* paddr, int* entry_number) {
+    tlb_entry_t* entry = find_tlb_entry(vaddr, entry_number);
+    if (!entry) {
+        N64CP0.tlb_error = TLB_ERROR_MISS;
+        return false;
+    }
 
-        if (!entry.global && N64CP0.entry_hi.asid != entry.entry_hi.asid) {
-            N64CP0.tlb_error = TLB_ERROR_MISS;
+    word mask = (entry->page_mask.mask << 12) | 0x0FFF;
+    word page_size = mask + 1;
+    word odd = vaddr & page_size;
+    word pfn;
+
+    if (!odd) {
+        if (!(entry->entry_lo0.valid)) {
+            N64CP0.tlb_error = TLB_ERROR_INVALID;
             return false;
         }
-
-        if (!odd) {
-            if (!(entry.entry_lo0.valid)) {
-                N64CP0.tlb_error = TLB_ERROR_INVALID;
-                return false;
-            }
-            if (bus_access == BUS_STORE && !(entry.entry_lo0.dirty)) {
-                N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
-                return false;
-            }
-            pfn = entry.entry_lo0.pfn;
-        } else {
-            if (!(entry.entry_lo1.valid)) {
-                N64CP0.tlb_error = TLB_ERROR_INVALID;
-                return false;
-            }
-            if (bus_access == BUS_STORE && !(entry.entry_lo1.dirty)) {
-                N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
-                return false;
-            }
-            pfn = entry.entry_lo1.pfn;
+        if (bus_access == BUS_STORE && !(entry->entry_lo0.dirty)) {
+            N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
+            return false;
         }
-
-        if (paddr != NULL) {
-            *paddr = (pfn << 12) | (vaddr & mask);
+        pfn = entry->entry_lo0.pfn;
+    } else {
+        if (!(entry->entry_lo1.valid)) {
+            N64CP0.tlb_error = TLB_ERROR_INVALID;
+            return false;
         }
-        if (entry_number != NULL) {
-            *entry_number = i;
+        if (bus_access == BUS_STORE && !(entry->entry_lo1.dirty)) {
+            N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
+            return false;
         }
-        return true;
+        pfn = entry->entry_lo1.pfn;
     }
-    N64CP0.tlb_error = TLB_ERROR_MISS;
-    return false;
+
+    if (paddr != NULL) {
+        *paddr = (pfn << 12) | (vaddr & mask);
+    }
+
+    return true;
 }
 
 word read_word_rdramreg(word address) {

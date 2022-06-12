@@ -40,8 +40,9 @@ MIPS_INSTR(mips_tlbwi) {
 // Hi register to the index register.
 MIPS_INSTR(mips_tlbp) {
     word entry_hi = N64CP0.entry_hi.raw   & 0xFFFFE0FF;
-    int match;
-    if (tlb_probe(entry_hi, false, NULL, &match)) {
+    int match = -1;
+    tlb_entry_t* entry = find_tlb_entry(entry_hi, &match);
+    if (entry && match >= 0) {
         N64CP0.index = match;
     } else {
         N64CP0.index = 0x80000000;
