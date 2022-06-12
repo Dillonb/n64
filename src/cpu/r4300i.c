@@ -50,42 +50,38 @@ const char* cp0_register_names[] = {
 
 r4300i_t n64cpu;
 
+// pc = pc of the instruction where execution was when the exception was thrown
 void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
-    bool old_exl = N64CP0.status.exl;
+    bool old_exl = N64CP0.status.exl; // used for TLB exceptions since exl is overwritten later
     loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
-    // In a branch delay slot, set EPC to the branch PRECEDING the slot.
+    // In a branch delay slot, set EPC to the BRANCH PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
     if (N64CPU.prev_branch) {
         unimplemented(N64CPU.cp0.status.exl, "handling branch delay when exl == true");
-        N64CPU.cp0.cause.branch_delay = true;
-        pc -= 4;
+        N64CPU.cp0.cause.branch_delay = true; // So the exception handler knows it needs to re-execute a branch
+        pc -= 4; // rolls PC back to point at the branch
     } else {
         N64CPU.cp0.cause.branch_delay = false;
     }
 
+    // If we're not already handling another exception....
     if (!N64CPU.cp0.status.exl) {
+        // Save the return value for ERET
         N64CPU.cp0.EPC = pc;
-        N64CPU.cp0.status.exl = true;
+        N64CPU.cp0.status.exl = true; // Mark that an exception is being handled
     }
 
-    N64CPU.cp0.cause.exception_code = code;
-    if (coprocessor_error > 0) {
-        N64CPU.cp0.cause.coprocessor_error = coprocessor_error;
-    } else {
-        N64CPU.cp0.cause.coprocessor_error = 0;
-    }
+    // Save the exception code and coprocessor error in $Cause
+    N64CPU.cp0.cause.exception_code = code; // The exception code
+    N64CPU.cp0.cause.coprocessor_error = coprocessor_error; // Which coprocessor caused the error
 
+    // BEV bit is set to 1 VERY EARLY in the boot process.
+    // A different list of exception vectors is used, ones that don't need as much hardware initialized
     if (N64CPU.cp0.status.bev) {
-        switch (code) {
-            case EXCEPTION_COPROCESSOR_UNUSABLE:
-                logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.");
-                set_pc_word_r4300i(0x80000180);
-                break;
-            default:
-                logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
-        }
+        logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
     } else {
         switch (code) {
+            // Most exceptions go to the "common vector"
             case EXCEPTION_INTERRUPT:
             case EXCEPTION_COPROCESSOR_UNUSABLE:
             case EXCEPTION_TRAP:
@@ -98,6 +94,7 @@ void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
             case EXCEPTION_RESERVED_INSTR:
                 set_pc_word_r4300i(0x80000180);
                 break;
+            // TLB exceptions go to different vectors
             case EXCEPTION_TLB_MISS_LOAD:
             case EXCEPTION_TLB_MISS_STORE:
                 if (old_exl || N64CP0.tlb_error == TLB_ERROR_INVALID) {
@@ -113,7 +110,7 @@ void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
         }
     }
     cp0_status_updated();
-    N64CPU.exception = true;
+    N64CPU.exception = true; // For dynarec
 }
 
 INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr) {
