@@ -79,7 +79,7 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
             byte subsegment = (address >> 59) & 0b11;
             bool cached = subsegment != 2;
             if (cached) {
-                logwarn("Resolving virtual address in cached XKPHYS subsegment %d", subsegment);
+                //logwarn("Resolving virtual address in cached XKPHYS subsegment %d", subsegment);
             }
             // If any bits in the range of 58:32 are set, the address is invalid.
             bool valid = (address & 0x07FFFFFF00000000) == 0;
@@ -87,8 +87,6 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
                 logfatal("Invalid XKPHYS address 0x%016lX! bits in the range of 58:32 are set.", address);
             }
             *physical = address & 0xFFFFFFFF;
-
-            logwarn("XKPHYS: Translated 0x%016lX to 0x%08X", address, *physical);
             break;
         }
         case REGION_XKSEG:
