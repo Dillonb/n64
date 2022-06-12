@@ -35,6 +35,7 @@ INLINE void log_status(cp0_status_t status) {
 }
 
 INLINE void set_cp0_register_word(byte r, word value) {
+    N64CP0.open_bus = value;
     switch (r) {
         case R4300I_CP0_REG_INDEX:
             N64CPU.cp0.index = value;
@@ -132,7 +133,6 @@ INLINE void set_cp0_register_word(byte r, word value) {
         case R4300I_CP0_REG_24:
         case R4300I_CP0_REG_25:
         case R4300I_CP0_REG_31:
-            N64CP0.unused_reg = value;
             break;
         default:
             logfatal("Unsupported CP0 $%s (%d) set: 0x%08X", cp0_register_names[r], r, value);
@@ -232,13 +232,14 @@ INLINE word get_cp0_register_word(byte r) {
         case R4300I_CP0_REG_24:
         case R4300I_CP0_REG_25:
         case R4300I_CP0_REG_31:
-            return N64CPU.cp0.unused_reg;
+            return N64CP0.open_bus;
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
     }
 }
 
 INLINE void set_cp0_register_dword(byte r, dword value) {
+    N64CP0.open_bus = value;
     switch (r) {
         case R4300I_CP0_REG_INDEX:
             logfatal("Writing CP0 register R4300I_CP0_REG_INDEX as dword!");

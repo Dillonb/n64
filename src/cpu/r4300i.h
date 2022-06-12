@@ -497,7 +497,7 @@ typedef struct cp0 {
     word tag_hi;
     dword error_epc;
 
-    dword unused_reg;
+    dword open_bus; // Last value written to any COP0 register
 
     tlb_entry_t    tlb[32];
     tlb_error_t tlb_error;
