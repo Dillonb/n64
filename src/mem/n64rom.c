@@ -57,14 +57,14 @@ void byteswap_to_host(byte* rom, size_t rom_size) {
 }
 
 // https://rosettacode.org/wiki/CRC-32#C
-INLINE word crc32(word crc, const char *buf, size_t len)
+INLINE word crc32(word crc, const byte *buf, size_t len)
 {
     static word table[256];
     static int have_table = 0;
     word rem;
     byte octet;
     int i, j;
-    const char *p, *q;
+    const byte *p, *q;
 
     if (have_table == 0) {
         for (i = 0; i < 256; i++) {
