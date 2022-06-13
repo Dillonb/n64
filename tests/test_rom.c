@@ -7,7 +7,7 @@
 #include <cpu/r4300i_register_access.h>
 #include <mem/n64bus.h>
 
-#define MAX_STEPS 10000000
+#define MAX_STEPS 100000000
 #define TEST_FAILED_REGISTER 30
 
 bool test_complete() {
@@ -23,9 +23,13 @@ bool test_complete() {
     }
 }
 
+bool recomp(const char* arg) {
+    return strcmp(arg, "recomp") == 0;
+}
+
 int main(int argc, char** argv) {
-    if (argc == 0) {
-        logfatal("Pass me a ROM file please");
+    if (argc != 3) {
+        logfatal("Pass me a ROM file and `recomp` or `interp` please");
     }
 
     log_set_verbosity(LOG_VERBOSITY_DEBUG);
@@ -42,8 +46,9 @@ int main(int argc, char** argv) {
     loginfo("Initial PC: 0x%016lX\n", N64CPU.pc);
 
     int steps = 0;
+    bool use_dynarec = recomp(argv[2]);
     for (; steps < MAX_STEPS && !test_complete(); steps++) {
-        n64_system_step(true);
+        n64_system_step(use_dynarec);
     }
 
     if (!test_complete()) {
