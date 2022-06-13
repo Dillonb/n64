@@ -19,6 +19,7 @@ void tlbwi_32b(int index) {
         logfatal("TLBWI to TLB index %d", index);
     }
     N64CP0.tlb[index].entry_hi.raw  = N64CP0.entry_hi.raw;
+    N64CP0.tlb[index].entry_hi.vpn2 &= ~page_mask.mask;
     // Note: different masks than the Cop0 registers for entry_lo0 and 1, so another mask is needed here
     N64CP0.tlb[index].entry_lo0.raw = N64CP0.entry_lo0.raw & 0x03FFFFFE;
     N64CP0.tlb[index].entry_lo1.raw = N64CP0.entry_lo1.raw & 0x03FFFFFE;
