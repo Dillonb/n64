@@ -32,9 +32,6 @@ endif()
 #add_compile_options(-fsanitize=address)
 #add_link_options(-fsanitize=address)
 
-#add_compile_options(-fsanitize=memory)
-#add_link_options(-fsanitize=memory)
-
 #add_compile_options(-fsanitize=thread)
 #add_link_options(-fsanitize=thread)
 
@@ -46,6 +43,12 @@ set(N64_TARGET n64)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 include(CTest)
 message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+
+if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+    #add_compile_options(-fsanitize=memory -fsanitize-recover=memory)
+    #add_link_options(-fsanitize=memory)
+endif()
+
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
     ADD_LINK_OPTIONS(-export-dynamic) # Allows the angrylion shared library to be loaded
 endif()

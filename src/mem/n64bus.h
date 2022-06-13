@@ -39,33 +39,34 @@ INLINE bool resolve_virtual_address_32bit(word address, bus_access_t bus_access,
         case 0x1:
         case 0x2:
         case 0x3: {
-            if (!tlb_probe(address, bus_access, physical, NULL)) {
-                return false;
-            }
-            break;
+            return tlb_probe(address, bus_access, physical, NULL);
         }
         // KSSEG
         case 0x6:
             logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", address);
         // KSEG3
         case 0x7:
-            if (!tlb_probe(address, bus_access, physical, NULL)) {
-                return false;
-            }
-            break;
+            return tlb_probe(address, bus_access, physical, NULL);
         default:
             logfatal("PANIC! should never end up here.");
     }
     return true;
 }
 
+INLINE bool resolve_virtual_address_user_32bit(word address, bus_access_t bus_access, word* physical) {
+    switch (address) {
+        case VREGION_KUSEG:
+            return tlb_probe(address, bus_access, physical, NULL);
+        default:
+            N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
+            return false;
+    }
+}
+
 INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access, word* physical) {
     switch (address) {
         case REGION_XKUSEG:
-            if (!tlb_probe(address, bus_access, physical, NULL)) {
-                return false;
-            }
-            break;
+            return tlb_probe(address, bus_access, physical, NULL);
     case REGION_XKSSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_XKSSEG) in 64 bit mode", address);
         case REGION_XKPHYS: {
@@ -90,10 +91,7 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
             break;
         }
         case REGION_XKSEG:
-            if (!tlb_probe(address, bus_access, physical, NULL)) {
-                return false;
-            }
-            break;
+            return tlb_probe(address, bus_access, physical, NULL);
         case REGION_CKSEG0:
             // Identical to kseg0 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.
@@ -109,11 +107,7 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
         case REGION_CKSSEG:
             logfatal("Resolving virtual address 0x%016lX (REGION_CKSSEG) in 64 bit mode", address);
         case REGION_CKSEG3:
-            if (!tlb_probe(address, bus_access, physical, NULL)) {
-                return false;
-            }
-            break;
-
+            return tlb_probe(address, bus_access, physical, NULL);
         case REGION_XBAD1:
         case REGION_XBAD2:
         case REGION_XBAD3:
@@ -125,11 +119,38 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
     return true;
 }
 
+INLINE bool resolve_virtual_address_user_64bit(dword address, bus_access_t bus_access, word* physical) {
+    switch (address) {
+        case REGION_XKUSEG:
+            return tlb_probe(address, bus_access, physical, NULL);
+        default:
+            N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
+            return false;
+    }
+}
+
 INLINE bool resolve_virtual_address(dword virtual, bus_access_t bus_access, word* physical) {
-    if (N64CP0.is_64bit_addressing) {
-        return resolve_virtual_address_64bit(virtual, bus_access, physical);
+    if (unlikely(N64CP0.is_64bit_addressing)) {
+        if (likely(N64CP0.kernel_mode)) {
+            return resolve_virtual_address_64bit(virtual, bus_access, physical);
+        } else if (N64CP0.user_mode) {
+            return resolve_virtual_address_user_64bit(virtual, bus_access, physical);
+        } else if (N64CP0.supervisor_mode) {
+            logfatal("Supervisor mode memory access, 64 bit mode");
+        } else {
+            logfatal("Unknown mode! This should never happen!");
+        }
     } else {
-        return resolve_virtual_address_32bit(virtual, bus_access, physical);
+        //return resolve_virtual_address_32bit(virtual, bus_access, physical);
+        if (likely(N64CP0.kernel_mode)) {
+            return resolve_virtual_address_32bit(virtual, bus_access, physical);
+        } else if (N64CP0.user_mode) {
+            return resolve_virtual_address_user_32bit(virtual, bus_access, physical);
+        } else if (N64CP0.supervisor_mode) {
+            logfatal("Supervisor mode memory access, 32 bit mode");
+        } else {
+            logfatal("Unknown mode! This should never happen!");
+        }
     }
 }
 

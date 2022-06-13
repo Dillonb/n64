@@ -160,12 +160,16 @@ void reset_n64system() {
     n64sys.ai.dac.precision = 16;
     n64sys.ai.dac.period = CPU_HERTZ / n64sys.ai.dac.frequency;
 
+    N64CP0.status.raw = 0;
     N64CP0.status.bev = true;
+    cp0_status_updated();
     N64CP0.cause.raw  = 0xB000007C;
     N64CP0.EPC        = 0xFFFFFFFFFFFFFFFF;
     N64CP0.PRId       = 0x00000B22;
     N64CP0.config     = 0x7006E463;
     N64CP0.error_epc  = 0xFFFFFFFFFFFFFFFF;
+
+    N64CPU.fcr0.raw = 0xa00;
 
     memset(n64sys.mem.rdram, 0, N64_RDRAM_SIZE);
     memset(N64RSP.sp_dmem, 0, SP_DMEM_SIZE);

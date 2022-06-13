@@ -795,7 +795,11 @@ void n64_write_physical_byte(word address, byte value) {
         case REGION_UNUSED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART_2_1:
-            logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD!");
+            if (address == 0x05000020) {
+                printf("%c", value);
+            } else {
+                logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD! [%08X]=0x%02X", address, value);
+            }
             return;
         case REGION_CART_1_1:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
@@ -859,8 +863,8 @@ byte n64_read_physical_byte(word address) {
         case REGION_CART_2_1:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
         case REGION_CART_1_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning zero because it is not emulated", address);
-            return 0;
+            logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning 0xFF because it is not emulated", address);
+            return 0xFF;
         case REGION_CART_2_2:
             return backup_read_byte(address - SREGION_CART_2_2);
         case REGION_CART_1_2: {

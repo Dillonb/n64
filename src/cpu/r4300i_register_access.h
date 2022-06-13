@@ -67,8 +67,8 @@ INLINE void set_cp0_register_word(byte r, word value) {
             N64CPU.cp0.status.raw &= ~CP0_STATUS_WRITE_MASK;
             N64CPU.cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
 
-            unimplemented(N64CPU.cp0.status.re, "Reverse endian bit set in CP0 (this probably ");
-            unimplemented(N64CPU.cp0.status.ksu, "KSU != 0, leaving kernel mode!");
+            unimplemented(N64CPU.cp0.status.re, "Reverse endian bit set in CP0 (this probably doesn't actually do anything)");
+            unimplemented(N64CP0.user_mode && !N64CP0.is_64bit_addressing, "user mode without 64 bit ops, need to implement reserved instruction exceptions for 64 bit instructions!");
 
             cp0_status_updated();
             log_status(N64CPU.cp0.status);

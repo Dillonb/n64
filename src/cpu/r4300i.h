@@ -455,7 +455,8 @@ typedef enum tlb_error {
     TLB_ERROR_NONE,
     TLB_ERROR_MISS,
     TLB_ERROR_INVALID,
-    TLB_ERROR_MODIFICATION
+    TLB_ERROR_MODIFICATION,
+    TLB_ERROR_DISALLOWED_ADDRESS
 } tlb_error_t;
 
 static inline word get_tlb_exception_code(tlb_error_t error, bus_access_t bus_access) {
@@ -467,6 +468,10 @@ static inline word get_tlb_exception_code(tlb_error_t error, bus_access_t bus_ac
             return bus_access == BUS_LOAD ? EXCEPTION_TLB_MISS_LOAD : EXCEPTION_TLB_MISS_STORE;
         case TLB_ERROR_MODIFICATION:
             return EXCEPTION_TLB_MODIFICATION;
+        case TLB_ERROR_DISALLOWED_ADDRESS:
+            return bus_access == BUS_LOAD ? EXCEPTION_ADDRESS_ERROR_LOAD : EXCEPTION_ADDRESS_ERROR_STORE;
+        default:
+            logfatal("Getting TLB exception code for error not in switch statement! (%d)", error);
     }
 }
 

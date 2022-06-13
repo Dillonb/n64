@@ -317,7 +317,7 @@ void pif_rom_execute_hle() {
     N64CP0.status.raw    = 0x34000000;
     //N64CP0.cause.raw     = 0;
     //N64CP0.EPC           = 0;
-    N64CP0.PRId          = 0x00000B00;
+    N64CP0.PRId          = 0x00000B22;
     N64CP0.config        = 0x7006E463;
     //N64CP0.lladdr        = 0;
     //N64CP0.watch_lo.raw  = 0;
