@@ -612,14 +612,14 @@ MIPS_INSTR(mips_ll) {
     set_register(instruction.i.rt, (sdword)result);
 
     // Unique to ll
-    N64CPU.cp0.lladdr = physical;
+    N64CPU.cp0.lladdr = physical >> 4;
     N64CPU.llbit = true;
 }
 
 MIPS_INSTR(mips_lld) {
     // Instruction is undefined outside of 64 bit mode and 32 bit kernel mode.
     // Throw an exception if we're not in 64 bit mode AND not in kernel mode.
-    if (!N64CPU.cp0.is_64bit_addressing && N64CPU.cp0.kernel_mode) {
+    if (!N64CPU.cp0.is_64bit_addressing && !N64CPU.cp0.kernel_mode) {
         logfatal("LLD is undefined outside of 64 bit mode and 32 bit kernel mode. Throw a reserved instruction exception!");
     }
 
@@ -639,7 +639,7 @@ MIPS_INSTR(mips_lld) {
         set_register(instruction.i.rt, result);
 
         // Unique to lld
-        N64CPU.cp0.lladdr = physical;
+        N64CPU.cp0.lladdr = physical >> 4;
         N64CPU.llbit = true;
     }
 }
@@ -655,15 +655,12 @@ MIPS_INSTR(mips_sc) {
     }
 
     if (N64CPU.llbit) {
+        N64CPU.llbit = false;
         word physical_address;
         if (!resolve_virtual_address(address, BUS_STORE, &physical_address)) {
             on_tlb_exception(address);
             r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
         } else {
-            if (physical_address != N64CPU.cp0.lladdr) {
-                logfatal("Undefined: SC physical address is NOT EQUAL to last lladdr!\n");
-            }
-
             word value = get_register(instruction.i.rt);
             n64_write_physical_word(physical_address, value);
             set_register(instruction.i.rt, 1); // Success!
@@ -676,7 +673,7 @@ MIPS_INSTR(mips_sc) {
 MIPS_INSTR(mips_scd) {
     // Instruction is undefined outside of 64 bit mode and 32 bit kernel mode.
     // Throw an exception if we're not in 64 bit mode AND not in kernel mode.
-    if (!N64CPU.cp0.is_64bit_addressing && N64CPU.cp0.kernel_mode) {
+    if (!N64CPU.cp0.is_64bit_addressing && !N64CPU.cp0.kernel_mode) {
         logfatal("SCD is undefined outside of 64 bit mode and 32 bit kernel mode. Throw a reserved instruction exception!");
     }
 
@@ -690,11 +687,8 @@ MIPS_INSTR(mips_scd) {
     }
 
     if (N64CPU.llbit) {
+        N64CPU.llbit = false;
         word physical_address = resolve_virtual_address_or_die(address, BUS_STORE);
-
-        if (physical_address != N64CPU.cp0.lladdr) {
-            logfatal("Undefined: SCD physical address is NOT EQUAL to last lladdr!\n");
-        }
 
         dword value = get_register(instruction.i.rt);
         n64_write_physical_dword(physical_address, value);
