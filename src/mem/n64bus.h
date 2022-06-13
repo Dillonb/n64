@@ -141,7 +141,6 @@ INLINE bool resolve_virtual_address(dword virtual, bus_access_t bus_access, word
             logfatal("Unknown mode! This should never happen!");
         }
     } else {
-        //return resolve_virtual_address_32bit(virtual, bus_access, physical);
         if (likely(N64CP0.kernel_mode)) {
             return resolve_virtual_address_32bit(virtual, bus_access, physical);
         } else if (N64CP0.user_mode) {
@@ -174,14 +173,6 @@ half n64_read_physical_half(word address);
 void n64_write_physical_byte(word address, byte value);
 byte n64_read_physical_byte(word address);
 
-INLINE void n64_write_dword(dword address, dword value) {
-    n64_write_physical_dword(resolve_virtual_address_or_die(address, true), value);
-}
-
-INLINE dword n64_read_dword(dword address) {
-    return n64_read_physical_dword(resolve_virtual_address_or_die(address, false));
-}
-
 INLINE void n64_write_word(dword address, word value) {
     n64_write_physical_word(resolve_virtual_address_or_die(address, true), value);
 }
@@ -189,19 +180,6 @@ INLINE void n64_write_word(dword address, word value) {
 INLINE word n64_read_word(dword address) {
     return n64_read_physical_word(resolve_virtual_address_or_die(address, false));
 }
-
-INLINE void n64_write_half(dword address, half value) {
-    n64_write_physical_half(resolve_virtual_address_or_die(address, true), value);
-}
-
-INLINE half n64_read_half(dword address) {
-    return n64_read_physical_half(resolve_virtual_address_or_die(address, false));
-}
-
-INLINE void n64_write_byte(dword address, byte value) {
-    n64_write_physical_byte(resolve_virtual_address_or_die(address, true), value);
-}
-
 INLINE byte n64_read_byte(dword address) {
     return n64_read_physical_byte(resolve_virtual_address_or_die(address, false));
 }
