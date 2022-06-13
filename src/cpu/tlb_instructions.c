@@ -2,7 +2,7 @@
 #include "r4300i_register_access.h"
 #include <mem/n64bus.h>
 
-void tlbwi_32b(int index) {
+INLINE void tlbwi(int index) {
     cp0_page_mask_t page_mask;
     page_mask = N64CP0.page_mask;
 
@@ -34,7 +34,7 @@ void tlbwi_32b(int index) {
 MIPS_INSTR(mips_tlbwi) {
     int index = N64CP0.index & 0x3F;
 
-    tlbwi_32b(index);
+    tlbwi(index);
 }
 
 // Loads the address of the TLB pfn coinciding with the contents of the pfn
@@ -68,5 +68,5 @@ MIPS_INSTR(mips_tlbr) {
 }
 
 MIPS_INSTR(mips_tlbwr) {
-    tlbwi_32b(get_cp0_random());
+    tlbwi(get_cp0_random());
 }
