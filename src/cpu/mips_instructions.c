@@ -969,18 +969,7 @@ MIPS_INSTR(mips_spc_xor) {
 MIPS_INSTR(mips_spc_slt) {
     sdword op1 = get_register(instruction.r.rs);
     sdword op2 = get_register(instruction.r.rt);
-
-    // RS - RT
-    sdword result = op1 - op2;
-    // if RS is LESS than RT
-    // aka, if result is negative
-
-    logtrace("Set if %ld < %ld", op1, op2);
-    if (result < 0) {
-        set_register(instruction.r.rd, 1);
-    } else {
-        set_register(instruction.r.rd, 0);
-    }
+    set_register(instruction.r.rd, op1 < op2 ? 1 : 0);
 }
 
 MIPS_INSTR(mips_spc_sltu) {
@@ -1027,9 +1016,9 @@ MIPS_INSTR(mips_spc_dsub) {
 }
 
 MIPS_INSTR(mips_spc_dsubu) {
-    sdword minuend = get_register(instruction.r.rs);
-    sdword subtrahend = get_register(instruction.r.rt);
-    sdword difference = minuend - subtrahend;
+    dword minuend = get_register(instruction.r.rs);
+    dword subtrahend = get_register(instruction.r.rt);
+    dword difference = minuend - subtrahend;
     set_register(instruction.r.rd, difference);
 }
 

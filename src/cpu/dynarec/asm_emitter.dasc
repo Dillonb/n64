@@ -1359,7 +1359,7 @@ dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, word address) {
         case RSP_OPC_LWC2: return rsp_lwc2_ir(instr, address);
         case RSP_OPC_SWC2: return rsp_swc2_ir(instr, address);
 
-        default:
+        default: {
 #ifdef LOG_ENABLED
             static char buf[50];
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
@@ -1371,6 +1371,7 @@ dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, word address) {
             logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [UNKNOWN]",
                  instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
 #endif
+        }
     }
 }
 
