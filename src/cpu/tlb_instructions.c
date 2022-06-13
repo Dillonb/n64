@@ -39,9 +39,8 @@ MIPS_INSTR(mips_tlbwi) {
 // Loads the address of the TLB pfn coinciding with the contents of the pfn
 // Hi register to the index register.
 MIPS_INSTR(mips_tlbp) {
-    word entry_hi = N64CP0.entry_hi.raw   & 0xFFFFE0FF;
     int match = -1;
-    tlb_entry_t* entry = find_tlb_entry(entry_hi, &match);
+    tlb_entry_t* entry = find_tlb_entry(N64CP0.entry_hi.raw, &match);
     if (entry && match >= 0) {
         N64CP0.index = match;
     } else {
@@ -58,7 +57,7 @@ MIPS_INSTR(mips_tlbr) {
 
     tlb_entry_t entry = N64CP0.tlb[index];
 
-    N64CP0.entry_hi.raw  = entry.entry_hi.raw & ~((dword)entry.page_mask.raw);
+    N64CP0.entry_hi.raw  = entry.entry_hi.raw;
     N64CP0.entry_lo0.raw = entry.entry_lo0.raw & CP0_ENTRY_LO_WRITE_MASK;
     N64CP0.entry_lo1.raw = entry.entry_lo1.raw & CP0_ENTRY_LO_WRITE_MASK;
 

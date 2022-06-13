@@ -679,7 +679,9 @@ void on_tlb_exception(dword address) {
     N64CP0.context.badvpn2 = vpn2;
     N64CP0.x_context.badvpn2 = xvpn2;
     N64CP0.x_context.r = (address >> 62) & 3;
-    N64CP0.entry_hi.vpn2 = vpn2;
+    // Leave ASID alone
+    N64CP0.entry_hi.vpn2 = xvpn2;
+    N64CP0.entry_hi.r = (address >> 62) & 0b11;
 }
 
 void r4300i_step() {

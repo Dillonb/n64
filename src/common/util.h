@@ -12,6 +12,8 @@ typedef int16_t shalf;
 typedef int32_t sword;
 typedef int64_t sdword;
 
+#define se_32_64(val) ((sdword)((sword)(val)))
+
 #define popcount(x) __builtin_popcountll(x)
 #define FAKELITTLE_HALF(h) ((((h) >> 8u) & 0xFFu) | (((h) << 8u) & 0xFF00u))
 #define FAKELITTLE_WORD(w) (FAKELITTLE_HALF((w) >> 16u) | (FAKELITTLE_HALF((w) & 0xFFFFu)) << 16u)

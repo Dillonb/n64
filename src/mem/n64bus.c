@@ -16,8 +16,13 @@
 
 dword get_vpn(dword address, word page_mask_raw) {
     dword tmp = page_mask_raw | 0x1FFF;
-    dword vpn = address & ~tmp;
+    // bits 40 and 41: bits 62 and 63 of the address, the "region"
+    // bits 0 - 39: the low 40 bits of the address, the actual location being accessed.
+    dword vpn = address & 0xFFFFFFFFFF | ((address >> 22) & 0x30000000000);
 
+    // This function is also called for entry_hi, the low 8 bits of which are the ASID
+    // this is fine, this mask will take care of that.
+    vpn &= ~tmp;
     return vpn;
 }
 
@@ -40,13 +45,13 @@ void dump_tlb(dword vaddr) {
 tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t *entry = &N64CP0.tlb[i];
-        word entry_vpn = get_vpn(entry->entry_hi.raw, entry->page_mask.raw);
-        word vaddr_vpn = get_vpn(vaddr, entry->page_mask.raw);
+        dword entry_vpn = get_vpn(entry->entry_hi.raw, entry->page_mask.raw);
+        dword vaddr_vpn = get_vpn(vaddr, entry->page_mask.raw);
 
-        bool vaddr_match = entry_vpn == vaddr_vpn;
+        bool vpn_match = entry_vpn == vaddr_vpn;
         bool asid_match = entry->global || (N64CP0.entry_hi.asid == entry->entry_hi.asid);
 
-        if (vaddr_match && asid_match) {
+        if (vpn_match && asid_match) {
             if (entry_number) {
                 *entry_number = i;
             }

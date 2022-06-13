@@ -83,7 +83,7 @@ INLINE void set_cp0_register_word(byte r, word value) {
             N64CPU.cp0.entry_lo1.raw = value & CP0_ENTRY_LO_WRITE_MASK;
             break;
         case R4300I_CP0_REG_ENTRYHI:
-            N64CPU.cp0.entry_hi.raw = value & CP0_ENTRY_HI_WRITE_MASK;
+            N64CPU.cp0.entry_hi.raw = se_32_64(value) & CP0_ENTRY_HI_WRITE_MASK;
             break;
         case R4300I_CP0_REG_PAGEMASK:
             N64CPU.cp0.page_mask.raw = value & CP0_PAGEMASK_WRITE_MASK;

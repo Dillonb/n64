@@ -39,14 +39,14 @@ INLINE bool resolve_virtual_address_32bit(word address, bus_access_t bus_access,
         case 0x1:
         case 0x2:
         case 0x3: {
-            return tlb_probe(address, bus_access, physical, NULL);
+            return tlb_probe(se_32_64(address), bus_access, physical, NULL);
         }
         // KSSEG
         case 0x6:
             logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", address);
         // KSEG3
         case 0x7:
-            return tlb_probe(address, bus_access, physical, NULL);
+            return tlb_probe(se_32_64(address), bus_access, physical, NULL);
         default:
             logfatal("PANIC! should never end up here.");
     }
@@ -56,7 +56,7 @@ INLINE bool resolve_virtual_address_32bit(word address, bus_access_t bus_access,
 INLINE bool resolve_virtual_address_user_32bit(word address, bus_access_t bus_access, word* physical) {
     switch (address) {
         case VREGION_KUSEG:
-            return tlb_probe(address, bus_access, physical, NULL);
+            return tlb_probe(se_32_64(address), bus_access, physical, NULL);
         default:
             N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
             return false;
