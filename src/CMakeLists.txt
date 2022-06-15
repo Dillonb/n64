@@ -9,6 +9,7 @@ add_subdirectory(debugger)
 add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
+add_subdirectory(contrib/nativefiledialog-extended)
 add_subdirectory(tools)
 
 add_library(core
@@ -45,9 +46,10 @@ target_include_directories(imgui-ui PUBLIC
         contrib/parallel-rdp/parallel-rdp-standalone/volk
         contrib/parallel-rdp/parallel-rdp-standalone/vulkan
         contrib/parallel-rdp/parallel-rdp-standalone/util
+        contrib/nativefiledialog-extended/src/include
         )
 
-target_link_libraries(imgui-ui imgui)
+target_link_libraries(imgui-ui imgui nfd)
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core imgui-ui)

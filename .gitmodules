@@ -4,3 +4,6 @@
 [submodule "src/contrib/parallel-rdp/parallel-rdp-standalone"]
 	path = src/contrib/parallel-rdp/parallel-rdp-standalone
 	url = https://github.com/Themaister/parallel-rdp-standalone.git
+[submodule "src/contrib/nativefiledialog-extended"]
+	path = src/contrib/nativefiledialog-extended
+	url = https://github.com/btzy/nativefiledialog-extended.git

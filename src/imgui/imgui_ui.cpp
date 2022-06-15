@@ -2,12 +2,12 @@
 #include <rdp/parallel_rdp_wrapper.h>
 #include <volk.h>
 #include <imgui.h>
-#include <imfilebrowser.h>
 #include <implot.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 #include <cstdio>
 #include <cstdlib>
+#include <nfd.hpp>
 
 #include <frontend/render_internal.h>
 #include <metrics.h>
@@ -63,15 +63,21 @@ RingBuffer<ImU64> dp_interrupts;
 RingBuffer<ImU64> sp_interrupts;
 
 
-ImGui::FileBrowser fileBrowser;
-
 void render_menubar() {
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("Load ROM")) {
-                fileBrowser.Open();
+                nfdchar_t* rom_path;
+                nfdfilteritem_t filters[] = {{"N64 ROMs", "n64,v64,z64,N64,V64,Z64"}};
+                if(NFD_OpenDialog(&rom_path, filters, 1, nullptr) == NFD_OKAY) {
+                    reset_n64system();
+                    n64_load_rom(rom_path);
+                    NFD_FreePath(rom_path);
+                    pif_rom_execute();
+                }
+
             }
 
             if (ImGui::MenuItem("Save RDRAM dump (big endian)")) {
@@ -224,14 +230,6 @@ void render_ui() {
     if (show_metrics_window) { render_metrics_window(); }
     if (show_imgui_demo_window) { ImGui::ShowDemoWindow(&show_imgui_demo_window); }
     if (show_settings_window) { render_settings_window(); }
-
-    fileBrowser.Display();
-    if (fileBrowser.HasSelected()) {
-        reset_n64system();
-        n64_load_rom(fileBrowser.GetSelected().string().c_str());
-        pif_rom_execute();
-        fileBrowser.ClearSelected();
-    }
 }
 
 static VkAllocationCallbacks*   g_Allocator = NULL;
@@ -384,8 +382,7 @@ void load_imgui_ui() {
         submit_requested_vk_command_buffer();
     }
 
-    fileBrowser.SetTitle("Load ROM");
-    fileBrowser.SetTypeFilters({".n64", ".v64", ".z64", ".N64", ".V64", ".Z64"});
+    NFD_Init();
 }
 
 ImDrawData* imgui_frame() {
