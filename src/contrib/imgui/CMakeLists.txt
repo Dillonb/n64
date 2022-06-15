@@ -9,8 +9,6 @@ add_library(imgui
         implot_items.cpp
         implot.cpp implot.h implot_internal.h
 
-        imfilebrowser.h
-
         imgui_impl_vulkan.cpp imgui_impl_vulkan.h
         imgui_impl_sdl.cpp imgui_impl_sdl.h
 
