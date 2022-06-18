@@ -192,7 +192,6 @@ INLINE word get_cp0_register_word(byte r) {
         case R4300I_CP0_REG_COUNT:
             return get_cp0_count();
         case R4300I_CP0_REG_ENTRYHI:
-            unimplemented(N64CPU.cp0.is_64bit_addressing, "entryhi read as word in 64 bit mode");
             return N64CPU.cp0.entry_hi.raw;
         case R4300I_CP0_REG_COMPARE:
             return N64CPU.cp0.compare;

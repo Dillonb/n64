@@ -67,8 +67,8 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
     switch (address) {
         case REGION_XKUSEG:
             return tlb_probe(address, bus_access, physical, NULL);
-    case REGION_XKSSEG:
-            logfatal("Resolving virtual address 0x%016lX (REGION_XKSSEG) in 64 bit mode", address);
+        case REGION_XKSSEG:
+            return tlb_probe(address, bus_access, physical, NULL);
         case REGION_XKPHYS: {
             if (!N64CP0.kernel_mode) {
                 logfatal("Access to XKPHYS address 0x%016lX when outside kernel mode!", address);

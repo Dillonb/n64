@@ -50,18 +50,34 @@ const char* cp0_register_names[] = {
 
 r4300i_t n64cpu;
 
+INLINE bool is_xtlb(dword address) {
+    byte region = (address >> 62) & 3;
+    switch (region) {
+        case 0b00: // user
+            return N64CP0.status.ux;
+        case 0b01: // supervisor
+            return N64CP0.status.sx;
+        case 0b11: // kernel
+            return N64CP0.status.kx;
+        default:
+            return false;
+    }
+}
+
 // pc = pc of the instruction where execution was when the exception was thrown
 void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
     bool old_exl = N64CP0.status.exl; // used for TLB exceptions since exl is overwritten later
-    loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
+    loginfo("Exception thrown! Code: %d Coprocessor: %d bd: %d old_exl: %d", code, coprocessor_error, N64CPU.prev_branch, old_exl);
     // In a branch delay slot, set EPC to the BRANCH PRECEDING the slot.
     // This is so the exception handler can re-execute the branch on return.
-    if (N64CPU.prev_branch) {
-        unimplemented(N64CPU.cp0.status.exl, "handling branch delay when exl == true");
-        N64CPU.cp0.cause.branch_delay = true; // So the exception handler knows it needs to re-execute a branch
-        pc -= 4; // rolls PC back to point at the branch
-    } else {
-        N64CPU.cp0.cause.branch_delay = false;
+    if (!old_exl) {
+        if (N64CPU.prev_branch) {
+            unimplemented(N64CPU.cp0.status.exl, "handling branch delay when exl == true");
+            N64CPU.cp0.cause.branch_delay = true; // So the exception handler knows it needs to re-execute a branch
+            pc -= 4; // rolls PC back to point at the branch
+        } else {
+            N64CPU.cp0.cause.branch_delay = false;
+        }
     }
 
     // If we're not already handling another exception....
@@ -99,7 +115,7 @@ void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
             case EXCEPTION_TLB_MISS_STORE:
                 if (old_exl || N64CP0.tlb_error == TLB_ERROR_INVALID) {
                     set_pc_word_r4300i(0x80000180);
-                } else if (N64CP0.is_64bit_addressing){
+                } else if (is_xtlb(N64CP0.bad_vaddr)){
                     set_pc_word_r4300i(0x80000080);
                 } else {
                     set_pc_word_r4300i(0x80000000);
@@ -111,6 +127,7 @@ void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
     }
     cp0_status_updated();
     N64CPU.exception = true; // For dynarec
+    loginfo("Exception handled, PC is now %016lX", N64CPU.pc);
 }
 
 INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr) {
