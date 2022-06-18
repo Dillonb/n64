@@ -161,23 +161,26 @@ INLINE int sign_extend_7bit_offset(byte offset, int shift_amount) {
 }
 
 word rcp(sword sinput) {
-    if (sinput == 0) {
+    // One's complement absolute value, xor with the sign bit to invert all bits if the sign bit is set
+    sword mask = sinput >> 31;
+    sword input = sinput ^ mask;
+    if (input > INT16_MIN) {
+        input -= mask;
+    }
+    if (input == 0) {
         return 0x7FFFFFFF;
+    } else if (sinput == INT16_MIN) {
+        return 0xFFFF0000;
     }
 
-    word input = abs(sinput);
-    int lshift = CLZ(input) + 1;
-    int rshift = 32 - lshift;
-    int index = (input << lshift) >> 23;
+    word shift = CLZ(input);
+    dword dinput = (dword)input;
+    word index = ((dinput << shift) & 0x7FC00000) >> 22;
 
-    word rom = rcp_rom[index];
-    word result = ((0x10000 | rom) << 14) >> rshift;
-
-    if (input != sinput) {
-        return ~result;
-    } else {
-        return result;
-    }
+    sword result = rcp_rom[index];
+    result = (0x10000 | result) << 14;
+    result = (result >> (31 - shift)) ^ mask;
+    return result;
 }
 
 word rsq(sword sinput) {
@@ -1337,7 +1340,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     input = vt->signed_elements[VU_ELEM_INDEX(e)];
-    word result = rcp(input);
+    sword result = rcp(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin_loaded = false;
@@ -1359,11 +1362,11 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     if (N64RSP.divin_loaded) {
-        input = (N64RSP.divin << 16) | vt->elements[VU_ELEM_INDEX(e)];
+        input = ((sword)N64RSP.divin << 16) | vt->elements[VU_ELEM_INDEX(e)];
     } else {
         input = vt->signed_elements[VU_ELEM_INDEX(e)];
     }
-    word result = rcp(input);
+    sword result = rcp(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin = 0;
