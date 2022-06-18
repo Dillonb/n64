@@ -68,9 +68,11 @@ INLINE bool is_xtlb(dword address) {
 void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
     bool old_exl = N64CP0.status.exl; // used for TLB exceptions since exl is overwritten later
     loginfo("Exception thrown! Code: %d Coprocessor: %d bd: %d old_exl: %d", code, coprocessor_error, N64CPU.prev_branch, old_exl);
-    // In a branch delay slot, set EPC to the BRANCH PRECEDING the slot.
-    // This is so the exception handler can re-execute the branch on return.
-    if (!old_exl) {
+
+    // If we're not already handling another exception....
+    if (!N64CP0.status.exl) {
+        // In a branch delay slot, set EPC to the BRANCH PRECEDING the slot.
+        // This is so the exception handler can re-execute the branch on return.
         if (N64CPU.prev_branch) {
             unimplemented(N64CPU.cp0.status.exl, "handling branch delay when exl == true");
             N64CPU.cp0.cause.branch_delay = true; // So the exception handler knows it needs to re-execute a branch
@@ -78,10 +80,7 @@ void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
         } else {
             N64CPU.cp0.cause.branch_delay = false;
         }
-    }
 
-    // If we're not already handling another exception....
-    if (!N64CPU.cp0.status.exl) {
         // Save the return value for ERET
         N64CPU.cp0.EPC = pc;
         N64CPU.cp0.status.exl = true; // Mark that an exception is being handled
