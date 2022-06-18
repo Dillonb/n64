@@ -45,17 +45,19 @@ void dump_tlb(dword vaddr) {
 tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t *entry = &N64CP0.tlb[i];
-        dword entry_vpn = get_vpn(entry->entry_hi.raw, entry->page_mask.raw);
-        dword vaddr_vpn = get_vpn(vaddr, entry->page_mask.raw);
+        if (entry->initialized) {
+            dword entry_vpn = get_vpn(entry->entry_hi.raw, entry->page_mask.raw);
+            dword vaddr_vpn = get_vpn(vaddr, entry->page_mask.raw);
 
-        bool vpn_match = entry_vpn == vaddr_vpn;
-        bool asid_match = entry->global || (N64CP0.entry_hi.asid == entry->entry_hi.asid);
+            bool vpn_match = entry_vpn == vaddr_vpn;
+            bool asid_match = entry->global || (N64CP0.entry_hi.asid == entry->entry_hi.asid);
 
-        if (vpn_match && asid_match) {
-            if (entry_number) {
-                *entry_number = i;
+            if (vpn_match && asid_match) {
+                if (entry_number) {
+                    *entry_number = i;
+                }
+                return entry;
             }
-            return entry;
         }
     }
     return NULL;

@@ -85,7 +85,8 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
             // If any bits in the range of 58:32 are set, the address is invalid.
             bool valid = (address & 0x07FFFFFF00000000) == 0;
             if (!valid) {
-                logfatal("Invalid XKPHYS address 0x%016lX! bits in the range of 58:32 are set.", address);
+                N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
+                return false;
             }
             *physical = address & 0xFFFFFFFF;
             break;
@@ -111,7 +112,8 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
         case REGION_XBAD1:
         case REGION_XBAD2:
         case REGION_XBAD3:
-            logfatal("Resolving BAD virtual address 0x%016lX in 64 bit mode", address);
+            N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
+            return false;
         default:
             logfatal("Resolving virtual address 0x%016lX in 64 bit mode", address);
     }

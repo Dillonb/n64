@@ -27,6 +27,8 @@ INLINE void tlbwi(int index) {
 
     N64CP0.tlb[index].global = N64CP0.entry_lo0.g && N64CP0.entry_lo1.g;
 
+    N64CP0.tlb[index].initialized = true;
+
 }
 
 // Loads the contents of the pfn Hi, pfn Lo0, pfn Lo1, and page mask

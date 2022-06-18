@@ -376,6 +376,7 @@ ASSERTDWORD(cp0_entry_hi_t);
 
 
 typedef struct tlb_entry {
+    bool initialized;
     union {
         struct {
             unsigned:1;
@@ -413,7 +414,6 @@ typedef struct tlb_entry {
 
     // "parsed"
     bool global;
-
 } tlb_entry_t;
 
 typedef union watch_lo {
