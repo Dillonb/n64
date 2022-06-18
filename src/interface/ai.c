@@ -1,7 +1,7 @@
 #include "ai.h"
 #include <mem/addresses.h>
 #include <frontend/audio.h>
-#include <mem/n64bus.h>
+#include <mem/mem_util.h>
 
 INLINE int MAX(int x, int y) {
     if (x > y) return x;
@@ -81,7 +81,7 @@ void sample() {
 
     word address_hi = ((n64sys.ai.dma_address[0] >> 13) + n64sys.ai.dma_address_carry) & 0x7ff;
     n64sys.ai.dma_address[0] = (address_hi << 13) | n64sys.ai.dma_address[0] & 0x1fff;
-    word data = n64_read_physical_word(n64sys.ai.dma_address[0]);
+    word data = RDRAM_WORD(n64sys.ai.dma_address[0]);
 
     shalf left  = data >> 16;
     shalf right = data >>  0;

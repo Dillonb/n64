@@ -104,6 +104,9 @@
 #define BYTE_ADDRESS(addr) ((addr) ^ 3)
 #endif
 
+#define RDRAM_BYTE(addr) n64sys.mem.rdram[(BYTE_ADDRESS(addr) & (N64_RDRAM_SIZE - 1))]
+#define RDRAM_WORD(addr) ((word*)n64sys.mem.rdram)[(WORD_ADDRESS(addr) & (N64_RDRAM_SIZE - 1)) >> 2]
+#define CART_BYTE(addr) n64sys.mem.rom.rom[(BYTE_ADDRESS((addr) - SREGION_CART_1_2))]
 
 INLINE dword dword_from_byte_array(byte* arr, word index) {
 #ifdef N64_BIG_ENDIAN

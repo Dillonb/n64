@@ -6,6 +6,7 @@
 #include <cpu/mips_instructions.h>
 #include <cpu/r4300i_register_access.h>
 #include <mem/n64bus.h>
+#include <mem/mem_util.h>
 
 #define MAX_STEPS 100000000
 #define TEST_FAILED_REGISTER 30
@@ -38,7 +39,7 @@ int main(int argc, char** argv) {
     // Normally handled by the bootcode, we gotta do it ourselves.
     for (int i = 0; i < 1048576; i++) {
         byte b = n64_read_physical_byte(0x10001000 + i);
-        n64_write_physical_byte(0x00001000 + i, b);
+        RDRAM_BYTE(0x00001000 + i) = b;
     }
 
     set_pc_word_r4300i(n64sys.mem.rom.header.program_counter);

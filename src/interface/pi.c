@@ -1,6 +1,6 @@
 #include <mem/addresses.h>
 #include <system/n64system.h>
-#include <mem/n64bus.h>
+#include <mem/mem_util.h>
 #include <system/scheduler.h>
 #include "pi.h"
 
@@ -76,9 +76,9 @@ void write_word_pireg(word address, word value) {
 
             // TODO: takes 9 cycles per byte to run in reality
             for (int i = 0; i < length; i++) {
-                byte b = n64_read_physical_byte(dram_addr + i);
+                byte b = RDRAM_BYTE(dram_addr + i);
                 logtrace("DRAM to CART: Copying 0x%02X from 0x%08X to 0x%08X", b, dram_addr + i, cart_addr + i);
-                n64_write_physical_byte(cart_addr + i, b);
+                CART_BYTE(cart_addr + i) = b;
             }
 
             int complete_in = length * PI_DMA_CYCLES_PER_BYTE;
@@ -112,9 +112,9 @@ void write_word_pireg(word address, word value) {
             }
 
             for (int i = 0; i < length; i++) {
-                byte b = n64_read_physical_byte(cart_addr + i);
+                byte b = CART_BYTE(cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
-                n64_write_physical_byte(dram_addr + i, b);
+                RDRAM_BYTE(dram_addr + i) = b;
             }
 
             int complete_in = length * PI_DMA_CYCLES_PER_BYTE;

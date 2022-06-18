@@ -1,7 +1,7 @@
 #include <util.h>
 #include <log.h>
 #include <mem/pif.h>
-#include <mem/n64bus.h>
+#include <mem/mem_util.h>
 #include <system/scheduler.h>
 #include "si.h"
 
@@ -15,7 +15,7 @@ void pif_to_dram(word pif_address, word dram_address) {
 
     for (int i = 0; i < 64; i++) {
         byte value = n64sys.mem.pif_ram[i];
-        n64_write_physical_byte(dram_address + i, value);
+        RDRAM_BYTE(dram_address + i) = value;
     }
 }
 
@@ -24,7 +24,7 @@ void dram_to_pif(word dram_address, word pif_address) {
         logfatal("DRAM to PIF on unaligned address");
     }
     for (int i = 0; i < 64; i++) {
-        n64sys.mem.pif_ram[i] = n64_read_physical_byte(dram_address + i);
+        n64sys.mem.pif_ram[i] = RDRAM_BYTE(dram_address + i);
     }
     process_pif_command();
 }

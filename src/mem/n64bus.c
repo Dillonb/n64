@@ -742,6 +742,7 @@ half n64_read_physical_half(word address) {
         case REGION_CART_2_2:
             logfatal("Reading half from address 0x%08X in unsupported region: REGION_CART_2_2", address);
         case REGION_CART_1_2: {
+            address = (address + 2) & ~3; // round to nearest 4 byte boundary
             word index = HALF_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size - 1) { // -1 because we're reading an entire half
                 logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
@@ -875,6 +876,8 @@ byte n64_read_physical_byte(word address) {
         case REGION_CART_2_2:
             return backup_read_byte(address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
+            // round to nearest 4 byte boundary, keeping old LSB
+            address = (address + 2) & ~2;
             word index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size) {
                 logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
