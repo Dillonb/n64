@@ -339,12 +339,13 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
     logdebug("rsp_lwc2_ltv");
     word base = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
+    base &= ~7;
     byte e = instruction.v.element;
 
     for (int i = 0; i < 8; i++) {
         word address = base;
 
-        word offset = (i * 2) + e;
+        word offset = (i * 2) + e + ((base) & 8);
 
         half hi = n64_rsp_read_byte(address + ((offset + 0) & 0xF));
         half lo = n64_rsp_read_byte(address + ((offset + 1) & 0xF));
@@ -1331,6 +1332,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     logdebug("rsp_vec_vrcp");
     defvd;
     defvt;
+    defvte;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
@@ -1338,7 +1340,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     word result = rcp(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
-    defvte;
+    N64RSP.divin_loaded = false;
 #ifdef N64_USE_SIMD
     N64RSP.acc.l.single = vte.single;
 #else
@@ -1352,6 +1354,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     logdebug("rsp_vec_vrcpl");
     defvd;
     defvt;
+    defvte;
     sword input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
@@ -1365,7 +1368,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin = 0;
     N64RSP.divin_loaded = false;
-    defvte;
 #ifdef N64_USE_SIMD
     N64RSP.acc.l.single = vte.single;
 #else
@@ -1397,6 +1399,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     word result = rsq(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
+    N64RSP.divin_loaded = false;
 
 #ifdef N64_USE_SIMD
     N64RSP.acc.l.single = vte.single;
