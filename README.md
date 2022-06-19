@@ -1,4 +1,4 @@
-# n64
+# dgb-n64
 Experimental low-level N64 emulator written in C and a bit of C++.
 
 Still under heavy development and not ready for prime time. Compatibility is not high and performance is not great (yet.)
