@@ -229,7 +229,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
         }
 #ifdef N64_DEBUG_MODE
         else {
-            check_exception_sanity(Dst, block_length + block_extra_cycles);
+            check_exception_sanity(Dst, block_length + block_extra_cycles, instr);
         }
 #endif
 

@@ -113,13 +113,24 @@ void set_prev_branch_flag(dasm_State** Dst, bool value) {
     | mov cpu_state->prev_branch, al
 }
 
+void missing_exception_check_handler(mips_instruction_t instr) {
+    char buf[50];
+    disassemble(N64CPU.pc, instr.raw, buf, 50);
+    logfatal("Instruction %s (note: addresses will be wrong) [%08X] was marked as not throwing exceptions in the JIT, but it did!", buf, instr.raw);
+}
+
 #ifdef N64_DEBUG_MODE
-void check_exception_sanity(dasm_State** Dst, word block_length) {
+void check_exception_sanity(dasm_State** Dst, word block_length, mips_instruction_t instr) {
+    uintptr_t handler = (uintptr_t) &missing_exception_check_handler;
     // If an instruction is marked as not throwing an exception, check it anyway in debug mode.
     | mov al, cpu_state->exception
     | cmp al, 0
     | je >1
-    | int3
+    | prepcall1 instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 1
     |1:
 }
 #endif
