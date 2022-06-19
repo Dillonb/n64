@@ -2,6 +2,7 @@
 #include <system/n64system.h>
 #include <mem/mem_util.h>
 #include <system/scheduler.h>
+#include <mem/backup.h>
 #include "pi.h"
 
 // 9 cycles measured through $Count
@@ -46,6 +47,50 @@ word read_word_pireg(word address) {
     }
 }
 
+byte dma_cart_read_byte(word address) {
+    switch (address) {
+        case REGION_CART_2_1:
+            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
+        case REGION_CART_1_1:
+            logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning 0xFF because it is not emulated", address);
+            return 0xFF;
+        case REGION_CART_2_2:
+            return backup_read_byte(address - SREGION_CART_2_2);
+        case REGION_CART_1_2: {
+            word index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
+            if (index > n64sys.mem.rom.size) {
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                return 0xFF;
+            }
+            return n64sys.mem.rom.rom[index];
+        }
+        default:
+            logfatal("PI DMA tried to read from %08X", address);
+    }
+}
+
+void dma_cart_write_byte(word address, byte value) {
+    switch (address) {
+        case REGION_CART_2_1:
+            if (address == 0x05000020) {
+                printf("%c", value);
+            } else {
+                logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD! [%08X]=0x%02X", address, value);
+            }
+            return;
+        case REGION_CART_1_1:
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+        case REGION_CART_2_2:
+            backup_write_byte(address - SREGION_CART_2_2, value);
+            return;
+        case REGION_CART_1_2:
+            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            break;
+        default:
+            logfatal("PI DMA tried to write %02X to %08X", value, address);
+    }
+}
+
 void write_word_pireg(word address, word value) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
@@ -78,7 +123,7 @@ void write_word_pireg(word address, word value) {
             for (int i = 0; i < length; i++) {
                 byte b = RDRAM_BYTE(dram_addr + i);
                 logtrace("DRAM to CART: Copying 0x%02X from 0x%08X to 0x%08X", b, dram_addr + i, cart_addr + i);
-                CART_BYTE(cart_addr + i) = b;
+                dma_cart_write_byte(cart_addr + i, b);
             }
 
             int complete_in = length * PI_DMA_CYCLES_PER_BYTE;
@@ -112,7 +157,7 @@ void write_word_pireg(word address, word value) {
             }
 
             for (int i = 0; i < length; i++) {
-                byte b = CART_BYTE(cart_addr + i);
+                byte b = dma_cart_read_byte(cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
                 RDRAM_BYTE(dram_addr + i) = b;
             }

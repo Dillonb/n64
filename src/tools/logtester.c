@@ -370,7 +370,7 @@ int run_system_and_check(long taken, char* line, long linenum) {
         logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08lX\n", linenum, taken, expected_pc, cpu->pc);
     }
 
-    logalways("Synchronized at PC=0x%08X, checking registers", cpu->pc);
+    logalways("Synchronized at PC=0x%016lX, checking registers", cpu->pc);
 
     for (int r = 0; r < 32; r++) {
         tok = strtok(NULL, " ");

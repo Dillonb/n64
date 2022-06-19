@@ -104,9 +104,17 @@
 #define BYTE_ADDRESS(addr) ((addr) ^ 3)
 #endif
 
+INLINE size_t safe_cart_byte_index(word addr, size_t rom_size) {
+    word index = BYTE_ADDRESS(addr & 0xFFFFFFF);
+    if (unlikely(index > rom_size)) {
+        logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", addr, index, index);
+    }
+    return index;
+}
+
 #define RDRAM_BYTE(addr) n64sys.mem.rdram[(BYTE_ADDRESS(addr) & (N64_RDRAM_SIZE - 1))]
 #define RDRAM_WORD(addr) ((word*)n64sys.mem.rdram)[(WORD_ADDRESS(addr) & (N64_RDRAM_SIZE - 1)) >> 2]
-#define CART_BYTE(addr) n64sys.mem.rom.rom[(BYTE_ADDRESS((addr) - SREGION_CART_1_2))]
+#define CART_BYTE(addr, rom_size) n64sys.mem.rom.rom[safe_cart_byte_index(addr, rom_size)]
 
 INLINE dword dword_from_byte_array(byte* arr, word index) {
 #ifdef N64_BIG_ENDIAN
