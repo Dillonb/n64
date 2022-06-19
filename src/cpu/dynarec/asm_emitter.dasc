@@ -445,6 +445,11 @@ IR_INFO(mips_spc_dsubu, NORMAL, R_TYPE, false);
 
 COMP(mips_spc_teq, NORMAL, true);
 COMP(mips_spc_break, NORMAL, true);
+COMP(mips_spc_tge, NORMAL, true);
+COMP(mips_spc_tgeu, NORMAL, true);
+COMP(mips_spc_tlt, NORMAL, true);
+COMP(mips_spc_tltu, NORMAL, true);
+COMP(mips_spc_tne, NORMAL, true);
 
 COMPILER(mips_spc_dsll) {
     BAILZERO(instr.r.rd);
@@ -492,30 +497,35 @@ COMPILER(mips_spc_dsra32) {
 IR_INFO(mips_spc_dsra32, NORMAL, SHIFT_CONST, false);
 
 // Load-stores
-COMP(mips_lbu, NORMAL, false);
-COMP(mips_lhu, NORMAL, false);
-COMP(mips_lh, NORMAL, false);
+COMP(mips_lbu, NORMAL, true);
+COMP(mips_lhu, NORMAL, true);
+COMP(mips_lh, NORMAL, true);
 COMP(mips_lw, NORMAL, true);
-COMP(mips_lwu, NORMAL, false);
-COMP(mips_sb, STORE, false);
-COMP(mips_sh, STORE, false);
-COMP(mips_sw, STORE, false);
-COMP(mips_sd, STORE, false);
-COMP(mips_lb, NORMAL, false);
+COMP(mips_lwu, NORMAL, true);
+COMP(mips_sb, STORE, true);
+COMP(mips_sh, STORE, true);
+COMP(mips_sw, STORE, true);
+COMP(mips_sd, STORE, true);
+COMP(mips_lb, NORMAL, true);
 COMP(mips_lui, NORMAL, false);
-COMP(mips_ld, NORMAL, false);
+COMP(mips_ld, NORMAL, true);
 COMP(mips_ldc1, NORMAL, true);
 COMP(mips_sdc1, STORE, true);
 COMP(mips_lwc1, NORMAL, true);
 COMP(mips_swc1, STORE, true);
-COMP(mips_lwl, NORMAL, false);
-COMP(mips_lwr, NORMAL, false);
-COMP(mips_swl, STORE, false);
-COMP(mips_swr, STORE, false);
-COMP(mips_ldl, NORMAL, false);
-COMP(mips_ldr, NORMAL, false);
-COMP(mips_sdl, STORE, false);
-COMP(mips_sdr, STORE, false);
+COMP(mips_lwl, NORMAL, true);
+COMP(mips_lwr, NORMAL, true);
+COMP(mips_swl, STORE, true);
+COMP(mips_swr, STORE, true);
+COMP(mips_ldl, NORMAL, true);
+COMP(mips_ldr, NORMAL, true);
+COMP(mips_sdl, STORE, true);
+COMP(mips_sdr, STORE, true);
+COMP(mips_ll, NORMAL, true);
+COMP(mips_lld, NORMAL, true);
+COMP(mips_sc, NORMAL, true);
+COMP(mips_scd, NORMAL, true);
+COMP(mips_invalid, NORMAL, true);
 
 // Unoptimized branches
 COMP(mips_beql, BRANCH_LIKELY, false);
@@ -533,6 +543,13 @@ COMP(mips_ri_bltzal, BRANCH, false);
 COMP(mips_ri_bgez, BRANCH, false);
 COMP(mips_ri_bgezl, BRANCH_LIKELY, false);
 COMP(mips_ri_bgezal, BRANCH, false);
+COMP(mips_ri_bgezall, BRANCH, false);
+COMP(mips_ri_tgei, NORMAL, true);
+COMP(mips_ri_tgeiu, NORMAL, true);
+COMP(mips_ri_tlti, NORMAL, true);
+COMP(mips_ri_tltiu, NORMAL, true);
+COMP(mips_ri_teqi, NORMAL, true);
+COMP(mips_ri_tnei, NORMAL, true);
 COMP(mips_spc_jr, BRANCH, false);
 COMP(mips_spc_jalr, BRANCH, false);
 COMP(mips_spc_syscall, NORMAL, true);
@@ -541,8 +558,11 @@ COMP(mips_cp_bc1fl, BRANCH_LIKELY, false);
 
 // Instructions that don't make too much sense to optimize
 COMP(mips_mfc0, NORMAL, false);
+COMP(mips_dmfc0, NORMAL, false);
 COMP(mips_mtc0, NORMAL, true);
+COMP(mips_dmtc0, NORMAL, true);
 COMP(mips_tlbwi, TLB_WRITE, false);
+COMP(mips_tlbwr, TLB_WRITE, false);
 COMP(mips_tlbp, NORMAL, false);
 COMP(mips_tlbr, NORMAL, false);
 COMP(mips_eret, BLOCK_ENDER, false);
@@ -619,9 +639,11 @@ COMP(mips_cp_c_ult_s, NORMAL, true);
 INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, word address) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
-            CASEIR(COP_MF, mips_mfc0);
+            CASEIR(COP_MF,  mips_mfc0);
+            CASEIR(COP_DMF, mips_dmfc0);
             // Last 11 bits are 0
-            CASEIR(COP_MT, mips_mtc0);
+            CASEIR(COP_MT,  mips_mtc0);
+            CASEIR(COP_DMT, mips_dmtc0);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);
@@ -632,6 +654,7 @@ INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, word address) 
     } else {
         switch (instr.fr.funct) {
             CASEIR(COP_FUNCT_TLBWI_MULT, mips_tlbwi);
+            CASEIR(COP_FUNCT_TLBWR_MOV,  mips_tlbwr);
             CASEIR(COP_FUNCT_TLBP,       mips_tlbp);
             CASEIR(COP_FUNCT_TLBR_SUB,   mips_tlbr);
             CASEIR(COP_FUNCT_ERET,       mips_eret);
@@ -695,6 +718,11 @@ INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word addre
         CASEIR(FUNCT_DSRA32, mips_spc_dsra32);
         CASEIR(FUNCT_BREAK, mips_spc_break);
         CASEIR(FUNCT_SYNC, mips_nop);
+        CASEIR(FUNCT_TGE, mips_spc_tge);
+        CASEIR(FUNCT_TGEU, mips_spc_tgeu);
+        CASEIR(FUNCT_TLT, mips_spc_tlt);
+        CASEIR(FUNCT_TLTU, mips_spc_tltu);
+        CASEIR(FUNCT_TNE, mips_spc_tne);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -713,6 +741,13 @@ INLINE dynarec_ir_t* regimm_instruction_ir(mips_instruction_t instr, word addres
         CASEIR(RT_BGEZ, mips_ri_bgez);
         CASEIR(RT_BGEZL, mips_ri_bgezl);
         CASEIR(RT_BGEZAL, mips_ri_bgezal);
+        CASEIR(RT_BGEZALL, mips_ri_bgezall);
+        CASEIR(RT_TGEI, mips_ri_tgei);
+        CASEIR(RT_TGEIU, mips_ri_tgeiu);
+        CASEIR(RT_TLTI, mips_ri_tlti);
+        CASEIR(RT_TLTIU, mips_ri_tltiu);
+        CASEIR(RT_TEQI, mips_ri_teqi);
+        CASEIR(RT_TNEI, mips_ri_tnei);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -1021,6 +1056,11 @@ dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address) {
         CASEIR(OPC_LDR, mips_ldr);
         CASEIR(OPC_SDL, mips_sdl);
         CASEIR(OPC_SDR, mips_sdr);
+        CASEIR(OPC_LL,  mips_ll);
+        CASEIR(OPC_LLD, mips_lld);
+        CASEIR(OPC_SC, mips_sc);
+        CASEIR(OPC_SCD, mips_scd);
+        CASEIR(OPC_RDHWR, mips_invalid);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -1126,6 +1166,7 @@ COMP(rsp_spc_break, BLOCK_ENDER, false);
 COMP(rsp_ri_bltz, BRANCH, false);
 COMP(rsp_ri_bgez, BRANCH, false);
 COMP(rsp_ri_bgezal, BRANCH, false);
+COMP(rsp_ri_bltzal, BRANCH, false);
 
 COMP(rsp_lwc2_lbv, NORMAL, false);
 COMP(rsp_lwc2_ldv, NORMAL, false);
@@ -1150,6 +1191,8 @@ COMP(rsp_swc2_srv, NORMAL, false);
 COMP(rsp_swc2_ssv, NORMAL, false);
 COMP(rsp_swc2_stv, NORMAL, false);
 COMP(rsp_swc2_suv, NORMAL, false);
+
+COMP(rsp_nop, NORMAL, false);
 
 dynarec_ir_t* rsp_cp0_ir(mips_instruction_t instr, word address) {
     if (instr.last11 == 0) {
@@ -1222,6 +1265,28 @@ dynarec_ir_t* rsp_cp2_ir(mips_instruction_t instr, word address) {
             CASEIR(FUNCT_RSP_VEC_VSUB, rsp_vec_vsub);
             CASEIR(FUNCT_RSP_VEC_VSUBC, rsp_vec_vsubc);
             CASEIR(FUNCT_RSP_VEC_VXOR, rsp_vec_vxor);
+
+            // Undocumented
+            CASEIR(FUNCT_RSP_VEC_0x12, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x16, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x17, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x18, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x19, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1A, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1B, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1C, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1E, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1F, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x2E, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x2F, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x38, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x39, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3A, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3B, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3C, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3D, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3E, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3F, rsp_vec_vnop);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);
@@ -1279,6 +1344,7 @@ dynarec_ir_t* rsp_regimm_ir(mips_instruction_t instr, word address) {
         CASEIR(RT_BLTZ, rsp_ri_bltz);
         CASEIR(RT_BGEZ, rsp_ri_bgez);
         CASEIR(RT_BGEZAL, rsp_ri_bgezal);
+        CASEIR(RT_BLTZAL, rsp_ri_bltzal);
         default: {
             char buf[50];
             disassemble(address, instr.raw, buf, 50);
@@ -1301,6 +1367,7 @@ dynarec_ir_t* rsp_lwc2_ir(mips_instruction_t instr, word address) {
         CASEIR(LWC2_LSV, rsp_lwc2_lsv);
         CASEIR(LWC2_LTV, rsp_lwc2_ltv);
         CASEIR(LWC2_LUV, rsp_lwc2_luv);
+        CASEIR(LWC2_0xA, rsp_nop); // TODO: undocumented
         default:
             logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
     }
@@ -1319,6 +1386,7 @@ dynarec_ir_t* rsp_swc2_ir(mips_instruction_t instr, word address) {
         CASEIR(LWC2_LSV, rsp_swc2_ssv);
         CASEIR(LWC2_LTV, rsp_swc2_stv);
         CASEIR(LWC2_LUV, rsp_swc2_suv);
+        CASEIR(LWC2_0xA, rsp_nop); // TODO: undocumented
         default:
             logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);
     }
@@ -1337,6 +1405,7 @@ dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, word address) {
         CASEIR(OPC_LHU, rsp_lhu);
         CASEIR(OPC_LH, rsp_lh);
         CASEIR(OPC_LW, rsp_lw);
+        CASEIR(OPC_LWU, rsp_lw);
         CASEIR(OPC_BEQ, rsp_beq);
         CASEIR(OPC_BGTZ, rsp_bgtz);
         CASEIR(OPC_BLEZ, rsp_blez);
