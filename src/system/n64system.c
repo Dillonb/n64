@@ -160,7 +160,7 @@ void reset_n64system() {
     n64sys.ai.dac.precision = 16;
     n64sys.ai.dac.period = CPU_HERTZ / n64sys.ai.dac.frequency;
 
-    N64CP0.status.raw = 0;
+    N64CP0.status.raw = 0x241000E0;
     N64CP0.status.bev = true;
     cp0_status_updated();
     N64CP0.cause.raw  = 0xB000007C;
