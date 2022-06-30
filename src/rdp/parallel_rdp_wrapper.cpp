@@ -22,7 +22,7 @@ static WSI* wsi;
 std::vector<Semaphore> acquire_semaphore;
 
 VkQueue get_graphics_queue() {
-    return wsi->get_context().get_graphics_queue();
+    return wsi->get_context().get_queue_info().queues[QUEUE_INDEX_GRAPHICS];
 }
 
 VkInstance get_vk_instance() {
@@ -38,7 +38,7 @@ VkDevice get_vk_device() {
 }
 
 uint32_t get_vk_graphics_queue_family() {
-    return wsi->get_context().get_graphics_queue_family();
+    return wsi->get_context().get_queue_info().family_indices[QUEUE_INDEX_GRAPHICS];
 }
 
 VkFormat get_vk_format() {
