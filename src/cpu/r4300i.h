@@ -10,7 +10,27 @@
 
 // Exceptions
 #define EXCEPTION_INTERRUPT            0
+#define EXCEPTION_TLB_MODIFICATION     1
+#define EXCEPTION_TLB_MISS_LOAD        2
+#define EXCEPTION_TLB_MISS_STORE       3
+#define EXCEPTION_ADDRESS_ERROR_LOAD   4
+#define EXCEPTION_ADDRESS_ERROR_STORE  5
+#define EXCEPTION_BUS_ERROR_INS_FETCH  6
+#define EXCEPTION_BUS_ERROR_LOAD_STORE 7
+#define EXCEPTION_SYSCALL              8
+#define EXCEPTION_BREAKPOINT           9
+#define EXCEPTION_RESERVED_INSTR       10
 #define EXCEPTION_COPROCESSOR_UNUSABLE 11
+#define EXCEPTION_ARITHMETIC_OVERFLOW  12
+#define EXCEPTION_TRAP                 13
+#define EXCEPTION_FLOATING_POINT       15
+#define EXCEPTION_WATCH                23
+
+// FPU rounding modes
+#define R4300I_CP1_ROUND_NEAREST 0
+#define R4300I_CP1_ROUND_ZERO 1
+#define R4300I_CP1_ROUND_POSINF 2
+#define R4300I_CP1_ROUND_NEGINF 3
 
 #define R4300I_REG_LR 31
 
@@ -48,11 +68,11 @@
 #define R4300I_CP0_REG_31       31
 
 #define CP0_STATUS_WRITE_MASK 0xFF57FFFF
-#define CP0_CONFIG_WRITE_MASK 0x0FFFFFFF
+#define CP0_CONFIG_WRITE_MASK 0x0F00800F
 
 #define CPU_MODE_KERNEL 0
-#define CPU_MODE_SUPERVISOR 1 /* TODO this is probably wrong */
-#define CPU_MODE_USER 2 /* TODO this is probably wrong */
+#define CPU_MODE_SUPERVISOR 1
+#define CPU_MODE_USER 2
 
 #define OPC_CP0    0b010000
 #define OPC_CP1    0b010001
@@ -108,6 +128,8 @@
 #define OPC_SC     0b111000
 #define OPC_SCD    0b111100
 
+#define OPC_RDHWR  0b011111
+
 // Coprocessor
 #define COP_MF    0b00000
 #define COP_DMF   0b00001
@@ -130,11 +152,15 @@
 #define COP_FUNCT_DIV        0b000011
 #define COP_FUNCT_SQRT       0b000100
 #define COP_FUNCT_ABS        0b000101
-#define COP_FUNCT_MOV        0b000110
+#define COP_FUNCT_TLBWR_MOV  0b000110
 #define COP_FUNCT_TLBP       0b001000
+#define COP_FUNCT_ROUND_L    0b001000
 #define COP_FUNCT_TRUNC_L    0b001001
+#define COP_FUNCT_ROUND_W    0b001100
 #define COP_FUNCT_TRUNC_W    0b001101
+#define COP_FUNCT_FLOOR_W    0b001111
 #define COP_FUNCT_ERET       0b011000
+#define COP_FUNCT_WAIT       0b100000
 #define COP_FUNCT_CVT_S      0b100000
 #define COP_FUNCT_CVT_D      0b100001
 #define COP_FUNCT_CVT_W      0b100100
@@ -165,121 +191,141 @@
 #define FP_FMT_L      21
 
 // Special
-#define FUNCT_SLL    0b000000
-#define FUNCT_SRL    0b000010
-#define FUNCT_SRA    0b000011
-#define FUNCT_SRAV   0b000111
-#define FUNCT_SLLV   0b000100
-#define FUNCT_SRLV   0b000110
-#define FUNCT_JR     0b001000
-#define FUNCT_JALR   0b001001
-#define FUNCT_MFHI   0b010000
-#define FUNCT_MTHI   0b010001
-#define FUNCT_MFLO   0b010010
-#define FUNCT_MTLO   0b010011
-#define FUNCT_DSLLV  0b010100
-#define FUNCT_DSRLV  0b010110
-#define FUNCT_MULT   0b011000
-#define FUNCT_MULTU  0b011001
-#define FUNCT_DIV    0b011010
-#define FUNCT_DIVU   0b011011
-#define FUNCT_DMULT  0b011100
-#define FUNCT_DMULTU 0b011101
-#define FUNCT_DDIV   0b011110
-#define FUNCT_DDIVU  0b011111
-#define FUNCT_ADD    0b100000
-#define FUNCT_ADDU   0b100001
-#define FUNCT_AND    0b100100
-#define FUNCT_SUB    0b100010
-#define FUNCT_SUBU   0b100011
-#define FUNCT_OR     0b100101
-#define FUNCT_XOR    0b100110
-#define FUNCT_NOR    0b100111
-#define FUNCT_SLT    0b101010
-#define FUNCT_SLTU   0b101011
-#define FUNCT_DADD   0b101100
-#define FUNCT_DADDU  0b101101
-#define FUNCT_DSUBU  0b101111
-#define FUNCT_TEQ    0b110100
-#define FUNCT_TNE    0b110110
-#define FUNCT_DSLL   0b111000
-#define FUNCT_DSRL   0b111010
-#define FUNCT_DSRA   0b111011
-#define FUNCT_DSLL32 0b111100
-#define FUNCT_DSRL32 0b111110
-#define FUNCT_DSRA32 0b111111
+#define FUNCT_SLL     0b000000
+#define FUNCT_SRL     0b000010
+#define FUNCT_SRA     0b000011
+#define FUNCT_SRAV    0b000111
+#define FUNCT_SLLV    0b000100
+#define FUNCT_SRLV    0b000110
+#define FUNCT_JR      0b001000
+#define FUNCT_JALR    0b001001
+#define FUNCT_SYSCALL 0b001100
+#define FUNCT_SYNC    0b001111
+#define FUNCT_MFHI    0b010000
+#define FUNCT_MTHI    0b010001
+#define FUNCT_MFLO    0b010010
+#define FUNCT_MTLO    0b010011
+#define FUNCT_DSLLV   0b010100
+#define FUNCT_DSRLV   0b010110
+#define FUNCT_DSRAV   0b010111
+#define FUNCT_MULT    0b011000
+#define FUNCT_MULTU   0b011001
+#define FUNCT_DIV     0b011010
+#define FUNCT_DIVU    0b011011
+#define FUNCT_DMULT   0b011100
+#define FUNCT_DMULTU  0b011101
+#define FUNCT_DDIV    0b011110
+#define FUNCT_DDIVU   0b011111
+#define FUNCT_ADD     0b100000
+#define FUNCT_ADDU    0b100001
+#define FUNCT_AND     0b100100
+#define FUNCT_SUB     0b100010
+#define FUNCT_SUBU    0b100011
+#define FUNCT_OR      0b100101
+#define FUNCT_XOR     0b100110
+#define FUNCT_NOR     0b100111
+#define FUNCT_SLT     0b101010
+#define FUNCT_SLTU    0b101011
+#define FUNCT_DADD    0b101100
+#define FUNCT_DADDU   0b101101
+#define FUNCT_DSUB    0b101110
+#define FUNCT_DSUBU   0b101111
+#define FUNCT_TGE     0b110000
+#define FUNCT_TGEU    0b110001
+#define FUNCT_TLT     0b110010
+#define FUNCT_TLTU    0b110011
+#define FUNCT_TEQ     0b110100
+#define FUNCT_TNE     0b110110
+#define FUNCT_DSLL    0b111000
+#define FUNCT_DSRL    0b111010
+#define FUNCT_DSRA    0b111011
+#define FUNCT_DSLL32  0b111100
+#define FUNCT_DSRL32  0b111110
+#define FUNCT_DSRA32  0b111111
 
 #define FUNCT_BREAK 0b001101
 
 
 // REGIMM
-#define RT_BLTZ   0b00000
-#define RT_BLTZL  0b00010
-#define RT_BGEZ   0b00001
-#define RT_BGEZL  0b00011
-#define RT_BLTZAL 0b10000
-#define RT_BGEZAL 0b10001
+#define RT_BLTZ    0b00000
+#define RT_BLTZL   0b00010
+#define RT_BGEZ    0b00001
+#define RT_BGEZL   0b00011
+#define RT_TGEI    0b01000
+#define RT_TGEIU   0b01001
+#define RT_TLTI    0b01010
+#define RT_TLTIU   0b01011
+#define RT_TEQI    0b01100
+#define RT_TNEI    0b01110
+#define RT_BLTZAL  0b10000
+#define RT_BGEZAL  0b10001
+#define RT_BGEZALL 0b10011
+
+typedef enum bus_access {
+    BUS_LOAD,
+    BUS_STORE
+} bus_access_t;
 
 
 typedef union cp0_status {
     word raw;
     struct {
-        bool ie:1;
-        bool exl:1;
-        bool erl:1;
-        byte ksu:2;
-        bool ux:1;
-        bool sx:1;
-        bool kx:1;
-        byte im:8;
+        unsigned ie:1;
+        unsigned exl:1;
+        unsigned erl:1;
+        unsigned ksu:2;
+        unsigned ux:1;
+        unsigned sx:1;
+        unsigned kx:1;
+        unsigned im:8;
         unsigned ds:9;
-        bool re:1;
-        bool fr:1;
-        bool rp:1;
-        bool cu0:1;
-        bool cu1:1;
-        bool cu2:1;
-        bool cu3:1;
+        unsigned re:1;
+        unsigned fr:1;
+        unsigned rp:1;
+        unsigned cu0:1;
+        unsigned cu1:1;
+        unsigned cu2:1;
+        unsigned cu3:1;
     } PACKED;
     struct {
         unsigned:16;
-        bool de:1;
-        bool ce:1;
-        bool ch:1;
-        bool:1;
-        bool sr:1;
-        bool ts:1;
-        bool bev:1;
-        bool:1;
-        bool its:1;
+        unsigned de:1;
+        unsigned ce:1;
+        unsigned ch:1;
+        unsigned:1;
+        unsigned sr:1;
+        unsigned ts:1;
+        unsigned bev:1;
+        unsigned:1;
+        unsigned its:1;
         unsigned:7;
     } PACKED;
-} cp0_status_t;
+} PACKED cp0_status_t;
 
 ASSERTWORD(cp0_status_t);
 
 typedef union cp0_cause {
     struct {
-        byte:8;
-        byte interrupt_pending:8;
+        unsigned:8;
+        unsigned interrupt_pending:8;
         unsigned:16;
     };
     struct {
-        byte:2;
-        byte exception_code:5;
-        bool:1;
-        bool ip0:1;
-        bool ip1:1;
-        bool ip2:1;
-        bool ip3:1;
-        bool ip4:1;
-        bool ip5:1;
-        bool ip6:1;
-        bool ip7:1;
+        unsigned:2;
+        unsigned exception_code:5;
+        unsigned:1;
+        unsigned ip0:1;
+        unsigned ip1:1;
+        unsigned ip2:1;
+        unsigned ip3:1;
+        unsigned ip4:1;
+        unsigned ip5:1;
+        unsigned ip6:1;
+        unsigned ip7:1;
         unsigned:12;
-        byte coprocessor_error:2;
-        bool:1;
-        bool branch_delay:1;
+        unsigned coprocessor_error:2;
+        unsigned:1;
+        unsigned branch_delay:1;
     };
     word raw;
 } cp0_cause_t;
@@ -289,9 +335,9 @@ ASSERTWORD(cp0_cause_t);
 typedef union cp0_entry_lo {
     word raw;
     struct {
-        bool g:1;
-        bool v:1;
-        bool d:1;
+        unsigned g:1;
+        unsigned v:1;
+        unsigned d:1;
         unsigned c:3;
         unsigned pfn:20;
         unsigned:6;
@@ -313,37 +359,30 @@ ASSERTWORD(cp0_page_mask_t);
 
 typedef union cp0_entry_hi {
     struct {
-        unsigned asid:8;
-        unsigned:5;
-        unsigned vpn2:19;
-    };
-    word raw;
-} cp0_entry_hi_t;
-
-ASSERTWORD(cp0_entry_hi_t);
-
-#define CP0_ENTRY_HI_64_READ_MASK 0xC00000FFFFFFE0FF
-typedef union cp0_entry_hi_64 {
-    struct {
-        unsigned asid:8;
-        unsigned:5;
-        unsigned vpn2:27;
-        unsigned fill:22;
-        unsigned r:2;
+        dword asid:8;
+        dword:5;
+        dword vpn2:27;
+        dword fill:22;
+        dword r:2;
     } PACKED;
     dword raw;
-} cp0_entry_hi_64_t;
+} cp0_entry_hi_t;
 
-ASSERTDWORD(cp0_entry_hi_64_t);
+ASSERTDWORD(cp0_entry_hi_t);
+
+#define CP0_ENTRY_LO_WRITE_MASK 0x3FFFFFFF
+#define CP0_ENTRY_HI_WRITE_MASK 0xC00000FFFFFFE0FF
+#define CP0_PAGEMASK_WRITE_MASK 0x1FFE000
 
 
 typedef struct tlb_entry {
+    bool initialized;
     union {
         struct {
             unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
+            unsigned valid:1;
+            unsigned dirty:1;
+            unsigned c:3;
             unsigned pfn:20;
             unsigned:6;
         };
@@ -353,24 +392,16 @@ typedef struct tlb_entry {
     union {
         struct {
             unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
+            unsigned valid:1;
+            unsigned dirty:1;
+            unsigned c:3;
             unsigned pfn:20;
             unsigned:6;
         };
         word raw;
     } entry_lo1;
 
-    union {
-        word raw;
-        struct {
-            unsigned asid:8;
-            unsigned:4;
-            bool g:1;
-            unsigned vpn2:19;
-        };
-    } entry_hi;
+    cp0_entry_hi_t entry_hi;
 
     union {
         struct {
@@ -383,91 +414,78 @@ typedef struct tlb_entry {
 
     // "parsed"
     bool global;
-    bool valid;
-    byte asid;
-
 } tlb_entry_t;
-
-typedef struct tlb_entry_64 {
-    union {
-        struct {
-            unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
-            unsigned pfn:20;
-            unsigned long:38;
-        };
-        word raw;
-    } entry_lo0;
-
-    union {
-        struct {
-            unsigned:1;
-            bool valid:1;
-            bool dirty:1;
-            byte c:3;
-            unsigned pfn:20;
-            unsigned long:38;
-        };
-        word raw;
-    } entry_lo1;
-
-    union {
-        word raw;
-        struct {
-            unsigned asid:8;
-            unsigned:4;
-            bool g:1;
-            unsigned vpn2:27;
-            unsigned:22;
-            unsigned r:2;
-        };
-    } entry_hi;
-
-    union {
-        struct {
-            unsigned:13;
-            unsigned mask:12;
-            unsigned long:39;
-        };
-        dword raw;
-    } page_mask;
-
-    // "parsed"
-    bool global;
-    bool valid;
-    byte asid;
-    // not present in 32 bit TLB
-    byte region;
-} tlb_entry_64_t;
 
 typedef union watch_lo {
     word raw;
     struct {
-        bool w:1;
-        bool r:1;
-        bool:1;
+        unsigned w:1;
+        unsigned r:1;
+        unsigned:1;
         unsigned paddr0:29;
     };
 } watch_lo_t;
 
 ASSERTWORD(watch_lo_t);
 
+typedef union cp0_context {
+    dword raw;
+    struct {
+        dword:4;
+        dword badvpn2:19;
+        dword ptebase:41;
+    };
+} cp0_context_t;
+
+ASSERTDWORD(cp0_context_t);
+
+typedef union cp0_x_context {
+    dword raw;
+    struct {
+        dword:4;
+        dword badvpn2:27;
+        dword r:2;
+        dword ptebase:31;
+    } PACKED;
+} cp0_x_context_t;
+
+ASSERTDWORD(cp0_x_context_t);
+
+typedef enum tlb_error {
+    TLB_ERROR_NONE,
+    TLB_ERROR_MISS,
+    TLB_ERROR_INVALID,
+    TLB_ERROR_MODIFICATION,
+    TLB_ERROR_DISALLOWED_ADDRESS
+} tlb_error_t;
+
+static inline word get_tlb_exception_code(tlb_error_t error, bus_access_t bus_access) {
+    switch (error) {
+        case TLB_ERROR_NONE:
+            logfatal("Getting TLB exception code when no error occurred!");
+        case TLB_ERROR_INVALID:
+        case TLB_ERROR_MISS:
+            return bus_access == BUS_LOAD ? EXCEPTION_TLB_MISS_LOAD : EXCEPTION_TLB_MISS_STORE;
+        case TLB_ERROR_MODIFICATION:
+            return EXCEPTION_TLB_MODIFICATION;
+        case TLB_ERROR_DISALLOWED_ADDRESS:
+            return bus_access == BUS_LOAD ? EXCEPTION_ADDRESS_ERROR_LOAD : EXCEPTION_ADDRESS_ERROR_STORE;
+        default:
+            logfatal("Getting TLB exception code for error not in switch statement! (%d)", error);
+    }
+}
+
 typedef struct cp0 {
     word index;
     word random;
     cp0_entry_lo_t entry_lo0;
     cp0_entry_lo_t entry_lo1;
-    word context;
-    dword context_64;
+    cp0_context_t context;
     cp0_page_mask_t page_mask;
     word wired;
-    word r7;
-    word bad_vaddr;
+    dword bad_vaddr;
     dword count;
     cp0_entry_hi_t entry_hi;
-    cp0_entry_hi_64_t entry_hi_64;
     word compare;
     cp0_status_t status;
     cp0_cause_t cause;
@@ -477,21 +495,17 @@ typedef struct cp0 {
     word lladdr;
     watch_lo_t watch_lo;
     word watch_hi;
-    dword x_context;
-    word r21;
-    word r22;
-    word r23;
-    word r24;
-    word r25;
+    cp0_x_context_t x_context;
     word parity_error;
     word cache_error;
     word tag_lo;
     word tag_hi;
     dword error_epc;
-    word r31;
+
+    dword open_bus; // Last value written to any COP0 register
 
     tlb_entry_t    tlb[32];
-    tlb_entry_64_t tlb_64[32];
+    tlb_error_t tlb_error;
 
     bool kernel_mode;
     bool supervisor_mode;
@@ -507,33 +521,33 @@ typedef union fcr31 {
     word raw;
 
     struct {
-        byte rounding_mode:2;
-        bool flag_inexact_operation:1;
-        bool flag_underflow:1;
-        bool flag_overflow:1;
-        bool flag_division_by_zero:1;
-        bool flag_invalid_operation:1;
-        bool enable_inexact_operation:1;
-        bool enable_underflow:1;
-        bool enable_overflow:1;
-        bool enable_division_by_zero:1;
-        bool enable_invalid_operation:1;
-        bool cause_inexact_operation:1;
-        bool cause_underflow:1;
-        bool cause_overflow:1;
-        bool cause_division_by_zero:1;
-        bool cause_invalid_operation:1;
-        bool cause_unimplemented_operation:1;
+        unsigned rounding_mode:2;
+        unsigned flag_inexact_operation:1;
+        unsigned flag_underflow:1;
+        unsigned flag_overflow:1;
+        unsigned flag_division_by_zero:1;
+        unsigned flag_invalid_operation:1;
+        unsigned enable_inexact_operation:1;
+        unsigned enable_underflow:1;
+        unsigned enable_overflow:1;
+        unsigned enable_division_by_zero:1;
+        unsigned enable_invalid_operation:1;
+        unsigned cause_inexact_operation:1;
+        unsigned cause_underflow:1;
+        unsigned cause_overflow:1;
+        unsigned cause_division_by_zero:1;
+        unsigned cause_invalid_operation:1;
+        unsigned cause_unimplemented_operation:1;
         unsigned:5;
-        bool compare:1;
-        bool fs:1;
+        unsigned compare:1;
+        unsigned fs:1;
         unsigned:7;
-    };
+    } PACKED;
 
     struct {
         unsigned:7;
-        byte enable:5;
-        byte cause:6;
+        unsigned enable:5;
+        unsigned cause:6;
         unsigned:14;
     } PACKED;
 } fcr31_t;
@@ -545,7 +559,7 @@ typedef union fgr {
     struct {
         word lo:32;
         word hi:32;
-    } __attribute__((packed));
+    } PACKED;
 } fgr_t;
 
 ASSERTDWORD(fgr_t);
@@ -574,55 +588,51 @@ typedef struct r4300i {
 
     // In a branch delay slot?
     bool branch;
+    bool prev_branch;
+    bool branch_likely_taken;
 
     // Did an exception just happen?
     bool exception;
-
-    byte (*read_byte)(dword);
-    void (*write_byte)(dword, byte);
-
-    half (*read_half)(dword);
-    void (*write_half)(dword, half);
-
-    word (*read_word)(dword);
-    void (*write_word)(dword, word);
-
-    dword (*read_dword)(dword);
-    void (*write_dword)(dword, dword);
-
-    word (*resolve_virtual_address)(dword, cp0_t*);
 } r4300i_t;
 
-typedef void(*mipsinstr_handler_t)(r4300i_t*, mips_instruction_t);
+extern r4300i_t n64cpu;
+#define N64CPU n64cpu
+#define N64CP0 N64CPU.cp0
 
-void r4300i_step(r4300i_t* cpu);
-void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error);
+typedef void(*mipsinstr_handler_t)(mips_instruction_t);
+
+void on_tlb_exception(dword address);
+void r4300i_step();
+void r4300i_handle_exception(dword pc, word code, int coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);
-void r4300i_interrupt_update(r4300i_t* cpu);
+void r4300i_interrupt_update();
+bool instruction_stable(mips_instruction_t instr);
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
 
-INLINE void set_pc_word_r4300i(r4300i_t* cpu, word new_pc) {
-    cpu->pc = (sdword)((sword)new_pc);
-    cpu->next_pc = cpu->pc + 4;
+INLINE void set_pc_word_r4300i(word new_pc) {
+    N64CPU.prev_pc = N64CPU.pc;
+    N64CPU.pc = (sdword)((sword)new_pc);
+    N64CPU.next_pc = N64CPU.pc + 4;
 }
 
-INLINE void set_pc_dword_r4300i(r4300i_t* cpu, dword new_pc) {
-    cpu->pc = new_pc;
-    cpu->next_pc = cpu->pc + 4;
+INLINE void set_pc_dword_r4300i(dword new_pc) {
+    N64CPU.prev_pc = N64CPU.pc;
+    N64CPU.pc = new_pc;
+    N64CPU.next_pc = N64CPU.pc + 4;
 }
 
-INLINE void cp0_status_updated(r4300i_t* cpu) {
-    bool exception = cpu->cp0.status.exl || cpu->cp0.status.erl;
+INLINE void cp0_status_updated() {
+    bool exception = N64CPU.cp0.status.exl || N64CPU.cp0.status.erl;
 
-    cpu->cp0.kernel_mode     =  exception || cpu->cp0.status.ksu == CPU_MODE_KERNEL;
-    cpu->cp0.supervisor_mode = !exception && cpu->cp0.status.ksu == CPU_MODE_SUPERVISOR;
-    cpu->cp0.user_mode       = !exception && cpu->cp0.status.ksu == CPU_MODE_USER;
-    cpu->cp0.is_64bit_addressing =
-            (cpu->cp0.kernel_mode && cpu->cp0.status.kx)
-            || (cpu->cp0.supervisor_mode && cpu->cp0.status.sx)
-               || (cpu->cp0.user_mode && cpu->cp0.status.ux);
+    N64CPU.cp0.kernel_mode     =  exception || N64CPU.cp0.status.ksu == CPU_MODE_KERNEL;
+    N64CPU.cp0.supervisor_mode = !exception && N64CPU.cp0.status.ksu == CPU_MODE_SUPERVISOR;
+    N64CPU.cp0.user_mode       = !exception && N64CPU.cp0.status.ksu == CPU_MODE_USER;
+    N64CPU.cp0.is_64bit_addressing =
+            (N64CPU.cp0.kernel_mode && N64CPU.cp0.status.kx)
+            || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
+               || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
 }
 
 #endif //N64_R4300I_H

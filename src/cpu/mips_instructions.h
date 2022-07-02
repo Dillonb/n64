@@ -3,7 +3,7 @@
 #include "r4300i.h"
 #include "mips_instruction_decode.h"
 
-#define MIPS_INSTR(NAME) void NAME(r4300i_t* cpu, mips_instruction_t instruction)
+#define MIPS_INSTR(NAME) void NAME(mips_instruction_t instruction)
 
 MIPS_INSTR(mips_nop);
 
@@ -35,92 +35,8 @@ MIPS_INSTR(mips_mfc0);
 MIPS_INSTR(mips_mtc0);
 MIPS_INSTR(mips_dmfc0);
 MIPS_INSTR(mips_dmtc0);
-MIPS_INSTR(mips_mfc1);
-MIPS_INSTR(mips_dmfc1);
-MIPS_INSTR(mips_mtc1);
-MIPS_INSTR(mips_dmtc1);
 
 MIPS_INSTR(mips_eret);
-
-MIPS_INSTR(mips_cfc1);
-MIPS_INSTR(mips_ctc1);
-
-MIPS_INSTR(mips_cp_bc1f);
-MIPS_INSTR(mips_cp_bc1fl);
-MIPS_INSTR(mips_cp_bc1t);
-MIPS_INSTR(mips_cp_bc1tl);
-
-MIPS_INSTR(mips_cp_mul_d);
-MIPS_INSTR(mips_cp_mul_s);
-MIPS_INSTR(mips_cp_div_d);
-MIPS_INSTR(mips_cp_div_s);
-MIPS_INSTR(mips_cp_add_d);
-MIPS_INSTR(mips_cp_add_s);
-MIPS_INSTR(mips_cp_sub_d);
-MIPS_INSTR(mips_cp_sub_s);
-
-MIPS_INSTR(mips_cp_trunc_l_d);
-MIPS_INSTR(mips_cp_trunc_l_s);
-MIPS_INSTR(mips_cp_trunc_w_d);
-MIPS_INSTR(mips_cp_trunc_w_s);
-
-MIPS_INSTR(mips_cp_cvt_d_s);
-MIPS_INSTR(mips_cp_cvt_d_w);
-MIPS_INSTR(mips_cp_cvt_d_l);
-
-MIPS_INSTR(mips_cp_cvt_l_s);
-MIPS_INSTR(mips_cp_cvt_l_d);
-
-MIPS_INSTR(mips_cp_cvt_s_d);
-MIPS_INSTR(mips_cp_cvt_s_w);
-MIPS_INSTR(mips_cp_cvt_s_l);
-
-MIPS_INSTR(mips_cp_cvt_w_s);
-MIPS_INSTR(mips_cp_cvt_w_d);
-
-MIPS_INSTR(mips_cp_sqrt_s);
-MIPS_INSTR(mips_cp_sqrt_d);
-
-MIPS_INSTR(mips_cp_abs_s);
-MIPS_INSTR(mips_cp_abs_d);
-
-MIPS_INSTR(mips_cp_c_f_s);
-MIPS_INSTR(mips_cp_c_un_s);
-MIPS_INSTR(mips_cp_c_eq_s);
-MIPS_INSTR(mips_cp_c_ueq_s);
-MIPS_INSTR(mips_cp_c_olt_s);
-MIPS_INSTR(mips_cp_c_ult_s);
-MIPS_INSTR(mips_cp_c_ole_s);
-MIPS_INSTR(mips_cp_c_ule_s);
-MIPS_INSTR(mips_cp_c_sf_s);
-MIPS_INSTR(mips_cp_c_ngle_s);
-MIPS_INSTR(mips_cp_c_seq_s);
-MIPS_INSTR(mips_cp_c_ngl_s);
-MIPS_INSTR(mips_cp_c_lt_s);
-MIPS_INSTR(mips_cp_c_nge_s);
-MIPS_INSTR(mips_cp_c_le_s);
-MIPS_INSTR(mips_cp_c_ngt_s);
-MIPS_INSTR(mips_cp_c_f_d);
-MIPS_INSTR(mips_cp_c_un_d);
-MIPS_INSTR(mips_cp_c_eq_d);
-MIPS_INSTR(mips_cp_c_ueq_d);
-MIPS_INSTR(mips_cp_c_olt_d);
-MIPS_INSTR(mips_cp_c_ult_d);
-MIPS_INSTR(mips_cp_c_ole_d);
-MIPS_INSTR(mips_cp_c_ule_d);
-MIPS_INSTR(mips_cp_c_sf_d);
-MIPS_INSTR(mips_cp_c_ngle_d);
-MIPS_INSTR(mips_cp_c_seq_d);
-MIPS_INSTR(mips_cp_c_ngl_d);
-MIPS_INSTR(mips_cp_c_lt_d);
-MIPS_INSTR(mips_cp_c_nge_d);
-MIPS_INSTR(mips_cp_c_le_d);
-MIPS_INSTR(mips_cp_c_ngt_d);
-
-MIPS_INSTR(mips_cp_mov_s);
-MIPS_INSTR(mips_cp_mov_d);
-MIPS_INSTR(mips_cp_neg_s);
-MIPS_INSTR(mips_cp_neg_d);
 
 MIPS_INSTR(mips_ld);
 MIPS_INSTR(mips_lui);
@@ -165,12 +81,14 @@ MIPS_INSTR(mips_spc_sllv);
 MIPS_INSTR(mips_spc_srlv);
 MIPS_INSTR(mips_spc_jr);
 MIPS_INSTR(mips_spc_jalr);
+MIPS_INSTR(mips_spc_syscall);
 MIPS_INSTR(mips_spc_mfhi);
 MIPS_INSTR(mips_spc_mthi);
 MIPS_INSTR(mips_spc_mflo);
 MIPS_INSTR(mips_spc_mtlo);
 MIPS_INSTR(mips_spc_dsllv);
 MIPS_INSTR(mips_spc_dsrlv);
+MIPS_INSTR(mips_spc_dsrav);
 MIPS_INSTR(mips_spc_mult);
 MIPS_INSTR(mips_spc_multu);
 MIPS_INSTR(mips_spc_div);
@@ -191,8 +109,10 @@ MIPS_INSTR(mips_spc_slt);
 MIPS_INSTR(mips_spc_sltu);
 MIPS_INSTR(mips_spc_dadd);
 MIPS_INSTR(mips_spc_daddu);
+MIPS_INSTR(mips_spc_dsub);
 MIPS_INSTR(mips_spc_dsubu);
 MIPS_INSTR(mips_spc_teq);
+MIPS_INSTR(mips_spc_break);
 MIPS_INSTR(mips_spc_tne);
 MIPS_INSTR(mips_spc_dsll);
 MIPS_INSTR(mips_spc_dsrl);
@@ -200,6 +120,10 @@ MIPS_INSTR(mips_spc_dsra);
 MIPS_INSTR(mips_spc_dsll32);
 MIPS_INSTR(mips_spc_dsrl32);
 MIPS_INSTR(mips_spc_dsra32);
+MIPS_INSTR(mips_spc_tge);
+MIPS_INSTR(mips_spc_tgeu);
+MIPS_INSTR(mips_spc_tlt);
+MIPS_INSTR(mips_spc_tltu);
 
 
 MIPS_INSTR(mips_ri_bltz);
@@ -208,5 +132,15 @@ MIPS_INSTR(mips_ri_bgez);
 MIPS_INSTR(mips_ri_bgezl);
 MIPS_INSTR(mips_ri_bltzal);
 MIPS_INSTR(mips_ri_bgezal);
+MIPS_INSTR(mips_ri_bgezall);
+
+MIPS_INSTR(mips_ri_tgei);
+MIPS_INSTR(mips_ri_tgeiu);
+MIPS_INSTR(mips_ri_tlti);
+MIPS_INSTR(mips_ri_tltiu);
+MIPS_INSTR(mips_ri_teqi);
+MIPS_INSTR(mips_ri_tnei);
+
+MIPS_INSTR(mips_invalid);
 
 #endif //N64_MIPS_INSTRUCTIONS_H

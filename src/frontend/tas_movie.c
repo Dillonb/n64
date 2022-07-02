@@ -5,25 +5,25 @@
 #include "tas_movie.h"
 
 typedef struct m64_movie_controller_flags {
-    bool controller_1_present:1;
-    bool controller_2_present:1;
-    bool controller_3_present:1;
-    bool controller_4_present:1;
+    unsigned controller_1_present:1;
+    unsigned controller_2_present:1;
+    unsigned controller_3_present:1;
+    unsigned controller_4_present:1;
 
-    bool controller_1_mempak:1;
-    bool controller_2_mempak:1;
-    bool controller_3_mempak:1;
-    bool controller_4_mempak:1;
+    unsigned controller_1_mempak:1;
+    unsigned controller_2_mempak:1;
+    unsigned controller_3_mempak:1;
+    unsigned controller_4_mempak:1;
 
-    bool controller_1_rumblepak:1;
-    bool controller_2_rumblepak:1;
-    bool controller_3_rumblepak:1;
-    bool controller_4_rumblepak:1;
+    unsigned controller_1_rumblepak:1;
+    unsigned controller_2_rumblepak:1;
+    unsigned controller_3_rumblepak:1;
+    unsigned controller_4_rumblepak:1;
 
     unsigned:20;
 } m64_movie_controller_flags_t;
 
-static_assert(sizeof(m64_movie_controller_flags_t) == 4, "Incorrect size!");
+_Static_assert(sizeof(m64_movie_controller_flags_t) == 4, "Incorrect size!");
 
 typedef struct m64_movie_header {
     byte signature[4];
@@ -63,7 +63,7 @@ typedef struct m64_movie_header {
     char author_name[222];
     // 300 256-byte UTF-8 string: author movie description info
     char movie_description[256];
-} m64_movie_header_t;
+} PACKED m64_movie_header_t;
 
 typedef union tas_movie_controller_data {
     struct {
@@ -86,12 +86,12 @@ typedef union tas_movie_controller_data {
         sbyte analog_y: 8;
     };
     word raw;
-} __attribute__((__packed__)) tas_movie_controller_data_t;
+} PACKED tas_movie_controller_data_t;
 
-static_assert(sizeof(tas_movie_controller_data_t) == 4, "Incorrect size for tas_movie_controller_data_t!");
+_Static_assert(sizeof(tas_movie_controller_data_t) == 4, "Incorrect size for tas_movie_controller_data_t!");
 
 
-static_assert(sizeof(m64_movie_header_t) == 1024, "Incorrect size!");
+_Static_assert(sizeof(m64_movie_header_t) == 1024, "Incorrect size!");
 
 static byte* loaded_tas_movie = NULL;
 static size_t loaded_tas_movie_size = 0;

@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <log.h>
-#include <zlib.h>
 #include <frontend/game_db.h>
 #include "n64rom.h"
 #include "mem_util.h"
@@ -11,23 +10,23 @@
 #define N64_IDENTIFIER 0x40123780
 #define V64_IDENTIFIER 0x37804012
 
-void byteswap(byte* rom, size_t rom_size) {
+void byteswap_to_be(byte* rom, size_t rom_size) {
     word identifier;
     memcpy(&identifier, rom, 4); // first 4 bytes
     identifier = be32toh(identifier);
 
     switch(identifier) {
         case Z64_IDENTIFIER:
-            loginfo("This is a .z64 ROM, no byte swapping is needed.");
+            logalways("This is a .z64 ROM, no byte swapping is needed.");
             return;
         case N64_IDENTIFIER:
             for (int i = 0; i < rom_size / 4; i++) {
                 word w;
                 memcpy(&w, rom + (i * 4), 4);
-                word swapped = __bswap_32(w);
+                word swapped = bswap_32(w);
                 memcpy(rom + (i * 4), &swapped, 4);
             }
-            loginfo("This is a .n64 file, byte swapping it!");
+            logalways("This is a .n64 file, byte swapping it!");
             break;
         case V64_IDENTIFIER:
             for (int i = 0; i < rom_size / 4; i++) {
@@ -39,15 +38,109 @@ void byteswap(byte* rom, size_t rom_size) {
                         (0x000000FF & (w >> 8));
                 memcpy(rom + (i * 4), &swapped, 4);
             }
-            loginfo("This is a .v64 file, byte swapping it!");
+            logalways("This is a .v64 file, byte swapping it!");
             return;
         default:
             logfatal("Invalid cartridge header! This does not look like a valid N64 ROM.\n");
     }
 }
 
+void byteswap_to_host(byte* rom, size_t rom_size) {
+#ifndef N64_BIG_ENDIAN // Only need to swap if not already on a big endian host
+    for (int i = 0; i < rom_size / 4; i++) {
+        word w;
+        memcpy(&w, rom + (i * 4), 4);
+        word swapped = be32toh(w);
+        memcpy(rom + (i * 4), &swapped, 4);
+    }
+#endif
+}
+
+// https://rosettacode.org/wiki/CRC-32#C
+INLINE word crc32(word crc, const byte *buf, size_t len)
+{
+    static word table[256];
+    static int have_table = 0;
+    word rem;
+    byte octet;
+    int i, j;
+    const byte *p, *q;
+
+    if (have_table == 0) {
+        for (i = 0; i < 256; i++) {
+            rem = i;
+            for (j = 0; j < 8; j++) {
+                if (rem & 1) {
+                    rem >>= 1;
+                    rem ^= 0xedb88320;
+                } else
+                    rem >>= 1;
+            }
+            table[i] = rem;
+        }
+        have_table = 1;
+    }
+
+    crc = ~crc;
+    q = buf + len;
+    for (p = buf; p < q; p++) {
+        octet = *p;  /* Cast to unsigned octet. */
+        crc = (crc >> 8) ^ table[(crc & 0xff) ^ octet];
+    }
+    return ~crc;
+}
+
+// Because I'm lazy - if I specified the wrong file extension, try all the possible extensions.
+FILE* openrom_fuzzy(const char* path) {
+    static const char* extensions[] = {"n64", "v64", "z64", "N64", "V64", "Z64"};
+    static const int num_extensions = 6;
+
+    {
+        FILE *fp = fopen(path, "rb");
+
+        if (fp != NULL) {
+            return fp;
+        }
+    }
+
+    int pathlen = strlen(path);
+    const char* ext = &path[pathlen - 3];
+
+    bool matches_any = false;
+    for (int i = 0; i < num_extensions; i++) {
+        if (strcmp(ext, extensions[i]) == 0) {
+            matches_any = true;
+            break;
+        }
+    }
+
+    if (!matches_any) {
+        return NULL;
+    }
+
+    char newpath[pathlen + 1];
+    strcpy(newpath, path);
+    for (int i = 0; i < num_extensions; i++) {
+        newpath[pathlen - 3] = extensions[i][0];
+        newpath[pathlen - 2] = extensions[i][1];
+        newpath[pathlen - 1] = extensions[i][2];
+
+        FILE* possible_fp = fopen(newpath, "rb");
+        if (possible_fp != NULL) {
+            logalways("Found the ROM at %s!", newpath);
+            return possible_fp;
+        }
+    }
+
+    return NULL;
+}
+
 void load_n64rom(n64_rom_t* rom, const char* path) {
-    FILE *fp = fopen(path, "rb");
+    if (rom->rom != NULL) {
+        free(rom->rom);
+        rom->rom = NULL;
+    }
+    FILE *fp = openrom_fuzzy(path);
 
     if (fp == NULL) {
         logfatal("Error opening the file! Are you sure it's a valid ROM and that it exists?");
@@ -62,7 +155,7 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     byte *buf = malloc(size);
     fread(buf, size, 1, fp);
 
-    byteswap(buf, size);
+    byteswap_to_be(buf, size);
 
     rom->rom = buf;
     rom->size = size;
@@ -93,8 +186,10 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     word checksum = crc32(0, &rom->rom[0x40], 0x9c0);
 
     switch (checksum) {
-        case 0x1DEB51A9:
-            rom->cic_type = CIC_NUS_6101_7102;
+        case 0xEC8B1325: // 7102
+            rom->cic_type = CIC_NUS_7102;
+        case 0x1DEB51A9: // 6101
+            rom->cic_type = CIC_NUS_6101;
             break;
 
         case 0xC08E5BD6:
@@ -120,7 +215,18 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     }
 
 
+    byteswap_to_host(rom->rom, size);
 
     loginfo("Loaded %s", rom->game_name_cartridge);
-    logdebug("The program counter starts at: " PRINTF_WORD, rom->header.program_counter);
+    logdebug("The program counter starts at: 0x%08X", rom->header.program_counter);
+}
+
+bool is_rom_pal(n64_rom_t* rom) {
+    static const char pal_codes[] = {'D', 'F', 'I', 'P', 'S', 'U', 'X', 'Y'};
+    for (int i = 0; i < 8; i++) {
+        if (rom->header.country_code[0] == pal_codes[i]) {
+            return true;
+        }
+    }
+    return false;
 }

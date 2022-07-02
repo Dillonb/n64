@@ -9,47 +9,53 @@
 #include <system/n64system.h>
 #include <cpu/rsp.h>
 #include <mem/mem_util.h>
+#include <cpu/n64_rsp_bus.h>
 
 // Just to make sure we don't get caught in an infinite loop
 #define MAX_CYCLES 100000
 
-void load_rsp_imem(n64_system_t* system, const char* rsp_path) {
+void load_rsp_imem(const char* rsp_path) {
     FILE* rsp = fopen(rsp_path, "rb");
-    // This file is already in big endian
-    size_t read = fread(system->mem.sp_imem, 1, SP_IMEM_SIZE, rsp);
+    size_t read = fread(N64RSP.sp_imem, 1, SP_IMEM_SIZE, rsp);
+
+    // File is in big endian, byte swap it all.
+    for (int i = 0; i < SP_IMEM_SIZE; i += 4) {
+        word instr = word_from_byte_array((byte*) &N64RSP.sp_imem, i);
+        instr = be32toh(instr);
+        word_to_byte_array((byte*) &N64RSP.sp_imem, i, instr);
+    }
+
     if (read == 0) {
         logfatal("Read 0 bytes from %s", rsp_path);
     }
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
-        system->rsp.icache[i].instruction.raw = word_from_byte_array(system->mem.sp_imem, i * 4);
-        system->rsp.icache[i].handler = cache_rsp_instruction;
+        N64RSP.icache[i].instruction.raw = word_from_byte_array(N64RSP.sp_imem, i * 4);
+        N64RSP.icache[i].handler = cache_rsp_instruction;
     }
 }
 
-void load_rsp_dmem(n64_system_t* system, word* input, int input_size) {
+void load_rsp_dmem(word* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
-        // This translates to big endian
-        word address = i * 4;
-        system->rsp.write_word(address, input[i]);
+        n64_rsp_write_word(i * 4, input[i]);
     }
 }
 
-bool run_test(n64_system_t* system, word* input, int input_size, word* output, int output_size) {
-    load_rsp_dmem(system, input, input_size / 4);
+bool run_test(word* input, int input_size, word* output, int output_size) {
+    load_rsp_dmem(input, input_size / 4);
 
-    system->rsp.status.halt = false;
-    system->rsp.pc = 0;
+    N64RSP.status.halt = false;
+    N64RSP.pc = 0;
 
     int cycles = 0;
 
-    while (!system->rsp.status.halt) {
+    while (!N64RSP.status.halt) {
         if (cycles >= MAX_CYCLES) {
             logfatal("Test ran too long and was killed! Possible infinite loop?");
         }
 
         cycles++;
-        rsp_step(system);
+        rsp_step();
     }
 
     bool failed = false;
@@ -76,7 +82,7 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
                 printf(" ");
             }
             if (i + b < output_size) {
-                byte actual = system->mem.sp_dmem[0x800 + i + b];
+                byte actual = N64RSP.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
                 byte expected = ((byte*)output)[i + b];
 
                 if (actual != expected) {
@@ -101,10 +107,9 @@ bool run_test(n64_system_t* system, word* input, int input_size, word* output, i
     return failed;
 }
 
-n64_system_t* load_test(const char* rsp_path) {
-    n64_system_t* system = init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, false);
-    load_rsp_imem(system, rsp_path);
-    return system;
+void load_test(const char* rsp_path) {
+    init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, false);
+    load_rsp_imem(rsp_path);
 }
 
 int main(int argc, char** argv) {
@@ -141,7 +146,7 @@ int main(int argc, char** argv) {
     char rsp_path[PATH_MAX];
     snprintf(rsp_path, PATH_MAX, "%s.rsp", test_name);
 
-    n64_system_t* system = load_test(rsp_path);
+    load_test(rsp_path);
 
     for (int i = 4; i < argc; i++) {
         const char* subtest_name = argv[i];
@@ -150,7 +155,7 @@ int main(int argc, char** argv) {
         byte output[output_size];
         fread(output, 1, output_size, output_data_handle);
 
-        bool subtest_failed = run_test(system, (word *) input, input_size, (word *) output, output_size);
+        bool subtest_failed = run_test((word *) input, input_size, (word *) output, output_size);
 
         if (subtest_failed) {
             printf("[%s %s] FAILED\n", test_name, subtest_name);
@@ -164,6 +169,5 @@ int main(int argc, char** argv) {
         }
     }
 
-    free(system);
     exit(failed);
 }

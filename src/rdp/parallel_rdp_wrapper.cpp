@@ -3,10 +3,12 @@
 #include <memory>
 #include <SDL_video.h>
 #include <rdp_device.hpp>
-#include <wsi.hpp>
 #include <frontend/render.h>
 #include <SDL_vulkan.h>
 #include <mem/mem_util.h>
+#include <imgui/imgui_ui.h>
+#include <imgui_impl_vulkan.h>
+#include <frontend/frontend.h>
 
 using namespace Vulkan;
 using std::unique_ptr;
@@ -19,8 +21,52 @@ static WSI* wsi;
 
 std::vector<Semaphore> acquire_semaphore;
 
-#define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
-word parallel_rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
+VkQueue get_graphics_queue() {
+    return wsi->get_context().get_queue_info().queues[QUEUE_INDEX_GRAPHICS];
+}
+
+VkInstance get_vk_instance() {
+    return wsi->get_context().get_instance();
+}
+
+VkPhysicalDevice get_vk_physical_device() {
+    return wsi->get_device().get_physical_device();
+}
+
+VkDevice get_vk_device() {
+    return wsi->get_device().get_device();
+}
+
+uint32_t get_vk_graphics_queue_family() {
+    return wsi->get_context().get_queue_info().family_indices[QUEUE_INDEX_GRAPHICS];
+}
+
+VkFormat get_vk_format() {
+    return wsi->get_device().get_swapchain_view().get_format();
+}
+
+CommandBufferHandle requested_command_buffer;
+
+VkCommandBuffer get_vk_command_buffer() {
+    requested_command_buffer = wsi->get_device().request_command_buffer();
+    return requested_command_buffer->get_command_buffer();
+}
+
+void submit_requested_vk_command_buffer() {
+    wsi->get_device().submit(requested_command_buffer);
+}
+
+bool is_framerate_unlocked() {
+    return wsi->get_present_mode() != PresentMode::SyncToVBlank;
+}
+
+void set_framerate_unlocked(bool unlocked) {
+    if (unlocked) {
+        wsi->set_present_mode(PresentMode::UnlockedForceTearing);
+    } else {
+        wsi->set_present_mode(PresentMode::SyncToVBlank);
+    }
+}
 
 extern "C" {
     extern SDL_Window* window;
@@ -67,23 +113,50 @@ public:
     }
 
     void poll_input() override {
-        n64_poll_input(global_system);
+        n64_poll_input();
     }
 
     void event_frame_tick(double frame, double elapsed) override {
-        n64_render_screen(global_system);
+        n64_render_screen();
     }
 };
 
-void load_parallel_rdp(n64_system_t* system) {
+uint32_t fullscreen_quad_vert[] =
+#include <fullscreen_quad.vert.inc>
+;
+uint32_t fullscreen_quad_frag[] =
+#include <fullscreen_quad.frag.inc>
+;
+
+Program* fullscreen_quad_program;
+
+void load_parallel_rdp() {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(new SDLWSIPlatform());
-    if (!wsi->init(1, nullptr)) {
+    Context::SystemHandles handles;
+    if (!wsi->init(1, handles)) {
         logfatal("Failed to initialize WSI!");
     }
 
-    auto aligned_rdram = reinterpret_cast<uintptr_t>(system->mem.rdram);
+    ResourceLayout vert_layout;
+    ResourceLayout frag_layout;
+
+    vert_layout.input_mask = 1;
+    vert_layout.output_mask = 1;
+
+    frag_layout.input_mask = 1;
+    frag_layout.output_mask = 1;
+    frag_layout.spec_constant_mask = 1;
+    frag_layout.push_constant_size = 4 * sizeof(float);
+
+    frag_layout.sets[0].sampled_image_mask = 1;
+    frag_layout.sets[0].fp_mask = 1;
+    frag_layout.sets[0].array_size[0] = 1;
+
+    fullscreen_quad_program = wsi->get_device().request_program(fullscreen_quad_vert, sizeof(fullscreen_quad_vert), fullscreen_quad_frag, sizeof(fullscreen_quad_frag), &vert_layout, &frag_layout);
+
+    auto aligned_rdram = reinterpret_cast<uintptr_t>(n64sys.mem.rdram);
     uintptr_t offset = 0;
 
     if (wsi->get_device().get_device_features().supports_external_memory_host)
@@ -105,25 +178,98 @@ void load_parallel_rdp(n64_system_t* system) {
     }
 }
 
-void update_screen_parallel_rdp(n64_system_t* system) {
+void draw_fullscreen_textured_quad(Util::IntrusivePtr<Image> image, Util::IntrusivePtr<CommandBuffer> cmd) {
+    cmd->set_texture(0, 0, image->get_view(), Vulkan::StockSampler::LinearClamp);
+    cmd->set_program(fullscreen_quad_program);
+    cmd->set_quad_state();
+    auto data = static_cast<float*>(cmd->allocate_vertex_data(0, 6 * sizeof(float), 2 * sizeof(float)));
+    *data++ = -1.0f;
+    *data++ = -3.0f;
+    *data++ = -1.0f;
+    *data++ = +1.0f;
+    *data++ = +3.0f;
+    *data++ = +1.0f;
+
+    int sdlWinWidth, sdlWinHeight;
+    SDL_GetWindowSize(window, &sdlWinWidth, &sdlWinHeight);
+
+    float zoom = std::min(
+            (float)sdlWinWidth / wsi->get_platform().get_surface_width(),
+            (float)sdlWinHeight / wsi->get_platform().get_surface_height());
+
+    float width = (wsi->get_platform().get_surface_width() / (float)sdlWinWidth) * zoom;
+    float height = (wsi->get_platform().get_surface_height() / (float)sdlWinHeight) * zoom;
+
+    float uniform_data[] = {
+            // Size
+            width, height,
+            // Offset
+            (1.0f - width) * 0.5f,
+            (1.0f - height) * 0.5f};
+
+    cmd->push_constants(uniform_data, 0, sizeof(uniform_data));
+
+    cmd->set_vertex_attrib(0, 0, VK_FORMAT_R32G32_SFLOAT, 0);
+    cmd->set_depth_test(false, false);
+    cmd->set_depth_compare(VK_COMPARE_OP_ALWAYS);
+    cmd->set_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    cmd->draw(3, 1);
+}
+
+void update_screen(Util::IntrusivePtr<Image> image) {
+    wsi->begin_frame();
+
+    if (!image) {
+        auto info = Vulkan::ImageCreateInfo::immutable_2d_image(N64_SCREEN_X * SCREEN_SCALE, N64_SCREEN_Y * SCREEN_SCALE, VK_FORMAT_R8G8B8A8_UNORM);
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        info.misc = IMAGE_MISC_MUTABLE_SRGB_BIT;
+        info.initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        image = wsi->get_device().create_image(info);
+
+        auto cmd = wsi->get_device().request_command_buffer();
+
+        cmd->image_barrier(*image,
+                           VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+        cmd->clear_image(*image, {});
+        cmd->image_barrier(*image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                           VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+        wsi->get_device().submit(cmd);
+    }
+
+    Util::IntrusivePtr<CommandBuffer> cmd = wsi->get_device().request_command_buffer();
+
+    cmd->begin_render_pass(wsi->get_device().get_swapchain_render_pass(SwapchainRenderPass::ColorOnly));
+    draw_fullscreen_textured_quad(image, cmd);
+    ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
+    cmd->end_render_pass();
+    wsi->get_device().submit(cmd);
+    wsi->end_frame();
+}
+
+void update_screen_parallel_rdp() {
     if (unlikely(!command_processor)) {
         logfatal("Update screen without an initialized command processor");
     }
 
-    command_processor->set_vi_register(VIRegister::Control,      system->vi.status.raw);
-    command_processor->set_vi_register(VIRegister::Origin,       system->vi.vi_origin);
-    command_processor->set_vi_register(VIRegister::Width,        system->vi.vi_width);
-    command_processor->set_vi_register(VIRegister::Intr,         system->vi.vi_v_intr);
-    command_processor->set_vi_register(VIRegister::VCurrentLine, system->vi.v_current);
-    command_processor->set_vi_register(VIRegister::Timing,       system->vi.vi_burst.raw);
-    command_processor->set_vi_register(VIRegister::VSync,        system->vi.vsync);
-    command_processor->set_vi_register(VIRegister::HSync,        system->vi.hsync);
-    command_processor->set_vi_register(VIRegister::Leap,         system->vi.leap);
-    command_processor->set_vi_register(VIRegister::HStart,       system->vi.hstart);
-    command_processor->set_vi_register(VIRegister::VStart,       system->vi.vstart.raw);
-    command_processor->set_vi_register(VIRegister::VBurst,       system->vi.vburst);
-    command_processor->set_vi_register(VIRegister::XScale,       system->vi.xscale);
-    command_processor->set_vi_register(VIRegister::YScale,       system->vi.yscale);
+    command_processor->set_vi_register(VIRegister::Control,      n64sys.vi.status.raw);
+    command_processor->set_vi_register(VIRegister::Origin,       n64sys.vi.vi_origin);
+    command_processor->set_vi_register(VIRegister::Width,        n64sys.vi.vi_width);
+    command_processor->set_vi_register(VIRegister::Intr,         n64sys.vi.vi_v_intr);
+    command_processor->set_vi_register(VIRegister::VCurrentLine, n64sys.vi.v_current);
+    command_processor->set_vi_register(VIRegister::Timing,       n64sys.vi.vi_burst.raw);
+    command_processor->set_vi_register(VIRegister::VSync,        n64sys.vi.vsync);
+    command_processor->set_vi_register(VIRegister::HSync,        n64sys.vi.hsync);
+    command_processor->set_vi_register(VIRegister::Leap,         n64sys.vi.leap);
+    command_processor->set_vi_register(VIRegister::HStart,       n64sys.vi.hstart.raw);
+    command_processor->set_vi_register(VIRegister::VStart,       n64sys.vi.vstart.raw);
+    command_processor->set_vi_register(VIRegister::VBurst,       n64sys.vi.vburst);
+    command_processor->set_vi_register(VIRegister::XScale,       n64sys.vi.xscale.raw);
+    command_processor->set_vi_register(VIRegister::YScale,       n64sys.vi.yscale.raw);
 
     RDP::ScanoutOptions opts;
     opts.persist_frame_on_invalid_input = true;
@@ -135,145 +281,18 @@ void update_screen_parallel_rdp(n64_system_t* system) {
     opts.downscale_steps = true;
     opts.crop_overscan_pixels = true;
     Util::IntrusivePtr<Image> image = command_processor->scanout(opts);
-
-    wsi->begin_frame();
-
-    if (image) {
-        auto cmd = wsi->get_device().request_command_buffer();
-        Image& swapchain_image = wsi->get_device().get_swapchain_view().get_image();
-        VkOffset3D dst_extent = {int(swapchain_image.get_width()), int(swapchain_image.get_height()), 1};
-        VkOffset3D src_extent = {int(image->get_width()),          int(image->get_height()),          1};
-
-        cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-                          VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
-
-        Image& image_ref = image->get_view().get_image();
-
-        cmd->image_barrier(image_ref, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-
-        cmd->blit_image(swapchain_image, image_ref,
-                        {}, dst_extent,
-                        {}, src_extent,
-                        0, 0);
-
-        cmd->image_barrier(swapchain_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-                           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-
-        cmd->uses_swapchain = true;
-        wsi->get_device().submit(cmd);
-
-    }
-    wsi->end_frame();
+    update_screen(image);
     command_processor->begin_frame_context();
 }
 
-#define FROM_RDRAM(system, address) word_from_byte_array(system->mem.rdram, address)
-#define FROM_DMEM(system, address) word_from_byte_array(system->mem.sp_dmem, address)
+void update_screen_parallel_rdp_no_game() {
+    update_screen(static_cast<Util::IntrusivePtr<Image>>(nullptr));
+}
 
-static const int command_lengths[64] = {
-        2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2,
-        2, 2, 2, 2, 4, 4, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2,
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,  2,  2,  2
-};
+void parallel_rdp_enqueue_command(int command_length, word* buffer) {
+    command_processor->enqueue_command(command_length, buffer);
+}
 
-void process_commands_parallel_rdp(n64_system_t* system) {
-    static int last_run_unprocessed_words = 0;
-
-    n64_dpc_t* dpc = &system->dpc;
-
-    // tell the game to not touch RDP stuff while we work
-    dpc->status.freeze = true;
-
-    // force align to 8 byte boundaries
-    const word current = dpc->current & 0x00FFFFF8;
-    const word end = dpc->end & 0x00FFFFF8;
-
-    // How many bytes do we need to process?
-    int display_list_length = end - current;
-
-    if (display_list_length <= 0) {
-        // No commands to run
-        return;
-    }
-
-    if (display_list_length + (last_run_unprocessed_words * 4) > RDP_COMMAND_BUFFER_SIZE) {
-        logfatal("Got a command of display_list_length %d / 0x%X (with %d unprocessed words from last run) - this overflows our buffer of size %d / 0x%X!",
-                 display_list_length, display_list_length, last_run_unprocessed_words, RDP_COMMAND_BUFFER_SIZE, RDP_COMMAND_BUFFER_SIZE);
-    }
-
-    // read the commands into a buffer, 32 bits at a time.
-    // we need to read the whole thing into a buffer before sending each command to the RDP
-    // because commands have variable lengths
-    if (dpc->status.xbus_dmem_dma) {
-        for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_DMEM(system, (current + i) & 0xFF8);
-            parallel_rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
-        }
-    } else {
-        if (end > 0x7FFFFFF || current > 0x7FFFFFF) {
-            logwarn("Not running RDP commands, wanted to read past end of RDRAM!");
-            return;
-        }
-        for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_RDRAM(system, current + i);
-            parallel_rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
-        }
-    }
-
-    int length_words = (display_list_length >> 2) + last_run_unprocessed_words;
-    int buf_index = 0;
-
-    bool processed_all = true;
-
-    while (buf_index < length_words) {
-        word command = (parallel_rdp_command_buffer[buf_index] >> 24) & 0x3F;
-
-        int command_length = command_lengths[command];
-
-        // Check we actually have enough bytes left in the display list for this command, and save the remainder of the display list for the next run, if not.
-        if ((buf_index + command_length) * 4 > display_list_length + (last_run_unprocessed_words * 4)) {
-            // Copy remaining bytes back to the beginning of the display list, and save them for next run.
-            last_run_unprocessed_words = length_words - buf_index;
-
-            // Safe to allocate this on the stack because we'll only have a partial command left, and that _has_ to be pretty small.
-            word temp[last_run_unprocessed_words];
-            for (int i = 0; i < last_run_unprocessed_words; i++) {
-                temp[i] = parallel_rdp_command_buffer[buf_index + i];
-            }
-
-            for (int i = 0; i < last_run_unprocessed_words; i++) {
-                parallel_rdp_command_buffer[i] = temp[i];
-            }
-
-            processed_all = false;
-
-            break;
-        }
-
-
-        // Don't need to process commands under 8
-        if (command >= 8) {
-            command_processor->enqueue_command(command_length, &parallel_rdp_command_buffer[buf_index]);
-        }
-
-        if (RDP::Op(command) == RDP::Op::SyncFull) {
-            command_processor->wait_for_timeline(command_processor->signal_timeline());
-            interrupt_raise(INTERRUPT_DP);
-        }
-
-        buf_index += command_length;
-    }
-
-    if (processed_all) {
-        last_run_unprocessed_words = 0;
-    }
-
-    dpc->current = end;
-
-    dpc->status.freeze = false;
+void parallel_rdp_on_full_sync() {
+    command_processor->wait_for_timeline(command_processor->signal_timeline());
 }

@@ -1,23 +1,26 @@
+#include <metrics.h>
 #include "rsp.h"
 #include "mips_instructions.h"
 #include "rsp_instructions.h"
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
 
-bool rsp_acquire_semaphore(n64_system_t* system) {
-    if (system->rsp.semaphore_held) {
-        return false; // Semaphore is already held
+rsp_t n64rsp;
+
+bool rsp_acquire_semaphore() {
+    if (N64RSP.semaphore_held) {
+        return true; // Semaphore is already held
     } else {
-        system->rsp.semaphore_held = true;
-        return true; // Acquired semaphore.
+        N64RSP.semaphore_held = true;
+        return false; // Acquired semaphore.
     }
 }
 
-void rsp_release_semaphore(n64_system_t* system) {
-    system->rsp.semaphore_held = false;
+void rsp_release_semaphore() {
+    N64RSP.semaphore_held = false;
 }
 
-INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_cp0_decode(word pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MT: return rsp_mtc0;
@@ -41,7 +44,7 @@ INLINE rspinstr_handler_t rsp_cp0_decode(rsp_t* rsp, word pc, mips_instruction_t
     }
 }
 
-INLINE rspinstr_handler_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_cp2_decode(word pc, mips_instruction_t instr) {
     if (instr.cp2_vec.is_vec) {
         switch (instr.cp2_vec.funct) {
             case FUNCT_RSP_VEC_VABS:  return rsp_vec_vabs;
@@ -88,10 +91,30 @@ INLINE rspinstr_handler_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t
             case FUNCT_RSP_VEC_VSUB:  return rsp_vec_vsub;
             case FUNCT_RSP_VEC_VSUBC: return rsp_vec_vsubc;
             case FUNCT_RSP_VEC_VXOR:  return rsp_vec_vxor;
+            case FUNCT_RSP_VEC_0x12:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x16:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x17:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x18:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x19:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1A:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1B:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1C:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1E:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x1F:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x2E:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x2F:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x38:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x39:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3A:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3B:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3C:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3D:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3E:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_0x3F:  return rsp_nop; // TODO, undocumented
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
-                logfatal("Invalid RSP CP2 VEC [0x%08X]=0x%08X | Capstone thinks it's %s", pc, instr.raw, buf);
+                logfatal("Invalid RSP CP2 VEC with FUNCT 0x%02X [0x%08X]=0x%08X | Capstone thinks it's %s", instr.cp2_vec.funct, pc, instr.raw, buf);
             }
         }
     } else {
@@ -109,7 +132,7 @@ INLINE rspinstr_handler_t rsp_cp2_decode(rsp_t* rsp, word pc, mips_instruction_t
     }
 }
 
-INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_special_decode(word pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return rsp_spc_sll;
         case FUNCT_SRL:    return rsp_spc_srl;
@@ -144,11 +167,12 @@ INLINE rspinstr_handler_t rsp_special_decode(rsp_t* rsp, word pc, mips_instructi
     }
 }
 
-INLINE rspinstr_handler_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_regimm_decode(word pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
-        case RT_BLTZ:   return rsp_ri_bltz;
-        case RT_BGEZ:   return rsp_ri_bgez;
-        case RT_BGEZAL: return rsp_ri_bgezal;
+        case RT_BLTZ:     return rsp_ri_bltz;
+        case RT_BLTZAL:   return rsp_ri_bltzal;
+        case RT_BGEZ:     return rsp_ri_bgez;
+        case RT_BGEZAL:   return rsp_ri_bgezal;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -158,7 +182,7 @@ INLINE rspinstr_handler_t rsp_regimm_decode(rsp_t* cpu, word pc, mips_instructio
     }
 }
 
-INLINE rspinstr_handler_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_lwc2_decode(word pc, mips_instruction_t instr) {
     switch (instr.v.funct) {
         case LWC2_LBV: return rsp_lwc2_lbv;
         case LWC2_LDV: return rsp_lwc2_ldv;
@@ -171,12 +195,13 @@ INLINE rspinstr_handler_t rsp_lwc2_decode(rsp_t* rsp, word pc, mips_instruction_
         case LWC2_LSV: return rsp_lwc2_lsv;
         case LWC2_LTV: return rsp_lwc2_ltv;
         case LWC2_LUV: return rsp_lwc2_luv;
+        case LWC2_0xA: return rsp_nop; // TODO, undocumented
         default:
             logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
     }
 }
 
-INLINE rspinstr_handler_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_swc2_decode(word pc, mips_instruction_t instr) {
     switch (instr.v.funct) {
         case LWC2_LBV: return rsp_swc2_sbv;
         case LWC2_LDV: return rsp_swc2_sdv;
@@ -189,14 +214,16 @@ INLINE rspinstr_handler_t rsp_swc2_decode(rsp_t* rsp, word pc, mips_instruction_
         case LWC2_LSV: return rsp_swc2_ssv;
         case LWC2_LTV: return rsp_swc2_stv;
         case LWC2_LUV: return rsp_swc2_suv;
+        case LWC2_0xA: return rsp_nop; // TODO, undocumented
+
         default:
             logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);
     }
 }
 
-INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_instruction_decode(word pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
-        char buf[50];
+        static char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
             disassemble(pc, instr.raw, buf, 50);
             logdebug("RSP [0x%08X]=0x%08X %s", pc, instr.raw, buf);
@@ -214,7 +241,7 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
             case OPC_LHU:   return rsp_lhu;
             case OPC_LH:    return rsp_lh;
             case OPC_LW:    return rsp_lw;
-            //case OPC_LWU:   return rsp_lwu;
+            case OPC_LWU:   return rsp_lw;
             case OPC_BEQ:   return rsp_beq;
             //case OPC_BEQL:  return rsp_beql;
             case OPC_BGTZ:  return rsp_bgtz;
@@ -237,13 +264,13 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
             //case OPC_SWL:   return rsp_swl;
             //case OPC_SWR:   return rsp_swr;
 
-            case OPC_CP0:      return rsp_cp0_decode(rsp, pc, instr);
-            case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!");     //return rsp_cp1_decode(rsp, pc, instr);
-            case OPC_CP2:      return rsp_cp2_decode(rsp, pc, instr);
-            case OPC_SPCL:     return rsp_special_decode(rsp, pc, instr);
-            case OPC_REGIMM:   return rsp_regimm_decode(rsp, pc, instr);
-            case RSP_OPC_LWC2: return rsp_lwc2_decode(rsp, pc, instr);
-            case RSP_OPC_SWC2: return rsp_swc2_decode(rsp, pc, instr);
+            case OPC_CP0:      return rsp_cp0_decode(pc, instr);
+            case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!");     //return rsp_cp1_decode(pc, instr);
+            case OPC_CP2:      return rsp_cp2_decode(pc, instr);
+            case OPC_SPCL:     return rsp_special_decode(pc, instr);
+            case OPC_REGIMM:   return rsp_regimm_decode(pc, instr);
+            case RSP_OPC_LWC2: return rsp_lwc2_decode(pc, instr);
+            case RSP_OPC_SWC2: return rsp_swc2_decode(pc, instr);
 
             default:
 #ifdef LOG_ENABLED
@@ -259,32 +286,79 @@ INLINE rspinstr_handler_t rsp_instruction_decode(rsp_t* rsp, word pc, mips_instr
         }
 }
 
-void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr) {
-    rsp_icache_entry_t* cache = &rsp->icache[rsp->prev_pc];
-    cache->handler = rsp_instruction_decode(rsp, rsp->prev_pc << 2, cache->instruction);
-    cache->handler(rsp, instr);
+void cache_rsp_instruction(mips_instruction_t instr) {
+    rsp_icache_entry_t* cache = &N64RSP.icache[N64RSP.prev_pc];
+    cache->handler = rsp_instruction_decode(N64RSP.prev_pc << 2, cache->instruction);
+    cache->handler(instr);
 }
 
-INLINE void _rsp_step(n64_system_t* system) {
-    rsp_t* rsp = &system->rsp;
-    half pc = rsp->pc & 0x3FF;
-    rsp_icache_entry_t* cache = &system->rsp.icache[pc];
+INLINE void _rsp_step() {
+    half pc = N64RSP.pc & 0x3FF;
+    rsp_icache_entry_t* cache = &N64RSP.icache[pc];
 
-    rsp->prev_pc = pc;
-    rsp->pc = rsp->next_pc;
-    rsp->next_pc++;
+    N64RSP.prev_pc = pc & 0x3FF;
+    N64RSP.pc = N64RSP.next_pc & 0x3FF;
+    N64RSP.next_pc++;
 
-    cache->handler(rsp, cache->instruction);
-}
+    cache->handler(cache->instruction);
 
-void rsp_step(n64_system_t* system) {
-    _rsp_step(system);
-}
+#ifdef N64_RSP_LOG
+    printf("%04X %08X ", pc << 2, cache->instruction.raw);
 
-void rsp_run(n64_system_t* system) {
-    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
-    while (system->rsp.steps > 0) {
-        system->rsp.steps--;
-        _rsp_step(system);
+    for (int i = 0; i < 32; i++) {
+        printf("%08X ", N64RSP.gpr[i]);
     }
+
+    for (int i = 0; i < 32; i++) {
+        for (int e = 0; e < 8; e++) {
+            printf("%04X", N64RSP.vu_regs[i].elements[e]);
+        }
+        printf(" ");
+    }
+
+    for (int e = 0; e < 8; e++) {
+        printf("%04X", N64RSP.acc.h.elements[e]);
+    }
+    printf(" ");
+
+    for (int e = 0; e < 8; e++) {
+        printf("%04X", N64RSP.acc.m.elements[e]);
+    }
+    printf(" ");
+
+    for (int e = 0; e < 8; e++) {
+        printf("%04X", N64RSP.acc.l.elements[e]);
+    }
+    printf(" ");
+
+    printf("%04X %04X %02X", rsp_get_vcc(), rsp_get_vco(), rsp_get_vce());
+
+    printf("\n");
+#endif
+}
+
+void rsp_step() {
+    _rsp_step();
+}
+
+void rsp_run() {
+    int run_for = 0;
+    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
+    while (N64RSP.steps > 0) {
+        N64RSP.steps--;
+        run_for++;
+        _rsp_step();
+    }
+    mark_metric_multiple(METRIC_RSP_STEPS, run_for);
+}
+
+void rsp_dynarec_run() {
+    int run_for = 0;
+    // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
+    while (N64RSP.steps > 0) {
+        int taken = rsp_dynarec_step();
+        N64RSP.steps -= taken;
+        run_for += taken;
+    }
+    mark_metric_multiple(METRIC_RSP_STEPS, run_for);
 }

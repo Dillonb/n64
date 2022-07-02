@@ -1,16 +1,19 @@
 #include <SDL.h>
 #include <mem/pif.h>
 #include "gamepad.h"
+#include "device.h"
+
+#ifndef M_PI
+#define M_PI                           3.14159265358979323846f
+#endif
 
 // TODO: support multiple controllers
 static SDL_GameController* controller = NULL;
-static SDL_Joystick* joystick = NULL;
 
 void gamepad_refresh() {
     if (controller != NULL) {
         SDL_GameControllerClose(controller);
         controller = NULL;
-        joystick = NULL;
     }
 
     bool found_one = false;
@@ -21,9 +24,6 @@ void gamepad_refresh() {
                 logalways("Detected game controller!");
                 found_one = true;
                 controller = SDL_GameControllerOpen(i);
-                if (controller) {
-                    joystick = SDL_GameControllerGetJoystick(controller);
-                }
             } else {
                 logalways("Found more than one game controller, using the first one detected!");
             }
@@ -35,7 +35,7 @@ void gamepad_refresh() {
     }
 }
 
-void gamepad_init(n64_system_t* system) {
+void gamepad_init() {
     if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") == -1) {
         logalways("Failed to load game controller DB!");
     } else {
@@ -47,45 +47,45 @@ void gamepad_init(n64_system_t* system) {
     gamepad_refresh();
 }
 
-void gamepad_update_button(n64_system_t* system, byte button, bool state) {
+void gamepad_update_button(byte button, bool state) {
     switch (button) {
         case SDL_CONTROLLER_BUTTON_A:
-            update_button(system, 0, N64_BUTTON_A, state);
+            update_button(0, N64_BUTTON_A, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_B:
         case SDL_CONTROLLER_BUTTON_X:
-            update_button(system, 0, N64_BUTTON_B, state);
+            update_button(0, N64_BUTTON_B, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_DPAD_UP:
-            update_button(system, 0, N64_BUTTON_DPAD_UP, state);
+            update_button(0, N64_BUTTON_DPAD_UP, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-            update_button(system, 0, N64_BUTTON_DPAD_DOWN, state);
+            update_button(0, N64_BUTTON_DPAD_DOWN, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-            update_button(system, 0, N64_BUTTON_DPAD_LEFT, state);
+            update_button(0, N64_BUTTON_DPAD_LEFT, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-            update_button(system, 0, N64_BUTTON_DPAD_RIGHT, state);
+            update_button(0, N64_BUTTON_DPAD_RIGHT, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-            update_button(system, 0, N64_BUTTON_L, state);
+            update_button(0, N64_BUTTON_L, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-            update_button(system, 0, N64_BUTTON_R, state);
+            update_button(0, N64_BUTTON_R, state);
             break;
 
         case SDL_CONTROLLER_BUTTON_GUIDE:
         case SDL_CONTROLLER_BUTTON_BACK:
         case SDL_CONTROLLER_BUTTON_START:
-            update_button(system, 0, N64_BUTTON_START, state);
+            update_button(0, N64_BUTTON_START, state);
             break;
 
     }
@@ -96,7 +96,7 @@ shalf right_joyx, right_joyy;
 #define SLICE_OFFSET 67.5
 #define CHECKSLICE(degrees, angle) ((degrees) > ((angle) - SLICE_OFFSET) && (degrees) < ((angle) + SLICE_OFFSET))
 
-void update_right_joyaxis(n64_system_t* system, byte axis, shalf value) {
+void update_right_joyaxis(byte axis, shalf value) {
     switch (axis) {
         case SDL_CONTROLLER_AXIS_RIGHTX:
             right_joyx = value;
@@ -109,10 +109,10 @@ void update_right_joyaxis(n64_system_t* system, byte axis, shalf value) {
     }
 
     if (abs(right_joyx) < 8000 && abs(right_joyy) < 8000) {
-        update_button(system, 0, N64_BUTTON_C_LEFT, false);
-        update_button(system, 0, N64_BUTTON_C_RIGHT, false);
-        update_button(system, 0, N64_BUTTON_C_UP, false);
-        update_button(system, 0, N64_BUTTON_C_DOWN, false);
+        update_button(0, N64_BUTTON_C_LEFT, false);
+        update_button(0, N64_BUTTON_C_RIGHT, false);
+        update_button(0, N64_BUTTON_C_UP, false);
+        update_button(0, N64_BUTTON_C_DOWN, false);
     } else {
 
         // normalize to unit circle
@@ -128,34 +128,44 @@ void update_right_joyaxis(n64_system_t* system, byte axis, shalf value) {
         }
 
         // 135 degree slices, overlapping.
-        update_button(system, 0, N64_BUTTON_C_UP, CHECKSLICE(degrees, 90));
-        update_button(system, 0, N64_BUTTON_C_DOWN, CHECKSLICE(degrees, 270));
-        update_button(system, 0, N64_BUTTON_C_LEFT, CHECKSLICE(degrees, 180));
+        update_button(0, N64_BUTTON_C_UP, CHECKSLICE(degrees, 90));
+        update_button(0, N64_BUTTON_C_DOWN, CHECKSLICE(degrees, 270));
+        update_button(0, N64_BUTTON_C_LEFT, CHECKSLICE(degrees, 180));
 
         // Slightly different since it's around the 0 angle
-        update_button(system, 0, N64_BUTTON_C_RIGHT, degrees < SLICE_OFFSET || degrees > (360 - SLICE_OFFSET));
+        update_button(0, N64_BUTTON_C_RIGHT, degrees < SLICE_OFFSET || degrees > (360 - SLICE_OFFSET));
     }
 }
 
-void gamepad_update_axis(n64_system_t* system, byte axis, shalf value) {
-    shalf trimmed = value >> 8;
-    shalf inverted = -(trimmed + 1);
+void gamepad_update_axis(byte axis, shalf value) {
     switch (axis) {
         case SDL_CONTROLLER_AXIS_LEFTX:
-            update_joyaxis_x(system, 0, trimmed);
+            update_joyaxis_x(0, value);
             break;
         case SDL_CONTROLLER_AXIS_LEFTY:
-            update_joyaxis_y(system, 0, inverted);
+            update_joyaxis_y(0, value);
             break;
         case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
         case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-            update_button(system, 0, N64_BUTTON_Z, value == INT16_MAX);
+            update_button(0, N64_BUTTON_Z, value == INT16_MAX);
             break;
         case SDL_CONTROLLER_AXIS_RIGHTX:
         case SDL_CONTROLLER_AXIS_RIGHTY:
-            update_right_joyaxis(system, axis, value);
+            update_right_joyaxis(axis, value);
             break;
         default:
             printf("axis %d %d\n", axis, value);
+    }
+}
+
+void gamepad_rumble_on(int pif_channel) {
+    if (controller) {
+        SDL_GameControllerRumble(controller, 0xFFFF, 0xFFFF, 1000);
+    }
+}
+
+void gamepad_rumble_off(int pif_channel) {
+    if (controller) {
+        SDL_GameControllerRumble(controller, 0, 0, 0);
     }
 }

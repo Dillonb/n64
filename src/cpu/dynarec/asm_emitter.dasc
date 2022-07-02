@@ -1,0 +1,1600 @@
+#include <cpu/dynarec/asm_emitter.h>
+#include <cpu/dynarec/dynarec.h>
+#include <cpu/dynarec/dynarec_memory_management.h>
+#include <cpu/r4300i.h>
+
+#include <dynasm/dasm_proto.h>
+#include <dynasm/dasm_x86.h>
+#ifndef N64_WIN
+#include <sys/mman.h>
+#endif
+
+#include <mem/n64bus.h>
+#include "disassemble.h"
+#include "mips_instructions.h"
+#include "fpu_instructions.h"
+#include "tlb_instructions.h"
+#include "rsp_instructions.h"
+#include "rsp_vector_instructions.h"
+
+//#define N64_LOG_JIT_SYNC_POINTS
+//#define N64_LOG_COMPILATIONS
+
+||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
+#error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
+#endif
+
+_Static_assert(sizeof(bool) == 1, "sizeof(bool) is expected to be 1!");
+
+|.if X64
+|.arch x64
+|.else
+|.arch x86
+|.endif
+
+|.if X64
+  |.define cpuState, r12
+  |.define instrArg, r13
+  |.if WIN
+    |.define rArg1, rcx
+    |.define rArg2, rdx
+  |.else
+    |.define rArg1, rdi
+    |.define rArg2, rsi
+  |.endif
+  |.macro prepcall1, arg1
+    | mov rArg1, arg1
+  |.endmacro
+  |.macro prepcall2, arg1, arg2
+    | mov rArg1, arg1
+    | mov rArg2, arg2
+  |.endmacro
+  |.define postcall, .nop
+    // Called before our block
+    |.macro prologue
+      // Push callee-saved registers onto the stack so we don't trample them
+      | push cpuState
+      | push instrArg
+      | sub rsp, 8 // Stack needs to be 16 byte aligned. Return address + the two regs above + this == 32 bytes.
+      // The CPU's state is passed in as argument 1
+      | mov cpuState, rArg1
+    |.endmacro
+    // Called at the end of our block
+    |.macro epilogue
+      // Pop callee-saved registers off the stack and then return
+      | add rsp, 8
+      | pop instrArg
+      | pop cpuState
+      | ret
+    |.endmacro
+|.endif // TODO x86 version? ARM version?
+|.type cpu_state, r4300i_t, cpuState
+|.type rsp_state, rsp_t, cpuState
+
+INLINE void run_handler(dasm_State** Dst, mips_instruction_t instr, word address, uintptr_t handler) {
+    | prepcall1 instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 1
+}
+
+INLINE void take_branch(dasm_State** Dst, mips_instruction_t instr, word address) {
+    shalf offset = instr.i.immediate;
+    sword soffset = offset;
+    soffset <<= 2;
+    | mov rax, cpu_state->pc
+    | add rax, soffset
+    | mov cpu_state->next_pc, rax
+    | mov al, 1
+    | mov cpu_state->branch, al
+}
+
+void check_exception(dasm_State** Dst, word block_length) {
+    // If an exception was triggered, end the block.
+    // otherwise, don't end the block.
+    | mov al, cpu_state->exception
+    // if (cpu_state->exception) {
+    | cmp al, 0
+    | je >1
+
+    // cpu_state->exception = false
+    | mov al, 0
+    | mov cpu_state->exception, al
+
+    // return block_length
+    | mov eax, block_length
+    | epilogue
+    // }
+    |1:
+}
+void set_prev_branch_flag(dasm_State** Dst, bool value) {
+    | mov al, value
+    | mov cpu_state->prev_branch, al
+}
+
+void missing_exception_check_handler(mips_instruction_t instr) {
+    char buf[50];
+    disassemble(N64CPU.pc, instr.raw, buf, 50);
+    logfatal("Instruction %s (note: addresses will be wrong) [%08X] was marked as not throwing exceptions in the JIT, but it did!", buf, instr.raw);
+}
+
+#ifdef N64_DEBUG_MODE
+void check_exception_sanity(dasm_State** Dst, word block_length, mips_instruction_t instr) {
+    uintptr_t handler = (uintptr_t) &missing_exception_check_handler;
+    // If an instruction is marked as not throwing an exception, check it anyway in debug mode.
+    | mov al, cpu_state->exception
+    | cmp al, 0
+    | je >1
+    | prepcall1 instr
+    // x86_64 cannot call a 64 bit immediate, put it into rax first
+    | mov64 rax, handler
+    | call rax
+    | postcall 1
+    |1:
+}
+#endif
+
+#define TAKEBRANCH take_branch(Dst, instr, address)
+#define RUNHANDLER(handler) run_handler(Dst, instr, address, (uintptr_t)(handler))
+#define IR_INFO(instruction, category_, format_, exception) dynarec_ir_t ir_##instruction = { .compiler = compile_##instruction, .category = category_, .format = format_, .exception_possible = exception}
+#define COMP(name, type, exception) COMPILER(name) { RUNHANDLER(name); } IR_INFO(name, type, CALL_INTERPRETER, exception)
+#define BAILZERO(v) do { if ((v) == 0) { return; } } while (0)
+#define CALL_COMPILER(compiler) compiler(Dst, instr, address, aregs, dreg, extra_cycles)
+#define CASEIR(pattern, instruction) case pattern: return &ir_##instruction
+
+COMPILER(mips_nop) {}
+IR_INFO(mips_nop, NORMAL, FORMAT_NOP, false);
+COMPILER(mips_wait) {
+    *extra_cycles += 63; // for a total of 64
+}
+IR_INFO(mips_wait, NORMAL, FORMAT_NOP, false);
+COMPILER(mips_cache) {}
+IR_INFO(mips_cache, NORMAL, FORMAT_NOP, false);
+
+COMPILER(mips_addi) {
+    BAILZERO(instr.i.rt);
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
+    // This is actually a load-immediate
+    if (instr.i.rs == 0) {
+        | mov64 Rq(dreg), ext_imm
+    } else {
+        | mov Rq(dreg), Rq(aregs[0])
+        | add Rq(dreg), ext_imm
+        | movsxd Rq(dreg), Rd(dreg)
+    }
+}
+IR_INFO(mips_addi, NORMAL, I_TYPE, false);
+
+COMPILER(mips_addiu) {
+    CALL_COMPILER(compile_mips_addi);
+}
+IR_INFO(mips_addiu, NORMAL, I_TYPE, false);
+
+COMPILER(mips_beq) {
+    // Compile as an unconditional branch
+    if (instr.i.rs == 0 && instr.i.rt == 0) {
+        TAKEBRANCH;
+    } else {
+        // handle normally
+        RUNHANDLER(mips_beq);
+   }
+}
+IR_INFO(mips_beq, BRANCH, CALL_INTERPRETER, false);
+
+COMPILER(mips_daddi) {
+    BAILZERO(instr.i.rt);
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
+    // This is actually a load-immediate
+    if (instr.i.rs == 0) {
+        | mov64 Rq(dreg), ext_imm
+    } else {
+        | mov Rq(dreg), Rq(aregs[0])
+        | add Rq(dreg), ext_imm
+    }
+}
+IR_INFO(mips_daddi, NORMAL, I_TYPE, false);
+
+COMPILER(mips_daddiu) {
+    return CALL_COMPILER(compile_mips_daddi);
+}
+IR_INFO(mips_daddiu, NORMAL, I_TYPE, false);
+
+COMPILER(mips_andi) {
+    BAILZERO(instr.i.rt);
+    | mov Rq(dreg), Rq(aregs[0])
+    | and Rq(dreg), instr.i.immediate
+}
+IR_INFO(mips_andi, NORMAL, I_TYPE, false);
+
+COMPILER(mips_ori) {
+    BAILZERO(instr.i.rt);
+    | mov Rq(dreg), Rq(aregs[0])
+    | or Rq(dreg), instr.i.immediate
+}
+IR_INFO(mips_ori, NORMAL, I_TYPE, false);
+
+COMPILER(mips_slti) {
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
+    BAILZERO(instr.i.rt);
+
+    | cmp Rq(aregs[0]), ext_imm
+    | setl al // sets al to 1 if rs < imm (signed), 0 if not
+    | movzx Rq(dreg), al // al operations don't extend to rax, so we do it manually.
+}
+IR_INFO(mips_slti, NORMAL, I_TYPE, false);
+
+COMPILER(mips_sltiu) {
+    shalf imm = instr.i.immediate;
+    sdword ext_imm = imm;
+    BAILZERO(instr.i.rt);
+    | cmp Rq(aregs[0]), ext_imm
+    | setb al // sets al to 1 if rs < imm (unsigned), 0 if not
+    | movzx Rq(dreg), al // al operations don't extend to rax, so we do it manually.
+}
+IR_INFO(mips_sltiu, NORMAL, I_TYPE, false);
+
+COMPILER(mips_xori) {
+    BAILZERO(instr.i.rt);
+    | mov Rq(dreg), Rq(aregs[0])
+    | xor Rq(dreg), instr.i.immediate
+}
+IR_INFO(mips_xori, NORMAL, I_TYPE, false);
+
+COMPILER(mips_spc_sll) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shl Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_sll, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_srl) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shr Rd(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_srl, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_sra) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rq(dreg), instr.r.sa
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_sra, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_srav) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | and cl, 31
+    | sar rax, cl
+    | movsxd Rq(dreg), eax
+}
+IR_INFO(mips_spc_srav, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_sllv) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shl eax, cl
+    | movsxd Rq(dreg), eax
+}
+IR_INFO(mips_spc_sllv, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_srlv) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov rcx, Rq(aregs[1])
+    | shr eax, cl
+    | movsxd Rq(dreg), eax
+}
+IR_INFO(mips_spc_srlv, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_mfhi) {
+    BAILZERO(instr.r.rd);
+    uintptr_t src = (uintptr_t) &N64CPU.mult_hi;
+    | mov64 rax, [src]
+    | mov Rq(dreg), rax
+}
+IR_INFO(mips_spc_mfhi, NORMAL, MF_MULTREG, false);
+
+COMPILER(mips_spc_mthi) {
+    uintptr_t dst = (uintptr_t) &N64CPU.mult_hi;
+    | mov rax, Rq(aregs[0])
+    | mov64 [dst], rax
+}
+IR_INFO(mips_spc_mthi, NORMAL, MT_MULTREG, false);
+
+COMPILER(mips_spc_mflo) {
+    BAILZERO(instr.r.rd);
+    uintptr_t src = (uintptr_t) &N64CPU.mult_lo;
+    | mov64 rax, [src]
+    | mov Rq(dreg), rax
+}
+IR_INFO(mips_spc_mflo, NORMAL, MF_MULTREG, false);
+
+COMPILER(mips_spc_mtlo) {
+    uintptr_t dst = (uintptr_t) &N64CPU.mult_lo;
+    | mov rax, Rq(aregs[0])
+    | mov64 [dst], rax
+}
+IR_INFO(mips_spc_mtlo, NORMAL, MT_MULTREG, false);
+
+COMPILER(mips_spc_dsllv) {
+    BAILZERO(instr.r.rd);
+    | mov rcx, Rq(aregs[1])
+    | mov Rq(dreg), Rq(aregs[0])
+    | shl Rq(dreg), cl
+}
+IR_INFO(mips_spc_dsllv, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_dsrlv) {
+    BAILZERO(instr.r.rd);
+    | mov rcx, Rq(aregs[1])
+    | mov Rq(dreg), Rq(aregs[0])
+    | shr Rq(dreg), cl
+}
+IR_INFO(mips_spc_dsrlv, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_dsrav) {
+    BAILZERO(instr.r.rd);
+    | mov rcx, Rq(aregs[1])
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rq(dreg), cl
+}
+IR_INFO(mips_spc_dsrav, NORMAL, R_TYPE, false);
+
+COMP(mips_spc_mult, NORMAL, false);
+COMP(mips_spc_multu, NORMAL, false);
+COMP(mips_spc_div, NORMAL, false);
+COMP(mips_spc_divu, NORMAL, false);
+COMP(mips_spc_dmult, NORMAL, false);
+COMP(mips_spc_dmultu, NORMAL, false);
+COMP(mips_spc_ddiv, NORMAL, false);
+COMP(mips_spc_ddivu, NORMAL, false);
+
+COMPILER(mips_spc_add) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | add Rq(dreg), rax
+    | movsxd Rq(dreg), Rd(dreg)
+}
+IR_INFO(mips_spc_add, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_addu) {
+    CALL_COMPILER(compile_mips_spc_add);
+}
+IR_INFO(mips_spc_addu, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_and) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | and Rq(dreg), rax
+}
+IR_INFO(mips_spc_and, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_nor) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | or Rq(dreg), rax
+    | not Rq(dreg)
+}
+IR_INFO(mips_spc_nor, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_sub) {
+    BAILZERO(instr.r.rd);
+    | mov eax, Rd(aregs[1])
+    | sub eax, Rd(aregs[0])
+    | movsxd Rq(dreg), eax
+}
+IR_INFO(mips_spc_sub, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_subu) {
+    BAILZERO(instr.r.rd);
+    | mov eax, Rd(aregs[1])
+    | sub eax, Rd(aregs[0])
+    | movsxd Rq(dreg), eax
+}
+IR_INFO(mips_spc_subu, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_or) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | or Rq(dreg), rax
+}
+IR_INFO(mips_spc_or, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_xor) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | xor Rq(dreg), rax
+}
+IR_INFO(mips_spc_xor, NORMAL, R_TYPE, false);
+
+COMP(mips_spc_slt, NORMAL, false);
+COMP(mips_spc_sltu, NORMAL, false);
+
+COMPILER(mips_spc_dadd) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[0])
+    | mov Rq(dreg), Rq(aregs[1])
+    | add Rq(dreg), rax
+}
+IR_INFO(mips_spc_dadd, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_daddu) {
+    CALL_COMPILER(compile_mips_spc_dadd);
+}
+IR_INFO(mips_spc_daddu, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_dsub) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[1])
+    | sub rax, Rq(aregs[0])
+    | mov Rq(dreg), rax
+}
+IR_INFO(mips_spc_dsub, NORMAL, R_TYPE, false);
+
+COMPILER(mips_spc_dsubu) {
+    BAILZERO(instr.r.rd);
+    | mov rax, Rq(aregs[1])
+    | sub rax, Rq(aregs[0])
+    | mov Rq(dreg), rax
+}
+IR_INFO(mips_spc_dsubu, NORMAL, R_TYPE, false);
+
+COMP(mips_spc_teq, NORMAL, true);
+COMP(mips_spc_break, NORMAL, true);
+COMP(mips_spc_tge, NORMAL, true);
+COMP(mips_spc_tgeu, NORMAL, true);
+COMP(mips_spc_tlt, NORMAL, true);
+COMP(mips_spc_tltu, NORMAL, true);
+COMP(mips_spc_tne, NORMAL, true);
+
+COMPILER(mips_spc_dsll) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shl Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsll, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsrl) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shr Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsrl, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsra) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsra, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsll32) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shl Rq(dreg), 32
+    | shl Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsll32, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsrl32) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | shr Rq(dreg), 32
+    | shr Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsrl32, NORMAL, SHIFT_CONST, false);
+
+COMPILER(mips_spc_dsra32) {
+    BAILZERO(instr.r.rd);
+    | mov Rq(dreg), Rq(aregs[0])
+    | sar Rq(dreg), 32
+    | sar Rq(dreg), instr.r.sa
+}
+IR_INFO(mips_spc_dsra32, NORMAL, SHIFT_CONST, false);
+
+// Load-stores
+COMP(mips_lbu, NORMAL, true);
+COMP(mips_lhu, NORMAL, true);
+COMP(mips_lh, NORMAL, true);
+COMP(mips_lw, NORMAL, true);
+COMP(mips_lwu, NORMAL, true);
+COMP(mips_sb, STORE, true);
+COMP(mips_sh, STORE, true);
+COMP(mips_sw, STORE, true);
+COMP(mips_sd, STORE, true);
+COMP(mips_lb, NORMAL, true);
+COMP(mips_lui, NORMAL, false);
+COMP(mips_ld, NORMAL, true);
+COMP(mips_ldc1, NORMAL, true);
+COMP(mips_sdc1, STORE, true);
+COMP(mips_lwc1, NORMAL, true);
+COMP(mips_swc1, STORE, true);
+COMP(mips_lwl, NORMAL, true);
+COMP(mips_lwr, NORMAL, true);
+COMP(mips_swl, STORE, true);
+COMP(mips_swr, STORE, true);
+COMP(mips_ldl, NORMAL, true);
+COMP(mips_ldr, NORMAL, true);
+COMP(mips_sdl, STORE, true);
+COMP(mips_sdr, STORE, true);
+COMP(mips_ll, NORMAL, true);
+COMP(mips_lld, NORMAL, true);
+COMP(mips_sc, NORMAL, true);
+COMP(mips_scd, NORMAL, true);
+COMP(mips_invalid, NORMAL, true);
+
+// Unoptimized branches
+COMP(mips_beql, BRANCH_LIKELY, false);
+COMP(mips_bgtz, BRANCH, false);
+COMP(mips_bgtzl, BRANCH_LIKELY, false);
+COMP(mips_blez, BRANCH, false);
+COMP(mips_blezl, BRANCH_LIKELY, false);
+COMP(mips_bne, BRANCH, false);
+COMP(mips_bnel, BRANCH_LIKELY, false);
+COMP(mips_j, BRANCH, false);
+COMP(mips_jal, BRANCH, false);
+COMP(mips_ri_bltz, BRANCH, false);
+COMP(mips_ri_bltzl, BRANCH_LIKELY, false);
+COMP(mips_ri_bltzal, BRANCH, false);
+COMP(mips_ri_bgez, BRANCH, false);
+COMP(mips_ri_bgezl, BRANCH_LIKELY, false);
+COMP(mips_ri_bgezal, BRANCH, false);
+COMP(mips_ri_bgezall, BRANCH, false);
+COMP(mips_ri_tgei, NORMAL, true);
+COMP(mips_ri_tgeiu, NORMAL, true);
+COMP(mips_ri_tlti, NORMAL, true);
+COMP(mips_ri_tltiu, NORMAL, true);
+COMP(mips_ri_teqi, NORMAL, true);
+COMP(mips_ri_tnei, NORMAL, true);
+COMP(mips_spc_jr, BRANCH, false);
+COMP(mips_spc_jalr, BRANCH, false);
+COMP(mips_spc_syscall, NORMAL, true);
+COMP(mips_cp_bc1tl, BRANCH_LIKELY, false);
+COMP(mips_cp_bc1fl, BRANCH_LIKELY, false);
+
+// Instructions that don't make too much sense to optimize
+COMP(mips_mfc0, NORMAL, false);
+COMP(mips_dmfc0, NORMAL, false);
+COMP(mips_mtc0, NORMAL, true);
+COMP(mips_dmtc0, NORMAL, true);
+COMP(mips_tlbwi, TLB_WRITE, false);
+COMP(mips_tlbwr, TLB_WRITE, false);
+COMP(mips_tlbp, NORMAL, false);
+COMP(mips_tlbr, NORMAL, false);
+COMP(mips_eret, BLOCK_ENDER, false);
+
+
+// CP1 stuff
+COMP(mips_cfc1, NORMAL, true);
+COMP(mips_mfc1, NORMAL, true);
+COMP(mips_dmfc1, NORMAL, true);
+COMP(mips_mtc1, NORMAL, true);
+COMP(mips_dmtc1, NORMAL, true);
+COMP(mips_ctc1, NORMAL, true);
+COMP(mips_cp_bc1t, BRANCH, true);
+COMP(mips_cp_bc1f, BRANCH, true);
+COMP(mips_cp_add_d, NORMAL, true);
+COMP(mips_cp_add_s, NORMAL, true);
+COMP(mips_cp_sub_d, NORMAL, true);
+COMP(mips_cp_sub_s, NORMAL, true);
+COMP(mips_cp_mul_d, NORMAL, true);
+COMP(mips_cp_mul_s, NORMAL, true);
+COMP(mips_cp_div_d, NORMAL, true);
+COMP(mips_cp_div_s, NORMAL, true);
+COMP(mips_cp_trunc_l_d, NORMAL, true);
+COMP(mips_cp_trunc_l_s, NORMAL, true);
+COMP(mips_cp_round_l_d, NORMAL, true);
+COMP(mips_cp_round_l_s, NORMAL, true);
+COMP(mips_cp_trunc_w_d, NORMAL, true);
+COMP(mips_cp_trunc_w_s, NORMAL, true);
+COMP(mips_cp_floor_w_d, NORMAL, true);
+COMP(mips_cp_floor_w_s, NORMAL, true);
+COMP(mips_cp_round_w_d, NORMAL, true);
+COMP(mips_cp_round_w_s, NORMAL, true);
+COMP(mips_cp_cvt_d_s, NORMAL, true);
+COMP(mips_cp_cvt_d_w, NORMAL, true);
+COMP(mips_cp_cvt_d_l, NORMAL, true);
+COMP(mips_cp_cvt_l_d, NORMAL, true);
+COMP(mips_cp_cvt_l_s, NORMAL, true);
+COMP(mips_cp_cvt_s_d, NORMAL, true);
+COMP(mips_cp_cvt_s_w, NORMAL, true);
+COMP(mips_cp_cvt_s_l, NORMAL, true);
+COMP(mips_cp_cvt_w_d, NORMAL, true);
+COMP(mips_cp_cvt_w_s, NORMAL, true);
+COMP(mips_cp_sqrt_d, NORMAL, true);
+COMP(mips_cp_sqrt_s, NORMAL, true);
+COMP(mips_cp_abs_d, NORMAL, true);
+COMP(mips_cp_abs_s, NORMAL, true);
+COMP(mips_cp_mov_d, NORMAL, true);
+COMP(mips_cp_mov_s, NORMAL, true);
+COMP(mips_cp_neg_d, NORMAL, true);
+COMP(mips_cp_neg_s, NORMAL, true);
+COMP(mips_cp_c_un_d, NORMAL, true);
+COMP(mips_cp_c_un_s, NORMAL, true);
+COMP(mips_cp_c_eq_d, NORMAL, true);
+COMP(mips_cp_c_eq_s, NORMAL, true);
+COMP(mips_cp_c_lt_d, NORMAL, true);
+COMP(mips_cp_c_lt_s, NORMAL, true);
+COMP(mips_cp_c_nge_d, NORMAL, true);
+COMP(mips_cp_c_nge_s, NORMAL, true);
+COMP(mips_cp_c_le_d, NORMAL, true);
+COMP(mips_cp_c_le_s, NORMAL, true);
+COMP(mips_cp_c_ngt_d, NORMAL, true);
+COMP(mips_cp_c_ngt_s, NORMAL, true);
+COMP(mips_cp_c_olt_d, NORMAL, true);
+COMP(mips_cp_c_olt_s, NORMAL, true);
+COMP(mips_cp_c_ueq_d, NORMAL, true);
+COMP(mips_cp_c_ueq_s, NORMAL, true);
+COMP(mips_cp_c_ole_d, NORMAL, true);
+COMP(mips_cp_c_ole_s, NORMAL, true);
+COMP(mips_cp_c_ule_d, NORMAL, true);
+COMP(mips_cp_c_ule_s, NORMAL, true);
+COMP(mips_cp_c_ult_d, NORMAL, true);
+COMP(mips_cp_c_ult_s, NORMAL, true);
+
+INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, word address) {
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            CASEIR(COP_MF,  mips_mfc0);
+            CASEIR(COP_DMF, mips_dmfc0);
+            // Last 11 bits are 0
+            CASEIR(COP_MT,  mips_mtc0);
+            CASEIR(COP_DMT, mips_dmtc0);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+            }
+        }
+    } else {
+        switch (instr.fr.funct) {
+            CASEIR(COP_FUNCT_TLBWI_MULT, mips_tlbwi);
+            CASEIR(COP_FUNCT_TLBWR_MOV,  mips_tlbwr);
+            CASEIR(COP_FUNCT_TLBP,       mips_tlbp);
+            CASEIR(COP_FUNCT_TLBR_SUB,   mips_tlbr);
+            CASEIR(COP_FUNCT_ERET,       mips_eret);
+            CASEIR(COP_FUNCT_WAIT,       mips_wait);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    }
+}
+
+INLINE dynarec_ir_t* special_instruction_ir(mips_instruction_t instr, word address) {
+    switch (instr.r.funct) {
+        CASEIR(FUNCT_SLL, mips_spc_sll);
+        CASEIR(FUNCT_SRL, mips_spc_srl);
+        CASEIR(FUNCT_SRA, mips_spc_sra);
+        CASEIR(FUNCT_SRAV, mips_spc_srav);
+        CASEIR(FUNCT_SLLV, mips_spc_sllv);
+        CASEIR(FUNCT_SRLV, mips_spc_srlv);
+        CASEIR(FUNCT_JR, mips_spc_jr);
+        CASEIR(FUNCT_JALR, mips_spc_jalr);
+        CASEIR(FUNCT_SYSCALL, mips_spc_syscall);
+        CASEIR(FUNCT_MFHI, mips_spc_mfhi);
+        CASEIR(FUNCT_MTHI, mips_spc_mthi);
+        CASEIR(FUNCT_MFLO, mips_spc_mflo);
+        CASEIR(FUNCT_MTLO, mips_spc_mtlo);
+        CASEIR(FUNCT_DSLLV, mips_spc_dsllv);
+        CASEIR(FUNCT_DSRLV, mips_spc_dsrlv);
+        CASEIR(FUNCT_DSRAV, mips_spc_dsrav);
+        CASEIR(FUNCT_MULT, mips_spc_mult);
+        CASEIR(FUNCT_MULTU, mips_spc_multu);
+        CASEIR(FUNCT_DIV, mips_spc_div);
+        CASEIR(FUNCT_DIVU, mips_spc_divu);
+        CASEIR(FUNCT_DMULT, mips_spc_dmult);
+        CASEIR(FUNCT_DMULTU, mips_spc_dmultu);
+        CASEIR(FUNCT_DDIV, mips_spc_ddiv);
+        CASEIR(FUNCT_DDIVU, mips_spc_ddivu);
+        CASEIR(FUNCT_ADD, mips_spc_add);
+        CASEIR(FUNCT_ADDU, mips_spc_addu);
+        CASEIR(FUNCT_AND, mips_spc_and);
+        CASEIR(FUNCT_NOR, mips_spc_nor);
+        CASEIR(FUNCT_SUB, mips_spc_sub);
+        CASEIR(FUNCT_SUBU, mips_spc_subu);
+        CASEIR(FUNCT_OR, mips_spc_or);
+        CASEIR(FUNCT_XOR, mips_spc_xor);
+        CASEIR(FUNCT_SLT, mips_spc_slt);
+        CASEIR(FUNCT_SLTU, mips_spc_sltu);
+        CASEIR(FUNCT_DADD, mips_spc_dadd);
+        CASEIR(FUNCT_DADDU, mips_spc_daddu);
+        CASEIR(FUNCT_DSUB, mips_spc_dsub);
+        CASEIR(FUNCT_DSUBU, mips_spc_dsubu);
+        CASEIR(FUNCT_TEQ, mips_spc_teq);
+        CASEIR(FUNCT_DSLL, mips_spc_dsll);
+        CASEIR(FUNCT_DSRL, mips_spc_dsrl);
+        CASEIR(FUNCT_DSRA, mips_spc_dsra);
+        CASEIR(FUNCT_DSLL32, mips_spc_dsll32);
+        CASEIR(FUNCT_DSRL32, mips_spc_dsrl32);
+        CASEIR(FUNCT_DSRA32, mips_spc_dsra32);
+        CASEIR(FUNCT_BREAK, mips_spc_break);
+        CASEIR(FUNCT_SYNC, mips_nop);
+        CASEIR(FUNCT_TGE, mips_spc_tge);
+        CASEIR(FUNCT_TGEU, mips_spc_tgeu);
+        CASEIR(FUNCT_TLT, mips_spc_tlt);
+        CASEIR(FUNCT_TLTU, mips_spc_tltu);
+        CASEIR(FUNCT_TNE, mips_spc_tne);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+        }
+    }
+}
+
+
+INLINE dynarec_ir_t* regimm_instruction_ir(mips_instruction_t instr, word address) {
+    switch (instr.i.rt) {
+        CASEIR(RT_BLTZ, mips_ri_bltz);
+        CASEIR(RT_BLTZL, mips_ri_bltzl);
+        CASEIR(RT_BLTZAL, mips_ri_bltzal);
+        CASEIR(RT_BGEZ, mips_ri_bgez);
+        CASEIR(RT_BGEZL, mips_ri_bgezl);
+        CASEIR(RT_BGEZAL, mips_ri_bgezal);
+        CASEIR(RT_BGEZALL, mips_ri_bgezall);
+        CASEIR(RT_TGEI, mips_ri_tgei);
+        CASEIR(RT_TGEIU, mips_ri_tgeiu);
+        CASEIR(RT_TLTI, mips_ri_tlti);
+        CASEIR(RT_TLTIU, mips_ri_tltiu);
+        CASEIR(RT_TEQI, mips_ri_teqi);
+        CASEIR(RT_TNEI, mips_ri_tnei);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
+        }
+    }
+}
+
+INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, word address) {
+    // This function uses a series of two switch statements.
+    // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
+    // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
+    switch (instr.r.rs) {
+        CASEIR(COP_CF, mips_cfc1);
+        CASEIR(COP_MF, mips_mfc1);
+        CASEIR(COP_DMF, mips_dmfc1);
+        CASEIR(COP_MT, mips_mtc1);
+        CASEIR(COP_DMT, mips_dmtc1);
+        CASEIR(COP_CT, mips_ctc1);
+        case COP_BC:
+            switch (instr.r.rt) {
+                CASEIR(COP_BC_BCT, mips_cp_bc1t);
+                CASEIR(COP_BC_BCF, mips_cp_bc1f);
+                CASEIR(COP_BC_BCTL, mips_cp_bc1tl);
+                CASEIR(COP_BC_BCFL, mips_cp_bc1fl);
+                default: {
+                    char buf[50];
+                    disassemble(address, instr.raw, buf, 50);
+                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+                }
+            }
+    }
+    switch (instr.fr.funct) {
+        case COP_FUNCT_ADD:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_add_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_add_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_TLBR_SUB: {
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_sub_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_sub_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        }
+        case COP_FUNCT_TLBWI_MULT:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_mul_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_mul_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_DIV:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_div_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_div_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_TRUNC_L:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_l_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_trunc_l_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_ROUND_L:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_round_l_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_round_l_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_TRUNC_W:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_w_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_trunc_w_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_FLOOR_W:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_floor_w_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_floor_w_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_ROUND_W:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_round_w_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_round_w_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_D:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_d_s);
+                CASEIR(FP_FMT_W, mips_cp_cvt_d_w);
+                CASEIR(FP_FMT_L, mips_cp_cvt_d_l);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_L:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_l_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_l_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_S:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_s_d);
+                CASEIR(FP_FMT_W, mips_cp_cvt_s_w);
+                CASEIR(FP_FMT_L, mips_cp_cvt_s_l);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_CVT_W:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_w_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_w_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_SQRT:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_sqrt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_sqrt_s);
+                default:
+                    logfatal("Undefined!");
+            }
+
+        case COP_FUNCT_ABS:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_abs_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_abs_s);
+                default:
+                    logfatal("Undefined!");
+            }
+
+        case COP_FUNCT_TLBWR_MOV:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_mov_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_mov_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_NEG:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_neg_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_neg_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_F:
+            logfatal("COP_FUNCT_C_F unimplemented");
+        case COP_FUNCT_C_UN:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_un_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_un_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_EQ:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_eq_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_eq_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_UEQ:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ueq_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ueq_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_OLT:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_olt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_olt_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_ULT:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ult_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ult_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_OLE:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ole_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ole_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_ULE:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ule_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ule_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_SF:
+            logfatal("COP_FUNCT_C_SF unimplemented");
+        case COP_FUNCT_C_NGLE:
+            logfatal("COP_FUNCT_C_NGLE unimplemented");
+        case COP_FUNCT_C_SEQ:
+            logfatal("COP_FUNCT_C_SEQ unimplemented");
+        case COP_FUNCT_C_NGL:
+            logfatal("COP_FUNCT_C_NGL unimplemented");
+        case COP_FUNCT_C_LT:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_lt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_lt_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_NGE:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_nge_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_nge_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_LE:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_le_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_le_s);
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_C_NGT:
+            switch (instr.fr.fmt) {
+                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ngt_d);
+                CASEIR(FP_FMT_SINGLE, mips_cp_c_ngt_s);
+                default:
+                    logfatal("Undefined!");
+            }
+    }
+
+    char buf[50];
+    disassemble(address, instr.raw, buf, 50);
+    logfatal("other/unknown MIPS CP1 0x%08X with rs: %d%d%d%d%d and FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+             instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4,
+             instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+}
+
+dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address) {
+    if (unlikely(instr.raw == 0)) {
+        return &ir_mips_nop;
+    }
+    switch (instr.op) {
+        case OPC_CP0:    return cp0_instruction_ir(instr, address);
+        case OPC_CP1:    return cp1_instruction_ir(instr, address);
+        case OPC_SPCL:   return special_instruction_ir(instr, address);
+        case OPC_REGIMM: return regimm_instruction_ir(instr, address);
+
+        CASEIR(OPC_LD, mips_ld);
+        CASEIR(OPC_LUI, mips_lui);
+        CASEIR(OPC_ADDIU, mips_addiu);
+        CASEIR(OPC_ADDI, mips_addi);
+        CASEIR(OPC_DADDI, mips_daddi);
+        CASEIR(OPC_ANDI, mips_andi);
+        CASEIR(OPC_LBU, mips_lbu);
+        CASEIR(OPC_LHU, mips_lhu);
+        CASEIR(OPC_LH, mips_lh);
+        CASEIR(OPC_LW, mips_lw);
+        CASEIR(OPC_LWU, mips_lwu);
+        CASEIR(OPC_BEQ, mips_beq);
+        CASEIR(OPC_BEQL, mips_beql);
+        CASEIR(OPC_BGTZ, mips_bgtz);
+        CASEIR(OPC_BGTZL, mips_bgtzl);
+        CASEIR(OPC_BLEZ, mips_blez);
+        CASEIR(OPC_BLEZL, mips_blezl);
+        CASEIR(OPC_BNE, mips_bne);
+        CASEIR(OPC_BNEL, mips_bnel);
+        CASEIR(OPC_CACHE, mips_cache);
+        CASEIR(OPC_SB, mips_sb);
+        CASEIR(OPC_SH, mips_sh);
+        CASEIR(OPC_SW, mips_sw);
+        CASEIR(OPC_SD, mips_sd);
+        CASEIR(OPC_ORI, mips_ori);
+        CASEIR(OPC_J, mips_j);
+        CASEIR(OPC_JAL, mips_jal);
+        CASEIR(OPC_SLTI, mips_slti);
+        CASEIR(OPC_SLTIU, mips_sltiu);
+        CASEIR(OPC_XORI, mips_xori);
+        CASEIR(OPC_DADDIU, mips_daddiu);
+        CASEIR(OPC_LB, mips_lb);
+        CASEIR(OPC_LDC1, mips_ldc1);
+        CASEIR(OPC_SDC1, mips_sdc1);
+        CASEIR(OPC_LWC1, mips_lwc1);
+        CASEIR(OPC_SWC1, mips_swc1);
+        CASEIR(OPC_LWL, mips_lwl);
+        CASEIR(OPC_LWR, mips_lwr);
+        CASEIR(OPC_SWL, mips_swl);
+        CASEIR(OPC_SWR, mips_swr);
+        CASEIR(OPC_LDL, mips_ldl);
+        CASEIR(OPC_LDR, mips_ldr);
+        CASEIR(OPC_SDL, mips_sdl);
+        CASEIR(OPC_SDR, mips_sdr);
+        CASEIR(OPC_LL,  mips_ll);
+        CASEIR(OPC_LLD, mips_lld);
+        CASEIR(OPC_SC, mips_sc);
+        CASEIR(OPC_SCD, mips_scd);
+        CASEIR(OPC_RDHWR, mips_invalid);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+        }
+    }
+}
+
+COMP(rsp_lui, NORMAL, false);
+COMP(rsp_addi, NORMAL, false);
+COMP(rsp_andi, NORMAL, false);
+COMP(rsp_lbu, NORMAL, false);
+COMP(rsp_lhu, NORMAL, false);
+COMP(rsp_lh, NORMAL, false);
+COMP(rsp_lw, NORMAL, false);
+COMP(rsp_beq, BRANCH, false);
+COMP(rsp_bgtz, BRANCH, false);
+COMP(rsp_blez, BRANCH, false);
+COMP(rsp_bne, BRANCH, false);
+COMP(rsp_sb, NORMAL, false);
+COMP(rsp_sh, NORMAL, false);
+COMP(rsp_sw, NORMAL, false);
+COMP(rsp_ori, NORMAL, false);
+COMP(rsp_j, BRANCH, false);
+COMP(rsp_jal, BRANCH, false);
+COMP(rsp_slti, NORMAL, false);
+COMP(rsp_sltiu, NORMAL, false);
+COMP(rsp_xori, NORMAL, false);
+COMP(rsp_lb, NORMAL, false);
+
+COMP(rsp_mtc0, NORMAL, false);
+COMP(rsp_mfc0, NORMAL, false);
+
+COMP(rsp_vec_vabs, NORMAL, false);
+COMP(rsp_vec_vadd, NORMAL, false);
+COMP(rsp_vec_vaddc, NORMAL, false);
+COMP(rsp_vec_vand, NORMAL, false);
+COMP(rsp_vec_vch, NORMAL, false);
+COMP(rsp_vec_vcl, NORMAL, false);
+COMP(rsp_vec_vcr, NORMAL, false);
+COMP(rsp_vec_veq, NORMAL, false);
+COMP(rsp_vec_vge, NORMAL, false);
+COMP(rsp_vec_vlt, NORMAL, false);
+COMP(rsp_vec_vmacf, NORMAL, false);
+COMP(rsp_vec_vmacq, NORMAL, false);
+COMP(rsp_vec_vmacu, NORMAL, false);
+COMP(rsp_vec_vmadh, NORMAL, false);
+COMP(rsp_vec_vmadl, NORMAL, false);
+COMP(rsp_vec_vmadm, NORMAL, false);
+COMP(rsp_vec_vmadn, NORMAL, false);
+COMP(rsp_vec_vmov, NORMAL, false);
+COMP(rsp_vec_vmrg, NORMAL, false);
+COMP(rsp_vec_vmudh, NORMAL, false);
+COMP(rsp_vec_vmudl, NORMAL, false);
+COMP(rsp_vec_vmudm, NORMAL, false);
+COMP(rsp_vec_vmudn, NORMAL, false);
+COMP(rsp_vec_vmulf, NORMAL, false);
+COMP(rsp_vec_vmulq, NORMAL, false);
+COMP(rsp_vec_vmulu, NORMAL, false);
+COMP(rsp_vec_vnand, NORMAL, false);
+COMP(rsp_vec_vne, NORMAL, false);
+COMP(rsp_vec_vnop, NORMAL, false);
+COMP(rsp_vec_vnor, NORMAL, false);
+COMP(rsp_vec_vnxor, NORMAL, false);
+COMP(rsp_vec_vor, NORMAL, false);
+COMP(rsp_vec_vrcp, NORMAL, false);
+COMP(rsp_vec_vrcph_vrsqh, NORMAL, false);
+COMP(rsp_vec_vrcpl, NORMAL, false);
+COMP(rsp_vec_vrndn, NORMAL, false);
+COMP(rsp_vec_vrndp, NORMAL, false);
+COMP(rsp_vec_vrsq, NORMAL, false);
+COMP(rsp_vec_vrsql, NORMAL, false);
+COMP(rsp_vec_vsar, NORMAL, false);
+COMP(rsp_vec_vsub, NORMAL, false);
+COMP(rsp_vec_vsubc, NORMAL, false);
+COMP(rsp_vec_vxor, NORMAL, false);
+
+COMP(rsp_cfc2, NORMAL, false);
+COMP(rsp_ctc2, NORMAL, false);
+COMP(rsp_mfc2, NORMAL, false);
+COMP(rsp_mtc2, NORMAL, false);
+
+COMP(rsp_spc_sll, NORMAL, false);
+COMP(rsp_spc_srl, NORMAL, false);
+COMP(rsp_spc_sra, NORMAL, false);
+COMP(rsp_spc_srav, NORMAL, false);
+COMP(rsp_spc_sllv, NORMAL, false);
+COMP(rsp_spc_srlv, NORMAL, false);
+COMP(rsp_spc_jr, BRANCH, false);
+COMP(rsp_spc_jalr, BRANCH, false);
+COMP(rsp_spc_add, NORMAL, false);
+COMP(rsp_spc_and, NORMAL, false);
+COMP(rsp_spc_sub, NORMAL, false);
+COMP(rsp_spc_or, NORMAL, false);
+COMP(rsp_spc_xor, NORMAL, false);
+COMP(rsp_spc_nor, NORMAL, false);
+COMP(rsp_spc_slt, NORMAL, false);
+COMP(rsp_spc_sltu, NORMAL, false);
+
+COMP(rsp_spc_break, BLOCK_ENDER, false);
+
+COMP(rsp_ri_bltz, BRANCH, false);
+COMP(rsp_ri_bgez, BRANCH, false);
+COMP(rsp_ri_bgezal, BRANCH, false);
+COMP(rsp_ri_bltzal, BRANCH, false);
+
+COMP(rsp_lwc2_lbv, NORMAL, false);
+COMP(rsp_lwc2_ldv, NORMAL, false);
+COMP(rsp_lwc2_lfv, NORMAL, false);
+COMP(rsp_lwc2_lhv, NORMAL, false);
+COMP(rsp_lwc2_llv, NORMAL, false);
+COMP(rsp_lwc2_lpv, NORMAL, false);
+COMP(rsp_lwc2_lqv, NORMAL, false);
+COMP(rsp_lwc2_lrv, NORMAL, false);
+COMP(rsp_lwc2_lsv, NORMAL, false);
+COMP(rsp_lwc2_ltv, NORMAL, false);
+COMP(rsp_lwc2_luv, NORMAL, false);
+
+COMP(rsp_swc2_sbv, NORMAL, false);
+COMP(rsp_swc2_sdv, NORMAL, false);
+COMP(rsp_swc2_sfv, NORMAL, false);
+COMP(rsp_swc2_shv, NORMAL, false);
+COMP(rsp_swc2_slv, NORMAL, false);
+COMP(rsp_swc2_spv, NORMAL, false);
+COMP(rsp_swc2_sqv, NORMAL, false);
+COMP(rsp_swc2_srv, NORMAL, false);
+COMP(rsp_swc2_ssv, NORMAL, false);
+COMP(rsp_swc2_stv, NORMAL, false);
+COMP(rsp_swc2_suv, NORMAL, false);
+
+COMP(rsp_nop, NORMAL, false);
+
+dynarec_ir_t* rsp_cp0_ir(mips_instruction_t instr, word address) {
+    if (instr.last11 == 0) {
+        switch (instr.r.rs) {
+            CASEIR(COP_MT, rsp_mtc0);
+            CASEIR(COP_MF, rsp_mfc0);
+            default: {
+                static char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+            }
+        }
+    } else {
+        switch (instr.fr.funct) {
+            default: {
+                static char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    }
+}
+
+dynarec_ir_t* rsp_cp2_ir(mips_instruction_t instr, word address) {
+    if (instr.cp2_vec.is_vec) {
+        switch (instr.cp2_vec.funct) {
+            CASEIR(FUNCT_RSP_VEC_VABS, rsp_vec_vabs);
+            CASEIR(FUNCT_RSP_VEC_VADD, rsp_vec_vadd);
+            CASEIR(FUNCT_RSP_VEC_VADDC, rsp_vec_vaddc);
+            CASEIR(FUNCT_RSP_VEC_VAND, rsp_vec_vand);
+            CASEIR(FUNCT_RSP_VEC_VCH, rsp_vec_vch);
+            CASEIR(FUNCT_RSP_VEC_VCL, rsp_vec_vcl);
+            CASEIR(FUNCT_RSP_VEC_VCR, rsp_vec_vcr);
+            CASEIR(FUNCT_RSP_VEC_VEQ, rsp_vec_veq);
+            CASEIR(FUNCT_RSP_VEC_VGE, rsp_vec_vge);
+            CASEIR(FUNCT_RSP_VEC_VLT, rsp_vec_vlt);
+            CASEIR(FUNCT_RSP_VEC_VMACF, rsp_vec_vmacf);
+            CASEIR(FUNCT_RSP_VEC_VMACQ, rsp_vec_vmacq);
+            CASEIR(FUNCT_RSP_VEC_VMACU, rsp_vec_vmacu);
+            CASEIR(FUNCT_RSP_VEC_VMADH, rsp_vec_vmadh);
+            CASEIR(FUNCT_RSP_VEC_VMADL, rsp_vec_vmadl);
+            CASEIR(FUNCT_RSP_VEC_VMADM, rsp_vec_vmadm);
+            CASEIR(FUNCT_RSP_VEC_VMADN, rsp_vec_vmadn);
+            CASEIR(FUNCT_RSP_VEC_VMOV, rsp_vec_vmov);
+            CASEIR(FUNCT_RSP_VEC_VMRG, rsp_vec_vmrg);
+            CASEIR(FUNCT_RSP_VEC_VMUDH, rsp_vec_vmudh);
+            CASEIR(FUNCT_RSP_VEC_VMUDL, rsp_vec_vmudl);
+            CASEIR(FUNCT_RSP_VEC_VMUDM, rsp_vec_vmudm);
+            CASEIR(FUNCT_RSP_VEC_VMUDN, rsp_vec_vmudn);
+            CASEIR(FUNCT_RSP_VEC_VMULF, rsp_vec_vmulf);
+            CASEIR(FUNCT_RSP_VEC_VMULQ, rsp_vec_vmulq);
+            CASEIR(FUNCT_RSP_VEC_VMULU, rsp_vec_vmulu);
+            CASEIR(FUNCT_RSP_VEC_VNAND, rsp_vec_vnand);
+            CASEIR(FUNCT_RSP_VEC_VNE, rsp_vec_vne);
+            CASEIR(FUNCT_RSP_VEC_VNOP, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_VNOR, rsp_vec_vnor);
+            CASEIR(FUNCT_RSP_VEC_VNXOR, rsp_vec_vnxor);
+            CASEIR(FUNCT_RSP_VEC_VOR , rsp_vec_vor);
+            CASEIR(FUNCT_RSP_VEC_VRCP, rsp_vec_vrcp);
+            CASEIR(FUNCT_RSP_VEC_VRCPH, rsp_vec_vrcph_vrsqh);
+            CASEIR(FUNCT_RSP_VEC_VRCPL, rsp_vec_vrcpl);
+            CASEIR(FUNCT_RSP_VEC_VRNDN, rsp_vec_vrndn);
+            CASEIR(FUNCT_RSP_VEC_VRNDP, rsp_vec_vrndp);
+            CASEIR(FUNCT_RSP_VEC_VRSQ, rsp_vec_vrsq);
+            CASEIR(FUNCT_RSP_VEC_VRSQH, rsp_vec_vrcph_vrsqh);
+            CASEIR(FUNCT_RSP_VEC_VRSQL, rsp_vec_vrsql);
+            CASEIR(FUNCT_RSP_VEC_VSAR, rsp_vec_vsar);
+            CASEIR(FUNCT_RSP_VEC_VSUB, rsp_vec_vsub);
+            CASEIR(FUNCT_RSP_VEC_VSUBC, rsp_vec_vsubc);
+            CASEIR(FUNCT_RSP_VEC_VXOR, rsp_vec_vxor);
+
+            // Undocumented
+            CASEIR(FUNCT_RSP_VEC_0x12, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x16, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x17, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x18, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x19, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1A, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1B, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1C, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1E, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x1F, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x2E, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x2F, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x38, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x39, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3A, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3B, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3C, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3D, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3E, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_0x3F, rsp_vec_vnop);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("Invalid RSP CP2 VEC [0x%08X]=0x%08X | Capstone thinks it's %s", address, instr.raw, buf);
+            }
+        }
+    } else {
+        switch (instr.cp2_regmove.funct) {
+            CASEIR(COP_CF, rsp_cfc2);
+            CASEIR(COP_CT, rsp_ctc2);
+            CASEIR(COP_MF, rsp_mfc2);
+            CASEIR(COP_MT, rsp_mtc2);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("Invalid RSP CP2 regmove instruction! [0x%08x]=0x%08x | Capstone thinks it's %s", address, instr.raw, buf);
+            }
+        }
+    }
+}
+
+dynarec_ir_t* rsp_special_ir(mips_instruction_t instr, word address) {
+    switch (instr.r.funct) {
+        CASEIR(FUNCT_SLL, rsp_spc_sll);
+        CASEIR(FUNCT_SRL, rsp_spc_srl);
+        CASEIR(FUNCT_SRA, rsp_spc_sra);
+        CASEIR(FUNCT_SRAV, rsp_spc_srav);
+        CASEIR(FUNCT_SLLV, rsp_spc_sllv);
+        CASEIR(FUNCT_SRLV, rsp_spc_srlv);
+        CASEIR(FUNCT_JR, rsp_spc_jr);
+        CASEIR(FUNCT_JALR, rsp_spc_jalr);
+        CASEIR(FUNCT_ADD, rsp_spc_add);
+        CASEIR(FUNCT_ADDU, rsp_spc_add);
+        CASEIR(FUNCT_AND, rsp_spc_and);
+        CASEIR(FUNCT_SUB, rsp_spc_sub);
+        CASEIR(FUNCT_SUBU, rsp_spc_sub);
+        CASEIR(FUNCT_OR, rsp_spc_or);
+        CASEIR(FUNCT_XOR, rsp_spc_xor);
+        CASEIR(FUNCT_NOR, rsp_spc_nor);
+        CASEIR(FUNCT_SLT, rsp_spc_slt);
+        CASEIR(FUNCT_SLTU, rsp_spc_sltu);
+
+        CASEIR(FUNCT_BREAK, rsp_spc_break);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown MIPS RSP Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+        }
+    }
+}
+
+dynarec_ir_t* rsp_regimm_ir(mips_instruction_t instr, word address) {
+    switch (instr.i.rt) {
+        CASEIR(RT_BLTZ, rsp_ri_bltz);
+        CASEIR(RT_BGEZ, rsp_ri_bgez);
+        CASEIR(RT_BGEZAL, rsp_ri_bgezal);
+        CASEIR(RT_BLTZAL, rsp_ri_bltzal);
+        default: {
+            char buf[50];
+            disassemble(address, instr.raw, buf, 50);
+            logfatal("other/unknown RSP REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
+                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
+        }
+    }
+}
+
+dynarec_ir_t* rsp_lwc2_ir(mips_instruction_t instr, word address) {
+    switch (instr.v.funct) {
+        CASEIR(LWC2_LBV, rsp_lwc2_lbv);
+        CASEIR(LWC2_LDV, rsp_lwc2_ldv);
+        CASEIR(LWC2_LFV, rsp_lwc2_lfv);
+        CASEIR(LWC2_LHV, rsp_lwc2_lhv);
+        CASEIR(LWC2_LLV, rsp_lwc2_llv);
+        CASEIR(LWC2_LPV, rsp_lwc2_lpv);
+        CASEIR(LWC2_LQV, rsp_lwc2_lqv);
+        CASEIR(LWC2_LRV, rsp_lwc2_lrv);
+        CASEIR(LWC2_LSV, rsp_lwc2_lsv);
+        CASEIR(LWC2_LTV, rsp_lwc2_ltv);
+        CASEIR(LWC2_LUV, rsp_lwc2_luv);
+        CASEIR(LWC2_0xA, rsp_nop); // TODO: undocumented
+        default:
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
+    }
+}
+
+dynarec_ir_t* rsp_swc2_ir(mips_instruction_t instr, word address) {
+    switch (instr.v.funct) {
+        CASEIR(LWC2_LBV, rsp_swc2_sbv);
+        CASEIR(LWC2_LDV, rsp_swc2_sdv);
+        CASEIR(LWC2_LFV, rsp_swc2_sfv);
+        CASEIR(LWC2_LHV, rsp_swc2_shv);
+        CASEIR(LWC2_LLV, rsp_swc2_slv);
+        CASEIR(LWC2_LPV, rsp_swc2_spv);
+        CASEIR(LWC2_LQV, rsp_swc2_sqv);
+        CASEIR(LWC2_LRV, rsp_swc2_srv);
+        CASEIR(LWC2_LSV, rsp_swc2_ssv);
+        CASEIR(LWC2_LTV, rsp_swc2_stv);
+        CASEIR(LWC2_LUV, rsp_swc2_suv);
+        CASEIR(LWC2_0xA, rsp_nop); // TODO: undocumented
+        default:
+            logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);
+    }
+}
+
+dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, word address) {
+    if (instr.raw == 0) {
+        return &ir_mips_nop;
+    }
+    switch (instr.op) {
+        CASEIR(OPC_LUI, rsp_lui);
+        CASEIR(OPC_ADDIU, rsp_addi);
+        CASEIR(OPC_ADDI, rsp_addi);
+        CASEIR(OPC_ANDI, rsp_andi);
+        CASEIR(OPC_LBU, rsp_lbu);
+        CASEIR(OPC_LHU, rsp_lhu);
+        CASEIR(OPC_LH, rsp_lh);
+        CASEIR(OPC_LW, rsp_lw);
+        CASEIR(OPC_LWU, rsp_lw);
+        CASEIR(OPC_BEQ, rsp_beq);
+        CASEIR(OPC_BGTZ, rsp_bgtz);
+        CASEIR(OPC_BLEZ, rsp_blez);
+        CASEIR(OPC_BNE, rsp_bne);
+        CASEIR(OPC_SB, rsp_sb);
+        CASEIR(OPC_SH, rsp_sh);
+        CASEIR(OPC_SW, rsp_sw);
+        CASEIR(OPC_ORI, rsp_ori);
+        CASEIR(OPC_J, rsp_j);
+        CASEIR(OPC_JAL, rsp_jal);
+        CASEIR(OPC_SLTI, rsp_slti);
+        CASEIR(OPC_SLTIU, rsp_sltiu);
+        CASEIR(OPC_XORI, rsp_xori);
+        CASEIR(OPC_LB, rsp_lb);
+        case OPC_CP0:      return rsp_cp0_ir(instr, address);
+        case OPC_CP1:      logfatal("Decoding RSP CP1 instruction!");     //return rsp_cp1_ir(instr, address);
+        case OPC_CP2:      return rsp_cp2_ir(instr, address);
+        case OPC_SPCL:     return rsp_special_ir(instr, address);
+        case OPC_REGIMM:   return rsp_regimm_ir(instr, address);
+        case RSP_OPC_LWC2: return rsp_lwc2_ir(instr, address);
+        case RSP_OPC_SWC2: return rsp_swc2_ir(instr, address);
+
+        default: {
+#ifdef LOG_ENABLED
+            static char buf[50];
+            if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
+                disassemble(address, instr.raw, buf, 50);
+            }
+            logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
+                 instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+#else
+            logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [UNKNOWN]",
+                 instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5);
+#endif
+        }
+    }
+}
+
+dasm_State* block_header() {
+    dasm_State* d;
+    unsigned npc = 8; // number of dynamic labels
+
+    |.section code
+    dasm_init(&d, DASM_MAXSECTION);
+
+    |.globals lbl_
+
+    void* labels[lbl__MAX];
+    dasm_setupglobal(&d, labels, lbl__MAX);
+
+    |.actionlist actions
+    dasm_setup(&d, actions);
+    dasm_growpc(&d, npc);
+
+    dasm_State** Dst = &d;
+    |.code
+    |->compiled_block:
+    | prologue
+    return d;
+}
+
+void advance_pc(dasm_State** Dst) {
+    _Static_assert(sizeof(N64CPU.pc) == 8, "PC must be 64 bits for this to work (using RAX)");
+    _Static_assert(sizeof(N64CPU.next_pc) == 8, "Next PC must be 64 bits for this to work (using RAX)");
+
+    // N64CPU.branch = false;
+    | mov al, 0
+    | mov cpu_state->branch, al
+
+    // N64CPU.prev_pc = N64CPU.pc;
+    | mov rax, cpu_state->pc
+    | mov cpu_state->prev_pc, rax
+
+    // N64CPU.pc = N64CPU.next_pc;
+    | mov rax, cpu_state->next_pc
+    | mov cpu_state->pc, rax
+
+    // N64CPU.next_pc += 4;
+    | add rax, 4
+    | mov cpu_state->next_pc, rax
+}
+
+void advance_rsp_pc(dasm_State** Dst) {
+    // N64RSP.pc = N64RSP.next_pc & 0x3FF;
+    | mov eax, rsp_state->next_pc
+    | and eax, 0x3FF
+    | mov rsp_state->pc, eax
+
+    // N64RSP.next_pc++;
+    | inc eax
+    | mov rsp_state->next_pc, eax
+}
+
+void clear_branch_flag(dasm_State** Dst) {
+    // N64CPU.branch = false;
+    | mov al, 0
+    | mov cpu_state->branch, al
+}
+
+void end_block(dasm_State** Dst, int block_length) {
+    clear_branch_flag(Dst);
+    | mov eax, block_length
+    | epilogue // return block_length
+}
+
+void end_rsp_block(dasm_State** Dst, int block_length) {
+    | mov eax, block_length
+    | epilogue // return block_length
+}
+
+void post_branch_likely(dasm_State** Dst, int block_length) {
+    | mov al, cpu_state->branch_likely_taken;
+    | cmp al, 0 // if (branch == true)
+    | jne >1
+    // If the branch WAS taken, end the block.
+    end_block(Dst, block_length);
+    | jmp >2
+    |1:
+    // If the branch WAS NOT taken, advance the PC.
+    advance_pc(Dst);
+    |2:
+}
+
+void flush_prev_pc(dasm_State** Dst, dword prev_pc) {
+    | mov rax, prev_pc
+    | mov cpu_state->prev_pc, rax
+}
+
+void flush_pc(dasm_State** Dst, dword pc) {
+    | mov rax, pc
+    | mov cpu_state->pc, rax
+}
+
+void flush_next_pc(dasm_State** Dst, dword next_pc) {
+    | mov rax, next_pc
+    | mov cpu_state->next_pc, rax
+}
+
+void flush_rsp_prev_pc(dasm_State** Dst, half prev_pc) {
+    | mov ax, prev_pc
+    | mov rsp_state->prev_pc, ax
+}
+
+void flush_rsp_pc(dasm_State** Dst, half pc) {
+    | mov ax, pc
+    | mov rsp_state->pc, ax
+}
+
+void flush_rsp_next_pc(dasm_State** Dst, half next_pc) {
+    | mov ax, next_pc
+    | mov rsp_state->next_pc, ax
+}
+
+void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs) {
+    // TODO: support calling conventions and architectures other than System-V x86_64
+    // rdi, rsi, rdx, rcx, r8, r9, r10, r11
+    // save rax and rcx as work registers
+    int available_host_regs[] = {2, 6, 7, 8, 9, 10, 11};
+    int num_available_host_regs = 7;
+
+    int used_host_regs = 0;
+    for (; (used_host_regs < *num_valid_host_regs) && (used_host_regs < num_available_host_regs); used_host_regs++) {
+        valid_host_regs[used_host_regs] = available_host_regs[used_host_regs];
+    }
+
+    *num_valid_host_regs = used_host_regs;
+}
+
+void load_host_register_from_gpr(dasm_State** Dst, byte host_reg, int guest_reg) {
+    uintptr_t src = (uintptr_t)&N64CPU.gpr[guest_reg];
+    | mov64 rax, src
+    | mov Rq(host_reg), [rax]
+}
+
+void flush_host_register_to_gpr(dasm_State** Dst, int host_reg, int guest_reg) {
+    if (guest_reg != 0) {
+        uintptr_t dst = (uintptr_t)&N64CPU.gpr[guest_reg];
+        | mov64 rax, dst
+        | mov [rax], Rq(host_reg)
+    }
+}

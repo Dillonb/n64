@@ -28,9 +28,9 @@ All memory accesses, including instruction fetches, use virtual memory. There ar
 
 MIPS has the concept of "coprocessors" built directly into the instruction set. Each one is numbered, and there are special opcodes for interacting with them, including MTCx/MFCx (move to/from coprocessor x), which are used to move data between the main CPU registers and the coprocessor's registers.
 
-Coprocessor zero, or CP0, is the "system control coprocessor." It is through CP0 that virtual memory is set up, exceptions and interrupts are controlled, the CPU status is accessed, among other things. There are 32 32-bit registers, most of which have special uses.
+Coprocessor zero, or COP0, is the "system control coprocessor." It is through COP0 that virtual memory is set up, exceptions and interrupts are controlled, the CPU status is accessed, among other things. There are 32 32-bit registers, most of which have special uses.
 
-Coprocessor one, or CP1, is a floating-point unit, or FPU. It supports a variety of floating point operations on its 32 floating-point registers.
+Coprocessor one, or COP1, is a floating-point unit, or FPU. It supports a variety of floating point operations on its 32 floating-point registers.
 
 
 Reality Coprocessor Overview
@@ -47,9 +47,9 @@ It is effectively a stripped-down version of the MIPS chip used for the main CPU
 
 It has 32 *32-bit* registers. Note that this is different than the main CPU, which has 64-bit registers! As in the CPU, the first register, r0 or $zero, is hardwired to 0 at all times.
 
-The RSP has no CP0 in the same way the CPU does. Instead, the CP0 registers are used to communicate with the DMA engine, RDP, and various other things. It also does not have a floating point unit available on CP1.
+The RSP has no COP0 in the same way the CPU does. Instead, the COP0 registers are used to communicate with the DMA engine, RDP, and various other things. It also does not have a floating point unit available on COP1.
 
-It, however, does have a Vector Unit (VU) available as CP2. The VU has quite a few registers which are discussed in the RSP section below. Sometimes, the normal operations of this CPU are referred to as the Scalar Unit (SU) to differentiate them from the vector unit.
+It, however, does have a Vector Unit (VU) available as COP2. The VU has quite a few registers which are discussed in the RSP section below. Sometimes, the normal operations of this CPU are referred to as the Scalar Unit (SU) to differentiate them from the vector unit.
 
 All memory accesses use a physical address, there is no virtual memory involved here.
 

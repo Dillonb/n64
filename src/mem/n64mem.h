@@ -2,12 +2,13 @@
 #define N64_N64MEM_H
 
 #include "n64rom.h"
+#include "addresses.h"
+#include <log.h>
 #include <util.h>
 #include <limits.h>
 
 #define N64_RDRAM_SIZE   0x800000
-#define SP_DMEM_SIZE 0x1000
-#define SP_IMEM_SIZE 0x1000
+#define PIF_RAM_SIZE 64
 
 typedef enum ri_reg {
     RI_MODE_REG,
@@ -37,35 +38,83 @@ typedef enum pi_reg {
 
 typedef struct si_reg {
     word dram_address;
+    word pif_address;
 } si_reg_t;
 
 typedef enum n64_save_type {
     SAVE_NONE,
     SAVE_EEPROM_4k,
     SAVE_EEPROM_16k,
-    SAVE_EEPROM_256k,
-    SAVE_EEPROM_1Mb,
-    SAVE_SRAM_768k
+    SAVE_FLASH_1m,
+    SAVE_SRAM_256k
 } n64_save_type_t;
+
+typedef enum flash_state {
+    FLASH_STATE_IDLE,
+    FLASH_STATE_ERASE,
+    FLASH_STATE_WRITE,
+    FLASH_STATE_READ,
+    FLASH_STATE_STATUS
+} flash_state_t;
+
+INLINE bool is_eeprom(n64_save_type_t type) {
+    return type == SAVE_EEPROM_4k || type == SAVE_EEPROM_16k;
+}
+
+INLINE void assert_is_eeprom(n64_save_type_t save_type) {
+    if (!is_eeprom(save_type)) {
+        logfatal("Expected save type to be EEPROM, but was not! Is this game in the game DB?");
+    }
+}
+
+INLINE bool is_sram(n64_save_type_t type) {
+    return type == SAVE_SRAM_256k;
+}
+
+INLINE void assert_is_sram(n64_save_type_t save_type) {
+    if (!is_sram(save_type)) {
+        logfatal("Expected save type to be SRAM, but was not! Is this game in the game DB?");
+    }
+}
+
+INLINE bool is_flash(n64_save_type_t type) {
+    return type == SAVE_FLASH_1m;
+}
+
+INLINE void assert_is_flash(n64_save_type_t save_type) {
+    if (!is_flash(save_type)) {
+        logfatal("Expected save type to be FLASH, but was not! Is this game in the game DB?");
+    }
+}
 
 typedef struct n64_mem {
     byte rdram[N64_RDRAM_SIZE];
     n64_rom_t rom;
-    byte sp_dmem[SP_DMEM_SIZE];
-    byte sp_imem[SP_IMEM_SIZE];
     word rdram_reg[10];
     word pi_reg[13];
     word ri_reg[8];
     si_reg_t si_reg;
-    byte pif_ram[64];
+    byte pif_ram[PIF_RAM_SIZE];
     char save_file_path[PATH_MAX];
     char mempack_file_path[PATH_MAX];
     n64_save_type_t save_type;
+    byte isviewer_buffer[CART_ISVIEWER_SIZE];
 
     byte* save_data;
     bool save_data_dirty;
     int save_data_debounce_counter;
     size_t save_size;
+
+    struct {
+        flash_state_t state;
+        dword status_reg;
+
+        // TODO: do these share the same reg?
+        size_t erase_offset;
+        size_t write_offset;
+
+        byte write_buffer[128];
+    } flash;
 
     byte* mempack_data;
     bool mempack_data_dirty;
@@ -73,6 +122,8 @@ typedef struct n64_mem {
 
 } n64_mem_t;
 
+
+void save_rdram_dump(bool bswap);
 void init_mem(n64_mem_t* mem);
 
 #endif //N64_N64MEM_H

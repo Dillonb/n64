@@ -7,6 +7,9 @@
 #include <mem/addresses.h>
 #include <system/n64system.h>
 #include <rdp/rdp.h>
+#include <mem/n64bus.h>
+#include <cpu/dynarec/dynarec.h>
+#include <mem/mem_util.h>
 
 #include "rsp_types.h"
 #include "rsp_interface.h"
@@ -42,6 +45,9 @@
 #define LWC2_LSV 0b00001
 #define LWC2_LTV 0b01011
 #define LWC2_LUV 0b00111
+
+// Undocumented
+#define LWC2_0xA 0b01010
 
 #define FUNCT_RSP_VEC_VABS  0b010011
 #define FUNCT_RSP_VEC_VADD  0b010000
@@ -88,21 +94,62 @@
 #define FUNCT_RSP_VEC_VSUBC 0b010101
 #define FUNCT_RSP_VEC_VXOR  0b101100
 
+// Undocumented
+#define FUNCT_RSP_VEC_0x12  0b010010
+#define FUNCT_RSP_VEC_0x16  0b010110
+#define FUNCT_RSP_VEC_0x17  0b010111
+#define FUNCT_RSP_VEC_0x18  0b011000
+#define FUNCT_RSP_VEC_0x19  0b011001
+#define FUNCT_RSP_VEC_0x1A  0b011010
+#define FUNCT_RSP_VEC_0x1B  0b011011
+#define FUNCT_RSP_VEC_0x1C  0b011100
+#define FUNCT_RSP_VEC_0x1E  0b011110
+#define FUNCT_RSP_VEC_0x1F  0b011111
+#define FUNCT_RSP_VEC_0x2E  0b101110
+#define FUNCT_RSP_VEC_0x2F  0b101111
+#define FUNCT_RSP_VEC_0x38  0b111000
+#define FUNCT_RSP_VEC_0x39  0b111001
+#define FUNCT_RSP_VEC_0x3A  0b111010
+#define FUNCT_RSP_VEC_0x3B  0b111011
+#define FUNCT_RSP_VEC_0x3C  0b111100
+#define FUNCT_RSP_VEC_0x3D  0b111101
+#define FUNCT_RSP_VEC_0x3E  0b111110
+#define FUNCT_RSP_VEC_0x3F  0b111111
+
 #define RSP_DRAM_ADDR_MASK 0xFFFFF8
 #define RSP_MEM_ADDR_MASK 0xFF8
 
 #define FLAGREG_BOOL(x) ((x) ? 0xFFFF : 0)
 
-INLINE void rsp_dma_read(rsp_t* rsp) {
-    word length = rsp->io.dma.length + 1;
+extern rsp_t n64rsp;
+#define N64RSP n64rsp
+#define N64RSPDYNAREC n64rsp.dynarec
 
-    dram_addr_t dram_addr_reg = rsp->io.shadow_dmem_addr;
-    mem_addr_t mem_addr_reg = rsp->io.shadow_mem_addr;
+INLINE void quick_invalidate_rsp_icache(word address) {
+    int index = address / 4;
+
+    N64RSP.icache[index].handler = cache_rsp_instruction;
+    N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
+    N64RSPDYNAREC->blockcache[index].run = NULL;
+}
+
+INLINE void invalidate_rsp_icache(word address) {
+    quick_invalidate_rsp_icache(address & 0xFFC);
+}
+
+INLINE void rsp_dma_read() {
+    word length = N64RSP.io.dma.length + 1;
+
+    dram_addr_t dram_addr_reg = N64RSP.io.shadow_dmem_addr;
+    mem_addr_t mem_addr_reg = N64RSP.io.shadow_mem_addr;
 
     length = (length + 0x7) & ~0x7;
 
-    if (mem_addr_reg.address + length > 0x1000) {
-        logfatal("RSP DMA READ would read off the end of memory!\n");
+    word last_addr = mem_addr_reg.address + length;
+    if (last_addr > 0x1000) {
+        word overshoot = last_addr - 0x1000;
+        length -= overshoot;
+        logwarn("RSP DMA READ would read off the end of memory! Truncating DMA (this is probably the wrong behavior)");
     }
 
     word dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
@@ -114,39 +161,43 @@ INLINE void rsp_dma_read(rsp_t* rsp) {
         logwarn("Misaligned MEM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", mem_addr_reg.address, mem_address);
     }
 
-    for (int i = 0; i < rsp->io.dma.count + 1; i++) {
-        word full_mem_addr = mem_address + (mem_addr_reg.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j += 4) {
-            word val = rsp->read_physical_word(dram_address + j);
-            rsp->write_physical_word(full_mem_addr + j, val);
+    for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
+        byte* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        byte* rdram = n64sys.mem.rdram + dram_address;
+        memcpy(mem, rdram, length);
+
+        if (mem_addr_reg.imem) {
+            for (int j = 0; j < length; j += 4) {
+                quick_invalidate_rsp_icache(mem_address + j);
+            }
         }
 
-        int skip = i == rsp->io.dma.count ? 0 : rsp->io.dma.skip;
+        int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
 
         dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
         mem_address += length;
     }
 
     // Set registers for reading now that DMA is complete
-    rsp->io.dram_addr.address = dram_address;
-    rsp->io.mem_addr.address = mem_address;
-    rsp->io.mem_addr.imem = mem_addr_reg.imem;
+    N64RSP.io.dram_addr.address = dram_address;
+    N64RSP.io.mem_addr.address = mem_address;
+    N64RSP.io.mem_addr.imem = mem_addr_reg.imem;
 
     // Hardware seems to always return this value in the length register
     // No real idea why
-    rsp->io.dma.raw = 0xFF8 | (rsp->io.dma.skip << 20);
+    N64RSP.io.dma.raw = 0xFF8 | (N64RSP.io.dma.skip << 20);
 }
 
-INLINE void rsp_dma_write(rsp_t* rsp) {
-    word length = rsp->io.dma.length + 1;
+INLINE void rsp_dma_write() {
+    word length = N64RSP.io.dma.length + 1;
 
-    dram_addr_t dram_addr = rsp->io.shadow_dmem_addr;
-    mem_addr_t mem_addr = rsp->io.shadow_mem_addr;
+    dram_addr_t dram_addr = N64RSP.io.shadow_dmem_addr;
+    mem_addr_t mem_addr = N64RSP.io.shadow_mem_addr;
 
     length = (length + 0x7) & ~0x7;
 
     if (mem_addr.address + length > 0x1000) {
-        logfatal("RSP DMA WRITE would write off the end of memory!\n");
+        logfatal("RSP DMA WRITE would write off the end of memory!");
     }
 
     word dram_address = dram_addr.address & RSP_DRAM_ADDR_MASK;
@@ -158,69 +209,63 @@ INLINE void rsp_dma_write(rsp_t* rsp) {
         logwarn("Misaligned MEM RSP DMA WRITE! 0x%08X", mem_addr.address);
     }
 
-    for (int i = 0; i < rsp->io.dma.count + 1; i++) {
-        word full_mem_addr = mem_address + (mem_addr.imem ? SREGION_SP_IMEM : SREGION_SP_DMEM);
-        for (int j = 0; j < length; j += 4) {
-            word val = rsp->read_physical_word(full_mem_addr + j);
-            rsp->write_physical_word(dram_address + j, val);
+    for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
+        byte* mem = (mem_addr.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        byte* rdram = n64sys.mem.rdram + dram_address;
+        memcpy(rdram, mem, length);
+
+        // Invalidate all pages touched by the DMA
+        // This is probably unnecessary, since why would someone be copying code from the RSP to the CPU and then executing it?
+        for (int j = 0; j < length; j += BLOCKCACHE_PAGE_SIZE) {
+            invalidate_dynarec_page(dram_address + j);
         }
 
-        int skip = i == rsp->io.dma.count ? 0 : rsp->io.dma.skip;
+        int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
 
         dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
         mem_address += length;
     }
 
-    rsp->io.dram_addr.address = dram_address;
-    rsp->io.mem_addr.address = mem_address;
-    rsp->io.mem_addr.imem = mem_addr.imem;
+    N64RSP.io.dram_addr.address = dram_address;
+    N64RSP.io.mem_addr.address = mem_address;
+    N64RSP.io.mem_addr.imem = mem_addr.imem;
 
     // Hardware seems to always return this value in the length register
     // No real idea why
-    rsp->io.dma.raw = 0xFF8 | (rsp->io.dma.skip << 20);
+    N64RSP.io.dma.raw = 0xFF8 | (N64RSP.io.dma.skip << 20);
 }
 
-INLINE void set_rsp_register(rsp_t* rsp, byte r, word value) {
-    if (r != 0) {
-        if (r < 64) {
-            rsp->gpr[r] = value;
-        } else {
-            logfatal("Write to invalid RSP register: %d", r);
-        }
-    }
+INLINE void set_rsp_register(byte r, word value) {
+    N64RSP.gpr[r] = value;
+    N64RSP.gpr[0] = 0;
 }
 
-INLINE word get_rsp_register(rsp_t* rsp, byte r) {
-    if (r < 64) {
-        word value = rsp->gpr[r];
-        return value;
-    } else {
-        logfatal("Attempted to read invalid RSP register: %d", r);
-    }
+INLINE word get_rsp_register(byte r) {
+    return N64RSP.gpr[r];
 }
 
-bool rsp_acquire_semaphore(n64_system_t* system);
-void rsp_release_semaphore(n64_system_t* system);
+bool rsp_acquire_semaphore();
+void rsp_release_semaphore();
 
-INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
+INLINE word get_rsp_cp0_register(byte r) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: return system->rsp.io.shadow_mem_addr.raw;
+        case RSP_CP0_DMA_CACHE: return N64RSP.io.shadow_mem_addr.raw;
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
         case RSP_CP0_DMA_DRAM:
-            return system->rsp.io.shadow_dmem_addr.raw;
+            return N64RSP.io.shadow_dmem_addr.raw;
         case RSP_CP0_DMA_READ_LENGTH:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_READ_LENGTH", r);
+            return 0;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_WRITE_LENGTH", r);
-        case RSP_CP0_SP_STATUS: return system->rsp.status.raw;
-        case RSP_CP0_DMA_FULL:  return system->rsp.status.dma_full;
-        case RSP_CP0_DMA_BUSY:  return system->rsp.status.dma_busy;
-        case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore(system);
+            return 0;
+        case RSP_CP0_SP_STATUS: return N64RSP.status.raw;
+        case RSP_CP0_DMA_FULL:  return N64RSP.status.dma_full;
+        case RSP_CP0_DMA_BUSY:  return N64RSP.status.dma_busy;
+        case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore();
         case RSP_CP0_CMD_START:
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r);
-        case RSP_CP0_CMD_END:     return system->dpc.end;
-        case RSP_CP0_CMD_CURRENT: return system->dpc.current;
-        case RSP_CP0_CMD_STATUS:  return system->dpc.status.raw;
+        case RSP_CP0_CMD_END:     return n64sys.dpc.end;
+        case RSP_CP0_CMD_CURRENT: return n64sys.dpc.current;
+        case RSP_CP0_CMD_STATUS:  return n64sys.dpc.status.raw;
         case RSP_CP0_CMD_CLOCK:
             logwarn("Read from RDP clock: returning 0.");
             return 0;
@@ -235,20 +280,20 @@ INLINE word get_rsp_cp0_register(n64_system_t* system, byte r) {
     }
 }
 
-INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
+INLINE void set_rsp_cp0_register(byte r, word value) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: system->rsp.io.shadow_mem_addr.raw = value; break;
-        case RSP_CP0_DMA_DRAM:  system->rsp.io.shadow_dmem_addr.raw = value; break;
+        case RSP_CP0_DMA_CACHE: N64RSP.io.shadow_mem_addr.raw = value; break;
+        case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dmem_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
-            system->rsp.io.dma.raw = value;
-            rsp_dma_read(&system->rsp);
+            N64RSP.io.dma.raw = value;
+            rsp_dma_read();
             break;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            system->rsp.io.dma.raw = value;
-            rsp_dma_write(&system->rsp);
+            N64RSP.io.dma.raw = value;
+            rsp_dma_write();
             break;
         case RSP_CP0_SP_STATUS:
-            rsp_status_reg_write(system, value);
+            rsp_status_reg_write(value);
             break;
         case RSP_CP0_DMA_FULL:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r);
@@ -256,24 +301,24 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r);
         case RSP_CP0_DMA_RESERVED: {
             if (value == 0) {
-                rsp_release_semaphore(system);
+                rsp_release_semaphore();
             } else {
                 logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value);
             }
             break;
         }
         case RSP_CP0_CMD_START:
-            system->dpc.start = value & 0xFFFFFF;
-            system->dpc.current = system->dpc.start;
+            n64sys.dpc.start = value & 0xFFFFF8;
+            n64sys.dpc.current = n64sys.dpc.start;
             break;
         case RSP_CP0_CMD_END:
-            system->dpc.end = value & 0xFFFFFF;
-            rdp_run_command(system);
+            n64sys.dpc.end = value & 0xFFFFF8;
+            rdp_run_command();
             break;
         case RSP_CP0_CMD_CURRENT:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r);
         case RSP_CP0_CMD_STATUS:
-            rdp_status_reg_write(system, value);
+            rdp_status_reg_write(value);
             break;
         case RSP_CP0_CMD_CLOCK:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);
@@ -288,84 +333,87 @@ INLINE void set_rsp_cp0_register(n64_system_t* system, byte r, word value) {
     }
 }
 
-INLINE sdword get_rsp_accumulator(rsp_t* rsp, int e) {
-    sdword val = (sdword)rsp->acc.h.elements[e] << 48;
-    val       |= (sdword)rsp->acc.m.elements[e] << 32;
-    val       |= (sdword)rsp->acc.l.elements[e] << 16;
-    val >>= 16;
+INLINE sdword get_rsp_accumulator(int e) {
+    sdword val = (sdword)N64RSP.acc.h.elements[e] << 32;
+    val       |= (sdword)N64RSP.acc.m.elements[e] << 16;
+    val       |= (sdword)N64RSP.acc.l.elements[e] << 0;
+    if ((val & 0x0000800000000000) != 0) {
+        val |= 0xFFFF000000000000;
+    }
     return val;
 }
 
-INLINE void set_rsp_accumulator(rsp_t* rsp, int e, dword val) {
-    rsp->acc.h.elements[e] = (val >> 32) & 0xFFFF;
-    rsp->acc.m.elements[e] = (val >> 16) & 0xFFFF;
-    rsp->acc.l.elements[e] = val & 0xFFFF;
+INLINE void set_rsp_accumulator(int e, dword val) {
+    N64RSP.acc.h.elements[e] = (val >> 32) & 0xFFFF;
+    N64RSP.acc.m.elements[e] = (val >> 16) & 0xFFFF;
+    N64RSP.acc.l.elements[e] = val & 0xFFFF;
 }
 
-INLINE half rsp_get_vco(rsp_t* rsp) {
+INLINE half rsp_get_vco() {
     half value = 0;
     for (int i = 0; i < 8; i++) {
-        bool h = rsp->vco.h.elements[7 - i] != 0;
-        bool l = rsp->vco.l.elements[7 - i] != 0;
+        bool h = N64RSP.vco.h.elements[7 - i] != 0;
+        bool l = N64RSP.vco.l.elements[7 - i] != 0;
         word mask = (l << i) | (h << (i + 8));
         value |= mask;
     }
     return value;
 }
 
-INLINE half rsp_get_vcc(rsp_t* rsp) {
+INLINE half rsp_get_vcc() {
     half value = 0;
     for (int i = 0; i < 8; i++) {
-        bool h = rsp->vcc.h.elements[7 - i] != 0;
-        bool l = rsp->vcc.l.elements[7 - i] != 0;
+        bool h = N64RSP.vcc.h.elements[7 - i] != 0;
+        bool l = N64RSP.vcc.l.elements[7 - i] != 0;
         word mask = (l << i) | (h << (i + 8));
         value |= mask;
     }
     return value;
 }
 
-INLINE byte rsp_get_vce(rsp_t* rsp) {
+INLINE byte rsp_get_vce() {
     byte value = 0;
     for (int i = 0; i < 8; i++) {
-        bool l = rsp->vce.elements[7 - i] != 0;
+        bool l = N64RSP.vce.elements[7 - i] != 0;
         value |= (l << i);
     }
     return value;
 }
 
-INLINE void rsp_set_vcc(rsp_t* rsp, half vcc) {
+INLINE void rsp_set_vcc(half vcc) {
     for (int i = 0; i < 8; i++) {
-        rsp->vcc.l.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
+        N64RSP.vcc.l.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
         vcc >>= 1;
     }
 
     for (int i = 0; i < 8; i++) {
-        rsp->vcc.h.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
+        N64RSP.vcc.h.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
         vcc >>= 1;
     }
 }
 
-INLINE void rsp_set_vco(rsp_t* rsp, half vco) {
+INLINE void rsp_set_vco(half vco) {
     for (int i = 0; i < 8; i++) {
-        rsp->vco.l.elements[7 - i] = FLAGREG_BOOL(vco & 1);
+        N64RSP.vco.l.elements[7 - i] = FLAGREG_BOOL(vco & 1);
         vco >>= 1;
     }
 
     for (int i = 0; i < 8; i++) {
-        rsp->vco.h.elements[7 - i] = FLAGREG_BOOL(vco & 1);
+        N64RSP.vco.h.elements[7 - i] = FLAGREG_BOOL(vco & 1);
         vco >>= 1;
     }
 }
 
-INLINE void rsp_set_vce(rsp_t* rsp, half vce) {
+INLINE void rsp_set_vce(half vce) {
     for (int i = 0; i < 8; i++) {
-        rsp->vce.elements[7 - i] = FLAGREG_BOOL(vce & 1);
+        N64RSP.vce.elements[7 - i] = FLAGREG_BOOL(vce & 1);
         vce >>= 1;
     }
 }
 
-void rsp_step(n64_system_t* system);
-void rsp_run(n64_system_t* system);
+void rsp_step();
+void rsp_run();
+void rsp_dynarec_run();
 vu_reg_t ext_get_vte(vu_reg_t* vt, byte e);
 
 #endif //N64_RSP_H

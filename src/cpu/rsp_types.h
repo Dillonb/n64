@@ -7,9 +7,13 @@
 #include <emmintrin.h>
 #endif
 #include <util.h>
+#include <cpu/dynarec/rsp_dynarec.h>
 #include "mips_instruction_decode.h"
 
 #define vecr __m128i
+
+#define SP_DMEM_SIZE 0x1000
+#define SP_IMEM_SIZE 0x1000
 
 typedef union vu_reg {
     // Used by instructions
@@ -23,37 +27,64 @@ typedef union vu_reg {
     word words[4];
 } vu_reg_t;
 
+#ifdef N64_BIG_ENDIAN
+#define VU_BYTE_INDEX(i) (i)
+#define VU_ELEM_INDEX(i) (i)
+#else
+#define VU_BYTE_INDEX(i) (15 - (i))
+#define VU_ELEM_INDEX(i) (7 - (i))
+#endif
+
 static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
 
 typedef union rsp_types {
     word raw;
     struct {
-        bool halt:1;
-        bool broke:1;
-        bool dma_busy:1;
-        bool dma_full:1;
-        bool io_full:1;
-        bool single_step:1;
-        bool intr_on_break:1;
-        bool signal_0:1;
-        bool signal_1:1;
-        bool signal_2:1;
-        bool signal_3:1;
-        bool signal_4:1;
-        bool signal_5:1;
-        bool signal_6:1;
-        bool signal_7:1;
+#ifdef N64_BIG_ENDIAN
         unsigned:17;
+        unsigned signal_7:1;
+        unsigned signal_6:1;
+        unsigned signal_5:1;
+        unsigned signal_4:1;
+        unsigned signal_3:1;
+        unsigned signal_2:1;
+        unsigned signal_1:1;
+        unsigned signal_0:1;
+        unsigned intr_on_break:1;
+        unsigned single_step:1;
+        unsigned io_full:1;
+        unsigned dma_full:1;
+        unsigned dma_busy:1;
+        unsigned broke:1;
+        unsigned halt:1;
+#else
+        unsigned halt:1;
+        unsigned broke:1;
+        unsigned dma_busy:1;
+        unsigned dma_full:1;
+        unsigned io_full:1;
+        unsigned single_step:1;
+        unsigned intr_on_break:1;
+        unsigned signal_0:1;
+        unsigned signal_1:1;
+        unsigned signal_2:1;
+        unsigned signal_3:1;
+        unsigned signal_4:1;
+        unsigned signal_5:1;
+        unsigned signal_6:1;
+        unsigned signal_7:1;
+        unsigned:17;
+#endif
     };
-} rsp_status_t;
+} PACKED rsp_status_t;
 
 ASSERTWORD(rsp_status_t);
 
 typedef struct rsp rsp_t;
 
-void cache_rsp_instruction(rsp_t* rsp, mips_instruction_t instr);
+void cache_rsp_instruction(mips_instruction_t instr);
 
-typedef void(*rspinstr_handler_t)(rsp_t*, mips_instruction_t);
+typedef void(*rspinstr_handler_t)(mips_instruction_t);
 
 typedef struct rsp_icache_entry {
     mips_instruction_t instruction;
@@ -64,7 +95,7 @@ typedef union mem_addr {
     word raw;
     struct {
         unsigned address:12;
-        bool imem:1;
+        unsigned imem:1;
         unsigned:19;
     };
 } mem_addr_t;
@@ -81,7 +112,11 @@ typedef union dram_addr {
 
 ASSERTWORD(dram_addr_t);
 
+typedef struct rsp_dynarec rsp_dynarec_t;
+
 typedef struct rsp {
+    rsp_dynarec_t *dynarec;
+
     word gpr[32];
     half prev_pc;
     half pc;
@@ -91,7 +126,9 @@ typedef struct rsp {
 
     int steps;
 
+#ifdef N64_USE_SIMD
     vecr zero;
+#endif
 
     rsp_status_t status;
 
@@ -142,28 +179,8 @@ typedef struct rsp {
 
     bool semaphore_held;
 
-    byte (*read_byte)(word);
-    void (*write_byte)(word, byte);
-
-    byte (*read_physical_byte)(word);
-    void (*write_physical_byte)(word, byte);
-
-    half (*read_half)(word);
-    void (*write_half)(word, half);
-
-    word (*read_word)(word);
-    void (*write_word)(word, word);
-
-    word (*read_physical_word)(word);
-    void (*write_physical_word)(word, word);
-
-    //dword (*read_dword)(word);
-    //void (*write_dword)(word, dword);
+    byte sp_dmem[SP_DMEM_SIZE];
+    byte sp_imem[SP_IMEM_SIZE];
 } rsp_t;
-
-INLINE void set_rsp_pc(rsp_t* rsp, half pc) {
-    rsp->pc = pc >> 2;
-    rsp->next_pc = rsp->pc + 1;
-}
 
 #endif //N64_RSP_TYPES_H

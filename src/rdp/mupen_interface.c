@@ -6,12 +6,9 @@
 #include <stdio.h>
 #include <SDL_video.h>
 
-n64_system_t* mupen_interface_global_system;
-
 #define PARAM(name, value) if (strcmp(param, name) == 0) { return value; }
 
-void init_mupen_interface(n64_system_t* system) {
-    mupen_interface_global_system = system;
+void init_mupen_interface() {
     printf("Initialized Mupen64Plus plugin interface\n");
 }
 
@@ -76,10 +73,12 @@ EXPORT float CALL ConfigGetParamFloat(m64p_handle handle, const char* param) {
 }
 
 EXPORT int CALL ConfigGetParamBool(m64p_handle handle, const char* param) {
-    PARAM("Fullscreen",     false)
-    PARAM("Parallel",       true)
-    PARAM("ViWidescreen",   false)
-    PARAM("ViHideOverscan", false)
+    PARAM("Fullscreen",       false)
+    PARAM("Parallel",         true)
+    PARAM("ViWidescreen",     false)
+    PARAM("ViHideOverscan",   false)
+    PARAM("ViIntegerScaling", false)
+    PARAM("BusyLoop",         false)
 
 
     logfatal("Unknown bool param: %s", param);

@@ -1,7 +1,7 @@
 MIPS Interface
 ==============
 
-0x0430000 - MI_MODE_REG (Read / Write)
+0x04300000 - MI_MODE_REG (Read / Write)
 --------------------------------------
 
 Sets and retrieves some values. I am uncertain of what they are used for.
@@ -52,7 +52,7 @@ Reads
 |  9  | Gets RDRAM reg mode - returns the value written above |
 +-----+-------------------------------------------------------+
 
-0x0430004 - MI_VERSION_REG (Read only)
+0x04300004 - MI_VERSION_REG (Read only)
 --------------------------------------
 
 +-------+--------------+
@@ -69,7 +69,7 @@ Reads
 
 This register should return 0x02020102 always.
 
-0x0430008 - MI_INTR_REG (Read only)
+0x04300008 - MI_INTR_REG (Read only)
 -----------------------------------
 
 Bits in this register are raised and lowered as interrupts are raised and lowered by other parts of the system.
@@ -90,7 +90,7 @@ Bits in this register are raised and lowered as interrupts are raised and lowere
 | 5   | DP Interrupt - Set by the RDP, when a full sync completes.                                                                 |
 +-----+----------------------------------------------------------------------------------------------------------------------------+
 
-0x043000C - MI_INTR_MASK_REG (Read / Write)
+0x0430000C - MI_INTR_MASK_REG (Read / Write)
 -------------------------------------------
 
 This register sets up a mask. If (MI_INTR_REG & MI_INTR_MASK_REG) != 0, then a MIPS interrupt is raised.
@@ -149,7 +149,118 @@ Reads
 
 Video Interface
 ===============
+
+0x04400000 - VI_STATUS_REG/VI_CONTROL_REG
+-----------------------------------------
+Can be called the VI_STATUS_REG, or the VI_CONTROL REG, whichever you prefer.
+
+This register describes the format of the framebuffer in RDRAM, as well as enables and disables effects such as gamma, dithering, anti-aliasing, etc.
+
++-------+----------------------------------------+
+| Bit   | Explanation                            |
++-------+----------------------------------------+
+| 0-1   | Framebuffer bits-per-pixel (see below) |
++-------+----------------------------------------+
+| 2     | Gamma dither enable                    |
++-------+----------------------------------------+
+| 3     | Gamma enable                           |
++-------+----------------------------------------+
+| 4     | Divot enable                           |
++-------+----------------------------------------+
+| 5     | Reserved                               |
++-------+----------------------------------------+
+| 6     | Serrate                                |
++-------+----------------------------------------+
+| 7     | Reserved                               |
++-------+----------------------------------------+
+| 8-9   | Anti-alias mode (see below)            |
++-------+----------------------------------------+
+| 10    | Unused                                 |
++-------+----------------------------------------+
+| 11    | Reserved                               |
++-------+----------------------------------------+
+| 12-15 | Reserved                               |
++-------+----------------------------------------+
+| 16-31 | Unused                                 |
++-------+----------------------------------------+
+
+Enum Definitions
+^^^^^^^^^^^^^^^^
+
+Framebuffer bits per pixel:
+  0. Blank
+  1. Reserved
+  2. RGBA 5553 "16" bits per pixel (should be able to ignore alpha channel and treat this as RGBA5551)
+  3. RGBA 8888 32 bits per pixel
+
+Anti-alias mode:
+  0. Anti-alias and resample (always fetch extra lines)
+  1. Anti-alias and resample (fetch extra lines if needed)
+  2. Resample only (treat as all fully covered)
+  3. No anti-aliasing or resampling, no interpolation.
+
+
+0x04400004 - VI_ORIGIN_REG
+--------------------------
+
+Describes where in RDRAM the VI should display the framebuffer from. Bits 0 through 23 are used, bits 24 through 31 are ignored by hardware.
+
++-------+------------------------------+
+| Bit   | Description                  |
++-------+------------------------------+
+| 0-23  | RDRAM address of framebuffer |
++-------+------------------------------+
+| 24-31 | Unused                       |
++-------+------------------------------+
+
+0x04400008 - VI_WIDTH_REG
+-------------------------
 TODO
+
+0x0440000C - VI_INTR_REG
+------------------------
+TODO
+
+0x04400010 - VI_V_CURRENT_REG
+-----------------------------
+TODO
+
+0x04400014 - VI_BURST_REG
+-------------------------
+TODO
+
+0x04400018 - VI_V_SYNC_REG
+--------------------------
+TODO
+
+0x0440001C - VI_H_SYNC_REG
+--------------------------
+TODO
+
+0x04400020 - VI_LEAP_REG
+------------------------
+TODO
+
+0x04400024 - VI_H_START_REG
+---------------------------
+TODO
+
+0x04400028 - VI_V_START_REG
+---------------------------
+TODO
+
+0x0440002C - VI_V_BURST_REG
+---------------------------
+TODO
+
+0x04400030 - VI_X_SCALE_REG
+---------------------------
+TODO
+
+0x04400034 - VI_Y_SCALE_REG
+---------------------------
+TODO
+
 
 Audio Interface
 ===============

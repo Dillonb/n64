@@ -1,6 +1,7 @@
 #include "render.h"
 #include "audio.h"
 #include "gamepad.h"
+#include "frontend.h"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -9,19 +10,29 @@
 #include <glad/gl.h>
 #include <volk.h>
 
-#include <mem/pif.h>
+// prior to 2.0.10, this was anonymous enum
+#if SDL_COMPILEDVERSION <  SDL_VERSIONNUM(2, 0, 10)
+    typedef int SDL_PixelFormatEnum;
+#endif
 
 int SCREEN_SCALE = 2;
 static SDL_GLContext gl_context;
 SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
+static SDL_Texture* texture = NULL;
+static byte pixel_buffer[640 * 480 * 4]; // should be the largest needed
 static n64_video_type_t n64_video_type = UNKNOWN_VIDEO_TYPE;
 
 word fps_interval = 1000; // 1000ms = 1 second
 word sdl_lastframe = 0;
 word sdl_numframes = 0;
 word sdl_fps = 0;
+word game_fps = 0;
 char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
+
+SDL_Window* get_window_handle() {
+    return window;
+}
 
 void video_init_opengl() {
     window = SDL_CreateWindow(N64_APP_NAME,
@@ -62,156 +73,130 @@ void video_init_vulkan() {
                               SDL_WINDOWPOS_UNDEFINED,
                               N64_SCREEN_X * SCREEN_SCALE,
                               N64_SCREEN_Y * SCREEN_SCALE,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     if (volkInitialize() != VK_SUCCESS) {
         logfatal("Failed to load Volk");
     }
 
 }
 
-void render_init(n64_system_t* system, n64_video_type_t video_type) {
+void video_init_software() {
+    window = SDL_CreateWindow(N64_APP_NAME,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              N64_SCREEN_X * SCREEN_SCALE,
+                              N64_SCREEN_Y * SCREEN_SCALE,
+                              SDL_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+}
+
+void render_init(n64_video_type_t video_type) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
-    if (video_type == OPENGL) {
-        video_init_opengl();
-    } else if (video_type == VULKAN) {
-        video_init_vulkan();
+    switch (video_type) {
+        case OPENGL_VIDEO_TYPE:
+            video_init_opengl();
+            break;
+        case VULKAN_VIDEO_TYPE:
+            video_init_vulkan();
+            break;
+        case SOFTWARE_VIDEO_TYPE:
+            video_init_software();
+            break;
+
+        case UNKNOWN_VIDEO_TYPE:
+        default:
+            logwarn("Unknown video type, not initializing video!");
+            break;
     }
     n64_video_type = video_type;
-    audio_init(system);
-    gamepad_init(system);
+    audio_init();
+    gamepad_init();
 }
 
-void handle_event(n64_system_t* system, SDL_Event* event) {
-    switch (event->type) {
-        case SDL_QUIT:
-            logwarn("User requested quit");
-            n64_request_quit();
-            break;
-        case SDL_KEYDOWN: {
-            switch (event->key.keysym.sym) {
-                case SDLK_ESCAPE:
-                    n64_request_quit();
-                    break;
+static word last_vi_type = 0;
+static word vi_height = 0;
+static word vi_width = 0;
 
-                case SDLK_j:
-                    update_button(system, 0, N64_BUTTON_A, true);
-                    break;
+INLINE void pre_scanout(SDL_PixelFormatEnum pixel_format) {
+    float y_scale = (float)n64sys.vi.yscale.scale / 1024.0;
+    float x_scale = (float)n64sys.vi.xscale.scale / 1024.0;
 
-                case SDLK_k:
-                    update_button(system, 0, N64_BUTTON_B, true);
-                    break;
+    int new_height = ceilf((float)((n64sys.vi.vstart.end - n64sys.vi.vstart.start) >> 1) * y_scale);
+    int new_width  = ceilf((float)((n64sys.vi.hstart.end - n64sys.vi.hstart.start) >> 0) * x_scale);
 
-                case SDLK_UP:
-                case SDLK_w:
-                    update_joyaxis_y(system, 0, INT8_MAX);
-                    //update_button(system, 0, DPAD_UP, true);
-                    break;
+    bool should_recreate_texture = false;
 
-                case SDLK_DOWN:
-                case SDLK_s:
-                    update_joyaxis_y(system, 0, INT8_MIN);
-                    //update_button(system, 0, DPAD_DOWN, true);
-                    break;
+    should_recreate_texture |= new_height != vi_height;
+    should_recreate_texture |= new_width != vi_width;
 
-                case SDLK_LEFT:
-                case SDLK_a:
-                    update_joyaxis_x(system, 0, INT8_MIN);
-                    //update_button(system, 0, DPAD_LEFT, true);
-                    break;
+    should_recreate_texture |= last_vi_type != n64sys.vi.status.type;
 
-                case SDLK_RIGHT:
-                case SDLK_d:
-                    update_joyaxis_x(system, 0, INT8_MAX);
-                    //update_button(system, 0, DPAD_RIGHT, true);
-                    break;
-
-                case SDLK_q:
-                    update_button(system, 0, N64_BUTTON_Z, true);
-                    break;
-
-                case SDLK_RETURN:
-                    update_button(system, 0, N64_BUTTON_START, true);
-                    break;
-            }
-            break;
+    if (should_recreate_texture) {
+        last_vi_type = n64sys.vi.status.type;
+        vi_height = new_height;
+        vi_width = new_width;
+        if (texture != NULL) {
+            SDL_DestroyTexture(texture);
         }
-        case SDL_KEYUP: {
-            switch (event->key.keysym.sym) {
-                case SDLK_j:
-                    update_button(system, 0, N64_BUTTON_A, false);
-                    break;
+        texture = SDL_CreateTexture(renderer, pixel_format, SDL_TEXTUREACCESS_STREAMING, vi_width, vi_height);
+    }
 
-                case SDLK_k:
-                    update_button(system, 0, N64_BUTTON_B, false);
-                    break;
+}
 
-                case SDLK_UP:
-                case SDLK_w:
-                    update_joyaxis_y(system, 0, 0);
-                    //update_button(system, 0, DPAD_UP, false);
-                    break;
-
-                case SDLK_DOWN:
-                case SDLK_s:
-                    update_joyaxis_y(system, 0, 0);
-                    //update_button(system, 0, DPAD_DOWN, false);
-                    break;
-
-                case SDLK_LEFT:
-                case SDLK_a:
-                    update_joyaxis_x(system, 0, 0);
-                    //update_button(system, 0, DPAD_LEFT, false);
-                    break;
-
-                case SDLK_RIGHT:
-                case SDLK_d:
-                    update_joyaxis_x(system, 0, 0);
-                    //update_button(system, 0, DPAD_RIGHT, false);
-                    break;
-
-                case SDLK_q:
-                    update_button(system, 0, N64_BUTTON_Z, false);
-                    break;
-
-                case SDLK_RETURN:
-                    update_button(system, 0, N64_BUTTON_START, false);
-                    break;
-            }
-            break;
+static void vi_scanout_16bit() {
+    pre_scanout(SDL_PIXELFORMAT_RGBA5551);
+    const int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
+    for (int y = 0; y < vi_height; y++) {
+        int yofs = (y * vi_width * 2);
+        for (int x = 0; x < vi_width; x += 2) {
+            memcpy(&pixel_buffer[yofs + x * 2 + 2], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 0], sizeof(half));
+            memcpy(&pixel_buffer[yofs + x * 2 + 0], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 2], sizeof(half));
         }
-
-        case SDL_CONTROLLERDEVICEADDED:
-        case SDL_CONTROLLERDEVICEREMOVED:
-        case SDL_CONTROLLERDEVICEREMAPPED:
-            gamepad_refresh();
-            break;
-        case SDL_CONTROLLERBUTTONDOWN:
-            gamepad_update_button(system, event->cbutton.button, true);
-            break;
-        case SDL_CONTROLLERBUTTONUP:
-            gamepad_update_button(system, event->cbutton.button, false);
-            break;
-        case SDL_CONTROLLERAXISMOTION:
-            gamepad_update_axis(system, event->caxis.axis, event->caxis.value);
-            break;
     }
+    SDL_UpdateTexture(texture, NULL, &pixel_buffer, vi_width * 2);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
-void n64_poll_input(n64_system_t* system) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        handle_event(system, &event);
-    }
+static void vi_scanout_32bit() {
+    pre_scanout(SDL_PIXELFORMAT_RGBA8888);
+    int rdram_offset = n64sys.vi.vi_origin & (N64_RDRAM_SIZE - 1);
+    SDL_UpdateTexture(texture, NULL, &n64sys.mem.rdram[rdram_offset], vi_width * 4);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
-void n64_render_screen(n64_system_t* system) {
+void render_screen_software() {
+    n64_poll_input();
+
+    switch (n64sys.vi.status.type) {
+        case VI_TYPE_BLANK:
+            SDL_RenderClear(renderer);
+            break;
+        case VI_TYPE_RESERVED:
+            logfatal("VI_TYPE_RESERVED");
+        case VI_TYPE_16BIT:
+            vi_scanout_16bit();
+            break;
+        case VI_TYPE_32BIT:
+            vi_scanout_32bit();
+            break;
+        default:
+            logfatal("Unknown VI type: %d", n64sys.vi.status.type);
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
+void n64_render_screen() {
     switch (n64_video_type) {
-        case OPENGL:
+        case OPENGL_VIDEO_TYPE:
             SDL_RenderPresent(renderer);
             break;
-        case VULKAN: // frame pushing handled elsewhere
+        case VULKAN_VIDEO_TYPE: // frame pushing handled elsewhere
+            break;
+        case SOFTWARE_VIDEO_TYPE:
+            render_screen_software();
             break;
         case UNKNOWN_VIDEO_TYPE:
         default:
@@ -224,8 +209,14 @@ void n64_render_screen(n64_system_t* system) {
         sdl_lastframe = ticks;
         sdl_fps = sdl_numframes;
         sdl_numframes = 0;
-        const char* game_name = system->mem.rom.game_name_db != NULL ? system->mem.rom.game_name_db : system->mem.rom.game_name_cartridge;
-        snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d FPS", game_name, sdl_fps);
+        game_fps = n64sys.vi.swaps;
+        n64sys.vi.swaps = 0;
+        const char* game_name = n64sys.mem.rom.game_name_db != NULL ? n64sys.mem.rom.game_name_db : n64sys.mem.rom.game_name_cartridge;
+        if (game_name == NULL || strcmp(game_name, "") == 0) {
+            snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " %02d emulator FPS / %02d game FPS", sdl_fps, game_fps);
+        } else {
+            snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d emulator FPS / %02d game FPS", game_name, sdl_fps, game_fps);
+        }
         SDL_SetWindowTitle(window, sdl_wintitle);
     }
 }

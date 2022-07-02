@@ -10,6 +10,7 @@ extern "C" {
 #include <interface/vi_reg.h>
 #include <debugger/debugger.h>
 #include <debugger/debugger_types.h>
+#include <rdp/softrdp.h>
 
 #define CPU_HERTZ 93750000
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
@@ -30,8 +31,9 @@ extern "C" {
 
 typedef enum n64_video_type {
     UNKNOWN_VIDEO_TYPE,
-    OPENGL,
-    VULKAN
+    OPENGL_VIDEO_TYPE,
+    VULKAN_VIDEO_TYPE,
+    SOFTWARE_VIDEO_TYPE
 } n64_video_type_t;
 
 
@@ -72,38 +74,6 @@ typedef union mi_intr {
     };
 } mi_intr_t;
 
-typedef struct n64_controller {
-    bool plugged_in;
-    union {
-        byte byte1;
-        struct {
-            bool dp_right:1;
-            bool dp_left:1;
-            bool dp_down:1;
-            bool dp_up:1;
-            bool start:1;
-            bool z:1;
-            bool b:1;
-            bool a:1;
-        };
-    };
-    union {
-        byte byte2;
-        struct {
-            bool c_right:1;
-            bool c_left:1;
-            bool c_down:1;
-            bool c_up:1;
-            bool r:1;
-            bool l:1;
-            bool zero:1;
-            bool joy_reset:1;
-        };
-    };
-    sbyte joy_x;
-    sbyte joy_y;
-} n64_controller_t;
-
 typedef struct n64_dpc {
     word start;
     word end;
@@ -131,9 +101,35 @@ typedef struct n64_dpc {
     word tmem;
 } n64_dpc_t;
 
+typedef union axis_scale {
+    word raw;
+    struct {
+        unsigned scale_decimal:10;
+        unsigned scale_integer:2;
+        unsigned subpixel_offset_decimal:10;
+        unsigned subpixel_offset_integer:2;
+        unsigned:4;
+    };
+    struct {
+        unsigned scale:12;
+        unsigned subpixel_offset:12;
+        unsigned:4;
+    };
+} axis_scale_t;
+
+typedef union axis_start {
+    word raw;
+    struct {
+        unsigned end:10;
+        unsigned:6;
+        unsigned start:10;
+        unsigned:6;
+    };
+} axis_start_t;
+
 typedef struct n64_system {
     n64_mem_t mem;
-    r4300i_t cpu;
+    //r4300i_t cpu;
     rsp_t rsp;
     n64_video_type_t video_type;
     struct {
@@ -148,22 +144,18 @@ typedef struct n64_system {
         word vi_v_intr;
         vi_burst_t vi_burst;
         word vsync;
+        int num_halflines;
+        int num_fields;
+        int cycles_per_halfline;
         word hsync;
         word leap;
-        word hstart;
-        union {
-            word raw;
-            struct {
-                unsigned vend:10;
-                unsigned:5;
-                unsigned vstart:10;
-                unsigned:6;
-            };
-        } vstart;
+        axis_start_t hstart;
+        axis_start_t vstart;
         word vburst;
-        word xscale;
-        word yscale;
+        axis_scale_t xscale;
+        axis_scale_t yscale;
         word v_current;
+        int swaps;
     } vi;
     struct {
         bool dma_enable;
@@ -172,6 +164,7 @@ typedef struct n64_system {
         int dma_count;
         word dma_length[2];
         word dma_address[2];
+        bool dma_address_carry;
         int cycles;
 
         struct {
@@ -181,26 +174,37 @@ typedef struct n64_system {
         } dac;
     } ai;
     struct {
-        n64_controller_t controllers[4];
+        bool dma_busy;
+        bool dma_to_dram;
     } si;
+    struct {
+        bool dma_busy;
+    } pi;
     n64_dpc_t dpc;
+#ifndef N64_WIN
     n64_debugger_state_t debugger_state;
+#endif
     n64_dynarec_t *dynarec;
+    softrdp_state_t softrdp_state;
     bool use_interpreter;
-    const char *rom_path;
+    char rom_path[PATH_MAX];
 } n64_system_t;
 
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
+void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
+void reset_n64system();
+bool n64_should_quit();
+void n64_load_rom(const char* rom_path);
 
-void n64_system_step(n64_system_t* system, bool dynarec);
-void n64_system_loop(n64_system_t* system);
-void n64_system_cleanup(n64_system_t* system);
+void n64_system_step(bool dynarec);
+void n64_system_loop();
+void n64_system_cleanup();
 void n64_request_quit();
 void interrupt_raise(n64_interrupt_t interrupt);
-void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt);
-void on_interrupt_change(n64_system_t* system);
-void check_vsync(n64_system_t* system);
-extern n64_system_t* global_system;
+void interrupt_lower(n64_interrupt_t interrupt);
+void on_interrupt_change();
+void check_vsync();
+extern n64_system_t n64sys;
+#define N64DYNAREC n64sys.dynarec
 #ifdef __cplusplus
 }
 #endif

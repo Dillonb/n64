@@ -1,6 +1,7 @@
 #include "debugger.h"
 #include <mem/n64bus.h>
 
+#ifndef N64_WIN
 #define GDBSTUB_IMPLEMENTATION
 #include <gdbstub.h>
 
@@ -45,7 +46,7 @@ const char* target_xml =
         "        <reg name=\"r31\" bitsize=\"64\"/>"
         "        <reg name=\"lo\" bitsize=\"64\" regnum=\"33\"/>"
         "        <reg name=\"hi\" bitsize=\"64\" regnum=\"34\"/>"
-        "        <reg name=\"pc\" bitsize=\"32\" regnum=\"37\"/>"
+        "        <reg name=\"pc\" bitsize=\"64\" regnum=\"37\"/>"
         "        </feature>"
         "<feature name=\"org.gnu.gdb.mips.cp0\">"
         "        <reg name=\"status\" bitsize=\"32\" regnum=\"32\"/>"
@@ -110,33 +111,33 @@ const char* memory_map =
     "<memory type=\"rom\" start=\"0xffffffffbfc00000\" length=\"0x7c0\"/>" // PIF ROM
 "</memory-map>";
 
-void n64_debug_start(n64_system_t* system) {
-    system->debugger_state.broken = false;
+void n64_debug_start(void* user_data) {
+    n64sys.debugger_state.broken = false;
 }
 
-void n64_debug_stop(n64_system_t* system) {
-    system->debugger_state.broken = true;
+void n64_debug_stop(void* user_data) {
+    n64sys.debugger_state.broken = true;
 }
 
-void n64_debug_step(n64_system_t* system) {
-    bool old_broken = system->debugger_state.broken;
-    system->debugger_state.broken = false;
-    n64_system_step(system, false);
-    system->debugger_state.broken = old_broken;
-    system->debugger_state.steps += 2;
+void n64_debug_step(void* user_data) {
+    bool old_broken = n64sys.debugger_state.broken;
+    n64sys.debugger_state.broken = false;
+    n64_system_step(false);
+    n64sys.debugger_state.broken = old_broken;
+    n64sys.debugger_state.steps += 2;
 }
 
-void n64_debug_set_breakpoint(n64_system_t* system, word address) {
+void n64_debug_set_breakpoint(void* user_data, word address) {
     n64_breakpoint_t* breakpoint = malloc(sizeof(n64_breakpoint_t));
     breakpoint->address = address;
     breakpoint->next = NULL;
 
     // Special case for this being the first breakpoint
-    if (system->debugger_state.breakpoints == NULL) {
-        system->debugger_state.breakpoints = breakpoint;
+    if (n64sys.debugger_state.breakpoints == NULL) {
+        n64sys.debugger_state.breakpoints = breakpoint;
     } else {
         // Find end of the list
-        n64_breakpoint_t* tail = system->debugger_state.breakpoints;
+        n64_breakpoint_t* tail = n64sys.debugger_state.breakpoints;
         while (tail->next != NULL) {
             tail = tail->next;
         }
@@ -145,17 +146,17 @@ void n64_debug_set_breakpoint(n64_system_t* system, word address) {
     }
 }
 
-void n64_debug_clear_breakpoint(n64_system_t* system, word address) {
-    if (system->debugger_state.breakpoints == NULL) {
+void n64_debug_clear_breakpoint(void* user_data, word address) {
+    if (n64sys.debugger_state.breakpoints == NULL) {
         return; // No breakpoints set at all
-    } else if (system->debugger_state.breakpoints->address == address) {
+    } else if (n64sys.debugger_state.breakpoints->address == address) {
         // Special case for the first breakpoint being the one we want to clear
-        n64_breakpoint_t* next = system->debugger_state.breakpoints->next;
-        free(system->debugger_state.breakpoints);
-        system->debugger_state.breakpoints = next;
+        n64_breakpoint_t* next = n64sys.debugger_state.breakpoints->next;
+        free(n64sys.debugger_state.breakpoints);
+        n64sys.debugger_state.breakpoints = next;
     } else {
         // Find the breakpoint somewhere in the list and free it
-        n64_breakpoint_t* iter = system->debugger_state.breakpoints;
+        n64_breakpoint_t* iter = n64sys.debugger_state.breakpoints;
         while (iter->next != NULL) {
             if (iter->next->address == address) {
                 n64_breakpoint_t* next = iter->next->next;
@@ -166,34 +167,34 @@ void n64_debug_clear_breakpoint(n64_system_t* system, word address) {
     }
 }
 
-ssize_t n64_debug_get_memory(n64_system_t* system, char* buffer, size_t length, word address, size_t bytes) {
+ssize_t n64_debug_get_memory(void* user_data, char* buffer, size_t length, word address, size_t bytes) {
     printf("Checking memory at address 0x%08X\n", address);
     int printed = 0;
     for (int i = 0; i < bytes; i++) {
-        byte value = n64_read_byte(system, resolve_virtual_address(address + i, &system->cpu.cp0));
+        byte value = n64_read_byte(address + i);
         printed += snprintf(buffer + (i*2), length, "%02X", value);
     }
     printf("Get memory: %ld bytes from 0x%08X: %d\n", bytes, address, printed);
     return printed + 1;
 }
 
-ssize_t n64_debug_get_register_value(n64_system_t* system, char * buffer, size_t buffer_length, int reg) {
+ssize_t n64_debug_get_register_value(void* user_data, char * buffer, size_t buffer_length, int reg) {
     switch (reg) {
         case 0 ... 31:
-            return snprintf(buffer, buffer_length, "%016lx", system->cpu.gpr[reg]);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.gpr[reg]);
         case 32:
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.status.raw);
+            return snprintf(buffer, buffer_length, "%08x", N64CP0.status.raw);
         case 33:
-            return snprintf(buffer, buffer_length, "%016lx", system->cpu.mult_lo);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.mult_lo);
         case 34:
-            return snprintf(buffer, buffer_length, "%016lx", system->cpu.mult_hi);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.mult_hi);
         case 35:
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.bad_vaddr);
+            return snprintf(buffer, buffer_length, "%016lx", N64CP0.bad_vaddr);
         case 36:
-            return snprintf(buffer, buffer_length, "%08x", system->cpu.cp0.cause.raw);
+            return snprintf(buffer, buffer_length, "%08x", N64CP0.cause.raw);
         case 37:
-            printf("Sending PC: 0x%016lX\n", system->cpu.pc);
-            return snprintf(buffer, buffer_length, "%016lx", system->cpu.pc);
+            printf("Sending PC: 0x%016lX\n", N64CPU.pc);
+            return snprintf(buffer, buffer_length, "%016lx", N64CPU.pc);
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
         default:
@@ -201,24 +202,25 @@ ssize_t n64_debug_get_register_value(n64_system_t* system, char * buffer, size_t
     }
 }
 
-ssize_t n64_debug_get_general_registers(n64_system_t* system, char * buffer, size_t buffer_length) {
+ssize_t n64_debug_get_general_registers(void* user_data, char * buffer, size_t buffer_length) {
+    printf("The buffer length is %ld!\n", buffer_length);
     ssize_t printed = 0;
     for (int i = 0; i < 32; i++) {
         int ofs = i * 16; // 64 bit regs take up 16 ascii chars to print in hex
         if (ofs + 16 > buffer_length) {
             logfatal("Too big!");
         }
-        dword reg = system->cpu.gpr[i];
+        dword reg = N64CPU.gpr[i];
         printed += snprintf(buffer + ofs, buffer_length - ofs, "%016lx", reg);
     }
     return printed;
 }
 
-void debugger_init(n64_system_t* system) {
+void debugger_init() {
     gdbstub_config_t config;
     memset(&config, 0, sizeof(gdbstub_config_t));
     config.port                  = GDB_CPU_PORT;
-    config.user_data             = system;
+    config.user_data             = NULL;
     config.start                 = (gdbstub_start_t) n64_debug_start;
     config.stop                  = (gdbstub_stop_t) n64_debug_stop;
     config.step                  = (gdbstub_step_t) n64_debug_step;
@@ -238,23 +240,24 @@ void debugger_init(n64_system_t* system) {
 
     printf("Sizeof memory map: %ld\n", config.memory_map_length);
 
-    system->debugger_state.gdb = gdbstub_init(config);
-    if (!system->debugger_state.gdb) {
+    n64sys.debugger_state.gdb = gdbstub_init(config);
+    if (!n64sys.debugger_state.gdb) {
         logfatal("Failed to initialize GDB stub!");
     }
 }
 
-void debugger_tick(n64_system_t* system) {
-    gdbstub_tick(system->debugger_state.gdb);
+void debugger_tick() {
+    gdbstub_tick(n64sys.debugger_state.gdb);
 }
 
-void debugger_breakpoint_hit(n64_system_t* system) {
-    system->debugger_state.broken = true;
-    gdbstub_breakpoint_hit(system->debugger_state.gdb);
+void debugger_breakpoint_hit() {
+    n64sys.debugger_state.broken = true;
+    gdbstub_breakpoint_hit(n64sys.debugger_state.gdb);
 }
 
-void debugger_cleanup(n64_system_t* system) {
-    if (system->debugger_state.enabled) {
-        gdbstub_term(system->debugger_state.gdb);
+void debugger_cleanup() {
+    if (n64sys.debugger_state.enabled) {
+        gdbstub_term(n64sys.debugger_state.gdb);
     }
 }
+#endif

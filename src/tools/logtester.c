@@ -60,7 +60,7 @@ bool compare_vecr(char *tok, char* name, vu_reg_t* reg) {
     return true;
 }
 
-void check_rsp_log(n64_system_t* system, FILE* fp) {
+void check_rsp_log(FILE* fp) {
     char pre_line_buf[3000];
     char post_line_buf[3000];
     char* line = NULL;
@@ -91,9 +91,9 @@ void check_rsp_log(n64_system_t* system, FILE* fp) {
         strcpy(post_line_buf, line);
         char* post_line = post_line_buf;
 
-        system->rsp.pc = strtol(post_line, NULL, 16);
+        N64RSP.pc = strtol(post_line, NULL, 16);
         word instr = strtol(post_line + 10, NULL, 16);
-        system->rsp.write_physical_word((system->rsp.pc & 0xFFF) + SREGION_SP_IMEM, instr);
+        n64_write_physical_word((N64RSP.pc & 0xFFF) + SREGION_SP_IMEM, instr);
 
         pre_line += 59; // Skip all the other stuff and get right to regs
         post_line += 59; // Skip all the other stuff and get right to regs
@@ -103,63 +103,63 @@ void check_rsp_log(n64_system_t* system, FILE* fp) {
 
         for (int r = 0; r < 32; r++) {
             tok = strtok(NULL, " ");
-            system->rsp.gpr[r] = strtol(tok, NULL, 16);
+            N64RSP.gpr[r] = strtol(tok, NULL, 16);
             strtok(NULL, " ");
         }
 
         for (int v = 0; v < 32; v++) {
             tok = strtok(NULL, " ");
-            load_vecr(tok, &(system->rsp.vu_regs[v]));
+            load_vecr(tok, &(N64RSP.vu_regs[v]));
             strtok(NULL, " ");
         }
 
         // ACC_H
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.acc.h);
+        load_vecr(tok, &N64RSP.acc.h);
         strtok(NULL, " ");
 
         // ACC_M
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.acc.m);
+        load_vecr(tok, &N64RSP.acc.m);
         strtok(NULL, " ");
 
         // ACC_L
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.acc.l);
+        load_vecr(tok, &N64RSP.acc.l);
         strtok(NULL, " ");
 
         // VCC_H
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.vcc.h);
-        fix_fake_vecr(&system->rsp.vcc.h);
+        load_vecr(tok, &N64RSP.vcc.h);
+        fix_fake_vecr(&N64RSP.vcc.h);
         strtok(NULL, " ");
 
         // VCC_L
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.vcc.l);
-        fix_fake_vecr(&system->rsp.vcc.l);
+        load_vecr(tok, &N64RSP.vcc.l);
+        fix_fake_vecr(&N64RSP.vcc.l);
         strtok(NULL, " ");
 
         // VCO_H
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.vco.h);
-        fix_fake_vecr(&system->rsp.vco.h);
+        load_vecr(tok, &N64RSP.vco.h);
+        fix_fake_vecr(&N64RSP.vco.h);
         strtok(NULL, " ");
 
         // VCO_L
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.vco.l);
-        fix_fake_vecr(&system->rsp.vco.l);
+        load_vecr(tok, &N64RSP.vco.l);
+        fix_fake_vecr(&N64RSP.vco.l);
         strtok(NULL, " ");
 
         // VCE
         tok = strtok(NULL, " ");
-        load_vecr(tok, &system->rsp.vce);
-        fix_fake_vecr(&system->rsp.vce);
+        load_vecr(tok, &N64RSP.vce);
+        fix_fake_vecr(&N64RSP.vce);
         strtok(NULL, " ");
 
         // Pre-setup is done, run the step
-        rsp_step(system);
+        rsp_step();
 
         bool all_correct = true;
 
@@ -168,7 +168,7 @@ void check_rsp_log(n64_system_t* system, FILE* fp) {
 
         for (int r = 0; r < 32; r++) {
             tok = strtok(NULL, " ");
-            word actual = system->rsp.gpr[r];
+            word actual = N64RSP.gpr[r];
             word expected = strtol(tok, NULL, 16);
             if (actual != expected) {
                 logfatal("r%d expected: 0x%08X actual 0x%08X\n", r, expected, actual);
@@ -180,53 +180,53 @@ void check_rsp_log(n64_system_t* system, FILE* fp) {
             tok = strtok(NULL, " ");
             char bufname[6];
             sprintf(bufname, "v%02d  ", v);
-            all_correct &= compare_vecr(tok, bufname, &system->rsp.vu_regs[v]);
+            all_correct &= compare_vecr(tok, bufname, &N64RSP.vu_regs[v]);
             strtok(NULL, " ");
         }
 
         // ACC_H
         tok = strtok(NULL, " ");
-        all_correct &= compare_vecr(tok, "ACC_H", &system->rsp.acc.h);
+        all_correct &= compare_vecr(tok, "ACC_H", &N64RSP.acc.h);
         strtok(NULL, " ");
 
         // ACC_M
         tok = strtok(NULL, " ");
-        all_correct &= compare_vecr(tok, "ACC_M", &system->rsp.acc.m);
+        all_correct &= compare_vecr(tok, "ACC_M", &N64RSP.acc.m);
         strtok(NULL, " ");
 
         // ACC_L
         tok = strtok(NULL, " ");
-        all_correct &= compare_vecr(tok, "ACC_L", &system->rsp.acc.l);
+        all_correct &= compare_vecr(tok, "ACC_L", &N64RSP.acc.l);
         strtok(NULL, " ");
 
         // VCC_H
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&system->rsp.vcc.h);
-        all_correct &= compare_vecr(tok, "VCC_H", &system->rsp.vcc.h);
+        fix_fake_vecr(&N64RSP.vcc.h);
+        all_correct &= compare_vecr(tok, "VCC_H", &N64RSP.vcc.h);
         strtok(NULL, " ");
 
         // VCC_L
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&system->rsp.vcc.l);
-        all_correct &= compare_vecr(tok, "VCC_L", &system->rsp.vcc.l);
+        fix_fake_vecr(&N64RSP.vcc.l);
+        all_correct &= compare_vecr(tok, "VCC_L", &N64RSP.vcc.l);
         strtok(NULL, " ");
 
         // VCO_H
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&system->rsp.vco.h);
-        all_correct &= compare_vecr(tok, "VCO_H", &system->rsp.vco.h);
+        fix_fake_vecr(&N64RSP.vco.h);
+        all_correct &= compare_vecr(tok, "VCO_H", &N64RSP.vco.h);
         strtok(NULL, " ");
 
         // VCO_L
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&system->rsp.vco.l);
-        all_correct &= compare_vecr(tok, "VCO_L", &system->rsp.vco.l);
+        fix_fake_vecr(&N64RSP.vco.l);
+        all_correct &= compare_vecr(tok, "VCO_L", &N64RSP.vco.l);
         strtok(NULL, " ");
 
         // VCE
         tok = strtok(NULL, " ");
-        fix_fake_vecr(&system->rsp.vce);
-        all_correct &= compare_vecr(tok, "VCE", &system->rsp.vce);
+        fix_fake_vecr(&N64RSP.vce);
+        all_correct &= compare_vecr(tok, "VCE", &N64RSP.vce);
         strtok(NULL, " ");
 
         if (!all_correct) {
@@ -236,39 +236,39 @@ void check_rsp_log(n64_system_t* system, FILE* fp) {
     }
 }
 
-void check_cpu_log(n64_system_t* system, FILE* fp) {
-    system->cpu.gpr[0] = 0x00000000;
-    system->cpu.gpr[1] = 0x00000001;
-    system->cpu.gpr[2] = 0x0ebda536;
-    system->cpu.gpr[3] = 0x0ebda536;
-    system->cpu.gpr[4] = 0x0000a536;
-    system->cpu.gpr[5] = 0xc0f1d859;
-    system->cpu.gpr[6] = 0xa4001f0c;
-    system->cpu.gpr[7] = 0xa4001f08;
-    system->cpu.gpr[8] = 0x000000f0;
-    system->cpu.gpr[9] = 0x00000000;
-    system->cpu.gpr[10] = 0x00000040;
-    system->cpu.gpr[11] = 0xa4000040;
-    system->cpu.gpr[12] = 0xed10d0b3;
-    system->cpu.gpr[13] = 0x1402a4cc;
-    system->cpu.gpr[14] = 0x2de108ea;
-    system->cpu.gpr[15] = 0x3103e121;
-    system->cpu.gpr[16] = 0x00000000;
-    system->cpu.gpr[17] = 0x00000000;
-    system->cpu.gpr[18] = 0x00000000;
-    system->cpu.gpr[19] = 0x00000000;
-    system->cpu.gpr[20] = 0x00000001;
-    system->cpu.gpr[21] = 0x00000000;
-    system->cpu.gpr[22] = 0x0000003f;
-    system->cpu.gpr[23] = 0x00000000;
-    system->cpu.gpr[24] = 0x00000000;
-    system->cpu.gpr[25] = 0x9debb54f;
-    system->cpu.gpr[26] = 0x00000000;
-    system->cpu.gpr[27] = 0x00000000;
-    system->cpu.gpr[28] = 0x00000000;
-    system->cpu.gpr[29] = 0xa4001ff0;
-    system->cpu.gpr[30] = 0x00000000;
-    system->cpu.gpr[31] = 0xa4001550;
+void check_cpu_log(FILE* fp) {
+    N64CPU.gpr[0] = 0x00000000;
+    N64CPU.gpr[1] = 0x00000001;
+    N64CPU.gpr[2] = 0x0ebda536;
+    N64CPU.gpr[3] = 0x0ebda536;
+    N64CPU.gpr[4] = 0x0000a536;
+    N64CPU.gpr[5] = 0xc0f1d859;
+    N64CPU.gpr[6] = 0xa4001f0c;
+    N64CPU.gpr[7] = 0xa4001f08;
+    N64CPU.gpr[8] = 0x000000f0;
+    N64CPU.gpr[9] = 0x00000000;
+    N64CPU.gpr[10] = 0x00000040;
+    N64CPU.gpr[11] = 0xa4000040;
+    N64CPU.gpr[12] = 0xed10d0b3;
+    N64CPU.gpr[13] = 0x1402a4cc;
+    N64CPU.gpr[14] = 0x2de108ea;
+    N64CPU.gpr[15] = 0x3103e121;
+    N64CPU.gpr[16] = 0x00000000;
+    N64CPU.gpr[17] = 0x00000000;
+    N64CPU.gpr[18] = 0x00000000;
+    N64CPU.gpr[19] = 0x00000000;
+    N64CPU.gpr[20] = 0x00000001;
+    N64CPU.gpr[21] = 0x00000000;
+    N64CPU.gpr[22] = 0x0000003f;
+    N64CPU.gpr[23] = 0x00000000;
+    N64CPU.gpr[24] = 0x00000000;
+    N64CPU.gpr[25] = 0x9debb54f;
+    N64CPU.gpr[26] = 0x00000000;
+    N64CPU.gpr[27] = 0x00000000;
+    N64CPU.gpr[28] = 0x00000000;
+    N64CPU.gpr[29] = 0xa4001ff0;
+    N64CPU.gpr[30] = 0x00000000;
+    N64CPU.gpr[31] = 0xa4001550;
 
 
     char lastinstr[100];
@@ -286,7 +286,7 @@ void check_cpu_log(n64_system_t* system, FILE* fp) {
         for (int r = 0; r < 32; r++) {
             dword expected = strtol(tok, NULL, 16);
             tok = strtok(NULL, " ");
-            dword actual = system->cpu.gpr[r] & 0xFFFFFFFF;
+            dword actual = N64CPU.gpr[r] & 0xFFFFFFFF;
             if (expected != actual) {
                 logwarn("Failed running line: %s", lastinstr);
                 logwarn("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual);
@@ -304,29 +304,29 @@ void check_cpu_log(n64_system_t* system, FILE* fp) {
 
         tok = strtok(instrline, " ");
         dword pc = strtol(tok, NULL, 16);
-        if (pc != system->cpu.pc) {
-            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08X", line + 1, pc, system->cpu.pc);
+        if (pc != N64CPU.pc) {
+            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, N64CPU.pc);
         }
-        n64_system_step(system, false);
+        n64_system_step(false);
     }
 }
 
 void cpu_step(r4300i_t* cpu) {
     dword pc = cpu->pc;
     mips_instruction_t instruction;
-    instruction.raw = cpu->read_word(pc);
+    instruction.raw = n64_read_word(pc);
 
     cpu->prev_pc = cpu->pc;
     cpu->pc = cpu->next_pc;
     cpu->next_pc += 4;
     cpu->branch = false;
 
-    r4300i_instruction_decode(pc, instruction)(cpu, instruction);
+    r4300i_instruction_decode(pc, instruction)(instruction);
     cpu->exception = false; // only used in dynarec
 }
 
-void update_count(n64_system_t* system, int taken) {
-    r4300i_t* cpu = &system->cpu;
+void update_count(int taken) {
+    r4300i_t* cpu = &N64CPU;
 
     uint64_t oldcount = cpu->cp0.count >> 1;
     uint64_t newcount = (cpu->cp0.count + (taken * CYCLES_PER_INSTR)) >> 1;
@@ -339,12 +339,12 @@ void update_count(n64_system_t* system, int taken) {
 
 }
 
-int run_system_check_interrupt(n64_system_t* system) {
-    r4300i_t* cpu = &system->cpu;
+int run_system_check_interrupt() {
+    r4300i_t* cpu = &N64CPU;
 
     if (unlikely(cpu->interrupts > 0)) {
         if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            r4300i_handle_exception(cpu, cpu->pc, 0, -1);
+            r4300i_handle_exception(cpu->pc, EXCEPTION_INTERRUPT, 0);
             cpu->cp0.count += CYCLES_PER_INSTR;
             printf("Interrupt!\n");
             return CYCLES_PER_INSTR;
@@ -353,8 +353,8 @@ int run_system_check_interrupt(n64_system_t* system) {
     return 0;
 }
 
-int run_system_and_check(n64_system_t* system, long taken, char* line, long linenum) {
-    r4300i_t* cpu = &system->cpu;
+int run_system_and_check(long taken, char* line, long linenum) {
+    r4300i_t* cpu = &N64CPU;
     printf("Running for %ld cycles on line %ld\n", taken, linenum);
 
     char* tok = strtok(NULL, " ");
@@ -367,15 +367,15 @@ int run_system_and_check(n64_system_t* system, long taken, char* line, long line
     cpu_steps += taken;
 
     if (expected_pc != cpu->pc) {
-        logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08X\n", linenum, taken, expected_pc, cpu->pc);
+        logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08lX\n", linenum, taken, expected_pc, cpu->pc);
     }
 
-    logalways("Synchronized at PC=0x%08X, checking registers", cpu->pc);
+    logalways("Synchronized at PC=0x%016lX, checking registers", cpu->pc);
 
     for (int r = 0; r < 32; r++) {
         tok = strtok(NULL, " ");
         dword expected = strtoul(tok, NULL, 16);
-        dword actual = system->cpu.gpr[r];
+        dword actual = N64CPU.gpr[r];
         bool anybad = false;
         if (expected != actual) {
             logalways("RIP! on line %ld, after a block of size %ld, r%d (%s) expected 0x%016lX actual 0x%016lX\n", linenum, taken, r, register_names[r], expected, actual);
@@ -388,29 +388,29 @@ int run_system_and_check(n64_system_t* system, long taken, char* line, long line
     }
 
 
-    if (!system->rsp.status.halt) {
+    if (!N64RSP.status.halt) {
         // 2 RSP steps per 3 CPU steps
-        system->rsp.steps += (cpu_steps / 3) * 2;
+        N64RSP.steps += (cpu_steps / 3) * 2;
         cpu_steps -= cpu_steps % 3;
 
-        rsp_run(system);
+        rsp_run();
     } else {
         cpu_steps = 0;
     }
 
-    update_count(system, taken);
+    update_count(taken);
     return taken;
 }
 
-void check_jit_sync_log(n64_system_t* system, FILE* fp) {
+void check_jit_sync_log(FILE* fp) {
     int cycles = 0;
     long linenum = 0;
     for (int frame = 0; frame < 0xFFFFFFFF; frame++) {
-        for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
-            check_vi_interrupt(system);
-            check_vsync(system);
+        for (n64sys.vi.v_current = 0; n64sys.vi.v_current < NUM_SHORTLINES; n64sys.vi.v_current++) {
+            check_vi_interrupt();
+            check_vsync();
             while (cycles <= SHORTLINE_CYCLES) {
-                cycles += run_system_check_interrupt(system);
+                cycles += run_system_check_interrupt();
                 if (cycles > SHORTLINE_CYCLES) {
                     break;
                 }
@@ -426,16 +426,16 @@ void check_jit_sync_log(n64_system_t* system, FILE* fp) {
                 tok = strtok(NULL, " ");
                 long steps = strtoul(tok, NULL, 10);
 
-                cycles += run_system_and_check(system, steps, line, linenum++);
+                cycles += run_system_and_check(steps, line, linenum++);
             }
             cycles -= SHORTLINE_CYCLES;
-            ai_step(system, SHORTLINE_CYCLES);
+            ai_step(SHORTLINE_CYCLES);
         }
-        for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
-            check_vi_interrupt(system);
-            check_vsync(system);
+        for (; n64sys.vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; n64sys.vi.v_current++) {
+            check_vi_interrupt();
+            check_vsync();
             while (cycles <= LONGLINE_CYCLES) {
-                cycles += run_system_check_interrupt(system);
+                cycles += run_system_check_interrupt();
                 if (cycles > LONGLINE_CYCLES) {
                     break;
                 }
@@ -451,13 +451,13 @@ void check_jit_sync_log(n64_system_t* system, FILE* fp) {
                 tok = strtok(NULL, " ");
                 long steps = strtoul(tok, NULL, 10);
 
-                cycles += run_system_and_check(system, steps, line, linenum++);
+                cycles += run_system_and_check(steps, line, linenum++);
             }
             cycles -= LONGLINE_CYCLES;
-            ai_step(system, LONGLINE_CYCLES);
+            ai_step(LONGLINE_CYCLES);
         }
-        check_vi_interrupt(system);
-        check_vsync(system);
+        check_vi_interrupt();
+        check_vsync();
     }
 }
 
@@ -497,27 +497,26 @@ int main(int argc, char** argv) {
     const char* rom = flags->argv[0];
 
     log_set_verbosity(verbose->count);
-    n64_system_t* system;
 
     if (rdp_plugin_path != NULL) {
-        system = init_n64system(rom, true, false, OPENGL, false);
-        load_rdp_plugin(system, rdp_plugin_path);
+        init_n64system(rom, true, false, OPENGL_VIDEO_TYPE, false);
+        load_rdp_plugin(rdp_plugin_path);
     } else {
-        system = init_n64system(rom, true, false, VULKAN, false);
-        load_parallel_rdp(system);
+        init_n64system(rom, true, false, VULKAN_VIDEO_TYPE, false);
+        load_parallel_rdp();
     }
     if (pif_rom_path) {
-        load_pif_rom(system, pif_rom_path);
+        load_pif_rom(pif_rom_path);
     }
-    pif_rom_execute(system);
+    pif_rom_execute();
 
     if (test_rsp) {
-        check_rsp_log(system, fp);
+        check_rsp_log(fp);
     } else if (test_jit_sync) {
-        check_jit_sync_log(system, fp);
+        check_jit_sync_log(fp);
     } else {
-        check_cpu_log(system, fp);
+        check_cpu_log(fp);
     }
 
-    n64_system_cleanup(system);
+    n64_system_cleanup();
 }

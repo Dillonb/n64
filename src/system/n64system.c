@@ -1,475 +1,506 @@
 #include "n64system.h"
+#include "scheduler.h"
 
 #include <string.h>
-#include <unistd.h>
 
 #include <mem/n64bus.h>
 #include <frontend/render.h>
 #include <interface/vi.h>
 #include <interface/ai.h>
-#include <mem/n64_rsp_bus.h>
 #include <cpu/rsp.h>
-#include <cpu/dynarec.h>
+#include <cpu/dynarec/dynarec.h>
+#ifndef N64_WIN
 #include <sys/mman.h>
 #include <errno.h>
+#else
+#include <windows.h>
+#include <memoryapi.h>
+#endif
 #include <mem/backup.h>
 #include <frontend/game_db.h>
+#include <metrics.h>
+#include <frontend/device.h>
+#include <interface/si.h>
+#include <interface/pi.h>
+#include <dynarec/rsp_dynarec.h>
 
-bool should_quit = false;
+static bool should_quit = false;
 
 
-n64_system_t* global_system;
+n64_system_t n64sys;
 
-// 128MiB codecache
-#define CODECACHE_SIZE (1 << 27)
+// 32MiB codecache
+#define CODECACHE_SIZE (1 << 25)
 static byte codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 
-word read_rsp_word_wrapper(word address) {
-    return n64_rsp_read_word(global_system, address);
+// 32MiB RSP codecache
+#define RSP_CODECACHE_SIZE (1 << 25)
+static byte rsp_codecache[RSP_CODECACHE_SIZE] __attribute__((aligned(4096)));
+
+bool n64_should_quit() {
+    return should_quit;
 }
 
-void write_rsp_word_wrapper(word address, word value) {
-    n64_rsp_write_word(global_system, address, value);
-}
-
-void write_physical_word_wrapper(word address, word value) {
-    n64_write_word(global_system, address, value);
-}
-
-half read_rsp_half_wrapper(word address) {
-    return n64_rsp_read_half(global_system, address);
-}
-
-void write_rsp_half_wrapper(word address, half value) {
-    n64_rsp_write_half(global_system, address, value);
-}
-
-byte read_rsp_byte_wrapper(word address) {
-    return n64_rsp_read_byte(global_system, address);
-}
-
-void write_rsp_byte_wrapper(word address, byte value) {
-    n64_rsp_write_byte(global_system, address, value);
-}
-
-byte read_physical_byte_wrapper(word address) {
-    return n64_read_byte(global_system, address);
-}
-
-void write_physical_byte_wrapper(word address, byte value) {
-    n64_write_byte(global_system, address, value);
-}
-
-dword virtual_read_dword_wrapper(dword address) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_dword(global_system, physical);
-}
-
-void virtual_write_dword_wrapper(dword address, dword value) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_dword(global_system, physical, value);
-}
-
-word virtual_read_word_wrapper(dword address) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_physical_word(physical);
-}
-
-void virtual_write_word_wrapper(dword address, word value) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_word(global_system, physical, value);
-}
-
-half virtual_read_half_wrapper(dword address) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_half(global_system, physical);
-}
-
-void virtual_write_half_wrapper(dword address, half value) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_half(global_system, physical, value);
-}
-
-byte virtual_read_byte_wrapper(dword address) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    return n64_read_byte(global_system, physical);
-}
-
-void virtual_write_byte_wrapper(dword address, byte value) {
-    word physical = resolve_virtual_address(address, &global_system->cpu.cp0);
-    n64_write_byte(global_system, physical, value);
-}
-
-n64_system_t* init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
-    // align to page boundary
-    n64_system_t* system;
-    posix_memalign((void **) &system, sysconf(_SC_PAGESIZE), sizeof(n64_system_t));
-
-    memset(system, 0x00, sizeof(n64_system_t));
-    init_mem(&system->mem);
-    if (rom_path != NULL) {
-        logalways("Loading %s", rom_path);
-        load_n64rom(&system->mem.rom, rom_path);
-        gamedb_match(system);
-        init_savedata(&system->mem, rom_path);
-        system->rom_path = rom_path;
+void n64_load_rom(const char* rom_path) {
+    logalways("Loading %s", rom_path);
+    load_n64rom(&n64sys.mem.rom, rom_path);
+    gamedb_match(&n64sys);
+    devices_init(n64sys.mem.save_type);
+    init_savedata(&n64sys.mem, rom_path);
+    if (n64sys.rom_path != rom_path) {
+        strcpy(n64sys.rom_path, rom_path);
     }
+}
 
-    system->video_type = video_type;
+void mprotect_error(const char* thing) {
+#ifdef N64_WIN
+    LPVOID lpMsgBuf;
+    DWORD error = GetLastError();
 
-    system->cpu.branch = false;
-    system->cpu.exception = false;
+    DWORD bufLen = FormatMessage(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER |
+            FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL,
+            error,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPTSTR) &lpMsgBuf,
+            0, NULL );
+    LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
 
-    system->cpu.read_dword = &virtual_read_dword_wrapper;
-    system->cpu.write_dword = &virtual_write_dword_wrapper;
+    if (bufLen) {
+        logfatal("VirtualProtect %s failed! Code: dec %lu hex %lX Message: %s", thing, error, error, lpMsgStr);
+    } else {
+        logfatal("VirtualProtect %s failed! Code: %lu", thing, error);
+    }
+#else
+    logfatal("mprotect %s failed! %s", thing, strerror(errno));
+#endif
+}
 
-    system->cpu.read_word = &virtual_read_word_wrapper;
-    system->cpu.write_word = &virtual_write_word_wrapper;
+void mprotect_codecache() {
+#ifdef N64_WIN
+    DWORD oldProtect = 0;
+    if (!VirtualProtect(&codecache, CODECACHE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        mprotect_error("codecache");
+    }
+    if (!VirtualProtect(&rsp_codecache, CODECACHE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        mprotect_error("rsp codecache");
+    }
+#else
+    if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        mprotect_error("codecache");
+    }
+    if (mprotect(&rsp_codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        mprotect_error("rsp codecache");
+    }
+#endif
+}
 
-    system->cpu.read_half = &virtual_read_half_wrapper;
-    system->cpu.write_half = &virtual_write_half_wrapper;
+void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
+    memset(&n64sys, 0x00, sizeof(n64_system_t));
+    memset(&N64CPU, 0x00, sizeof(N64CPU));
+    memset(&N64RSP, 0x00, sizeof(N64RSP));
+    init_mem(&n64sys.mem);
 
-    system->cpu.read_byte = &virtual_read_byte_wrapper;
-    system->cpu.write_byte = &virtual_write_byte_wrapper;
+    n64sys.video_type = video_type;
 
-    system->cpu.resolve_virtual_address = &resolve_virtual_address;
+    mprotect_codecache();
+    n64sys.dynarec = n64_dynarec_init(codecache, CODECACHE_SIZE);
+    N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
 
-    //system->rsp.read_dword = &read_dword_wrapper;
-    //system->rsp.write_dword = &write_dword_wrapper;
+    if (enable_frontend) {
+        render_init(video_type);
+    }
+#ifndef N64_WIN
+    n64sys.debugger_state.enabled = enable_debug;
+    if (enable_debug) {
+        debugger_init();
+    }
+#endif
+    n64sys.use_interpreter = use_interpreter;
 
-    system->rsp.read_word = &read_rsp_word_wrapper;
-    system->rsp.write_word = &write_rsp_word_wrapper;
+    reset_n64system();
 
-    system->rsp.read_half = &read_rsp_half_wrapper;
-    system->rsp.write_half = &write_rsp_half_wrapper;
+    if (rom_path != NULL) {
+        n64_load_rom(rom_path);
+    }
+}
 
-    system->rsp.read_byte = &read_rsp_byte_wrapper;
-    system->rsp.write_byte = &write_rsp_byte_wrapper;
+void reset_n64system() {
+    force_persist_backup();
+    if (n64sys.mem.save_data != NULL) {
+        free(n64sys.mem.save_data);
+        n64sys.mem.save_data = NULL;
+    }
+    if (n64sys.mem.mempack_data != NULL) {
+        free(n64sys.mem.mempack_data);
+        n64sys.mem.mempack_data = NULL;
+    }
+    N64CPU.branch = false;
+    N64CPU.prev_branch = false;
+    N64CPU.exception = false;
 
-    system->rsp.read_physical_byte = &read_physical_byte_wrapper;
-    system->rsp.write_physical_byte = &write_physical_byte_wrapper;
-
-    system->rsp.read_physical_word = &n64_read_physical_word;
-    system->rsp.write_physical_word = &write_physical_word_wrapper;
 
     for (int i = 0; i < SP_IMEM_SIZE / 4; i++) {
-        system->rsp.icache[i].instruction.raw = 0;
-        system->rsp.icache[i].handler = cache_rsp_instruction;
+        N64RSP.icache[i].instruction.raw = 0;
+        N64RSP.icache[i].handler = cache_rsp_instruction;
     }
 
-    system->rsp.status.halt = true; // RSP starts halted
+    // RSP starts halted with PC 0
+    N64RSP.status.halt = true;
+    N64RSP.prev_pc = N64RSP.pc = N64RSP.next_pc = 0;
 
-    system->vi.vi_v_intr = 256;
+    n64sys.vi.vi_v_intr = 256;
 
-    system->dpc.status.raw = 0x80;
+    n64sys.dpc.status.raw = 0x80;
 
 
-    system->ai.dac.frequency = 44100;
-    system->ai.dac.precision = 16;
-    system->ai.dac.period = CPU_HERTZ / system->ai.dac.frequency;
+    n64sys.ai.dac.frequency = 44100;
+    n64sys.ai.dac.precision = 16;
+    n64sys.ai.dac.period = CPU_HERTZ / n64sys.ai.dac.frequency;
 
-    system->si.controllers[0].plugged_in = true;
-    system->si.controllers[1].plugged_in = false;
-    system->si.controllers[2].plugged_in = false;
-    system->si.controllers[3].plugged_in = false;
+    N64CP0.status.raw = 0;
+    N64CP0.status.bev = true;
+    cp0_status_updated();
+    N64CP0.cause.raw  = 0xB000007C;
+    N64CP0.EPC        = 0xFFFFFFFFFFFFFFFF;
+    N64CP0.PRId       = 0x00000B22;
+    N64CP0.config     = 0x7006E463;
+    N64CP0.error_epc  = 0xFFFFFFFFFFFFFFFF;
 
-    if (mprotect(&codecache, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
-        printf("Page size: %ld\n", sysconf(_SC_PAGESIZE));
-        logfatal("mprotect codecache failed! %s", strerror(errno));
-    }
-    system->dynarec = n64_dynarec_init(system, codecache, CODECACHE_SIZE);
+    N64CPU.fcr0.raw = 0xa00;
 
-    global_system = system;
-    if (enable_frontend) {
-        render_init(system, video_type);
-    }
-    system->debugger_state.enabled = enable_debug;
-    if (enable_debug) {
-        debugger_init(system);
-    }
-    system->use_interpreter = use_interpreter;
+    memset(n64sys.mem.rdram, 0, N64_RDRAM_SIZE);
+    memset(N64RSP.sp_dmem, 0, SP_DMEM_SIZE);
+    memset(N64RSP.sp_imem, 0, SP_IMEM_SIZE);
+    memset(n64sys.mem.pif_ram, 0, PIF_RAM_SIZE);
 
-    system->cpu.cp0.status.bev = true;
-    system->cpu.cp0.cause.raw  = 0xB000007C;
-    system->cpu.cp0.EPC        = 0xFFFFFFFFFFFFFFFF;
-    system->cpu.cp0.PRId       = 0x00000B22;
-    system->cpu.cp0.config     = 0x70000000;
-    system->cpu.cp0.error_epc  = 0xFFFFFFFFFFFFFFFF;
+    n64sys.vi.num_halflines = 262;
+    n64sys.vi.num_fields = 1;
+    n64sys.vi.cycles_per_halfline = 1000;
 
-    return system;
+    invalidate_dynarec_all_pages(n64sys.dynarec);
+
+    scheduler_reset();
 }
 
-INLINE int jit_system_step(n64_system_t* system) {
-    r4300i_t* cpu = &system->cpu;
-
+INLINE int jit_system_step() {
     /* Commented out for now since the game never actually reads cp0.random
-     * TODO: when a game does, consider generating a random number rather than updating this every cycle
-    if (cpu->cp0.random <= cpu->cp0.wired) {
-        cpu->cp0.random = 31;
+     * TODO: when a game does, consider generating a random number rather than updating this every instruction
+    if (N64CP0.random <= N64CP0.wired) {
+        N64CP0.random = 31;
     } else {
-        cpu->cp0.random--;
+        N64CP0.random--;
     }
      */
 
-    if (unlikely(cpu->interrupts > 0)) {
-        if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            r4300i_handle_exception(cpu, cpu->pc, 0, -1);
+    if (unlikely(N64CPU.interrupts > 0)) {
+        if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
+            N64CPU.prev_branch = N64CPU.branch;
+            r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, 0);
             return CYCLES_PER_INSTR;
         }
     }
     static int cpu_steps = 0;
-    int taken = n64_dynarec_step(system, system->dynarec);
+    int taken = n64_dynarec_step();
     {
-        uint64_t oldcount = cpu->cp0.count >> 1;
-        uint64_t newcount = (cpu->cp0.count + (taken * CYCLES_PER_INSTR)) >> 1;
-        if (unlikely(oldcount < cpu->cp0.compare && newcount >= cpu->cp0.compare)) {
-            cpu->cp0.cause.ip7 = true;
-            loginfo("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, cpu->cp0.compare);
-            r4300i_interrupt_update(cpu);
+        uint64_t oldcount = N64CP0.count >> 1;
+        uint64_t newcount = (N64CP0.count + (taken * CYCLES_PER_INSTR)) >> 1;
+        if (unlikely(oldcount < N64CP0.compare && newcount >= N64CP0.compare)) {
+            N64CP0.cause.ip7 = true;
+            loginfo("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, N64CP0.compare);
+            r4300i_interrupt_update();
         }
-        cpu->cp0.count += taken;
-        cpu->cp0.count &= 0x1FFFFFFFF;
+        N64CP0.count += taken;
+        N64CP0.count &= 0x1FFFFFFFF;
     }
     cpu_steps += taken;
 
-    if (!system->rsp.status.halt) {
+    if (!N64RSP.status.halt) {
         // 2 RSP steps per 3 CPU steps
         while (cpu_steps > 2) {
-            system->rsp.steps += 2;
+            N64RSP.steps += 2;
             cpu_steps -= 3;
         }
 
-        rsp_run(system);
+        rsp_dynarec_run();
     } else {
-        system->rsp.steps = 0;
+        N64RSP.steps = 0;
         cpu_steps = 0;
     }
 
     return taken;
 }
 
-INLINE int interpreter_system_step(n64_system_t* system) {
+INLINE int interpreter_system_step() {
 #ifdef N64_DEBUG_MODE
-    if (system->debugger_state.enabled && check_breakpoint(&system->debugger_state, system->cpu.pc)) {
-        debugger_breakpoint_hit(system);
+#ifndef N64_WIN
+    if (n64sys.debugger_state.enabled && check_breakpoint(&n64sys.debugger_state, N64CPU.pc)) {
+        debugger_breakpoint_hit();
     }
-    while (system->debugger_state.broken) {
+    while (n64sys.debugger_state.broken) {
         usleep(1000);
-        debugger_tick(system);
+        debugger_tick();
     }
 #endif
+#endif
     int taken = CYCLES_PER_INSTR;
-    r4300i_step(&system->cpu);
+    r4300i_step();
     static int cpu_steps = 0;
     cpu_steps += taken;
 
-    if (system->rsp.status.halt) {
+    if (N64RSP.status.halt) {
         cpu_steps = 0;
-        system->rsp.steps = 0;
+        N64RSP.steps = 0;
     } else {
         // 2 RSP steps per 3 CPU steps
         while (cpu_steps > 2) {
-            system->rsp.steps += 2;
+            N64RSP.steps += 2;
             cpu_steps -= 3;
         }
-        rsp_run(system);
+        rsp_run();
     }
 
     return taken;
 }
 
+void handle_scheduler_event(scheduler_event_t* event) {
+    switch (event->type) {
+        case SCHEDULER_SI_DMA_COMPLETE:
+            on_si_dma_complete();
+            break;
+        case SCHEDULER_PI_DMA_COMPLETE:
+            on_pi_dma_complete();
+            break;
+        default:
+            logfatal("");
+    }
+}
+
 // This is used for debugging tools, it's fine for now if timing is a little off.
-void n64_system_step(n64_system_t* system, bool dynarec) {
+void n64_system_step(bool dynarec) {
+    int taken;
     if (dynarec) {
-        jit_system_step(system);
+        taken = jit_system_step();
     } else {
-        r4300i_step(&system->cpu);
-        if (!system->rsp.status.halt) {
-            rsp_step(system);
+        r4300i_step();
+        taken = 1;
+        if (!N64RSP.status.halt) {
+            rsp_step();
         }
     }
-}
 
-void check_vsync(n64_system_t* system) {
-    if (system->vi.v_current == system->vi.vsync >> 1) {
-        rdp_update_screen(system);
+
+    scheduler_event_t event;
+    if (scheduler_tick(taken, &event)) {
+        handle_scheduler_event(&event);
     }
 }
 
-void jit_system_loop(n64_system_t* system) {
+void check_vsync() {
+    if (n64sys.vi.v_current == n64sys.vi.vsync >> 1) {
+        rdp_update_screen();
+    }
+}
+
+void jit_system_loop() {
     int cycles = 0;
     while (!should_quit) {
-        for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
-            check_vi_interrupt(system);
-            check_vsync(system);
-            while (cycles <= SHORTLINE_CYCLES) {
-                cycles += jit_system_step(system);
-                system->debugger_state.steps = 0;
-            }
-            cycles -= SHORTLINE_CYCLES;
-            ai_step(system, SHORTLINE_CYCLES);
-        }
-        for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
-            check_vi_interrupt(system);
-            check_vsync(system);
-            while (cycles <= LONGLINE_CYCLES) {
-                cycles += jit_system_step(system);
-                system->debugger_state.steps = 0;
-            }
-            cycles -= LONGLINE_CYCLES;
-            ai_step(system, LONGLINE_CYCLES);
-        }
-        check_vi_interrupt(system);
-        check_vsync(system);
-#ifdef N64_DEBUG_MODE
-        if (system->debugger_state.enabled) {
-            debugger_tick(system);
-        }
-#endif
-#ifdef LOG_ENABLED
-update_delayed_log_verbosity();
-#endif
-        persist_backup(system);
-    }
-    force_persist_backup(system);
-}
+        for (int field = 0; field < n64sys.vi.num_fields; field++) {
+            int this_frame_cycles = 0;
+            for (int line = 0; line < n64sys.vi.num_halflines; line++) {
+                n64sys.vi.v_current = (line << 1) + field;
+                check_vi_interrupt();
 
-void interpreter_system_loop(n64_system_t* system) {
-    int cycles = 0;
-    while (!should_quit) {
-        for (system->vi.v_current = 0; system->vi.v_current < NUM_SHORTLINES; system->vi.v_current++) {
-            check_vi_interrupt(system);
-            check_vsync(system);
-            while (cycles <= SHORTLINE_CYCLES) {
-                cycles += interpreter_system_step(system);
-                system->debugger_state.steps = 0;
+                while (cycles <= n64sys.vi.cycles_per_halfline) {
+                    int taken = jit_system_step();
+                    ai_step(taken);
+                    static scheduler_event_t event;
+                    if (scheduler_tick(taken, &event)) {
+                        handle_scheduler_event(&event);
+                    }
+                    cycles += taken;
+                    this_frame_cycles += taken;
+#ifndef N64_WIN
+                    n64sys.debugger_state.steps = 0;
+#endif
+                }
+                cycles -= n64sys.vi.cycles_per_halfline;
             }
-            cycles -= SHORTLINE_CYCLES;
-            ai_step(system, SHORTLINE_CYCLES);
+            check_vi_interrupt();
+            rdp_update_screen();
+
+            // Catch up audio if we didn't run the CPU long enough this frame
+            int missed_cycles = CPU_CYCLES_PER_FRAME - this_frame_cycles;
+            ai_step(missed_cycles);
         }
-        for (; system->vi.v_current < NUM_SHORTLINES + NUM_LONGLINES; system->vi.v_current++) {
-            check_vi_interrupt(system);
-            check_vsync(system);
-            while (cycles <= LONGLINE_CYCLES) {
-                cycles += interpreter_system_step(system);
-                system->debugger_state.steps = 0;
-            }
-            cycles -= LONGLINE_CYCLES;
-            ai_step(system, LONGLINE_CYCLES);
-        }
-        check_vi_interrupt(system);
-        check_vsync(system);
 #ifdef N64_DEBUG_MODE
-        if (system->debugger_state.enabled) {
-            debugger_tick(system);
+#ifndef N64_WIN
+        if (n64sys.debugger_state.enabled) {
+            debugger_tick();
         }
+#endif
 #endif
 #ifdef LOG_ENABLED
         update_delayed_log_verbosity();
 #endif
-        persist_backup(system);
+        persist_backup();
+        reset_all_metrics();
     }
-    force_persist_backup(system);
+    force_persist_backup();
 }
 
-void n64_system_loop(n64_system_t* system) {
-    if (system->use_interpreter) {
-        interpreter_system_loop(system);
+void interpreter_system_loop() {
+    int cycles = 0;
+    while (!should_quit) {
+        for (int field = 0; field < n64sys.vi.num_fields; field++) {
+            int this_frame_cycles = 0;
+            for (int line = 0; line < n64sys.vi.num_halflines; line++) {
+                n64sys.vi.v_current = (line << 1) + field;
+                check_vi_interrupt();
+
+                while (cycles <= n64sys.vi.cycles_per_halfline) {
+                    int taken = interpreter_system_step();
+                    ai_step(taken);
+                    static scheduler_event_t event;
+                    if (scheduler_tick(taken, &event)) {
+                        handle_scheduler_event(&event);
+                    }
+                    cycles += taken;
+                    this_frame_cycles += taken;
+#ifndef N64_WIN
+                    n64sys.debugger_state.steps = 0;
+#endif
+                }
+                cycles -= n64sys.vi.cycles_per_halfline;
+            }
+            check_vi_interrupt();
+            rdp_update_screen();
+
+            // Catch up audio if we didn't run the CPU long enough this frame
+            int missed_cycles = CPU_CYCLES_PER_FRAME - this_frame_cycles;
+            ai_step(missed_cycles);
+        }
+#ifdef N64_DEBUG_MODE
+#ifndef N64_WIN
+        if (n64sys.debugger_state.enabled) {
+            debugger_tick();
+        }
+#endif
+#endif
+#ifdef LOG_ENABLED
+        update_delayed_log_verbosity();
+#endif
+        persist_backup();
+        reset_all_metrics();
+    }
+    force_persist_backup();
+}
+
+void n64_system_loop() {
+    if (n64sys.use_interpreter) {
+        interpreter_system_loop();
     } else {
-        jit_system_loop(system);
+        jit_system_loop();
     }
 }
 
-void n64_system_cleanup(n64_system_t* system) {
+void n64_system_cleanup() {
     rdp_cleanup();
-    if (system->dynarec != NULL) {
-        free(system->dynarec);
-        system->dynarec = NULL;
+    if (n64sys.dynarec != NULL) {
+        free(n64sys.dynarec);
+        n64sys.dynarec = NULL;
     }
-    debugger_cleanup(system);
+#ifndef N64_WIN
+    debugger_cleanup();
+#endif
 
-    free(system->mem.rom.rom);
-    system->mem.rom.rom = NULL;
+    free(n64sys.mem.rom.rom);
+    n64sys.mem.rom.rom = NULL;
 
-    free(system->mem.rom.pif_rom);
-    system->mem.rom.pif_rom = NULL;
-
-    free(system);
+    free(n64sys.mem.rom.pif_rom);
+    n64sys.mem.rom.pif_rom = NULL;
 }
 
 void n64_request_quit() {
     should_quit = true;
 }
 
-void on_interrupt_change(n64_system_t* system) {
-    bool interrupt = system->mi.intr.raw & system->mi.intr_mask.raw;
+void on_interrupt_change() {
+    bool interrupt = n64sys.mi.intr.raw & n64sys.mi.intr_mask.raw;
     loginfo("ip2 is now: %d", interrupt);
-    system->cpu.cp0.cause.ip2 = interrupt;
-    r4300i_interrupt_update(&system->cpu);
+    N64CP0.cause.ip2 = interrupt;
+    r4300i_interrupt_update();
 }
 
 void interrupt_raise(n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
             loginfo("Raising VI interrupt");
-            global_system->mi.intr.vi = true;
+            n64sys.mi.intr.vi = true;
             break;
         case INTERRUPT_SI:
             loginfo("Raising SI interrupt");
-            global_system->mi.intr.si = true;
+            mark_metric(METRIC_SI_INTERRUPT);
+            n64sys.mi.intr.si = true;
             break;
         case INTERRUPT_PI:
             loginfo("Raising PI interrupt");
-            global_system->mi.intr.pi = true;
+            mark_metric(METRIC_PI_INTERRUPT);
+            n64sys.mi.intr.pi = true;
             break;
         case INTERRUPT_AI:
             loginfo("Raising AI interrupt");
-            global_system->mi.intr.ai = true;
+            mark_metric(METRIC_AI_INTERRUPT);
+            n64sys.mi.intr.ai = true;
             break;
         case INTERRUPT_DP:
             loginfo("Raising DP interrupt");
-            global_system->mi.intr.dp = true;
+            mark_metric(METRIC_DP_INTERRUPT);
+            n64sys.mi.intr.dp = true;
             break;
         case INTERRUPT_SP:
             loginfo("Raising SP interrupt");
-            global_system->mi.intr.sp = true;
+            mark_metric(METRIC_SP_INTERRUPT);
+            n64sys.mi.intr.sp = true;
             break;
         default:
             logfatal("Raising unimplemented interrupt: %d", interrupt);
     }
 
-    on_interrupt_change(global_system);
+    on_interrupt_change();
 }
 
-void interrupt_lower(n64_system_t* system, n64_interrupt_t interrupt) {
+void interrupt_lower(n64_interrupt_t interrupt) {
     switch (interrupt) {
         case INTERRUPT_VI:
-            system->mi.intr.vi = false;
+            n64sys.mi.intr.vi = false;
             loginfo("Lowering VI interrupt");
             break;
         case INTERRUPT_SI:
-            system->mi.intr.si = false;
+            n64sys.mi.intr.si = false;
             loginfo("Lowering SI interrupt");
             break;
         case INTERRUPT_PI:
-            system->mi.intr.pi = false;
+            n64sys.mi.intr.pi = false;
             loginfo("Lowering PI interrupt");
             break;
         case INTERRUPT_DP:
-            system->mi.intr.dp = false;
+            n64sys.mi.intr.dp = false;
             loginfo("Lowering DP interrupt");
             break;
         case INTERRUPT_AI:
-            system->mi.intr.ai = false;
+            n64sys.mi.intr.ai = false;
             loginfo("Lowering DP interrupt");
             break;
         case INTERRUPT_SP:
-            system->mi.intr.sp = false;
+            n64sys.mi.intr.sp = false;
             loginfo("Lowering SP interrupt");
             break;
         default:
             logfatal("Lowering unimplemented interrupt: %d", interrupt);
     }
 
-    on_interrupt_change(system);
+    on_interrupt_change();
 }

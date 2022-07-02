@@ -29,6 +29,7 @@ FIND_PATH(
 
 FIND_LIBRARY(Capstone_LIBRARIES
         NAMES
+        libcapstone.a
         capstone
         HINTS
         ${Capstone_ROOT_DIR}

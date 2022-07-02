@@ -2,7 +2,7 @@
 #define N64_RSP_INSTRUCTIONS_H
 #include "rsp.h"
 #include "mips_instruction_decode.h"
-#define RSP_INSTR(NAME) void NAME(rsp_t* rsp, mips_instruction_t instruction)
+#define RSP_INSTR(NAME) void NAME(mips_instruction_t instruction)
 
 RSP_INSTR(rsp_nop);
 
@@ -50,6 +50,7 @@ RSP_INSTR(rsp_bgtz);
 RSP_INSTR(rsp_blez);
 
 RSP_INSTR(rsp_ri_bltz);
+RSP_INSTR(rsp_ri_bltzal);
 RSP_INSTR(rsp_ri_bgez);
 RSP_INSTR(rsp_ri_bgezal);
 

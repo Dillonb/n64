@@ -2,6 +2,7 @@
 #define N64_N64ROM_H
 #include <stdio.h>
 #include <util.h>
+#include <stdbool.h>
 
 typedef struct n64_header {
     byte initial_values[4];
@@ -21,7 +22,8 @@ typedef struct n64_header {
 
 typedef enum n64_cic_type {
     UNKNOWN_CIC_TYPE,
-    CIC_NUS_6101_7102,
+    CIC_NUS_6101,
+    CIC_NUS_7102,
     CIC_NUS_6102_7101,
     CIC_NUS_6103_7103,
     CIC_NUS_6105_7105,
@@ -41,5 +43,7 @@ typedef struct n64_rom {
 } n64_rom_t;
 
 void load_n64rom(n64_rom_t* rom, const char* path);
+
+bool is_rom_pal(n64_rom_t* rom);
 
 #endif //N64_N64ROM_H

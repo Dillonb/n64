@@ -1,7 +1,5 @@
-build
-build-release
-cmake-build-debug
-cmake-build-release
-cmake-build-minsizerel
-cmake-build-relwithdebinfo
+*build*
 .idea
+.cache
+.vscode
+*.json

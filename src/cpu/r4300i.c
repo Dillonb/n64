@@ -4,6 +4,7 @@
 #include <mem/n64bus.h>
 #include "disassemble.h"
 #include "mips_instructions.h"
+#include "fpu_instructions.h"
 #include "tlb_instructions.h"
 
 const char* register_names[] = {
@@ -47,52 +48,85 @@ const char* cp0_register_names[] = {
         "23", "24", "25", "Parity Error", "Cache Error", "TagLo", "TagHi", "error_epc", "r31"
 };
 
-void r4300i_handle_exception(r4300i_t* cpu, dword pc, word code, sword coprocessor_error) {
-    loginfo("Exception thrown! Code: %d Coprocessor: %d", code, coprocessor_error);
-    // In a branch delay slot, set EPC to the branch PRECEDING the slot.
-    // This is so the exception handler can re-execute the branch on return.
-    if (cpu->branch) {
-        unimplemented(cpu->cp0.status.exl, "handling branch delay when exl == true");
-        cpu->cp0.cause.branch_delay = true;
-        cpu->branch = false;
-        pc -= 4;
-    } else {
-        cpu->cp0.cause.branch_delay = false;
-    }
+r4300i_t n64cpu;
 
-    if (!cpu->cp0.status.exl) {
-        cpu->cp0.EPC = pc;
-        cpu->cp0.status.exl = true;
+INLINE bool is_xtlb(dword address) {
+    byte region = (address >> 62) & 3;
+    switch (region) {
+        case 0b00: // user
+            return N64CP0.status.ux;
+        case 0b01: // supervisor
+            return N64CP0.status.sx;
+        case 0b11: // kernel
+            return N64CP0.status.kx;
+        default:
+            return false;
     }
+}
 
-    cpu->cp0.cause.exception_code = code;
-    if (coprocessor_error > 0) {
-        cpu->cp0.cause.coprocessor_error = coprocessor_error;
-    }
+// pc = pc of the instruction where execution was when the exception was thrown
+void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
+    bool old_exl = N64CP0.status.exl; // used for TLB exceptions since exl is overwritten later
+    loginfo("Exception thrown! Code: %d Coprocessor: %d bd: %d old_exl: %d", code, coprocessor_error, N64CPU.prev_branch, old_exl);
 
-    if (cpu->cp0.status.bev) {
-        switch (code) {
-            case EXCEPTION_COPROCESSOR_UNUSABLE:
-                logfatal("Cop unusable, the PC below is wrong. See page 181 in the manual.");
-                set_pc_word_r4300i(cpu, 0x80000180);
-                break;
-            default:
-                logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
+    // If we're not already handling another exception....
+    if (!N64CP0.status.exl) {
+        // In a branch delay slot, set EPC to the BRANCH PRECEDING the slot.
+        // This is so the exception handler can re-execute the branch on return.
+        if (N64CPU.prev_branch) {
+            unimplemented(N64CPU.cp0.status.exl, "handling branch delay when exl == true");
+            N64CPU.cp0.cause.branch_delay = true; // So the exception handler knows it needs to re-execute a branch
+            pc -= 4; // rolls PC back to point at the branch
+        } else {
+            N64CPU.cp0.cause.branch_delay = false;
         }
+
+        // Save the return value for ERET
+        N64CPU.cp0.EPC = pc;
+        N64CPU.cp0.status.exl = true; // Mark that an exception is being handled
+    }
+
+    // Save the exception code and coprocessor error in $Cause
+    N64CPU.cp0.cause.exception_code = code; // The exception code
+    N64CPU.cp0.cause.coprocessor_error = coprocessor_error; // Which coprocessor caused the error
+
+    // BEV bit is set to 1 VERY EARLY in the boot process.
+    // A different list of exception vectors is used, ones that don't need as much hardware initialized
+    if (N64CPU.cp0.status.bev) {
+        logfatal("Unknown exception %d with BEV! See page 181 in the manual.", code);
     } else {
         switch (code) {
+            // Most exceptions go to the "common vector"
             case EXCEPTION_INTERRUPT:
-                set_pc_word_r4300i(cpu, 0x80000180);
-                break;
             case EXCEPTION_COPROCESSOR_UNUSABLE:
-                set_pc_word_r4300i(cpu, 0x80000180);
+            case EXCEPTION_TRAP:
+            case EXCEPTION_BREAKPOINT:
+            case EXCEPTION_SYSCALL:
+            case EXCEPTION_ADDRESS_ERROR_LOAD:
+            case EXCEPTION_ADDRESS_ERROR_STORE:
+            case EXCEPTION_ARITHMETIC_OVERFLOW:
+            case EXCEPTION_TLB_MODIFICATION:
+            case EXCEPTION_RESERVED_INSTR:
+                set_pc_word_r4300i(0x80000180);
+                break;
+            // TLB exceptions go to different vectors
+            case EXCEPTION_TLB_MISS_LOAD:
+            case EXCEPTION_TLB_MISS_STORE:
+                if (old_exl || N64CP0.tlb_error == TLB_ERROR_INVALID) {
+                    set_pc_word_r4300i(0x80000180);
+                } else if (is_xtlb(N64CP0.bad_vaddr)){
+                    set_pc_word_r4300i(0x80000080);
+                } else {
+                    set_pc_word_r4300i(0x80000000);
+                }
                 break;
             default:
                 logfatal("Unknown exception %d without BEV! See page 181 in the manual.", code);
         }
     }
-    cp0_status_updated(cpu);
-    cpu->exception = true;
+    cp0_status_updated();
+    N64CPU.exception = true; // For dynarec
+    loginfo("Exception handled, PC is now %016lX", N64CPU.pc);
 }
 
 INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr) {
@@ -123,6 +157,10 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr)
                 return mips_tlbr;
             case COP_FUNCT_ERET:
                 return mips_eret;
+            case COP_FUNCT_WAIT:
+                return mips_nop;
+            case COP_FUNCT_TLBWR_MOV:
+                return mips_tlbwr;
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -214,12 +252,39 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                 default:
                     logfatal("Undefined!");
             }
+        case COP_FUNCT_ROUND_L:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_round_l_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_round_l_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_TRUNC_W:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
                     return mips_cp_trunc_w_d;
                 case FP_FMT_SINGLE:
                     return mips_cp_trunc_w_s;
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_FLOOR_W:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_floor_w_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_floor_w_s;
+                default:
+                    logfatal("Undefined!");
+            }
+        case COP_FUNCT_ROUND_W:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_round_w_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_round_w_s;
                 default:
                     logfatal("Undefined!");
             }
@@ -284,7 +349,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
             }
 
 
-        case COP_FUNCT_MOV:
+        case COP_FUNCT_TLBWR_MOV:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
                     return mips_cp_mov_d;
@@ -303,7 +368,14 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_F:
-            logfatal("COP_FUNCT_C_F unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_f_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_f_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_UN:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -323,13 +395,41 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_UEQ:
-            logfatal("COP_FUNCT_C_UEQ unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ueq_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ueq_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_OLT:
-            logfatal("COP_FUNCT_C_OLT unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_olt_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_olt_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_ULT:
-            logfatal("COP_FUNCT_C_ULT unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ult_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ult_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_OLE:
-            logfatal("COP_FUNCT_C_OLE unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ole_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ole_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_ULE:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -340,13 +440,41 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_SF:
-            logfatal("COP_FUNCT_C_SF unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_sf_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_sf_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_NGLE:
-            logfatal("COP_FUNCT_C_NGLE unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ngle_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ngle_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_SEQ:
-            logfatal("COP_FUNCT_C_SEQ unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_seq_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_seq_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_NGL:
-            logfatal("COP_FUNCT_C_NGL unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ngl_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ngl_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_LT:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -357,7 +485,14 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                     logfatal("Undefined!");
             }
         case COP_FUNCT_C_NGE:
-            logfatal("COP_FUNCT_C_NGE unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_nge_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_nge_s;
+                default:
+                    logfatal("Undefined!");
+            }
         case COP_FUNCT_C_LE:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -367,9 +502,15 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
                 default:
                     logfatal("Undefined!");
             }
-            logfatal("COP_FUNCT_C_LE unimplemented");
         case COP_FUNCT_C_NGT:
-            logfatal("COP_FUNCT_C_NGT unimplemented");
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_c_ngt_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_c_ngt_s;
+                default:
+                    logfatal("Undefined!");
+            }
     }
 
     char buf[50];
@@ -381,49 +522,58 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
 
 INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
-        case FUNCT_SLL:    return mips_spc_sll;
-        case FUNCT_SRL:    return mips_spc_srl;
-        case FUNCT_SRA:    return mips_spc_sra;
-        case FUNCT_SRAV:   return mips_spc_srav;
-        case FUNCT_SLLV:   return mips_spc_sllv;
-        case FUNCT_SRLV:   return mips_spc_srlv;
-        case FUNCT_JR:     return mips_spc_jr;
-        case FUNCT_JALR:   return mips_spc_jalr;
-        case FUNCT_MFHI:   return mips_spc_mfhi;
-        case FUNCT_MTHI:   return mips_spc_mthi;
-        case FUNCT_MFLO:   return mips_spc_mflo;
-        case FUNCT_MTLO:   return mips_spc_mtlo;
-        case FUNCT_DSLLV:  return mips_spc_dsllv;
-        case FUNCT_DSRLV:  return mips_spc_dsrlv;
-        case FUNCT_MULT:   return mips_spc_mult;
-        case FUNCT_MULTU:  return mips_spc_multu;
-        case FUNCT_DIV:    return mips_spc_div;
-        case FUNCT_DIVU:   return mips_spc_divu;
-        case FUNCT_DMULT:  return mips_spc_dmult;
-        case FUNCT_DMULTU: return mips_spc_dmultu;
-        case FUNCT_DDIV:   return mips_spc_ddiv;
-        case FUNCT_DDIVU:  return mips_spc_ddivu;
-        case FUNCT_ADD:    return mips_spc_add;
-        case FUNCT_ADDU:   return mips_spc_addu;
-        case FUNCT_AND:    return mips_spc_and;
-        case FUNCT_NOR:    return mips_spc_nor;
-        case FUNCT_SUB:    return mips_spc_sub;
-        case FUNCT_SUBU:   return mips_spc_subu;
-        case FUNCT_OR:     return mips_spc_or;
-        case FUNCT_XOR:    return mips_spc_xor;
-        case FUNCT_SLT:    return mips_spc_slt;
-        case FUNCT_SLTU:   return mips_spc_sltu;
-        case FUNCT_DADD:   return mips_spc_dadd;
-        case FUNCT_DADDU:  return mips_spc_daddu;
-        case FUNCT_DSUBU:  return mips_spc_dsubu;
-        case FUNCT_TEQ:    return mips_spc_teq;
-        case FUNCT_TNE:    return mips_spc_tne;
-        case FUNCT_DSLL:   return mips_spc_dsll;
-        case FUNCT_DSRL:   return mips_spc_dsrl;
-        case FUNCT_DSRA:   return mips_spc_dsra;
-        case FUNCT_DSLL32: return mips_spc_dsll32;
-        case FUNCT_DSRL32: return mips_spc_dsrl32;
-        case FUNCT_DSRA32: return mips_spc_dsra32;
+        case FUNCT_SLL:     return mips_spc_sll;
+        case FUNCT_SRL:     return mips_spc_srl;
+        case FUNCT_SRA:     return mips_spc_sra;
+        case FUNCT_SRAV:    return mips_spc_srav;
+        case FUNCT_SLLV:    return mips_spc_sllv;
+        case FUNCT_SRLV:    return mips_spc_srlv;
+        case FUNCT_JR:      return mips_spc_jr;
+        case FUNCT_JALR:    return mips_spc_jalr;
+        case FUNCT_SYSCALL: return mips_spc_syscall;
+        case FUNCT_MFHI:    return mips_spc_mfhi;
+        case FUNCT_MTHI:    return mips_spc_mthi;
+        case FUNCT_MFLO:    return mips_spc_mflo;
+        case FUNCT_MTLO:    return mips_spc_mtlo;
+        case FUNCT_DSLLV:   return mips_spc_dsllv;
+        case FUNCT_DSRLV:   return mips_spc_dsrlv;
+        case FUNCT_DSRAV:   return mips_spc_dsrav;
+        case FUNCT_MULT:    return mips_spc_mult;
+        case FUNCT_MULTU:   return mips_spc_multu;
+        case FUNCT_DIV:     return mips_spc_div;
+        case FUNCT_DIVU:    return mips_spc_divu;
+        case FUNCT_DMULT:   return mips_spc_dmult;
+        case FUNCT_DMULTU:  return mips_spc_dmultu;
+        case FUNCT_DDIV:    return mips_spc_ddiv;
+        case FUNCT_DDIVU:   return mips_spc_ddivu;
+        case FUNCT_ADD:     return mips_spc_add;
+        case FUNCT_ADDU:    return mips_spc_addu;
+        case FUNCT_AND:     return mips_spc_and;
+        case FUNCT_NOR:     return mips_spc_nor;
+        case FUNCT_SUB:     return mips_spc_sub;
+        case FUNCT_SUBU:    return mips_spc_subu;
+        case FUNCT_OR:      return mips_spc_or;
+        case FUNCT_XOR:     return mips_spc_xor;
+        case FUNCT_SLT:     return mips_spc_slt;
+        case FUNCT_SLTU:    return mips_spc_sltu;
+        case FUNCT_DADD:    return mips_spc_dadd;
+        case FUNCT_DADDU:   return mips_spc_daddu;
+        case FUNCT_DSUB:    return mips_spc_dsub;
+        case FUNCT_DSUBU:   return mips_spc_dsubu;
+        case FUNCT_TGE:     return mips_spc_tge;
+        case FUNCT_TGEU:    return mips_spc_tgeu;
+        case FUNCT_TLT:     return mips_spc_tlt;
+        case FUNCT_TLTU:    return mips_spc_tltu;
+        case FUNCT_TEQ:     return mips_spc_teq;
+        case FUNCT_TNE:     return mips_spc_tne;
+        case FUNCT_DSLL:    return mips_spc_dsll;
+        case FUNCT_DSRL:    return mips_spc_dsrl;
+        case FUNCT_DSRA:    return mips_spc_dsra;
+        case FUNCT_DSLL32:  return mips_spc_dsll32;
+        case FUNCT_DSRL32:  return mips_spc_dsrl32;
+        case FUNCT_DSRA32:  return mips_spc_dsra32;
+        case FUNCT_BREAK:   return mips_spc_break;
+        case FUNCT_SYNC:    return mips_nop;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -435,12 +585,19 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
 
 INLINE mipsinstr_handler_t r4300i_regimm_decode(dword pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
-        case RT_BLTZ:   return mips_ri_bltz;
-        case RT_BLTZL:  return mips_ri_bltzl;
-        case RT_BGEZ:   return mips_ri_bgez;
-        case RT_BGEZL:  return mips_ri_bgezl;
-        case RT_BLTZAL: return mips_ri_bltzal;
-        case RT_BGEZAL: return mips_ri_bgezal;
+        case RT_BLTZ:    return mips_ri_bltz;
+        case RT_BLTZL:   return mips_ri_bltzl;
+        case RT_BGEZ:    return mips_ri_bgez;
+        case RT_BGEZL:   return mips_ri_bgezl;
+        case RT_BLTZAL:  return mips_ri_bltzal;
+        case RT_BGEZAL:  return mips_ri_bgezal;
+        case RT_BGEZALL: return mips_ri_bgezall;
+        case RT_TGEI:    return mips_ri_tgei;
+        case RT_TGEIU:   return mips_ri_tgeiu;
+        case RT_TLTI:    return mips_ri_tlti;
+        case RT_TLTIU:   return mips_ri_tltiu;
+        case RT_TEQI:    return mips_ri_teqi;
+        case RT_TNEI:    return mips_ri_tnei;
         default: {
             char buf[50];
             disassemble(pc, instr.raw, buf, 50);
@@ -515,6 +672,8 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
         case OPC_LLD:    return mips_lld;
         case OPC_SC:     return mips_sc;
         case OPC_SCD:    return mips_scd;
+
+        case OPC_RDHWR: return mips_invalid;
         default:
 #ifdef LOG_ENABLED
             if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
@@ -529,44 +688,116 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
     }
 }
 
-void r4300i_step(r4300i_t* cpu) {
-    cpu->cp0.count += CYCLES_PER_INSTR;
-    cpu->cp0.count &= 0x1FFFFFFFF;
-    if (unlikely(cpu->cp0.count >> 1 == cpu->cp0.compare)) {
-        cpu->cp0.cause.ip7 = true;
-        loginfo("Compare interrupt!");
-        r4300i_interrupt_update(cpu);
+void on_tlb_exception(dword address) {
+    dword vpn2 = address >> 13 & 0x7FFFF;
+    dword xvpn2 = address >> 13 & 0x7FFFFFF;
+    N64CP0.bad_vaddr = address;
+    N64CP0.context.badvpn2 = vpn2;
+    N64CP0.x_context.badvpn2 = xvpn2;
+    N64CP0.x_context.r = (address >> 62) & 3;
+    // Leave ASID alone
+    N64CP0.entry_hi.vpn2 = xvpn2;
+    N64CP0.entry_hi.r = (address >> 62) & 0b11;
+}
+
+void r4300i_step() {
+    N64CPU.cp0.count += CYCLES_PER_INSTR;
+    N64CPU.cp0.count &= 0x1FFFFFFFF;
+    if (unlikely(N64CPU.cp0.count == (dword)N64CPU.cp0.compare << 1)) {
+        N64CPU.cp0.cause.ip7 = true;
+        loginfo("Compare interrupt! count = 0x%09lX compare << 1 = 0x%09lX", N64CP0.count, (dword)N64CP0.compare << 1);
+        r4300i_interrupt_update();
     }
 
     /* Commented out for now since the game never actually reads cp0.random
-    if (cpu->cp0.random <= cpu->cp0.wired) {
-        cpu->cp0.random = 31;
+    if (N64CPU.cp0.random <= N64CPU.cp0.wired) {
+        N64CPU.cp0.random = 31;
     } else {
-        cpu->cp0.random--;
+        N64CPU.cp0.random--;
     }
      */
 
-    dword pc = cpu->pc;
-    mips_instruction_t instruction;
-    instruction.raw = cpu->read_word(pc);
+    N64CPU.prev_branch = N64CPU.branch;
+    N64CPU.branch = false;
 
-    if (unlikely(cpu->interrupts > 0)) {
-        if(cpu->cp0.status.ie && !cpu->cp0.status.exl && !cpu->cp0.status.erl) {
-            r4300i_handle_exception(cpu, pc, 0, -1);
+    dword pc = N64CPU.pc;
+    word physical_pc;
+    if (!resolve_virtual_address(pc, BUS_LOAD, &physical_pc)) {
+        // tlb exception
+        on_tlb_exception(pc);
+        r4300i_handle_exception(pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
+        return;
+    }
+    mips_instruction_t instruction;
+    instruction.raw = n64_read_physical_word(physical_pc);
+
+    if (unlikely(N64CPU.interrupts > 0)) {
+        if(N64CPU.cp0.status.ie && !N64CPU.cp0.status.exl && !N64CPU.cp0.status.erl) {
+            r4300i_handle_exception(pc, EXCEPTION_INTERRUPT, 0);
             return;
         }
     }
 
 
-    cpu->prev_pc = cpu->pc;
-    cpu->pc = cpu->next_pc;
-    cpu->next_pc += 4;
-    cpu->branch = false;
+    N64CPU.prev_pc = N64CPU.pc;
+    N64CPU.pc = N64CPU.next_pc;
+    N64CPU.next_pc += 4;
 
-    r4300i_instruction_decode(pc, instruction)(cpu, instruction);
-    cpu->exception = false; // only used in dynarec
+    r4300i_instruction_decode(pc, instruction)(instruction);
+    N64CPU.exception = false; // only used in dynarec
 }
 
-void r4300i_interrupt_update(r4300i_t* cpu) {
-    cpu->interrupts = cpu->cp0.cause.interrupt_pending & cpu->cp0.status.im;
+void r4300i_interrupt_update() {
+    N64CPU.interrupts = N64CPU.cp0.cause.interrupt_pending & N64CPU.cp0.status.im;
+}
+
+bool instruction_stable(mips_instruction_t instr) {
+    if (instr.raw == 0) {
+        return true; // NOP
+    }
+
+    switch (instr.op) {
+        // All branches are stable
+        case OPC_REGIMM: // REGIMM opcodes are only branches
+        case OPC_J:
+        case OPC_JAL:
+        case OPC_BEQ:
+        case OPC_BEQL:
+        case OPC_BGTZ:
+        case OPC_BGTZL:
+        case OPC_BLEZ:
+        case OPC_BLEZL:
+        case OPC_BNE:
+        case OPC_BNEL:
+        // Will always generate the same result given the same args
+        case OPC_ANDI:
+        case OPC_ORI:
+        case OPC_LUI:
+            return true;
+        // Loads are stable if they load from RAM
+        case OPC_LB:
+        case OPC_LBU:
+        case OPC_LH:
+        case OPC_LHU:
+        case OPC_LW:
+        case OPC_LWU:
+        case OPC_LWL:
+        case OPC_LWR:
+        case OPC_LD:
+        case OPC_LDL:
+        case OPC_LDR:
+            return false; // TODO need const propagation to properly detect if this is a RAM access
+        // Stores are stable if they store to RAM
+        case OPC_SB:
+        case OPC_SH:
+        case OPC_SW:
+        case OPC_SWL:
+        case OPC_SWR:
+        case OPC_SD:
+        case OPC_SDL:
+        case OPC_SDR:
+            return false; // TODO need const propagation to properly detect if this is a RAM access
+        default:
+            return false;
+    }
 }
