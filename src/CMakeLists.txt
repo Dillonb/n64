@@ -63,7 +63,7 @@ find_program(GLIB_COMPILE_RESOURCES_PROGRAM
 
 if(PKG_CONFIG_FOUND) # Needed to configure GTK
     message("Found pkg-config, looking for GTK")
-    pkg_check_modules(GTK gtk+-3.0)
+    pkg_check_modules(GTK gtk4)
     if (GTK_FOUND)
         if (GLIB_COMPILE_RESOURCES_PROGRAM)
             message("glib-compile-resources found at: ${GLIB_COMPILE_RESOURCES_PROGRAM}")
@@ -73,7 +73,7 @@ if(PKG_CONFIG_FOUND) # Needed to configure GTK
             message("Couldn't find glib-compile-resources. Not building GTK frontend.")
         endif()
     else()
-        message("Did not find gtk3, not building GTK frontend!")
+        message("Did not find gtk4, not building GTK frontend!")
     endif()
 else()
     message("Did not find pkg-config, not building GTK frontend!")
