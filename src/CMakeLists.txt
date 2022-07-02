@@ -13,6 +13,14 @@ set(NFD_PORTAL true)
 add_subdirectory(contrib/nativefiledialog-extended)
 add_subdirectory(tools)
 
+find_package(Qt6 COMPONENTS Core Gui Widgets)
+if (Qt6_FOUND)
+    message("Qt6 found, building the Qt frontend")
+    add_subdirectory(qt_frontend)
+else()
+    message("Qt6 NOT FOUND, NOT building the Qt frontend!")
+endif()
+
 add_library(core
         system/n64system.c system/n64system.h
         system/scheduler.c system/scheduler.h
