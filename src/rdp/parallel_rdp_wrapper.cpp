@@ -130,10 +130,10 @@ uint32_t fullscreen_quad_frag[] =
 
 Program* fullscreen_quad_program;
 
-void load_parallel_rdp() {
+void load_parallel_rdp(Vulkan::WSIPlatform* wsi_platform) {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
-    wsi->set_platform(new SDLWSIPlatform());
+    wsi->set_platform(wsi_platform);
     Context::SystemHandles handles;
     if (!wsi->init(1, handles)) {
         logfatal("Failed to initialize WSI!");
@@ -176,6 +176,10 @@ void load_parallel_rdp() {
     if (!command_processor->device_is_supported()) {
         logfatal("This device probably does not support 8/16-bit storage. Make sure you're using up-to-date drivers!");
     }
+}
+
+void load_parallel_rdp() {
+    load_parallel_rdp(new SDLWSIPlatform());
 }
 
 void draw_fullscreen_textured_quad(Util::IntrusivePtr<Image> image, Util::IntrusivePtr<CommandBuffer> cmd) {

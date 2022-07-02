@@ -1,3 +1,4 @@
+#include <log.h>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -6,9 +7,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui = new Ui::MainWindow();
     ui->setupUi(this);
 
+    if (!vkInstance.create()) {
+        logfatal("Failed to create vulkan instance! %d", vkInstance.errorCode());
+    }
+
     vkPane = new VulkanPane();
     vkPane->setVulkanInstance(&vkInstance);
 
-    QWidget* vkPaneWidget = QWidget::createWindowContainer(vkPane, this);
-    setCentralWidget(vkPaneWidget);
+    setCentralWidget(QWidget::createWindowContainer(vkPane, this));
 }

@@ -1,15 +1,16 @@
+#ifndef N64_MAIN_WINDOW
+#define N64_MAIN_WINDOW
+
 #include <QMainWindow>
 #include <QVulkanWindow>
+
+#include "vulkan_pane.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
     class MainWindow;
 }
 QT_END_NAMESPACE
-
-class VulkanPane : public QVulkanWindow {
-
-};
 
 class MainWindow : public QMainWindow
 {
@@ -23,5 +24,7 @@ private:
     Ui::MainWindow *ui;
     VulkanPane* vkPane;
     QVulkanInstance vkInstance;
-    //auto vulkanWidget = QWidget::createWindowContainer();
 };
+
+
+#endif // N64_MAIN_WINDOW
