@@ -9,7 +9,7 @@ add_subdirectory(debugger)
 add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
-SET(NFD_PORTAL OFF CACHE BOOL "Use dbus for native file dialog instead of gtk")
+SET(NFD_PORTAL ON CACHE BOOL "Use dbus for native file dialog instead of gtk")
 add_subdirectory(contrib/nativefiledialog-extended)
 add_subdirectory(tools)
 
