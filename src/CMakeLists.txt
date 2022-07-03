@@ -9,7 +9,7 @@ add_subdirectory(debugger)
 add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
-set(NFD_PORTAL true)
+set(NFD_PORTAL ON)
 add_subdirectory(contrib/nativefiledialog-extended)
 add_subdirectory(tools)
 
