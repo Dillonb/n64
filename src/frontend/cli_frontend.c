@@ -1,7 +1,4 @@
 #include <stdio.h>
-#ifndef N64_WIN
-#include <unistd.h>
-#endif
 #include <cflags.h>
 #include <log.h>
 #include <system/n64system.h>
@@ -29,22 +26,6 @@ void sig_handler(int signum) {
     }
 }
 #endif
-
-#define PIF_ROM_PATH (is_rom_pal(&n64sys.mem.rom) ? "pif.pal.rom" : "pif.rom")
-
-INLINE bool file_exists(const char* path) {
-#ifndef N64_WIN
-    return access(PIF_ROM_PATH, F_OK) == 0;
-#else
-    FILE* f = fopen(path, "r");
-    bool exists = false;
-    if (f) {
-        exists = true;
-        fclose(f);
-    }
-    return exists;
-#endif
-}
 
 int main(int argc, char** argv) {
 
@@ -122,7 +103,7 @@ int main(int argc, char** argv) {
             rom_path = flags->argv[0];
         }
         init_n64system(rom_path, true, debug, VULKAN_VIDEO_TYPE, interpreter);
-        load_parallel_rdp();
+        init_parallel_rdp_internal_swapchain();
         load_imgui_ui();
         register_imgui_event_handler(imgui_handle_event);
     }

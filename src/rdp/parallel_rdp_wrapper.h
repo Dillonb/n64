@@ -13,10 +13,12 @@ uint32_t get_vk_graphics_queue_family();
 VkFormat get_vk_format();
 VkCommandBuffer get_vk_command_buffer();
 void submit_requested_vk_command_buffer();
-void load_parallel_rdp(Vulkan::WSIPlatform* wsi_platform);
+Vulkan::WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, bool internal);
+void init_parallel_rdp();
+
 extern "C" {
 #endif
-    void load_parallel_rdp();
+    void init_parallel_rdp_internal_swapchain();
     void update_screen_parallel_rdp();
     void parallel_rdp_enqueue_command(int command_length, word* buffer);
     void parallel_rdp_on_full_sync();

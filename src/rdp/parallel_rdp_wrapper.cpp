@@ -130,15 +130,20 @@ uint32_t fullscreen_quad_frag[] =
 
 Program* fullscreen_quad_program;
 
-void load_parallel_rdp(Vulkan::WSIPlatform* wsi_platform) {
+WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, bool internal) {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(wsi_platform);
     Context::SystemHandles handles;
-    if (!wsi->init(1, handles)) {
-        logfatal("Failed to initialize WSI!");
+    if (internal) {
+        if (!wsi->init(1, handles)) {
+            logfatal("Failed to initialize WSI!");
+        }
     }
+    return wsi;
+}
 
+void init_parallel_rdp() {
     ResourceLayout vert_layout;
     ResourceLayout frag_layout;
 
@@ -178,8 +183,9 @@ void load_parallel_rdp(Vulkan::WSIPlatform* wsi_platform) {
     }
 }
 
-void load_parallel_rdp() {
-    load_parallel_rdp(new SDLWSIPlatform());
+void init_parallel_rdp_internal_swapchain() {
+    init_vulkan_wsi(new SDLWSIPlatform(), true);
+    init_parallel_rdp();
 }
 
 void draw_fullscreen_textured_quad(Util::IntrusivePtr<Image> image, Util::IntrusivePtr<CommandBuffer> cmd) {
@@ -249,7 +255,7 @@ void update_screen(Util::IntrusivePtr<Image> image) {
 
     cmd->begin_render_pass(wsi->get_device().get_swapchain_render_pass(SwapchainRenderPass::ColorOnly));
     draw_fullscreen_textured_quad(image, cmd);
-    ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
+    //ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
     cmd->end_render_pass();
     wsi->get_device().submit(cmd);
     wsi->end_frame();

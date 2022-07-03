@@ -205,6 +205,8 @@ void on_interrupt_change();
 void check_vsync();
 extern n64_system_t n64sys;
 #define N64DYNAREC n64sys.dynarec
+#define PIF_ROM_PATH (is_rom_pal(&n64sys.mem.rom) ? "pif.pal.rom" : "pif.rom")
+bool file_exists(const char* path);
 #ifdef __cplusplus
 }
 #endif

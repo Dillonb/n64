@@ -12,6 +12,7 @@
 #ifndef N64_WIN
 #include <sys/mman.h>
 #include <errno.h>
+#include <unistd.h>
 #else
 #include <windows.h>
 #include <memoryapi.h>
@@ -503,4 +504,18 @@ void interrupt_lower(n64_interrupt_t interrupt) {
     }
 
     on_interrupt_change();
+}
+
+bool file_exists(const char* path) {
+#ifndef N64_WIN
+    return access(path, F_OK) == 0;
+#else
+    FILE* f = fopen(path, "r");
+    bool exists = false;
+    if (f) {
+        exists = true;
+        fclose(f);
+    }
+    return exists;
+#endif
 }

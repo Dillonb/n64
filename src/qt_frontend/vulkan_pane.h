@@ -2,12 +2,14 @@
 #define N64_VULKAN_PANE_H
 
 
+#undef signals
+#include <wsi.hpp>
 #include <QVulkanWindow>
 #include "vulkan_renderer.h"
 
 class VulkanPane : public QVulkanWindow {
 public:
-    explicit VulkanPane() : renderer(new VulkanRenderer()) {}
+    explicit VulkanPane(QVulkanInstance* vkInstance);
 
 protected:
     QVulkanWindowRenderer * createRenderer() override;

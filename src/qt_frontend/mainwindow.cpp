@@ -7,12 +7,15 @@ MainWindow::MainWindow(QWidget *parent)
     ui = new Ui::MainWindow();
     ui->setupUi(this);
 
+    if (volkInitialize() != VK_SUCCESS) {
+        logfatal("Failed to load Volk");
+    }
+
     if (!vkInstance.create()) {
         logfatal("Failed to create vulkan instance! %d", vkInstance.errorCode());
     }
 
-    vkPane = new VulkanPane();
-    vkPane->setVulkanInstance(&vkInstance);
+    vkPane = new VulkanPane(&vkInstance);
 
     setCentralWidget(QWidget::createWindowContainer(vkPane, this));
 }
