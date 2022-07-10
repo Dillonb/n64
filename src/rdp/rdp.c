@@ -229,10 +229,15 @@ void rdp_cleanup() {
 
 INLINE void rdp_enqueue_command(int command_length, word* buffer) {
     switch (n64sys.video_type) {
-        case UNKNOWN_VIDEO_TYPE:  logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
-        case OPENGL_VIDEO_TYPE:   logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
-        case VULKAN_VIDEO_TYPE:   parallel_rdp_enqueue_command(command_length, buffer); break;
-        case SOFTWARE_VIDEO_TYPE: enqueue_command_softrdp(&n64sys.softrdp_state, command_length, (uint64_t*)buffer); break;
+        case UNKNOWN_VIDEO_TYPE:
+            logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
+        case OPENGL_VIDEO_TYPE:
+            logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
+        case VULKAN_VIDEO_TYPE:
+        case QT_VULKAN_VIDEO_TYPE:
+            parallel_rdp_enqueue_command(command_length, buffer); break;
+        case SOFTWARE_VIDEO_TYPE:
+            enqueue_command_softrdp(&n64sys.softrdp_state, command_length, (uint64_t*)buffer); break;
     }
 }
 
@@ -350,6 +355,7 @@ void rdp_run_command() {
             graphics_plugin.ProcessRDPList();
             break;
         case VULKAN_VIDEO_TYPE:
+        case QT_VULKAN_VIDEO_TYPE:
         case SOFTWARE_VIDEO_TYPE:
             process_rdp_list();
             break;
@@ -364,6 +370,7 @@ void rdp_update_screen() {
             graphics_plugin.UpdateScreen();
             break;
         case VULKAN_VIDEO_TYPE:
+        case QT_VULKAN_VIDEO_TYPE:
             update_screen_parallel_rdp();
             break;
         case SOFTWARE_VIDEO_TYPE:

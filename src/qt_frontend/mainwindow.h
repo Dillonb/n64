@@ -20,10 +20,11 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     virtual ~MainWindow() {};
 
+    void showEvent(QShowEvent* event) override;
+
 private:
     Ui::MainWindow *ui;
     VulkanPane* vkPane;
-    QVulkanInstance vkInstance;
 };
 
 

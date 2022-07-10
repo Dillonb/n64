@@ -4,17 +4,19 @@
 
 #undef signals
 #include <wsi.hpp>
-#include <QVulkanWindow>
-#include "vulkan_renderer.h"
+#include <QWindow>
+#include "n64_emulator_thread.h"
 
-class VulkanPane : public QVulkanWindow {
+class VulkanPane : public QWindow {
 public:
-    explicit VulkanPane(QVulkanInstance* vkInstance);
+    explicit VulkanPane();
 
-protected:
-    QVulkanWindowRenderer * createRenderer() override;
+    void showEvent(QShowEvent* event) override;
+
 private:
-    VulkanRenderer* renderer = nullptr;
+    std::unique_ptr<N64EmulatorThread> emulatorThread;
+    std::unique_ptr<QtWSIPlatform> platform;
+    Vulkan::WSI* wsi;
 };
 
 

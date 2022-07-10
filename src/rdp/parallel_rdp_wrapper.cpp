@@ -136,7 +136,7 @@ WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, bool internal) {
     wsi->set_platform(wsi_platform);
     Context::SystemHandles handles;
     if (internal) {
-        if (!wsi->init(1, handles)) {
+        if (!wsi->init_simple(1, handles)) {
             logfatal("Failed to initialize WSI!");
         }
     }
@@ -200,22 +200,12 @@ void draw_fullscreen_textured_quad(Util::IntrusivePtr<Image> image, Util::Intrus
     *data++ = +3.0f;
     *data++ = +1.0f;
 
-    int sdlWinWidth, sdlWinHeight;
-    SDL_GetWindowSize(window, &sdlWinWidth, &sdlWinHeight);
-
-    float zoom = std::min(
-            (float)sdlWinWidth / wsi->get_platform().get_surface_width(),
-            (float)sdlWinHeight / wsi->get_platform().get_surface_height());
-
-    float width = (wsi->get_platform().get_surface_width() / (float)sdlWinWidth) * zoom;
-    float height = (wsi->get_platform().get_surface_height() / (float)sdlWinHeight) * zoom;
-
     float uniform_data[] = {
             // Size
-            width, height,
+            1.0f, 1.0f,
             // Offset
-            (1.0f - width) * 0.5f,
-            (1.0f - height) * 0.5f};
+            0.0f, 0.0f
+    };
 
     cmd->push_constants(uniform_data, 0, sizeof(uniform_data));
 

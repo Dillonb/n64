@@ -11,7 +11,7 @@ public:
     void start();
 private:
     std::thread emuThread;
-
+    QtWSIPlatform* wsiPlatform;
 };
 
 

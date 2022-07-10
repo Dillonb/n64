@@ -91,7 +91,12 @@ void video_init_software() {
 }
 
 void render_init(n64_video_type_t video_type) {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+    uint32_t flags = SDL_INIT_AUDIO;
+    if (video_type != QT_VULKAN_VIDEO_TYPE) {
+        flags |= SDL_INIT_VIDEO;
+    }
+
+    if (SDL_Init(flags) < 0) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
     switch (video_type) {
@@ -100,6 +105,8 @@ void render_init(n64_video_type_t video_type) {
             break;
         case VULKAN_VIDEO_TYPE:
             video_init_vulkan();
+            break;
+        case QT_VULKAN_VIDEO_TYPE:
             break;
         case SOFTWARE_VIDEO_TYPE:
             video_init_software();
@@ -194,6 +201,7 @@ void n64_render_screen() {
             SDL_RenderPresent(renderer);
             break;
         case VULKAN_VIDEO_TYPE: // frame pushing handled elsewhere
+        case QT_VULKAN_VIDEO_TYPE:
             break;
         case SOFTWARE_VIDEO_TYPE:
             render_screen_software();

@@ -3,6 +3,7 @@
 
 #undef signals
 #include <wsi.hpp>
+#include <QVulkanInstance>
 #include "vulkan_pane.h"
 
 class QtWSIPlatform : public Vulkan::WSIPlatform {
@@ -23,11 +24,20 @@ public:
 
     void event_frame_tick(double frame, double elapsed) override;
 
-    VulkanPane* get_pane() {
-        return vkPane;
+    const VkApplicationInfo *get_application_info() override {
+        return &appInfo;
     }
+
 private:
+    void init_q_vulkan_instance(VkInstance instance);
+
     VulkanPane* vkPane;
+    QVulkanInstance vkInstance;
+    VkApplicationInfo appInfo {
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .apiVersion = VK_API_VERSION_1_1
+    };
+
 };
 
 
