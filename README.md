@@ -46,7 +46,7 @@ You'll need a fast CPU and a modern GPU that supports Vulkan 1.1.
 # Building
 For Linux:
 
-1. Install dependencies: SDL2, Vulkan, and optionally Capstone
+1. Install dependencies: SDL2, Vulkan, dbus, and optionally Capstone
 2. Run the following commands:
 ```bash
 mkdir build && cd build
