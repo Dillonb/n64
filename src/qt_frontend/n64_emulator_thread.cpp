@@ -26,7 +26,7 @@ void N64EmulatorThread::start() {
 
     QtWSIPlatform* _wsiPlatform = this->wsiPlatform;
     emuThread = std::thread([_wsiPlatform]() {
-        init_vulkan_wsi(_wsiPlatform, true);
+        init_vulkan_wsi(_wsiPlatform);
 
         init_parallel_rdp();
 

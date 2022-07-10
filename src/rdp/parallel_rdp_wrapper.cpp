@@ -130,15 +130,13 @@ uint32_t fullscreen_quad_frag[] =
 
 Program* fullscreen_quad_program;
 
-WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, bool internal) {
+WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform) {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(wsi_platform);
     Context::SystemHandles handles;
-    if (internal) {
-        if (!wsi->init_simple(1, handles)) {
-            logfatal("Failed to initialize WSI!");
-        }
+    if (!wsi->init_simple(1, handles)) {
+        logfatal("Failed to initialize WSI!");
     }
     return wsi;
 }
@@ -184,7 +182,7 @@ void init_parallel_rdp() {
 }
 
 void init_parallel_rdp_internal_swapchain() {
-    init_vulkan_wsi(new SDLWSIPlatform(), true);
+    init_vulkan_wsi(new SDLWSIPlatform());
     init_parallel_rdp();
 }
 
