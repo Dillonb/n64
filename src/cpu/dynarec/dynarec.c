@@ -229,7 +229,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
         }
 #ifdef N64_DEBUG_MODE
         else {
-            check_exception_sanity(Dst, block_length + block_extra_cycles);
+            check_exception_sanity(Dst, block_length + block_extra_cycles, instr);
         }
 #endif
 
@@ -348,7 +348,14 @@ static int missing_block_handler() {
 }
 
 int n64_dynarec_step() {
-    word physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
+    word physical;
+    if (!resolve_virtual_address(N64CPU.pc, BUS_LOAD, &physical)) {
+        on_tlb_exception(N64CPU.pc);
+        r4300i_handle_exception(N64CPU.pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
+        printf("TLB miss PC, now at %016lX\n", N64CPU.pc);
+        return 1; // TODO does exception handling have a cost by itself? does it matter?
+    }
+
     word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
     word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
