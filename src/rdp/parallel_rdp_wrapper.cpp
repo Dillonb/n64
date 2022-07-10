@@ -1,10 +1,9 @@
 #include "parallel_rdp_wrapper.h"
+#include "parallel_rdp_wrapper_sdl.h"
 #include "rdp.h"
 #include <memory>
-#include <SDL_video.h>
 #include <rdp_device.hpp>
 #include <frontend/render.h>
-#include <SDL_vulkan.h>
 #include <mem/mem_util.h>
 #include <imgui/imgui_ui.h>
 #include <imgui_impl_vulkan.h>
@@ -18,6 +17,7 @@ using RDP::VIRegister;
 
 static CommandProcessor* command_processor;
 static WSI* wsi;
+static std::unique_ptr<ParallelRdpWindowInfo> windowInfo;
 
 std::vector<Semaphore> acquire_semaphore;
 
@@ -68,59 +68,6 @@ void set_framerate_unlocked(bool unlocked) {
     }
 }
 
-extern "C" {
-    extern SDL_Window* window;
-}
-
-class SDLWSIPlatform : public Vulkan::WSIPlatform {
-public:
-    SDLWSIPlatform() = default;
-
-    std::vector<const char *> get_instance_extensions() override {
-        const char* extensions[64];
-        unsigned int num_extensions = 64;
-
-        if (!SDL_Vulkan_GetInstanceExtensions(window, &num_extensions, extensions)) {
-            logfatal("SDL_Vulkan_GetInstanceExtensions failed: %s", SDL_GetError());
-        }
-        auto vec = std::vector<const char*>();
-
-        for (unsigned int i = 0; i < num_extensions; i++) {
-            vec.push_back(extensions[i]);
-        }
-
-        return vec;
-    }
-
-    VkSurfaceKHR create_surface(VkInstance instance, VkPhysicalDevice gpu) override {
-        VkSurfaceKHR vk_surface;
-        if (!SDL_Vulkan_CreateSurface(window, instance, &vk_surface)) {
-            logfatal("Failed to create Vulkan window surface: %s", SDL_GetError());
-        }
-        return vk_surface;
-    }
-
-    uint32_t get_surface_width() override {
-        return N64_SCREEN_X * SCREEN_SCALE;
-    }
-
-    uint32_t get_surface_height() override {
-        return N64_SCREEN_Y * SCREEN_SCALE;
-    }
-
-    bool alive(Vulkan::WSI &wsi) override {
-        return true;
-    }
-
-    void poll_input() override {
-        n64_poll_input();
-    }
-
-    void event_frame_tick(double frame, double elapsed) override {
-        n64_render_screen();
-    }
-};
-
 uint32_t fullscreen_quad_vert[] =
 #include <fullscreen_quad.vert.inc>
 ;
@@ -130,7 +77,7 @@ uint32_t fullscreen_quad_frag[] =
 
 Program* fullscreen_quad_program;
 
-WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform) {
+WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, std::unique_ptr<ParallelRdpWindowInfo>&& newWindowInfo) {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(wsi_platform);
@@ -138,6 +85,7 @@ WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform) {
     if (!wsi->init_simple(1, handles)) {
         logfatal("Failed to initialize WSI!");
     }
+    windowInfo = std::move(newWindowInfo);
     return wsi;
 }
 
@@ -182,7 +130,7 @@ void init_parallel_rdp() {
 }
 
 void init_parallel_rdp_internal_swapchain() {
-    init_vulkan_wsi(new SDLWSIPlatform());
+    init_vulkan_wsi(new SDLWSIPlatform(), std::make_unique<SDLParallelRdpWindowInfo>());
     init_parallel_rdp();
 }
 
@@ -198,12 +146,21 @@ void draw_fullscreen_textured_quad(Util::IntrusivePtr<Image> image, Util::Intrus
     *data++ = +3.0f;
     *data++ = +1.0f;
 
+    auto windowSize = windowInfo->get_window_size();
+
+    float zoom = std::min(
+            (float)windowSize.x / wsi->get_platform().get_surface_width(),
+            (float)windowSize.y / wsi->get_platform().get_surface_height());
+
+    float width = (wsi->get_platform().get_surface_width() / (float)windowSize.x) * zoom;
+    float height = (wsi->get_platform().get_surface_height() / (float)windowSize.y) * zoom;
+
     float uniform_data[] = {
             // Size
-            1.0f, 1.0f,
+            width, height,
             // Offset
-            0.0f, 0.0f
-    };
+            (1.0f - width) * 0.5f,
+            (1.0f - height) * 0.5f};
 
     cmd->push_constants(uniform_data, 0, sizeof(uniform_data));
 

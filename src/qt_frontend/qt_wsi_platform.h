@@ -28,6 +28,8 @@ public:
         return &appInfo;
     }
 
+    VulkanPane* getPane() { return vkPane; }
+
 private:
     void init_q_vulkan_instance(VkInstance instance);
 

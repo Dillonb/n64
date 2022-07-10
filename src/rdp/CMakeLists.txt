@@ -22,7 +22,7 @@ add_library(parallel_rdp_wrapper
         parallel_rdp_wrapper.cpp parallel_rdp_wrapper.h
         fullscreen_quad.frag.inc
         fullscreen_quad.vert.inc
-        )
+        parallel_rdp_wrapper_sdl.h)
 
 target_link_libraries(parallel_rdp_wrapper
         imgui-ui)

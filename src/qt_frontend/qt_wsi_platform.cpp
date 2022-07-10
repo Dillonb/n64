@@ -21,11 +21,11 @@ VkSurfaceKHR QtWSIPlatform::create_surface(VkInstance instance, VkPhysicalDevice
 }
 
 uint32_t QtWSIPlatform::get_surface_width() {
-    return vkPane->width();
+    return N64_SCREEN_X * SCREEN_SCALE;
 }
 
 uint32_t QtWSIPlatform::get_surface_height() {
-    return vkPane->height();
+    return N64_SCREEN_Y * SCREEN_SCALE;
 }
 
 QtWSIPlatform::QtWSIPlatform(VulkanPane *vkPane)

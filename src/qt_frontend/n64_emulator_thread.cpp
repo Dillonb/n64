@@ -6,6 +6,19 @@
 #include "n64_emulator_thread.h"
 #include "qt_wsi_platform.h"
 
+class QtParallelRdpWindowInfo : public ParallelRdpWindowInfo {
+public:
+    QtParallelRdpWindowInfo(QWindow* pane) : pane(pane) {}
+    CoordinatePair get_window_size() override {
+        return CoordinatePair {
+            pane->width(),
+            pane->height()
+        };
+    };
+private:
+    QWindow* pane;
+};
+
 N64EmulatorThread::N64EmulatorThread(QtWSIPlatform* wsiPlatform) {
     this->wsiPlatform = wsiPlatform;
     init_n64system("sm64.z64", true, false, QT_VULKAN_VIDEO_TYPE, false);
@@ -25,8 +38,9 @@ void N64EmulatorThread::start() {
     }
 
     QtWSIPlatform* _wsiPlatform = this->wsiPlatform;
-    emuThread = std::thread([_wsiPlatform]() {
-        init_vulkan_wsi(_wsiPlatform);
+    QWindow* pane = wsiPlatform->getPane();
+    emuThread = std::thread([_wsiPlatform, pane]() {
+        init_vulkan_wsi(_wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(pane));
 
         init_parallel_rdp();
 
