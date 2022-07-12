@@ -24,6 +24,7 @@
 #include <interface/si.h>
 #include <interface/pi.h>
 #include <dynarec/rsp_dynarec.h>
+#include <mem/pif.h>
 
 static bool should_quit = false;
 
@@ -308,6 +309,18 @@ void check_vsync() {
 void jit_system_loop() {
     int cycles = 0;
     while (!should_quit) {
+        switch (n64sys.action_queued) {
+            case N64_ACTION_NONE:
+                break;
+
+            case N64_ACTION_RESET:
+                reset_n64system();
+                n64_load_rom(n64sys.rom_path);
+                pif_rom_execute();
+                break;
+        }
+        n64sys.action_queued = N64_ACTION_NONE;
+
         for (int field = 0; field < n64sys.vi.num_fields; field++) {
             int this_frame_cycles = 0;
             for (int line = 0; line < n64sys.vi.num_halflines; line++) {
@@ -518,4 +531,8 @@ bool file_exists(const char* path) {
     }
     return exists;
 #endif
+}
+
+void n64_queue_action(n64_action_t action) {
+    n64sys.action_queued = action;
 }

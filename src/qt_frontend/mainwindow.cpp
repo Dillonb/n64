@@ -15,3 +15,7 @@ void MainWindow::showEvent(QShowEvent *event) {
     vkPane->setSurfaceType(QSurface::VulkanSurface);
     setCentralWidget(QWidget::createWindowContainer(vkPane, this));
 }
+
+void MainWindow::resetTriggered() {
+    vkPane->getEmulatorThread().reset();
+}

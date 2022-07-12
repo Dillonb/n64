@@ -13,6 +13,8 @@ public:
 
     void showEvent(QShowEvent* event) override;
 
+    N64EmulatorThread& getEmulatorThread() { return *emulatorThread; }
+
 private:
     std::unique_ptr<N64EmulatorThread> emulatorThread;
     std::unique_ptr<QtWSIPlatform> platform;

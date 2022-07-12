@@ -9,7 +9,9 @@ class N64EmulatorThread {
 public:
     explicit N64EmulatorThread(QtWSIPlatform* wsiPlatform);
     void start();
+    void reset();
 private:
+    bool running = false;
     std::thread emuThread;
     QtWSIPlatform* wsiPlatform;
 };

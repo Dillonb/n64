@@ -22,6 +22,9 @@ public:
 
     void showEvent(QShowEvent* event) override;
 
+public slots:
+    void resetTriggered();
+
 private:
     Ui::MainWindow *ui;
     VulkanPane* vkPane;

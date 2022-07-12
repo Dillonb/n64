@@ -128,6 +128,11 @@ typedef union axis_start {
     };
 } axis_start_t;
 
+typedef enum n64_action {
+    N64_ACTION_NONE = 0,
+    N64_ACTION_RESET
+} n64_action_t;
+
 typedef struct n64_system {
     n64_mem_t mem;
     //r4300i_t cpu;
@@ -189,6 +194,7 @@ typedef struct n64_system {
     softrdp_state_t softrdp_state;
     bool use_interpreter;
     char rom_path[PATH_MAX];
+    n64_action_t action_queued;
 } n64_system_t;
 
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
@@ -204,6 +210,7 @@ void interrupt_raise(n64_interrupt_t interrupt);
 void interrupt_lower(n64_interrupt_t interrupt);
 void on_interrupt_change();
 void check_vsync();
+void n64_queue_action(n64_action_t action);
 extern n64_system_t n64sys;
 #define N64DYNAREC n64sys.dynarec
 #define PIF_ROM_PATH (is_rom_pal(&n64sys.mem.rom) ? "pif.pal.rom" : "pif.rom")

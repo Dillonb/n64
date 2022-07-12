@@ -33,12 +33,13 @@ N64EmulatorThread::N64EmulatorThread(QtWSIPlatform* wsiPlatform) {
 }
 
 void N64EmulatorThread::start() {
-    if (n64_should_quit()) {
+    if (n64_should_quit() || running) {
         logfatal("Tried to start emulator thread, but it was already running!");
     }
 
     QtWSIPlatform* _wsiPlatform = this->wsiPlatform;
     QWindow* pane = wsiPlatform->getPane();
+    running = true;
     emuThread = std::thread([_wsiPlatform, pane]() {
         init_vulkan_wsi(_wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(pane));
 
@@ -46,4 +47,10 @@ void N64EmulatorThread::start() {
 
         n64_system_loop();
     });
+}
+
+void N64EmulatorThread::reset() {
+    if (running) {
+        n64_queue_action(N64_ACTION_RESET);
+    }
 }
