@@ -1,3 +1,5 @@
+#include <QFileDialog>
+#include <fstream>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "qt_wsi_platform.h"
@@ -18,4 +20,11 @@ void MainWindow::showEvent(QShowEvent *event) {
 
 void MainWindow::resetTriggered() {
     vkPane->getEmulatorThread().reset();
+}
+
+void MainWindow::openFileTriggered() {
+    auto filename = QFileDialog::getOpenFileName(this, "Load ROM", QString(), "N64 ROM files (*.z64 *.n64 *.v64)");
+    if (!filename.isEmpty()) {
+        vkPane->getEmulatorThread().loadRom(filename.toStdString());
+    }
 }

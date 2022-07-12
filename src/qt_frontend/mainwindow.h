@@ -24,6 +24,7 @@ public:
 
 public slots:
     void resetTriggered();
+    void openFileTriggered();
 
 private:
     Ui::MainWindow *ui;

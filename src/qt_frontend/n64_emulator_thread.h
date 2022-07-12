@@ -10,6 +10,8 @@ public:
     explicit N64EmulatorThread(QtWSIPlatform* wsiPlatform);
     void start();
     void reset();
+    void loadRom(const std::string& filename);
+
 private:
     bool running = false;
     std::thread emuThread;

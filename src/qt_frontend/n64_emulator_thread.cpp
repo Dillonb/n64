@@ -54,3 +54,8 @@ void N64EmulatorThread::reset() {
         n64_queue_action(N64_ACTION_RESET);
     }
 }
+
+void N64EmulatorThread::loadRom(const std::string& filename) {
+    strncpy(n64sys.rom_path, filename.c_str(), sizeof(n64sys.rom_path));
+    reset();
+}
