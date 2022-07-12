@@ -243,10 +243,16 @@ INLINE void rdp_enqueue_command(int command_length, word* buffer) {
 
 INLINE void rdp_on_full_sync() {
     switch (n64sys.video_type) {
-        case UNKNOWN_VIDEO_TYPE:  logfatal("RDP on full sync with video type UNKNOWN_VIDEO_TYPE");
-        case OPENGL_VIDEO_TYPE:   logfatal("RDP on full sync with video type OPENGL_VIDEO_TYPE");
-        case VULKAN_VIDEO_TYPE:   parallel_rdp_on_full_sync(); break;
-        case SOFTWARE_VIDEO_TYPE: full_sync_softrdp(); break;
+        case UNKNOWN_VIDEO_TYPE:
+            logfatal("RDP on full sync with video type UNKNOWN_VIDEO_TYPE");
+        case OPENGL_VIDEO_TYPE:
+            logfatal("RDP on full sync with video type OPENGL_VIDEO_TYPE");
+        case VULKAN_VIDEO_TYPE:
+        case QT_VULKAN_VIDEO_TYPE:
+            parallel_rdp_on_full_sync(); break;
+        case SOFTWARE_VIDEO_TYPE:
+            full_sync_softrdp();
+            break;
     }
 }
 

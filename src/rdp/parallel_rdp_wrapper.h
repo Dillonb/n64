@@ -12,6 +12,7 @@ public:
         int y;
     };
     virtual CoordinatePair get_window_size() = 0;
+    virtual ~ParallelRdpWindowInfo() = default;
 };
 
 VkQueue get_graphics_queue();

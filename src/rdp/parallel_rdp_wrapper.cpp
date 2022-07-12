@@ -200,7 +200,9 @@ void update_screen(Util::IntrusivePtr<Image> image) {
 
     cmd->begin_render_pass(wsi->get_device().get_swapchain_render_pass(SwapchainRenderPass::ColorOnly));
     draw_fullscreen_textured_quad(image, cmd);
-    //ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
+    if (n64sys.video_type != QT_VULKAN_VIDEO_TYPE) {
+        ImGui_ImplVulkan_RenderDrawData(imgui_frame(), cmd->get_command_buffer());
+    }
     cmd->end_render_pass();
     wsi->get_device().submit(cmd);
     wsi->end_frame();
