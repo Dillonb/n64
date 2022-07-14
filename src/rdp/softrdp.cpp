@@ -313,7 +313,10 @@ uint8_t get_blender_alpha(softrdp_state_t* rdp, blender_source_t source) {
         case BLENDER_PIXEL_COLOR:
         case BLENDER_MEMORY_COLOR:
         case BLENDER_BLEND_COLOR:
+        case BLENDER_FOG_COLOR:
             logfatal("Getting color value from get_blender_alpha function!");
+        default:
+            logfatal("get_blender_alpha(): unknown source!");
     }
 }
 
@@ -338,6 +341,8 @@ color_32bpp_t get_blender_color(softrdp_state_t* rdp, blender_source_t source) {
         case BLENDER_ONE:
         case BLENDER_ZERO:
             logfatal("Getting alpha value from get_blender_color function!");
+        default:
+            logfatal("get_blender_color(): unknown source!");
     }
 }
 
