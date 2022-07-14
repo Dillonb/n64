@@ -22,15 +22,15 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
     int num_cases = num_32bit_args + num_64bit_args;
 
     dword regargs[num_32bit_args + num_64bit_args];
-    half immargs[num_32bit_args + num_64bit_args];
+    u16 immargs[num_32bit_args + num_64bit_args];
     dword expected_result[num_32bit_args + num_64bit_args];
 
     static_assert(RAND_MAX == 2147483647, "this code depends on RAND_MAX being int32_max");
 
     for (int i = 0; i < num_32bit_args; i++) {
-        sword regarg = rand() << 1;
-        half immarg = rand();
-        regargs[i] = (sdword)regarg;
+        s32 regarg = rand() << 1;
+        u16 immarg = rand();
+        regargs[i] = (s64)regarg;
         immargs[i] = immarg;
 
     }
@@ -39,7 +39,7 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
         dword regarg = rand();
         regarg <<= 32;
         regarg |= rand();
-        half immarg = rand();
+        u16 immarg = rand();
         regargs[num_32bit_args + i] = regarg;
         immargs[num_32bit_args + i] = immarg;
     }
@@ -89,8 +89,8 @@ void gen_shift(char* name, mipsinstr_handler_t handler) {
     static_assert(RAND_MAX == 2147483647, "this code depends on RAND_MAX being int32_max");
 
     for (int i = 0; i < num_32bit_args; i++) {
-        sword regarg = rand() << 1;
-        regargs[i] = (sdword)regarg;
+        s32 regarg = rand() << 1;
+        regargs[i] = (s64)regarg;
     }
 
     for (int i = 0; i < num_64bit_args; i++) {
@@ -141,8 +141,8 @@ void gen_rs_rt_rd(char* name, mipsinstr_handler_t handler) {
     static_assert(RAND_MAX == 2147483647, "this code depends on RAND_MAX being int32_max");
 
     for (int i = 0; i < num_32bit_args; i++) {
-        sword regarg = rand() << 1;
-        regargs[i] = (sdword)regarg;
+        s32 regarg = rand() << 1;
+        regargs[i] = (s64)regarg;
 
     }
 

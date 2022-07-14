@@ -17,14 +17,14 @@
 
 typedef union vu_reg {
     // Used by instructions
-    byte bytes[16];
-    shalf signed_elements[8];
-    half elements[8];
+    u8 bytes[16];
+    s16 signed_elements[8];
+    u16 elements[8];
 #ifdef N64_USE_SIMD
     vecr single;
 #endif
     // Only used for loading
-    word words[4];
+    u32 words[4];
 } vu_reg_t;
 
 #ifdef N64_BIG_ENDIAN
@@ -38,7 +38,7 @@ typedef union vu_reg {
 static_assert(sizeof(vu_reg_t) == 16, "vu_reg_t incorrect size!");
 
 typedef union rsp_types {
-    word raw;
+    u32 raw;
     struct {
 #ifdef N64_BIG_ENDIAN
         unsigned:17;
@@ -92,7 +92,7 @@ typedef struct rsp_icache_entry {
 } rsp_icache_entry_t;
 
 typedef union mem_addr {
-    word raw;
+    u32 raw;
     struct {
         unsigned address:12;
         unsigned imem:1;
@@ -103,7 +103,7 @@ typedef union mem_addr {
 ASSERTWORD(mem_addr_t);
 
 typedef union dram_addr {
-    word raw;
+    u32 raw;
     struct {
         unsigned address:24;
         unsigned:8;
@@ -117,10 +117,10 @@ typedef struct rsp_dynarec rsp_dynarec_t;
 typedef struct rsp {
     rsp_dynarec_t *dynarec;
 
-    word gpr[32];
-    half prev_pc;
-    half pc;
-    half next_pc;
+    u32 gpr[32];
+    u16 prev_pc;
+    u16 pc;
+    u16 next_pc;
     //dword mult_hi;
     //dword mult_lo;
 
@@ -145,7 +145,7 @@ typedef struct rsp {
                 unsigned count: 8;
                 unsigned skip: 12;
             };
-            word raw;
+            u32 raw;
         } dma;
     } io;
 
@@ -173,14 +173,14 @@ typedef struct rsp {
 
     int sync; // For syncing RSP with CPU
 
-    shalf divin;
+    s16 divin;
     bool divin_loaded;
-    shalf divout;
+    s16 divout;
 
     bool semaphore_held;
 
-    byte sp_dmem[SP_DMEM_SIZE];
-    byte sp_imem[SP_IMEM_SIZE];
+    u8 sp_dmem[SP_DMEM_SIZE];
+    u8 sp_imem[SP_IMEM_SIZE];
 } rsp_t;
 
 #endif //N64_RSP_TYPES_H

@@ -18,7 +18,7 @@ void usage(cflags_t* flags) {
 
 void load_vecr(char *tok, vu_reg_t* v) {
     for (int e = 0; e < 8; e++) {
-        half elem = strtol(tok + e * (5), NULL, 16);
+        u16 elem = strtol(tok + e * (5), NULL, 16);
         v->elements[7 - e] = elem;
     }
 }
@@ -41,8 +41,8 @@ void fix_fake_vecr(vu_reg_t* v) {
 
 bool compare_vecr(char *tok, char* name, vu_reg_t* reg) {
     for (int e = 0; e < 8; e++) {
-        half expected = strtol(tok + e * (5), NULL, 16);
-        half actual = reg->elements[7 - e];
+        u16 expected = strtol(tok + e * (5), NULL, 16);
+        u16 actual = reg->elements[7 - e];
 
         if (expected != actual) {
             printf("%s expected: %s\n", name, tok);
@@ -92,7 +92,7 @@ void check_rsp_log(FILE* fp) {
         char* post_line = post_line_buf;
 
         N64RSP.pc = strtol(post_line, NULL, 16);
-        word instr = strtol(post_line + 10, NULL, 16);
+        u32 instr = strtol(post_line + 10, NULL, 16);
         n64_write_physical_word((N64RSP.pc & 0xFFF) + SREGION_SP_IMEM, instr);
 
         pre_line += 59; // Skip all the other stuff and get right to regs
@@ -168,8 +168,8 @@ void check_rsp_log(FILE* fp) {
 
         for (int r = 0; r < 32; r++) {
             tok = strtok(NULL, " ");
-            word actual = N64RSP.gpr[r];
-            word expected = strtol(tok, NULL, 16);
+            u32 actual = N64RSP.gpr[r];
+            u32 expected = strtol(tok, NULL, 16);
             if (actual != expected) {
                 logfatal("r%d expected: 0x%08X actual 0x%08X\n", r, expected, actual);
             }
@@ -358,7 +358,7 @@ int run_system_and_check(long taken, char* line, long linenum) {
     printf("Running for %ld cycles on line %ld\n", taken, linenum);
 
     char* tok = strtok(NULL, " ");
-    word expected_pc = strtol(tok, NULL, 16);
+    u32 expected_pc = strtol(tok, NULL, 16);
 
     static int cpu_steps = 0;
     for (int i = 0; i < taken /*&& cpu->pc != expected_pc*/; i++) {

@@ -20,14 +20,14 @@ static SDL_GLContext gl_context;
 SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
 static SDL_Texture* texture = NULL;
-static byte pixel_buffer[640 * 480 * 4]; // should be the largest needed
+static u8 pixel_buffer[640 * 480 * 4]; // should be the largest needed
 static n64_video_type_t n64_video_type = UNKNOWN_VIDEO_TYPE;
 
-word fps_interval = 1000; // 1000ms = 1 second
-word sdl_lastframe = 0;
-word sdl_numframes = 0;
-word sdl_fps = 0;
-word game_fps = 0;
+u32 fps_interval = 1000; // 1000ms = 1 second
+u32 sdl_lastframe = 0;
+u32 sdl_numframes = 0;
+u32 sdl_fps = 0;
+u32 game_fps = 0;
 char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
 
 SDL_Window* get_window_handle() {
@@ -122,9 +122,9 @@ void render_init(n64_video_type_t video_type) {
     gamepad_init();
 }
 
-static word last_vi_type = 0;
-static word vi_height = 0;
-static word vi_width = 0;
+static u32 last_vi_type = 0;
+static u32 vi_height = 0;
+static u32 vi_width = 0;
 
 INLINE void pre_scanout(SDL_PixelFormatEnum pixel_format) {
     float y_scale = (float)n64sys.vi.yscale.scale / 1024.0;
@@ -158,8 +158,8 @@ static void vi_scanout_16bit() {
     for (int y = 0; y < vi_height; y++) {
         int yofs = (y * vi_width * 2);
         for (int x = 0; x < vi_width; x += 2) {
-            memcpy(&pixel_buffer[yofs + x * 2 + 2], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 0], sizeof(half));
-            memcpy(&pixel_buffer[yofs + x * 2 + 0], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 2], sizeof(half));
+            memcpy(&pixel_buffer[yofs + x * 2 + 2], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 0], sizeof(u16));
+            memcpy(&pixel_buffer[yofs + x * 2 + 0], &n64sys.mem.rdram[rdram_offset + yofs + x * 2 + 2], sizeof(u16));
         }
     }
     SDL_UpdateTexture(texture, NULL, &pixel_buffer, vi_width * 2);

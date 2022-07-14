@@ -12,7 +12,7 @@ INLINE void tlbwi(int index) {
     // 10 -> 11
     // 11 -> 11
     // The top bit sets the value of both bits.
-    word top = page_mask.mask & 0b101010101010;
+    u32 top = page_mask.mask & 0b101010101010;
     page_mask.mask = top | (top >> 1);
 
     if (index >= 32) {

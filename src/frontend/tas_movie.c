@@ -26,15 +26,15 @@ typedef struct m64_movie_controller_flags {
 _Static_assert(sizeof(m64_movie_controller_flags_t) == 4, "Incorrect size!");
 
 typedef struct m64_movie_header {
-    byte signature[4];
+    u8 signature[4];
     uint32_t version;
     uint32_t uid;
     uint32_t num_frames;
     uint32_t rerecord_count;
-    byte fps;
-    byte num_controllers;
-    byte reserved1;
-    byte reserved2;
+    u8 fps;
+    u8 num_controllers;
+    u8 reserved1;
+    u8 reserved2;
     uint32_t num_input_samples;
     /*
      value 1: movie begins from snapshot (the snapshot will be loaded from an externalfile
@@ -43,14 +43,14 @@ typedef struct m64_movie_header {
      other values: invalid movie
      */
     uint16_t start_type;
-    byte reserved3;
-    byte reserved4;
+    u8 reserved3;
+    u8 reserved4;
     m64_movie_controller_flags_t controller_flags;
-    byte reserved5[160];
+    u8 reserved5[160];
     char rom_name[32];
     uint32_t rom_crc32;
     uint16_t rom_country_code;
-    byte reserved6[56];
+    u8 reserved6[56];
     // 122 64-byte ASCII string: name of video plugin used when recording, directly from plugin
     char video_plugin_name[64];
     // 162 64-byte ASCII string: name of sound plugin used when recording, directly from plugin
@@ -81,11 +81,11 @@ typedef union tas_movie_controller_data {
         bool c_up: 1;
         bool r: 1;
         bool l: 1;
-        byte: 2;
-        sbyte analog_x: 8;
-        sbyte analog_y: 8;
+        u8: 2;
+        s8 analog_x: 8;
+        s8 analog_y: 8;
     };
-    word raw;
+    u32 raw;
 } PACKED tas_movie_controller_data_t;
 
 _Static_assert(sizeof(tas_movie_controller_data_t) == 4, "Incorrect size for tas_movie_controller_data_t!");
@@ -93,7 +93,7 @@ _Static_assert(sizeof(tas_movie_controller_data_t) == 4, "Incorrect size for tas
 
 _Static_assert(sizeof(m64_movie_header_t) == 1024, "Incorrect size!");
 
-static byte* loaded_tas_movie = NULL;
+static u8* loaded_tas_movie = NULL;
 static size_t loaded_tas_movie_size = 0;
 m64_movie_header_t loaded_tas_movie_header;
 uint32_t loaded_tas_movie_index = 0;
@@ -109,7 +109,7 @@ void load_tas_movie(const char* filename) {
     size_t size = ftell(fp);
 
     fseek(fp, 0, SEEK_SET);
-    byte *buf = malloc(size);
+    u8 *buf = malloc(size);
     fread(buf, size, 1, fp);
 
     loaded_tas_movie = buf;

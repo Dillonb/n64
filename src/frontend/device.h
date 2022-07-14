@@ -39,7 +39,7 @@ typedef enum n64_controller_accessory_type {
 typedef struct n64_controller {
     n64_controller_accessory_type_t accessory_type;
     union {
-        byte byte1;
+        u8 byte1;
         struct {
             bool dp_right:1;
             bool dp_left:1;
@@ -52,7 +52,7 @@ typedef struct n64_controller {
         };
     };
     union {
-        byte byte2;
+        u8 byte2;
         struct {
             bool c_right:1;
             bool c_left:1;
@@ -64,11 +64,11 @@ typedef struct n64_controller {
             bool joy_reset:1;
         };
     };
-    sbyte joy_x;
-    sbyte joy_y;
+    s8 joy_x;
+    s8 joy_y;
 
-    shalf raw_x;
-    shalf raw_y;
+    s16 raw_x;
+    s16 raw_y;
 } n64_controller_t;
 
 typedef enum n64_joybus_device_type {
@@ -91,17 +91,17 @@ typedef struct n64_joybus_device {
 } n64_joybus_device_t;
 
 void update_button(int controller, n64_button_t button, bool held);
-void update_joyaxis_x(int controller, shalf x);
-void update_joyaxis_y(int controller, shalf y);
+void update_joyaxis_x(int controller, s16 x);
+void update_joyaxis_y(int controller, s16 y);
 void devices_init(n64_save_type_t save_type);
-void device_id_for_pif(int pif_channel, byte* res);
-bool device_read_buttons_for_pif(int pif_channel, byte* res);
+void device_id_for_pif(int pif_channel, u8* res);
+bool device_read_buttons_for_pif(int pif_channel, u8* res);
 n64_controller_accessory_type_t get_controller_accessory_type(int pif_channel);
 
 // Exposed for testing
 
 // Trim and apply deadzone
-sbyte trim_gamepad_axis(shalf raw);
+s8 trim_gamepad_axis(s16 raw);
 // do all requisite clamping for a controller
 void clamp_gamepad(n64_controller_t* controller);
 

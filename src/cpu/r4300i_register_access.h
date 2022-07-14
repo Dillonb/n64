@@ -3,13 +3,13 @@
 
 #include "r4300i.h"
 
-INLINE void set_register(byte r, dword value) {
+INLINE void set_register(u8 r, dword value) {
     logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
     N64CPU.gpr[r] = value;
     N64CPU.gpr[0] = 0;
 }
 
-INLINE dword get_register(byte r) {
+INLINE dword get_register(u8 r) {
     dword value = N64CPU.gpr[r];
     logtrace("Reading $%s (r%d): 0x%016lX", register_names[r], r, value);
     return value;
@@ -34,7 +34,7 @@ INLINE void log_status(cp0_status_t status) {
     loginfo("    CP0 status: cu3: %d", status.cu3);
 }
 
-INLINE void set_cp0_register_word(byte r, word value) {
+INLINE void set_cp0_register_word(u8 r, u32 value) {
     N64CP0.open_bus = value;
     switch (r) {
         case R4300I_CP0_REG_INDEX:
@@ -89,7 +89,7 @@ INLINE void set_cp0_register_word(byte r, word value) {
             N64CPU.cp0.page_mask.raw = value & CP0_PAGEMASK_WRITE_MASK;
             break;
         case R4300I_CP0_REG_EPC:
-            N64CPU.cp0.EPC = (sdword)((sword)value);
+            N64CPU.cp0.EPC = (s64)((s32)value);
             break;
         case R4300I_CP0_REG_CONFIG:
             N64CPU.cp0.config &= ~CP0_CONFIG_WRITE_MASK;
@@ -107,16 +107,16 @@ INLINE void set_cp0_register_word(byte r, word value) {
             N64CPU.cp0.wired = value & 63;
             break;
         case R4300I_CP0_REG_CONTEXT:
-            N64CPU.cp0.context.raw = (((sdword)(sword)value) & 0xFFFFFFFFFF800000) | (N64CPU.cp0.context.raw & 0x7FFFFF);
+            N64CPU.cp0.context.raw = (((s64)(s32)value) & 0xFFFFFFFFFF800000) | (N64CPU.cp0.context.raw & 0x7FFFFF);
             break;
         case R4300I_CP0_REG_XCONTEXT:
-            N64CPU.cp0.x_context.raw = (((sdword)(sword)value) & 0xFFFFFFFE00000000) | (N64CPU.cp0.x_context.raw & 0x1FFFFFFFF);
+            N64CPU.cp0.x_context.raw = (((s64)(s32)value) & 0xFFFFFFFE00000000) | (N64CPU.cp0.x_context.raw & 0x1FFFFFFFF);
             break;
         case R4300I_CP0_REG_LLADDR:
             N64CPU.cp0.lladdr = value;
             break;
         case R4300I_CP0_REG_ERR_EPC:
-            N64CP0.error_epc = (sdword)((sword)value);
+            N64CP0.error_epc = (s64)((s32)value);
             break;
         case R4300I_CP0_REG_PRID:
             break; // Read only
@@ -140,16 +140,16 @@ INLINE void set_cp0_register_word(byte r, word value) {
     loginfo("CP0 $%s = 0x%08X", cp0_register_names[r], value);
 }
 
-INLINE word get_cp0_count() {
+INLINE u32 get_cp0_count() {
     dword shifted = N64CPU.cp0.count >> 1;
-    return (word)shifted;
+    return (u32)shifted;
 }
 
-INLINE word get_cp0_wired() {
+INLINE u32 get_cp0_wired() {
     return N64CP0.wired & 0b111111;
 }
 
-INLINE word get_cp0_random() {
+INLINE u32 get_cp0_random() {
     int val = rand();
     int wired = get_cp0_wired();
 
@@ -170,7 +170,7 @@ INLINE word get_cp0_random() {
     return val;
 }
 
-INLINE word get_cp0_register_word(byte r) {
+INLINE u32 get_cp0_register_word(u8 r) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
             return N64CPU.cp0.index & 0x8000003F;
@@ -236,7 +236,7 @@ INLINE word get_cp0_register_word(byte r) {
     }
 }
 
-INLINE void set_cp0_register_dword(byte r, dword value) {
+INLINE void set_cp0_register_dword(u8 r, dword value) {
     N64CP0.open_bus = value;
     switch (r) {
         case R4300I_CP0_REG_INDEX:
@@ -321,7 +321,7 @@ INLINE void set_cp0_register_dword(byte r, dword value) {
     }
 }
 
-INLINE dword get_cp0_register_dword(byte r) {
+INLINE dword get_cp0_register_dword(u8 r) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
             logfatal("Reading CP0 register R4300I_CP0_REG_INDEX as dword!");
@@ -392,7 +392,7 @@ INLINE dword get_cp0_register_dword(byte r) {
     }
 }
 
-INLINE void set_fpu_register_dword(byte r, dword value) {
+INLINE void set_fpu_register_dword(u8 r, dword value) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
@@ -401,7 +401,7 @@ INLINE void set_fpu_register_dword(byte r, dword value) {
     N64CPU.f[r].raw = value;
 }
 
-INLINE dword get_fpu_register_dword(byte r) {
+INLINE dword get_fpu_register_dword(u8 r) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
@@ -410,7 +410,7 @@ INLINE dword get_fpu_register_dword(byte r) {
     return N64CPU.f[r].raw;
 }
 
-INLINE void set_fpu_register_word(byte r, word value) {
+INLINE void set_fpu_register_word(u8 r, u32 value) {
     if (N64CPU.cp0.status.fr) {
         N64CPU.f[r].lo = value;
     } else {
@@ -422,7 +422,7 @@ INLINE void set_fpu_register_word(byte r, word value) {
     }
 }
 
-INLINE word get_fpu_register_word(byte r) {
+INLINE u32 get_fpu_register_word(u8 r) {
     if (N64CPU.cp0.status.fr) {
         return N64CPU.f[r].lo;
     } else {
@@ -434,7 +434,7 @@ INLINE word get_fpu_register_word(byte r) {
     }
 }
 
-INLINE void set_fpu_register_double(byte r, double value) {
+INLINE void set_fpu_register_double(u8 r, double value) {
     _Static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
 
     dword rawvalue;
@@ -442,7 +442,7 @@ INLINE void set_fpu_register_double(byte r, double value) {
     set_fpu_register_dword(r, rawvalue);
 }
 
-INLINE double get_fpu_register_double(byte r) {
+INLINE double get_fpu_register_double(u8 r) {
     _Static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
     double doublevalue;
     dword rawvalue = get_fpu_register_dword(r);
@@ -450,17 +450,17 @@ INLINE double get_fpu_register_double(byte r) {
     return doublevalue;
 }
 
-INLINE void set_fpu_register_float(byte r, float value) {
-    _Static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
+INLINE void set_fpu_register_float(u8 r, float value) {
+    _Static_assert(sizeof(float) == sizeof(u32), "float and word need to both be 32 bits for this to work.");
 
-    word rawvalue;
+    u32 rawvalue;
     memcpy(&rawvalue, &value, sizeof(float));
     set_fpu_register_word(r, rawvalue);
 }
 
-INLINE float get_fpu_register_float(byte r) {
-    _Static_assert(sizeof(float) == sizeof(word), "float and word need to both be 32 bits for this to work.");
-    word rawvalue = get_fpu_register_word(r);
+INLINE float get_fpu_register_float(u8 r) {
+    _Static_assert(sizeof(float) == sizeof(u32), "float and word need to both be 32 bits for this to work.");
+    u32 rawvalue = get_fpu_register_word(r);
     float floatvalue;
     memcpy(&floatvalue, &rawvalue, sizeof(float));
     return floatvalue;
@@ -476,8 +476,8 @@ INLINE void branch_abs(dword address) {
     N64CPU.branch = true;
 }
 
-INLINE void branch_offset(shalf offset) {
-    sword soffset = offset;
+INLINE void branch_offset(s16 offset) {
+    s32 soffset = offset;
     soffset *= 4;
     // This is taking advantage of the fact that we add 4 to the PC after each instruction.
     // Due to the compiler expecting pipelining, the address we get here will be 4 _too early_
@@ -485,7 +485,7 @@ INLINE void branch_offset(shalf offset) {
     branch_abs(N64CPU.pc + soffset);
 }
 
-INLINE void conditional_branch_likely(word offset, bool condition) {
+INLINE void conditional_branch_likely(u32 offset, bool condition) {
     N64CPU.branch = true;
     if (condition) {
         branch_offset(offset);
@@ -497,7 +497,7 @@ INLINE void conditional_branch_likely(word offset, bool condition) {
     }
 }
 
-INLINE void conditional_branch(word offset, bool condition) {
+INLINE void conditional_branch(u32 offset, bool condition) {
     N64CPU.branch = true;
     if (condition) {
         branch_offset(offset);

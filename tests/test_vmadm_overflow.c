@@ -3,7 +3,7 @@
 #include <cpu/rsp.h>
 #include <cpu/rsp_vector_instructions.h>
 
-bool print_vureg_comparing_ln(vu_reg_t* reg, const half* compare) {
+bool print_vureg_comparing_ln(vu_reg_t* reg, const u16* compare) {
     bool failed = false;
     printf("Expected: ");
     for (int i = 0; i < 8; i++) {
@@ -28,24 +28,24 @@ bool print_vureg_comparing_ln(vu_reg_t* reg, const half* compare) {
 int main(int argc, char** argv) {
     init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, false);
 
-    half initial_acch[] = { 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF };
-    half initial_accm[] = { 0xF060, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
-    half initial_accl[] = { 0x7E67, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC };
-    half initial_vs[]   = { 0x75A7, 0x08AA, 0x08AA, 0x08AA, 0x08AA, 0x08AA, 0x08AA, 0x08AA };
-    half initial_vt[]   = { 0x75AC, 0x08BB, 0x08BB, 0x08BB, 0x08BB, 0x08BB, 0x08BB, 0x08BB };
+    u16 initial_acch[] = {0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF };
+    u16 initial_accm[] = {0xF060, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+    u16 initial_accl[] = {0x7E67, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFC };
+    u16 initial_vs[]   = {0x75A7, 0x08AA, 0x08AA, 0x08AA, 0x08AA, 0x08AA, 0x08AA, 0x08AA };
+    u16 initial_vt[]   = {0x75AC, 0x08BB, 0x08BB, 0x08BB, 0x08BB, 0x08BB, 0x08BB, 0x08BB };
 
-    half expected_vd[]   = { 0x7FFF, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000 };
-    half expected_acch[] = { 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000 };
-    half expected_accm[] = { 0x2674, 0x004B, 0x004B, 0x004B, 0x004B, 0x004B, 0x004B, 0x004B };
-    half expected_accl[] = { 0xDD9B, 0xA42A, 0xA42A, 0xA42A, 0xA42A, 0xA42A, 0xA42A, 0xA42A };
+    u16 expected_vd[]   = {0x7FFF, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000 };
+    u16 expected_acch[] = {0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000 };
+    u16 expected_accm[] = {0x2674, 0x004B, 0x004B, 0x004B, 0x004B, 0x004B, 0x004B, 0x004B };
+    u16 expected_accl[] = {0xDD9B, 0xA42A, 0xA42A, 0xA42A, 0xA42A, 0xA42A, 0xA42A, 0xA42A };
 
 
-    memcpy(N64RSP.acc.h.elements, initial_acch, sizeof(half) * 8);
-    memcpy(N64RSP.acc.m.elements, initial_accm, sizeof(half) * 8);
-    memcpy(N64RSP.acc.l.elements, initial_accl, sizeof(half) * 8);
+    memcpy(N64RSP.acc.h.elements, initial_acch, sizeof(u16) * 8);
+    memcpy(N64RSP.acc.m.elements, initial_accm, sizeof(u16) * 8);
+    memcpy(N64RSP.acc.l.elements, initial_accl, sizeof(u16) * 8);
 
-    memcpy(N64RSP.vu_regs[1].elements, initial_vs, sizeof(half) * 8);
-    memcpy(N64RSP.vu_regs[2].elements, initial_vt, sizeof(half) * 8);
+    memcpy(N64RSP.vu_regs[1].elements, initial_vs, sizeof(u16) * 8);
+    memcpy(N64RSP.vu_regs[2].elements, initial_vt, sizeof(u16) * 8);
 
 
     mips_instruction_t instr;

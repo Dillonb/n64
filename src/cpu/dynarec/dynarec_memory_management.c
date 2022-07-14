@@ -39,7 +39,7 @@ void* dynarec_bumpalloc(size_t size) {
 }
 
 void* dynarec_bumpalloc_zero(size_t size) {
-    byte* ptr = dynarec_bumpalloc(size);
+    u8* ptr = dynarec_bumpalloc(size);
 
     for (int i = 0; i < size; i++) {
         ptr[i] = 0;

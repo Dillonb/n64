@@ -10,9 +10,9 @@
 #define VI_TYPE_32BIT    3
 
 typedef union vi_status {
-    word raw;
+    u32 raw;
     struct {
-        byte type:2;
+        u8 type:2;
         bool gamma_dither_enable:1;
         bool gamma_enable:1;
         bool divot_enable:1;
@@ -25,7 +25,7 @@ typedef union vi_status {
 } vi_status_t;
 
 typedef union vi_burst {
-    word raw;
+    u32 raw;
 } vi_burst_t;
 
 #endif //N64_VI_REG_H

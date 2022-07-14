@@ -20,9 +20,9 @@ void load_rsp_imem(const char* rsp_path) {
 
     // File is in big endian, byte swap it all.
     for (int i = 0; i < SP_IMEM_SIZE; i += 4) {
-        word instr = word_from_byte_array((byte*) &N64RSP.sp_imem, i);
+        u32 instr = word_from_byte_array((u8*) &N64RSP.sp_imem, i);
         instr = be32toh(instr);
-        word_to_byte_array((byte*) &N64RSP.sp_imem, i, instr);
+        word_to_byte_array((u8*) &N64RSP.sp_imem, i, instr);
     }
 
     if (read == 0) {
@@ -35,13 +35,13 @@ void load_rsp_imem(const char* rsp_path) {
     }
 }
 
-void load_rsp_dmem(word* input, int input_size) {
+void load_rsp_dmem(u32* input, int input_size) {
     for (int i = 0; i < input_size; i++) {
         n64_rsp_write_word(i * 4, input[i]);
     }
 }
 
-bool run_test(word* input, int input_size, word* output, int output_size) {
+bool run_test(u32* input, int input_size, u32* output, int output_size) {
     load_rsp_dmem(input, input_size / 4);
 
     N64RSP.status.halt = false;
@@ -69,7 +69,7 @@ bool run_test(word* input, int input_size, word* output, int output_size) {
                 printf(" ");
             }
             if (i + b < output_size) {
-                printf("%02X", ((byte*)output)[i + b]);
+                printf("%02X", ((u8*)output)[i + b]);
             } else {
                 printf("  ");
             }
@@ -82,8 +82,8 @@ bool run_test(word* input, int input_size, word* output, int output_size) {
                 printf(" ");
             }
             if (i + b < output_size) {
-                byte actual = N64RSP.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
-                byte expected = ((byte*)output)[i + b];
+                u8 actual = N64RSP.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
+                u8 expected = ((u8*)output)[i + b];
 
                 if (actual != expected) {
                     printf(COLOR_RED);
@@ -150,12 +150,12 @@ int main(int argc, char** argv) {
 
     for (int i = 4; i < argc; i++) {
         const char* subtest_name = argv[i];
-        byte input[input_size];
+        u8 input[input_size];
         fread(input, 1, input_size, input_data_handle);
-        byte output[output_size];
+        u8 output[output_size];
         fread(output, 1, output_size, output_data_handle);
 
-        bool subtest_failed = run_test((word *) input, input_size, (word *) output, output_size);
+        bool subtest_failed = run_test((u32 *) input, input_size, (u32 *) output, output_size);
 
         if (subtest_failed) {
             printf("[%s %s] FAILED\n", test_name, subtest_name);

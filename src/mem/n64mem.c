@@ -21,12 +21,12 @@ void save_rdram_dump(bool bswap) {
     FILE* dump = fopen(dump_path, "wb");
 
     for (int i = 0; i < N64_RDRAM_SIZE; i += 4) {
-        word w;
-        memcpy(&w, &n64sys.mem.rdram[i], sizeof(word));
+        u32 w;
+        memcpy(&w, &n64sys.mem.rdram[i], sizeof(u32));
         if (bswap) {
             w = bswap_32(w);
         }
-        fwrite(&w, sizeof(word), 1, dump);
+        fwrite(&w, sizeof(u32), 1, dump);
     }
 
     fclose(dump);

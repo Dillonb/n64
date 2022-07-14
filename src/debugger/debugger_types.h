@@ -3,11 +3,12 @@
 
 #ifndef N64_WIN
 #include <gdbstub.h>
+#include <util.h>
 
 typedef struct n64_breakpoint n64_breakpoint_t;
 
 typedef struct n64_breakpoint {
-    word address;
+    u32 address;
     n64_breakpoint_t* next;
 } n64_breakpoint_t;
 
@@ -19,7 +20,7 @@ typedef struct n64_debugger_state {
     bool enabled;
 } n64_debugger_state_t;
 
-INLINE bool check_breakpoint(n64_debugger_state_t* state, word address) {
+INLINE bool check_breakpoint(n64_debugger_state_t* state, u32 address) {
     n64_breakpoint_t* cur = state->breakpoints;
     while (cur != NULL) {
         if (cur->address == address) {

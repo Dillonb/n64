@@ -47,7 +47,7 @@ void gamepad_init() {
     gamepad_refresh();
 }
 
-void gamepad_update_button(byte button, bool state) {
+void gamepad_update_button(u8 button, bool state) {
     switch (button) {
         case SDL_CONTROLLER_BUTTON_A:
             update_button(0, N64_BUTTON_A, state);
@@ -91,12 +91,12 @@ void gamepad_update_button(byte button, bool state) {
     }
 }
 
-shalf right_joyx, right_joyy;
+s16 right_joyx, right_joyy;
 
 #define SLICE_OFFSET 67.5
 #define CHECKSLICE(degrees, angle) ((degrees) > ((angle) - SLICE_OFFSET) && (degrees) < ((angle) + SLICE_OFFSET))
 
-void update_right_joyaxis(byte axis, shalf value) {
+void update_right_joyaxis(u8 axis, s16 value) {
     switch (axis) {
         case SDL_CONTROLLER_AXIS_RIGHTX:
             right_joyx = value;
@@ -137,7 +137,7 @@ void update_right_joyaxis(byte axis, shalf value) {
     }
 }
 
-void gamepad_update_axis(byte axis, shalf value) {
+void gamepad_update_axis(u8 axis, s16 value) {
     switch (axis) {
         case SDL_CONTROLLER_AXIS_LEFTX:
             update_joyaxis_x(0, value);

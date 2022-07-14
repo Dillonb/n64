@@ -15,14 +15,14 @@ typedef struct rsp_dynarec_block {
 } rsp_dynarec_block_t;
 
 typedef struct rsp_dynarec {
-    byte* codecache;
+    u8* codecache;
     dword codecache_size;
     dword codecache_used;
 
     rsp_dynarec_block_t blockcache[RSP_BLOCKCACHE_SIZE];
 } rsp_dynarec_t;
 
-rsp_dynarec_t* rsp_dynarec_init(byte* codecache, size_t codecache_size);
+rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size);
 int rsp_dynarec_step();
 
 #endif //N64_RSP_DYNAREC_H

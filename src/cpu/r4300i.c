@@ -51,7 +51,7 @@ const char* cp0_register_names[] = {
 r4300i_t n64cpu;
 
 INLINE bool is_xtlb(dword address) {
-    byte region = (address >> 62) & 3;
+    u8 region = (address >> 62) & 3;
     switch (region) {
         case 0b00: // user
             return N64CP0.status.ux;
@@ -65,7 +65,7 @@ INLINE bool is_xtlb(dword address) {
 }
 
 // pc = pc of the instruction where execution was when the exception was thrown
-void r4300i_handle_exception(dword pc, word code, int coprocessor_error) {
+void r4300i_handle_exception(dword pc, u32 code, int coprocessor_error) {
     bool old_exl = N64CP0.status.exl; // used for TLB exceptions since exl is overwritten later
     loginfo("Exception thrown! Code: %d Coprocessor: %d bd: %d old_exl: %d", code, coprocessor_error, N64CPU.prev_branch, old_exl);
 
@@ -721,7 +721,7 @@ void r4300i_step() {
     N64CPU.branch = false;
 
     dword pc = N64CPU.pc;
-    word physical_pc;
+    u32 physical_pc;
     if (!resolve_virtual_address(pc, BUS_LOAD, &physical_pc)) {
         // tlb exception
         on_tlb_exception(pc);

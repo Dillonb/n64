@@ -5,19 +5,19 @@
 #include <stdbool.h>
 
 typedef struct n64_header {
-    byte initial_values[4];
-    word clock_rate;
-    word program_counter;
-    word release;
-    word crc1;
-    word crc2;
+    u8 initial_values[4];
+    u32 clock_rate;
+    u32 program_counter;
+    u32 release;
+    u32 crc1;
+    u32 crc2;
     dword unknown;
     char image_name[20];
-    word unknown2;
-    word manufacturer_id;
-    half cartridge_id;
+    u32 unknown2;
+    u32 manufacturer_id;
+    u16 cartridge_id;
     char country_code[2];
-    byte boot_code[4032];
+    u8 boot_code[4032];
 } n64_header_t;
 
 typedef enum n64_cic_type {
@@ -31,9 +31,9 @@ typedef enum n64_cic_type {
 } n64_cic_type_t;
 
 typedef struct n64_rom {
-    byte* rom;
+    u8* rom;
     size_t size;
-    byte* pif_rom;
+    u8* pif_rom;
     size_t pif_rom_size;
     n64_header_t header;
     n64_cic_type_t cic_type;

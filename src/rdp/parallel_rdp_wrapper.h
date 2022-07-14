@@ -30,7 +30,7 @@ extern "C" {
 #endif
     void init_parallel_rdp_internal_swapchain();
     void update_screen_parallel_rdp();
-    void parallel_rdp_enqueue_command(int command_length, word* buffer);
+    void parallel_rdp_enqueue_command(int command_length, u32* buffer);
     void parallel_rdp_on_full_sync();
     void update_screen_parallel_rdp_no_game();
     bool is_framerate_unlocked();

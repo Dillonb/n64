@@ -4,15 +4,15 @@
 
 #define RSP_REG_LR 31
 
-INLINE void rsp_branch_abs(word address) {
+INLINE void rsp_branch_abs(u32 address) {
     N64RSP.next_pc = address;
 }
 
-INLINE void rsp_branch_offset(shalf offset) {
+INLINE void rsp_branch_offset(s16 offset) {
     rsp_branch_abs(N64RSP.pc + offset);
 }
 
-INLINE void rsp_conditional_branch(word offset, bool condition) {
+INLINE void rsp_conditional_branch(u32 offset, bool condition) {
     if (condition) {
         rsp_branch_offset(offset);
     }
@@ -33,58 +33,58 @@ RSP_INSTR(rsp_xori) {
 }
 
 RSP_INSTR(rsp_lui) {
-    word immediate = instruction.i.immediate << 16;
+    u32 immediate = instruction.i.immediate << 16;
     set_rsp_register(instruction.i.rt, immediate);
 }
 
 RSP_INSTR(rsp_addi) {
-    sword reg_addend = get_rsp_register(instruction.i.rs);
-    shalf imm_addend = instruction.i.immediate;
-    sword result = imm_addend + reg_addend;
+    s32 reg_addend = get_rsp_register(instruction.i.rs);
+    s16 imm_addend = instruction.i.immediate;
+    s32 result = imm_addend + reg_addend;
     set_rsp_register(instruction.i.rt, result);
 }
 
 RSP_INSTR(rsp_spc_sll) {
-    word value = get_rsp_register(instruction.r.rt);
-    word result = value << instruction.r.sa;
+    u32 value = get_rsp_register(instruction.r.rt);
+    u32 result = value << instruction.r.sa;
     set_rsp_register(instruction.r.rd, result);
 }
 
 RSP_INSTR(rsp_spc_srl) {
-        word value = get_rsp_register(instruction.r.rt);
-        word result = value >> instruction.r.sa;
+        u32 value = get_rsp_register(instruction.r.rt);
+        u32 result = value >> instruction.r.sa;
         set_rsp_register(instruction.r.rd, result);
 }
 
 RSP_INSTR(rsp_spc_sra) {
-    sword value = get_rsp_register(instruction.r.rt);
-    sword result = value >> instruction.r.sa;
+    s32 value = get_rsp_register(instruction.r.rt);
+    s32 result = value >> instruction.r.sa;
     set_rsp_register(instruction.r.rd, result);
 }
 
 RSP_INSTR(rsp_spc_srav) {
-    sword value = get_rsp_register(instruction.r.rt);
-    sword result = value >> (get_rsp_register(instruction.r.rs) & 0b11111);
+    s32 value = get_rsp_register(instruction.r.rt);
+    s32 result = value >> (get_rsp_register(instruction.r.rs) & 0b11111);
     set_rsp_register(instruction.r.rd, result);
 }
 
 RSP_INSTR(rsp_spc_srlv) {
-    word value = get_rsp_register(instruction.r.rt);
-    sword result = value >> (get_rsp_register(instruction.r.rs) & 0b11111);
+    u32 value = get_rsp_register(instruction.r.rt);
+    s32 result = value >> (get_rsp_register(instruction.r.rs) & 0b11111);
     set_rsp_register(instruction.r.rd, result);
 }
 
 RSP_INSTR(rsp_spc_sllv) {
-        word value = get_rsp_register(instruction.r.rt);
-        sword result = value << (get_rsp_register(instruction.r.rs) & 0b11111);
+        u32 value = get_rsp_register(instruction.r.rt);
+        s32 result = value << (get_rsp_register(instruction.r.rs) & 0b11111);
         set_rsp_register(instruction.r.rd, result);
 }
 
 RSP_INSTR(rsp_spc_sub) {
-    sword operand1 = get_rsp_register(instruction.r.rs);
-    sword operand2 = get_rsp_register(instruction.r.rt);
+    s32 operand1 = get_rsp_register(instruction.r.rs);
+    s32 operand2 = get_rsp_register(instruction.r.rt);
 
-    sword result = operand1 - operand2;
+    s32 result = operand1 - operand2;
     set_rsp_register(instruction.r.rd, result);
 }
 
@@ -101,11 +101,11 @@ RSP_INSTR(rsp_spc_nor) {
 }
 
 RSP_INSTR(rsp_spc_slt) {
-    sword op1 = get_rsp_register(instruction.r.rs);
-    sword op2 = get_rsp_register(instruction.r.rt);
+    s32 op1 = get_rsp_register(instruction.r.rs);
+    s32 op2 = get_rsp_register(instruction.r.rt);
 
     // RS - RT
-    sword result = op1 - op2;
+    s32 result = op1 - op2;
     // if RS is LESS than RT
     // aka, if result is negative
 
@@ -117,8 +117,8 @@ RSP_INSTR(rsp_spc_slt) {
 }
 
 RSP_INSTR(rsp_spc_sltu) {
-    word op1 = get_rsp_register(instruction.r.rs);
-    word op2 = get_rsp_register(instruction.r.rt);
+    u32 op1 = get_rsp_register(instruction.r.rs);
+    u32 op2 = get_rsp_register(instruction.r.rt);
 
     if (op1 < op2) {
         set_rsp_register(instruction.r.rd, 1);
@@ -128,10 +128,10 @@ RSP_INSTR(rsp_spc_sltu) {
 }
 
 RSP_INSTR(rsp_spc_add) {
-    word addend1 = get_rsp_register(instruction.r.rs);
-    word addend2 = get_rsp_register(instruction.r.rt);
+    u32 addend1 = get_rsp_register(instruction.r.rs);
+    u32 addend2 = get_rsp_register(instruction.r.rt);
 
-    word result = addend1 + addend2;
+    u32 result = addend1 + addend2;
 
     set_rsp_register(instruction.r.rd, result);
 }
@@ -151,72 +151,72 @@ RSP_INSTR(rsp_spc_break) {
 }
 
 RSP_INSTR(rsp_lb) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    sbyte value = n64_rsp_read_byte(address);
-    set_rsp_register(instruction.i.rt, (sword)value);
+    s8 value = n64_rsp_read_byte(address);
+    set_rsp_register(instruction.i.rt, (s32)value);
 }
 
 RSP_INSTR(rsp_lbu) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    byte value = n64_rsp_read_byte(address);
+    u8 value = n64_rsp_read_byte(address);
     set_rsp_register(instruction.i.rt, value);
 }
 
 RSP_INSTR(rsp_andi) {
-        word immediate = instruction.i.immediate;
-        word result = immediate & get_rsp_register(instruction.i.rs);
+        u32 immediate = instruction.i.immediate;
+        u32 result = immediate & get_rsp_register(instruction.i.rs);
         set_rsp_register(instruction.i.rt, result);
 }
 
 RSP_INSTR(rsp_sb) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    byte value = get_rsp_register(instruction.i.rt);
+    u8 value = get_rsp_register(instruction.i.rt);
     n64_rsp_write_byte(address, value);
 }
 
 RSP_INSTR(rsp_sh) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    half value = get_rsp_register(instruction.i.rt);
+    u16 value = get_rsp_register(instruction.i.rt);
     n64_rsp_write_half(address, value);
 }
 
 RSP_INSTR(rsp_sw) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    word value = get_rsp_register(instruction.i.rt);
+    u32 value = get_rsp_register(instruction.i.rt);
     n64_rsp_write_word(address, value);
 }
 
 RSP_INSTR(rsp_lhu) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    half value = n64_rsp_read_half(address);
+    u16 value = n64_rsp_read_half(address);
     set_rsp_register(instruction.i.rt, value);
 }
 
 RSP_INSTR(rsp_lh) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    shalf value = n64_rsp_read_half(address);
-    set_rsp_register(instruction.i.rt, (sword)value);
+    s16 value = n64_rsp_read_half(address);
+    set_rsp_register(instruction.i.rt, (s32)value);
 }
 
 RSP_INSTR(rsp_lw) {
-    shalf offset = instruction.i.immediate;
-    word address = get_rsp_register(instruction.i.rs) + offset;
+    s16 offset = instruction.i.immediate;
+    u32 address = get_rsp_register(instruction.i.rs) + offset;
 
-    sword value = n64_rsp_read_word(address);
+    s32 value = n64_rsp_read_word(address);
     set_rsp_register(instruction.i.rt, value);
 }
 
@@ -230,8 +230,8 @@ RSP_INSTR(rsp_jal) {
 }
 
 RSP_INSTR(rsp_slti) {
-        shalf immediate = instruction.i.immediate;
-        sword reg = get_rsp_register(instruction.i.rs);
+        s16 immediate = instruction.i.immediate;
+        s32 reg = get_rsp_register(instruction.i.rs);
         if (reg < immediate) {
             set_rsp_register(instruction.i.rt, 1);
         } else {
@@ -240,8 +240,8 @@ RSP_INSTR(rsp_slti) {
 }
 
 RSP_INSTR(rsp_sltiu) {
-    shalf immediate = instruction.i.immediate;
-    word reg = get_rsp_register(instruction.i.rs);
+    s16 immediate = instruction.i.immediate;
+    u32 reg = get_rsp_register(instruction.i.rs);
     if (reg < immediate) {
         set_rsp_register(instruction.i.rt, 1);
     } else {
@@ -259,12 +259,12 @@ RSP_INSTR(rsp_spc_jalr) {
 }
 
 RSP_INSTR(rsp_mfc0) {
-    sword value = get_rsp_cp0_register(instruction.r.rd);
+    s32 value = get_rsp_cp0_register(instruction.r.rd);
     set_rsp_register(instruction.r.rt, value);
 }
 
 RSP_INSTR(rsp_mtc0) {
-    word value = get_rsp_register(instruction.r.rt);
+    u32 value = get_rsp_register(instruction.r.rt);
     set_rsp_cp0_register(instruction.r.rd, value);
 }
 
@@ -277,33 +277,33 @@ RSP_INSTR(rsp_beq) {
 }
 
 RSP_INSTR(rsp_bgtz) {
-    sword reg = get_rsp_register(instruction.i.rs);
+    s32 reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg > 0);
 }
 
 RSP_INSTR(rsp_blez) {
-    sword reg = get_rsp_register(instruction.i.rs);
+    s32 reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg <= 0);
 }
 
 RSP_INSTR(rsp_ri_bltz) {
-    sword reg = get_rsp_register(instruction.i.rs);
+    s32 reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg < 0);
 }
 
 RSP_INSTR(rsp_ri_bltzal) {
-    sword reg = get_rsp_register(instruction.i.rs);
+    s32 reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg < 0);
     rsp_link(RSP_REG_LR);
 }
 
 RSP_INSTR(rsp_ri_bgez) {
-    sword reg = get_rsp_register(instruction.i.rs);
+    s32 reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg >= 0);
 }
 
 RSP_INSTR(rsp_ri_bgezal) {
-    sword reg = get_rsp_register(instruction.i.rs);
+    s32 reg = get_rsp_register(instruction.i.rs);
     rsp_conditional_branch(instruction.i.immediate, reg >= 0);
     rsp_link(RSP_REG_LR);
 }

@@ -8,7 +8,7 @@ INLINE int MAX(int x, int y) {
     return y;
 }
 
-void write_word_aireg(word address, word value) {
+void write_word_aireg(u32 address, u32 value) {
     switch (address) {
         case ADDR_AI_DRAM_ADDR_REG:
             if (n64sys.ai.dma_count < 2) {
@@ -16,7 +16,7 @@ void write_word_aireg(word address, word value) {
             }
             break;
         case ADDR_AI_LEN_REG: {
-            word length = value & 0b111111111111111111 & ~7;
+            u32 length = value & 0b111111111111111111 & ~7;
             if (n64sys.ai.dma_count < 2 && length) {
                 n64sys.ai.dma_length[n64sys.ai.dma_count] = length;
                 n64sys.ai.dma_count++;
@@ -30,7 +30,7 @@ void write_word_aireg(word address, word value) {
             interrupt_lower(INTERRUPT_AI);
             break;
         case ADDR_AI_DACRATE_REG: {
-            word old_dac_frequency = n64sys.ai.dac.frequency;
+            u32 old_dac_frequency = n64sys.ai.dac.frequency;
             n64sys.ai.dac_rate = value & 0b11111111111111;
             n64sys.ai.dac.frequency = MAX(1, CPU_HERTZ / 2 / (n64sys.ai.dac_rate + 1)) * 1.037;
             n64sys.ai.dac.period = CPU_HERTZ / n64sys.ai.dac.frequency;
@@ -47,7 +47,7 @@ void write_word_aireg(word address, word value) {
     }
 }
 
-word read_word_aireg(word address) {
+u32 read_word_aireg(u32 address) {
     switch (address) {
         case ADDR_AI_DRAM_ADDR_REG:
             logfatal("Read from unknown AI register: AI_DRAM_ADDR_REG");
@@ -56,7 +56,7 @@ word read_word_aireg(word address) {
         case ADDR_AI_CONTROL_REG:
             logfatal("Read from unknown AI register: AI_CONTROL_REG");
         case ADDR_AI_STATUS_REG: {
-            word value = 0;
+            u32 value = 0;
             value |= (n64sys.ai.dma_count > 1) << 0;
             value |= (1) << 20;
             value |= (1) << 24;
@@ -79,15 +79,15 @@ void sample() {
         return;
     }
 
-    word address_hi = ((n64sys.ai.dma_address[0] >> 13) + n64sys.ai.dma_address_carry) & 0x7ff;
+    u32 address_hi = ((n64sys.ai.dma_address[0] >> 13) + n64sys.ai.dma_address_carry) & 0x7ff;
     n64sys.ai.dma_address[0] = (address_hi << 13) | n64sys.ai.dma_address[0] & 0x1fff;
-    word data = RDRAM_WORD(n64sys.ai.dma_address[0]);
+    u32 data = RDRAM_WORD(n64sys.ai.dma_address[0]);
 
-    shalf left  = data >> 16;
-    shalf right = data >>  0;
+    s16 left  = data >> 16;
+    s16 right = data >> 0;
     audio_push_sample(left, right);
 
-    word address_lo = (n64sys.ai.dma_address[0] + 4) & 0x1fff;
+    u32 address_lo = (n64sys.ai.dma_address[0] + 4) & 0x1fff;
     n64sys.ai.dma_address[0] = (n64sys.ai.dma_address[0] & ~0x1fff) | address_lo;
     n64sys.ai.dma_address_carry = (address_lo == 0);
     n64sys.ai.dma_length[0] -= 4;

@@ -15,7 +15,7 @@ static int tests_failed = 0;
 
 typedef struct {
     dword input;
-    half immediate;
+    u16 immediate;
     dword output;
 } case_instr_1_1_imm;
 
@@ -33,7 +33,7 @@ typedef struct {
 
 typedef struct {
     dword input;
-    byte sa;
+    u8 sa;
     dword output;
 } case_sa_instr;
 

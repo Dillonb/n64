@@ -16,7 +16,7 @@
 #define ADDR_VI_X_SCALE_REG   0x04400030
 #define ADDR_VI_Y_SCALE_REG   0x04400034
 
-void write_word_vireg(word address, word value) {
+void write_word_vireg(u32 address, u32 value) {
     switch (address) {
         case ADDR_VI_STATUS_REG: {
             n64sys.vi.status.raw = value;
@@ -25,7 +25,7 @@ void write_word_vireg(word address, word value) {
             break;
         }
         case ADDR_VI_ORIGIN_REG: {
-            word masked = value & 0xFFFFFF;
+            u32 masked = value & 0xFFFFFF;
             if (n64sys.vi.vi_origin != masked) {
                 n64sys.vi.swaps++;
             }
@@ -87,7 +87,7 @@ void write_word_vireg(word address, word value) {
     }
 }
 
-word read_word_vireg(word address) {
+u32 read_word_vireg(u32 address) {
     switch (address) {
         case ADDR_VI_STATUS_REG:
             logfatal("Reading of ADDR_VI_STATUS_REG is unsupported");

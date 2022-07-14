@@ -23,7 +23,7 @@
 
 #define CMD_DATA (&cmd[CMD_START_INDEX])
 
-const word cic_seeds[] = {
+const u32 cic_seeds[] = {
         0x0,
         0x00043F3F, // CIC_NUS_6101
         0x00043F3F, // CIC_NUS_7102
@@ -355,7 +355,7 @@ void pif_rom_execute_hle() {
     n64_write_physical_word(0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
-    memcpy(N64RSP.sp_dmem, n64sys.mem.rom.rom, sizeof(byte) * 0x1000);
+    memcpy(N64RSP.sp_dmem, n64sys.mem.rom.rom, sizeof(u8) * 0x1000);
 
     set_pc_word_r4300i(0xA4000040);
 }
@@ -407,16 +407,16 @@ INLINE void pif_channel_reset(int channel) {
 
 }
 
-INLINE void pif_controller_reset(byte* cmd, byte* res) {
+INLINE void pif_controller_reset(u8* cmd, u8* res) {
 
 }
 
-INLINE void pif_controller_id(byte* cmd, byte* res) {
+INLINE void pif_controller_id(u8* cmd, u8* res) {
     device_id_for_pif(pif_channel, res);
     pif_channel++;
 }
 
-INLINE void pif_read_buttons(byte* cmd, byte* res) {
+INLINE void pif_read_buttons(u8* cmd, u8* res) {
     if (device_read_buttons_for_pif(pif_channel, res)) {
         cmd[CMD_RESLEN_INDEX] |= 0x00; // Success!
     } else {
@@ -425,11 +425,11 @@ INLINE void pif_read_buttons(byte* cmd, byte* res) {
     pif_channel++;
 }
 
-byte data_crc(const byte* data) {
-    byte crc = 0;
+u8 data_crc(const u8* data) {
+    u8 crc = 0;
     for (int i = 0; i <= 32; i++) {
         for (int j = 7; j >= 0; j--) {
-            byte xor_val =((crc & 0x80) != 0) ? 0x85 : 0x00;
+            u8 xor_val = ((crc & 0x80) != 0) ? 0x85 : 0x00;
 
             crc <<= 1;
             if (i < 32) {
@@ -446,10 +446,10 @@ byte data_crc(const byte* data) {
 }
 
 
-INLINE void pif_mempack_read(byte* cmd, byte* res) {
+INLINE void pif_mempack_read(u8* cmd, u8* res) {
     init_mempack(&n64sys.mem, n64sys.rom_path);
     // First two bytes in the command are the offset
-    half offset = CMD_DATA[0] << 8;
+    u16 offset = CMD_DATA[0] << 8;
     offset |= CMD_DATA[1];
 
     // low 5 bits are the CRC
@@ -478,9 +478,9 @@ INLINE void pif_mempack_read(byte* cmd, byte* res) {
     res[32] = data_crc(&res[0]);
 }
 
-INLINE void pif_mempack_write(byte* cmd, byte* res) {
+INLINE void pif_mempack_write(u8* cmd, u8* res) {
     // First two bytes in the command are the offset
-    half offset = CMD_DATA[0] << 8;
+    u16 offset = CMD_DATA[0] << 8;
     offset |= CMD_DATA[1];
 
     // low 5 bits are the CRC
@@ -521,10 +521,10 @@ INLINE void pif_mempack_write(byte* cmd, byte* res) {
     res[0] = data_crc(&CMD_DATA[2]);
 }
 
-INLINE void pif_eeprom_read(byte* cmd, byte* res) {
+INLINE void pif_eeprom_read(u8* cmd, u8* res) {
     assert_is_eeprom(n64sys.mem.save_type);
     if (pif_channel == 4) {
-        byte offset = CMD_DATA[0];
+        u8 offset = CMD_DATA[0];
         if ((offset * 8) >= n64sys.mem.save_size) {
             logfatal("Out of range EEPROM read! offset: 0x%02X", offset);
         }
@@ -537,10 +537,10 @@ INLINE void pif_eeprom_read(byte* cmd, byte* res) {
     }
 }
 
-INLINE void pif_eeprom_write(byte* cmd, byte* res) {
+INLINE void pif_eeprom_write(u8* cmd, u8* res) {
     assert_is_eeprom(n64sys.mem.save_type);
     if (pif_channel == 4) {
-        byte offset = CMD_DATA[0];
+        u8 offset = CMD_DATA[0];
         if ((offset * 8) >= n64sys.mem.save_size) {
             logfatal("Out of range EEPROM write! offset: 0x%02X", offset);
         }
@@ -557,8 +557,8 @@ INLINE void pif_eeprom_write(byte* cmd, byte* res) {
 }
 
 void cic_challenge() {
-    byte challenge[30];
-    byte response[30];
+    u8 challenge[30];
+    u8 response[30];
 
     printf("CIC challenge: ");
 
@@ -591,13 +591,13 @@ const char* pif_ram_as_str() {
 }
 
 void process_pif_command() {
-    byte control = n64sys.mem.pif_ram[63];
+    u8 control = n64sys.mem.pif_ram[63];
     if (control & 1) {
         pif_channel = 0;
         int i = 0;
         while (i < 63) {
-            byte* cmd = &n64sys.mem.pif_ram[i++];
-            byte cmdlen = cmd[CMD_CMDLEN_INDEX] & 0x3F;
+            u8* cmd = &n64sys.mem.pif_ram[i++];
+            u8 cmdlen = cmd[CMD_CMDLEN_INDEX] & 0x3F;
 
             if (cmdlen == 0) {
                 pif_channel++;
@@ -609,12 +609,12 @@ void process_pif_command() {
             } else if (cmdlen == 0x3F) {
                 continue;
             } else {
-                byte r = n64sys.mem.pif_ram[i++];
+                u8 r = n64sys.mem.pif_ram[i++];
                 if (r == 0xFE) { // 0xFE in PIF RAM = end of commands.
                     break;
                 }
-                byte reslen = r & 0x3F; // TODO: out of bounds access possible on invalid data
-                byte* res = &n64sys.mem.pif_ram[i + cmdlen];
+                u8 reslen = r & 0x3F; // TODO: out of bounds access possible on invalid data
+                u8* res = &n64sys.mem.pif_ram[i + cmdlen];
 
                 switch (cmd[CMD_COMMAND_INDEX]) {
                     case PIF_COMMAND_RESET:
@@ -690,7 +690,7 @@ void load_pif_rom(const char* pif_rom_path) {
     size_t size = ftell(fp);
 
     fseek(fp, 0, SEEK_SET);
-    byte *buf = malloc(size);
+    u8 *buf = malloc(size);
     fread(buf, size, 1, fp);
 
     n64sys.mem.rom.pif_rom = buf;

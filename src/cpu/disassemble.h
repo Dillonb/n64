@@ -3,6 +3,6 @@
 
 #include <util.h>
 
-int disassemble(word address, word raw, char* buf, int buflen);
+int disassemble(u32 address, u32 raw, char* buf, int buflen);
 
 #endif //N64_DISASSEMBLE_H

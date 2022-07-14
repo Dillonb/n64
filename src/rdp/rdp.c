@@ -21,10 +21,10 @@
 
 static void* plugin_handle = NULL;
 static mupen_graphics_plugin_t graphics_plugin;
-static word rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
+static u32 rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
 
 #define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
-word rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
+u32 rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
 
 #define FROM_RDRAM(address) word_from_byte_array(n64sys.mem.rdram, WORD_ADDRESS(address))
 #define FROM_DMEM(address) word_from_byte_array(N64RSP.sp_dmem, address)
@@ -170,7 +170,7 @@ void load_rdp_plugin(const char* filename) {
 #endif
 }
 
-void write_word_dpcreg(word address, word value) {
+void write_word_dpcreg(u32 address, u32 value) {
     switch (address) {
         case ADDR_DPC_START_REG:
             n64sys.dpc.start = value & 0xFFFFF8;
@@ -198,7 +198,7 @@ void write_word_dpcreg(word address, word value) {
     }
 }
 
-word read_word_dpcreg(word address) {
+u32 read_word_dpcreg(u32 address) {
     switch (address) {
         case ADDR_DPC_START_REG:
             return n64sys.dpc.start;
@@ -227,7 +227,7 @@ void rdp_cleanup() {
     }
 }
 
-INLINE void rdp_enqueue_command(int command_length, word* buffer) {
+INLINE void rdp_enqueue_command(int command_length, u32* buffer) {
     switch (n64sys.video_type) {
         case UNKNOWN_VIDEO_TYPE:
             logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
@@ -265,8 +265,8 @@ void process_rdp_list() {
     dpc->status.freeze = true;
 
     // force align to 8 byte boundaries
-    const word current = dpc->current & 0x00FFFFF8;
-    const word end = dpc->end & 0x00FFFFF8;
+    const u32 current = dpc->current & 0x00FFFFF8;
+    const u32 end = dpc->end & 0x00FFFFF8;
 
     // How many bytes do we need to process?
     int display_list_length = end - current;
@@ -286,7 +286,7 @@ void process_rdp_list() {
     // because commands have variable lengths
     if (dpc->status.xbus_dmem_dma) {
         for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_DMEM(current + i);
+            u32 command_word = FROM_DMEM(current + i);
             rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
         }
     } else {
@@ -295,7 +295,7 @@ void process_rdp_list() {
             return;
         }
         for (int i = 0; i < display_list_length; i += 4) {
-            word command_word = FROM_RDRAM(current + i);
+            u32 command_word = FROM_RDRAM(current + i);
             rdp_command_buffer[last_run_unprocessed_words + (i >> 2)] = command_word;
         }
     }
@@ -306,7 +306,7 @@ void process_rdp_list() {
     bool processed_all = true;
 
     while (buf_index < length_words) {
-        byte command = (rdp_command_buffer[buf_index] >> 24) & 0x3F;
+        u8 command = (rdp_command_buffer[buf_index] >> 24) & 0x3F;
 
         int command_length = command_lengths[command];
 
@@ -316,7 +316,7 @@ void process_rdp_list() {
             last_run_unprocessed_words = length_words - buf_index;
 
             // Safe to allocate this on the stack because we'll only have a partial command left, and that _has_ to be pretty small.
-            word temp[last_run_unprocessed_words];
+            u32 temp[last_run_unprocessed_words];
             for (int i = 0; i < last_run_unprocessed_words; i++) {
                 temp[i] = rdp_command_buffer[buf_index + i];
             }
@@ -387,9 +387,9 @@ void rdp_update_screen() {
     }
 }
 
-void rdp_status_reg_write(word value) {
+void rdp_status_reg_write(u32 value) {
     union {
-        word raw;
+        u32 raw;
         struct {
             bool clear_xbus_dmem_dma:1;
             bool set_xbus_dmem_dma:1;

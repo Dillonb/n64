@@ -2,17 +2,17 @@
 #define __UTIL_H__
 #include <stdint.h>
 
-typedef uint8_t byte;
-typedef uint16_t half;
-typedef uint32_t word;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
 typedef uint64_t dword;
 
-typedef int8_t sbyte;
-typedef int16_t shalf;
-typedef int32_t sword;
-typedef int64_t sdword;
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
 
-#define se_32_64(val) ((sdword)((sword)(val)))
+#define se_32_64(val) ((s64)((s32)(val)))
 
 #define popcount(x) __builtin_popcountll(x)
 #define FAKELITTLE_HALF(h) ((((h) >> 8u) & 0xFFu) | (((h) << 8u) & 0xFF00u))

@@ -35,7 +35,7 @@ typedef enum instruction_format {
     MT_MULTREG
 } instruction_format_t;
 
-typedef void(*mipsinstr_compiler_t)(dasm_State**, mips_instruction_t, word, int*, int, word*);
+typedef void(*mipsinstr_compiler_t)(dasm_State**, mips_instruction_t, u32, int*, int, u32*);
 
 typedef struct dynarec_ir {
     dynarec_instruction_category_t category;
@@ -49,7 +49,7 @@ typedef struct n64_dynarec_block {
 } n64_dynarec_block_t;
 
 typedef struct n64_dynarec {
-    byte* codecache;
+    u8* codecache;
     dword codecache_size;
     dword codecache_used;
 
@@ -57,8 +57,8 @@ typedef struct n64_dynarec {
 } n64_dynarec_t;
 
 int n64_dynarec_step();
-n64_dynarec_t* n64_dynarec_init(byte* codecache, size_t codecache_size);
-void invalidate_dynarec_page(word physical_address);
+n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size);
+void invalidate_dynarec_page(u32 physical_address);
 void invalidate_dynarec_all_pages();
 
 #endif //N64_DYNAREC_H

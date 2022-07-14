@@ -20,7 +20,7 @@ void rsp_release_semaphore() {
     N64RSP.semaphore_held = false;
 }
 
-INLINE rspinstr_handler_t rsp_cp0_decode(word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_cp0_decode(u32 pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MT: return rsp_mtc0;
@@ -44,7 +44,7 @@ INLINE rspinstr_handler_t rsp_cp0_decode(word pc, mips_instruction_t instr) {
     }
 }
 
-INLINE rspinstr_handler_t rsp_cp2_decode(word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_cp2_decode(u32 pc, mips_instruction_t instr) {
     if (instr.cp2_vec.is_vec) {
         switch (instr.cp2_vec.funct) {
             case FUNCT_RSP_VEC_VABS:  return rsp_vec_vabs;
@@ -132,7 +132,7 @@ INLINE rspinstr_handler_t rsp_cp2_decode(word pc, mips_instruction_t instr) {
     }
 }
 
-INLINE rspinstr_handler_t rsp_special_decode(word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_special_decode(u32 pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:    return rsp_spc_sll;
         case FUNCT_SRL:    return rsp_spc_srl;
@@ -167,7 +167,7 @@ INLINE rspinstr_handler_t rsp_special_decode(word pc, mips_instruction_t instr) 
     }
 }
 
-INLINE rspinstr_handler_t rsp_regimm_decode(word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_regimm_decode(u32 pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:     return rsp_ri_bltz;
         case RT_BLTZAL:   return rsp_ri_bltzal;
@@ -182,7 +182,7 @@ INLINE rspinstr_handler_t rsp_regimm_decode(word pc, mips_instruction_t instr) {
     }
 }
 
-INLINE rspinstr_handler_t rsp_lwc2_decode(word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_lwc2_decode(u32 pc, mips_instruction_t instr) {
     switch (instr.v.funct) {
         case LWC2_LBV: return rsp_lwc2_lbv;
         case LWC2_LDV: return rsp_lwc2_ldv;
@@ -201,7 +201,7 @@ INLINE rspinstr_handler_t rsp_lwc2_decode(word pc, mips_instruction_t instr) {
     }
 }
 
-INLINE rspinstr_handler_t rsp_swc2_decode(word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_swc2_decode(u32 pc, mips_instruction_t instr) {
     switch (instr.v.funct) {
         case LWC2_LBV: return rsp_swc2_sbv;
         case LWC2_LDV: return rsp_swc2_sdv;
@@ -221,7 +221,7 @@ INLINE rspinstr_handler_t rsp_swc2_decode(word pc, mips_instruction_t instr) {
     }
 }
 
-INLINE rspinstr_handler_t rsp_instruction_decode(word pc, mips_instruction_t instr) {
+INLINE rspinstr_handler_t rsp_instruction_decode(u32 pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
         static char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
@@ -293,7 +293,7 @@ void cache_rsp_instruction(mips_instruction_t instr) {
 }
 
 INLINE void _rsp_step() {
-    half pc = N64RSP.pc & 0x3FF;
+    u16 pc = N64RSP.pc & 0x3FF;
     rsp_icache_entry_t* cache = &N64RSP.icache[pc];
 
     N64RSP.prev_pc = pc & 0x3FF;

@@ -67,9 +67,9 @@ void update_button(int controller, n64_button_t button, bool held) {
     }
 }
 
-sbyte trim_gamepad_axis(shalf raw) {
+s8 trim_gamepad_axis(s16 raw) {
     // INT16_MIN through INT16_MAX to -84 through +84
-    return (shalf)raw / 390;
+    return (s16)raw / 390;
 }
 
 double d_sign(double x) {
@@ -139,12 +139,12 @@ void clamp_gamepad(n64_controller_t* controller) {
     controller->joy_y = ay;
 }
 
-void update_joyaxis_x(int controller, shalf x) {
+void update_joyaxis_x(int controller, s16 x) {
     joybus_devices[controller].controller.raw_x = x;
     clamp_gamepad(&joybus_devices[controller].controller);
 }
 
-void update_joyaxis_y(int controller, shalf y) {
+void update_joyaxis_y(int controller, s16 y) {
     joybus_devices[controller].controller.raw_y = y;
     clamp_gamepad(&joybus_devices[controller].controller);
 }
@@ -167,7 +167,7 @@ void devices_init(n64_save_type_t save_type) {
     joybus_devices[5].type = JOYBUS_NONE;
 }
 
-void device_id_for_pif(int pif_channel, byte* res) {
+void device_id_for_pif(int pif_channel, u8* res) {
     if (pif_channel < 6) {
         switch (joybus_devices[pif_channel].type) {
             case JOYBUS_NONE:
@@ -221,7 +221,7 @@ void device_id_for_pif(int pif_channel, byte* res) {
     }
 }
 
-bool device_read_buttons_for_pif(int pif_channel, byte* res) {
+bool device_read_buttons_for_pif(int pif_channel, u8* res) {
     if (pif_channel >= 6) {
         res[0]  = 0x00;
         res[1]  = 0x00;

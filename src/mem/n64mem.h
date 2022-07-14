@@ -37,8 +37,8 @@ typedef enum pi_reg {
 } pi_reg_t;
 
 typedef struct si_reg {
-    word dram_address;
-    word pif_address;
+    u32 dram_address;
+    u32 pif_address;
 } si_reg_t;
 
 typedef enum n64_save_type {
@@ -88,19 +88,19 @@ INLINE void assert_is_flash(n64_save_type_t save_type) {
 }
 
 typedef struct n64_mem {
-    byte rdram[N64_RDRAM_SIZE];
+    u8 rdram[N64_RDRAM_SIZE];
     n64_rom_t rom;
-    word rdram_reg[10];
-    word pi_reg[13];
-    word ri_reg[8];
+    u32 rdram_reg[10];
+    u32 pi_reg[13];
+    u32 ri_reg[8];
     si_reg_t si_reg;
-    byte pif_ram[PIF_RAM_SIZE];
+    u8 pif_ram[PIF_RAM_SIZE];
     char save_file_path[PATH_MAX];
     char mempack_file_path[PATH_MAX];
     n64_save_type_t save_type;
-    byte isviewer_buffer[CART_ISVIEWER_SIZE];
+    u8 isviewer_buffer[CART_ISVIEWER_SIZE];
 
-    byte* save_data;
+    u8* save_data;
     bool save_data_dirty;
     int save_data_debounce_counter;
     size_t save_size;
@@ -113,10 +113,10 @@ typedef struct n64_mem {
         size_t erase_offset;
         size_t write_offset;
 
-        byte write_buffer[128];
+        u8 write_buffer[128];
     } flash;
 
-    byte* mempack_data;
+    u8* mempack_data;
     bool mempack_data_dirty;
     int mempack_data_debounce_counter;
 

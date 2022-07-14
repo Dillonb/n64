@@ -268,7 +268,7 @@ typedef enum bus_access {
 
 
 typedef union cp0_status {
-    word raw;
+    u32 raw;
     struct {
         unsigned ie:1;
         unsigned exl:1;
@@ -327,13 +327,13 @@ typedef union cp0_cause {
         unsigned:1;
         unsigned branch_delay:1;
     };
-    word raw;
+    u32 raw;
 } cp0_cause_t;
 
 ASSERTWORD(cp0_cause_t);
 
 typedef union cp0_entry_lo {
-    word raw;
+    u32 raw;
     struct {
         unsigned g:1;
         unsigned v:1;
@@ -347,7 +347,7 @@ typedef union cp0_entry_lo {
 ASSERTWORD(cp0_entry_lo_t);
 
 typedef union cp0_page_mask {
-    word raw;
+    u32 raw;
     struct {
         unsigned:13;
         unsigned mask:12;
@@ -386,7 +386,7 @@ typedef struct tlb_entry {
             unsigned pfn:20;
             unsigned:6;
         };
-        word raw;
+        u32 raw;
     } entry_lo0;
 
     union {
@@ -398,7 +398,7 @@ typedef struct tlb_entry {
             unsigned pfn:20;
             unsigned:6;
         };
-        word raw;
+        u32 raw;
     } entry_lo1;
 
     cp0_entry_hi_t entry_hi;
@@ -409,7 +409,7 @@ typedef struct tlb_entry {
             unsigned mask:12;
             unsigned:7;
         };
-        word raw;
+        u32 raw;
     } page_mask;
 
     // "parsed"
@@ -417,7 +417,7 @@ typedef struct tlb_entry {
 } tlb_entry_t;
 
 typedef union watch_lo {
-    word raw;
+    u32 raw;
     struct {
         unsigned w:1;
         unsigned r:1;
@@ -459,7 +459,7 @@ typedef enum tlb_error {
     TLB_ERROR_DISALLOWED_ADDRESS
 } tlb_error_t;
 
-static inline word get_tlb_exception_code(tlb_error_t error, bus_access_t bus_access) {
+static inline u32 get_tlb_exception_code(tlb_error_t error, bus_access_t bus_access) {
     switch (error) {
         case TLB_ERROR_NONE:
             logfatal("Getting TLB exception code when no error occurred!");
@@ -476,30 +476,30 @@ static inline word get_tlb_exception_code(tlb_error_t error, bus_access_t bus_ac
 }
 
 typedef struct cp0 {
-    word index;
-    word random;
+    u32 index;
+    u32 random;
     cp0_entry_lo_t entry_lo0;
     cp0_entry_lo_t entry_lo1;
     cp0_context_t context;
     cp0_page_mask_t page_mask;
-    word wired;
+    u32 wired;
     dword bad_vaddr;
     dword count;
     cp0_entry_hi_t entry_hi;
-    word compare;
+    u32 compare;
     cp0_status_t status;
     cp0_cause_t cause;
     dword EPC;
-    word PRId;
-    word config;
-    word lladdr;
+    u32 PRId;
+    u32 config;
+    u32 lladdr;
     watch_lo_t watch_lo;
-    word watch_hi;
+    u32 watch_hi;
     cp0_x_context_t x_context;
-    word parity_error;
-    word cache_error;
-    word tag_lo;
-    word tag_hi;
+    u32 parity_error;
+    u32 cache_error;
+    u32 tag_lo;
+    u32 tag_hi;
     dword error_epc;
 
     dword open_bus; // Last value written to any COP0 register
@@ -514,11 +514,11 @@ typedef struct cp0 {
 } cp0_t;
 
 typedef union fcr0 {
-    word raw;
+    u32 raw;
 } fcr0_t;
 
 typedef union fcr31 {
-    word raw;
+    u32 raw;
 
     struct {
         unsigned rounding_mode:2;
@@ -557,8 +557,8 @@ ASSERTWORD(fcr31_t);
 typedef union fgr {
     dword raw;
     struct {
-        word lo:32;
-        word hi:32;
+        u32 lo:32;
+        u32 hi:32;
     } PACKED;
 } fgr_t;
 
@@ -584,7 +584,7 @@ typedef struct r4300i {
     cp0_t cp0;
 
     // Cached value of `cp0.cause.interrupt_pending & cp0.status.im`
-    byte interrupts;
+    u8 interrupts;
 
     // In a branch delay slot?
     bool branch;
@@ -603,7 +603,7 @@ typedef void(*mipsinstr_handler_t)(mips_instruction_t);
 
 void on_tlb_exception(dword address);
 void r4300i_step();
-void r4300i_handle_exception(dword pc, word code, int coprocessor_error);
+void r4300i_handle_exception(dword pc, u32 code, int coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);
 void r4300i_interrupt_update();
 bool instruction_stable(mips_instruction_t instr);
@@ -611,9 +611,9 @@ bool instruction_stable(mips_instruction_t instr);
 extern const char* register_names[];
 extern const char* cp0_register_names[];
 
-INLINE void set_pc_word_r4300i(word new_pc) {
+INLINE void set_pc_word_r4300i(u32 new_pc) {
     N64CPU.prev_pc = N64CPU.pc;
-    N64CPU.pc = (sdword)((sword)new_pc);
+    N64CPU.pc = (s64)((s32)new_pc);
     N64CPU.next_pc = N64CPU.pc + 4;
 }
 

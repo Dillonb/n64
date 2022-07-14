@@ -246,7 +246,7 @@ void update_screen_parallel_rdp_no_game() {
     update_screen(static_cast<Util::IntrusivePtr<Image>>(nullptr));
 }
 
-void parallel_rdp_enqueue_command(int command_length, word* buffer) {
+void parallel_rdp_enqueue_command(int command_length, u32* buffer) {
     command_processor->enqueue_command(command_length, buffer);
 }
 

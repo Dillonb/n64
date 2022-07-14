@@ -5,7 +5,7 @@
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
 
-#define COMPILER(name) void compile_##name(dasm_State** Dst, mips_instruction_t instr, word address, int* aregs, int dreg, word* extra_cycles)
+#define COMPILER(name) void compile_##name(dasm_State** Dst, mips_instruction_t instr, u32 address, int* aregs, int dreg, u32* extra_cycles)
 
 COMPILER(mips_addiu);
 COMPILER(mips_beq);
@@ -165,23 +165,23 @@ dasm_State* block_header();
 void clear_branch_flag(dasm_State** Dst);
 void advance_pc(dasm_State** Dst);
 void advance_rsp_pc(dasm_State** Dst);
-dynarec_ir_t* instruction_ir(mips_instruction_t instr, word address);
-dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, word address);
+dynarec_ir_t* instruction_ir(mips_instruction_t instr, u32 address);
+dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, u32 address);
 void end_block(dasm_State** Dst, int block_length);
 void end_rsp_block(dasm_State** Dst, int block_length);
 void post_branch_likely(dasm_State** Dst, int block_length);
-void check_exception(dasm_State** Dst, word block_length);
+void check_exception(dasm_State** Dst, u32 block_length);
 void set_prev_branch_flag(dasm_State** Dst, bool value);
 #ifdef N64_DEBUG_MODE
-void check_exception_sanity(dasm_State** Dst, word block_length, mips_instruction_t instr);
+void check_exception_sanity(dasm_State** Dst, u32 block_length, mips_instruction_t instr);
 #endif
 void flush_prev_pc(dasm_State** Dst, dword prev_pc);
 void flush_pc(dasm_State** Dst, dword pc);
 void flush_next_pc(dasm_State** Dst, dword next_pc);
-void flush_rsp_prev_pc(dasm_State** Dst, half prev_pc);
-void flush_rsp_pc(dasm_State** Dst, half pc);
-void flush_rsp_next_pc(dasm_State** Dst, half next_pc);
+void flush_rsp_prev_pc(dasm_State** Dst, u16 prev_pc);
+void flush_rsp_pc(dasm_State** Dst, u16 pc);
+void flush_rsp_next_pc(dasm_State** Dst, u16 next_pc);
 void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs);
-void load_host_register_from_gpr(dasm_State** Dst, byte host_reg, int guest_reg);
+void load_host_register_from_gpr(dasm_State** Dst, u8 host_reg, int guest_reg);
 void flush_host_register_to_gpr(dasm_State** Dst, int host_reg, int guest_reg);
 #endif //N64_ASM_EMITTER_H

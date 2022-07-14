@@ -50,7 +50,7 @@ typedef enum n64_interrupt {
 } n64_interrupt_t;
 
 typedef union mi_intr_mask {
-    word raw;
+    u32 raw;
     struct {
         bool sp:1;
         bool si:1;
@@ -63,7 +63,7 @@ typedef union mi_intr_mask {
 } mi_intr_mask_t;
 
 typedef union mi_intr {
-    word raw;
+    u32 raw;
     struct {
         bool sp:1;
         bool si:1;
@@ -76,11 +76,11 @@ typedef union mi_intr {
 } mi_intr_t;
 
 typedef struct n64_dpc {
-    word start;
-    word end;
-    word current;
+    u32 start;
+    u32 end;
+    u32 current;
     union {
-        word raw;
+        u32 raw;
         struct {
             bool xbus_dmem_dma:1;
             bool freeze:1;
@@ -96,14 +96,14 @@ typedef struct n64_dpc {
             unsigned:21;
         };
     } status;
-    word clock;
-    word bufbusy;
-    word pipebusy;
-    word tmem;
+    u32 clock;
+    u32 bufbusy;
+    u32 pipebusy;
+    u32 tmem;
 } n64_dpc_t;
 
 typedef union axis_scale {
-    word raw;
+    u32 raw;
     struct {
         unsigned scale_decimal:10;
         unsigned scale_integer:2;
@@ -119,7 +119,7 @@ typedef union axis_scale {
 } axis_scale_t;
 
 typedef union axis_start {
-    word raw;
+    u32 raw;
     struct {
         unsigned end:10;
         unsigned:6;
@@ -139,44 +139,44 @@ typedef struct n64_system {
     rsp_t rsp;
     n64_video_type_t video_type;
     struct {
-        word init_mode;
+        u32 init_mode;
         mi_intr_mask_t intr_mask;
         mi_intr_t intr;
     } mi;
     struct {
         vi_status_t status;
-        word vi_origin;
-        word vi_width;
-        word vi_v_intr;
+        u32 vi_origin;
+        u32 vi_width;
+        u32 vi_v_intr;
         vi_burst_t vi_burst;
-        word vsync;
+        u32 vsync;
         int num_halflines;
         int num_fields;
         int cycles_per_halfline;
-        word hsync;
-        word leap;
+        u32 hsync;
+        u32 leap;
         axis_start_t hstart;
         axis_start_t vstart;
-        word vburst;
+        u32 vburst;
         axis_scale_t xscale;
         axis_scale_t yscale;
-        word v_current;
+        u32 v_current;
         int swaps;
     } vi;
     struct {
         bool dma_enable;
-        half dac_rate;
-        byte bitrate;
+        u16 dac_rate;
+        u8 bitrate;
         int dma_count;
-        word dma_length[2];
-        word dma_address[2];
+        u32 dma_length[2];
+        u32 dma_address[2];
         bool dma_address_carry;
         int cycles;
 
         struct {
-            word frequency;
-            word period;
-            word precision;
+            u32 frequency;
+            u32 period;
+            u32 precision;
         } dac;
     } ai;
     struct {

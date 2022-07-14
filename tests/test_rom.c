@@ -12,7 +12,7 @@
 #define TEST_FAILED_REGISTER 30
 
 bool test_complete() {
-    sdword test_failed = get_register(TEST_FAILED_REGISTER);
+    s64 test_failed = get_register(TEST_FAILED_REGISTER);
     if (test_failed != 0) {
         if (test_failed != -1) {
             logfatal("Test #%ld failed.", test_failed);
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     init_n64system(argv[1], false, false, UNKNOWN_VIDEO_TYPE, false);
     // Normally handled by the bootcode, we gotta do it ourselves.
     for (int i = 0; i < 1048576; i++) {
-        byte b = CART_BYTE(0x10001000 + i, n64sys.mem.rom.size);
+        u8 b = CART_BYTE(0x10001000 + i, n64sys.mem.rom.size);
         RDRAM_BYTE(0x00001000 + i) = b;
     }
 

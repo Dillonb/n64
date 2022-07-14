@@ -5,8 +5,8 @@
 
 void gamepad_init();
 void gamepad_refresh();
-void gamepad_update_button(byte button, bool state);
-void gamepad_update_axis(byte axis, shalf value);
+void gamepad_update_button(u8 button, bool state);
+void gamepad_update_axis(u8 axis, s16 value);
 void gamepad_rumble_on(int pif_channel);
 void gamepad_rumble_off(int pif_channel);
 

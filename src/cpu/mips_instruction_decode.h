@@ -4,7 +4,7 @@
 #include <util.h>
 
 typedef union mips_instruction {
-    word raw;
+    u32 raw;
 
     struct {
 #ifdef N64_BIG_ENDIAN

@@ -122,7 +122,7 @@ INLINE void load_reg_3(dasm_State** Dst, int* dest1, int r1, int* dest2, int r2,
     }
 }
 
-bool branch_is_loop(mips_instruction_t instr, word block_length) {
+bool branch_is_loop(mips_instruction_t instr, u32 block_length) {
     switch (instr.op) {
         case OPC_REGIMM: // REGIMM opcodes are only branches
         case OPC_BEQ:
@@ -134,7 +134,7 @@ bool branch_is_loop(mips_instruction_t instr, word block_length) {
         case OPC_BNE:
         case OPC_BNEL: {
             // offset is in number of instructions, not bytes
-            shalf offset = instr.i.immediate;
+            s16 offset = instr.i.immediate;
             offset = -offset;
 
             return offset == block_length;
@@ -145,7 +145,7 @@ bool branch_is_loop(mips_instruction_t instr, word block_length) {
     }
 }
 
-void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word physical_address) {
+void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, u32 physical_address) {
     mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
     d = block_header();
@@ -176,13 +176,13 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 
         block_is_stable &= instruction_stable(instr);
 
-        word next_physical_address = physical_address + 4;
+        u32 next_physical_address = physical_address + 4;
         dword next_virtual_address = virtual_address + 4;
 
         instructions_left_in_block--;
         bool instr_ends_block;
 
-        word extra_cycles = 0;
+        u32 extra_cycles = 0;
         dynarec_ir_t* ir = instruction_ir(instr, physical_address);
         if (ir->exception_possible) {
             // save prev_pc
@@ -331,10 +331,10 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, word p
 
 
 static int missing_block_handler() {
-    word physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
-    word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
+    u32 physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
+    u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = n64sys.dynarec->blockcache[outer_index];
-    word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
+    u32 inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
     n64_dynarec_block_t* block = &block_list[inner_index];
 
@@ -348,7 +348,7 @@ static int missing_block_handler() {
 }
 
 int n64_dynarec_step() {
-    word physical;
+    u32 physical;
     if (!resolve_virtual_address(N64CPU.pc, BUS_LOAD, &physical)) {
         on_tlb_exception(N64CPU.pc);
         r4300i_handle_exception(N64CPU.pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
@@ -356,9 +356,9 @@ int n64_dynarec_step() {
         return 1; // TODO does exception handling have a cost by itself? does it matter?
     }
 
-    word outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
+    u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
-    word inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
+    u32 inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
     if (unlikely(block_list == NULL)) {
 #ifdef N64_LOG_COMPILATIONS
@@ -394,7 +394,7 @@ int n64_dynarec_step() {
     return taken * CYCLES_PER_INSTR;
 }
 
-n64_dynarec_t* n64_dynarec_init(byte* codecache, size_t codecache_size) {
+n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Trying to malloc %ld bytes\n", sizeof(n64_dynarec_t));
 #endif
@@ -415,8 +415,8 @@ n64_dynarec_t* n64_dynarec_init(byte* codecache, size_t codecache_size) {
     return dynarec;
 }
 
-void invalidate_dynarec_page(word physical_address) {
-    word outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
+void invalidate_dynarec_page(u32 physical_address) {
+    u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
     N64DYNAREC->blockcache[outer_index] = NULL;
 }
 

@@ -4,11 +4,11 @@
 #define SAVE_DATA_DEBOUNCE_FRAMES 60
 #define MEMPACK_SIZE 32768
 
-word sram_read_word() {
+u32 sram_read_word() {
     return 0xFFFFFFFF;
 }
 
-void sram_write_byte(word index, byte value) {
+void sram_write_byte(u32 index, u8 value) {
     assert_is_sram(n64sys.mem.save_type);
     if (index >= n64sys.mem.save_size) {
         logfatal("Out of range SRAM write! index 0x%08X\n", index);
@@ -17,7 +17,7 @@ void sram_write_byte(word index, byte value) {
     n64sys.mem.save_data_dirty = true;
 }
 
-byte sram_read_byte(word index) {
+u8 sram_read_byte(u32 index) {
     assert_is_sram(n64sys.mem.save_type);
     if (index >= n64sys.mem.save_size) {
         logfatal("Out of range SRAM read! index 0x%08X\n", index);
@@ -78,7 +78,7 @@ void flash_command_read() {
     n64sys.mem.flash.status_reg = 0x11118004F0000000;
 }
 
-void flash_command_set_erase_offset(word value) {
+void flash_command_set_erase_offset(u32 value) {
     logdebug("flash_command_set_erase_offset");
     n64sys.mem.flash.erase_offset = (value & 0xFFFF) << 7;
     logdebug("Wrote 0x%08X, set erase offset to 0x%zX", value, n64sys.mem.flash.erase_offset);
@@ -90,15 +90,15 @@ void flash_command_erase() {
     n64sys.mem.flash.status_reg = 0x1111800800C20000LL;
 }
 
-void flash_command_set_write_offset(word value) {
+void flash_command_set_write_offset(u32 value) {
     logdebug("flash_command_set_write_offset");
     n64sys.mem.flash.write_offset = (value & 0xFFFF) << 7;
     n64sys.mem.flash.status_reg   = 0x1111800400C20000LL;
 }
 
-void flash_write_word(word index, word value) {
+void flash_write_word(u32 index, u32 value) {
     if (index > 0) {
-        byte command = value >> 24;
+        u8 command = value >> 24;
         switch (command) {
             case FLASH_COMMAND_EXECUTE:          flash_command_execute(); break;
             case FLASH_COMMAND_STATUS:           flash_command_status(); break;
@@ -115,14 +115,14 @@ void flash_write_word(word index, word value) {
     }
 }
 
-word flash_read_word(word index) {
-    word value = n64sys.mem.flash.status_reg >> 32;
+u32 flash_read_word(u32 index) {
+    u32 value = n64sys.mem.flash.status_reg >> 32;
     logdebug("Flash read word index 0x%X = 0x%08X", index, value);
     return value;
 
 }
 
-void flash_write_byte(word index, byte value) {
+void flash_write_byte(u32 index, u8 value) {
     switch (n64sys.mem.flash.state) {
         case FLASH_STATE_IDLE: logfatal("Flash write byte in state FLASH_STATE_IDLE");
         case FLASH_STATE_ERASE: logfatal("Flash write byte in state FLASH_STATE_ERASE");
@@ -135,18 +135,18 @@ void flash_write_byte(word index, byte value) {
     }
 }
 
-byte flash_read_byte(word index) {
+u8 flash_read_byte(u32 index) {
     switch (n64sys.mem.flash.state) {
         case FLASH_STATE_IDLE: logfatal("Flash read byte while in state FLASH_STATE_IDLE");
         case FLASH_STATE_WRITE: logfatal("Flash read byte while in state FLASH_STATE_WRITE");
         case FLASH_STATE_READ: {
-            byte value = n64sys.mem.save_data[index];
+            u8 value = n64sys.mem.save_data[index];
             logdebug("Flash read byte in state read: index 0x%X = 0x%02X", index, value);
             return value;
         }
         case FLASH_STATE_STATUS: {
-            word offset = (7 - (index % 8)) * 8;
-            byte value = (n64sys.mem.flash.status_reg >> offset) & 0xFF;
+            u32 offset = (7 - (index % 8)) * 8;
+            u8 value = (n64sys.mem.flash.status_reg >> offset) & 0xFF;
             logdebug("Flash read byte in state status: index 0x%X = 0x%02X", index, value);
             return value;
         }
@@ -154,7 +154,7 @@ byte flash_read_byte(word index) {
     }
 }
 
-void backup_write_word(word index, word value) {
+void backup_write_word(u32 index, u32 value) {
     unimplemented(n64sys.mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
 
     switch (n64sys.mem.save_type) {
@@ -173,7 +173,7 @@ void backup_write_word(word index, word value) {
     }
 }
 
-word backup_read_word(word index) {
+u32 backup_read_word(u32 index) {
     switch (n64sys.mem.save_type) {
         case SAVE_NONE:
             return 0;
@@ -193,7 +193,7 @@ word backup_read_word(word index) {
     }
 }
 
-void backup_write_byte(word index, byte value) {
+void backup_write_byte(u32 index, u8 value) {
     unimplemented(n64sys.mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
 
     switch (n64sys.mem.save_type) {
@@ -213,7 +213,7 @@ void backup_write_byte(word index, byte value) {
     }
 }
 
-byte backup_read_byte(word index) {
+u8 backup_read_byte(u32 index) {
     unimplemented(n64sys.mem.save_data == NULL, "Accessing cartridge backup when not initialized! Is this game in the game DB?");
 
     switch (n64sys.mem.save_type) {
@@ -235,7 +235,7 @@ byte backup_read_byte(word index) {
 }
 
 
-byte get_initial_value(n64_save_type_t save_type) {
+u8 get_initial_value(n64_save_type_t save_type) {
     switch (save_type) {
         case SAVE_NONE:
         case SAVE_EEPROM_4k:
@@ -268,10 +268,10 @@ size_t get_save_size(n64_save_type_t save_type) {
     }
 }
 
-void create_empty_file(size_t save_size, const char* save_path, byte initial_value) {
+void create_empty_file(size_t save_size, const char* save_path, u8 initial_value) {
     if (save_size > 0) {
         FILE* f = fopen(save_path, "wb");
-        byte* blank = malloc(save_size);
+        u8* blank = malloc(save_size);
         memset(blank, initial_value, save_size);
         fwrite(blank, 1, save_size, f);
         fclose(f);
@@ -279,9 +279,9 @@ void create_empty_file(size_t save_size, const char* save_path, byte initial_val
     }
 }
 
-byte* load_backup_file(const char *rom_path, const char *suffix, size_t save_size, char *path, byte initial_value) {
+u8* load_backup_file(const char *rom_path, const char *suffix, size_t save_size, char *path, u8 initial_value) {
     size_t save_path_len = strlen(rom_path) + strlen(suffix);
-    byte* save_data;
+    u8* save_data;
     if (save_path_len >= PATH_MAX) {
         logfatal("Path too long, not creating save file! Calm down with the directories.");
     } else {
@@ -316,7 +316,7 @@ void init_savedata(n64_mem_t* mem, const char* rom_path) {
     }
 
     size_t save_size = get_save_size(mem->save_type);
-    byte initial_value = get_initial_value(mem->save_type);
+    u8 initial_value = get_initial_value(mem->save_type);
     mem->save_data = load_backup_file(rom_path, ".save", save_size, mem->save_file_path, initial_value);
     mem->save_size = save_size;
 }
@@ -328,7 +328,7 @@ void init_mempack(n64_mem_t* mem, const char* rom_path) {
     }
 }
 
-void persist(bool* dirty, int* debounce_counter, size_t size, const char* file_path, byte* data, const char* name) {
+void persist(bool* dirty, int* debounce_counter, size_t size, const char* file_path, u8* data, const char* name) {
     if (*dirty) {
         *dirty = false;
         *debounce_counter = SAVE_DATA_DEBOUNCE_FRAMES;

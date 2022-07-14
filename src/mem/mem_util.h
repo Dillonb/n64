@@ -104,8 +104,8 @@
 #define BYTE_ADDRESS(addr) ((addr) ^ 3)
 #endif
 
-INLINE size_t safe_cart_byte_index(word addr, size_t rom_size) {
-    word index = BYTE_ADDRESS(addr & 0xFFFFFFF);
+INLINE size_t safe_cart_byte_index(u32 addr, size_t rom_size) {
+    u32 index = BYTE_ADDRESS(addr & 0xFFFFFFF);
     if (unlikely(index > rom_size)) {
         logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", addr, index, index);
     }
@@ -113,57 +113,57 @@ INLINE size_t safe_cart_byte_index(word addr, size_t rom_size) {
 }
 
 #define RDRAM_BYTE(addr) n64sys.mem.rdram[(BYTE_ADDRESS(addr) & (N64_RDRAM_SIZE - 1))]
-#define RDRAM_WORD(addr) ((word*)n64sys.mem.rdram)[(WORD_ADDRESS(addr) & (N64_RDRAM_SIZE - 1)) >> 2]
+#define RDRAM_WORD(addr) ((u32*)n64sys.mem.rdram)[(WORD_ADDRESS(addr) & (N64_RDRAM_SIZE - 1)) >> 2]
 #define CART_BYTE(addr, rom_size) n64sys.mem.rom.rom[safe_cart_byte_index(addr, rom_size)]
 
-INLINE dword dword_from_byte_array(byte* arr, word index) {
+INLINE dword dword_from_byte_array(u8* arr, u32 index) {
 #ifdef N64_BIG_ENDIAN
     dword d;
     memcpy(&d, arr + index, sizeof(dword));
     return d;
 #else
-    word hi;
-    memcpy(&hi, arr + index, sizeof(word));
+    u32 hi;
+    memcpy(&hi, arr + index, sizeof(u32));
 
-    word lo;
-    memcpy(&lo, arr + index + sizeof(word), sizeof(word));
+    u32 lo;
+    memcpy(&lo, arr + index + sizeof(u32), sizeof(u32));
 
     dword d = ((dword)hi << 32) | lo;
     return d;
 #endif
 }
 
-INLINE word word_from_byte_array(byte* arr, word index) {
-    word val;
-    memcpy(&val, arr + index, sizeof(word));
+INLINE u32 word_from_byte_array(u8* arr, u32 index) {
+    u32 val;
+    memcpy(&val, arr + index, sizeof(u32));
     return val;
 }
 
-INLINE half half_from_byte_array(byte* arr, word index) {
-    half h;
-    memcpy(&h, arr + index, sizeof(half));
+INLINE u16 half_from_byte_array(u8* arr, u32 index) {
+    u16 h;
+    memcpy(&h, arr + index, sizeof(u16));
     return h;
 }
 
-INLINE void dword_to_byte_array(byte* arr, word index, dword value) {
+INLINE void dword_to_byte_array(u8* arr, u32 index, dword value) {
 #ifdef N64_BIG_ENDIAN
     memcpy(arr + index, &value, sizeof(dword));
 #else
-    word lo = value & 0xFFFFFFFF;
+    u32 lo = value & 0xFFFFFFFF;
     value >>= 32;
-    word hi = value & 0xFFFFFFFF;
+    u32 hi = value & 0xFFFFFFFF;
 
-    memcpy(arr + index, &hi, sizeof(word));
-    memcpy(arr + index + sizeof(word), &lo, sizeof(word));
+    memcpy(arr + index, &hi, sizeof(u32));
+    memcpy(arr + index + sizeof(u32), &lo, sizeof(u32));
 #endif
 }
 
-INLINE void word_to_byte_array(byte* arr, word index, word value) {
-    memcpy(arr + index, &value, sizeof(word));
+INLINE void word_to_byte_array(u8* arr, u32 index, u32 value) {
+    memcpy(arr + index, &value, sizeof(u32));
 }
 
-INLINE void half_to_byte_array(byte* arr, word index, half value) {
-    memcpy(arr + index, &value, sizeof(half));
+INLINE void half_to_byte_array(u8* arr, u32 index, u16 value) {
+    memcpy(arr + index, &value, sizeof(u16));
 }
 
 #endif //N64_MEM_UTIL_H

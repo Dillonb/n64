@@ -21,7 +21,7 @@
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
-INLINE shalf clamp_signed(sdword value) {
+INLINE s16 clamp_signed(s64 value) {
     if (value < -32768) return -32768;
     if (value > 32767) return 32767;
     return value;
@@ -29,7 +29,7 @@ INLINE shalf clamp_signed(sdword value) {
 
 #define clamp_unsigned(x) ((x) < 0 ? 0 : ((x) > 32767 ? 65535 : x))
 
-INLINE bool is_sign_extension(shalf high, shalf low) {
+INLINE bool is_sign_extension(s16 high, s16 low) {
     if (high == 0) {
         return (low & 0x8000) == 0;
     } else if (high == -1) {
@@ -38,7 +38,7 @@ INLINE bool is_sign_extension(shalf high, shalf low) {
     return false;
 }
 
-INLINE int CLZ(word value) {
+INLINE int CLZ(u32 value) {
 //#if __has_builtin (__builtin_clz)
     return __builtin_clz(value);
     /*
@@ -68,7 +68,7 @@ INLINE vu_reg_t broadcast(vu_reg_t* vt, int lane0, int lane1, int lane2, int lan
 }
 #endif
 
-INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
+INLINE vu_reg_t get_vte(vu_reg_t* vt, u8 e) {
     vu_reg_t vte;
     switch(e) {
         case 0 ... 1:
@@ -121,7 +121,7 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
             vte.single = _mm_set1_epi16(vt->elements[index]);
 #else
             for (int i = 0; i < 8; i++) {
-                half val = vt->elements[index];
+                u16 val = vt->elements[index];
                 vte.elements[i] = val;
             }
 #endif
@@ -135,7 +135,7 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, byte e) {
 }
 
 
-vu_reg_t ext_get_vte(vu_reg_t* vt, byte e) {
+vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e) {
     return get_vte(vt, e);
 }
 
@@ -152,18 +152,18 @@ vu_reg_t ext_get_vte(vu_reg_t* vt, byte e) {
 #define SHIFT_AMOUNT_LFV_SFV 4
 #define SHIFT_AMOUNT_LTV_STV 4
 
-INLINE int sign_extend_7bit_offset(byte offset, int shift_amount) {
-    sbyte soffset = ((offset << 1) & 0x80) | offset;
+INLINE int sign_extend_7bit_offset(u8 offset, int shift_amount) {
+    s8 soffset = ((offset << 1) & 0x80) | offset;
 
-    sword ofs = soffset;
-    word uofs = ofs;
+    s32 ofs = soffset;
+    u32 uofs = ofs;
     return uofs << shift_amount;
 }
 
-word rcp(sword sinput) {
+u32 rcp(s32 sinput) {
     // One's complement absolute value, xor with the sign bit to invert all bits if the sign bit is set
-    sword mask = sinput >> 31;
-    sword input = sinput ^ mask;
+    s32 mask = sinput >> 31;
+    s32 input = sinput ^ mask;
     if (input > INT16_MIN) {
         input -= mask;
     }
@@ -173,30 +173,30 @@ word rcp(sword sinput) {
         return 0xFFFF0000;
     }
 
-    word shift = CLZ(input);
+    u32 shift = CLZ(input);
     dword dinput = (dword)input;
-    word index = ((dinput << shift) & 0x7FC00000) >> 22;
+    u32 index = ((dinput << shift) & 0x7FC00000) >> 22;
 
-    sword result = rcp_rom[index];
+    s32 result = rcp_rom[index];
     result = (0x10000 | result) << 14;
     result = (result >> (31 - shift)) ^ mask;
     return result;
 }
 
-word rsq(sword sinput) {
+u32 rsq(s32 sinput) {
     if (sinput == 0) {
         return 0x7FFFFFFF;
     } else if (sinput == 0xFFFF8000) { // Only for RSQ special case
         return 0xFFFF0000;
     }
 
-    word input = abs(sinput);
+    u32 input = abs(sinput);
     int lshift = CLZ(input) + 1;
     int rshift = (32 - lshift) >> 1; // Shifted by 1 instead of 0
     int index = (input << lshift) >> 24; // Shifted by 24 instead of 23
 
-    word rom = rsq_rom[(index | ((lshift & 1) << 8))];
-    word result = ((0x10000 | rom) << 14) >> rshift;
+    u32 rom = rsq_rom[(index | ((lshift & 1) << 8))];
+    u32 result = ((0x10000 | rom) << 14) >> rshift;
 
     if (input != sinput) {
         return ~result;
@@ -208,14 +208,14 @@ word rsq(sword sinput) {
 RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
     logdebug("rsp_lwc2_lbv");
     vu_reg_t* vt = &N64RSP.vu_regs[instruction.cp2_vec.vt];
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
     vt->bytes[VU_BYTE_INDEX(instruction.v.element)] = n64_rsp_read_byte(address);
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
     logdebug("rsp_lwc2_ldv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
 
     int start = instruction.v.element;
     int end = MIN(start + 8, 16);
@@ -229,21 +229,21 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
     logdebug("rsp_lwc2_lfv");
     logwarn("LFV executed, this instruction is known to be buggy!");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
     int e = instruction.v.element;
     int start = e >> 1;
     int start_ofs = e & 1;
     int end = (start + 4);
 
     for (int i = start; i < end; i++) {
-        half val = n64_rsp_read_byte(address);
+        u16 val = n64_rsp_read_byte(address);
         int shift_amount = e & 7;
         if (shift_amount == 0) {
             shift_amount = 7;
         }
         val <<= shift_amount;
-        byte low = val & 0xFF;
-        byte high = (val >> 8) & 0xFF;
+        u8 low = val & 0xFF;
+        u8 high = (val >> 8) & 0xFF;
 
         int elem_byte = i * 2 + start_ofs;
 
@@ -255,16 +255,16 @@ RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
     logdebug("rsp_lwc2_lhv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
 
-    word in_addr_offset = address & 0x7;
+    u32 in_addr_offset = address & 0x7;
     address &= ~0x7;
 
     int e = instruction.v.element;
 
     for (int i = 0; i < 8; i++) {
         int ofs = ((16 - e) + (i * 2) + in_addr_offset) & 0xF;
-        half val = n64_rsp_read_byte(address + ofs);
+        u16 val = n64_rsp_read_byte(address + ofs);
         val <<= 7;
         N64RSP.vu_regs[instruction.v.vt].elements[VU_ELEM_INDEX(i)] = val;
     }
@@ -273,7 +273,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lhv) {
 RSP_VECTOR_INSTR(rsp_lwc2_llv) {
     logdebug("rsp_lwc2_llv");
     int e = instruction.v.element;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
 
     for (int i = 0; i < 4; i++) {
         int element = i + e;
@@ -287,7 +287,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_llv) {
 RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
     logdebug("rsp_lwc2_lpv");
     int e = instruction.v.element;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
 
     // Take into account how much the address is misaligned
     // since the accesses still wrap on the 8 byte boundary
@@ -297,7 +297,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
     for(int elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
-        half value = n64_rsp_read_byte(address + element_offset);
+        u16 value = n64_rsp_read_byte(address + element_offset);
         value <<= 8;
         N64RSP.vu_regs[instruction.v.vt].elements[VU_ELEM_INDEX(elem)] = value;
     }
@@ -306,8 +306,8 @@ RSP_VECTOR_INSTR(rsp_lwc2_lpv) {
 RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
     logdebug("rsp_lwc2_lqv");
     int e = instruction.v.element;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
-    word end_address = ((address & ~15) + 15);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
+    u32 end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address && i + e < 16; i++) {
         N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX(i + e)] = n64_rsp_read_byte(address + i);
@@ -317,7 +317,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_lqv) {
 RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
     logdebug("rsp_lwc2_lrv");
     int e = instruction.v.element;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
     int start = 16 - ((address & 0xF) - e);
     address &= 0xFFFFFFF0;
 
@@ -329,10 +329,10 @@ RSP_VECTOR_INSTR(rsp_lwc2_lrv) {
 RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
     logdebug("rsp_lwc2_lsv");
     int e = instruction.v.element;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
-    half val = n64_rsp_read_half(address);
-    byte lo = val & 0xFF;
-    byte hi = (val >> 8) & 0xFF;
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
+    u16 val = n64_rsp_read_half(address);
+    u8 lo = val & 0xFF;
+    u8 hi = (val >> 8) & 0xFF;
     N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX(e + 0)] = hi;
     if (e < 15) {
         N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX(e + 1)] = lo;
@@ -341,17 +341,17 @@ RSP_VECTOR_INSTR(rsp_lwc2_lsv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
     logdebug("rsp_lwc2_ltv");
-    word base = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
+    u32 base = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
     base &= ~7;
-    byte e = instruction.v.element;
+    u8 e = instruction.v.element;
 
     for (int i = 0; i < 8; i++) {
-        word address = base;
+        u32 address = base;
 
-        word offset = (i * 2) + e + ((base) & 8);
+        u32 offset = (i * 2) + e + ((base) & 8);
 
-        half hi = n64_rsp_read_byte(address + ((offset + 0) & 0xF));
-        half lo = n64_rsp_read_byte(address + ((offset + 1) & 0xF));
+        u16 hi = n64_rsp_read_byte(address + ((offset + 0) & 0xF));
+        u16 lo = n64_rsp_read_byte(address + ((offset + 1) & 0xF));
 
         int reg = (instruction.v.vt & 0x18) | ((i + (e >> 1)) & 0x7);
 
@@ -361,7 +361,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_ltv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_luv) {
     logdebug("rsp_lwc2_luv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
 
     int e = instruction.v.element;
 
@@ -373,7 +373,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_luv) {
     for (int elem = 0; elem < 8; elem++) {
         int element_offset = (16 - e + (elem + address_offset)) & 0xF;
 
-        half value = n64_rsp_read_byte(address + element_offset);
+        u16 value = n64_rsp_read_byte(address + element_offset);
         value <<= 7;
         N64RSP.vu_regs[instruction.v.vt].elements[VU_ELEM_INDEX(elem)] = value;
     }
@@ -381,7 +381,7 @@ RSP_VECTOR_INSTR(rsp_lwc2_luv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_sbv) {
     logdebug("rsp_swc2_sbv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LBV_SBV);
 
     int element = instruction.v.element;
     n64_rsp_write_byte(address, N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX(element)]);
@@ -389,7 +389,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sbv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_sdv) {
     logdebug("rsp_swc2_sdv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LDV_SDV);
 
     for (int i = 0; i < 8; i++) {
         int element = i + instruction.v.element;
@@ -401,7 +401,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sfv) {
     logdebug("rsp_swc2_sfv");
     logwarn("SFV executed, this instruction is known to be buggy!");
     defvt;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
     int e = instruction.v.element;
 
     int start = e >> 1;
@@ -417,18 +417,18 @@ RSP_VECTOR_INSTR(rsp_swc2_sfv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_shv) {
     logdebug("rsp_swc2_shv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LHV_SHV);
 
-    word in_addr_offset = address & 0x7;
+    u32 in_addr_offset = address & 0x7;
     address &= ~0x7;
 
     int e = instruction.v.element;
 
     for (int i = 0; i < 8; i++) {
         int byte_index = (i * 2) + e;
-        half val = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX(byte_index & 15)] << 1;
+        u16 val = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX(byte_index & 15)] << 1;
         val |= N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((byte_index + 1) & 15)] >> 7;
-        byte b = val & 0xFF;
+        u8 b = val & 0xFF;
 
         int ofs = in_addr_offset + (i * 2);
         n64_rsp_write_byte(address + (ofs & 0xF), b);
@@ -438,7 +438,7 @@ RSP_VECTOR_INSTR(rsp_swc2_shv) {
 RSP_VECTOR_INSTR(rsp_swc2_slv) {
     logdebug("rsp_swc2_slv");
     int e = instruction.v.element;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LLV_SLV);
 
     for (int i = 0; i < 4; i++) {
         int element = i + e;
@@ -448,7 +448,7 @@ RSP_VECTOR_INSTR(rsp_swc2_slv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_spv) {
     logdebug("rsp_swc2_spv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LPV_SPV);
 
     int start = instruction.v.element;
     int end = start + 8;
@@ -465,8 +465,8 @@ RSP_VECTOR_INSTR(rsp_swc2_spv) {
 RSP_VECTOR_INSTR(rsp_swc2_sqv) {
     logdebug("rsp_swc2_sqv");
     int e = instruction.v.element;
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
-    word end_address = ((address & ~15) + 15);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LQV_SQV);
+    u32 end_address = ((address & ~15) + 15);
 
     for (int i = 0; address + i <= end_address; i++) {
         n64_rsp_write_byte(address + i, N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((i + e) & 15)]);
@@ -475,7 +475,7 @@ RSP_VECTOR_INSTR(rsp_swc2_sqv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_srv) {
     logdebug("rsp_swc2_srv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LRV_SRV);
     int start = instruction.v.element;
     int end = start + (address & 15);
     int base = 16 - (address & 15);
@@ -487,35 +487,35 @@ RSP_VECTOR_INSTR(rsp_swc2_srv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_ssv) {
     logdebug("rsp_swc2_ssv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LSV_SSV);
 
     int element = instruction.v.element;
 
-    byte hi = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((element + 0) & 15)];
-    byte lo = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((element + 1) & 15)];
-    half value = (half)hi << 8 | lo;
+    u8 hi = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((element + 0) & 15)];
+    u8 lo = N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((element + 1) & 15)];
+    u16 value = (u16)hi << 8 | lo;
 
     n64_rsp_write_half(address, value);
 }
 
 RSP_VECTOR_INSTR(rsp_swc2_stv) {
     logdebug("rsp_swc2_stv");
-    word base = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
-    word in_addr_offset = base & 0x7;
+    u32 base = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LTV_STV);
+    u32 in_addr_offset = base & 0x7;
     base &= ~0x7;
 
-    byte e = instruction.v.element >> 1;
+    u8 e = instruction.v.element >> 1;
 
     for (int i = 0; i < 8; i++) {
-        word address = base;
+        u32 address = base;
 
-        word offset = (i * 2) + in_addr_offset;
+        u32 offset = (i * 2) + in_addr_offset;
 
         int reg = (instruction.v.vt & 0x18) | ((i + e) & 0x7);
 
-        half val = N64RSP.vu_regs[reg].elements[VU_ELEM_INDEX(i & 0x7)];
-        half hi = (val >> 8) & 0xFF;
-        half lo = (val >> 0) & 0xFF;
+        u16 val = N64RSP.vu_regs[reg].elements[VU_ELEM_INDEX(i & 0x7)];
+        u16 hi = (val >> 8) & 0xFF;
+        u16 lo = (val >> 0) & 0xFF;
 
         n64_rsp_write_byte(address + ((offset + 0) & 0xF), hi);
         n64_rsp_write_byte(address + ((offset + 1) & 0xF), lo);
@@ -524,7 +524,7 @@ RSP_VECTOR_INSTR(rsp_swc2_stv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_suv) {
     logdebug("rsp_swc2_suv");
-    word address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LUV_SUV);
 
     int start = instruction.v.element;
     int end = start + 8;
@@ -539,7 +539,7 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
 
 RSP_VECTOR_INSTR(rsp_cfc2) {
     logdebug("rsp_cfc2");
-    shalf value = 0;
+    s16 value = 0;
     switch (instruction.r.rd & 3) {
         case 0: { // VCO
             value = rsp_get_vco();
@@ -556,12 +556,12 @@ RSP_VECTOR_INSTR(rsp_cfc2) {
         }
     }
 
-    set_rsp_register(instruction.r.rt, (sword)value);
+    set_rsp_register(instruction.r.rt, (s32)value);
 }
 
 RSP_VECTOR_INSTR(rsp_ctc2) {
     logdebug("rsp_ctc2");
-    half value = get_rsp_register(instruction.r.rt) & 0xFFFF;
+    u16 value = get_rsp_register(instruction.r.rt) & 0xFFFF;
     switch (instruction.r.rd & 3) {
         case 0: { // VCO
             for (int i = 0; i < 8; i++) {
@@ -589,17 +589,17 @@ RSP_VECTOR_INSTR(rsp_ctc2) {
 
 RSP_VECTOR_INSTR(rsp_mfc2) {
     logdebug("rsp_mfc2");
-    byte hi = N64RSP.vu_regs[instruction.cp2_regmove.rd].bytes[VU_BYTE_INDEX(instruction.cp2_regmove.e)];
-    byte lo = N64RSP.vu_regs[instruction.cp2_regmove.rd].bytes[VU_BYTE_INDEX((instruction.cp2_regmove.e + 1) & 0xF)];
-    shalf element = hi << 8 | lo;
-    set_rsp_register(instruction.cp2_regmove.rt, (sword)element);
+    u8 hi = N64RSP.vu_regs[instruction.cp2_regmove.rd].bytes[VU_BYTE_INDEX(instruction.cp2_regmove.e)];
+    u8 lo = N64RSP.vu_regs[instruction.cp2_regmove.rd].bytes[VU_BYTE_INDEX((instruction.cp2_regmove.e + 1) & 0xF)];
+    s16 element = hi << 8 | lo;
+    set_rsp_register(instruction.cp2_regmove.rt, (s32)element);
 }
 
 RSP_VECTOR_INSTR(rsp_mtc2) {
     logdebug("rsp_mtc2");
-    half element = get_rsp_register(instruction.cp2_regmove.rt);
-    byte lo = element & 0xFF;
-    byte hi = (element >> 8) & 0xFF;
+    u16 element = get_rsp_register(instruction.cp2_regmove.rt);
+    u8 lo = element & 0xFF;
+    u8 hi = (element >> 8) & 0xFF;
     N64RSP.vu_regs[instruction.cp2_regmove.rd].bytes[VU_BYTE_INDEX(instruction.cp2_regmove.e + 0)] = hi;
     if (instruction.cp2_regmove.e < 0xF) {
         N64RSP.vu_regs[instruction.cp2_regmove.rd].bytes[VU_BYTE_INDEX(instruction.cp2_regmove.e + 1)] = lo;
@@ -660,9 +660,9 @@ RSP_VECTOR_INSTR(rsp_vec_vadd) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        shalf vs_element = vs->signed_elements[i];
-        shalf vte_element = vte.signed_elements[i];
-        sword result = vs_element + vte_element + (N64RSP.vco.l.elements[i] != 0);
+        s16 vs_element = vs->signed_elements[i];
+        s16 vte_element = vte.signed_elements[i];
+        s32 result = vs_element + vte_element + (N64RSP.vco.l.elements[i] != 0);
         N64RSP.acc.l.elements[i] = result;
         vd->elements[i] = clamp_signed(result);
         N64RSP.vco.l.elements[i] = FLAGREG_BOOL(0);
@@ -677,9 +677,9 @@ RSP_VECTOR_INSTR(rsp_vec_vaddc) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        half vs_element = vs->elements[i];
-        half vte_element = vte.elements[i];
-        word result = vs_element + vte_element;
+        u16 vs_element = vs->elements[i];
+        u16 vte_element = vte.elements[i];
+        u32 result = vs_element + vte_element;
         N64RSP.acc.l.elements[i] = result & 0xFFFF;
         vd->elements[i] = result & 0xFFFF;
         N64RSP.vco.l.elements[i] = FLAGREG_BOOL((result >> 16) & 1);
@@ -694,7 +694,7 @@ RSP_VECTOR_INSTR(rsp_vec_vand) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        half result = vte.elements[i] & vs->elements[i];
+        u16 result = vte.elements[i] & vs->elements[i];
         vd->elements[i] = result;
         N64RSP.acc.l.elements[i] = result;
     }
@@ -707,26 +707,26 @@ RSP_VECTOR_INSTR(rsp_vec_vch) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        shalf vs_element = vs->signed_elements[i];
-        shalf vte_element = vte.signed_elements[i];
+        s16 vs_element = vs->signed_elements[i];
+        s16 vte_element = vte.signed_elements[i];
 
         if ((vs_element ^ vte_element) < 0) {
-            shalf result = vs_element + vte_element;
+            s16 result = vs_element + vte_element;
 
             N64RSP.acc.l.signed_elements[i] = (result <= 0 ? -vte_element : vs_element);
             N64RSP.vcc.l.elements[i] = FLAGREG_BOOL(result <= 0);
             N64RSP.vcc.h.elements[i] = FLAGREG_BOOL(vte_element < 0);
             N64RSP.vco.l.elements[i] = FLAGREG_BOOL(1);
-            N64RSP.vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF));
+            N64RSP.vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (u16)vs_element != ((u16)vte_element ^ 0xFFFF));
             N64RSP.vce.elements[i]   = FLAGREG_BOOL(result == -1);
         } else {
-            shalf result = vs_element - vte_element;
+            s16 result = vs_element - vte_element;
 
             N64RSP.acc.l.elements[i] = (result >= 0 ? vte_element : vs_element);
             N64RSP.vcc.l.elements[i] = FLAGREG_BOOL(vte_element < 0);
             N64RSP.vcc.h.elements[i] = FLAGREG_BOOL(result >= 0);
             N64RSP.vco.l.elements[i] = FLAGREG_BOOL(0);
-            N64RSP.vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (half)vs_element != ((half)vte_element ^ 0xFFFF));
+            N64RSP.vco.h.elements[i] = FLAGREG_BOOL(result != 0 && (u16)vs_element != ((u16)vte_element ^ 0xFFFF));
             N64RSP.vce.elements[i]   = FLAGREG_BOOL(0);
         }
 
@@ -740,20 +740,20 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
     defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
-        half vs_element = vs->elements[i];
-        half vte_element = vte.elements[i];
+        u16 vs_element = vs->elements[i];
+        u16 vte_element = vte.elements[i];
         if (N64RSP.vco.l.elements[i] == 0 && N64RSP.vco.h.elements[i] == 0) {
             N64RSP.vcc.h.elements[i] = FLAGREG_BOOL(vs_element >= vte_element);
         }
 
         if (N64RSP.vco.l.elements[i] != 0 && N64RSP.vco.h.elements[i] == 0) {
             bool lte = vs_element + vte_element <= 0xFFFF;
-            bool eql = (shalf)vs_element == -(shalf)vte_element;
+            bool eql = (s16)vs_element == -(s16)vte_element;
             N64RSP.vcc.l.elements[i] = FLAGREG_BOOL(N64RSP.vce.elements[i] != 0 ? lte : eql);
         }
         bool clip = N64RSP.vco.l.elements[i] != 0 ? N64RSP.vcc.l.elements[i] : N64RSP.vcc.h.elements[i];
-        half vtabs = N64RSP.vco.l.elements[i] != 0 ? -(half)vte_element : (half)vte_element;
-        half acc = clip ? vtabs : vs_element;
+        u16 vtabs = N64RSP.vco.l.elements[i] != 0 ? -(u16)vte_element : (u16)vte_element;
+        u16 acc = clip ? vtabs : vs_element;
         N64RSP.acc.l.elements[i] = acc;
         vd->elements[i] = acc;
 
@@ -773,21 +773,21 @@ RSP_VECTOR_INSTR(rsp_vec_vcr) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        half vs_element = vs->elements[i];
-        half vte_element = vte.elements[i];
+        u16 vs_element = vs->elements[i];
+        u16 vte_element = vte.elements[i];
 
         bool sign_different = (0x8000 & (vs_element ^ vte_element)) == 0x8000;
 
         // If vte and vs have different signs, make this negative vte
-        half vt_abs = sign_different ? ~vte_element : vte_element;
+        u16 vt_abs = sign_different ? ~vte_element : vte_element;
 
         // Compare using one's complement
-        bool gte = (shalf)vte_element <= (shalf)(sign_different ? 0xFFFF : vs_element);
+        bool gte = (s16)vte_element <= (s16)(sign_different ? 0xFFFF : vs_element);
         bool lte = (((sign_different ? vs_element : 0) + vte_element) & 0x8000) == 0x8000;
 
         // If the sign is different, check LTE, otherwise, check GTE.
         bool check = sign_different ? lte : gte;
-        half result = check ? vt_abs : vs_element;
+        u16 result = check ? vt_abs : vs_element;
 
         N64RSP.acc.l.elements[i] = result;
         vd->elements[i] = result;
@@ -863,17 +863,17 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc_delta = prod;
+        s64 acc_delta = prod;
         acc_delta *= 2;
-        sdword acc = get_rsp_accumulator(e) + acc_delta;
+        s64 acc = get_rsp_accumulator(e) + acc_delta;
         set_rsp_accumulator(e, acc);
         acc = get_rsp_accumulator(e);
 
-        shalf result = clamp_signed(acc >> 16);
+        s16 result = clamp_signed(acc >> 16);
 
         vd->elements[e] = result;
     }
@@ -890,17 +890,17 @@ RSP_VECTOR_INSTR(rsp_vec_vmacu) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc_delta = prod;
+        s64 acc_delta = prod;
         acc_delta *= 2;
-        sdword acc = get_rsp_accumulator(e) + acc_delta;
+        s64 acc = get_rsp_accumulator(e) + acc_delta;
         set_rsp_accumulator(e, acc);
         acc = get_rsp_accumulator(e);
 
-        half result = clamp_unsigned(acc >> 16);
+        u16 result = clamp_unsigned(acc >> 16);
 
         vd->elements[e] = result;
     }
@@ -926,17 +926,17 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
     vd->single         = _mm_packs_epi32(lo, hi);
 #else
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
         word uprod = prod;
 
         dword acc_delta = (dword)uprod << 16;
-        sdword acc = get_rsp_accumulator(e) + acc_delta;
+        s64 acc = get_rsp_accumulator(e) + acc_delta;
         set_rsp_accumulator(e, acc);
         acc = get_rsp_accumulator(e);
 
-        shalf result = clamp_signed(acc >> 16);
+        s16 result = clamp_signed(acc >> 16);
 
         vd->elements[e] = result;
     }
@@ -957,7 +957,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
         dword acc = get_rsp_accumulator(e) + acc_delta;
 
         set_rsp_accumulator(e, acc);
-        half result;
+        u16 result;
         if (is_sign_extension(N64RSP.acc.h.signed_elements[e], N64RSP.acc.m.signed_elements[e])) {
             result = N64RSP.acc.l.elements[e];
         } else if (N64RSP.acc.h.signed_elements[e] < 0) {
@@ -999,17 +999,17 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
     vd->single         = _mm_packs_epi32(lo, hi);
 #else
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        u16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc_delta = prod;
-        sdword acc = get_rsp_accumulator(e);
+        s64 acc_delta = prod;
+        s64 acc = get_rsp_accumulator(e);
         acc += acc_delta;
         set_rsp_accumulator(e, acc);
         acc = get_rsp_accumulator(e);
 
-        shalf result = clamp_signed(acc >> 16);
+        s16 result = clamp_signed(acc >> 16);
 
         vd->elements[e] = result;
     }
@@ -1049,16 +1049,16 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
     vd->single         = _mm_blendv_epi8(cval, N64RSP.acc.l.single, cmask);
 #else
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        half multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        u16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc_delta = prod;
-        sdword acc = get_rsp_accumulator(e) + acc_delta;
+        s64 acc_delta = prod;
+        s64 acc = get_rsp_accumulator(e) + acc_delta;
 
         set_rsp_accumulator(e, acc);
 
-        half result;
+        u16 result;
 
         if (is_sign_extension(N64RSP.acc.h.signed_elements[e], N64RSP.acc.m.signed_elements[e])) {
             result = N64RSP.acc.l.elements[e];
@@ -1078,7 +1078,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
     defvd;
     defvte;
 
-    byte se;
+    u8 se;
 
     switch (instruction.cp2_vec.e) {
         case 0 ... 1:
@@ -1097,9 +1097,9 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
             logfatal("This should be unreachable!");
     }
 
-    byte de = instruction.cp2_vec.vs & 7;
+    u8 de = instruction.cp2_vec.vs & 7;
 
-    half vte_elem = vte.elements[VU_ELEM_INDEX(se)];
+    u16 vte_elem = vte.elements[VU_ELEM_INDEX(se)];
 #ifdef N64_USE_SIMD
     vd->elements[VU_ELEM_INDEX(de)] = vte_elem;
     N64RSP.acc.l = vte;
@@ -1132,13 +1132,13 @@ RSP_VECTOR_INSTR(rsp_vec_vmudh) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc = (sdword)prod;
+        s64 acc = (s64)prod;
 
-        shalf result = clamp_signed(acc);
+        s16 result = clamp_signed(acc);
 
         acc <<= 16;
         set_rsp_accumulator(e, acc);
@@ -1160,7 +1160,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
         dword acc = prod >> 16;
 
         set_rsp_accumulator(e, acc);
-        half result;
+        u16 result;
         if (is_sign_extension(N64RSP.acc.h.signed_elements[e], N64RSP.acc.m.signed_elements[e])) {
             result = N64RSP.acc.l.elements[e];
         } else if (N64RSP.acc.h.signed_elements[e] < 0) {
@@ -1179,13 +1179,13 @@ RSP_VECTOR_INSTR(rsp_vec_vmudm) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        half multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        u16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc = prod;
+        s64 acc = prod;
 
-        shalf result = clamp_signed(acc >> 16);
+        s16 result = clamp_signed(acc >> 16);
 
         set_rsp_accumulator(e, acc);
         vd->elements[e] = result;
@@ -1198,15 +1198,15 @@ RSP_VECTOR_INSTR(rsp_vec_vmudn) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        half multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        u16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc = prod;
+        s64 acc = prod;
 
         set_rsp_accumulator(e, acc);
 
-        half result;
+        u16 result;
         if (is_sign_extension(N64RSP.acc.h.signed_elements[e], N64RSP.acc.m.signed_elements[e])) {
             result = N64RSP.acc.l.elements[e];
         } else if (N64RSP.acc.h.signed_elements[e] < 0) {
@@ -1225,16 +1225,16 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc = prod;
+        s64 acc = prod;
         acc = (acc * 2) + 0x8000;
 
         set_rsp_accumulator(e, acc);
 
-        shalf result = clamp_signed(acc >> 16);
+        s16 result = clamp_signed(acc >> 16);
         vd->elements[e] = result;
     }
 }
@@ -1250,14 +1250,14 @@ RSP_VECTOR_INSTR(rsp_vec_vmulu) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        shalf multiplicand1 = vte.elements[e];
-        shalf multiplicand2 = vs->elements[e];
-        sword prod = multiplicand1 * multiplicand2;
+        s16 multiplicand1 = vte.elements[e];
+        s16 multiplicand2 = vs->elements[e];
+        s32 prod = multiplicand1 * multiplicand2;
 
-        sdword acc = prod;
+        s64 acc = prod;
         acc = (acc * 2) + 0x8000;
 
-        half result = clamp_unsigned(acc >> 16);
+        u16 result = clamp_unsigned(acc >> 16);
 
         set_rsp_accumulator(e, acc);
         vd->elements[e] = result;
@@ -1270,7 +1270,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnand) {
     defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
-        half result = ~(vte.elements[i] & vs->elements[i]);
+        u16 result = ~(vte.elements[i] & vs->elements[i]);
         vd->elements[i] = result;
         N64RSP.acc.l.elements[i] = result;
     }
@@ -1301,7 +1301,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnor) {
     defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
-        half result = ~(vte.elements[i] | vs->elements[i]);
+        u16 result = ~(vte.elements[i] | vs->elements[i]);
         vd->elements[i] = result;
         N64RSP.acc.l.elements[i] = result;
     }
@@ -1313,7 +1313,7 @@ RSP_VECTOR_INSTR(rsp_vec_vnxor) {
     defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
-        half result = ~(vte.elements[i] ^ vs->elements[i]);
+        u16 result = ~(vte.elements[i] ^ vs->elements[i]);
         vd->elements[i] = result;
         N64RSP.acc.l.elements[i] = result;
     }
@@ -1325,7 +1325,7 @@ RSP_VECTOR_INSTR(rsp_vec_vor) {
     defvd;
     defvte;
     for (int i = 0; i < 8; i++) {
-        half result =  vte.elements[i] | vs->elements[i];
+        u16 result = vte.elements[i] | vs->elements[i];
         vd->elements[i] = result;
         N64RSP.acc.l.elements[i] = result;
     }
@@ -1336,11 +1336,11 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     defvd;
     defvt;
     defvte;
-    sword input;
+    s32 input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     input = vt->signed_elements[VU_ELEM_INDEX(e)];
-    sword result = rcp(input);
+    s32 result = rcp(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin_loaded = false;
@@ -1358,15 +1358,15 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     defvd;
     defvt;
     defvte;
-    sword input;
+    s32 input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     if (N64RSP.divin_loaded) {
-        input = ((sword)N64RSP.divin << 16) | vt->elements[VU_ELEM_INDEX(e)];
+        input = ((s32)N64RSP.divin << 16) | vt->elements[VU_ELEM_INDEX(e)];
     } else {
         input = vt->signed_elements[VU_ELEM_INDEX(e)];
     }
-    sword result = rcp(input);
+    s32 result = rcp(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin = 0;
@@ -1392,14 +1392,14 @@ RSP_VECTOR_INSTR(rsp_vec_vrndp) {
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     logdebug("rsp_vec_vrsq");
-    sword input;
+    s32 input;
     defvd;
     defvt;
     defvte;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     input = vt->signed_elements[VU_ELEM_INDEX(e)];
-    word result = rsq(input);
+    u32 result = rsq(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin_loaded = false;
@@ -1418,7 +1418,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     defvt;
     defvd;
     defvte;
-    byte de = instruction.cp2_vec.vs;
+    u8 de = instruction.cp2_vec.vs;
 
 #ifdef N64_USE_SIMD
     N64RSP.acc.l.single = vte.single;
@@ -1437,7 +1437,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     defvt;
     defvte;
     defvd;
-    sword input;
+    s32 input;
     int e  = instruction.cp2_vec.e & 7;
     int de = instruction.cp2_vec.vs & 7;
     if (N64RSP.divin_loaded) {
@@ -1445,7 +1445,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     } else {
         input = vt->signed_elements[VU_ELEM_INDEX(e)];
     }
-    word result = rsq(input);
+    u32 result = rsq(input);
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin = 0;
@@ -1506,7 +1506,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsub) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        sword result = vs->signed_elements[i] - vte.signed_elements[i] - (N64RSP.vco.l.elements[i] != 0);
+        s32 result = vs->signed_elements[i] - vte.signed_elements[i] - (N64RSP.vco.l.elements[i] != 0);
         N64RSP.acc.l.signed_elements[i] = result;
         vd->signed_elements[i] = clamp_signed(result);
         N64RSP.vco.l.elements[i] = FLAGREG_BOOL(0);
@@ -1521,8 +1521,8 @@ RSP_VECTOR_INSTR(rsp_vec_vsubc) {
     defvte;
 
     for (int i = 0; i < 8; i++) {
-        word result = vs->elements[i] - vte.elements[i];
-        half hresult = result & 0xFFFF;
+        u32 result = vs->elements[i] - vte.elements[i];
+        u16 hresult = result & 0xFFFF;
         bool carry = (result >> 16) & 1;
 
         vd->elements[i] = hresult;
@@ -1538,7 +1538,7 @@ RSP_VECTOR_INSTR(rsp_vec_vxor) {
     defvte;
     defvd;
     for (int i = 0; i < 8; i++) {
-        half result = vte.elements[i] ^ vs->elements[i];
+        u16 result = vte.elements[i] ^ vs->elements[i];
         vd->elements[i] = result;
         N64RSP.acc.l.elements[i] = result;
     }

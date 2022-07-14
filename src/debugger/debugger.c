@@ -127,7 +127,7 @@ void n64_debug_step(void* user_data) {
     n64sys.debugger_state.steps += 2;
 }
 
-void n64_debug_set_breakpoint(void* user_data, word address) {
+void n64_debug_set_breakpoint(void* user_data, u32 address) {
     n64_breakpoint_t* breakpoint = malloc(sizeof(n64_breakpoint_t));
     breakpoint->address = address;
     breakpoint->next = NULL;
@@ -146,7 +146,7 @@ void n64_debug_set_breakpoint(void* user_data, word address) {
     }
 }
 
-void n64_debug_clear_breakpoint(void* user_data, word address) {
+void n64_debug_clear_breakpoint(void* user_data, u32 address) {
     if (n64sys.debugger_state.breakpoints == NULL) {
         return; // No breakpoints set at all
     } else if (n64sys.debugger_state.breakpoints->address == address) {
@@ -167,11 +167,11 @@ void n64_debug_clear_breakpoint(void* user_data, word address) {
     }
 }
 
-ssize_t n64_debug_get_memory(void* user_data, char* buffer, size_t length, word address, size_t bytes) {
+ssize_t n64_debug_get_memory(void* user_data, char* buffer, size_t length, u32 address, size_t bytes) {
     printf("Checking memory at address 0x%08X\n", address);
     int printed = 0;
     for (int i = 0; i < bytes; i++) {
-        byte value = n64_read_byte(address + i);
+        u8 value = n64_read_byte(address + i);
         printed += snprintf(buffer + (i*2), length, "%02X", value);
     }
     printf("Get memory: %ld bytes from 0x%08X: %d\n", bytes, address, printed);

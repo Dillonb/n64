@@ -18,7 +18,7 @@ void* rsp_link_and_encode(dasm_State** d) {
 
 #define NEXT(address) ((address + 4) & 0xFFF)
 
-void compile_new_rsp_block(rsp_dynarec_block_t* block, half address) {
+void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
     static dasm_State* d;
     static dasm_State** Dst;
 
@@ -28,7 +28,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, half address) {
     int block_length = 0;
     int block_extra_cycles = 0;
     bool should_continue_block = true;
-    word extra_cycles = 0;
+    u32 extra_cycles = 0;
     int instructions_left_in_block = -1;
     bool branch_in_block = false;
 
@@ -38,7 +38,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, half address) {
         static mips_instruction_t instr;
         instr.raw = word_from_byte_array(N64RSP.sp_imem, address);
 
-        half next_address = NEXT(address);
+        u16 next_address = NEXT(address);
 
         instructions_left_in_block--;
 
@@ -106,13 +106,13 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, half address) {
 }
 
 int rsp_missing_block_handler() {
-    word pc = N64RSP.pc & 0x3FF;
+    u32 pc = N64RSP.pc & 0x3FF;
     rsp_dynarec_block_t* block = &N64RSPDYNAREC->blockcache[pc];
     compile_new_rsp_block(block, (N64RSP.pc << 2) & 0xFFF);
     return block->run(&N64RSP);
 }
 
-rsp_dynarec_t* rsp_dynarec_init(byte* codecache, size_t codecache_size) {
+rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size) {
     rsp_dynarec_t* dynarec = calloc(1, sizeof(rsp_dynarec_t));
 
     dynarec->codecache_size = codecache_size;

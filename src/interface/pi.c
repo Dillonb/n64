@@ -8,7 +8,7 @@
 // 9 cycles measured through $Count
 #define PI_DMA_CYCLES_PER_BYTE (9 * 2)
 
-word read_word_pireg(word address) {
+u32 read_word_pireg(u32 address) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
             return n64sys.mem.pi_reg[PI_DRAM_ADDR_REG];
@@ -19,7 +19,7 @@ word read_word_pireg(word address) {
         case ADDR_PI_WR_LEN_REG:
             return n64sys.mem.pi_reg[PI_WR_LEN_REG];
         case ADDR_PI_STATUS_REG: {
-            word value = 0;
+            u32 value = 0;
             value |= (n64sys.pi.dma_busy << 0); // Is PI DMA active?
             value |= (0 << 1); // Is PI IO busy?
             value |= (0 << 2); // PI IO error?
@@ -47,7 +47,7 @@ word read_word_pireg(word address) {
     }
 }
 
-byte dma_cart_read_byte(word address) {
+u8 dma_cart_read_byte(u32 address) {
     switch (address) {
         case REGION_CART_2_1:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
@@ -57,7 +57,7 @@ byte dma_cart_read_byte(word address) {
         case REGION_CART_2_2:
             return backup_read_byte(address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
-            word index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
+            u32 index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size) {
                 logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
                 return 0xFF;
@@ -69,7 +69,7 @@ byte dma_cart_read_byte(word address) {
     }
 }
 
-void dma_cart_write_byte(word address, byte value) {
+void dma_cart_write_byte(u32 address, u8 value) {
     switch (address) {
         case REGION_CART_2_1:
             if (address == 0x05000020) {
@@ -91,7 +91,7 @@ void dma_cart_write_byte(word address, byte value) {
     }
 }
 
-void write_word_pireg(word address, word value) {
+void write_word_pireg(u32 address, u32 value) {
     switch (address) {
         case ADDR_PI_DRAM_ADDR_REG:
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = value;
@@ -100,9 +100,9 @@ void write_word_pireg(word address, word value) {
             n64sys.mem.pi_reg[PI_CART_ADDR_REG] = value;
             break;
         case ADDR_PI_RD_LEN_REG: {
-            word length = (value & 0x00FFFFFF) + 1;
-            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
-            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
+            u32 length = (value & 0x00FFFFFF) + 1;
+            u32 cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
+            u32 dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
 
             if (dram_addr & 0x7) {
                 length -= dram_addr & 0x7;
@@ -121,7 +121,7 @@ void write_word_pireg(word address, word value) {
 
             // TODO: takes 9 cycles per byte to run in reality
             for (int i = 0; i < length; i++) {
-                byte b = RDRAM_BYTE(dram_addr + i);
+                u8 b = RDRAM_BYTE(dram_addr + i);
                 logtrace("DRAM to CART: Copying 0x%02X from 0x%08X to 0x%08X", b, dram_addr + i, cart_addr + i);
                 dma_cart_write_byte(cart_addr + i, b);
             }
@@ -136,9 +136,9 @@ void write_word_pireg(word address, word value) {
             break;
         }
         case ADDR_PI_WR_LEN_REG: {
-            word length = (value & 0x00FFFFFF) + 1;
-            word cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
-            word dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
+            u32 length = (value & 0x00FFFFFF) + 1;
+            u32 cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
+            u32 dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
 
             if (dram_addr & 0x7) {
                 length -= dram_addr & 0x7;
@@ -157,7 +157,7 @@ void write_word_pireg(word address, word value) {
             }
 
             for (int i = 0; i < length; i++) {
-                byte b = dma_cart_read_byte(cart_addr + i);
+                u8 b = dma_cart_read_byte(cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
                 RDRAM_BYTE(dram_addr + i) = b;
             }

@@ -6,7 +6,7 @@
 #include "addresses.h"
 
 tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number);
-bool tlb_probe(dword vaddr, bus_access_t bus_access, word* paddr, int* entry_number);
+bool tlb_probe(dword vaddr, bus_access_t bus_access, u32* paddr, int* entry_number);
 
 #define REGION_XKUSEG 0x0000000000000000 ... 0x000000FFFFFFFFFF
 #define REGION_XBAD1  0x0000010000000000 ... 0x3FFFFFFFFFFFFFFF
@@ -20,7 +20,7 @@ bool tlb_probe(dword vaddr, bus_access_t bus_access, word* paddr, int* entry_num
 #define REGION_CKSSEG 0xFFFFFFFFC0000000 ... 0xFFFFFFFFDFFFFFFF
 #define REGION_CKSEG3 0xFFFFFFFFE0000000 ... 0xFFFFFFFFFFFFFFFF
 
-INLINE bool resolve_virtual_address_32bit(word address, bus_access_t bus_access, word* physical) {
+INLINE bool resolve_virtual_address_32bit(u32 address, bus_access_t bus_access, u32* physical) {
     switch (address >> 29) {
         // KSEG0
         case 0x4:
@@ -53,7 +53,7 @@ INLINE bool resolve_virtual_address_32bit(word address, bus_access_t bus_access,
     return true;
 }
 
-INLINE bool resolve_virtual_address_user_32bit(word address, bus_access_t bus_access, word* physical) {
+INLINE bool resolve_virtual_address_user_32bit(u32 address, bus_access_t bus_access, u32* physical) {
     switch (address) {
         case VREGION_KUSEG:
             return tlb_probe(se_32_64(address), bus_access, physical, NULL);
@@ -63,7 +63,7 @@ INLINE bool resolve_virtual_address_user_32bit(word address, bus_access_t bus_ac
     }
 }
 
-INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access, word* physical) {
+INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access, u32* physical) {
     switch (address) {
         case REGION_XKUSEG:
             return tlb_probe(address, bus_access, physical, NULL);
@@ -73,11 +73,11 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
             if (!N64CP0.kernel_mode) {
                 logfatal("Access to XKPHYS address 0x%016lX when outside kernel mode!", address);
             }
-            byte high_two_bits = (address >> 62) & 0b11;
+            u8 high_two_bits = (address >> 62) & 0b11;
             if (high_two_bits != 0b10) {
                 logfatal("Access to XKPHYS address 0x%016lX with high two bits != 0b10!", address);
             }
-            byte subsegment = (address >> 59) & 0b11;
+            u8 subsegment = (address >> 59) & 0b11;
             bool cached = subsegment != 2;
             if (cached) {
                 //logwarn("Resolving virtual address in cached XKPHYS subsegment %d", subsegment);
@@ -121,7 +121,7 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
     return true;
 }
 
-INLINE bool resolve_virtual_address_user_64bit(dword address, bus_access_t bus_access, word* physical) {
+INLINE bool resolve_virtual_address_user_64bit(dword address, bus_access_t bus_access, u32* physical) {
     switch (address) {
         case REGION_XKUSEG:
             return tlb_probe(address, bus_access, physical, NULL);
@@ -131,7 +131,7 @@ INLINE bool resolve_virtual_address_user_64bit(dword address, bus_access_t bus_a
     }
 }
 
-INLINE bool resolve_virtual_address(dword virtual, bus_access_t bus_access, word* physical) {
+INLINE bool resolve_virtual_address(dword virtual, bus_access_t bus_access, u32* physical) {
     if (unlikely(N64CP0.is_64bit_addressing)) {
         if (likely(N64CP0.kernel_mode)) {
             return resolve_virtual_address_64bit(virtual, bus_access, physical);
@@ -155,34 +155,34 @@ INLINE bool resolve_virtual_address(dword virtual, bus_access_t bus_access, word
     }
 }
 
-INLINE word resolve_virtual_address_or_die(dword virtual, bus_access_t bus_access) {
-    word physical;
+INLINE u32 resolve_virtual_address_or_die(dword virtual, bus_access_t bus_access) {
+    u32 physical;
     if (!resolve_virtual_address(virtual, bus_access, &physical)) {
         logfatal("Unhandled TLB exception at 0x%016lX! Stop calling resolve_virtual_address_or_die() here!", virtual);
     }
     return physical;
 }
 
-void n64_write_physical_dword(word address, dword value);
-dword n64_read_physical_dword(word address);
+void n64_write_physical_dword(u32 address, dword value);
+dword n64_read_physical_dword(u32 address);
 
-void n64_write_physical_word(word address, word value);
-word n64_read_physical_word(word address);
+void n64_write_physical_word(u32 address, u32 value);
+u32 n64_read_physical_word(u32 address);
 
-void n64_write_physical_half(word address, half value);
-half n64_read_physical_half(word address);
+void n64_write_physical_half(u32 address, u16 value);
+u16 n64_read_physical_half(u32 address);
 
-void n64_write_physical_byte(word address, byte value);
-byte n64_read_physical_byte(word address);
+void n64_write_physical_byte(u32 address, u8 value);
+u8 n64_read_physical_byte(u32 address);
 
-INLINE void n64_write_word(dword address, word value) {
+INLINE void n64_write_word(dword address, u32 value) {
     n64_write_physical_word(resolve_virtual_address_or_die(address, true), value);
 }
 
-INLINE word n64_read_word(dword address) {
+INLINE u32 n64_read_word(dword address) {
     return n64_read_physical_word(resolve_virtual_address_or_die(address, false));
 }
-INLINE byte n64_read_byte(dword address) {
+INLINE u8 n64_read_byte(dword address) {
     return n64_read_physical_byte(resolve_virtual_address_or_die(address, false));
 }
 

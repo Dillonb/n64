@@ -30,9 +30,9 @@ void disassembler_initialize() {
     disassembler_initialized = true;
 }
 
-int disassemble(word address, word raw, char* buf, int buflen) {
+int disassemble(u32 address, u32 raw, char* buf, int buflen) {
 #ifdef HAVE_CAPSTONE
-    byte code[4];
+    u8 code[4];
     code[0] = raw & 0xFF;
     code[1] = (raw >> 8) & 0xFF;
     code[2] = (raw >> 16) & 0xFF;

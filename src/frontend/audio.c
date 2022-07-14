@@ -86,15 +86,15 @@ void adjust_audio_sample_rate(int sample_rate) {
     release_audiostream_mutex();
 }
 
-void audio_push_sample(shalf left, shalf right) {
-    shalf samples[2] = {
+void audio_push_sample(s16 left, s16 right) {
+    s16 samples[2] = {
             left,
             right
     };
 
     int available_bytes = SDL_AudioStreamAvailable(audio_stream);
     if (available_bytes < BYTES_PER_HALF_SECOND) {
-        SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(shalf));
+        SDL_AudioStreamPut(audio_stream, samples, 2 * sizeof(s16));
     } else {
         logwarn("Not pushing sample, there are already %d bytes available.", available_bytes);
     }

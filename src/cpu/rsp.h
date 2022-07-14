@@ -125,7 +125,7 @@ extern rsp_t n64rsp;
 #define N64RSP n64rsp
 #define N64RSPDYNAREC n64rsp.dynarec
 
-INLINE void quick_invalidate_rsp_icache(word address) {
+INLINE void quick_invalidate_rsp_icache(u32 address) {
     int index = address / 4;
 
     N64RSP.icache[index].handler = cache_rsp_instruction;
@@ -133,37 +133,37 @@ INLINE void quick_invalidate_rsp_icache(word address) {
     N64RSPDYNAREC->blockcache[index].run = NULL;
 }
 
-INLINE void invalidate_rsp_icache(word address) {
+INLINE void invalidate_rsp_icache(u32 address) {
     quick_invalidate_rsp_icache(address & 0xFFC);
 }
 
 INLINE void rsp_dma_read() {
-    word length = N64RSP.io.dma.length + 1;
+    u32 length = N64RSP.io.dma.length + 1;
 
     dram_addr_t dram_addr_reg = N64RSP.io.shadow_dmem_addr;
     mem_addr_t mem_addr_reg = N64RSP.io.shadow_mem_addr;
 
     length = (length + 0x7) & ~0x7;
 
-    word last_addr = mem_addr_reg.address + length;
+    u32 last_addr = mem_addr_reg.address + length;
     if (last_addr > 0x1000) {
-        word overshoot = last_addr - 0x1000;
+        u32 overshoot = last_addr - 0x1000;
         length -= overshoot;
         logwarn("RSP DMA READ would read off the end of memory! Truncating DMA (this is probably the wrong behavior)");
     }
 
-    word dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
+    u32 dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
     if (dram_address != dram_addr_reg.address) {
         logwarn("Misaligned DRAM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", dram_addr_reg.address, dram_address);
     }
-    word mem_address = mem_addr_reg.address & RSP_MEM_ADDR_MASK;
+    u32 mem_address = mem_addr_reg.address & RSP_MEM_ADDR_MASK;
     if (mem_address != mem_addr_reg.address) {
         logwarn("Misaligned MEM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", mem_addr_reg.address, mem_address);
     }
 
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
-        byte* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
-        byte* rdram = n64sys.mem.rdram + dram_address;
+        u8* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        u8* rdram = n64sys.mem.rdram + dram_address;
         memcpy(mem, rdram, length);
 
         if (mem_addr_reg.imem) {
@@ -189,7 +189,7 @@ INLINE void rsp_dma_read() {
 }
 
 INLINE void rsp_dma_write() {
-    word length = N64RSP.io.dma.length + 1;
+    u32 length = N64RSP.io.dma.length + 1;
 
     dram_addr_t dram_addr = N64RSP.io.shadow_dmem_addr;
     mem_addr_t mem_addr = N64RSP.io.shadow_mem_addr;
@@ -200,18 +200,18 @@ INLINE void rsp_dma_write() {
         logfatal("RSP DMA WRITE would write off the end of memory!");
     }
 
-    word dram_address = dram_addr.address & RSP_DRAM_ADDR_MASK;
+    u32 dram_address = dram_addr.address & RSP_DRAM_ADDR_MASK;
     if (dram_address != dram_addr.address) {
         logwarn("Misaligned DRAM RSP DMA WRITE! 0x%08X", dram_addr.address);
     }
-    word mem_address = mem_addr.address & RSP_MEM_ADDR_MASK;
+    u32 mem_address = mem_addr.address & RSP_MEM_ADDR_MASK;
     if (mem_address != mem_addr.address) {
         logwarn("Misaligned MEM RSP DMA WRITE! 0x%08X", mem_addr.address);
     }
 
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
-        byte* mem = (mem_addr.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
-        byte* rdram = n64sys.mem.rdram + dram_address;
+        u8* mem = (mem_addr.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        u8* rdram = n64sys.mem.rdram + dram_address;
         memcpy(rdram, mem, length);
 
         // Invalidate all pages touched by the DMA
@@ -235,19 +235,19 @@ INLINE void rsp_dma_write() {
     N64RSP.io.dma.raw = 0xFF8 | (N64RSP.io.dma.skip << 20);
 }
 
-INLINE void set_rsp_register(byte r, word value) {
+INLINE void set_rsp_register(u8 r, u32 value) {
     N64RSP.gpr[r] = value;
     N64RSP.gpr[0] = 0;
 }
 
-INLINE word get_rsp_register(byte r) {
+INLINE u32 get_rsp_register(u8 r) {
     return N64RSP.gpr[r];
 }
 
 bool rsp_acquire_semaphore();
 void rsp_release_semaphore();
 
-INLINE word get_rsp_cp0_register(byte r) {
+INLINE u32 get_rsp_cp0_register(u8 r) {
     switch (r) {
         case RSP_CP0_DMA_CACHE: return N64RSP.io.shadow_mem_addr.raw;
             logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
@@ -280,7 +280,7 @@ INLINE word get_rsp_cp0_register(byte r) {
     }
 }
 
-INLINE void set_rsp_cp0_register(byte r, word value) {
+INLINE void set_rsp_cp0_register(u8 r, u32 value) {
     switch (r) {
         case RSP_CP0_DMA_CACHE: N64RSP.io.shadow_mem_addr.raw = value; break;
         case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dmem_addr.raw = value; break;
@@ -333,10 +333,10 @@ INLINE void set_rsp_cp0_register(byte r, word value) {
     }
 }
 
-INLINE sdword get_rsp_accumulator(int e) {
-    sdword val = (sdword)N64RSP.acc.h.elements[e] << 32;
-    val       |= (sdword)N64RSP.acc.m.elements[e] << 16;
-    val       |= (sdword)N64RSP.acc.l.elements[e] << 0;
+INLINE s64 get_rsp_accumulator(int e) {
+    s64 val = (s64)N64RSP.acc.h.elements[e] << 32;
+    val       |= (s64)N64RSP.acc.m.elements[e] << 16;
+    val       |= (s64)N64RSP.acc.l.elements[e] << 0;
     if ((val & 0x0000800000000000) != 0) {
         val |= 0xFFFF000000000000;
     }
@@ -349,30 +349,30 @@ INLINE void set_rsp_accumulator(int e, dword val) {
     N64RSP.acc.l.elements[e] = val & 0xFFFF;
 }
 
-INLINE half rsp_get_vco() {
-    half value = 0;
+INLINE u16 rsp_get_vco() {
+    u16 value = 0;
     for (int i = 0; i < 8; i++) {
         bool h = N64RSP.vco.h.elements[7 - i] != 0;
         bool l = N64RSP.vco.l.elements[7 - i] != 0;
-        word mask = (l << i) | (h << (i + 8));
+        u32 mask = (l << i) | (h << (i + 8));
         value |= mask;
     }
     return value;
 }
 
-INLINE half rsp_get_vcc() {
-    half value = 0;
+INLINE u16 rsp_get_vcc() {
+    u16 value = 0;
     for (int i = 0; i < 8; i++) {
         bool h = N64RSP.vcc.h.elements[7 - i] != 0;
         bool l = N64RSP.vcc.l.elements[7 - i] != 0;
-        word mask = (l << i) | (h << (i + 8));
+        u32 mask = (l << i) | (h << (i + 8));
         value |= mask;
     }
     return value;
 }
 
-INLINE byte rsp_get_vce() {
-    byte value = 0;
+INLINE u8 rsp_get_vce() {
+    u8 value = 0;
     for (int i = 0; i < 8; i++) {
         bool l = N64RSP.vce.elements[7 - i] != 0;
         value |= (l << i);
@@ -380,7 +380,7 @@ INLINE byte rsp_get_vce() {
     return value;
 }
 
-INLINE void rsp_set_vcc(half vcc) {
+INLINE void rsp_set_vcc(u16 vcc) {
     for (int i = 0; i < 8; i++) {
         N64RSP.vcc.l.elements[7 - i] = FLAGREG_BOOL(vcc & 1);
         vcc >>= 1;
@@ -392,7 +392,7 @@ INLINE void rsp_set_vcc(half vcc) {
     }
 }
 
-INLINE void rsp_set_vco(half vco) {
+INLINE void rsp_set_vco(u16 vco) {
     for (int i = 0; i < 8; i++) {
         N64RSP.vco.l.elements[7 - i] = FLAGREG_BOOL(vco & 1);
         vco >>= 1;
@@ -404,7 +404,7 @@ INLINE void rsp_set_vco(half vco) {
     }
 }
 
-INLINE void rsp_set_vce(half vce) {
+INLINE void rsp_set_vce(u16 vce) {
     for (int i = 0; i < 8; i++) {
         N64RSP.vce.elements[7 - i] = FLAGREG_BOOL(vce & 1);
         vce >>= 1;
@@ -414,6 +414,6 @@ INLINE void rsp_set_vce(half vce) {
 void rsp_step();
 void rsp_run();
 void rsp_dynarec_run();
-vu_reg_t ext_get_vte(vu_reg_t* vt, byte e);
+vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e);
 
 #endif //N64_RSP_H

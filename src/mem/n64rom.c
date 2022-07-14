@@ -10,8 +10,8 @@
 #define N64_IDENTIFIER 0x40123780
 #define V64_IDENTIFIER 0x37804012
 
-void byteswap_to_be(byte* rom, size_t rom_size) {
-    word identifier;
+void byteswap_to_be(u8* rom, size_t rom_size) {
+    u32 identifier;
     memcpy(&identifier, rom, 4); // first 4 bytes
     identifier = be32toh(identifier);
 
@@ -21,21 +21,21 @@ void byteswap_to_be(byte* rom, size_t rom_size) {
             return;
         case N64_IDENTIFIER:
             for (int i = 0; i < rom_size / 4; i++) {
-                word w;
+                u32 w;
                 memcpy(&w, rom + (i * 4), 4);
-                word swapped = bswap_32(w);
+                u32 swapped = bswap_32(w);
                 memcpy(rom + (i * 4), &swapped, 4);
             }
             logalways("This is a .n64 file, byte swapping it!");
             break;
         case V64_IDENTIFIER:
             for (int i = 0; i < rom_size / 4; i++) {
-                word w;
+                u32 w;
                 memcpy(&w, rom + (i * 4), 4);
-                word swapped = (0xFF000000 & (w << 8)) |
-                        (0x00FF0000 & (w >> 8)) |
-                        (0x0000FF00 & (w << 8)) |
-                        (0x000000FF & (w >> 8));
+                u32 swapped = (0xFF000000 & (w << 8)) |
+                              (0x00FF0000 & (w >> 8)) |
+                              (0x0000FF00 & (w << 8)) |
+                              (0x000000FF & (w >> 8));
                 memcpy(rom + (i * 4), &swapped, 4);
             }
             logalways("This is a .v64 file, byte swapping it!");
@@ -45,26 +45,26 @@ void byteswap_to_be(byte* rom, size_t rom_size) {
     }
 }
 
-void byteswap_to_host(byte* rom, size_t rom_size) {
+void byteswap_to_host(u8* rom, size_t rom_size) {
 #ifndef N64_BIG_ENDIAN // Only need to swap if not already on a big endian host
     for (int i = 0; i < rom_size / 4; i++) {
-        word w;
+        u32 w;
         memcpy(&w, rom + (i * 4), 4);
-        word swapped = be32toh(w);
+        u32 swapped = be32toh(w);
         memcpy(rom + (i * 4), &swapped, 4);
     }
 #endif
 }
 
 // https://rosettacode.org/wiki/CRC-32#C
-INLINE word crc32(word crc, const byte *buf, size_t len)
+INLINE u32 crc32(u32 crc, const u8 *buf, size_t len)
 {
-    static word table[256];
+    static u32 table[256];
     static int have_table = 0;
-    word rem;
-    byte octet;
+    u32 rem;
+    u8 octet;
     int i, j;
-    const byte *p, *q;
+    const u8 *p, *q;
 
     if (have_table == 0) {
         for (i = 0; i < 256; i++) {
@@ -152,7 +152,7 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
         logfatal("This file looks way too small to be a valid N64 ROM!");
     }
     fseek(fp, 0, SEEK_SET);
-    byte *buf = malloc(size);
+    u8 *buf = malloc(size);
     fread(buf, size, 1, fp);
 
     byteswap_to_be(buf, size);
@@ -183,7 +183,7 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
         rom->game_name_cartridge[i] = '\0';
     }
 
-    word checksum = crc32(0, &rom->rom[0x40], 0x9c0);
+    u32 checksum = crc32(0, &rom->rom[0x40], 0x9c0);
 
     switch (checksum) {
         case 0xEC8B1325: // 7102

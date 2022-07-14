@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
             rom_path = flags->argv[0];
         }
         init_n64system(rom_path, true, debug, SOFTWARE_VIDEO_TYPE, interpreter);
-        init_softrdp(&n64sys.softrdp_state, (byte*)&n64sys.mem.rdram);
+        init_softrdp(&n64sys.softrdp_state, (u8*)&n64sys.mem.rdram);
     } else {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {

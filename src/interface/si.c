@@ -7,19 +7,19 @@
 
 #define SI_DMA_DELAY (65536 * 2)
 
-void pif_to_dram(word pif_address, word dram_address) {
+void pif_to_dram(u32 pif_address, u32 dram_address) {
     if ((dram_address & 1) != 0) {
         logfatal("PIF to DRAM on unaligned address");
     }
     process_pif_command();
 
     for (int i = 0; i < 64; i++) {
-        byte value = n64sys.mem.pif_ram[i];
+        u8 value = n64sys.mem.pif_ram[i];
         RDRAM_BYTE(dram_address + i) = value;
     }
 }
 
-void dram_to_pif(word dram_address, word pif_address) {
+void dram_to_pif(u32 dram_address, u32 pif_address) {
     if ((dram_address & 1) != 0) {
         logfatal("DRAM to PIF on unaligned address");
     }
@@ -41,7 +41,7 @@ void on_si_dma_complete() {
     interrupt_raise(INTERRUPT_SI);
 }
 
-void write_word_sireg(word address, word value) {
+void write_word_sireg(u32 address, u32 value) {
     switch (address) {
         case ADDR_SI_DRAM_ADDR_REG:
             n64sys.mem.si_reg.dram_address = value;
@@ -70,7 +70,7 @@ void write_word_sireg(word address, word value) {
     }
 }
 
-word read_word_sireg(word address) {
+u32 read_word_sireg(u32 address) {
     switch (address) {
         case ADDR_SI_DRAM_ADDR_REG:
             return n64sys.mem.si_reg.dram_address;
@@ -79,7 +79,7 @@ word read_word_sireg(word address) {
         case ADDR_SI_PIF_ADDR_WR64B_REG:
             return n64sys.mem.si_reg.pif_address;
         case ADDR_SI_STATUS_REG: {
-            word value = 0;
+            u32 value = 0;
             value |= (n64sys.si.dma_busy << 0); // DMA busy
             value |= (false << 1); // IO read busy
             value |= (false << 3); // DMA error
