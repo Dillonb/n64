@@ -14,6 +14,7 @@ public:
 
 private:
     bool running = false;
+    bool game_loaded = false;
     std::thread emuThread;
     QtWSIPlatform* wsiPlatform;
 };

@@ -21,7 +21,7 @@ private:
 
 N64EmulatorThread::N64EmulatorThread(QtWSIPlatform* wsiPlatform) {
     this->wsiPlatform = wsiPlatform;
-    init_n64system("sm64.z64", true, false, QT_VULKAN_VIDEO_TYPE, false);
+    init_n64system(nullptr, true, false, QT_VULKAN_VIDEO_TYPE, false);
 
     if (file_exists(PIF_ROM_PATH)) {
         logalways("Found PIF ROM at %s, loading", PIF_ROM_PATH);
@@ -40,10 +40,16 @@ void N64EmulatorThread::start() {
     QtWSIPlatform* _wsiPlatform = this->wsiPlatform;
     QWindow* pane = wsiPlatform->getPane();
     running = true;
-    emuThread = std::thread([_wsiPlatform, pane]() {
+    bool* _game_loaded = &game_loaded;
+    emuThread = std::thread([_wsiPlatform, pane, _game_loaded]() {
         init_vulkan_wsi(_wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(pane));
 
         init_parallel_rdp();
+
+        while (!(*_game_loaded)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
+            update_screen_parallel_rdp_no_game();
+        }
 
         n64_system_loop();
     });
@@ -57,5 +63,6 @@ void N64EmulatorThread::reset() {
 
 void N64EmulatorThread::loadRom(const std::string& filename) {
     strncpy(n64sys.rom_path, filename.c_str(), sizeof(n64sys.rom_path));
+    game_loaded = true;
     reset();
 }
