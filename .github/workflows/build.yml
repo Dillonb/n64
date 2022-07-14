@@ -16,6 +16,7 @@ jobs:
         run: |
           vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
+          vcpkg install qt:x64-windows
 
       - name: Build N64
         run: |
