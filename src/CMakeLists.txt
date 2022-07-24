@@ -12,6 +12,7 @@ add_subdirectory(debugger)
 add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
+add_subdirectory(contrib/libsamplerate)
 SET(NFD_PORTAL ON CACHE BOOL "Use dbus for native file dialog instead of gtk")
 add_subdirectory(contrib/nativefiledialog-extended)
 add_subdirectory(tools)
@@ -49,7 +50,10 @@ add_library(core
         frontend/gamepad.c frontend/gamepad.h
         frontend/game_db.c frontend/game_db.h)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105)
+target_include_directories(core PUBLIC
+        contrib/libsamplerate/include)
+
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 samplerate)
 
 add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)

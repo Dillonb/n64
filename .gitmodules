@@ -7,3 +7,6 @@
 [submodule "src/contrib/nativefiledialog-extended"]
 	path = src/contrib/nativefiledialog-extended
 	url = https://github.com/btzy/nativefiledialog-extended.git
+[submodule "src/contrib/libsamplerate"]
+	path = src/contrib/libsamplerate
+	url = https://github.com/libsndfile/libsamplerate
