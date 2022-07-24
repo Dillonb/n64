@@ -175,9 +175,9 @@ void set_prev_branch_flag(dasm_State** Dst, bool value);
 #ifdef N64_DEBUG_MODE
 void check_exception_sanity(dasm_State** Dst, u32 block_length, mips_instruction_t instr);
 #endif
-void flush_prev_pc(dasm_State** Dst, dword prev_pc);
-void flush_pc(dasm_State** Dst, dword pc);
-void flush_next_pc(dasm_State** Dst, dword next_pc);
+void flush_prev_pc(dasm_State** Dst, u64 prev_pc);
+void flush_pc(dasm_State** Dst, u64 pc);
+void flush_next_pc(dasm_State** Dst, u64 next_pc);
 void flush_rsp_prev_pc(dasm_State** Dst, u16 prev_pc);
 void flush_rsp_pc(dasm_State** Dst, u16 pc);
 void flush_rsp_next_pc(dasm_State** Dst, u16 next_pc);

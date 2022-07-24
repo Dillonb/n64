@@ -50,8 +50,8 @@ typedef struct n64_dynarec_block {
 
 typedef struct n64_dynarec {
     u8* codecache;
-    dword codecache_size;
-    dword codecache_used;
+    u64 codecache_size;
+    u64 codecache_used;
 
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;

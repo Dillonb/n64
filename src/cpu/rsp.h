@@ -343,7 +343,7 @@ INLINE s64 get_rsp_accumulator(int e) {
     return val;
 }
 
-INLINE void set_rsp_accumulator(int e, dword val) {
+INLINE void set_rsp_accumulator(int e, u64 val) {
     N64RSP.acc.h.elements[e] = (val >> 32) & 0xFFFF;
     N64RSP.acc.m.elements[e] = (val >> 16) & 0xFFFF;
     N64RSP.acc.l.elements[e] = val & 0xFFFF;

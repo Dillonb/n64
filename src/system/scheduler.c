@@ -4,7 +4,7 @@
 
 #define NUM_EVENT_NODES 10
 
-dword scheduler_ticks = 0;
+u64 scheduler_ticks = 0;
 
 typedef struct scheduler_event_node {
     scheduler_event_t event;
@@ -36,7 +36,7 @@ void scheduler_reset() {
     }
 }
 
-bool scheduler_tick(dword ticks, scheduler_event_t* event) {
+bool scheduler_tick(u64 ticks, scheduler_event_t* event) {
     scheduler_ticks += ticks;
 
     bool event_occurred = (scheduler_list != NULL) && scheduler_list->event.time < scheduler_ticks;
@@ -50,7 +50,7 @@ bool scheduler_tick(dword ticks, scheduler_event_t* event) {
     return event_occurred;
 }
 
-void scheduler_enqueue_absolute(dword at_ticks, scheduler_event_type_t event_type) {
+void scheduler_enqueue_absolute(u64 at_ticks, scheduler_event_type_t event_type) {
     scheduler_event_node_t* ins = alloc_event_node();
     ins->next = NULL;
     ins->event.type = event_type;
@@ -73,6 +73,6 @@ void scheduler_enqueue_absolute(dword at_ticks, scheduler_event_type_t event_typ
     }
 }
 
-void scheduler_enqueue_relative(dword in_ticks, scheduler_event_type_t event_type) {
+void scheduler_enqueue_relative(u64 in_ticks, scheduler_event_type_t event_type) {
     scheduler_enqueue_absolute(scheduler_ticks + in_ticks, event_type);
 }

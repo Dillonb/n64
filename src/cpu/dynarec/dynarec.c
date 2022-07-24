@@ -145,7 +145,7 @@ bool branch_is_loop(mips_instruction_t instr, u32 block_length) {
     }
 }
 
-void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, u32 physical_address) {
+void compile_new_block(n64_dynarec_block_t* block, u64 virtual_address, u32 physical_address) {
     mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
     d = block_header();
@@ -177,7 +177,7 @@ void compile_new_block(n64_dynarec_block_t* block, dword virtual_address, u32 ph
         block_is_stable &= instruction_stable(instr);
 
         u32 next_physical_address = physical_address + 4;
-        dword next_virtual_address = virtual_address + 4;
+        u64 next_virtual_address = virtual_address + 4;
 
         instructions_left_in_block--;
         bool instr_ends_block;

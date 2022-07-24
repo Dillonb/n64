@@ -12,7 +12,7 @@
 #if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
 __attribute__((__target__("no-sse")))
 #endif
-INLINE dword multu_64_to_128(dword lhs, dword rhs, dword *high) {
+INLINE u64 multu_64_to_128(u64 lhs, u64 rhs, u64 *high) {
         /*
          * GCC and Clang usually provide __uint128_t on 64-bit targets,
          * although Clang also defines it on WASM despite having to use
@@ -20,8 +20,8 @@ INLINE dword multu_64_to_128(dword lhs, dword rhs, dword *high) {
          */
 #if defined(__SIZEOF_INT128__) && !defined(__wasm__)
         __uint128_t product = (__uint128_t)lhs * (__uint128_t)rhs;
-        *high = (dword)(product >> 64);
-        return (dword)(product & 0xFFFFFFFFFFFFFFFF);
+        *high = (u64)(product >> 64);
+        return (u64)(product & 0xFFFFFFFFFFFFFFFF);
 
         /* Use the _umul128 intrinsic on MSVC x64 to hint for mulq. */
 #elif defined(_MSC_VER) && defined(_M_IX64)
@@ -56,7 +56,7 @@ INLINE dword multu_64_to_128(dword lhs, dword rhs, dword *high) {
 #if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
 __attribute__((__target__("no-sse")))
 #endif
-INLINE dword mult_64_to_128(s64 lhs, s64 rhs, dword *high) {
+INLINE u64 mult_64_to_128(s64 lhs, s64 rhs, u64 *high) {
     /*
      * GCC and Clang usually provide __uint128_t on 64-bit targets,
      * although Clang also defines it on WASM despite having to use
@@ -120,9 +120,9 @@ MIPS_INSTR(mips_addiu) {
 }
 
 MIPS_INSTR(mips_daddi) {
-    dword addend1 = (s64)((s16)instruction.i.immediate);
-    dword addend2 = get_register(instruction.i.rs);
-    dword result = addend1 + addend2;
+    u64 addend1 = (s64)((s16)instruction.i.immediate);
+    u64 addend2 = get_register(instruction.i.rs);
+    u64 result = addend1 + addend2;
 
     if (check_signed_overflow_add(addend1, addend2, result)) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
@@ -133,8 +133,8 @@ MIPS_INSTR(mips_daddi) {
 
 
 MIPS_INSTR(mips_andi) {
-    dword immediate = instruction.i.immediate;
-    dword result = immediate & get_register(instruction.i.rs);
+    u64 immediate = instruction.i.immediate;
+    u64 result = immediate & get_register(instruction.i.rs);
     set_register(instruction.i.rt, result);
 }
 
@@ -171,8 +171,8 @@ MIPS_INSTR(mips_bne) {
 }
 
 MIPS_INSTR(mips_bnel) {
-    dword rs = get_register(instruction.i.rs);
-    dword rt = get_register(instruction.i.rt);
+    u64 rs = get_register(instruction.i.rs);
+    u64 rt = get_register(instruction.i.rt);
     logtrace("Branch if: 0x%08lX != 0x%08lX", rs, rt);
     conditional_branch_likely(instruction.i.immediate, rs != rt);
 }
@@ -183,7 +183,7 @@ MIPS_INSTR(mips_cache) {
 }
 
 MIPS_INSTR(mips_j) {
-    dword target = instruction.j.target;
+    u64 target = instruction.j.target;
     target <<= 2;
     target |= ((N64CPU.pc - 4) & 0xFFFFFFFFF0000000); // PC is 4 ahead
 
@@ -193,7 +193,7 @@ MIPS_INSTR(mips_j) {
 MIPS_INSTR(mips_jal) {
     link(R4300I_REG_LR);
 
-    dword target = instruction.j.target;
+    u64 target = instruction.j.target;
     target <<= 2;
     target |= ((N64CPU.pc - 4) & 0xFFFFFFFFF0000000); // PC is 4 ahead
 
@@ -232,18 +232,18 @@ MIPS_INSTR(mips_mtc0) {
 }
 
 MIPS_INSTR(mips_dmfc0) {
-    dword value = get_cp0_register_dword(instruction.r.rd);
+    u64 value = get_cp0_register_dword(instruction.r.rd);
     set_register(instruction.r.rt, value);
 }
 
 MIPS_INSTR(mips_dmtc0) {
-    dword value = get_register(instruction.r.rt);
+    u64 value = get_register(instruction.r.rt);
     set_cp0_register_dword(instruction.r.rd, value);
 }
 
 MIPS_INSTR(mips_ld) {
     s16 offset = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
     if (check_address_error(0b111, address)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, 0);
@@ -255,7 +255,7 @@ MIPS_INSTR(mips_ld) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        dword value = n64_read_physical_dword(physical);
+        u64 value = n64_read_physical_dword(physical);
         set_register(instruction.i.rt, value);
     }
 }
@@ -272,7 +272,7 @@ MIPS_INSTR(mips_lui) {
 MIPS_INSTR(mips_lbu) {
     s16 offset = instruction.i.immediate;
     logtrace("LBU offset: %d", offset);
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
@@ -286,7 +286,7 @@ MIPS_INSTR(mips_lbu) {
 MIPS_INSTR(mips_lhu) {
     s16 offset = instruction.i.immediate;
     logtrace("LHU offset: %d", offset);
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
@@ -303,7 +303,7 @@ MIPS_INSTR(mips_lhu) {
 
 MIPS_INSTR(mips_lh) {
     s16 offset = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
     if ((address & 0b1) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
@@ -320,7 +320,7 @@ MIPS_INSTR(mips_lh) {
 
 MIPS_INSTR(mips_lw) {
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
     if (check_address_error(0b11, address)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ADDRESS_ERROR_LOAD, 0);
@@ -339,7 +339,7 @@ MIPS_INSTR(mips_lw) {
 
 MIPS_INSTR(mips_lwu) {
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
         logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
     }
@@ -356,7 +356,7 @@ MIPS_INSTR(mips_lwu) {
 
 MIPS_INSTR(mips_sb) {
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs);
+    u64 address = get_register(instruction.i.rs);
     address += offset;
     u8 value = get_register(instruction.i.rt) & 0xFF;
 
@@ -371,7 +371,7 @@ MIPS_INSTR(mips_sb) {
 
 MIPS_INSTR(mips_sh) {
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs);
+    u64 address = get_register(instruction.i.rs);
     address += offset;
     u16 value = get_register(instruction.i.rt);
     u32 physical;
@@ -385,7 +385,7 @@ MIPS_INSTR(mips_sh) {
 
 MIPS_INSTR(mips_sw) {
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs);
+    u64 address = get_register(instruction.i.rs);
     address += offset;
     u32 physical;
 
@@ -405,8 +405,8 @@ MIPS_INSTR(mips_sw) {
 
 MIPS_INSTR(mips_sd) {
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
-    dword value = get_register(instruction.i.rt);
+    u64 address = get_register(instruction.i.rs) + offset;
+    u64 value = get_register(instruction.i.rt);
 
     u32 physical;
     if (check_address_error(0b111, address)) {
@@ -432,15 +432,15 @@ MIPS_INSTR(mips_xori) {
 }
 
 MIPS_INSTR(mips_daddiu) {
-    dword addend1 = (s64)((s16)instruction.i.immediate);
-    dword addend2 = get_register(instruction.i.rs);
-    dword result = addend1 + addend2;
+    u64 addend1 = (s64)((s16)instruction.i.immediate);
+    u64 addend2 = get_register(instruction.i.rs);
+    u64 result = addend1 + addend2;
     set_register(instruction.i.rt, result);
 }
 
 MIPS_INSTR(mips_lb) {
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
 
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
@@ -454,7 +454,7 @@ MIPS_INSTR(mips_lb) {
 
 MIPS_INSTR(mips_lwl) {
     s16 offset  = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
 
 
     u32 physical;
@@ -472,7 +472,7 @@ MIPS_INSTR(mips_lwl) {
 
 MIPS_INSTR(mips_lwr) {
     s16 offset  = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
@@ -489,7 +489,7 @@ MIPS_INSTR(mips_lwr) {
 
 MIPS_INSTR(mips_swl) {
     s16 offset  = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
 
     u32 physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
@@ -506,7 +506,7 @@ MIPS_INSTR(mips_swl) {
 
 MIPS_INSTR(mips_swr) {
     s16 offset  = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
     u32 physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
@@ -522,16 +522,16 @@ MIPS_INSTR(mips_swr) {
 
 MIPS_INSTR(mips_ldl) {
     s16 offset = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         int shift = 8 * ((address ^ 0) & 7);
-        dword mask = (dword) 0xFFFFFFFFFFFFFFFF << shift;
-        dword data = n64_read_physical_dword(physical & ~7);
-        dword oldreg = get_register(instruction.i.rt);
+        u64 mask = (u64) 0xFFFFFFFFFFFFFFFF << shift;
+        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 oldreg = get_register(instruction.i.rt);
 
         set_register(instruction.i.rt, (oldreg & ~mask) | (data << shift));
     }
@@ -539,16 +539,16 @@ MIPS_INSTR(mips_ldl) {
 
 MIPS_INSTR(mips_ldr) {
     s16 offset = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         int shift = 8 * ((address ^ 7) & 7);
-        dword mask = (dword) 0xFFFFFFFFFFFFFFFF >> shift;
-        dword data = n64_read_physical_dword(physical & ~7);
-        dword oldreg = get_register(instruction.i.rt);
+        u64 mask = (u64) 0xFFFFFFFFFFFFFFFF >> shift;
+        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 oldreg = get_register(instruction.i.rt);
 
         set_register(instruction.i.rt, (oldreg & ~mask) | (data >> shift));
     }
@@ -556,7 +556,7 @@ MIPS_INSTR(mips_ldr) {
 
 MIPS_INSTR(mips_sdl) {
     s16 offset = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
 
     u32 physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
@@ -564,27 +564,27 @@ MIPS_INSTR(mips_sdl) {
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         int shift = 8 * ((address ^ 0) & 7);
-        dword mask = 0xFFFFFFFFFFFFFFFF;
+        u64 mask = 0xFFFFFFFFFFFFFFFF;
         mask >>= shift;
-        dword data = n64_read_physical_dword(physical & ~7);
-        dword oldreg = get_register(instruction.i.rt);
+        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 oldreg = get_register(instruction.i.rt);
         n64_write_physical_dword(physical & ~7, (data & ~mask) | (oldreg >> shift));
     }
 }
 
 MIPS_INSTR(mips_sdr) {
     s16 offset = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
     u32 physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
         int shift = 8 * ((address ^ 7) & 7);
-        dword mask = 0xFFFFFFFFFFFFFFFF;
+        u64 mask = 0xFFFFFFFFFFFFFFFF;
         mask <<= shift;
-        dword data = n64_read_physical_dword(physical & ~7);
-        dword oldreg = get_register(instruction.i.rt);
+        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 oldreg = get_register(instruction.i.rt);
         n64_write_physical_dword(physical & ~7, (data & ~mask) | (oldreg << shift));
     }
 }
@@ -592,7 +592,7 @@ MIPS_INSTR(mips_sdr) {
 MIPS_INSTR(mips_ll) {
     // Identical to lw
     s16 offset = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
 
     u32 physical;
     s32 result;
@@ -625,14 +625,14 @@ MIPS_INSTR(mips_lld) {
 
     // Identical to ld
     s16 offset = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
 
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        dword result = n64_read_physical_dword(physical);
+        u64 result = n64_read_physical_dword(physical);
         if ((address & 0b111) > 0) {
             logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
         }
@@ -647,7 +647,7 @@ MIPS_INSTR(mips_lld) {
 MIPS_INSTR(mips_sc) {
     // Identical to sw
     s16 offset          = instruction.i.immediate;
-    dword address         = get_register(instruction.i.rs) + offset;
+    u64 address         = get_register(instruction.i.rs) + offset;
 
     // Exception takes precedence over the instruction failing
     if ((address & 0b11) > 0) {
@@ -679,7 +679,7 @@ MIPS_INSTR(mips_scd) {
 
     // Identical to sd
     s16 offset          = instruction.i.immediate;
-    dword address         = get_register(instruction.i.rs) + offset;
+    u64 address         = get_register(instruction.i.rs) + offset;
 
     // Exception takes precedence over the instruction failing
     if ((address & 0b111) > 0) {
@@ -690,7 +690,7 @@ MIPS_INSTR(mips_scd) {
         N64CPU.llbit = false;
         u32 physical_address = resolve_virtual_address_or_die(address, BUS_STORE);
 
-        dword value = get_register(instruction.i.rt);
+        u64 value = get_register(instruction.i.rt);
         n64_write_physical_dword(physical_address, value);
         set_register(instruction.i.rt, 1); // Success!
 
@@ -712,7 +712,7 @@ MIPS_INSTR(mips_spc_srl) {
 
 MIPS_INSTR(mips_spc_sra) {
     s64 value = get_register(instruction.r.rt);
-    s32 result = (s64)(value >> (dword)instruction.r.sa);
+    s32 result = (s64)(value >> (u64)instruction.r.sa);
     set_register(instruction.r.rd, (s64) result);
 }
 
@@ -764,13 +764,13 @@ MIPS_INSTR(mips_spc_mtlo) {
 }
 
 MIPS_INSTR(mips_spc_dsllv) {
-    dword val = get_register(instruction.r.rt);
+    u64 val = get_register(instruction.r.rt);
     val <<= (get_register(instruction.r.rs) & 0b111111);
     set_register(instruction.r.rd, val);
 }
 
 MIPS_INSTR(mips_spc_dsrlv) {
-    dword val = get_register(instruction.r.rt);
+    u64 val = get_register(instruction.r.rt);
     val >>= (get_register(instruction.r.rs) & 0b111111);
     set_register(instruction.r.rd, val);
 }
@@ -798,10 +798,10 @@ MIPS_INSTR(mips_spc_mult) {
 }
 
 MIPS_INSTR(mips_spc_multu) {
-    dword multiplicand_1 = get_register(instruction.r.rs) & 0xFFFFFFFF;
-    dword multiplicand_2 = get_register(instruction.r.rt) & 0xFFFFFFFF;
+    u64 multiplicand_1 = get_register(instruction.r.rs) & 0xFFFFFFFF;
+    u64 multiplicand_2 = get_register(instruction.r.rt) & 0xFFFFFFFF;
 
-    dword result = multiplicand_1 * multiplicand_2;
+    u64 result = multiplicand_1 * multiplicand_2;
 
     s32 result_lower = result & 0xFFFFFFFF;
     s32 result_upper = (result >> 32) & 0xFFFFFFFF;
@@ -849,16 +849,16 @@ MIPS_INSTR(mips_spc_divu) {
 }
 
 MIPS_INSTR(mips_spc_dmult) {
-    dword result_upper;
-    dword result_lower = mult_64_to_128(get_register(instruction.r.rs), get_register(instruction.r.rt), &result_upper);
+    u64 result_upper;
+    u64 result_lower = mult_64_to_128(get_register(instruction.r.rs), get_register(instruction.r.rt), &result_upper);
 
     N64CPU.mult_lo = result_lower;
     N64CPU.mult_hi = result_upper;
 }
 
 MIPS_INSTR(mips_spc_dmultu) {
-    dword result_upper;
-    dword result_lower = multu_64_to_128(get_register(instruction.r.rs), get_register(instruction.r.rt), &result_upper);
+    u64 result_upper;
+    u64 result_lower = multu_64_to_128(get_register(instruction.r.rs), get_register(instruction.r.rt), &result_upper);
 
     N64CPU.mult_lo = result_lower;
     N64CPU.mult_hi = result_upper;
@@ -886,15 +886,15 @@ MIPS_INSTR(mips_spc_ddiv) {
 }
 
 MIPS_INSTR(mips_spc_ddivu) {
-    dword dividend = get_register(instruction.r.rs);
-    dword divisor  = get_register(instruction.r.rt);
+    u64 dividend = get_register(instruction.r.rs);
+    u64 divisor  = get_register(instruction.r.rt);
 
     if (divisor == 0) {
         N64CPU.mult_lo = 0xFFFFFFFFFFFFFFFF;
         N64CPU.mult_hi = dividend;
     } else {
-        dword quotient  = dividend / divisor;
-        dword remainder = dividend % divisor;
+        u64 quotient  = dividend / divisor;
+        u64 remainder = dividend % divisor;
 
         N64CPU.mult_lo = quotient;
         N64CPU.mult_hi = remainder;
@@ -921,12 +921,12 @@ MIPS_INSTR(mips_spc_addu) {
 }
 
 MIPS_INSTR(mips_spc_and) {
-    dword result = get_register(instruction.r.rs) & get_register(instruction.r.rt);
+    u64 result = get_register(instruction.r.rs) & get_register(instruction.r.rt);
     set_register(instruction.r.rd, result);
 }
 
 MIPS_INSTR(mips_spc_nor) {
-    dword result = ~(get_register(instruction.r.rs) | get_register(instruction.r.rt));
+    u64 result = ~(get_register(instruction.r.rs) | get_register(instruction.r.rt));
     set_register(instruction.r.rd, result);
 }
 
@@ -967,8 +967,8 @@ MIPS_INSTR(mips_spc_slt) {
 }
 
 MIPS_INSTR(mips_spc_sltu) {
-    dword op1 = get_register(instruction.r.rs);
-    dword op2 = get_register(instruction.r.rt);
+    u64 op1 = get_register(instruction.r.rs);
+    u64 op2 = get_register(instruction.r.rt);
 
     logtrace("Set if %lu < %lu", op1, op2);
     if (op1 < op2) {
@@ -979,9 +979,9 @@ MIPS_INSTR(mips_spc_sltu) {
 }
 
 MIPS_INSTR(mips_spc_dadd) {
-    dword addend1 = get_register(instruction.r.rs);
-    dword addend2 = get_register(instruction.r.rt);
-    dword result = addend1 + addend2;
+    u64 addend1 = get_register(instruction.r.rs);
+    u64 addend2 = get_register(instruction.r.rt);
+    u64 result = addend1 + addend2;
 
     if (check_signed_overflow_add(addend1, addend2, result)) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_ARITHMETIC_OVERFLOW, 0);
@@ -991,9 +991,9 @@ MIPS_INSTR(mips_spc_dadd) {
 }
 
 MIPS_INSTR(mips_spc_daddu) {
-    dword addend1 = get_register(instruction.r.rs);
-    dword addend2 = get_register(instruction.r.rt);
-    dword result = addend1 + addend2;
+    u64 addend1 = get_register(instruction.r.rs);
+    u64 addend2 = get_register(instruction.r.rt);
+    u64 result = addend1 + addend2;
     set_register(instruction.r.rd, result);
 }
 
@@ -1010,15 +1010,15 @@ MIPS_INSTR(mips_spc_dsub) {
 }
 
 MIPS_INSTR(mips_spc_dsubu) {
-    dword minuend = get_register(instruction.r.rs);
-    dword subtrahend = get_register(instruction.r.rt);
-    dword difference = minuend - subtrahend;
+    u64 minuend = get_register(instruction.r.rs);
+    u64 subtrahend = get_register(instruction.r.rt);
+    u64 difference = minuend - subtrahend;
     set_register(instruction.r.rd, difference);
 }
 
 MIPS_INSTR(mips_spc_teq) {
-    dword rs = get_register(instruction.r.rs);
-    dword rt = get_register(instruction.r.rt);
+    u64 rs = get_register(instruction.r.rs);
+    u64 rt = get_register(instruction.r.rt);
 
     if (rs == rt) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
@@ -1030,8 +1030,8 @@ MIPS_INSTR(mips_spc_break) {
 }
 
 MIPS_INSTR(mips_spc_tne) {
-    dword rs = get_register(instruction.r.rs);
-    dword rt = get_register(instruction.r.rt);
+    u64 rs = get_register(instruction.r.rs);
+    u64 rt = get_register(instruction.r.rt);
 
     if (rs != rt) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
@@ -1048,8 +1048,8 @@ MIPS_INSTR(mips_spc_tge) {
 }
 
 MIPS_INSTR(mips_spc_tgeu) {
-    dword rs = get_register(instruction.r.rs);
-    dword rt = get_register(instruction.r.rt);
+    u64 rs = get_register(instruction.r.rs);
+    u64 rt = get_register(instruction.r.rt);
 
     if (rs >= rt) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
@@ -1066,8 +1066,8 @@ MIPS_INSTR(mips_spc_tlt) {
 }
 
 MIPS_INSTR(mips_spc_tltu) {
-    dword rs = get_register(instruction.r.rs);
-    dword rt = get_register(instruction.r.rt);
+    u64 rs = get_register(instruction.r.rs);
+    u64 rt = get_register(instruction.r.rt);
 
     if (rs < rt) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
@@ -1076,13 +1076,13 @@ MIPS_INSTR(mips_spc_tltu) {
 
 
 MIPS_INSTR(mips_spc_dsll) {
-    dword value = get_register(instruction.r.rt);
+    u64 value = get_register(instruction.r.rt);
     value <<= instruction.r.sa;
     set_register(instruction.r.rd, value);
 }
 
 MIPS_INSTR(mips_spc_dsrl) {
-    dword value = get_register(instruction.r.rt);
+    u64 value = get_register(instruction.r.rt);
     value >>= instruction.r.sa;
     set_register(instruction.r.rd, value);
 }
@@ -1094,13 +1094,13 @@ MIPS_INSTR(mips_spc_dsra) {
 }
 
 MIPS_INSTR(mips_spc_dsll32) {
-    dword value = get_register(instruction.r.rt);
+    u64 value = get_register(instruction.r.rt);
     value <<= (instruction.r.sa + 32);
     set_register(instruction.r.rd, value);
 }
 
 MIPS_INSTR(mips_spc_dsrl32) {
-    dword value = get_register(instruction.r.rt);
+    u64 value = get_register(instruction.r.rt);
     value >>= (instruction.r.sa + 32);
     set_register(instruction.r.rd, value);
 }
@@ -1171,8 +1171,8 @@ MIPS_INSTR(mips_ri_tgei) {
 }
 
 MIPS_INSTR(mips_ri_tgeiu) {
-    dword rs = get_register(instruction.i.rs);
-    dword imm = (s64)(((s16)instruction.i.immediate));
+    u64 rs = get_register(instruction.i.rs);
+    u64 imm = (s64)(((s16)instruction.i.immediate));
 
     if (rs >= imm) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);
@@ -1189,8 +1189,8 @@ MIPS_INSTR(mips_ri_tlti) {
 }
 
 MIPS_INSTR(mips_ri_tltiu) {
-    dword rs = get_register(instruction.i.rs);
-    dword imm = (s64)(((s16)instruction.i.immediate));
+    u64 rs = get_register(instruction.i.rs);
+    u64 imm = (s64)(((s16)instruction.i.immediate));
 
     if (rs < imm) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_TRAP, 0);

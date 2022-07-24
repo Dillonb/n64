@@ -21,9 +21,9 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
 
     int num_cases = num_32bit_args + num_64bit_args;
 
-    dword regargs[num_32bit_args + num_64bit_args];
+    u64 regargs[num_32bit_args + num_64bit_args];
     u16 immargs[num_32bit_args + num_64bit_args];
-    dword expected_result[num_32bit_args + num_64bit_args];
+    u64 expected_result[num_32bit_args + num_64bit_args];
 
     static_assert(RAND_MAX == 2147483647, "this code depends on RAND_MAX being int32_max");
 
@@ -36,7 +36,7 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
     }
 
     for (int i = 0; i < num_64bit_args; i++) {
-        dword regarg = rand();
+        u64 regarg = rand();
         regarg <<= 32;
         regarg |= rand();
         u16 immarg = rand();
@@ -83,8 +83,8 @@ void gen_shift(char* name, mipsinstr_handler_t handler) {
     int num_cases = num_32bit_args + num_64bit_args;
     int num_results = num_cases * 32;
 
-    dword regargs[num_cases];
-    dword expected_result[num_results];
+    u64 regargs[num_cases];
+    u64 expected_result[num_results];
 
     static_assert(RAND_MAX == 2147483647, "this code depends on RAND_MAX being int32_max");
 
@@ -94,7 +94,7 @@ void gen_shift(char* name, mipsinstr_handler_t handler) {
     }
 
     for (int i = 0; i < num_64bit_args; i++) {
-        dword regarg = rand();
+        u64 regarg = rand();
         regarg <<= 32;
         regarg |= rand();
         regargs[num_32bit_args + i] = regarg;
@@ -135,8 +135,8 @@ void gen_rs_rt_rd(char* name, mipsinstr_handler_t handler) {
 
     const int num_cases = num_32bit_args + num_64bit_args;
 
-    dword regargs[num_32bit_args + num_64bit_args];
-    dword expected_result[num_cases * num_cases];
+    u64 regargs[num_32bit_args + num_64bit_args];
+    u64 expected_result[num_cases * num_cases];
 
     static_assert(RAND_MAX == 2147483647, "this code depends on RAND_MAX being int32_max");
 
@@ -147,7 +147,7 @@ void gen_rs_rt_rd(char* name, mipsinstr_handler_t handler) {
     }
 
     for (int i = 0; i < num_64bit_args; i++) {
-        dword regarg = rand();
+        u64 regarg = rand();
         regarg <<= 32;
         regarg |= rand();
         regargs[num_32bit_args + i] = regarg;

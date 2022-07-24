@@ -107,7 +107,7 @@ typedef struct n64_mem {
 
     struct {
         flash_state_t state;
-        dword status_reg;
+        u64 status_reg;
 
         // TODO: do these share the same reg?
         size_t erase_offset;

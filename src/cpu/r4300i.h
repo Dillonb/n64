@@ -359,13 +359,13 @@ ASSERTWORD(cp0_page_mask_t);
 
 typedef union cp0_entry_hi {
     struct {
-        dword asid:8;
-        dword:5;
-        dword vpn2:27;
-        dword fill:22;
-        dword r:2;
+        u64 asid:8;
+        u64:5;
+        u64 vpn2:27;
+        u64 fill:22;
+        u64 r:2;
     } PACKED;
-    dword raw;
+    u64 raw;
 } cp0_entry_hi_t;
 
 ASSERTDWORD(cp0_entry_hi_t);
@@ -429,23 +429,23 @@ typedef union watch_lo {
 ASSERTWORD(watch_lo_t);
 
 typedef union cp0_context {
-    dword raw;
+    u64 raw;
     struct {
-        dword:4;
-        dword badvpn2:19;
-        dword ptebase:41;
+        u64:4;
+        u64 badvpn2:19;
+        u64 ptebase:41;
     };
 } cp0_context_t;
 
 ASSERTDWORD(cp0_context_t);
 
 typedef union cp0_x_context {
-    dword raw;
+    u64 raw;
     struct {
-        dword:4;
-        dword badvpn2:27;
-        dword r:2;
-        dword ptebase:31;
+        u64:4;
+        u64 badvpn2:27;
+        u64 r:2;
+        u64 ptebase:31;
     } PACKED;
 } cp0_x_context_t;
 
@@ -483,13 +483,13 @@ typedef struct cp0 {
     cp0_context_t context;
     cp0_page_mask_t page_mask;
     u32 wired;
-    dword bad_vaddr;
-    dword count;
+    u64 bad_vaddr;
+    u64 count;
     cp0_entry_hi_t entry_hi;
     u32 compare;
     cp0_status_t status;
     cp0_cause_t cause;
-    dword EPC;
+    u64 EPC;
     u32 PRId;
     u32 config;
     u32 lladdr;
@@ -500,9 +500,9 @@ typedef struct cp0 {
     u32 cache_error;
     u32 tag_lo;
     u32 tag_hi;
-    dword error_epc;
+    u64 error_epc;
 
-    dword open_bus; // Last value written to any COP0 register
+    u64 open_bus; // Last value written to any COP0 register
 
     tlb_entry_t    tlb[32];
     tlb_error_t tlb_error;
@@ -555,7 +555,7 @@ typedef union fcr31 {
 ASSERTWORD(fcr31_t);
 
 typedef union fgr {
-    dword raw;
+    u64 raw;
     struct {
         u32 lo:32;
         u32 hi:32;
@@ -565,14 +565,14 @@ typedef union fgr {
 ASSERTDWORD(fgr_t);
 
 typedef struct r4300i {
-    dword gpr[32];
+    u64 gpr[32];
 
-    dword pc;
-    dword next_pc;
-    dword prev_pc;
+    u64 pc;
+    u64 next_pc;
+    u64 prev_pc;
 
-    dword mult_hi;
-    dword mult_lo;
+    u64 mult_hi;
+    u64 mult_lo;
 
     bool llbit;
 
@@ -601,10 +601,10 @@ extern r4300i_t n64cpu;
 
 typedef void(*mipsinstr_handler_t)(mips_instruction_t);
 
-void on_tlb_exception(dword address);
+void on_tlb_exception(u64 address);
 void r4300i_step();
-void r4300i_handle_exception(dword pc, u32 code, int coprocessor_error);
-mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr);
+void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error);
+mipsinstr_handler_t r4300i_instruction_decode(u64 pc, mips_instruction_t instr);
 void r4300i_interrupt_update();
 bool instruction_stable(mips_instruction_t instr);
 
@@ -617,7 +617,7 @@ INLINE void set_pc_word_r4300i(u32 new_pc) {
     N64CPU.next_pc = N64CPU.pc + 4;
 }
 
-INLINE void set_pc_dword_r4300i(dword new_pc) {
+INLINE void set_pc_dword_r4300i(u64 new_pc) {
     N64CPU.prev_pc = N64CPU.pc;
     N64CPU.pc = new_pc;
     N64CPU.next_pc = N64CPU.pc + 4;

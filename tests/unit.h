@@ -14,34 +14,34 @@ static int tests_failed = 0;
     printf(message "\n" COLOR_END, ##__VA_ARGS__);}
 
 typedef struct {
-    dword input;
+    u64 input;
     u16 immediate;
-    dword output;
+    u64 output;
 } case_instr_1_1_imm;
 
 typedef struct {
-    dword r1;
-    dword r2;
-    dword output;
+    u64 r1;
+    u64 r2;
+    u64 output;
 } case_instr_2_1;
 
 typedef struct {
-    dword r1;
-    dword r2;
+    u64 r1;
+    u64 r2;
     bool taken;
 } case_branch_instr;
 
 typedef struct {
-    dword input;
+    u64 input;
     u8 sa;
-    dword output;
+    u64 output;
 } case_sa_instr;
 
 typedef struct {
-    dword r1;
-    dword r2;
-    dword lo;
-    dword hi;
+    u64 r1;
+    u64 r2;
+    u64 lo;
+    u64 hi;
 } case_lohi_instr;
 
 
@@ -59,7 +59,7 @@ void test_instr_1_1_imm(case_instr_1_1_imm test_case, mipsinstr_handler_t instr,
 
     instr(i);
 
-    dword actual = get_register(routput);
+    u64 actual = get_register(routput);
 
     if (actual != test_case.output) {
         failed("%s: r%d, (r%d)%ld, %d | Expected: %ld but got %ld", instr_name, routput, rinput, test_case.input, test_case.immediate, test_case.output, actual)
@@ -85,7 +85,7 @@ void test_instr_2_1(case_instr_2_1 test_case, mipsinstr_handler_t instr, const c
 
     instr(i);
 
-    dword actual = get_register(routput);
+    u64 actual = get_register(routput);
 
     if (actual != test_case.output) {
         failed("%s: r%d, (r%d)%ld, (r%d)%ld | Expected: %ld but got %ld", instr_name, routput, rinput1, test_case.r1, rinput2, test_case.r2, test_case.output, actual)
@@ -135,8 +135,8 @@ void test_instr_sa(case_sa_instr test_case, mipsinstr_handler_t instr, const cha
 
     instr(i);
 
-    dword actual = get_register(routput);
-    dword expected = test_case.output;
+    u64 actual = get_register(routput);
+    u64 expected = test_case.output;
 
     if (expected != actual) {
         failed("%s: (r%d)0x%016lX, 0x%02X | Expected: 0x%016lX but got 0x%016lX", instr_name, rinput, test_case.input, test_case.sa, expected, actual)
@@ -159,11 +159,11 @@ void test_instr_lohi(case_lohi_instr test_case, mipsinstr_handler_t instr, const
 
     instr(i);
 
-    dword expected_lo = test_case.lo;
-    dword expected_hi = test_case.hi;
+    u64 expected_lo = test_case.lo;
+    u64 expected_hi = test_case.hi;
 
-    dword actual_lo = N64CPU.mult_lo;
-    dword actual_hi = N64CPU.mult_hi;
+    u64 actual_lo = N64CPU.mult_lo;
+    u64 actual_hi = N64CPU.mult_hi;
 
     if (expected_lo != actual_lo) {
         failed("%s: (r%d)0x%016lX, (r%d)0x%016lX | LO Expected: 0x%016lX but got 0x%016lX", instr_name, r1, test_case.r1, r2, test_case.r2, expected_lo, actual_lo)

@@ -116,10 +116,10 @@ INLINE size_t safe_cart_byte_index(u32 addr, size_t rom_size) {
 #define RDRAM_WORD(addr) ((u32*)n64sys.mem.rdram)[(WORD_ADDRESS(addr) & (N64_RDRAM_SIZE - 1)) >> 2]
 #define CART_BYTE(addr, rom_size) n64sys.mem.rom.rom[safe_cart_byte_index(addr, rom_size)]
 
-INLINE dword dword_from_byte_array(u8* arr, u32 index) {
+INLINE u64 dword_from_byte_array(u8* arr, u32 index) {
 #ifdef N64_BIG_ENDIAN
-    dword d;
-    memcpy(&d, arr + index, sizeof(dword));
+    u64 d;
+    memcpy(&d, arr + index, sizeof(u64));
     return d;
 #else
     u32 hi;
@@ -128,7 +128,7 @@ INLINE dword dword_from_byte_array(u8* arr, u32 index) {
     u32 lo;
     memcpy(&lo, arr + index + sizeof(u32), sizeof(u32));
 
-    dword d = ((dword)hi << 32) | lo;
+    u64 d = ((u64)hi << 32) | lo;
     return d;
 #endif
 }
@@ -145,9 +145,9 @@ INLINE u16 half_from_byte_array(u8* arr, u32 index) {
     return h;
 }
 
-INLINE void dword_to_byte_array(u8* arr, u32 index, dword value) {
+INLINE void dword_to_byte_array(u8* arr, u32 index, u64 value) {
 #ifdef N64_BIG_ENDIAN
-    memcpy(arr + index, &value, sizeof(dword));
+    memcpy(arr + index, &value, sizeof(u64));
 #else
     u32 lo = value & 0xFFFFFFFF;
     value >>= 32;

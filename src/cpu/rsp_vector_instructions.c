@@ -174,7 +174,7 @@ u32 rcp(s32 sinput) {
     }
 
     u32 shift = CLZ(input);
-    dword dinput = (dword)input;
+    u64 dinput = (u64)input;
     u32 index = ((dinput << shift) & 0x7FC00000) >> 22;
 
     s32 result = rcp_rom[index];
@@ -931,7 +931,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
         s32 prod = multiplicand1 * multiplicand2;
         word uprod = prod;
 
-        dword acc_delta = (dword)uprod << 16;
+        u64 acc_delta = (u64)uprod << 16;
         s64 acc = get_rsp_accumulator(e) + acc_delta;
         set_rsp_accumulator(e, acc);
         acc = get_rsp_accumulator(e);
@@ -949,12 +949,12 @@ RSP_VECTOR_INSTR(rsp_vec_vmadl) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        dword multiplicand1 = vte.elements[e];
-        dword multiplicand2 = vs->elements[e];
-        dword prod = multiplicand1 * multiplicand2;
+        u64 multiplicand1 = vte.elements[e];
+        u64 multiplicand2 = vs->elements[e];
+        u64 prod = multiplicand1 * multiplicand2;
 
-        dword acc_delta = prod >> 16;
-        dword acc = get_rsp_accumulator(e) + acc_delta;
+        u64 acc_delta = prod >> 16;
+        u64 acc = get_rsp_accumulator(e) + acc_delta;
 
         set_rsp_accumulator(e, acc);
         u16 result;
@@ -1153,11 +1153,11 @@ RSP_VECTOR_INSTR(rsp_vec_vmudl) {
     defvd;
     defvte;
     for (int e = 0; e < 8; e++) {
-        dword multiplicand1 = vte.elements[e];
-        dword multiplicand2 = vs->elements[e];
-        dword prod = multiplicand1 * multiplicand2;
+        u64 multiplicand1 = vte.elements[e];
+        u64 multiplicand2 = vs->elements[e];
+        u64 prod = multiplicand1 * multiplicand2;
 
-        dword acc = prod >> 16;
+        u64 acc = prod >> 16;
 
         set_rsp_accumulator(e, acc);
         u16 result;

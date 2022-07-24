@@ -50,7 +50,7 @@ const char* cp0_register_names[] = {
 
 r4300i_t n64cpu;
 
-INLINE bool is_xtlb(dword address) {
+INLINE bool is_xtlb(u64 address) {
     u8 region = (address >> 62) & 3;
     switch (region) {
         case 0b00: // user
@@ -65,7 +65,7 @@ INLINE bool is_xtlb(dword address) {
 }
 
 // pc = pc of the instruction where execution was when the exception was thrown
-void r4300i_handle_exception(dword pc, u32 code, int coprocessor_error) {
+void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error) {
     bool old_exl = N64CP0.status.exl; // used for TLB exceptions since exl is overwritten later
     loginfo("Exception thrown! Code: %d Coprocessor: %d bd: %d old_exl: %d", code, coprocessor_error, N64CPU.prev_branch, old_exl);
 
@@ -129,7 +129,7 @@ void r4300i_handle_exception(dword pc, u32 code, int coprocessor_error) {
     loginfo("Exception handled, PC is now %016lX", N64CPU.pc);
 }
 
-INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_cp0_decode(u64 pc, mips_instruction_t instr) {
     if (instr.last11 == 0) {
         switch (instr.r.rs) {
             case COP_MF:
@@ -171,7 +171,7 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(dword pc, mips_instruction_t instr)
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
@@ -520,7 +520,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(dword pc, mips_instruction_t instr)
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
 }
 
-INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_special_decode(u64 pc, mips_instruction_t instr) {
     switch (instr.r.funct) {
         case FUNCT_SLL:     return mips_spc_sll;
         case FUNCT_SRL:     return mips_spc_srl;
@@ -583,7 +583,7 @@ INLINE mipsinstr_handler_t r4300i_special_decode(dword pc, mips_instruction_t in
     }
 }
 
-INLINE mipsinstr_handler_t r4300i_regimm_decode(dword pc, mips_instruction_t instr) {
+INLINE mipsinstr_handler_t r4300i_regimm_decode(u64 pc, mips_instruction_t instr) {
     switch (instr.i.rt) {
         case RT_BLTZ:    return mips_ri_bltz;
         case RT_BLTZL:   return mips_ri_bltzl;
@@ -607,7 +607,7 @@ INLINE mipsinstr_handler_t r4300i_regimm_decode(dword pc, mips_instruction_t ins
     }
 }
 
-mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr) {
+mipsinstr_handler_t r4300i_instruction_decode(u64 pc, mips_instruction_t instr) {
 #ifdef LOG_ENABLED
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
@@ -688,9 +688,9 @@ mipsinstr_handler_t r4300i_instruction_decode(dword pc, mips_instruction_t instr
     }
 }
 
-void on_tlb_exception(dword address) {
-    dword vpn2 = address >> 13 & 0x7FFFF;
-    dword xvpn2 = address >> 13 & 0x7FFFFFF;
+void on_tlb_exception(u64 address) {
+    u64 vpn2 = address >> 13 & 0x7FFFF;
+    u64 xvpn2 = address >> 13 & 0x7FFFFFF;
     N64CP0.bad_vaddr = address;
     N64CP0.context.badvpn2 = vpn2;
     N64CP0.x_context.badvpn2 = xvpn2;
@@ -703,9 +703,9 @@ void on_tlb_exception(dword address) {
 void r4300i_step() {
     N64CPU.cp0.count += CYCLES_PER_INSTR;
     N64CPU.cp0.count &= 0x1FFFFFFFF;
-    if (unlikely(N64CPU.cp0.count == (dword)N64CPU.cp0.compare << 1)) {
+    if (unlikely(N64CPU.cp0.count == (u64)N64CPU.cp0.compare << 1)) {
         N64CPU.cp0.cause.ip7 = true;
-        loginfo("Compare interrupt! count = 0x%09lX compare << 1 = 0x%09lX", N64CP0.count, (dword)N64CP0.compare << 1);
+        loginfo("Compare interrupt! count = 0x%09lX compare << 1 = 0x%09lX", N64CP0.count, (u64)N64CP0.compare << 1);
         r4300i_interrupt_update();
     }
 
@@ -720,7 +720,7 @@ void r4300i_step() {
     N64CPU.prev_branch = N64CPU.branch;
     N64CPU.branch = false;
 
-    dword pc = N64CPU.pc;
+    u64 pc = N64CPU.pc;
     u32 physical_pc;
     if (!resolve_virtual_address(pc, BUS_LOAD, &physical_pc)) {
         // tlb exception

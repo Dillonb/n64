@@ -1540,17 +1540,17 @@ void post_branch_likely(dasm_State** Dst, int block_length) {
     |2:
 }
 
-void flush_prev_pc(dasm_State** Dst, dword prev_pc) {
+void flush_prev_pc(dasm_State** Dst, u64 prev_pc) {
     | mov rax, prev_pc
     | mov cpu_state->prev_pc, rax
 }
 
-void flush_pc(dasm_State** Dst, dword pc) {
+void flush_pc(dasm_State** Dst, u64 pc) {
     | mov rax, pc
     | mov cpu_state->pc, rax
 }
 
-void flush_next_pc(dasm_State** Dst, dword next_pc) {
+void flush_next_pc(dasm_State** Dst, u64 next_pc) {
     | mov rax, next_pc
     | mov cpu_state->next_pc, rax
 }

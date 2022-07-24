@@ -16,8 +16,8 @@ typedef struct rsp_dynarec_block {
 
 typedef struct rsp_dynarec {
     u8* codecache;
-    dword codecache_size;
-    dword codecache_used;
+    u64 codecache_size;
+    u64 codecache_used;
 
     rsp_dynarec_block_t blockcache[RSP_BLOCKCACHE_SIZE];
 } rsp_dynarec_t;

@@ -11,7 +11,7 @@ typedef struct n64_header {
     u32 release;
     u32 crc1;
     u32 crc2;
-    dword unknown;
+    u64 unknown;
     char image_name[20];
     u32 unknown2;
     u32 manufacturer_id;

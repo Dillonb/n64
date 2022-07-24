@@ -3,14 +3,14 @@
 
 #include "r4300i.h"
 
-INLINE void set_register(u8 r, dword value) {
+INLINE void set_register(u8 r, u64 value) {
     logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
     N64CPU.gpr[r] = value;
     N64CPU.gpr[0] = 0;
 }
 
-INLINE dword get_register(u8 r) {
-    dword value = N64CPU.gpr[r];
+INLINE u64 get_register(u8 r) {
+    u64 value = N64CPU.gpr[r];
     logtrace("Reading $%s (r%d): 0x%016lX", register_names[r], r, value);
     return value;
 }
@@ -43,7 +43,7 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
         case R4300I_CP0_REG_RANDOM:
             break;
         case R4300I_CP0_REG_COUNT:
-            N64CPU.cp0.count = (dword)value << 1;
+            N64CPU.cp0.count = (u64)value << 1;
             break;
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
@@ -141,7 +141,7 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
 }
 
 INLINE u32 get_cp0_count() {
-    dword shifted = N64CPU.cp0.count >> 1;
+    u64 shifted = N64CPU.cp0.count >> 1;
     return (u32)shifted;
 }
 
@@ -236,7 +236,7 @@ INLINE u32 get_cp0_register_word(u8 r) {
     }
 }
 
-INLINE void set_cp0_register_dword(u8 r, dword value) {
+INLINE void set_cp0_register_dword(u8 r, u64 value) {
     N64CP0.open_bus = value;
     switch (r) {
         case R4300I_CP0_REG_INDEX:
@@ -321,7 +321,7 @@ INLINE void set_cp0_register_dword(u8 r, dword value) {
     }
 }
 
-INLINE dword get_cp0_register_dword(u8 r) {
+INLINE u64 get_cp0_register_dword(u8 r) {
     switch (r) {
         case R4300I_CP0_REG_INDEX:
             logfatal("Reading CP0 register R4300I_CP0_REG_INDEX as dword!");
@@ -392,7 +392,7 @@ INLINE dword get_cp0_register_dword(u8 r) {
     }
 }
 
-INLINE void set_fpu_register_dword(u8 r, dword value) {
+INLINE void set_fpu_register_dword(u8 r, u64 value) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
@@ -401,7 +401,7 @@ INLINE void set_fpu_register_dword(u8 r, dword value) {
     N64CPU.f[r].raw = value;
 }
 
-INLINE dword get_fpu_register_dword(u8 r) {
+INLINE u64 get_fpu_register_dword(u8 r) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
@@ -435,17 +435,17 @@ INLINE u32 get_fpu_register_word(u8 r) {
 }
 
 INLINE void set_fpu_register_double(u8 r, double value) {
-    _Static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
+    _Static_assert(sizeof(double) == sizeof(u64), "double and dword need to both be 64 bits for this to work.");
 
-    dword rawvalue;
+    u64 rawvalue;
     memcpy(&rawvalue, &value, sizeof(double));
     set_fpu_register_dword(r, rawvalue);
 }
 
 INLINE double get_fpu_register_double(u8 r) {
-    _Static_assert(sizeof(double) == sizeof(dword), "double and dword need to both be 64 bits for this to work.");
+    _Static_assert(sizeof(double) == sizeof(u64), "double and dword need to both be 64 bits for this to work.");
     double doublevalue;
-    dword rawvalue = get_fpu_register_dword(r);
+    u64 rawvalue = get_fpu_register_dword(r);
     memcpy(&doublevalue, &rawvalue, sizeof(double));
     return doublevalue;
 }
@@ -467,11 +467,11 @@ INLINE float get_fpu_register_float(u8 r) {
 }
 
 INLINE void link(int reg) {
-    dword pc = N64CPU.pc + 4;
+    u64 pc = N64CPU.pc + 4;
     set_register(reg, pc); // Skips the instruction in the delay slot on return
 }
 
-INLINE void branch_abs(dword address) {
+INLINE void branch_abs(u64 address) {
     N64CPU.next_pc = address;
     N64CPU.branch = true;
 }

@@ -5,8 +5,8 @@
 #include <system/n64system.h>
 #include "addresses.h"
 
-tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number);
-bool tlb_probe(dword vaddr, bus_access_t bus_access, u32* paddr, int* entry_number);
+tlb_entry_t* find_tlb_entry(u64 vaddr, int* entry_number);
+bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number);
 
 #define REGION_XKUSEG 0x0000000000000000 ... 0x000000FFFFFFFFFF
 #define REGION_XBAD1  0x0000010000000000 ... 0x3FFFFFFFFFFFFFFF
@@ -63,7 +63,7 @@ INLINE bool resolve_virtual_address_user_32bit(u32 address, bus_access_t bus_acc
     }
 }
 
-INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access, u32* physical) {
+INLINE bool resolve_virtual_address_64bit(u64 address, bus_access_t bus_access, u32* physical) {
     switch (address) {
         case REGION_XKUSEG:
             return tlb_probe(address, bus_access, physical, NULL);
@@ -121,7 +121,7 @@ INLINE bool resolve_virtual_address_64bit(dword address, bus_access_t bus_access
     return true;
 }
 
-INLINE bool resolve_virtual_address_user_64bit(dword address, bus_access_t bus_access, u32* physical) {
+INLINE bool resolve_virtual_address_user_64bit(u64 address, bus_access_t bus_access, u32* physical) {
     switch (address) {
         case REGION_XKUSEG:
             return tlb_probe(address, bus_access, physical, NULL);
@@ -131,7 +131,7 @@ INLINE bool resolve_virtual_address_user_64bit(dword address, bus_access_t bus_a
     }
 }
 
-INLINE bool resolve_virtual_address(dword virtual, bus_access_t bus_access, u32* physical) {
+INLINE bool resolve_virtual_address(u64 virtual, bus_access_t bus_access, u32* physical) {
     if (unlikely(N64CP0.is_64bit_addressing)) {
         if (likely(N64CP0.kernel_mode)) {
             return resolve_virtual_address_64bit(virtual, bus_access, physical);
@@ -155,7 +155,7 @@ INLINE bool resolve_virtual_address(dword virtual, bus_access_t bus_access, u32*
     }
 }
 
-INLINE u32 resolve_virtual_address_or_die(dword virtual, bus_access_t bus_access) {
+INLINE u32 resolve_virtual_address_or_die(u64 virtual, bus_access_t bus_access) {
     u32 physical;
     if (!resolve_virtual_address(virtual, bus_access, &physical)) {
         logfatal("Unhandled TLB exception at 0x%016lX! Stop calling resolve_virtual_address_or_die() here!", virtual);
@@ -163,8 +163,8 @@ INLINE u32 resolve_virtual_address_or_die(dword virtual, bus_access_t bus_access
     return physical;
 }
 
-void n64_write_physical_dword(u32 address, dword value);
-dword n64_read_physical_dword(u32 address);
+void n64_write_physical_dword(u32 address, u64 value);
+u64 n64_read_physical_dword(u32 address);
 
 void n64_write_physical_word(u32 address, u32 value);
 u32 n64_read_physical_word(u32 address);
@@ -175,14 +175,14 @@ u16 n64_read_physical_half(u32 address);
 void n64_write_physical_byte(u32 address, u8 value);
 u8 n64_read_physical_byte(u32 address);
 
-INLINE void n64_write_word(dword address, u32 value) {
+INLINE void n64_write_word(u64 address, u32 value) {
     n64_write_physical_word(resolve_virtual_address_or_die(address, true), value);
 }
 
-INLINE u32 n64_read_word(dword address) {
+INLINE u32 n64_read_word(u64 address) {
     return n64_read_physical_word(resolve_virtual_address_or_die(address, false));
 }
-INLINE u8 n64_read_byte(dword address) {
+INLINE u8 n64_read_byte(u64 address) {
     return n64_read_physical_byte(resolve_virtual_address_or_die(address, false));
 }
 

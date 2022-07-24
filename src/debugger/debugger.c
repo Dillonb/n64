@@ -210,7 +210,7 @@ ssize_t n64_debug_get_general_registers(void* user_data, char * buffer, size_t b
         if (ofs + 16 > buffer_length) {
             logfatal("Too big!");
         }
-        dword reg = N64CPU.gpr[i];
+        u64 reg = N64CPU.gpr[i];
         printed += snprintf(buffer + ofs, buffer_length - ofs, "%016lx", reg);
     }
     return printed;

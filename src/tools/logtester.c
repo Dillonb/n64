@@ -284,9 +284,9 @@ void check_cpu_log(FILE* fp) {
         loginfo_nonewline("Checking log line %ld | %s", line + 1, regline);
         char* tok = strtok(regline, " ");
         for (int r = 0; r < 32; r++) {
-            dword expected = strtol(tok, NULL, 16);
+            u64 expected = strtol(tok, NULL, 16);
             tok = strtok(NULL, " ");
-            dword actual = N64CPU.gpr[r] & 0xFFFFFFFF;
+            u64 actual = N64CPU.gpr[r] & 0xFFFFFFFF;
             if (expected != actual) {
                 logwarn("Failed running line: %s", lastinstr);
                 logwarn("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual);
@@ -303,7 +303,7 @@ void check_cpu_log(FILE* fp) {
         strcpy(lastinstr, instrline);
 
         tok = strtok(instrline, " ");
-        dword pc = strtol(tok, NULL, 16);
+        u64 pc = strtol(tok, NULL, 16);
         if (pc != N64CPU.pc) {
             logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, N64CPU.pc);
         }
@@ -312,7 +312,7 @@ void check_cpu_log(FILE* fp) {
 }
 
 void cpu_step(r4300i_t* cpu) {
-    dword pc = cpu->pc;
+    u64 pc = cpu->pc;
     mips_instruction_t instruction;
     instruction.raw = n64_read_word(pc);
 
@@ -374,8 +374,8 @@ int run_system_and_check(long taken, char* line, long linenum) {
 
     for (int r = 0; r < 32; r++) {
         tok = strtok(NULL, " ");
-        dword expected = strtoul(tok, NULL, 16);
-        dword actual = N64CPU.gpr[r];
+        u64 expected = strtoul(tok, NULL, 16);
+        u64 actual = N64CPU.gpr[r];
         bool anybad = false;
         if (expected != actual) {
             logalways("RIP! on line %ld, after a block of size %ld, r%d (%s) expected 0x%016lX actual 0x%016lX\n", linenum, taken, r, register_names[r], expected, actual);

@@ -45,7 +45,7 @@ MIPS_INSTR(mips_mfc1) {
 
 MIPS_INSTR(mips_dmfc1) {
     checkcp1;
-    dword value = get_fpu_register_dword(instruction.fr.fs);
+    u64 value = get_fpu_register_dword(instruction.fr.fs);
     set_register(instruction.r.rt, value);
 }
 
@@ -57,7 +57,7 @@ MIPS_INSTR(mips_mtc1) {
 
 MIPS_INSTR(mips_dmtc1) {
     checkcp1;
-    dword value = get_register(instruction.r.rt);
+    u64 value = get_register(instruction.r.rt);
     set_fpu_register_dword(instruction.r.rd, value);
 }
 
@@ -240,7 +240,7 @@ MIPS_INSTR(mips_cp_trunc_l_d) {
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
     checknand(value);
-    dword truncated = trunc(value);
+    u64 truncated = trunc(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
 
@@ -248,7 +248,7 @@ MIPS_INSTR(mips_cp_round_l_d) {
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
     PUSHROUND;
-    dword truncated = nearbyint(value);
+    u64 truncated = nearbyint(value);
     POPROUND;
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -257,7 +257,7 @@ MIPS_INSTR(mips_cp_trunc_l_s) {
     checkcp1;
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
-    dword truncated = truncf(value);
+    u64 truncated = truncf(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
 
@@ -266,7 +266,7 @@ MIPS_INSTR(mips_cp_round_l_s) {
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     PUSHROUND;
-    dword truncated = nearbyintf(value);
+    u64 truncated = nearbyintf(value);
     POPROUND;
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -731,7 +731,7 @@ MIPS_INSTR(mips_cp_neg_d) {
 MIPS_INSTR(mips_ldc1) {
     checkcp1;
     s16 offset  = instruction.i.immediate;
-    dword address = get_register(instruction.i.rs) + offset;
+    u64 address = get_register(instruction.i.rs) + offset;
     if (address & 0b111) {
         logfatal("Address error exception: misaligned dword read!");
     }
@@ -741,7 +741,7 @@ MIPS_INSTR(mips_ldc1) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        dword value = n64_read_physical_dword(physical);
+        u64 value = n64_read_physical_dword(physical);
         set_fpu_register_dword(instruction.i.rt, value);
     }
 }
@@ -749,8 +749,8 @@ MIPS_INSTR(mips_ldc1) {
 MIPS_INSTR(mips_sdc1) {
     checkcp1;
     s16 offset  = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
-    dword value   = get_fpu_register_dword(instruction.fi.ft);
+    u64 address = get_register(instruction.fi.base) + offset;
+    u64 value   = get_fpu_register_dword(instruction.fi.ft);
 
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
@@ -764,7 +764,7 @@ MIPS_INSTR(mips_sdc1) {
 MIPS_INSTR(mips_lwc1) {
     checkcp1;
     s16 offset  = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
 
     u32 physical;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
@@ -779,7 +779,7 @@ MIPS_INSTR(mips_lwc1) {
 MIPS_INSTR(mips_swc1) {
     checkcp1;
     s16 offset  = instruction.fi.offset;
-    dword address = get_register(instruction.fi.base) + offset;
+    u64 address = get_register(instruction.fi.base) + offset;
     u32 value    = get_fpu_register_word(instruction.fi.ft);
 
     n64_write_word(address, value);

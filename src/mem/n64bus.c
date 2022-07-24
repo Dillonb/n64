@@ -14,11 +14,11 @@
 #include "mem_util.h"
 #include "backup.h"
 
-dword get_vpn(dword address, u32 page_mask_raw) {
-    dword tmp = page_mask_raw | 0x1FFF;
+u64 get_vpn(u64 address, u32 page_mask_raw) {
+    u64 tmp = page_mask_raw | 0x1FFF;
     // bits 40 and 41: bits 62 and 63 of the address, the "region"
     // bits 0 - 39: the low 40 bits of the address, the actual location being accessed.
-    dword vpn = address & 0xFFFFFFFFFF | ((address >> 22) & 0x30000000000);
+    u64 vpn = address & 0xFFFFFFFFFF | ((address >> 22) & 0x30000000000);
 
     // This function is also called for entry_hi, the low 8 bits of which are the ASID
     // this is fine, this mask will take care of that.
@@ -27,7 +27,7 @@ dword get_vpn(dword address, u32 page_mask_raw) {
 }
 
 /* Keeping this in case I need it again
-void dump_tlb(dword vaddr) {
+void dump_tlb(u64 vaddr) {
     printf("TLB error at address %016lX and PC %016lX, dumping TLB state:\n\n", vaddr, N64CPU.pc);
     printf("   entry VPN  vaddr VPN  page size  lo0 valid  lo1 valid\n");
     for (int i = 0; i < 32; i++) {
@@ -42,12 +42,12 @@ void dump_tlb(dword vaddr) {
 }
 */
 
-tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number) {
+tlb_entry_t* find_tlb_entry(u64 vaddr, int* entry_number) {
     for (int i = 0; i < 32; i++) {
         tlb_entry_t *entry = &N64CP0.tlb[i];
         if (entry->initialized) {
-            dword entry_vpn = get_vpn(entry->entry_hi.raw, entry->page_mask.raw);
-            dword vaddr_vpn = get_vpn(vaddr, entry->page_mask.raw);
+            u64 entry_vpn = get_vpn(entry->entry_hi.raw, entry->page_mask.raw);
+            u64 vaddr_vpn = get_vpn(vaddr, entry->page_mask.raw);
 
             bool vpn_match = entry_vpn == vaddr_vpn;
             bool asid_match = entry->global || (N64CP0.entry_hi.asid == entry->entry_hi.asid);
@@ -63,7 +63,7 @@ tlb_entry_t* find_tlb_entry(dword vaddr, int* entry_number) {
     return NULL;
 }
 
-bool tlb_probe(dword vaddr, bus_access_t bus_access, u32* paddr, int* entry_number) {
+bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number) {
     tlb_entry_t* entry = find_tlb_entry(vaddr, entry_number);
     if (!entry) {
         N64CP0.tlb_error = TLB_ERROR_MISS;
@@ -282,7 +282,7 @@ u32 read_unused(u32 address) {
     return 0;
 }
 
-void n64_write_physical_dword(u32 address, dword value) {
+void n64_write_physical_dword(u32 address, u64 value) {
     if (address & 0b111) {
         logfatal("Tried to write to unaligned DWORD");
     }
@@ -362,7 +362,7 @@ void n64_write_physical_dword(u32 address, dword value) {
     }
 }
 
-dword n64_read_physical_dword(u32 address) {
+u64 n64_read_physical_dword(u32 address) {
     if (address & 0b111) {
         logfatal("Tried to load from unaligned DWORD");
     }
