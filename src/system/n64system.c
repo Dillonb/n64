@@ -46,6 +46,7 @@ bool n64_should_quit() {
 void n64_load_rom(const char* rom_path) {
     logalways("Loading %s", rom_path);
     load_n64rom(&n64sys.mem.rom, rom_path);
+    n64sys.target_fps = n64sys.mem.rom.pal ? 50 : 60;
     gamedb_match(&n64sys);
     devices_init(n64sys.mem.save_type);
     init_savedata(&n64sys.mem, rom_path);

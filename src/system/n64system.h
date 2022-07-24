@@ -13,7 +13,7 @@ extern "C" {
 #include <rdp/softrdp.h>
 
 #define CPU_HERTZ 93750000
-#define CPU_CYCLES_PER_FRAME (CPU_HERTZ / 60)
+#define CPU_CYCLES_PER_FRAME (CPU_HERTZ / n64sys.target_fps)
 #define CYCLES_PER_INSTR 1
 
 // The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
@@ -195,6 +195,7 @@ typedef struct n64_system {
     bool use_interpreter;
     char rom_path[PATH_MAX];
     n64_action_t action_queued;
+    unsigned target_fps;
 } n64_system_t;
 
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter);
@@ -213,7 +214,7 @@ void check_vsync();
 void n64_queue_action(n64_action_t action);
 extern n64_system_t n64sys;
 #define N64DYNAREC n64sys.dynarec
-#define PIF_ROM_PATH (is_rom_pal(&n64sys.mem.rom) ? "pif.pal.rom" : "pif.rom")
+#define PIF_ROM_PATH (n64sys.mem.rom.pal ? "pif.pal.rom" : "pif.rom")
 bool file_exists(const char* path);
 #ifdef __cplusplus
 }

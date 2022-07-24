@@ -40,10 +40,9 @@ typedef struct n64_rom {
     char game_name_cartridge[20];
     const char* game_name_db;
     char code[4];
+    bool pal;
 } n64_rom_t;
 
 void load_n64rom(n64_rom_t* rom, const char* path);
-
-bool is_rom_pal(n64_rom_t* rom);
 
 #endif //N64_N64ROM_H
