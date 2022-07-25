@@ -43,4 +43,18 @@ typedef int64_t s64;
 #define PATH_MAX 0x1000
 #endif
 
+
+INLINE int clz32(u32 val) {
+    return __builtin_clz(val);
+}
+
+INLINE u32 npow2(u32 x) {
+    if (x <= 1) {
+        return 1;
+    }
+
+    return 1u << (32 - __builtin_clz(x - 1));
+}
+
+
 #endif

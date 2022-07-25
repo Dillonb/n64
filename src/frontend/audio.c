@@ -2,7 +2,7 @@
 #include <SDL_audio.h>
 #include <metrics.h>
 #include <samplerate.h>
-#include <ring_buffer.h>
+#include <fifo.h>
 
 static_assert(sizeof(float) == 4, "float must be 32 bits");
 #define S16_TO_F32(x) ((float)(x) / (float)32768)
@@ -11,7 +11,7 @@ static_assert(sizeof(float) == 4, "float must be 32 bits");
 #define HOST_SAMPLE_FORMAT AUDIO_F32SYS
 #define HOST_SAMPLE_SIZE sizeof(float)
 //#define HOST_BUFFER_SIZE ((HOST_SAMPLE_RATE) / 2)
-#define HOST_BUFFER_SIZE 16384
+#define HOST_BUFFER_SIZE 32768
 
 #define GUEST_SAMPLE_SIZE sizeof(float)
 
@@ -37,22 +37,27 @@ float guest_sample_buffer[GUEST_BUFFER_SIZE];
 #define TEMP_RESAMPLED_BUFFER_FRAMES (HOST_SAMPLE_RATE / AUDIO_CHANNELS)
 float temp_resampled_buffer[TEMP_RESAMPLED_BUFFER_SIZE];
 unsigned idx_guest_sample_buffer = 0;
-ring_buffer_t host_sample_buffer;
+struct fifo* host_sample_buffer;
 
 SRC_STATE* resampler;
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 void audio_callback(void* userdata, Uint8* stream, int length) {
-    set_metric(METRIC_AUDIOSTREAM_AVAILABLE, host_sample_buffer.size);
-    float* f_stream = (float*)stream;
-    for (int i = 0; i < length; i += HOST_SAMPLE_SIZE) {
-        float sample = ring_buffer_pop(&host_sample_buffer);
-        *f_stream++ = sample;
+    int avail = fifo_read_available(host_sample_buffer);
+    set_metric(METRIC_AUDIOSTREAM_AVAILABLE, avail);
+
+    int to_read = MIN(length, avail);
+    fifo_read(host_sample_buffer, stream, to_read);
+
+    if (avail < length) {
+        memset(stream + avail, 0, length - avail);
     }
 }
 
 void audio_init() {
     memset(temp_resampled_buffer, 0, TEMP_RESAMPLED_BUFFER_SIZE * HOST_SAMPLE_SIZE);
-    ring_buffer_init(&host_sample_buffer, HOST_BUFFER_SIZE);
+    host_sample_buffer = fifo_create(HOST_BUFFER_SIZE);
     adjust_audio_sample_rate(HOST_SAMPLE_RATE);
     memset(&request, 0, sizeof(request));
 
@@ -98,9 +103,16 @@ void flush_guest_buffer() {
         logalways("Error resampling! %s", src_strerror(error));
     } else {
         loginfo("Input frames: %ld Input frames used: %ld Output frames: %ld", resampler_data.input_frames, resampler_data.input_frames_used, resampler_data.output_frames_gen);
-        for (int i = 0; i < resampler_data.output_frames_gen * AUDIO_CHANNELS; i++) {
-            ring_buffer_push_blocking(&host_sample_buffer, temp_resampled_buffer[i]);
+
+        long buf_size = resampler_data.output_frames_gen * AUDIO_CHANNELS * HOST_SAMPLE_SIZE;
+        while (true) {
+            int remaining = fifo_write_remaining(host_sample_buffer);
+            if (remaining < buf_size) {
+                continue;
+            }
+            break;
         }
+        fifo_write(host_sample_buffer, temp_resampled_buffer, resampler_data.output_frames_gen * AUDIO_CHANNELS * HOST_SAMPLE_SIZE);
     }
 
     idx_guest_sample_buffer = 0;

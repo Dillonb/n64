@@ -38,21 +38,6 @@ INLINE bool is_sign_extension(s16 high, s16 low) {
     return false;
 }
 
-INLINE int CLZ(u32 value) {
-//#if __has_builtin (__builtin_clz)
-    return __builtin_clz(value);
-    /*
-#else
-    int leading_zeroes = 0;
-    for (int i = 0; i < 32 && (value & 0x80000000) == 0; i++) {
-        leading_zeroes++;
-        value <<= 1;
-    }
-    return leading_zeroes;
-#endif
-     */
-}
-
 #ifndef N64_USE_SIMD
 INLINE vu_reg_t broadcast(vu_reg_t* vt, int lane0, int lane1, int lane2, int lane3, int lane4, int lane5, int lane6, int lane7) {
     vu_reg_t vte;
@@ -173,7 +158,7 @@ u32 rcp(s32 sinput) {
         return 0xFFFF0000;
     }
 
-    u32 shift = CLZ(input);
+    u32 shift = clz32(input);
     u64 dinput = (u64)input;
     u32 index = ((dinput << shift) & 0x7FC00000) >> 22;
 
@@ -191,7 +176,7 @@ u32 rsq(s32 sinput) {
     }
 
     u32 input = abs(sinput);
-    int lshift = CLZ(input) + 1;
+    int lshift = clz32(input) + 1;
     int rshift = (32 - lshift) >> 1; // Shifted by 1 instead of 0
     int index = (input << lshift) >> 24; // Shifted by 24 instead of 23
 
