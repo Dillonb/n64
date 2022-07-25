@@ -105,14 +105,19 @@ void flush_guest_buffer() {
         loginfo("Input frames: %ld Input frames used: %ld Output frames: %ld", resampler_data.input_frames, resampler_data.input_frames_used, resampler_data.output_frames_gen);
 
         long buf_size = resampler_data.output_frames_gen * AUDIO_CHANNELS * HOST_SAMPLE_SIZE;
-        while (true) {
-            int remaining = fifo_write_remaining(host_sample_buffer);
-            if (remaining < buf_size) {
+        // Bytes remaining to be written to the FIFO
+        long bytes_remaining = buf_size;
+        long buf_idx = 0;
+        while (bytes_remaining > 0) {
+            long chunk_size = MIN(1024l * AUDIO_CHANNELS * HOST_SAMPLE_SIZE, bytes_remaining);
+            int fifo_write_avail = fifo_write_remaining(host_sample_buffer);
+            if (fifo_write_avail < chunk_size) {
                 continue;
             }
-            break;
+            fifo_write(host_sample_buffer, ((u8*)temp_resampled_buffer) + buf_idx, chunk_size);
+            buf_idx += chunk_size;
+            bytes_remaining -= chunk_size;
         }
-        fifo_write(host_sample_buffer, temp_resampled_buffer, resampler_data.output_frames_gen * AUDIO_CHANNELS * HOST_SAMPLE_SIZE);
     }
 
     idx_guest_sample_buffer = 0;
