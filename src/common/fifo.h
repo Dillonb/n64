@@ -13,8 +13,8 @@ struct fifo {
     uint8_t *data;
     int size;
     int mask;
-    int head;
-    int tail;
+    _Atomic int head;
+    _Atomic int tail;
 };
 
 void fifo_write(struct fifo *q, const void *buf, int size) {
