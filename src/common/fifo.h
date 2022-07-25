@@ -1,7 +1,12 @@
 #ifndef N64_FIFO_H
 #define N64_FIFO_H
 
+#ifdef N64_WIN
+#define atomic_load(ptr) (*(ptr))
+#define atomic_store(ptr, val) (*(ptr) = val)
+#else
 #include <stdatomic.h>
+#endif
 #include <util.h>
 
 struct fifo {
