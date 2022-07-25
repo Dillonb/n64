@@ -109,7 +109,7 @@ void flush_guest_buffer() {
         long bytes_remaining = buf_size;
         long buf_idx = 0;
         while (bytes_remaining > 0) {
-            long chunk_size = MIN(1024l * AUDIO_CHANNELS * HOST_SAMPLE_SIZE, bytes_remaining);
+            long chunk_size = MIN(FRAMES_PER_REQUEST * AUDIO_CHANNELS * HOST_SAMPLE_SIZE, bytes_remaining);
             int fifo_write_avail = fifo_write_remaining(host_sample_buffer);
             if (fifo_write_avail < chunk_size) {
                 continue;
