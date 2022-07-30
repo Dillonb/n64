@@ -3,6 +3,7 @@
 #include <metrics.h>
 #include <samplerate.h>
 #include <fifo.h>
+#include <rdp/parallel_rdp_wrapper.h>
 
 static_assert(sizeof(float) == 4, "float must be 32 bits");
 #define S16_TO_F32(x) ((float)(x) / (float)32768)
@@ -111,10 +112,14 @@ void flush_guest_buffer() {
         while (bytes_remaining > 0) {
             long chunk_size = MIN(FRAMES_PER_REQUEST * AUDIO_CHANNELS * HOST_SAMPLE_SIZE, bytes_remaining);
             int fifo_write_avail = fifo_write_remaining(host_sample_buffer);
-            if (fifo_write_avail < chunk_size) {
+            bool full = fifo_write_avail < chunk_size;
+            bool sync_to_audio_enabled = !is_framerate_unlocked();
+            if (sync_to_audio_enabled && full) {
                 continue;
             }
-            fifo_write(host_sample_buffer, ((u8*)temp_resampled_buffer) + buf_idx, chunk_size);
+            if (!full) {
+                fifo_write(host_sample_buffer, ((u8*)temp_resampled_buffer) + buf_idx, chunk_size);
+            }
             buf_idx += chunk_size;
             bytes_remaining -= chunk_size;
         }
