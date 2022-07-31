@@ -1,4 +1,5 @@
 #include "audio.h"
+#include "render.h"
 #include <SDL_audio.h>
 #include <metrics.h>
 #include <samplerate.h>

@@ -15,6 +15,7 @@
 #include <mem/mem_util.h>
 #include <cpu/dynarec/dynarec.h>
 #include <frontend/audio.h>
+#include <frontend/render.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;

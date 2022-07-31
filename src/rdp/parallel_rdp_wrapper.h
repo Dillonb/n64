@@ -28,13 +28,13 @@ void init_parallel_rdp();
 
 extern "C" {
 #endif
-    void init_parallel_rdp_internal_swapchain();
-    void update_screen_parallel_rdp();
-    void parallel_rdp_enqueue_command(int command_length, u32* buffer);
-    void parallel_rdp_on_full_sync();
-    void update_screen_parallel_rdp_no_game();
-    bool is_framerate_unlocked();
-    void set_framerate_unlocked(bool unlocked);
+    void prdp_init_internal_swapchain();
+    void prdp_update_screen();
+    void prdp_enqueue_command(int command_length, u32* buffer);
+    void prdp_on_full_sync();
+    void prdp_update_screen_no_game();
+    bool prdp_is_framerate_unlocked();
+    void prdp_set_framerate_unlocked(bool unlocked);
 #ifdef __cplusplus
 };
 #endif

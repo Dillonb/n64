@@ -412,7 +412,7 @@ INLINE void rdram_write16(softrdp_state_t* rdp, uint32_t address, uint16_t value
     memcpy(&rdp->rdram[address ^ 2], &value, sizeof(uint16_t));
 }
 
-void init_softrdp(softrdp_state_t* state, uint8_t* rdramptr) {
+void softrdp_init(softrdp_state_t* state, uint8_t* rdramptr) {
     state->rdram = rdramptr;
 }
 
@@ -724,7 +724,7 @@ DEF_RDP_COMMAND(set_color_image) {
 }
 
 
-void enqueue_command_softrdp(softrdp_state_t* rdp, int command_length, uint64_t* buffer) {
+void softrdp_enqueue_command(softrdp_state_t* rdp, int command_length, uint64_t* buffer) {
     for (int i = 0; i < (command_length >> 1); i++) {
         uint64_t lo = (buffer[i] >>  0) & 0xFFFFFFFF;
         uint64_t hi = (buffer[i] >> 32) & 0xFFFFFFFF;

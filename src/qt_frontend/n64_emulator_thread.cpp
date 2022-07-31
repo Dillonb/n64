@@ -48,7 +48,7 @@ void N64EmulatorThread::start() {
 
         while (!(*_game_loaded)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
-            update_screen_parallel_rdp_no_game();
+            prdp_update_screen_no_game();
         }
 
         n64_system_loop();

@@ -159,9 +159,9 @@ typedef struct softrdp_state {
     uint32_t z_image;
 } softrdp_state_t;
 
-void init_softrdp(softrdp_state_t* state, uint8_t* rdramptr);
+void softrdp_init(softrdp_state_t* state, uint8_t* rdramptr);
 #define full_sync_softrdp() do {} while(0)
-void enqueue_command_softrdp(softrdp_state_t* rdp, int command_length, uint64_t* buffer);
+void softrdp_enqueue_command(softrdp_state_t* rdp, int command_length, uint64_t* buffer);
 #endif
 
 #ifdef __cplusplus

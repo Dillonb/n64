@@ -9,6 +9,7 @@
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
 #include <volk.h>
+#include <rdp/parallel_rdp_wrapper.h>
 
 // prior to 2.0.10, this was anonymous enum
 #if SDL_COMPILEDVERSION <  SDL_VERSIONNUM(2, 0, 10)
@@ -226,5 +227,32 @@ void n64_render_screen() {
             snprintf(sdl_wintitle, sizeof(sdl_wintitle), N64_APP_NAME " [%s] %02d emulator FPS / %02d game FPS", game_name, sdl_fps, game_fps);
         }
         SDL_SetWindowTitle(window, sdl_wintitle);
+    }
+}
+
+bool is_framerate_unlocked() {
+    switch (n64_video_type) {
+        case VULKAN_VIDEO_TYPE:
+        case QT_VULKAN_VIDEO_TYPE:
+            return prdp_is_framerate_unlocked();
+
+        case UNKNOWN_VIDEO_TYPE:
+        case OPENGL_VIDEO_TYPE:
+        case SOFTWARE_VIDEO_TYPE:
+            return false;
+    }
+}
+
+void set_framerate_unlocked(bool unlocked) {
+    switch (n64_video_type) {
+        case VULKAN_VIDEO_TYPE:
+        case QT_VULKAN_VIDEO_TYPE:
+            prdp_set_framerate_unlocked(unlocked);
+            break;
+
+        case UNKNOWN_VIDEO_TYPE:
+        case OPENGL_VIDEO_TYPE:
+        case SOFTWARE_VIDEO_TYPE:
+            break;
     }
 }

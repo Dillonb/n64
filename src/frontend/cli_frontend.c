@@ -96,14 +96,14 @@ int main(int argc, char** argv) {
             rom_path = flags->argv[0];
         }
         init_n64system(rom_path, true, debug, SOFTWARE_VIDEO_TYPE, interpreter);
-        init_softrdp(&n64sys.softrdp_state, (u8*)&n64sys.mem.rdram);
+        softrdp_init(&n64sys.softrdp_state, (u8 *) &n64sys.mem.rdram);
     } else {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {
             rom_path = flags->argv[0];
         }
         init_n64system(rom_path, true, debug, VULKAN_VIDEO_TYPE, interpreter);
-        init_parallel_rdp_internal_swapchain();
+        prdp_init_internal_swapchain();
         load_imgui_ui();
         register_imgui_event_handler(imgui_handle_event);
     }
@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 #endif
     cflags_free(flags);
     while (n64sys.mem.rom.rom == NULL && !n64_should_quit()) {
-        update_screen_parallel_rdp_no_game();
+        prdp_update_screen_no_game();
     }
     n64_system_loop();
     n64_system_cleanup();

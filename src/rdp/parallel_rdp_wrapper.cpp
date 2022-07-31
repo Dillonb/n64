@@ -56,11 +56,11 @@ void submit_requested_vk_command_buffer() {
     wsi->get_device().submit(requested_command_buffer);
 }
 
-bool is_framerate_unlocked() {
+bool prdp_is_framerate_unlocked() {
     return wsi->get_present_mode() != PresentMode::SyncToVBlank;
 }
 
-void set_framerate_unlocked(bool unlocked) {
+void prdp_set_framerate_unlocked(bool unlocked) {
     if (unlocked) {
         wsi->set_present_mode(PresentMode::UnlockedForceTearing);
     } else {
@@ -129,7 +129,7 @@ void init_parallel_rdp() {
     }
 }
 
-void init_parallel_rdp_internal_swapchain() {
+void prdp_init_internal_swapchain() {
     init_vulkan_wsi(new SDLWSIPlatform(), std::make_unique<SDLParallelRdpWindowInfo>());
     init_parallel_rdp();
 }
@@ -208,7 +208,7 @@ void update_screen(Util::IntrusivePtr<Image> image) {
     wsi->end_frame();
 }
 
-void update_screen_parallel_rdp() {
+void prdp_update_screen() {
     if (unlikely(!command_processor)) {
         logfatal("Update screen without an initialized command processor");
     }
@@ -242,14 +242,14 @@ void update_screen_parallel_rdp() {
     command_processor->begin_frame_context();
 }
 
-void update_screen_parallel_rdp_no_game() {
+void prdp_update_screen_no_game() {
     update_screen(static_cast<Util::IntrusivePtr<Image>>(nullptr));
 }
 
-void parallel_rdp_enqueue_command(int command_length, u32* buffer) {
+void prdp_enqueue_command(int command_length, u32* buffer) {
     command_processor->enqueue_command(command_length, buffer);
 }
 
-void parallel_rdp_on_full_sync() {
+void prdp_on_full_sync() {
     command_processor->wait_for_timeline(command_processor->signal_timeline());
 }

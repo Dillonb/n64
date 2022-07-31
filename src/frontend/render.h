@@ -13,6 +13,8 @@ extern int SCREEN_SCALE;
 
 void render_init(n64_video_type_t video_type);
 void n64_render_screen();
+bool is_framerate_unlocked();
+void set_framerate_unlocked(bool unlocked);
 
 #ifdef __cplusplus
 }

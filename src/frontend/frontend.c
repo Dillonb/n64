@@ -1,9 +1,9 @@
 #include "frontend.h"
 #include "device.h"
 #include "gamepad.h"
+#include "render.h"
 
 #include <log.h>
-#include <rdp/parallel_rdp_wrapper.h>
 
 static event_handler_t imgui_event_handler = NULL;
 

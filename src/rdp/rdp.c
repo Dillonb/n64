@@ -235,9 +235,9 @@ INLINE void rdp_enqueue_command(int command_length, u32* buffer) {
             logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:
         case QT_VULKAN_VIDEO_TYPE:
-            parallel_rdp_enqueue_command(command_length, buffer); break;
+            prdp_enqueue_command(command_length, buffer); break;
         case SOFTWARE_VIDEO_TYPE:
-            enqueue_command_softrdp(&n64sys.softrdp_state, command_length, (uint64_t*)buffer); break;
+            softrdp_enqueue_command(&n64sys.softrdp_state, command_length, (uint64_t *) buffer); break;
     }
 }
 
@@ -249,7 +249,7 @@ INLINE void rdp_on_full_sync() {
             logfatal("RDP on full sync with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:
         case QT_VULKAN_VIDEO_TYPE:
-            parallel_rdp_on_full_sync(); break;
+            prdp_on_full_sync(); break;
         case SOFTWARE_VIDEO_TYPE:
             full_sync_softrdp();
             break;
@@ -377,7 +377,7 @@ void rdp_update_screen() {
             break;
         case VULKAN_VIDEO_TYPE:
         case QT_VULKAN_VIDEO_TYPE:
-            update_screen_parallel_rdp();
+            prdp_update_screen();
             break;
         case SOFTWARE_VIDEO_TYPE:
             n64_render_screen();

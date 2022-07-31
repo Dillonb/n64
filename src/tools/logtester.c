@@ -503,7 +503,7 @@ int main(int argc, char** argv) {
         load_rdp_plugin(rdp_plugin_path);
     } else {
         init_n64system(rom, true, false, VULKAN_VIDEO_TYPE, false);
-        init_parallel_rdp_internal_swapchain();
+        prdp_init_internal_swapchain();
     }
     if (pif_rom_path) {
         load_pif_rom(pif_rom_path);
