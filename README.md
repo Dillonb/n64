@@ -40,8 +40,7 @@ You'll need a fast CPU and a modern GPU that supports Vulkan 1.1.
 - Only Linux and Windows are currently supported. MacOS support is not currently possible, since parallel-rdp does not support it.
 - The dynamic recompiler currently only supports x86_64. aarch64 support is planned in the (distant) future.
 - Only little-endian host platforms are planned to be supported.
-- Only gcc and clang will be supported. I unapologetically use extensions like case ranges and binary literals.
-- Only software that uses NTSC video modes is currently supported. PAL games will work, but will run at an incorrect framerate. This is planned to be fixed.
+- Only gcc and clang are supported. I currently use extensions that MSVC does not support, but this is planned to be fixed.
 
 # Building
 For Linux:
