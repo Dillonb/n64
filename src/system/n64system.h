@@ -135,8 +135,6 @@ typedef enum n64_action {
 
 typedef struct n64_system {
     n64_mem_t mem;
-    //r4300i_t cpu;
-    rsp_t rsp;
     n64_video_type_t video_type;
     struct {
         u32 init_mode;
