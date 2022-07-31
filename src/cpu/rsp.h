@@ -145,13 +145,6 @@ INLINE void rsp_dma_read() {
 
     length = (length + 0x7) & ~0x7;
 
-    u32 last_addr = mem_addr_reg.address + length;
-    if (last_addr > 0x1000) {
-        u32 overshoot = last_addr - 0x1000;
-        length -= overshoot;
-        logwarn("RSP DMA READ would read off the end of memory! Truncating DMA (this is probably the wrong behavior)");
-    }
-
     u32 dram_address = dram_addr_reg.address & RSP_DRAM_ADDR_MASK;
     if (dram_address != dram_addr_reg.address) {
         logwarn("Misaligned DRAM RSP DMA READ! (from 0x%08X, aligned to 0x%08X)", dram_addr_reg.address, dram_address);
@@ -174,8 +167,10 @@ INLINE void rsp_dma_read() {
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
 
-        dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
+        dram_address += (length + skip);
+        dram_address &= RSP_DRAM_ADDR_MASK;
         mem_address += length;
+        mem_address &= RSP_MEM_ADDR_MASK;
     }
 
     // Set registers for reading now that DMA is complete
@@ -222,8 +217,10 @@ INLINE void rsp_dma_write() {
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
 
-        dram_address += (length + skip) & RSP_DRAM_ADDR_MASK;
+        dram_address += (length + skip);
+        dram_address &= RSP_DRAM_ADDR_MASK;
         mem_address += length;
+        mem_address &= RSP_MEM_ADDR_MASK;
     }
 
     N64RSP.io.dram_addr.address = dram_address;
