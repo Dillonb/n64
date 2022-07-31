@@ -24,5 +24,6 @@ typedef struct rsp_dynarec {
 
 rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size);
 int rsp_dynarec_step();
+int rsp_missing_block_handler();
 
 #endif //N64_RSP_DYNAREC_H

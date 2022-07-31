@@ -18,7 +18,7 @@ void flush_rsp_code_cache() {
 
     // However, the block cache needs to be fully invalidated.
     for (int i = 0; i < RSP_BLOCKCACHE_SIZE; i++) {
-        N64RSPDYNAREC->blockcache[i].run = NULL;
+        N64RSPDYNAREC->blockcache[i].run = rsp_missing_block_handler;
     }
 }
 

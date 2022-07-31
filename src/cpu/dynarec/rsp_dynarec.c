@@ -128,10 +128,5 @@ rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size) {
 }
 
 int rsp_dynarec_step() {
-    rsp_dynarec_block_t* block = &N64RSPDYNAREC->blockcache[N64RSP.pc & 0x3FF];
-    // temporary...
-    if (block->run == NULL) {
-        block->run = rsp_missing_block_handler;
-    }
-    return block->run(&N64RSP);
+    return N64RSPDYNAREC->blockcache[N64RSP.pc & 0x3FF].run(&N64RSP);
 }
