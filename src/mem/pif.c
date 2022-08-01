@@ -314,7 +314,7 @@ void pif_rom_execute_hle() {
     //N64CP0.count         = 0;
     //N64CP0.entry_hi.raw  = 0;
     //N64CP0.compare       = 0;
-    N64CP0.status.raw    = 0x241000E0;
+    N64CP0.status.raw    = 0x34000000;
     //N64CP0.cause.raw     = 0;
     //N64CP0.EPC           = 0;
     N64CP0.PRId          = 0x00000B22;
