@@ -183,6 +183,9 @@ typedef struct n64_system {
     } si;
     struct {
         bool dma_busy;
+        bool io_busy;
+
+        u32 latch;
     } pi;
     n64_dpc_t dpc;
 #ifndef N64_WIN

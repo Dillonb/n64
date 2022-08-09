@@ -21,7 +21,7 @@ u32 read_word_pireg(u32 address) {
         case ADDR_PI_STATUS_REG: {
             u32 value = 0;
             value |= (n64sys.pi.dma_busy << 0); // Is PI DMA active?
-            value |= (0 << 1); // Is PI IO busy?
+            value |= (n64sys.pi.io_busy << 1); // Is PI IO busy?
             value |= (0 << 2); // PI IO error?
             value |= (n64sys.mi.intr.pi << 3); // PI interrupt?
             return value;
@@ -206,7 +206,248 @@ void write_word_pireg(u32 address, u32 value) {
     }
 }
 
+INLINE bool pi_write_latch(u32 value) {
+    if (n64sys.pi.io_busy) {
+        return false;
+    } else {
+        n64sys.pi.io_busy = true;
+        n64sys.pi.latch = value;
+        scheduler_enqueue_relative(300, SCHEDULER_PI_BUS_WRITE_COMPLETE);
+        return true;
+    }
+}
+
+INLINE bool pi_read_latch() {
+    if (unlikely(n64sys.pi.io_busy)) {
+        // TODO: should block until the scheduler event is triggered.
+        n64sys.pi.io_busy = false;
+        scheduler_remove_event(SCHEDULER_PI_BUS_WRITE_COMPLETE);
+        return false;
+    }
+    return true;
+}
+
+void write_byte_pibus(u32 address, u8 value) {
+    if (!pi_write_latch(value << 24)) {
+        return; // Couldn't latch, ignore the write.
+    }
+    switch (address) {
+        case REGION_CART_2_1:
+            if (address == 0x05000020) {
+                printf("%c", value);
+            } else {
+                logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD! [%08X]=0x%02X", address, value);
+            }
+            return;
+        case REGION_CART_1_1:
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+        case REGION_CART_2_2:
+            backup_write_byte(address - SREGION_CART_2_2, value);
+            return;
+        case REGION_CART_1_2:
+            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            break;
+        default:
+            logfatal("write_byte_pibus(): Access to non-PI address %08X", address);
+    }
+
+}
+
+u8 read_byte_pibus(u32 address) {
+    if (unlikely(!pi_read_latch())) {
+        return n64sys.pi.latch >> 24;
+    }
+
+    switch (address) {
+        case REGION_CART_2_1:
+            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
+        case REGION_CART_1_1:
+            logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning 0xFF because it is not emulated", address);
+            return 0xFF;
+        case REGION_CART_2_2:
+            return backup_read_byte(address - SREGION_CART_2_2);
+        case REGION_CART_1_2: {
+            // round to nearest 4 byte boundary, keeping old LSB
+            address = (address + 2) & ~2;
+            u32 index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
+            if (index > n64sys.mem.rom.size) {
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                return 0xFF;
+            }
+            return n64sys.mem.rom.rom[index];
+        }
+        default:
+            logfatal("read_byte_pibus(): Access to non-PI address %08X", address);
+    }
+
+}
+
+void write_half_pibus(u32 address, u16 value) {
+    if (!pi_write_latch(value << 16)) {
+        return; // Couldn't latch, ignore the write.
+    }
+
+    switch (address) {
+        case REGION_CART_2_1:
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
+        case REGION_CART_1_1:
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+        case REGION_CART_2_2:
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+        case REGION_CART_1_2:
+            logwarn("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            break;
+        default:
+            logfatal("write_half_pibus(): Access to non-PI address %08X", address);
+    }
+}
+
+u16 read_half_pibus(u32 address) {
+    if (unlikely(!pi_read_latch())) {
+        return n64sys.pi.latch >> 16;
+    }
+
+    switch (address) {
+        case REGION_CART_2_1:
+            logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_CART_2_1", address);
+        case REGION_CART_1_1:
+            logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_CART_1_1", address);
+        case REGION_CART_2_2:
+            logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_CART_2_2", address);
+        case REGION_CART_1_2: {
+            address = (address + 2) & ~3; // round to nearest 4 byte boundary
+            u32 index = HALF_ADDRESS(address) - SREGION_CART_1_2;
+            if (index > n64sys.mem.rom.size - 1) { // -1 because we're reading an entire u16
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+            }
+            return half_from_byte_array(n64sys.mem.rom.rom, index);
+        }
+        default:
+            logfatal("read_half_pibus(): Access to non-PI address %08X", address);
+    }
+}
+
+void write_word_pibus(u32 address, u32 value) {
+    if (!pi_write_latch(value)) {
+        return; // Couldn't latch, ignore the write.
+    }
+
+    switch (address) {
+        case REGION_CART_2_1:
+            logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_CART_1_1, this is the 64DD, ignoring!", value, address);
+            return;
+        case REGION_CART_1_1:
+            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+            return;
+        case REGION_CART_2_2:
+            backup_write_word(address - SREGION_CART_2_2, value);
+            return;
+        case REGION_CART_1_2:
+            switch (address) {
+                case REGION_CART_ISVIEWER_BUFFER:
+                    word_to_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER, be32toh(value));
+                    break;
+                case CART_ISVIEWER_FLUSH: {
+                    if (value < CART_ISVIEWER_SIZE) {
+                        char* message = malloc(value + 1);
+                        memcpy(message, n64sys.mem.isviewer_buffer, value);
+                        message[value] = '\0';
+                        printf("%s", message);
+                        free(message);
+                    } else {
+                        logfatal("ISViewer buffer size is emulated at %d bytes, but received a flush command for %d bytes!", CART_ISVIEWER_SIZE, value);
+                    }
+                    break;
+                }
+                default:
+                    logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            }
+            return;
+        default:
+            logfatal("write_word_pibus(): Access to non-PI address %08X", address);
+    }
+}
+
+u32 read_word_pibus(u32 address) {
+    if (unlikely(!pi_read_latch())) {
+        return n64sys.pi.latch;
+    }
+    switch (address) {
+        case REGION_CART_2_1:
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1 - This is the N64DD, returning FF because it is not emulated", address);
+            return 0xFF;
+        case REGION_CART_1_1:
+            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning FF because it is not emulated", address);
+            return 0xFF;
+        case REGION_CART_2_2:
+            return backup_read_word(address - SREGION_CART_2_2);
+        case REGION_CART_1_2: {
+            u32 index = WORD_ADDRESS(address) - SREGION_CART_1_2;
+            if (index > n64sys.mem.rom.size - 3) { // -3 because we're reading an entire word
+                switch (address) {
+                    case REGION_CART_ISVIEWER_BUFFER:
+                        return htobe32(word_from_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER));
+                    case CART_ISVIEWER_FLUSH:
+                        logfatal("Read from ISViewer flush!");
+                }
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+                return 0;
+            } else {
+                return word_from_byte_array(n64sys.mem.rom.rom, index);
+            }
+        }
+        default:
+            logfatal("read_word_pibus(): Access to non-PI address %08X", address);
+    }
+}
+
+void write_dword_pibus(u32 address, u64 value) {
+    if (!pi_write_latch(value >> 32)) {
+        return; // Couldn't latch, ignore the write.
+    }
+    switch (address) {
+        case REGION_CART_2_1:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
+        case REGION_CART_1_1:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+        case REGION_CART_2_2:
+            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+        case REGION_CART_1_2:
+            logwarn("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            break;
+        default:
+            logfatal("write_dword_pibus(): Access to non-PI address %08X", address);
+    }
+}
+
+u64 read_dword_pibus(u32 address) {
+    if (unlikely(!pi_read_latch())) {
+        return (u64)n64sys.pi.latch << 32;
+    }
+    switch (address) {
+        case REGION_CART_2_1:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_2_1", address);
+        case REGION_CART_1_1:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_1_1", address);
+        case REGION_CART_2_2:
+            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_2_2", address);
+        case REGION_CART_1_2: {
+            u32 index = DWORD_ADDRESS(address) - SREGION_CART_1_2;
+            if (index > n64sys.mem.rom.size - 7) { // -7 because we're reading an entire dword
+                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
+            }
+            return dword_from_byte_array(n64sys.mem.rom.rom, index);
+        }
+        default:
+            logfatal("read_dword_pibus(): Access to non-PI address %08X", address);
+    }
+}
+
 void on_pi_dma_complete() {
     interrupt_raise(INTERRUPT_PI);
     n64sys.pi.dma_busy = false;
+}
+
+void on_pi_write_complete() {
+    n64sys.pi.io_busy = false;
 }

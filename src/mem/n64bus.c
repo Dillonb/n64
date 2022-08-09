@@ -334,14 +334,8 @@ void n64_write_physical_dword(u32 address, u64 value) {
             break;
         case REGION_UNUSED:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
-        case REGION_CART_2_1:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
-        case REGION_CART_1_1:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
-        case REGION_CART_2_2:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
-        case REGION_CART_1_2:
-            logwarn("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+        case REGION_CART:
+            write_dword_pibus(address, value);
             break;
         case REGION_PIF_BOOT:
             logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
@@ -399,19 +393,8 @@ u64 n64_read_physical_dword(u32 address) {
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_SI_REGS", address);
         case REGION_UNUSED:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_UNUSED", address);
-        case REGION_CART_2_1:
-            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_2_1", address);
-        case REGION_CART_1_1:
-            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_1_1", address);
-        case REGION_CART_2_2:
-            logfatal("Reading dword from address 0x%08X in unsupported region: REGION_CART_2_2", address);
-        case REGION_CART_1_2: {
-            u32 index = DWORD_ADDRESS(address) - SREGION_CART_1_2;
-            if (index > n64sys.mem.rom.size - 7) { // -7 because we're reading an entire dword
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
-            }
-            return dword_from_byte_array(n64sys.mem.rom.rom, index);
-        }
+        case REGION_CART:
+            return read_dword_pibus(address);
         case REGION_PIF_BOOT:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
         case REGION_PIF_RAM:
@@ -480,36 +463,9 @@ void n64_write_physical_word(u32 address, u32 value) {
             break;
         case REGION_UNUSED:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
-        case REGION_CART_2_1:
-            logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_CART_1_1, this is the 64DD, ignoring!", value, address);
-            return;
-        case REGION_CART_1_1:
-            logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
-            return;
-        case REGION_CART_2_2:
-            backup_write_word(address - SREGION_CART_2_2, value);
-            return;
-        case REGION_CART_1_2:
-            switch (address) {
-                case REGION_CART_ISVIEWER_BUFFER:
-                    word_to_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER, be32toh(value));
-                    break;
-                case CART_ISVIEWER_FLUSH: {
-                    if (value < CART_ISVIEWER_SIZE) {
-                        char* message = malloc(value + 1);
-                        memcpy(message, n64sys.mem.isviewer_buffer, value);
-                        message[value] = '\0';
-                        printf("%s", message);
-                        free(message);
-                    } else {
-                        logfatal("ISViewer buffer size is emulated at %d bytes, but received a flush command for %d bytes!", CART_ISVIEWER_SIZE, value);
-                    }
-                    break;
-                }
-                default:
-                    logalways("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
-            }
-            return;
+        case REGION_CART:
+            write_word_pibus(address, value);
+            break;
         case REGION_PIF_BOOT:
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
             break;
@@ -569,29 +525,8 @@ u32 n64_read_physical_word(u32 address) {
             return read_word_sireg(address);
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
-        case REGION_CART_2_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_2_1 - This is the N64DD, returning FF because it is not emulated", address);
-            return 0xFF;
-        case REGION_CART_1_1:
-            logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning FF because it is not emulated", address);
-            return 0xFF;
-        case REGION_CART_2_2:
-            return backup_read_word(address - SREGION_CART_2_2);
-        case REGION_CART_1_2: {
-            u32 index = WORD_ADDRESS(address) - SREGION_CART_1_2;
-            if (index > n64sys.mem.rom.size - 3) { // -3 because we're reading an entire word
-                switch (address) {
-                    case REGION_CART_ISVIEWER_BUFFER:
-                        return htobe32(word_from_byte_array(n64sys.mem.isviewer_buffer, address - SREGION_CART_ISVIEWER_BUFFER));
-                    case CART_ISVIEWER_FLUSH:
-                        logfatal("Read from ISViewer flush!");
-                }
-                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
-                return 0;
-            } else {
-                return word_from_byte_array(n64sys.mem.rom.rom, index);
-            }
-        }
+        case REGION_CART:
+            return read_word_pibus(address);
         case REGION_PIF_BOOT: {
             if (n64sys.mem.rom.pif_rom == NULL) {
                 logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
@@ -671,15 +606,9 @@ void n64_write_physical_half(u32 address, u16 value) {
             break;
         case REGION_UNUSED:
             logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
-        case REGION_CART_2_1:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
-        case REGION_CART_1_1:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
-        case REGION_CART_2_2:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
-        case REGION_CART_1_2:
-            logwarn("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
-            return;
+        case REGION_CART:
+            write_half_pibus(address, value);
+            break;
         case REGION_PIF_BOOT:
             logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
@@ -735,20 +664,8 @@ u16 n64_read_physical_half(u32 address) {
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_SI_REGS", address);
         case REGION_UNUSED:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_UNUSED", address);
-        case REGION_CART_2_1:
-            logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_CART_2_1", address);
-        case REGION_CART_1_1:
-            logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_CART_1_1", address);
-        case REGION_CART_2_2:
-            logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_CART_2_2", address);
-        case REGION_CART_1_2: {
-            address = (address + 2) & ~3; // round to nearest 4 byte boundary
-            u32 index = HALF_ADDRESS(address) - SREGION_CART_1_2;
-            if (index > n64sys.mem.rom.size - 1) { // -1 because we're reading an entire u16
-                logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM!", address, index, index);
-            }
-            return half_from_byte_array(n64sys.mem.rom.rom, index);
-        }
+        case REGION_CART:
+            return read_half_pibus(address);
         case REGION_PIF_BOOT:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
         case REGION_PIF_RAM:
@@ -802,20 +719,8 @@ void n64_write_physical_byte(u32 address, u8 value) {
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address);
         case REGION_UNUSED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
-        case REGION_CART_2_1:
-            if (address == 0x05000020) {
-                printf("%c", value);
-            } else {
-                logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD! [%08X]=0x%02X", address, value);
-            }
-            return;
-        case REGION_CART_1_1:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
-        case REGION_CART_2_2:
-            backup_write_byte(address - SREGION_CART_2_2, value);
-            return;
-        case REGION_CART_1_2:
-            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+        case REGION_CART:
+            write_byte_pibus(address, value);
             break;
         case REGION_PIF_BOOT:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
@@ -826,8 +731,7 @@ void n64_write_physical_byte(u32 address, u8 value) {
         case REGION_RESERVED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value, address);
         case REGION_CART_1_3:
-            logwarn("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address);
-            break;
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address);
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
         default:
@@ -868,23 +772,8 @@ u8 n64_read_physical_byte(u32 address) {
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_SI_REGS", address);
         case REGION_UNUSED:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_UNUSED", address);
-        case REGION_CART_2_1:
-            logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
-        case REGION_CART_1_1:
-            logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_1 - This is the N64DD, returning 0xFF because it is not emulated", address);
-            return 0xFF;
-        case REGION_CART_2_2:
-            return backup_read_byte(address - SREGION_CART_2_2);
-        case REGION_CART_1_2: {
-            // round to nearest 4 byte boundary, keeping old LSB
-            address = (address + 2) & ~2;
-            u32 index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
-            if (index > n64sys.mem.rom.size) {
-                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
-                return 0xFF;
-            }
-            return n64sys.mem.rom.rom[index];
-        }
+        case REGION_CART:
+            return read_byte_pibus(address);
         case REGION_PIF_BOOT: {
             if (n64sys.mem.rom.pif_rom == NULL) {
                 logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");

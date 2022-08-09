@@ -73,6 +73,8 @@
 #define REGION_CART_1_1        SREGION_CART_1_1        ... EREGION_CART_1_1
 #define REGION_CART_2_2        SREGION_CART_2_2        ... EREGION_CART_2_2
 #define REGION_CART_1_2        SREGION_CART_1_2        ... EREGION_CART_1_2
+// All cartridge regions
+#define REGION_CART            SREGION_CART_2_1        ... EREGION_CART_1_2
 #define REGION_PIF_BOOT        SREGION_PIF_BOOT        ... EREGION_PIF_BOOT
 #define REGION_PIF_RAM         SREGION_PIF_RAM         ... EREGION_PIF_RAM
 #define REGION_RESERVED        SREGION_RESERVED        ... EREGION_RESERVED

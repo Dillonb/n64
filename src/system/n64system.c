@@ -276,6 +276,9 @@ void handle_scheduler_event(scheduler_event_t* event) {
         case SCHEDULER_PI_DMA_COMPLETE:
             on_pi_dma_complete();
             break;
+        case SCHEDULER_PI_BUS_WRITE_COMPLETE:
+            on_pi_write_complete();
+            break;
         default:
             logfatal("");
     }
