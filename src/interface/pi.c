@@ -3,6 +3,7 @@
 #include <mem/mem_util.h>
 #include <system/scheduler.h>
 #include <mem/backup.h>
+#include <dynarec/dynarec.h>
 #include "pi.h"
 
 // 9 cycles measured through $Count
@@ -160,6 +161,14 @@ void write_word_pireg(u32 address, u32 value) {
                 u8 b = dma_cart_read_byte(cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
                 RDRAM_BYTE(dram_addr + i) = b;
+                invalidate_dynarec_page(BYTE_ADDRESS(dram_addr + i));
+            }
+
+            u32 begin_index = dynarec_outer_index(dram_addr);
+            u32 end_index = dynarec_outer_index(dram_addr + length);
+
+            for (u32 i = begin_index; i <= end_index; i++) {
+                invalidate_dynarec_page_by_index(i);
             }
 
             int complete_in = length * PI_DMA_CYCLES_PER_BYTE;

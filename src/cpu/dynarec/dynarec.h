@@ -56,6 +56,18 @@ typedef struct n64_dynarec {
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
+INLINE u32 dynarec_outer_index(u32 physical_address) {
+    return physical_address >> BLOCKCACHE_OUTER_SHIFT;
+}
+
+INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
+    N64DYNAREC->blockcache[outer_index] = NULL;
+}
+
+INLINE void invalidate_dynarec_page(u32 physical_address) {
+    invalidate_dynarec_page_by_index(dynarec_outer_index(physical_address));
+}
+
 int n64_dynarec_step();
 n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);

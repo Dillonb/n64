@@ -415,11 +415,6 @@ n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
     return dynarec;
 }
 
-void invalidate_dynarec_page(u32 physical_address) {
-    u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
-    N64DYNAREC->blockcache[outer_index] = NULL;
-}
-
 void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec) {
     for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
         dynarec->blockcache[i] = NULL;
