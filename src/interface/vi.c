@@ -90,7 +90,7 @@ void write_word_vireg(u32 address, u32 value) {
 u32 read_word_vireg(u32 address) {
     switch (address) {
         case ADDR_VI_STATUS_REG:
-            logfatal("Reading of ADDR_VI_STATUS_REG is unsupported");
+            return n64sys.vi.status.raw;
         case ADDR_VI_ORIGIN_REG:
             logfatal("Reading of ADDR_VI_ORIGIN_REG is unsupported");
         case ADDR_VI_WIDTH_REG:
