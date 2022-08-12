@@ -4,10 +4,8 @@
 #include <system/scheduler.h>
 #include <mem/backup.h>
 #include <dynarec/dynarec.h>
+#include <timing.h>
 #include "pi.h"
-
-// 9 cycles measured through $Count
-#define PI_DMA_CYCLES_PER_BYTE (9 * 2)
 
 u32 read_word_pireg(u32 address) {
     switch (address) {
@@ -48,7 +46,20 @@ u32 read_word_pireg(u32 address) {
     }
 }
 
-u8 dma_cart_read_byte(u32 address) {
+u8 pi_get_domain(u32 address) {
+    switch (address) {
+        case REGION_CART_1_1:
+        case REGION_CART_1_2:
+            return 1;
+        case REGION_CART_2_1:
+        case REGION_CART_2_2:
+            return 2;
+        default:
+            logfatal("Unknown PI domain for address %08X!\n", address);
+    }
+}
+
+    u8 dma_cart_read_byte(u32 address) {
     switch (address) {
         case REGION_CART_2_1:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_CART_2_1", address);
@@ -127,7 +138,7 @@ void write_word_pireg(u32 address, u32 value) {
                 dma_cart_write_byte(cart_addr + i, b);
             }
 
-            int complete_in = length * PI_DMA_CYCLES_PER_BYTE;
+            int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
             scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
             n64sys.pi.dma_busy = true;
 
@@ -171,7 +182,7 @@ void write_word_pireg(u32 address, u32 value) {
                 invalidate_dynarec_page_by_index(i);
             }
 
-            int complete_in = length * PI_DMA_CYCLES_PER_BYTE;
+            int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
             scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
             n64sys.pi.dma_busy = true;
 

@@ -3,9 +3,8 @@
 #include <mem/pif.h>
 #include <mem/mem_util.h>
 #include <system/scheduler.h>
+#include <timing.h>
 #include "si.h"
-
-#define SI_DMA_DELAY (65536 * 2)
 
 void pif_to_dram(u32 pif_address, u32 dram_address) {
     if ((dram_address & 1) != 0) {
