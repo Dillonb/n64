@@ -734,10 +734,15 @@ void n64_write_physical_byte(u32 address, u32 value) {
             break;
         case REGION_PIF_BOOT:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value & 0xFF, address);
-        case REGION_PIF_RAM:
-            n64sys.mem.pif_ram[address - SREGION_PIF_RAM] = value;
+        case REGION_PIF_RAM: {
+            // Seems to be different (kinda the opposite) behavior as SH to PIF RAM, weirdly enough
+            value = value << (8 * (3 - (address & 3)));
+
+            u32 aligned_address = (address - SREGION_PIF_RAM) & ~3;
+            word_to_byte_array((u8*) &n64sys.mem.pif_ram, aligned_address, htobe32(value));
             process_pif_command();
             break;
+        }
         case REGION_RESERVED:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value & 0xFF, address);
         case REGION_CART_1_3:
