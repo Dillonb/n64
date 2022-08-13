@@ -155,13 +155,16 @@ INLINE void rsp_dma_read() {
     }
 
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
-        u8* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        u8* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem);
         u8* rdram = n64sys.mem.rdram + dram_address;
-        memcpy(mem, rdram, length);
+        for (int j = 0; j < length; j++) {
+            u16 addr = (mem_address + j) & 0xFFF;
+            mem[addr] = rdram[j];
+        }
 
         if (mem_addr_reg.imem) {
             for (int j = 0; j < length; j += 4) {
-                quick_invalidate_rsp_icache(mem_address + j);
+                quick_invalidate_rsp_icache((mem_address + j) & 0xFFF);
             }
         }
 
@@ -191,10 +194,6 @@ INLINE void rsp_dma_write() {
 
     length = (length + 0x7) & ~0x7;
 
-    if (mem_addr.address + length > 0x1000) {
-        logfatal("RSP DMA WRITE would write off the end of memory!");
-    }
-
     u32 dram_address = dram_addr.address & RSP_DRAM_ADDR_MASK;
     if (dram_address != dram_addr.address) {
         logwarn("Misaligned DRAM RSP DMA WRITE! 0x%08X", dram_addr.address);
@@ -205,9 +204,13 @@ INLINE void rsp_dma_write() {
     }
 
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
-        u8* mem = (mem_addr.imem ? N64RSP.sp_imem : N64RSP.sp_dmem) + mem_address;
+        u8* mem = (mem_addr.imem ? N64RSP.sp_imem : N64RSP.sp_dmem);
         u8* rdram = n64sys.mem.rdram + dram_address;
-        memcpy(rdram, mem, length);
+        for (int j = 0; j < length; j++) {
+            u16 addr = (mem_address + j) & 0xFFF;
+            rdram[j] = mem[addr];
+        }
+
 
         // Invalidate all pages touched by the DMA
         // This is probably unnecessary, since why would someone be copying code from the RSP to the CPU and then executing it?
