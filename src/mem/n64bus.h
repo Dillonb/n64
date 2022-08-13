@@ -169,7 +169,7 @@ u64 n64_read_physical_dword(u32 address);
 void n64_write_physical_word(u32 address, u32 value);
 u32 n64_read_physical_word(u32 address);
 
-void n64_write_physical_half(u32 address, u16 value);
+void n64_write_physical_half(u32 address, u32 value);
 u16 n64_read_physical_half(u32 address);
 
 void n64_write_physical_byte(u32 address, u32 value);

@@ -554,18 +554,18 @@ u32 n64_read_physical_word(u32 address) {
     }
 }
 
-void n64_write_physical_half(u32 address, u16 value) {
+void n64_write_physical_half(u32 address, u32 value) {
     if (address & 0b1) {
         logfatal("Tried to write to unaligned HALF");
     }
-    logdebug("Writing 0x%04X to [0x%08X]", value, address);
+    logdebug("Writing 0x%04X to [0x%08X]", value & 0xFFFF, address);
     invalidate_dynarec_page(HALF_ADDRESS(address));
     switch (address) {
         case REGION_RDRAM:
             half_to_byte_array((u8*) &n64sys.mem.rdram, HALF_ADDRESS(address) - SREGION_RDRAM, value);
             break;
         case REGION_RDRAM_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value & 0xFFFF, address);
             break;
         case REGION_RDRAM_UNUSED:
             return;
@@ -579,51 +579,61 @@ void n64_write_physical_half(u32 address, u16 value) {
         case REGION_SP_UNUSED:
             return;
         case REGION_SP_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_SP_REGS", value & 0xFFFF, address);
             break;
         case REGION_DP_COMMAND_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value & 0xFFFF, address);
         case REGION_DP_SPAN_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value & 0xFFFF, address);
         case REGION_MI_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_MI_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_MI_REGS", value & 0xFFFF, address);
             break;
         case REGION_VI_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_VI_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_VI_REGS", value & 0xFFFF, address);
             break;
         case REGION_AI_REGS:
-            logwarn("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address);
+            logwarn("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_AI_REGS", value & 0xFFFF, address);
             break;
         case REGION_PI_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_PI_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_PI_REGS", value & 0xFFFF, address);
             break;
         case REGION_RI_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RI_REGS", value & 0xFFFF, address);
             break;
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RI_REGS", value & 0xFFFF, address);
         case REGION_SI_REGS:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_SI_REGS", value & 0xFFFF, address);
             break;
         case REGION_UNUSED:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_UNUSED", value & 0xFFFF, address);
         case REGION_CART:
             write_half_pibus(address, value);
             break;
         case REGION_PIF_BOOT:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
-        case REGION_PIF_RAM:
-            half_to_byte_array((u8*) &n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe16(value));
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value & 0xFFFF, address);
+        case REGION_PIF_RAM: {
+            // Write to address & ~3.
+            // 4-byte aligned: write value in upper bytes, zeroes in lower bytes
+            // 2-byte aligned: write full 32 bit value
+
+            // Bit hacks to avoid an if statement here.
+            // !(address & 2) gives a 0 if the address is 2 byte aligned, and a 1 if it's 4 byte aligned.
+            value = value << (16 * !(address & 2));
+
+            u32 aligned_address = (address - SREGION_PIF_RAM) & ~3;
+            word_to_byte_array((u8*) &n64sys.mem.pif_ram, aligned_address, htobe32(value));
             process_pif_command();
             break;
+        }
         case REGION_RESERVED:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RESERVED", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_RESERVED", value & 0xFFFF, address);
         case REGION_CART_1_3:
-            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address);
+            logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_CART_1_3", value & 0xFFFF, address);
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
             break;
         default:
-            logfatal("Writing u16 0x%04X to unknown address: 0x%08X", value, address);
+            logfatal("Writing u16 0x%04X to unknown address: 0x%08X", value & 0xFFFF, address);
     }
 }
 
