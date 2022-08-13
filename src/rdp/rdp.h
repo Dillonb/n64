@@ -12,6 +12,8 @@ u32 read_word_dpcreg(u32 address);
 void rdp_run_command();
 void rdp_update_screen();
 void rdp_status_reg_write(u32 value);
+void rdp_start_reg_write(u32 value);
+void rdp_end_reg_write(u32 value);
 
 #ifdef __cplusplus
 }

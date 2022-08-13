@@ -74,30 +74,32 @@ typedef union mi_intr {
     };
 } mi_intr_t;
 
+typedef union n64_dpc_status {
+    u32 raw;
+    struct {
+        u32 xbus_dmem_dma:1;
+        u32 freeze:1;
+        u32 flush:1;
+        u32 start_gclk:1;
+        u32 tmem_busy:1;
+        u32 pipe_busy:1;
+        u32 buf_busy:1;
+        u32 cbuf_ready:1;
+        u32 dma_busy:1;
+        u32 end_valid:1;
+        u32 start_valid:1;
+        u32:21;
+    } PACKED;
+} n64_dpc_status_t;
+
+ASSERTWORD(n64_dpc_status_t);
+
 typedef struct n64_dpc {
     u32 start;
     u32 end;
     u32 current;
-    union {
-        u32 raw;
-        struct {
-            bool xbus_dmem_dma:1;
-            bool freeze:1;
-            bool flush:1;
-            bool start_gclk:1;
-            bool tmem_busy:1;
-            bool pipe_busy:1;
-            bool cmd_busy:1;
-            bool cbuf_ready:1;
-            bool dma_busy:1;
-            bool end_valid:1;
-            bool start_valid:1;
-            unsigned:21;
-        };
-    } status;
+    n64_dpc_status_t status;
     u32 clock;
-    u32 bufbusy;
-    u32 pipebusy;
     u32 tmem;
 } n64_dpc_t;
 

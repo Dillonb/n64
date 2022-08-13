@@ -65,26 +65,29 @@ void rdp_check_interrupts() {
 void write_word_dpcreg(u32 address, u32 value) {
     switch (address) {
         case ADDR_DPC_START_REG:
-            n64sys.dpc.start = value & 0xFFFFF8;
-            n64sys.dpc.current = n64sys.dpc.start;
+            rdp_start_reg_write(value);
             break;
         case ADDR_DPC_END_REG:
-            n64sys.dpc.end = value & 0xFFFFF8;
-            rdp_run_command();
+            rdp_end_reg_write(value);
             break;
         case ADDR_DPC_CURRENT_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CURRENT_REG");
+            logwarn("Writing word to read-only DPC register: ADDR_DPC_CURRENT_REG, ignoring");
+            break;
         case ADDR_DPC_STATUS_REG:
             rdp_status_reg_write(value);
             break;
         case ADDR_DPC_CLOCK_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_CLOCK_REG");
+            logwarn("Writing word to unimplemented DPC register: ADDR_DPC_CLOCK_REG, ignoring");
+            break;
         case ADDR_DPC_BUFBUSY_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_BUFBUSY_REG");
+            logwarn("Writing word to unimplemented DPC register: ADDR_DPC_BUFBUSY_REG, ignoring");
+            break;
         case ADDR_DPC_PIPEBUSY_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_PIPEBUSY_REG");
+            logwarn("Writing word to unimplemented DPC register: ADDR_DPC_PIPEBUSY_REG, ignoring");
+            break;
         case ADDR_DPC_TMEM_REG:
-            logfatal("Writing word to unimplemented DPC register: ADDR_DPC_TMEM_REG");
+            logwarn("Writing word to unimplemented DPC register: ADDR_DPC_TMEM_REG, ignoring");
+            break;
         default:
             logfatal("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address);
     }
@@ -103,9 +106,9 @@ u32 read_word_dpcreg(u32 address) {
         case ADDR_DPC_CLOCK_REG:
             return n64sys.dpc.clock;
         case ADDR_DPC_BUFBUSY_REG:
-            return n64sys.dpc.bufbusy;
+            return n64sys.dpc.status.buf_busy;
         case ADDR_DPC_PIPEBUSY_REG:
-            return n64sys.dpc.pipebusy;
+            return n64sys.dpc.status.pipe_busy;
         case ADDR_DPC_TMEM_REG:
             return n64sys.dpc.tmem;
         default:
@@ -136,6 +139,10 @@ INLINE void rdp_on_full_sync() {
             full_sync_softrdp();
             break;
     }
+    n64sys.dpc.status.pipe_busy = false;
+    n64sys.dpc.status.start_gclk = false;
+    n64sys.dpc.status.cbuf_ready = false;
+    interrupt_raise(INTERRUPT_DP);
 }
 
 void process_rdp_list() {
@@ -220,7 +227,6 @@ void process_rdp_list() {
 
         if (command == RDP_COMMAND_FULL_SYNC) {
             rdp_on_full_sync();
-            interrupt_raise(INTERRUPT_DP);
         }
 
         buf_index += command_length;
@@ -231,22 +237,32 @@ void process_rdp_list() {
     }
 
     dpc->current = end;
+    dpc->start = end;
+    dpc->end = end;
 
     dpc->status.freeze = false;
-    dpc->status.cbuf_ready = true;
 }
 
 void rdp_run_command() {
-    //printf("Running commands from 0x%08X to 0x%08X\n", n64sys.dpc.current, n64sys.dpc.end);
-    switch (n64sys.video_type) {
-        case VULKAN_VIDEO_TYPE:
-        case QT_VULKAN_VIDEO_TYPE:
-        case SOFTWARE_VIDEO_TYPE:
-            process_rdp_list();
-            break;
-        default:
-            logfatal("Unknown video type");
+    if (n64sys.dpc.status.freeze) {
+        return;
     }
+    n64sys.dpc.status.pipe_busy = true;
+    n64sys.dpc.status.start_gclk = true;
+
+    if (n64sys.dpc.end > n64sys.dpc.current) {
+        switch (n64sys.video_type) {
+            case VULKAN_VIDEO_TYPE:
+            case QT_VULKAN_VIDEO_TYPE:
+            case SOFTWARE_VIDEO_TYPE:
+                process_rdp_list();
+                break;
+            default:
+                logfatal("Unknown video type");
+        }
+    }
+
+    n64sys.dpc.status.cbuf_ready = true;
 }
 
 void rdp_update_screen() {
@@ -264,6 +280,7 @@ void rdp_update_screen() {
 }
 
 void rdp_status_reg_write(u32 value) {
+    bool rdp_unfrozen = false;
     union {
         u32 raw;
         struct {
@@ -278,31 +295,63 @@ void rdp_status_reg_write(u32 value) {
             bool clear_cmd_ctr:1;
             bool clear_clock_ctr:1;
             unsigned:22;
-        };
+        } PACKED;
     } status_write;
 
     status_write.raw = value;
 
-    if (status_write.clear_xbus_dmem_dma) n64sys.dpc.status.xbus_dmem_dma = false;
-    if (status_write.set_xbus_dmem_dma) n64sys.dpc.status.xbus_dmem_dma = true;
+    if (status_write.clear_xbus_dmem_dma) {
+        n64sys.dpc.status.xbus_dmem_dma = false;
+    }
+    if (status_write.set_xbus_dmem_dma) {
+        n64sys.dpc.status.xbus_dmem_dma = true;
+    }
 
-    if (status_write.clear_freeze) n64sys.dpc.status.freeze = false;
-    // Seems to break games (banjo-tooie and banjo-kazooie) if this bit actually works.
-    // if (status_write.set_freeze) n64sys.dpc.status.freeze = true;
+    if (status_write.clear_freeze) {
+        n64sys.dpc.status.freeze = false;
+        rdp_unfrozen = true;
+    }
+    if (status_write.set_freeze) {
+        n64sys.dpc.status.freeze = true;
+    }
 
-    if (status_write.clear_flush) n64sys.dpc.status.flush = false;
-    if (status_write.set_flush) n64sys.dpc.status.flush = true;
+    if (status_write.clear_flush) {
+        n64sys.dpc.status.flush = false;
+    }
+    if (status_write.set_flush) {
+        n64sys.dpc.status.flush = true;
+    }
 
     if (status_write.clear_tmem_ctr) {
-        //logwarn("Clear tmem ctr - deferring to RDP plugin");
+        n64sys.dpc.status.tmem_busy = false;
     }
     if (status_write.clear_pipe_ctr) {
-        //logwarn("Clear pipe ctr - deferring to RDP plugin");
+        n64sys.dpc.status.pipe_busy = false;
     }
     if (status_write.clear_cmd_ctr) {
-        //logwarn("Clear cmd ctr - deferring to RDP plugin");
+        n64sys.dpc.status.buf_busy = false;
     }
     if (status_write.clear_clock_ctr) {
-        //logwarn("Clear clock ctr - deferring to RDP plugin");
+        n64sys.dpc.clock = 0;
     }
+
+    if (rdp_unfrozen) {
+        rdp_run_command();
+    }
+}
+
+void rdp_start_reg_write(u32 value) {
+    if (!n64sys.dpc.status.start_valid) {
+        n64sys.dpc.start = value & 0xFFFFF8;
+    }
+    n64sys.dpc.status.start_valid = true;
+}
+
+void rdp_end_reg_write(u32 value) {
+    n64sys.dpc.end = value & 0xFFFFF8;
+    if (n64sys.dpc.status.start_valid) {
+        n64sys.dpc.current = n64sys.dpc.start;
+        n64sys.dpc.status.start_valid = false;
+    }
+    rdp_run_command();
 }

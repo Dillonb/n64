@@ -307,12 +307,10 @@ INLINE void set_rsp_cp0_register(u8 r, u32 value) {
             break;
         }
         case RSP_CP0_CMD_START:
-            n64sys.dpc.start = value & 0xFFFFF8;
-            n64sys.dpc.current = n64sys.dpc.start;
+            rdp_start_reg_write(value);
             break;
         case RSP_CP0_CMD_END:
-            n64sys.dpc.end = value & 0xFFFFF8;
-            rdp_run_command();
+            rdp_end_reg_write(value);
             break;
         case RSP_CP0_CMD_CURRENT:
             logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r);
