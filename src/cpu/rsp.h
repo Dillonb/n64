@@ -249,14 +249,13 @@ void rsp_release_semaphore();
 
 INLINE u32 get_rsp_cp0_register(u8 r) {
     switch (r) {
-        case RSP_CP0_DMA_CACHE: return N64RSP.io.shadow_mem_addr.raw;
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_DMA_CACHE", r);
+        case RSP_CP0_DMA_CACHE:
+            return N64RSP.io.mem_addr.raw;
         case RSP_CP0_DMA_DRAM:
-            return N64RSP.io.shadow_dmem_addr.raw;
+            return N64RSP.io.dram_addr.raw;
         case RSP_CP0_DMA_READ_LENGTH:
-            return 0;
         case RSP_CP0_DMA_WRITE_LENGTH:
-            return 0;
+            return N64RSP.io.dma.raw;
         case RSP_CP0_SP_STATUS: return N64RSP.status.raw;
         case RSP_CP0_DMA_FULL:  return N64RSP.status.dma_full;
         case RSP_CP0_DMA_BUSY:  return N64RSP.status.dma_busy;
