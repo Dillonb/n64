@@ -15,8 +15,7 @@ file(GLOB_RECURSE contrib_headers contrib/*.h)
 add_library(rdp
         ${contrib_headers}
         rdp.c rdp.h
-        softrdp.cpp softrdp.h
-        mupen_interface.c mupen_interface.h)
+        softrdp.cpp softrdp.h)
 
 add_library(parallel_rdp_wrapper
         parallel_rdp_wrapper.cpp parallel_rdp_wrapper.h

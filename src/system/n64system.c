@@ -425,7 +425,6 @@ void n64_system_loop() {
 }
 
 void n64_system_cleanup() {
-    rdp_cleanup();
     if (n64sys.dynarec != NULL) {
         free(n64sys.dynarec);
         n64sys.dynarec = NULL;

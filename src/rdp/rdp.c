@@ -11,7 +11,6 @@
 #endif
 #include <stdbool.h>
 
-#include "mupen_interface.h"
 #include "parallel_rdp_wrapper.h"
 #include "softrdp.h"
 #include <log.h>
@@ -20,7 +19,6 @@
 #include <frontend/frontend.h>
 
 static void* plugin_handle = NULL;
-static mupen_graphics_plugin_t graphics_plugin;
 static u32 rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent as a uint32
 
 #define RDP_COMMAND_BUFFER_SIZE 0xFFFFF
@@ -62,113 +60,6 @@ void rdp_rendering_callback(int redrawn) {
 
 void rdp_check_interrupts() {
     on_interrupt_change();
-}
-
-GFX_INFO get_gfx_info() {
-    GFX_INFO gfx_info;
-    gfx_info.HEADER = n64sys.mem.rom.rom;
-    gfx_info.RDRAM = n64sys.mem.rdram;
-    gfx_info.DMEM = N64RSP.sp_dmem;
-    gfx_info.IMEM = N64RSP.sp_imem;
-
-    gfx_info.MI_INTR_REG = &n64sys.mi.intr.raw;
-
-    gfx_info.DPC_START_REG    = &n64sys.dpc.start;
-    gfx_info.DPC_END_REG      = &n64sys.dpc.end;
-    gfx_info.DPC_CURRENT_REG  = &n64sys.dpc.current;
-    gfx_info.DPC_STATUS_REG   = &n64sys.dpc.status.raw;
-    gfx_info.DPC_CLOCK_REG    = &n64sys.dpc.clock;
-    gfx_info.DPC_BUFBUSY_REG  = &n64sys.dpc.bufbusy;
-    gfx_info.DPC_PIPEBUSY_REG = &n64sys.dpc.pipebusy;
-    gfx_info.DPC_TMEM_REG     = &n64sys.dpc.tmem;
-
-    gfx_info.VI_STATUS_REG         = (unsigned int*) &n64sys.vi.status.raw;
-    gfx_info.VI_ORIGIN_REG         = (unsigned int*) &n64sys.vi.vi_origin;
-    gfx_info.VI_WIDTH_REG          = (unsigned int*) &n64sys.vi.vi_width;
-    gfx_info.VI_INTR_REG           = (unsigned int*) &n64sys.vi.vi_v_intr;
-    gfx_info.VI_V_CURRENT_LINE_REG = (unsigned int*) &n64sys.vi.v_current;
-    gfx_info.VI_TIMING_REG         = (unsigned int*) &n64sys.vi.vi_burst;
-    gfx_info.VI_V_SYNC_REG         = (unsigned int*) &n64sys.vi.vsync;
-    gfx_info.VI_H_SYNC_REG         = (unsigned int*) &n64sys.vi.hsync;
-    gfx_info.VI_LEAP_REG           = (unsigned int*) &n64sys.vi.leap;
-    gfx_info.VI_H_START_REG        = (unsigned int*) &n64sys.vi.hstart;
-    gfx_info.VI_V_START_REG        = (unsigned int*) &n64sys.vi.vstart;
-    gfx_info.VI_V_BURST_REG        = (unsigned int*) &n64sys.vi.vburst;
-    gfx_info.VI_X_SCALE_REG        = (unsigned int*) &n64sys.vi.xscale;
-    gfx_info.VI_Y_SCALE_REG        = (unsigned int*) &n64sys.vi.yscale;
-
-    gfx_info.CheckInterrupts = &rdp_check_interrupts;
-
-    gfx_info.version = 2;
-
-    gfx_info.SP_STATUS_REG = (unsigned int*) &N64RSP.status;
-    gfx_info.RDRAM_SIZE = &rdram_size_word;
-
-    return gfx_info;
-}
-
-void load_rdp_plugin(const char* filename) {
-#ifdef N64_WIN
-    logfatal("Loading RDP plugins is not supported on windows!");
-#else
-    char path[PATH_MAX] = "";
-    if (filename[0] == '.' || filename[0] == '/') {
-        snprintf(path, sizeof(path), "%s", filename);
-    } else {
-        snprintf(path, sizeof(path), "./%s", filename);
-    }
-
-    plugin_handle = dlopen(path, RTLD_NOW);
-    if (plugin_handle == NULL) {
-        logfatal("Failed to load RDP plugin. Please pass a path to a shared library file!");
-    }
-
-    init_mupen_interface();
-
-    LOAD_SYM(graphics_plugin.PluginStartup, "PluginStartup");
-    LOAD_SYM(graphics_plugin.PluginGetVersion, "PluginGetVersion");
-    LOAD_SYM(graphics_plugin.ChangeWindow, "ChangeWindow");
-    LOAD_SYM(graphics_plugin.InitiateGFX, "InitiateGFX");
-    LOAD_SYM(graphics_plugin.MoveScreen, "MoveScreen");
-    LOAD_SYM(graphics_plugin.ProcessDList, "ProcessDList");
-    LOAD_SYM(graphics_plugin.ProcessRDPList, "ProcessRDPList");
-    LOAD_SYM(graphics_plugin.RomClosed, "RomClosed");
-    LOAD_SYM(graphics_plugin.RomOpen, "RomOpen");
-    LOAD_SYM(graphics_plugin.ShowCFB, "ShowCFB");
-    LOAD_SYM(graphics_plugin.UpdateScreen, "UpdateScreen");
-    LOAD_SYM(graphics_plugin.ViStatusChanged, "ViStatusChanged");
-    LOAD_SYM(graphics_plugin.ViWidthChanged, "ViWidthChanged");
-    LOAD_SYM(graphics_plugin.ReadScreen2, "ReadScreen2");
-    LOAD_SYM(graphics_plugin.SetRenderingCallback, "SetRenderingCallback");
-    LOAD_SYM(graphics_plugin.FBRead, "FBRead");
-    LOAD_SYM(graphics_plugin.FBWrite, "FBWrite");
-    LOAD_SYM(graphics_plugin.FBGetFrameBufferInfo, "FBGetFrameBufferInfo");
-
-    m64p_plugin_type plugin_type;
-    int plugin_version;
-    int api_version;
-    const char* plugin_name;
-    int capabilities;
-
-
-    graphics_plugin.PluginGetVersion(&plugin_type, &plugin_version, &api_version, &plugin_name, &capabilities);
-    if (plugin_type != M64PLUGIN_GFX) {
-        logfatal("Plugin loaded successfully, but was not a graphics plugin!");
-    }
-
-    graphics_plugin.PluginStartup(NULL, NULL, NULL); // Null handle, null debug callbacks.
-
-    GFX_INFO gfx_info = get_gfx_info();
-
-    graphics_plugin.InitiateGFX(gfx_info);
-    graphics_plugin.RomOpen();
-
-    graphics_plugin.SetRenderingCallback(rdp_rendering_callback);
-
-    // TODO: check plugin version, API version, etc for compatibility
-
-    printf("Loaded RDP plugin %s\n", plugin_name);
-#endif
 }
 
 void write_word_dpcreg(u32 address, u32 value) {
@@ -222,18 +113,10 @@ u32 read_word_dpcreg(u32 address) {
     }
 }
 
-void rdp_cleanup() {
-    if (graphics_plugin.RomClosed) {
-        graphics_plugin.RomClosed();
-    }
-}
-
 INLINE void rdp_enqueue_command(int command_length, u32* buffer) {
     switch (n64sys.video_type) {
         case UNKNOWN_VIDEO_TYPE:
             logfatal("RDP enqueue command with video type UNKNOWN_VIDEO_TYPE");
-        case OPENGL_VIDEO_TYPE:
-            logfatal("RDP enqueue command with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:
         case QT_VULKAN_VIDEO_TYPE:
             prdp_enqueue_command(command_length, buffer); break;
@@ -246,8 +129,6 @@ INLINE void rdp_on_full_sync() {
     switch (n64sys.video_type) {
         case UNKNOWN_VIDEO_TYPE:
             logfatal("RDP on full sync with video type UNKNOWN_VIDEO_TYPE");
-        case OPENGL_VIDEO_TYPE:
-            logfatal("RDP on full sync with video type OPENGL_VIDEO_TYPE");
         case VULKAN_VIDEO_TYPE:
         case QT_VULKAN_VIDEO_TYPE:
             prdp_on_full_sync(); break;
@@ -358,9 +239,6 @@ void process_rdp_list() {
 void rdp_run_command() {
     //printf("Running commands from 0x%08X to 0x%08X\n", n64sys.dpc.current, n64sys.dpc.end);
     switch (n64sys.video_type) {
-        case OPENGL_VIDEO_TYPE:
-            graphics_plugin.ProcessRDPList();
-            break;
         case VULKAN_VIDEO_TYPE:
         case QT_VULKAN_VIDEO_TYPE:
         case SOFTWARE_VIDEO_TYPE:
@@ -373,9 +251,6 @@ void rdp_run_command() {
 
 void rdp_update_screen() {
     switch (n64sys.video_type) {
-        case OPENGL_VIDEO_TYPE:
-            graphics_plugin.UpdateScreen();
-            break;
         case VULKAN_VIDEO_TYPE:
         case QT_VULKAN_VIDEO_TYPE:
             prdp_update_screen();

@@ -74,7 +74,6 @@ n64, a dgb n64 emulator
   -v, --verbose             enables verbose output, repeat up to 4 times for more verbosity
   -h, --help                Display this help message
   -i, --interpreter         Force the use of the interpreter
-  -r, --rdp                 Load RDP plugin (Mupen64Plus compatible) - note: disables UI and requires ROM to be passed on the command line!
   -m, --movie               Load movie (Mupen64Plus .m64 format)
   -p, --pif                 Load PIF ROM
 

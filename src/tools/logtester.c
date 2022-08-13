@@ -463,7 +463,6 @@ void check_jit_sync_log(FILE* fp) {
 
 int main(int argc, char** argv) {
     const char* log_file = NULL;
-    const char* rdp_plugin_path = NULL;
     bool test_rsp = false;
     bool test_jit_sync = false;
 
@@ -472,7 +471,6 @@ int main(int argc, char** argv) {
     cflags_add_string(flags, 'f', "log-file", &log_file, "log file to check run against");
     cflags_add_bool(flags, 's', "rsp", &test_rsp, "check RSP log file instead of CPU log file");
     cflags_add_bool(flags, 'j', "jitsync", &test_jit_sync, "check JIT sync point log file against interpreter instead of CPU log file");
-    cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible)");
 
     const char* pif_rom_path = NULL;
     cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
@@ -498,13 +496,9 @@ int main(int argc, char** argv) {
 
     log_set_verbosity(verbose->count);
 
-    if (rdp_plugin_path != NULL) {
-        init_n64system(rom, true, false, OPENGL_VIDEO_TYPE, false);
-        load_rdp_plugin(rdp_plugin_path);
-    } else {
-        init_n64system(rom, true, false, VULKAN_VIDEO_TYPE, false);
-        prdp_init_internal_swapchain();
-    }
+    init_n64system(rom, true, false, VULKAN_VIDEO_TYPE, false);
+    prdp_init_internal_swapchain();
+
     if (pif_rom_path) {
         load_pif_rom(pif_rom_path);
     }

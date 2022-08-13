@@ -6,8 +6,6 @@
 #include <SDL.h>
 #include <SDL_vulkan.h>
 
-#define GLAD_GL_IMPLEMENTATION
-#include <glad/gl.h>
 #include <volk.h>
 #include <rdp/parallel_rdp_wrapper.h>
 
@@ -33,39 +31,6 @@ char sdl_wintitle[100] = N64_APP_NAME " 00 FPS";
 
 SDL_Window* get_window_handle() {
     return window;
-}
-
-void video_init_opengl() {
-    window = SDL_CreateWindow(N64_APP_NAME,
-                              SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED,
-                              N64_SCREEN_X * SCREEN_SCALE,
-                              N64_SCREEN_Y * SCREEN_SCALE,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
-    gl_context = SDL_GL_CreateContext(window);
-    if (gl_context == NULL) {
-        logfatal("SDL couldn't create OpenGL context! %s", SDL_GetError());
-    }
-
-    int gl_version = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
-
-    if (gl_version == 0) {
-        logfatal("Failed to initialize Glad context");
-    }
-
-    printf("OpenGL initialized.\n");
-    printf("Vendor:   %s\n", glGetString(GL_VENDOR));
-    printf("Renderer: %s\n", glGetString(GL_RENDERER));
-    printf("Version:  %s\n", glGetString(GL_VERSION));
-
-    glViewport(0, 0, N64_SCREEN_X * SCREEN_SCALE, N64_SCREEN_Y * SCREEN_SCALE);
-    glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
-
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-    if (renderer == NULL) {
-        logfatal("SDL couldn't create a renderer! %s", SDL_GetError());
-    }
 }
 
 void video_init_vulkan() {
@@ -101,9 +66,6 @@ void render_init(n64_video_type_t video_type) {
         logfatal("SDL couldn't initialize! %s", SDL_GetError());
     }
     switch (video_type) {
-        case OPENGL_VIDEO_TYPE:
-            video_init_opengl();
-            break;
         case VULKAN_VIDEO_TYPE:
             video_init_vulkan();
             break;
@@ -198,9 +160,6 @@ void render_screen_software() {
 
 void n64_render_screen() {
     switch (n64_video_type) {
-        case OPENGL_VIDEO_TYPE:
-            SDL_RenderPresent(renderer);
-            break;
         case VULKAN_VIDEO_TYPE: // frame pushing handled elsewhere
         case QT_VULKAN_VIDEO_TYPE:
             break;
@@ -237,7 +196,6 @@ bool is_framerate_unlocked() {
             return prdp_is_framerate_unlocked();
 
         case UNKNOWN_VIDEO_TYPE:
-        case OPENGL_VIDEO_TYPE:
         case SOFTWARE_VIDEO_TYPE:
             return false;
     }
@@ -251,7 +209,6 @@ void set_framerate_unlocked(bool unlocked) {
             break;
 
         case UNKNOWN_VIDEO_TYPE:
-        case OPENGL_VIDEO_TYPE:
         case SOFTWARE_VIDEO_TYPE:
             break;
     }

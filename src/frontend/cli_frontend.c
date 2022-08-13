@@ -55,9 +55,6 @@ int main(int argc, char** argv) {
 #endif
 #endif
 
-    const char* rdp_plugin_path = NULL;
-    cflags_add_string(flags, 'r', "rdp", &rdp_plugin_path, "Load RDP plugin (Mupen64Plus compatible) "
-                                                           "- note: disables UI and requires ROM to be passed on the command line!");
     const char* tas_movie_path = NULL;
     cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
 
@@ -83,14 +80,7 @@ int main(int argc, char** argv) {
         interpreter = true;
     }
 #endif
-    if (rdp_plugin_path != NULL) {
-        if (flags->argc != 1) {
-            usage(flags);
-            return 1;
-        }
-        init_n64system(flags->argv[0], true, debug, OPENGL_VIDEO_TYPE, interpreter);
-        load_rdp_plugin(rdp_plugin_path);
-    } else if (software_mode) {
+    if (software_mode) {
         const char* rom_path = NULL;
         if (flags->argc >= 1) {
             rom_path = flags->argv[0];
