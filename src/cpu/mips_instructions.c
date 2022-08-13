@@ -358,7 +358,7 @@ MIPS_INSTR(mips_sb) {
     s16 offset  = instruction.i.immediate;
     u64 address = get_register(instruction.i.rs);
     address += offset;
-    u8 value = get_register(instruction.i.rt) & 0xFF;
+    u32 value = get_register(instruction.i.rt); // A larger value is needed in some cases due to bus weirdness
 
     u32 physical;
     if (!resolve_virtual_address(address, BUS_STORE, &physical)) {

@@ -681,15 +681,15 @@ u16 n64_read_physical_half(u32 address) {
     }
 }
 
-void n64_write_physical_byte(u32 address, u8 value) {
-    logdebug("Writing 0x%02X to [0x%08X]", value, address);
+void n64_write_physical_byte(u32 address, u32 value) {
+    logdebug("Writing 0x%02X to [0x%08X]", value & 0xFF, address);
     invalidate_dynarec_page(BYTE_ADDRESS(address));
     switch (address) {
         case REGION_RDRAM:
             n64sys.mem.rdram[BYTE_ADDRESS(address)] = value;
             break;
         case REGION_RDRAM_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value & 0xFF, address);
         case REGION_SP_DMEM: {
             N64RSP.sp_dmem[BYTE_ADDRESS(address - SREGION_SP_DMEM)] = value;
             break;
@@ -700,42 +700,42 @@ void n64_write_physical_byte(u32 address, u8 value) {
             break;
         }
         case REGION_SP_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_SP_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_SP_REGS", value & 0xFF, address);
         case REGION_DP_COMMAND_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value & 0xFF, address);
         case REGION_DP_SPAN_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value & 0xFF, address);
         case REGION_MI_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_MI_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_MI_REGS", value & 0xFF, address);
         case REGION_VI_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_VI_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_VI_REGS", value & 0xFF, address);
         case REGION_AI_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_AI_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_AI_REGS", value & 0xFF, address);
         case REGION_PI_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PI_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PI_REGS", value & 0xFF, address);
         case REGION_RI_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RI_REGS", value & 0xFF, address);
         case REGION_SI_REGS:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_SI_REGS", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_SI_REGS", value & 0xFF, address);
         case REGION_UNUSED:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_UNUSED", value & 0xFF, address);
         case REGION_CART:
             write_byte_pibus(address, value);
             break;
         case REGION_PIF_BOOT:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value & 0xFF, address);
         case REGION_PIF_RAM:
             n64sys.mem.pif_ram[address - SREGION_PIF_RAM] = value;
             process_pif_command();
             break;
         case REGION_RESERVED:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RESERVED", value & 0xFF, address);
         case REGION_CART_1_3:
-            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_3", value, address);
+            logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_CART_1_3", value & 0xFF, address);
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
         default:
-            logfatal("Writing byte 0x%02X to unknown address: 0x%08X", value, address);
+            logfatal("Writing byte 0x%02X to unknown address: 0x%08X", value & 0xFF, address);
     }
 }
 
