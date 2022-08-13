@@ -298,12 +298,12 @@ void n64_write_physical_dword(u32 address, u64 value) {
         case REGION_RDRAM_UNUSED:
             return;
         case REGION_SP_MEM: {
+            value >>= 32; // TODO: this is probably wrong, it probably depends on the address.
             if (address & 0x1000) {
-                dword_to_byte_array((u8*) &N64RSP.sp_imem, DWORD_ADDRESS(address & 0xFFF), value);
+                word_to_byte_array((u8*) &N64RSP.sp_imem, DWORD_ADDRESS(address & 0xFFF), value);
                 invalidate_rsp_icache(DWORD_ADDRESS(address));
-                invalidate_rsp_icache(DWORD_ADDRESS(address) + 4);
             } else {
-                dword_to_byte_array((u8*) &N64RSP.sp_dmem, DWORD_ADDRESS(address & 0xFFF), value);
+                word_to_byte_array((u8*) &N64RSP.sp_dmem, DWORD_ADDRESS(address & 0xFFF), value);
             }
             break;
         }
@@ -553,6 +553,17 @@ u32 n64_read_physical_word(u32 address) {
     }
 }
 
+// Handle the bus edge for 16 bit writes to PIF and SPMEM
+INLINE u32 bus_edge_case_half_pif_spmem(u32 address, u32 value) {
+    // Write to address & ~3.
+    // 4-byte aligned: write value in upper bytes, zeroes in lower bytes
+    // 2-byte aligned: write full 32 bit value
+
+    // Bit hacks to avoid an if statement here.
+    // !(address & 2) gives a 0 if the address is 2 byte aligned, and a 1 if it's 4 byte aligned.
+    return value << (16 * !(address & 2));
+}
+
 void n64_write_physical_half(u32 address, u32 value) {
     if (address & 0b1) {
         logfatal("Tried to write to unaligned HALF");
@@ -569,11 +580,13 @@ void n64_write_physical_half(u32 address, u32 value) {
         case REGION_RDRAM_UNUSED:
             return;
         case REGION_SP_MEM:
+            value = bus_edge_case_half_pif_spmem(address, value);
+            address &= ~3;
             if (address & 0x1000) {
-                half_to_byte_array((u8*) &N64RSP.sp_imem, HALF_ADDRESS(address & 0xFFF), value);
-                invalidate_rsp_icache(HALF_ADDRESS(address));
+                word_to_byte_array((u8*) &N64RSP.sp_imem, address & 0xFFF, value);
+                invalidate_rsp_icache(address);
             } else {
-                half_to_byte_array((u8*) &N64RSP.sp_dmem, HALF_ADDRESS(address & 0xFFF), value);
+                word_to_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF, value);
             }
             break;
         case REGION_SP_REGS:
@@ -610,16 +623,9 @@ void n64_write_physical_half(u32 address, u32 value) {
         case REGION_PIF_BOOT:
             logfatal("Writing u16 0x%04X to address 0x%08X in unsupported region: REGION_PIF_BOOT", value & 0xFFFF, address);
         case REGION_PIF_RAM: {
-            // Write to address & ~3.
-            // 4-byte aligned: write value in upper bytes, zeroes in lower bytes
-            // 2-byte aligned: write full 32 bit value
-
-            // Bit hacks to avoid an if statement here.
-            // !(address & 2) gives a 0 if the address is 2 byte aligned, and a 1 if it's 4 byte aligned.
-            value = value << (16 * !(address & 2));
-
-            u32 aligned_address = (address - SREGION_PIF_RAM) & ~3;
-            word_to_byte_array((u8*) &n64sys.mem.pif_ram, aligned_address, htobe32(value));
+            value = bus_edge_case_half_pif_spmem(address, value);
+            address &= ~3;
+            word_to_byte_array((u8 *) &n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe32(value));
             process_pif_command();
             break;
         }
@@ -648,9 +654,9 @@ u16 n64_read_physical_half(u32 address) {
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address);
         case REGION_SP_MEM:
             if (address & 0x1000) {
-                return half_from_byte_array((u8*) &N64RSP.sp_dmem, HALF_ADDRESS(address & 0xFFF));
-            } else {
                 return half_from_byte_array((u8*) &N64RSP.sp_imem, HALF_ADDRESS(address & 0xFFF));
+            } else {
+                return half_from_byte_array((u8*) &N64RSP.sp_dmem, HALF_ADDRESS(address & 0xFFF));
             }
         case REGION_SP_REGS:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_SP_REGS", address);
@@ -699,11 +705,13 @@ void n64_write_physical_byte(u32 address, u32 value) {
         case REGION_RDRAM_REGS:
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value & 0xFF, address);
         case REGION_SP_MEM:
+            value = value << (8 * (3 - (address & 3)));
+            address = (address & 0xFFF) & ~3;
             if (address & 0x1000) {
-                N64RSP.sp_imem[BYTE_ADDRESS(address - SREGION_SP_IMEM)] = value;
-                invalidate_rsp_icache(BYTE_ADDRESS(address));
+                word_to_byte_array(N64RSP.sp_imem, address & 0xFFF, value);
+                invalidate_rsp_icache(address);
             } else {
-                N64RSP.sp_dmem[BYTE_ADDRESS(address - SREGION_SP_DMEM)] = value;
+                word_to_byte_array(N64RSP.sp_dmem, address & 0xFFF, value);
             }
             break;
         case REGION_SP_REGS:
@@ -734,9 +742,8 @@ void n64_write_physical_byte(u32 address, u32 value) {
         case REGION_PIF_RAM: {
             // Seems to be different (kinda the opposite) behavior as SH to PIF RAM, weirdly enough
             value = value << (8 * (3 - (address & 3)));
-
-            u32 aligned_address = (address - SREGION_PIF_RAM) & ~3;
-            word_to_byte_array((u8*) &n64sys.mem.pif_ram, aligned_address, htobe32(value));
+            address = (address - SREGION_PIF_RAM) & ~3;
+            word_to_byte_array((u8*) &n64sys.mem.pif_ram, address, htobe32(value));
             process_pif_command();
             break;
         }
