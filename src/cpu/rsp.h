@@ -140,7 +140,7 @@ INLINE void invalidate_rsp_icache(u32 address) {
 INLINE void rsp_dma_read() {
     u32 length = N64RSP.io.dma.length + 1;
 
-    dram_addr_t dram_addr_reg = N64RSP.io.shadow_dmem_addr;
+    dram_addr_t dram_addr_reg = N64RSP.io.shadow_dram_addr;
     mem_addr_t mem_addr_reg = N64RSP.io.shadow_mem_addr;
 
     length = (length + 0x7) & ~0x7;
@@ -189,7 +189,7 @@ INLINE void rsp_dma_read() {
 INLINE void rsp_dma_write() {
     u32 length = N64RSP.io.dma.length + 1;
 
-    dram_addr_t dram_addr = N64RSP.io.shadow_dmem_addr;
+    dram_addr_t dram_addr = N64RSP.io.shadow_dram_addr;
     mem_addr_t mem_addr = N64RSP.io.shadow_mem_addr;
 
     length = (length + 0x7) & ~0x7;
@@ -282,7 +282,7 @@ INLINE u32 get_rsp_cp0_register(u8 r) {
 INLINE void set_rsp_cp0_register(u8 r, u32 value) {
     switch (r) {
         case RSP_CP0_DMA_CACHE: N64RSP.io.shadow_mem_addr.raw = value; break;
-        case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dmem_addr.raw = value; break;
+        case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dram_addr.raw = value; break;
         case RSP_CP0_DMA_READ_LENGTH:
             N64RSP.io.dma.raw = value;
             rsp_dma_read();

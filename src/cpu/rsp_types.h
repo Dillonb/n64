@@ -138,7 +138,7 @@ typedef struct rsp {
 
         // values are stored in shadow registers until the DMA actually runs
         mem_addr_t shadow_mem_addr;
-        dram_addr_t shadow_dmem_addr;
+        dram_addr_t shadow_dram_addr;
         union {
             struct {
                 unsigned length: 12;

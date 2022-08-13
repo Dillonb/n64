@@ -99,7 +99,7 @@ void write_word_spreg(u32 address, u32 value) {
             N64RSP.io.shadow_mem_addr.raw = value;
             break;
         case ADDR_SP_DRAM_ADDR_REG:
-            N64RSP.io.shadow_dmem_addr.raw = value;
+            N64RSP.io.shadow_dram_addr.raw = value;
             break;
         case ADDR_SP_RD_LEN_REG: {
             N64RSP.io.dma.raw = value;
