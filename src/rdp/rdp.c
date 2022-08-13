@@ -27,7 +27,8 @@ static u32 rdram_size_word = N64_RDRAM_SIZE; // GFX_INFO needs this to be sent a
 u32 rdp_command_buffer[RDP_COMMAND_BUFFER_SIZE];
 
 #define FROM_RDRAM(address) word_from_byte_array(n64sys.mem.rdram, WORD_ADDRESS(address))
-#define FROM_DMEM(address) word_from_byte_array(N64RSP.sp_dmem, address)
+#define FROM_DMEM(address) word_from_byte_array(N64RSP.sp_dmem, (address) & 0xFFF)
+
 
 static const int command_lengths[64] = {
         2, 2, 2, 2, 2, 2, 2, 2, 8, 12, 24, 28, 24, 28, 40, 44,
