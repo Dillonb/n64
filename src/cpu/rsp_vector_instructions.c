@@ -782,28 +782,35 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
     for (int i = 0; i < 8; i++) {
         u16 vs_element = vs->elements[i];
         u16 vte_element = vte.elements[i];
-        if (N64RSP.vco.l.elements[i] == 0 && N64RSP.vco.h.elements[i] == 0) {
-            N64RSP.vcc.h.elements[i] = FLAGREG_BOOL(vs_element >= vte_element);
+
+        if(N64RSP.vco.l.elements[i]) {
+            if(N64RSP.vco.h.elements[i]) {
+                N64RSP.acc.l.elements[i] = N64RSP.vcc.l.elements[i] ? -vte_element : vs_element;
+            } else {
+                u16 clamped_sum = vs_element + vte_element;
+                bool overflow = (vs_element + vte_element) != clamped_sum;
+                if(N64RSP.vce.elements[i]) {
+                    N64RSP.vcc.l.elements[i] = FLAGREG_BOOL(!clamped_sum || !overflow);
+                    N64RSP.acc.l.elements[i] = N64RSP.vcc.l.elements[i] ? -vte_element : vs_element;
+                } else {
+                    N64RSP.vcc.l.elements[i] = FLAGREG_BOOL(!clamped_sum && !overflow);
+                    N64RSP.acc.l.elements[i] = N64RSP.vcc.l.elements[i] ? -vte_element : vs_element;
+                }
+            }
+        } else {
+            if(N64RSP.vco.h.elements[i]) {
+                N64RSP.acc.l.elements[i] = N64RSP.vcc.h.elements[i] ? vte_element : vs_element;
+            } else {
+                N64RSP.vcc.h.elements[i] = FLAGREG_BOOL((s32)vs_element - (s32)vte_element >= 0);
+                N64RSP.acc.l.elements[i] = N64RSP.vcc.h.elements[i] ? vte_element : vs_element;
+            }
         }
-
-        if (N64RSP.vco.l.elements[i] != 0 && N64RSP.vco.h.elements[i] == 0) {
-            bool lte = vs_element + vte_element <= 0xFFFF;
-            bool eql = (s16)vs_element == -(s16)vte_element;
-            N64RSP.vcc.l.elements[i] = FLAGREG_BOOL(N64RSP.vce.elements[i] != 0 ? lte : eql);
-        }
-        bool clip = N64RSP.vco.l.elements[i] != 0 ? N64RSP.vcc.l.elements[i] : N64RSP.vcc.h.elements[i];
-        u16 vtabs = N64RSP.vco.l.elements[i] != 0 ? -(u16)vte_element : (u16)vte_element;
-        u16 acc = clip ? vtabs : vs_element;
-        N64RSP.acc.l.elements[i] = acc;
-        vd->elements[i] = acc;
-
     }
-    for (int i = 0; i < 8; i++) {
-        N64RSP.vco.l.elements[i] = FLAGREG_BOOL(0);
-        N64RSP.vco.h.elements[i] = FLAGREG_BOOL(0);
 
-        N64RSP.vce.elements[i] = FLAGREG_BOOL(0);
-    }
+    N64RSP.vco.l.single = N64RSP.zero;
+    N64RSP.vco.h.single = N64RSP.zero;
+    N64RSP.vce.single   = N64RSP.zero;
+    vd->single          = N64RSP.acc.l.single;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vcr) {
