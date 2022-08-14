@@ -47,7 +47,7 @@
 #define LWC2_LUV 0b00111
 
 // Undocumented
-#define LWC2_0xA 0b01010
+#define SWC2_SWV 0b01010
 
 #define FUNCT_RSP_VEC_VABS  0b010011
 #define FUNCT_RSP_VEC_VADD  0b010000

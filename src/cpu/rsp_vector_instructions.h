@@ -29,6 +29,7 @@ RSP_VECTOR_INSTR(rsp_swc2_srv);
 RSP_VECTOR_INSTR(rsp_swc2_ssv);
 RSP_VECTOR_INSTR(rsp_swc2_stv);
 RSP_VECTOR_INSTR(rsp_swc2_suv);
+RSP_VECTOR_INSTR(rsp_swc2_swv);
 
 RSP_VECTOR_INSTR(rsp_cfc2);
 RSP_VECTOR_INSTR(rsp_ctc2);

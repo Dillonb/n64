@@ -195,7 +195,7 @@ INLINE rspinstr_handler_t rsp_lwc2_decode(u32 pc, mips_instruction_t instr) {
         case LWC2_LSV: return rsp_lwc2_lsv;
         case LWC2_LTV: return rsp_lwc2_ltv;
         case LWC2_LUV: return rsp_lwc2_luv;
-        case LWC2_0xA: return rsp_nop; // TODO, undocumented
+        case SWC2_SWV: return rsp_nop; // Does not exist on the RSP
         default:
             logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
     }
@@ -214,7 +214,7 @@ INLINE rspinstr_handler_t rsp_swc2_decode(u32 pc, mips_instruction_t instr) {
         case LWC2_LSV: return rsp_swc2_ssv;
         case LWC2_LTV: return rsp_swc2_stv;
         case LWC2_LUV: return rsp_swc2_suv;
-        case LWC2_0xA: return rsp_nop; // TODO, undocumented
+        case SWC2_SWV: return rsp_swc2_swv;
 
         default:
             logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);

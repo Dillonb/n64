@@ -1202,6 +1202,7 @@ COMP(rsp_swc2_srv, NORMAL, false);
 COMP(rsp_swc2_ssv, NORMAL, false);
 COMP(rsp_swc2_stv, NORMAL, false);
 COMP(rsp_swc2_suv, NORMAL, false);
+COMP(rsp_swc2_swv, NORMAL, false);
 
 COMP(rsp_nop, NORMAL, false);
 
@@ -1378,7 +1379,7 @@ dynarec_ir_t* rsp_lwc2_ir(mips_instruction_t instr, u32 address) {
         CASEIR(LWC2_LSV, rsp_lwc2_lsv);
         CASEIR(LWC2_LTV, rsp_lwc2_ltv);
         CASEIR(LWC2_LUV, rsp_lwc2_luv);
-        CASEIR(LWC2_0xA, rsp_nop); // TODO: undocumented
+        CASEIR(SWC2_SWV, rsp_nop); // Does not exist on the RSP
         default:
             logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instr.v.funct);
     }
@@ -1397,7 +1398,7 @@ dynarec_ir_t* rsp_swc2_ir(mips_instruction_t instr, u32 address) {
         CASEIR(LWC2_LSV, rsp_swc2_ssv);
         CASEIR(LWC2_LTV, rsp_swc2_stv);
         CASEIR(LWC2_LUV, rsp_swc2_suv);
-        CASEIR(LWC2_0xA, rsp_nop); // TODO: undocumented
+        CASEIR(SWC2_SWV, rsp_swc2_swv); // undocumented
         default:
             logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instr.v.funct);
     }

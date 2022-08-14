@@ -136,6 +136,7 @@ vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e) {
 #define SHIFT_AMOUNT_LHV_SHV 4
 #define SHIFT_AMOUNT_LFV_SFV 4
 #define SHIFT_AMOUNT_LTV_STV 4
+#define SHIFT_AMOUNT_SWV     4
 
 INLINE int sign_extend_7bit_offset(u8 offset, int shift_amount) {
     s8 soffset = ((offset << 1) & 0x80) | offset;
@@ -560,6 +561,19 @@ RSP_VECTOR_INSTR(rsp_swc2_suv) {
         } else {
             n64_rsp_write_byte(address++, N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((offset & 7) << 1)]);
         }
+    }
+}
+
+RSP_VECTOR_INSTR(rsp_swc2_swv) {
+    logdebug("rsp_swc2_swv");
+    defvt;
+    u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_SWV);
+    int base = address & 7;
+    address &= ~7;
+
+    for(int i = instruction.v.element; i < instruction.v.element + 16; i++) {
+        n64_rsp_write_byte(address + (base & 15), vt->bytes[VU_BYTE_INDEX(i & 15)]);
+        base++;
     }
 }
 
