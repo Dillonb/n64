@@ -213,28 +213,23 @@ RSP_VECTOR_INSTR(rsp_lwc2_ldv) {
 
 RSP_VECTOR_INSTR(rsp_lwc2_lfv) {
     logdebug("rsp_lwc2_lfv");
-    logwarn("LFV executed, this instruction is known to be buggy!");
+    defvt;
     u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
-    int e = instruction.v.element;
-    int start = e >> 1;
-    int start_ofs = e & 1;
-    int end = (start + 4);
+    u32 base = (address & 7) - instruction.v.element;
+    address &= ~7;
 
-    for (int i = start; i < end; i++) {
-        u16 val = n64_rsp_read_byte(address);
-        int shift_amount = e & 7;
-        if (shift_amount == 0) {
-            shift_amount = 7;
-        }
-        val <<= shift_amount;
-        u8 low = val & 0xFF;
-        u8 high = (val >> 8) & 0xFF;
+    int start = instruction.v.element;
+    int end = MIN(start + 8, 16);
 
-        int elem_byte = i * 2 + start_ofs;
+    // TODO: should be possible to do with one loop
+    vu_reg_t tmp;
+    for (u32 offset = 0; offset < 4; offset++) {
+        tmp.elements[VU_ELEM_INDEX(offset + 0)] = n64_rsp_read_byte(address + (base + offset * 4 + 0 & 15)) << 7;
+        tmp.elements[VU_ELEM_INDEX(offset + 4)] = n64_rsp_read_byte(address + (base + offset * 4 + 8 & 15)) << 7;
+    }
 
-        N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((elem_byte + 0) & 15)] = high;
-        N64RSP.vu_regs[instruction.v.vt].bytes[VU_BYTE_INDEX((elem_byte + 1) & 15)] = low;
-        address += 4;
+    for (u32 offset = start; offset < end; offset++) {
+        vt->bytes[VU_BYTE_INDEX(offset)] = tmp.bytes[VU_BYTE_INDEX(offset)];
     }
 }
 
