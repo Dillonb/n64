@@ -1583,3 +1583,14 @@ RSP_VECTOR_INSTR(rsp_vec_vxor) {
         N64RSP.acc.l.elements[i] = result;
     }
 }
+
+RSP_VECTOR_INSTR(rsp_vec_vzero) {
+    logdebug("rsp_vec_vzero");
+    defvs;
+    defvte;
+    defvd;
+    for (int i = 0; i < 8; i++) {
+        N64RSP.acc.l.elements[i] = vte.elements[i] + vs->elements[i];
+    }
+    vd->single = N64RSP.zero;
+}

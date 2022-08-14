@@ -1149,6 +1149,7 @@ COMP(rsp_vec_vsar, NORMAL, false);
 COMP(rsp_vec_vsub, NORMAL, false);
 COMP(rsp_vec_vsubc, NORMAL, false);
 COMP(rsp_vec_vxor, NORMAL, false);
+COMP(rsp_vec_vzero, NORMAL, false);
 
 COMP(rsp_cfc2, NORMAL, false);
 COMP(rsp_ctc2, NORMAL, false);
@@ -1279,26 +1280,26 @@ dynarec_ir_t* rsp_cp2_ir(mips_instruction_t instr, u32 address) {
             CASEIR(FUNCT_RSP_VEC_VXOR, rsp_vec_vxor);
 
             // Undocumented
-            CASEIR(FUNCT_RSP_VEC_0x12, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x16, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x17, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x18, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x19, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x1A, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x1B, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x1C, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x1E, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x1F, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x2E, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x2F, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x38, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x39, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x3A, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x3B, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x3C, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x3D, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x3E, rsp_vec_vnop);
-            CASEIR(FUNCT_RSP_VEC_0x3F, rsp_vec_vnop);
+            CASEIR(FUNCT_RSP_VEC_VSUT,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VADDB, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VSUBB, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VACCB, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VSUCB, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VSAD,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VSAC,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VSUM,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_0x1E,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_0x1F,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_0x2E,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_0x2F,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VEXTT, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VEXTQ, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VEXTN, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_0x3B,  rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VINST, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VINSQ, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VINSN, rsp_vec_vzero);
+            CASEIR(FUNCT_RSP_VEC_VNULL, rsp_vec_vnop);
             default: {
                 char buf[50];
                 disassemble(address, instr.raw, buf, 50);

@@ -91,26 +91,26 @@ INLINE rspinstr_handler_t rsp_cp2_decode(u32 pc, mips_instruction_t instr) {
             case FUNCT_RSP_VEC_VSUB:  return rsp_vec_vsub;
             case FUNCT_RSP_VEC_VSUBC: return rsp_vec_vsubc;
             case FUNCT_RSP_VEC_VXOR:  return rsp_vec_vxor;
-            case FUNCT_RSP_VEC_0x12:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x16:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x17:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x18:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x19:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x1A:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x1B:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x1C:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x1E:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x1F:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x2E:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x2F:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x38:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x39:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x3A:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x3B:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x3C:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x3D:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x3E:  return rsp_nop; // TODO, undocumented
-            case FUNCT_RSP_VEC_0x3F:  return rsp_nop; // TODO, undocumented
+            case FUNCT_RSP_VEC_VSUT:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VADDB: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VSUBB: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VACCB: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VSUCB: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VSAD:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VSAC:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VSUM:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_0x1E:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_0x1F:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_0x2E:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_0x2F:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VEXTT: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VEXTQ: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VEXTN: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_0x3B:  return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VINST: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VINSQ: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VINSN: return rsp_vec_vzero; // undocumented
+            case FUNCT_RSP_VEC_VNULL: return rsp_nop; // undocumented
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);

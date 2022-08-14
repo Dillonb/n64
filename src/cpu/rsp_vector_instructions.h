@@ -79,5 +79,6 @@ RSP_VECTOR_INSTR(rsp_vec_vsar);
 RSP_VECTOR_INSTR(rsp_vec_vsub);
 RSP_VECTOR_INSTR(rsp_vec_vsubc);
 RSP_VECTOR_INSTR(rsp_vec_vxor);
+RSP_VECTOR_INSTR(rsp_vec_vzero);
 
 #endif //N64_RSP_VECTOR_INSTRUCTIONS_H
