@@ -379,19 +379,65 @@ RSP_VECTOR_INSTR(rsp_swc2_sdv) {
 
 RSP_VECTOR_INSTR(rsp_swc2_sfv) {
     logdebug("rsp_swc2_sfv");
-    logwarn("SFV executed, this instruction is known to be buggy!");
     defvt;
     u32 address = get_rsp_register(instruction.v.base) + sign_extend_7bit_offset(instruction.v.offset, SHIFT_AMOUNT_LFV_SFV);
+    int base = address & 7;
+    address &= ~7;
     int e = instruction.v.element;
 
-    int start = e >> 1;
-    int end = start + 4;
-    int base = address & 15;
+    u8 values[4] = {0, 0, 0, 0};
 
-    address &= ~15;
-    for(int i = start; i < end; i++) {
-        n64_rsp_write_byte(address + (base & 15), vt->elements[VU_ELEM_INDEX(i & 7)] >> 7);
-        base += 4;
+    switch (e) {
+        case 0:
+        case 15:
+            values[0] = vt->elements[VU_ELEM_INDEX(0)] >> 7;
+            values[1] = vt->elements[VU_ELEM_INDEX(1)] >> 7;
+            values[2] = vt->elements[VU_ELEM_INDEX(2)] >> 7;
+            values[3] = vt->elements[VU_ELEM_INDEX(3)] >> 7;
+            break;
+        case 1:
+            values[0] = vt->elements[VU_ELEM_INDEX(6)] >> 7;
+            values[1] = vt->elements[VU_ELEM_INDEX(7)] >> 7;
+            values[2] = vt->elements[VU_ELEM_INDEX(4)] >> 7;
+            values[3] = vt->elements[VU_ELEM_INDEX(5)] >> 7;
+            break;
+        case 4:
+            values[0] = vt->elements[VU_ELEM_INDEX(1)] >> 7;
+            values[1] = vt->elements[VU_ELEM_INDEX(2)] >> 7;
+            values[2] = vt->elements[VU_ELEM_INDEX(3)] >> 7;
+            values[3] = vt->elements[VU_ELEM_INDEX(0)] >> 7;
+            break;
+        case 5:
+            values[0] = vt->elements[VU_ELEM_INDEX(7)] >> 7;
+            values[1] = vt->elements[VU_ELEM_INDEX(4)] >> 7;
+            values[2] = vt->elements[VU_ELEM_INDEX(5)] >> 7;
+            values[3] = vt->elements[VU_ELEM_INDEX(6)] >> 7;
+            break;
+        case 8:
+            values[0] = vt->elements[VU_ELEM_INDEX(4)] >> 7;
+            values[1] = vt->elements[VU_ELEM_INDEX(5)] >> 7;
+            values[2] = vt->elements[VU_ELEM_INDEX(6)] >> 7;
+            values[3] = vt->elements[VU_ELEM_INDEX(7)] >> 7;
+            break;
+        case 11:
+            values[0] = vt->elements[VU_ELEM_INDEX(3)] >> 7;
+            values[1] = vt->elements[VU_ELEM_INDEX(0)] >> 7;
+            values[2] = vt->elements[VU_ELEM_INDEX(1)] >> 7;
+            values[3] = vt->elements[VU_ELEM_INDEX(2)] >> 7;
+            break;
+        case 12:
+            values[0] = vt->elements[VU_ELEM_INDEX(5)] >> 7;
+            values[1] = vt->elements[VU_ELEM_INDEX(6)] >> 7;
+            values[2] = vt->elements[VU_ELEM_INDEX(7)] >> 7;
+            values[3] = vt->elements[VU_ELEM_INDEX(4)] >> 7;
+            break;
+        default:
+            break;
+    }
+
+#pragma unroll
+    for (int i = 0; i < 4; i++) {
+        n64_rsp_write_byte(address + ((base + (i << 2)) & 15), values[i]);
     }
 }
 
