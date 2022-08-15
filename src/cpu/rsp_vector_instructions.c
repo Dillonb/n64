@@ -150,7 +150,7 @@ u32 rcp(s32 sinput) {
     // One's complement absolute value, xor with the sign bit to invert all bits if the sign bit is set
     s32 mask = sinput >> 31;
     s32 input = sinput ^ mask;
-    if (input > INT16_MIN) {
+    if (sinput > INT16_MIN) {
         input -= mask;
     }
     if (input == 0) {
@@ -1440,7 +1440,6 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
         input = vt->signed_elements[VU_ELEM_INDEX(e)];
     }
     s32 result = rcp(input);
-    vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin = 0;
     N64RSP.divin_loaded = false;
@@ -1451,6 +1450,8 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
         N64RSP.acc.l.elements[i] = vte.elements[i];
     }
 #endif
+    vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
+}
 
 // from nall, in ares
 INLINE s64 sclip(s64 x, u32 bits) {
