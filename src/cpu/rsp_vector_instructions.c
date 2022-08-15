@@ -1579,9 +1579,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
         input = vt->signed_elements[VU_ELEM_INDEX(e)];
     }
     u32 result = rsq(input);
-    vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
-    N64RSP.divin = 0;
     N64RSP.divin_loaded = false;
 
 #ifdef N64_USE_SIMD
@@ -1591,6 +1589,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
         N64RSP.acc.l.elements[i] = vte.elements[i];
     }
 #endif
+    vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vsar) {
