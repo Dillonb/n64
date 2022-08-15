@@ -1451,11 +1451,43 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
         N64RSP.acc.l.elements[i] = vte.elements[i];
     }
 #endif
+
+// from nall, in ares
+INLINE s64 sclip(s64 x, u32 bits) {
+    u64 b = 1ull << (bits - 1);
+    u64 m = b * 2 - 1;
+    return ((x & m) ^ b) - b;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndn) {
     logdebug("rsp_vec_vrndn");
-    logwarn("Unimplemented: rsp_vec_vrndn");
+    defvte;
+    defvd;
+    for(int i = 0; i < 8; i++) {
+        s32 product = (s16)vte.signed_elements[i];
+
+        if(instruction.cp2_vec.vs & 1) {
+            product <<= 16;
+        }
+
+        s64 acc = 0;
+        acc |= N64RSP.acc.h.elements[i];
+        acc <<= 16;
+        acc |= N64RSP.acc.m.elements[i];
+        acc <<= 16;
+        acc |= N64RSP.acc.l.elements[i];
+        acc <<= 16;
+        acc >>= 16;
+
+        if(acc <  0) {
+            acc = sclip(acc + product, 48);
+        }
+
+        N64RSP.acc.h.elements[i] = acc >> 32;
+        N64RSP.acc.m.elements[i] = acc >> 16;
+        N64RSP.acc.l.elements[i] = acc >>  0;
+        vd->elements[i] = clamp_signed(acc >> 16);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrndp) {
