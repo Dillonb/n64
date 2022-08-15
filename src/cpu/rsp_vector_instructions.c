@@ -169,26 +169,27 @@ u32 rcp(s32 sinput) {
     return result;
 }
 
-u32 rsq(s32 sinput) {
-    if (sinput == 0) {
+u32 rsq(u32 input) {
+    if (input == 0) {
         return 0x7FFFFFFF;
-    } else if (sinput == 0xFFFF8000) { // Only for RSQ special case
+    } else if (input == 0xFFFF8000) {
         return 0xFFFF0000;
+    } else if (input > 0xFFFF8000) {
+        input--;
     }
 
-    u32 input = abs(sinput);
-    int lshift = clz32(input) + 1;
-    int rshift = (32 - lshift) >> 1; // Shifted by 1 instead of 0
-    int index = (input << lshift) >> 24; // Shifted by 24 instead of 23
+    s32 sinput = input;
+    s32 mask = sinput >> 31;
+    input ^= mask;
 
-    u32 rom = rsq_rom[(index | ((lshift & 1) << 8))];
-    u32 result = ((0x10000 | rom) << 14) >> rshift;
+    int shift = clz32(input) + 1;
 
-    if (input != sinput) {
-        return ~result;
-    } else {
-        return result;
-    }
+    int index = (((input << shift) >> 24) | ((shift & 1) << 8));
+    u32 rom = (((u32)rsq_rom[index]) << 14);
+    int r_shift = ((32 - shift) >> 1);
+    u32 result = (0x40000000 | rom) >> r_shift;
+
+    return result ^ mask;
 }
 
 RSP_VECTOR_INSTR(rsp_lwc2_lbv) {
