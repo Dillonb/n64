@@ -1492,7 +1492,33 @@ RSP_VECTOR_INSTR(rsp_vec_vrndn) {
 
 RSP_VECTOR_INSTR(rsp_vec_vrndp) {
     logdebug("rsp_vec_vrndp");
-    logwarn("Unimplemented: rsp_vec_vrndp");
+    defvte;
+    defvd;
+    for(int i = 0; i < 8; i++) {
+        s32 product = (s16)vte.signed_elements[i];
+
+        if(instruction.cp2_vec.vs & 1) {
+            product <<= 16;
+        }
+
+        s64 acc = 0;
+        acc |= N64RSP.acc.h.elements[i];
+        acc <<= 16;
+        acc |= N64RSP.acc.m.elements[i];
+        acc <<= 16;
+        acc |= N64RSP.acc.l.elements[i];
+        acc <<= 16;
+        acc >>= 16;
+
+        if(acc >= 0) {
+            acc = sclip(acc + product, 48);
+        }
+
+        N64RSP.acc.h.elements[i] = acc >> 32;
+        N64RSP.acc.m.elements[i] = acc >> 16;
+        N64RSP.acc.l.elements[i] = acc >>  0;
+        vd->elements[i] = clamp_signed(acc >> 16);
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsq) {
