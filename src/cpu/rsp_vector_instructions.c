@@ -1300,7 +1300,21 @@ RSP_VECTOR_INSTR(rsp_vec_vmulf) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmulq) {
     logdebug("rsp_vec_vmulq");
-    logwarn("Unimplemented: rsp_vec_vmulq");
+    defvs;
+    defvte;
+    defvd;
+
+    for(int i = 0; i < 8; i++) {
+        s32 product = vs->signed_elements[i] * vte.signed_elements[i];
+        if(product < 0) {
+            product += 31;
+        }
+
+        N64RSP.acc.h.elements[i] = product >> 16;
+        N64RSP.acc.m.elements[i] = product;
+        N64RSP.acc.l.elements[i] = 0;
+        vd->elements[i] = clamp_signed(product >> 1) & ~15;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmulu) {
