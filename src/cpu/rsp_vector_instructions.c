@@ -928,7 +928,19 @@ RSP_VECTOR_INSTR(rsp_vec_vmacf) {
 
 RSP_VECTOR_INSTR(rsp_vec_vmacq) {
     logdebug("rsp_vec_vmacq");
-    logwarn("Unimplemented: rsp_vec_vmacq");
+    defvd;
+    for(int i = 0; i < 8; i++) {
+        s32 product = N64RSP.acc.h.elements[i] << 16 | N64RSP.acc.m.elements[i];
+        if(product < 0 && !(product & 1 << 5)) {
+            product += 32;
+        } else if(product >= 32 && !(product & 1 << 5)) {
+            product -= 32;
+        }
+        N64RSP.acc.h.elements[i] = product >> 16;
+        N64RSP.acc.m.elements[i] = product & 0xFFFF;
+
+        vd->elements[i] = clamp_signed(product >> 1) & ~15;
+    }
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vmacu) {
