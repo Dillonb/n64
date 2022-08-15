@@ -1550,7 +1550,8 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     defvt;
     defvd;
     defvte;
-    u8 de = instruction.cp2_vec.vs;
+    u8 e  = instruction.cp2_vec.e & 7;
+    u8 de = instruction.cp2_vec.vs & 7;
 
 #ifdef N64_USE_SIMD
     N64RSP.acc.l.single = vte.single;
@@ -1560,8 +1561,8 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     }
 #endif
     N64RSP.divin_loaded = true;
-    N64RSP.divin = vt->elements[VU_ELEM_INDEX(instruction.cp2_vec.e & 7)];
-    vd->elements[VU_ELEM_INDEX(de & 7)] = N64RSP.divout;
+    N64RSP.divin = vt->elements[VU_ELEM_INDEX(e)];
+    vd->elements[VU_ELEM_INDEX(de)] = N64RSP.divout;
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vrsql) {
