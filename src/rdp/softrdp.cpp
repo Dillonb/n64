@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <log.h>
 #include <cstring>
+#include <util.h>
 #include "softrdp.h"
 
 #ifndef INLINE
@@ -49,37 +50,67 @@ typedef enum rdp_command {
 } rdp_command_t;
 
 typedef struct edge_coefficients {
-    bool dir;
-    uint32_t level;
-    uint32_t tile;
+    // Word 0
+    // ======
+    // Y position of the highest point on the triangle
+    u64 yh:14;
+    u64:2;
 
-    // Y position where the triangle starts
-    uint32_t yh;
-    // Y position where the second minor line starts
-    uint32_t ym;
-    // Y position where the triangle ends.
-    uint32_t yl;
+    // Y position of the middle point on the triangle, where the second minor line starts
+    u64 ym:14;
+    u64:2;
 
-    // X position where the major line starts
-    uint32_t xh_i;
-    uint32_t xh_f;
-    // X position where the first minor line starts.
-    uint32_t xm_i;
-    uint32_t xm_f;
-    // X position where the second minor line starts
-    uint32_t xl_i;
-    uint32_t xl_f;
+    // Y position of the lowest point on the triangle
+    u64 yl:14;
+    u64:2;
+
+    u64 tile:3;
+    u64 level:3;
+
+    u64:1;
+
+    // 0 = left major 1 = right major
+    bool right_major:1;
+
+    // Command identifier
+    u64 cmd:6;
+    u64:2;
+
+    // Word 1
+    // ======
+
+    // Change in X per Y along the second minor line
+    u16 dxldy_f;
+    s16 dxldy;
+
+    // X position of the lowest point on the triangle
+    u16 xl_f;
+    u16 xl;
+
+    // Word 2
+    // ======
 
     // Change in X per Y along the major line
-    int16_t dxhdy_i;
-    uint16_t  dxhdy_f;
+    u16 dxhdy_f;
+    s16 dxhdy;
+
+    // X position of the highest point on the triangle
+    u16 xh_f;
+    u16 xh;
+
+    // Word 3
+    // ======
+
     // Change in X per Y along the first minor line
-    int16_t dxmdy_i;
-    uint16_t  dxmdy_f;
-    // Change in X per Y along the second minor line
-    int16_t dxldy_i;
-    uint16_t  dxldy_f;
+    u16 dxmdy_f;
+    s16 dxmdy;
+
+    // X position of the middle point of the triangle
+    u16 xm_f;
+    u16 xm;
 } edge_coefficients_t;
+
+static_assert(sizeof(edge_coefficients_t) == 4 * sizeof(u64), "asdf");
 
 typedef struct z_coefficients {
     // Inverse depth
@@ -131,41 +162,6 @@ INLINE int get_bytes_per_pixel(softrdp_state_t* rdp) {
     }
 }
 
-INLINE void get_edge_coefficients(const uint64_t* buffer, edge_coefficients_t* coefficients) {
-    coefficients->dir   = get_bit(buffer[0], 55);
-    coefficients->level = get_bits(buffer[0], 53, 51);
-    coefficients->tile  = get_bits(buffer[0], 50, 48);
-
-    // Y position where the triangle starts
-    coefficients->yh = get_bits(buffer[0], 13, 0);
-    // Y position where the second minor line starts
-    coefficients->ym = get_bits(buffer[0], 29, 16);
-    // Y position where the triangle ends.
-    coefficients->yl = get_bits(buffer[0], 45, 32);
-
-    // X position where the major line starts
-    coefficients->xh_i    = get_bits(buffer[2], 63, 48);
-    coefficients->xh_f    = get_bits(buffer[2], 47, 32);
-    // X position where the first minor line starts.
-    coefficients->xm_i    = get_bits(buffer[3], 63, 48);
-    coefficients->xm_f    = get_bits(buffer[3], 47, 32);
-    // X position where the second minor line starts
-    coefficients->xl_i = get_bits(buffer[1], 63, 48);
-    coefficients->xl_f = get_bits(buffer[1], 47, 32);
-
-
-    // Change in X per Y along the major line
-    coefficients->dxhdy_i = get_bits(buffer[2], 31, 16);
-    coefficients->dxhdy_f = get_bits(buffer[2], 15, 0);
-    // Change in X per Y along the first minor line
-    coefficients->dxmdy_i = get_bits(buffer[3], 31, 16);
-    coefficients->dxmdy_f = get_bits(buffer[3], 15, 0);
-    // Change in X per Y along the second minor line
-    coefficients->dxldy_i = get_bits(buffer[1], 31, 16);
-    coefficients->dxldy_f = get_bits(buffer[1], 15, 0);
-}
-
-
 INLINE void get_zbuffer_coefficients(const uint64_t* buffer, z_coefficients_t* coefficients) {
     coefficients->z   = get_bits(buffer[0], 63, 48);
     coefficients->z_f = get_bits(buffer[0], 47, 32);
@@ -187,25 +183,25 @@ INLINE void get_zbuffer_coefficients(const uint64_t* buffer, z_coefficients_t* c
               coefficients->dzdy, coefficients->dzdy_f);
 }
 
-INLINE void triangle_edgewalker(softrdp_state_t* rdp, edge_coefficients_t* ec, spans_t* spans) {
+INLINE void triangle_edgewalker(softrdp_state_t* rdp, const edge_coefficients_t* ec, spans_t* spans) {
     uint32_t xstart;
     uint32_t xend;
 
     int32_t dxstart;
     int32_t dxend;
 
-    if (ec->dir) {
-        xstart = ec->xm_i << 16 | ec->xm_f;
-        xend = ec->xh_i << 16 | ec->xh_f;
+    if (ec->right_major) {
+        xstart = ec->xm << 16 | ec->xm_f;
+        xend = ec->xh << 16 | ec->xh_f;
 
-        dxstart = ec->dxmdy_i << 16 | ec->dxmdy_f;
-        dxend = ec->dxhdy_i << 16 | ec->dxhdy_f;
+        dxstart = ec->dxmdy << 16 | ec->dxmdy_f;
+        dxend = ec->dxhdy << 16 | ec->dxhdy_f;
     } else {
-        xstart = ec->xh_i << 16 | ec->xh_f;
-        xend = ec->xm_i << 16 | ec->xm_f;
+        xstart = ec->xh << 16 | ec->xh_f;
+        xend = ec->xm << 16 | ec->xm_f;
 
-        dxstart = ec->dxhdy_i << 16 | ec->dxhdy_f;
-        dxend = ec->dxmdy_i << 16 | ec->dxmdy_f;
+        dxstart = ec->dxhdy << 16 | ec->dxhdy_f;
+        dxend = ec->dxmdy << 16 | ec->dxmdy_f;
     }
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
@@ -223,26 +219,26 @@ INLINE void triangle_edgewalker(softrdp_state_t* rdp, edge_coefficients_t* ec, s
     for (int y = yh; y < ym; y += 1) {
         span_t* s = &spans->spans[span_index++];
 
-        s->start = ((ec->dir ? xend : xstart) >> 16);
-        s->end = ((ec->dir ? xstart : xend) >> 16);
+        s->start = ((ec->right_major ? xend : xstart) >> 16);
+        s->end = ((ec->right_major ? xstart : xend) >> 16);
 
         xstart += dxstart;
         xend += dxend;
     }
 
-    if (ec->dir) {
-        xstart = ec->xl_i << 16 | ec->xl_f;
-        dxstart = ec->dxldy_i << 16 | ec->dxldy_f;
+    if (ec->right_major) {
+        xstart = ec->xl << 16 | ec->xl_f;
+        dxstart = ec->dxldy << 16 | ec->dxldy_f;
     } else {
-        xend = ec->xl_i << 16 | ec->xl_f;
-        dxend = ec->dxldy_i << 16 | ec->dxldy_f;
+        xend = ec->xl << 16 | ec->xl_f;
+        dxend = ec->dxldy << 16 | ec->dxldy_f;
     }
 
     for (int y = ym; y < yl; y += 1) {
         span_t* s = &spans->spans[span_index++];
 
-        s->start = ((ec->dir ? xend : xstart) >> 16);
-        s->end = ((ec->dir ? xstart : xend) >> 16);
+        s->start = ((ec->right_major ? xend : xstart) >> 16);
+        s->end = ((ec->right_major ? xstart : xend) >> 16);
 
         xstart += dxstart;
         xend += dxend;
@@ -417,10 +413,10 @@ void softrdp_init(softrdp_state_t* state, uint8_t* rdramptr) {
 }
 
 DEF_RDP_COMMAND(fill_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
+
     static spans_t spans;
-    triangle_edgewalker(rdp, &ec, &spans);
+    triangle_edgewalker(rdp, ec, &spans);
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
@@ -441,50 +437,43 @@ DEF_RDP_COMMAND(fill_triangle) {
 }
 
 DEF_RDP_COMMAND(fill_zbuffer_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
 
     static z_coefficients_t zc;
     get_zbuffer_coefficients(&buffer[4], &zc);
 
     static spans_t spans;
-    triangle_edgewalker(rdp, &ec, &spans);
+    triangle_edgewalker(rdp, ec, &spans);
     logfatal("fill_zbuffer_triangle unimplemented");
 }
 
 DEF_RDP_COMMAND(texture_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
     logfatal("texture_triangle unimplemented");
 }
 
 DEF_RDP_COMMAND(texture_zbuffer_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
     logfatal("texture_zbuffer_triangle unimplemented");
 }
 
 DEF_RDP_COMMAND(shade_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
     logfatal("shade_triangle unimplemented");
 }
 
 DEF_RDP_COMMAND(shade_zbuffer_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
     logfatal("shade_zbuffer_triangle unimplemented");
 }
 
 DEF_RDP_COMMAND(shade_texture_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
     logfatal("shade_texture_triangle unimplemented");
 }
 
 DEF_RDP_COMMAND(shade_texture_zbuffer_triangle) {
-    static edge_coefficients_t ec;
-    get_edge_coefficients(buffer, &ec);
+    const auto* ec = reinterpret_cast<const edge_coefficients_t*>(buffer);
     logfatal("shade_texture_zbuffer_triangle unimplemented");
 }
 
