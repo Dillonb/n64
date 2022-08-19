@@ -108,9 +108,9 @@ typedef struct edge_coefficients {
     // X position of the middle point of the triangle
     u16 xm_f;
     u16 xm;
-} edge_coefficients_t;
+} PACKED edge_coefficients_t;
 
-static_assert(sizeof(edge_coefficients_t) == 4 * sizeof(u64), "asdf");
+static_assert(sizeof(edge_coefficients_t) == 4 * sizeof(u64), "Edge coefficients must be 4 u64s");
 
 typedef struct z_coefficients {
     // Inverse depth
