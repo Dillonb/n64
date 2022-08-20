@@ -3,5 +3,7 @@ add_library(common
         metrics.c metrics.h
         util.h
         fifo.h
-        timing.c timing.h)
+        timing.c timing.h
+        settings.c settings.h)
 
+target_link_libraries(common inih)

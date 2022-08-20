@@ -1,6 +1,7 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -38,6 +39,7 @@ typedef int64_t s64;
 #endif
 
 #ifndef N64_WIN
+#include <unistd.h>
 #include <linux/limits.h>
 #else
 #define PATH_MAX 0x1000
@@ -55,6 +57,21 @@ INLINE u32 npow2(u32 x) {
 
     return 1u << (32 - __builtin_clz(x - 1));
 }
+
+INLINE bool file_exists(const char* path) {
+#ifndef N64_WIN
+    return access(path, F_OK) == 0;
+#else
+    FILE* f = fopen(path, "r");
+    bool exists = false;
+    if (f) {
+        exists = true;
+        fclose(f);
+    }
+    return exists;
+#endif
+}
+
 
 
 #endif

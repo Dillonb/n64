@@ -522,20 +522,6 @@ void interrupt_lower(n64_interrupt_t interrupt) {
     on_interrupt_change();
 }
 
-bool file_exists(const char* path) {
-#ifndef N64_WIN
-    return access(path, F_OK) == 0;
-#else
-    FILE* f = fopen(path, "r");
-    bool exists = false;
-    if (f) {
-        exists = true;
-        fclose(f);
-    }
-    return exists;
-#endif
-}
-
 void n64_queue_action(n64_action_t action) {
     n64sys.action_queued = action;
 }

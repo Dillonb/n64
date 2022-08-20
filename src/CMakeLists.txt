@@ -3,7 +3,15 @@ SET(EXECUTABLE_OUTPUT_PATH ${N64_EXECUTABLE_OUTPUT_PATH})
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${N64_EXECUTABLE_OUTPUT_PATH})
 
 find_package(SDL2 REQUIRED)
-INCLUDE_DIRECTORIES(SYSTEM "contrib/include" "contrib/imgui" "contrib/cic_nus_6105" ${SDL2_INCLUDE_DIR} "common" "." "cpu")
+INCLUDE_DIRECTORIES(SYSTEM
+        "contrib/include"
+        "contrib/imgui"
+        "contrib/cic_nus_6105"
+        "contrib/inih/inih-r56"
+        ${SDL2_INCLUDE_DIR}
+        "common"
+        "."
+        "cpu")
 
 add_subdirectory(common)
 add_subdirectory(cpu)
@@ -15,6 +23,7 @@ add_subdirectory(contrib/cic_nus_6105)
 add_subdirectory(contrib/libsamplerate)
 SET(NFD_PORTAL ON CACHE BOOL "Use dbus for native file dialog instead of gtk")
 add_subdirectory(contrib/nativefiledialog-extended)
+add_subdirectory(contrib/inih)
 add_subdirectory(tools)
 
 find_package(Qt6 COMPONENTS Core Gui Widgets)

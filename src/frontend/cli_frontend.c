@@ -8,6 +8,7 @@
 #include <frontend/tas_movie.h>
 #include <signal.h>
 #include <imgui/imgui_ui.h>
+#include <settings.h>
 #include "frontend.h"
 
 void usage(cflags_t* flags) {
@@ -28,6 +29,7 @@ void sig_handler(int signum) {
 #endif
 
 int main(int argc, char** argv) {
+    n64_settings_init();
 
 #ifndef N64_WIN
     signal(SIGUSR1, sig_handler);

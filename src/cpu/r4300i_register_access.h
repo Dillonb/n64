@@ -466,7 +466,7 @@ INLINE float get_fpu_register_float(u8 r) {
     return floatvalue;
 }
 
-INLINE void link(int reg) {
+INLINE void link_r4300i(int reg) {
     u64 pc = N64CPU.pc + 4;
     set_register(reg, pc); // Skips the instruction in the delay slot on return
 }
