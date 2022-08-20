@@ -590,12 +590,19 @@ DEF_RDP_COMMAND(load_block) {
 
 DEF_RDP_COMMAND(load_tile) {
     int tile_index = get_bits(buffer[0], 26, 24);
+    softrdp_tile_t* descriptor = &rdp->tiles[tile_index];
+
+    unimplemented(descriptor->format != rdp->texture_image.format, "load tile: descriptor format (%d) != texture image format (%d)", descriptor->format, rdp->texture_image.format);
+    unimplemented(descriptor->size != 3, "load tile: descriptor pixel size != 3");
+    unimplemented(rdp->texture_image.size != 3, "load tile: texture image pixel size != 3");
+    int bytes_per_pixel = 4;
 
     uint16_t sl   = get_bits(buffer[0], 55, 44);
     uint16_t tl   = get_bits(buffer[0], 43, 32);
     uint16_t sh   = get_bits(buffer[0], 23, 12);
     uint16_t th   = get_bits(buffer[0], 11, 0);
 
+    int tmem_address = descriptor->tmem_adrs * sizeof(u64); // tmem address in descriptor is in multiples of 64 bits
     logfatal("rdp_load_tile unimplemented sl: %d tl: %d, tile: %d, sh: %d, th: %d", sl, tl, tile_index, sh, th);
 }
 
@@ -613,6 +620,20 @@ DEF_RDP_COMMAND(set_tile) {
     rdp->tiles[tile_index].ms        = get_bit(buffer[0], 8);
     rdp->tiles[tile_index].mask_s    = get_bits(buffer[0], 7, 4);
     rdp->tiles[tile_index].shift_s   = get_bits(buffer[0], 3, 0);
+
+    logalways("Set tile");
+    logalways("format:    %d", rdp->tiles[tile_index].format);
+    logalways("size:      %d", rdp->tiles[tile_index].size);
+    logalways("line:      %d", rdp->tiles[tile_index].line);
+    logalways("tmem_adrs: %d", rdp->tiles[tile_index].tmem_adrs);
+    logalways("palette:   %d", rdp->tiles[tile_index].palette);
+    logalways("mt:        %d", rdp->tiles[tile_index].mt);
+    logalways("mask_t:    %d", rdp->tiles[tile_index].mask_t);
+    logalways("shift_t:   %d", rdp->tiles[tile_index].shift_t);
+    logalways("cs:        %d", rdp->tiles[tile_index].cs);
+    logalways("ms:        %d", rdp->tiles[tile_index].ms);
+    logalways("mask_s:    %d", rdp->tiles[tile_index].mask_s);
+    logalways("shift_s:   %d", rdp->tiles[tile_index].shift_s);
 }
 
 DEF_RDP_COMMAND(fill_rectangle) {
@@ -693,6 +714,12 @@ DEF_RDP_COMMAND(set_texture_image) {
 
     rdp->texture_image.width     = get_bits(buffer[0], 41, 32) + 1;
     rdp->texture_image.dram_addr = get_bits(buffer[0], 25, 0);
+    logalways("Set texture image:");
+    logalways("format: %d", rdp->texture_image.format);
+    logalways("size: %d", rdp->texture_image.size);
+
+    logalways("width: %d", rdp->texture_image.width);
+    logalways("dram_addr: %08X", rdp->texture_image.dram_addr);
 }
 
 DEF_RDP_COMMAND(set_mask_image) {

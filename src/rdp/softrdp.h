@@ -156,6 +156,8 @@ typedef struct softrdp_state {
 
     softrdp_tile_t tiles[8];
 
+    u8 tmem[0x1000];
+
     uint32_t z_image;
 } softrdp_state_t;
 
