@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <system/n64system.h>
+#include <settings.h>
 
 static n64_joybus_device_t joybus_devices[6];
 
@@ -150,13 +151,14 @@ void update_joyaxis_y(int controller, s16 y) {
 }
 
 void devices_init(n64_save_type_t save_type) {
-    joybus_devices[0].type = JOYBUS_CONTROLLER;
-    // TODO: make this configurable
-    joybus_devices[0].controller.accessory_type = CONTROLLER_ACCESSORY_MEMPACK;
+    for (int i = 0; i < 4; i++) {
+        joybus_devices[i].type = n64_settings.controller_ports[i];
+        if (joybus_devices[i].type) {
+            // TODO: make this configurable
+            joybus_devices[i].controller.accessory_type = CONTROLLER_ACCESSORY_MEMPACK;
+        }
+    }
 
-    joybus_devices[1].type = JOYBUS_NONE;
-    joybus_devices[2].type = JOYBUS_NONE;
-    joybus_devices[3].type = JOYBUS_NONE;
     if (save_type == SAVE_EEPROM_4k) {
         joybus_devices[4].type = JOYBUS_4KB_EEPROM;
     } else if (save_type == SAVE_EEPROM_16k) {

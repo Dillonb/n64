@@ -1,0 +1,1 @@
+add_library(inih inih-r56/ini.c inih-r56/ini.h)
