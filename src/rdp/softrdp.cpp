@@ -70,7 +70,7 @@ typedef struct edge_coefficients {
     u64:1;
 
     // 0 = left major 1 = right major
-    bool right_major:1;
+    u64 right_major:1;
 
     // Command identifier
     u64 cmd:6;
