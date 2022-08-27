@@ -8,6 +8,7 @@
 #include <imgui/imgui_ui.h>
 #include <imgui_impl_vulkan.h>
 #include <frontend/frontend.h>
+#include <settings.h>
 
 using namespace Vulkan;
 using std::unique_ptr;
@@ -119,7 +120,15 @@ void init_parallel_rdp() {
         logwarn("VK_EXT_external_memory_host is not supported by this device. Application might run slower because of this.");
     }
 
-    CommandProcessorFlags flags = 1 << 1; // TODO configurable scaling
+    CommandProcessorFlags flags = 0;
+
+    if (n64_settings.scaling == 2) {
+        flags |= RDP::COMMAND_PROCESSOR_FLAG_UPSCALING_2X_BIT;
+    } else if (n64_settings.scaling == 4) {
+        flags |= RDP::COMMAND_PROCESSOR_FLAG_UPSCALING_4X_BIT;
+    } else if (n64_settings.scaling == 8) {
+        flags |= RDP::COMMAND_PROCESSOR_FLAG_UPSCALING_8X_BIT;
+    }
 
     command_processor = new CommandProcessor(wsi->get_device(), reinterpret_cast<void *>(aligned_rdram),
                                         offset, 8 * 1024 * 1024, 4 * 1024 * 1024, flags);
