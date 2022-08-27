@@ -7,6 +7,28 @@
 
 static event_handler_t imgui_event_handler = NULL;
 
+typedef struct n64_keyboard_mapping {
+    n64_button_t button;
+    int player;
+} n64_keyboard_mapping_t;
+
+//n64_button_t keyboard_mappings[4][SDL_NUM_SCANCODES] = { 0 };
+n64_keyboard_mapping_t keyboard_mappings[SDL_NUM_SCANCODES] = { 0 };
+
+void register_sdl_keyboard_bindings(int player, SDL_KeyCode bindings[2], n64_button_t button) {
+    for (int i = 0; i < 2; i++) {
+        if (bindings[i] != SDLK_UNKNOWN) {
+            SDL_Scancode scancode = SDL_GetScancodeFromKey(bindings[i]);
+            if (scancode == SDL_SCANCODE_UNKNOWN) {
+                logwarn("non-unknown keycode mapped to unknown scancode! %s\n", SDL_GetError());
+            } else {
+                keyboard_mappings[scancode].button = button;
+                keyboard_mappings[scancode].player = player;
+            }
+        }
+    }
+}
+
 void handle_event(SDL_Event* event) {
     switch (event->type) {
         case SDL_QUIT:
@@ -14,97 +36,25 @@ void handle_event(SDL_Event* event) {
             n64_request_quit();
             break;
         case SDL_KEYDOWN: {
+            n64_keyboard_mapping_t* mapping = &keyboard_mappings[event->key.keysym.scancode];
+            if (mapping->button != N64_BUTTON_NONE) {
+                update_button(mapping->player, mapping->button, true);
+            }
+
             switch (event->key.keysym.sym) {
-                case SDLK_ESCAPE:
+                case SDLK_ESCAPE: // TODO: shift-esc
                     n64_request_quit();
                     break;
-
-                case SDLK_j:
-                    update_button(0, N64_BUTTON_A, true);
-                    break;
-
-                case SDLK_k:
-                    update_button(0, N64_BUTTON_B, true);
-                    break;
-
-                case SDLK_UP:
-                case SDLK_w:
-                    update_joyaxis_y(0, JOYAXIS_MIN);
-                    //update_button(0, DPAD_UP, true);
-                    break;
-
-                case SDLK_DOWN:
-                case SDLK_s:
-                    update_joyaxis_y(0, JOYAXIS_MAX);
-                    //update_button(0, DPAD_DOWN, true);
-                    break;
-
-                case SDLK_LEFT:
-                case SDLK_a:
-                    update_joyaxis_x(0, JOYAXIS_MIN);
-                    //update_button(0, DPAD_LEFT, true);
-                    break;
-
-                case SDLK_RIGHT:
-                case SDLK_d:
-                    update_joyaxis_x(0, JOYAXIS_MAX);
-                    //update_button(0, DPAD_RIGHT, true);
-                    break;
-
-                case SDLK_q:
-                    update_button(0, N64_BUTTON_Z, true);
-                    break;
-
-                case SDLK_RETURN:
-                    update_button(0, N64_BUTTON_START, true);
-                    break;
-
                 case SDLK_u:
                     set_framerate_unlocked(!is_framerate_unlocked());
+                    break;
             }
             break;
         }
         case SDL_KEYUP: {
-            switch (event->key.keysym.sym) {
-                case SDLK_j:
-                    update_button(0, N64_BUTTON_A, false);
-                    break;
-
-                case SDLK_k:
-                    update_button(0, N64_BUTTON_B, false);
-                    break;
-
-                case SDLK_UP:
-                case SDLK_w:
-                    update_joyaxis_y(0, 0);
-                    //update_button(0, DPAD_UP, false);
-                    break;
-
-                case SDLK_DOWN:
-                case SDLK_s:
-                    update_joyaxis_y(0, 0);
-                    //update_button(0, DPAD_DOWN, false);
-                    break;
-
-                case SDLK_LEFT:
-                case SDLK_a:
-                    update_joyaxis_x(0, 0);
-                    //update_button(0, DPAD_LEFT, false);
-                    break;
-
-                case SDLK_RIGHT:
-                case SDLK_d:
-                    update_joyaxis_x(0, 0);
-                    //update_button(0, DPAD_RIGHT, false);
-                    break;
-
-                case SDLK_q:
-                    update_button(0, N64_BUTTON_Z, false);
-                    break;
-
-                case SDLK_RETURN:
-                    update_button(0, N64_BUTTON_START, false);
-                    break;
+            n64_keyboard_mapping_t* mapping = &keyboard_mappings[event->key.keysym.scancode];
+            if (mapping->button != N64_BUTTON_NONE) {
+                update_button(mapping->player, mapping->button, false);
             }
             break;
         }

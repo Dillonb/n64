@@ -10,6 +10,9 @@ static n64_joybus_device_t joybus_devices[6];
 
 void update_button(int controller, n64_button_t button, bool held) {
     switch(button) {
+        case N64_BUTTON_NONE:
+            break;
+
         case N64_BUTTON_A:
             joybus_devices[controller].controller.a = held;
             break;
@@ -64,6 +67,22 @@ void update_button(int controller, n64_button_t button, bool held) {
 
         case N64_BUTTON_C_RIGHT:
             joybus_devices[controller].controller.c_right = held;
+            break;
+
+        case N64_BUTTON_JOY_UP:
+            update_joyaxis_y(controller, held ? JOYAXIS_MIN : 0);
+            break;
+
+        case N64_BUTTON_JOY_DOWN:
+            update_joyaxis_y(controller, held ? JOYAXIS_MAX : 0);
+            break;
+
+        case N64_BUTTON_JOY_LEFT:
+            update_joyaxis_x(controller, held ? JOYAXIS_MIN : 0);
+            break;
+
+        case N64_BUTTON_JOY_RIGHT:
+            update_joyaxis_x(controller, held ? JOYAXIS_MAX : 0);
             break;
     }
 }
@@ -152,7 +171,7 @@ void update_joyaxis_y(int controller, s16 y) {
 
 void devices_init(n64_save_type_t save_type) {
     for (int i = 0; i < 4; i++) {
-        joybus_devices[i].type = n64_settings.controller_ports[i];
+        joybus_devices[i].type = n64_settings.controller_port[i];
         if (joybus_devices[i].type) {
             // TODO: make this configurable
             joybus_devices[i].controller.accessory_type = CONTROLLER_ACCESSORY_MEMPACK;

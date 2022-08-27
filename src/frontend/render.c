@@ -8,6 +8,7 @@
 
 #include <volk.h>
 #include <rdp/parallel_rdp_wrapper.h>
+#include <settings.h>
 
 // prior to 2.0.10, this was anonymous enum
 #if SDL_COMPILEDVERSION <  SDL_VERSIONNUM(2, 0, 10)
@@ -83,6 +84,31 @@ void render_init(n64_video_type_t video_type) {
     n64_video_type = video_type;
     audio_init();
     gamepad_init();
+
+    for (int i = 0; i < 4; i++) {
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_a, N64_BUTTON_A);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_b, N64_BUTTON_B);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_start, N64_BUTTON_START);
+
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_dpad_up, N64_BUTTON_DPAD_UP);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_dpad_down, N64_BUTTON_DPAD_DOWN);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_dpad_left, N64_BUTTON_DPAD_LEFT);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_dpad_right, N64_BUTTON_DPAD_RIGHT);
+
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_c_up, N64_BUTTON_C_UP);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_c_down, N64_BUTTON_C_DOWN);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_c_left, N64_BUTTON_C_LEFT);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_c_right, N64_BUTTON_C_RIGHT);
+
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_joy_up, N64_BUTTON_JOY_UP);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_joy_down, N64_BUTTON_JOY_DOWN);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_joy_left, N64_BUTTON_JOY_LEFT);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_joy_right, N64_BUTTON_JOY_RIGHT);
+
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_rb, N64_BUTTON_R);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_lb, N64_BUTTON_L);
+        register_sdl_keyboard_bindings(i, n64_settings.controller[i].keyboard_z, N64_BUTTON_Z);
+    }
 }
 
 static u32 last_vi_type = 0;

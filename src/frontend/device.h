@@ -11,6 +11,8 @@ extern "C" {
 #endif
 
 typedef enum n64_button {
+    N64_BUTTON_NONE,
+
     N64_BUTTON_A,
     N64_BUTTON_B,
     N64_BUTTON_Z,
@@ -25,6 +27,12 @@ typedef enum n64_button {
     N64_BUTTON_C_DOWN,
     N64_BUTTON_C_LEFT,
     N64_BUTTON_C_RIGHT,
+
+    // Fake buttons: set the joystick to max in each direction
+    N64_BUTTON_JOY_UP,
+    N64_BUTTON_JOY_DOWN,
+    N64_BUTTON_JOY_LEFT,
+    N64_BUTTON_JOY_RIGHT,
 } n64_button_t;
 
 typedef enum n64_controller_accessory_type {
