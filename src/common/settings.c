@@ -5,11 +5,14 @@
 #include <stdio.h>
 #include <ini.h>
 
+#include <SDL.h>
+
 n64_settings_t n64_settings;
 
 #define CONFIG_FILENAME "dgb-n64.ini"
 
 #ifdef N64_WIN
+#define strtok_r strtok_s
 #include <direct.h>
 const char PATH_DELIMITER = '\\';
 #define GETCWD _getcwd
@@ -240,6 +243,7 @@ n64_joybus_device_type_t str_to_joybus(const char* joybus) {
 #define BOOL_TO_TEXT(x) ((x) ? "true" : "false")
 
 int write_key_bindings(FILE* f, SDL_KeyCode bindings[2]) {
+    SDL_Init(SDL_INIT_EVENTS);
     if (bindings[0] == SDLK_UNKNOWN && bindings[1] == SDLK_UNKNOWN) {
         CONFIG_LINE("");
     } else if (bindings[0] == SDLK_UNKNOWN) {
