@@ -77,6 +77,7 @@
 #define OPC_CP0    0b010000
 #define OPC_CP1    0b010001
 #define OPC_CP2    0b010010
+#define OPC_CP3    0b010011
 #define OPC_LD     0b110111
 #define OPC_LUI    0b001111
 #define OPC_ADDI   0b001000
@@ -134,9 +135,11 @@
 #define COP_MF    0b00000
 #define COP_DMF   0b00001
 #define COP_CF    0b00010
+#define COP_DCF   0b00011
 #define COP_MT    0b00100
 #define COP_DMT   0b00101
 #define COP_CT    0b00110
+#define COP_DCT   0b00111
 #define COP_BC    0b01000
 
 
@@ -582,6 +585,7 @@ typedef struct r4300i {
     fgr_t f[32];
 
     cp0_t cp0;
+    u64 cp2_latch;
 
     // Cached value of `cp0.cause.interrupt_pending & cp0.status.im`
     u8 interrupts;
@@ -634,5 +638,8 @@ INLINE void cp0_status_updated() {
             || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
                || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
 }
+
+#define checkcp1 do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
+#define checkcp2 do { if (!N64CPU.cp0.status.cu2) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 2); return; } } while(0)
 
 #endif //N64_R4300I_H

@@ -1215,6 +1215,43 @@ MIPS_INSTR(mips_ri_tnei) {
     }
 }
 
+MIPS_INSTR(mips_mfc2) {
+    checkcp2;
+    s32 value = N64CPU.cp2_latch;
+    set_register(instruction.r.rt, (s64)value);
+}
+
+MIPS_INSTR(mips_mtc2) {
+    checkcp2;
+    // Identical to DMTC2
+    N64CPU.cp2_latch = get_register(instruction.r.rt);;
+}
+
+MIPS_INSTR(mips_dmfc2) {
+    checkcp2;
+    set_register(instruction.r.rt, N64CPU.cp2_latch);
+}
+
+MIPS_INSTR(mips_dmtc2) {
+    checkcp2;
+    N64CPU.cp2_latch = get_register(instruction.r.rt);
+}
+
+MIPS_INSTR(mips_cfc2) {
+    checkcp2;
+    logwarn("Main CPU CFC2 unimplemented! Doing nothing.");
+}
+
+MIPS_INSTR(mips_ctc2) {
+    checkcp2;
+    logwarn("Main CPU CTC2 unimplemented! Doing nothing.");
+}
+
+MIPS_INSTR(mips_cp2_invalid) {
+    checkcp2;
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_RESERVED_INSTR, 2);
+}
+
 MIPS_INSTR(mips_invalid) {
     r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_RESERVED_INSTR, 0);
 }
