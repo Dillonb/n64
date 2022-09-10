@@ -6,6 +6,7 @@
 extern unsigned int extra_cycles;
 
 #define SI_DMA_DELAY (65536 * 2)
+#define PI_BUS_WRITE 100
 u32 timing_pi_access(u8 domain, u32 length);
 
 INLINE void cpu_stall(unsigned int cycles) {

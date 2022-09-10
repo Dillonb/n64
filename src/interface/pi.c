@@ -232,7 +232,7 @@ INLINE bool pi_write_latch(u32 value) {
     } else {
         n64sys.pi.io_busy = true;
         n64sys.pi.latch = value;
-        scheduler_enqueue_relative(300, SCHEDULER_PI_BUS_WRITE_COMPLETE);
+        scheduler_enqueue_relative(PI_BUS_WRITE, SCHEDULER_PI_BUS_WRITE_COMPLETE);
         return true;
     }
 }
