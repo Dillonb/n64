@@ -77,19 +77,21 @@ void scheduler_enqueue_relative(u64 in_ticks, scheduler_event_type_t event_type)
     scheduler_enqueue_absolute(scheduler_ticks + in_ticks, event_type);
 }
 
-void scheduler_remove_event(scheduler_event_type_t event_type) {
+u64 scheduler_remove_event(scheduler_event_type_t event_type) {
     scheduler_event_node_t* node = scheduler_list;
     scheduler_event_node_t** prev_next = &scheduler_list;
 
     while (node != NULL) {
         if (node->event.type == event_type) {
+            u64 in_cycles = node->event.time - scheduler_ticks;
             free_event_node(node);
 
             *prev_next = node->next;
-            return;
+            return in_cycles;
         }
 
         prev_next = &node->next;
         node = node->next;
     }
+    return 0;
 }

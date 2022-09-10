@@ -239,9 +239,8 @@ INLINE bool pi_write_latch(u32 value) {
 
 INLINE bool pi_read_latch() {
     if (unlikely(n64sys.pi.io_busy)) {
-        // TODO: should block until the scheduler event is triggered.
         n64sys.pi.io_busy = false;
-        scheduler_remove_event(SCHEDULER_PI_BUS_WRITE_COMPLETE);
+        cpu_stall(scheduler_remove_event(SCHEDULER_PI_BUS_WRITE_COMPLETE));
         return false;
     }
     return true;
