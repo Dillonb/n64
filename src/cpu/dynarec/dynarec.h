@@ -3,6 +3,7 @@
 
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
+#include <common/util.h>
 
 // 4KiB aligned pages
 #define BLOCKCACHE_OUTER_SHIFT 12
@@ -10,6 +11,7 @@
 #define BLOCKCACHE_OUTER_SIZE (0x80000000 >> BLOCKCACHE_OUTER_SHIFT)
 // word aligned instructions
 #define BLOCKCACHE_INNER_SIZE (BLOCKCACHE_PAGE_SIZE >> 2)
+#define BLOCKCACHE_INNER_INDEX(physical) (((physical) & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2)
 
 typedef enum dynarec_instruction_category {
     NORMAL,
@@ -54,6 +56,7 @@ typedef struct n64_dynarec {
     u64 codecache_used;
 
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
+    bool* code_mask[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
 INLINE u32 dynarec_outer_index(u32 physical_address) {
@@ -64,8 +67,15 @@ INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
     N64DYNAREC->blockcache[outer_index] = NULL;
 }
 
+INLINE bool is_code(u32 physical_address) {
+    bool* code_mask = N64DYNAREC->code_mask[physical_address >> BLOCKCACHE_OUTER_SHIFT];
+    return code_mask != NULL && code_mask[BLOCKCACHE_INNER_INDEX(physical_address)];
+}
+
 INLINE void invalidate_dynarec_page(u32 physical_address) {
-    invalidate_dynarec_page_by_index(dynarec_outer_index(physical_address));
+    if (unlikely(is_code(physical_address))) {
+        invalidate_dynarec_page_by_index(dynarec_outer_index(physical_address));
+    }
 }
 
 int n64_dynarec_step();

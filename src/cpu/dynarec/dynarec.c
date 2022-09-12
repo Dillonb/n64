@@ -145,7 +145,7 @@ bool branch_is_loop(mips_instruction_t instr, u32 block_length) {
     }
 }
 
-void compile_new_block(n64_dynarec_block_t* block, u64 virtual_address, u32 physical_address) {
+void compile_new_block(n64_dynarec_block_t* block, bool* code_mask, u64 virtual_address, u32 physical_address) {
     mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
     d = block_header();
@@ -173,6 +173,8 @@ void compile_new_block(n64_dynarec_block_t* block, u64 virtual_address, u32 phys
     do {
         mips_instruction_t instr;
         instr.raw = n64_read_physical_word(physical_address);
+
+        code_mask[BLOCKCACHE_INNER_INDEX(physical_address)] = true;
 
         block_is_stable &= instruction_stable(instr);
 
@@ -333,16 +335,17 @@ void compile_new_block(n64_dynarec_block_t* block, u64 virtual_address, u32 phys
 static int missing_block_handler() {
     u32 physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
     u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
-    n64_dynarec_block_t* block_list = n64sys.dynarec->blockcache[outer_index];
+    n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
     u32 inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
     n64_dynarec_block_t* block = &block_list[inner_index];
+    bool* code_mask = N64DYNAREC->code_mask[outer_index];
 
 #ifdef N64_LOG_COMPILATIONS
     printf("Compilin' new block at 0x%08X / 0x%08X\n", N64CPU.pc, physical);
 #endif
 
-    compile_new_block(block, N64CPU.pc, physical);
+    compile_new_block(block, code_mask, N64CPU.pc, physical);
 
     return block->run(&N64CPU);
 }
@@ -358,7 +361,7 @@ int n64_dynarec_step() {
 
     u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
-    u32 inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
+    u32 inner_index = BLOCKCACHE_INNER_INDEX(physical);
 
     if (unlikely(block_list == NULL)) {
 #ifdef N64_LOG_COMPILATIONS
@@ -369,6 +372,7 @@ int n64_dynarec_step() {
             block_list[i].run = missing_block_handler;
         }
         N64DYNAREC->blockcache[outer_index] = block_list;
+        N64DYNAREC->code_mask[outer_index] = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(bool));
     }
 
     n64_dynarec_block_t* block = &block_list[inner_index];
