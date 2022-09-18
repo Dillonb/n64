@@ -155,18 +155,16 @@ typedef struct z_coefficients {
 
 template<int int_part, int frac_part>
 union fixed_point_16 {
-    static_assert(int_part + frac_part + 1 == 16, "int part + frac part + 1 != 16");
-    s16 raw;
+    u16 uraw:(int_part + frac_part);
+    s16 raw:(int_part + frac_part);
     struct {
         u16 frac:frac_part;
-        s16 integer:(int_part + 1);
+        s16 integer:int_part;
     };
 
     template<int other_int_part, int other_frac_part>
     fixed_point_16<int_part, frac_part> operator+(fixed_point_16<other_int_part, other_frac_part> other) {
-        static_assert(sizeof(*this) == sizeof(raw));
-
-        fixed_point_16<int_part, frac_part> result;
+        fixed_point_16<int_part, frac_part> result {0};
 
         int this_shift = 0;
         int other_shift = 0;
@@ -224,14 +222,27 @@ typedef struct texture_rectangle {
     uint16_t:2;
 
     // Change in texture T coordinate per Y coordinate of rectangle
-    fixed_point_16<5, 10> dtdy;
+    fixed_point_16<6, 10> dtdy;
     // Change in texture S coordinate per X coordinate of rectangle
-    fixed_point_16<5, 10> dsdx; // 5.10 fixed point format
+    fixed_point_16<6, 10> dsdx; // 5.10 fixed point format
 
     // Initial S and T values (top left of rectangle)
-    fixed_point_16<10, 5> t;
-    fixed_point_16<10, 5> s;
+    fixed_point_16<11, 5> t;
+    fixed_point_16<11, 5> s;
 } PACKED texture_rectangle_t;
+
+typedef struct load_block {
+    u16 dxt:12;
+    u16 sh:12;
+    u16 tile:3;
+    u16:5;
+    u16 tl:12;
+    u16 sl:12;
+    u16 cmd:6;
+    u16:2;
+} PACKED load_block_t;
+
+static_assert(sizeof(load_block_t) == sizeof(u64));
 
 static_assert(sizeof(texture_rectangle_t) == 2 * sizeof(u64), "Texture rectangle command must be 2 u64s");
 
@@ -658,6 +669,8 @@ template<bool flip>
 DEF_RDP_COMMAND(texture_rectangle) {
     const auto* cmd = reinterpret_cast<const texture_rectangle_t*>(buffer);
     const auto* descriptor = &rdp->tiles[cmd->tile];
+    unimplemented(rdp->color_image.size != descriptor->size, "texture rectangle: color image pixel size %d != descriptor pixel size %d", rdp->color_image.size, descriptor->size);
+
     int tmem_base = descriptor->tmem_adrs * sizeof(u64); // tmem address in descriptor is in multiples of 64 bits
 
     // TODO Coordinates are in a 10.2 fixed point format, just discard the decimal places
@@ -817,7 +830,43 @@ DEF_RDP_COMMAND(set_tile_size) {
 }
 
 DEF_RDP_COMMAND(load_block) {
-    logfatal("load_block unimplemented");
+    const auto* cmd = reinterpret_cast<const load_block_t*>(buffer);
+    softrdp_tile_t* descriptor = &rdp->tiles[cmd->tile];
+
+    fixed_point_16<1, 11> dxt{0};
+    dxt.raw = cmd->dxt;
+    fixed_point_16<5, 11> t{0};
+    t.integer = cmd->tl;
+
+    const u32 tmem_base = descriptor->tmem_adrs * sizeof(u64); // tmem address in descriptor is in multiples of 64 bits
+    const u32 dram_base = rdp->texture_image.dram_addr;
+    switch (rdp->texture_image.size) {
+        case TEXEL_SIZE_16: {
+            const int bytes_per_texel = 2;
+            int tmem_xor = 0;
+            for (unsigned i = 0; i <= (cmd->sh - cmd->sl); i++) {
+                int s = i + cmd->sl;
+                if ((i * bytes_per_texel) % 8 == 0) {
+                    // inc T by DxT
+                    t += dxt;
+                    tmem_xor = t.integer & 1 ? 4 : 0;
+                }
+                u32 dram_texel_address = dram_base + s * bytes_per_texel;
+                u16 texel = rdram_read16(rdp, dram_texel_address);
+
+                u16 tmem_texel_address = tmem_base + (s * bytes_per_texel);
+                tmem_texel_address ^= tmem_xor; // For odd lines
+                tmem_texel_address &= 0XFFF;
+
+                tmem_write16(rdp, tmem_texel_address, texel);
+            }
+            break;
+        }
+        default:
+            logfatal("Load block: unknown texel size: %d", rdp->texture_image.size);
+    }
+
+    logalways("Load block: dxt: %d, sh: %d, tile: %d, tl: %d, sl: %d\n", cmd->dxt, cmd->sh, cmd->tile, cmd->tl, cmd->sl);
 }
 
 DEF_RDP_COMMAND(load_tile) {
