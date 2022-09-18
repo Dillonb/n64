@@ -13,9 +13,26 @@
 #define EXEC_RDP_COMMAND_TEMPLATE(name, tmpl) rdp_command_##name<tmpl>(rdp, command_length, buffer); break
 #define DEF_RDP_COMMAND(name) INLINE void rdp_command_##name(softrdp_state_t* rdp, int command_length, const uint64_t* buffer)
 
+const int TEXEL_SIZE_4  = 0;
 const int TEXEL_SIZE_8  = 1;
 const int TEXEL_SIZE_16 = 2;
 const int TEXEL_SIZE_32 = 3;
+
+INLINE int get_bytes_per_line(int texel_size, int width) {
+    switch (texel_size) {
+        case TEXEL_SIZE_4:  return width >> 1;
+        case TEXEL_SIZE_8:  return width;
+        case TEXEL_SIZE_16: return width << 1;
+        case TEXEL_SIZE_32: return width << 4;
+        default: logfatal("Unknown texel size: %d", texel_size);
+    }
+}
+
+const int PIXEL_FORMAT_RGBA        = 0;
+const int PIXEL_FORMAT_YUV         = 1;
+const int PIXEL_FORMAT_COLOR_INDEX = 2;
+const int PIXEL_FORMAT_IA          = 3;
+const int PIXEL_FORMAT_I           = 4;
 
 typedef enum rdp_command {
     RDP_COMMAND_FILL_TRIANGLE = 0x08,
@@ -500,6 +517,10 @@ INLINE void rdram_write32(softrdp_state_t* rdp, u32 address, u32 value) {
     memcpy(&rdp->rdram[WORD_ADDRESS(address)], &value, sizeof(u32));
 }
 
+INLINE u8 rdram_read8(softrdp_state_t* rdp, u32 address) {
+    return rdp->rdram[BYTE_ADDRESS(address)];
+}
+
 INLINE u16 rdram_read16(softrdp_state_t* rdp, u32 address) {
     u16 value;
     memcpy(&value, &rdp->rdram[HALF_ADDRESS(address)], sizeof(u16));
@@ -516,6 +537,10 @@ INLINE u16 tmem_read16(softrdp_state_t* rdp, u16 address) {
     u16 value;
     memcpy(&value, &rdp->tmem[HALF_ADDRESS(address)], sizeof(u16));
     return value;
+}
+
+INLINE void tmem_write8(softrdp_state_t* rdp, u16 address, u8 value) {
+    rdp->tmem[BYTE_ADDRESS(address)] = value;
 }
 
 INLINE void tmem_write16(softrdp_state_t* rdp, u16 address, u16 value) {
@@ -799,10 +824,9 @@ DEF_RDP_COMMAND(load_tile) {
     int tile_index = get_bits(buffer[0], 26, 24);
     softrdp_tile_t* descriptor = &rdp->tiles[tile_index];
 
-    unimplemented(descriptor->format != rdp->texture_image.format, "load tile: descriptor format (%d) != texture image format (%d)", descriptor->format, rdp->texture_image.format);
-    unimplemented(descriptor->format != 0, "Load tile format other than rgba");
-    unimplemented(descriptor->size != 3, "load tile: descriptor pixel size != 3");
-    unimplemented(rdp->texture_image.size != 3, "load tile: texture image pixel size != 3");
+    // Does this actually matter?
+    unimplemented(descriptor->size != rdp->texture_image.size, "load tile: descriptor size %d != texture image size %d", descriptor->size, rdp->texture_image.size);
+    //unimplemented(descriptor->format != rdp->texture_image.format, "load tile: descriptor format (%d) != texture image format (%d)", descriptor->format, rdp->texture_image.format);
 
     // Ignore fractional parts for now (TODO)
     const u16 sl = get_bits(buffer[0], 55, 44) >> 2;
@@ -810,8 +834,7 @@ DEF_RDP_COMMAND(load_tile) {
     const u16 sh = get_bits(buffer[0], 23, 12) >> 2;
     const u16 th = get_bits(buffer[0], 11, 0) >> 2;
 
-    const int bytes_per_texel = 4; // TODO calc from texture_image.size
-    const int bytes_per_texture_line = bytes_per_texel * rdp->texture_image.width;
+    const int bytes_per_texture_line = get_bytes_per_line(rdp->texture_image.size, rdp->texture_image.width);
     const int bytes_per_tile_line = descriptor->line * sizeof(u64);
 
     const u32 tmem_base = descriptor->tmem_adrs * sizeof(u64); // tmem address in descriptor is in multiples of 64 bits
@@ -821,7 +844,48 @@ DEF_RDP_COMMAND(load_tile) {
 
     int bytes_copied = 0;
     switch (rdp->texture_image.size) {
-        case TEXEL_SIZE_32:
+        case TEXEL_SIZE_4:
+            logfatal("Load tile: texel size 4bpp");
+        case TEXEL_SIZE_8:
+            for (int t = 0; t <= (th - tl); t++) {
+                const u32 tile_line = tmem_base + bytes_per_tile_line * t;
+                const u32 dram_line = dram_base + bytes_per_texture_line * (t + tl) + sl;
+                const u32 tmem_xor = t & 1 ? 4 : 0;
+                for (int s = 0; s <= (sh - sl); s++) {
+                    u32 dram_texel_address = dram_line + s;
+                    u8 texel = rdram_read8(rdp, dram_texel_address);
+
+                    u16 tmem_texel_address = tile_line + s;
+                    tmem_texel_address ^= tmem_xor; // For odd lines
+                    tmem_texel_address &= 0XFFF; // Safety
+
+                    tmem_write8(rdp, tmem_texel_address, texel);
+                }
+            }
+            break;
+        case TEXEL_SIZE_16: {
+            const int bytes_per_texel = 2;
+            unimplemented(descriptor->format != PIXEL_FORMAT_RGBA, "Load tile: 16bpp with format (%d) != RGBA", descriptor->format);
+            for (int t = 0; t <= (th - tl); t++) {
+                const u32 tile_line = tmem_base + bytes_per_tile_line * t;
+                const u32 dram_line = dram_base + bytes_per_texture_line * (t + tl) + sl * bytes_per_texel;
+                const u32 tmem_xor = t & 1 ? 4 : 0;
+                for (int s = 0; s <= (sh - sl); s++) {
+                    u32 dram_texel_address = dram_line + s * bytes_per_texel;
+                    u16 texel = rdram_read16(rdp, dram_texel_address);
+
+                    u16 tmem_texel_address = tile_line + (s * 2);
+                    tmem_texel_address ^= tmem_xor; // For odd lines
+                    tmem_texel_address &= 0X7FF; // Mask to lower half of TMEM
+
+                    tmem_write16(rdp, tmem_texel_address, texel);
+                }
+            }
+            break;
+        }
+        case TEXEL_SIZE_32: {
+            const int bytes_per_texel = 4;
+            unimplemented(descriptor->format != PIXEL_FORMAT_RGBA, "Load tile: 32bpp with format (%d) != RGBA", descriptor->format);
             for (int t = 0; t <= (th - tl); t++) {
                 const u32 tile_line = tmem_base + bytes_per_tile_line * t;
                 const u32 dram_line = dram_base + bytes_per_texture_line * (t + tl) + sl * bytes_per_texel;
@@ -846,6 +910,7 @@ DEF_RDP_COMMAND(load_tile) {
             }
 
             break;
+        }
         default:
             logfatal("Load tile: Unknown texel size: %d", rdp->texture_image.size);
     }
