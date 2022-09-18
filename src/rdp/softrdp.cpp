@@ -627,7 +627,7 @@ DEF_RDP_COMMAND(shade_texture_zbuffer_triangle) {
     logfatal("shade_texture_zbuffer_triangle unimplemented");
 }
 
-INLINE fixed_point_16<10, 5> process_st(fixed_point_16<10, 5> val, bool clamp_enable, bool mirror_enable, u16 mask, u16 shift) {
+INLINE fixed_point_16<11, 5> process_st(fixed_point_16<11, 5> val, bool clamp_enable, bool mirror_enable, u16 mask, u16 shift) {
     u16 mask_value = (1 << mask) - 1;
 
     // shift, clamp, wrap, mirror
@@ -686,12 +686,8 @@ DEF_RDP_COMMAND(texture_rectangle) {
     const auto orig_s = cmd->s;
     const auto orig_t = cmd->t;
 
-    const auto dsdx = cmd->dsdx;
+    auto dsdx = cmd->dsdx;
     const auto dtdy = cmd->dtdy;
-
-
-    unimplemented(descriptor->size != 3, "texture rectangle: tile descriptor pixel size != 3");
-    int bytes_per_texel = 4;
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
 
@@ -701,32 +697,61 @@ DEF_RDP_COMMAND(texture_rectangle) {
 
     auto s = orig_s;
     auto t = orig_t;
-    for (int y = yh; y < yl; y++) {
-        u32 screen_line = rdp->color_image.dram_addr + y * bytes_per_screen_line;
-        for (int x = xh; x < xl; x++) {
-            // TODO: for non-flipped rects, this can go in the body of the outer loop, before this inner loop
-            const auto processed_t = process_st(flip ? s : t, descriptor->ct, descriptor->mt, descriptor->mask_t, descriptor->shift_t);
-            const u32 tmem_xor = (processed_t.integer & 1) << 2; // Xor the address by 4 for odd lines
-            const u16 tmem_line = tmem_base + processed_t.integer * bytes_per_tile_line;
-            // TODO: end of block referenced above
+    switch (descriptor->size) {
+        case TEXEL_SIZE_16:
+            dsdx.raw >>= 2; // TODO: hack for sm64!
+            for (int y = yh; y < yl; y++) {
+                u32 screen_line = rdp->color_image.dram_addr + y * bytes_per_screen_line;
+                for (int x = xh; x < xl; x++) {
+                    // TODO: for non-flipped rects, this can go in the body of the outer loop, before this inner loop
+                    const auto processed_t = process_st(flip ? s : t, descriptor->ct, descriptor->mt, descriptor->mask_t, descriptor->shift_t);
+                    const u32 tmem_xor = (processed_t.integer & 1) << 2; // Xor the address by 4 for odd lines
+                    const u16 tmem_line = tmem_base + processed_t.integer * bytes_per_tile_line;
+                    // TODO: end of block referenced above
 
-            const auto processed_s = process_st(flip ? t : s, descriptor->cs, descriptor->ms, descriptor->mask_s, descriptor->shift_s);
-            const u16 tmem_addr_rg = ((tmem_line + processed_s.integer * 2) & 0X7FF) ^ tmem_xor;
-            const u16 tmem_addr_ba = tmem_addr_rg | 0x800;
 
-            const u16 rg = tmem_read16(rdp, tmem_addr_rg);
-            const u16 ba = tmem_read16(rdp, tmem_addr_ba);
-            const u32 pixel = (u32)rg << 16 | ba;
+                    const auto processed_s = process_st(flip ? t : s, descriptor->cs, descriptor->ms, descriptor->mask_s, descriptor->shift_s);
+                    const u16 tmem_addr = ((tmem_line + processed_s.integer * 2) & 0X7FF) ^ tmem_xor;
+                    u16 pixel = tmem_read16(rdp, tmem_addr);
+                    rdram_write16(rdp, screen_line + x * bytes_per_pixel, pixel);
 
-            // TODO: implement a write_pixel(x, y, color) function - texels are processed internally as 32bpp always and written out to the framebuffer in the correct format
-            // TODO: real transparency support
-            if ((pixel & 0xFF) > 0) {
-                rdram_write32(rdp, screen_line + x * bytes_per_pixel, pixel);
+                    s += dsdx;
+                }
+                t += dtdy;
+                s = orig_s;
             }
-            s += dsdx;
-        }
-        t += dtdy;
-        s = orig_s;
+            break;
+        case TEXEL_SIZE_32:
+            for (int y = yh; y < yl; y++) {
+                u32 screen_line = rdp->color_image.dram_addr + y * bytes_per_screen_line;
+                for (int x = xh; x < xl; x++) {
+                    // TODO: for non-flipped rects, this can go in the body of the outer loop, before this inner loop
+                    const auto processed_t = process_st(flip ? s : t, descriptor->ct, descriptor->mt, descriptor->mask_t, descriptor->shift_t);
+                    const u32 tmem_xor = (processed_t.integer & 1) << 2; // Xor the address by 4 for odd lines
+                    const u16 tmem_line = tmem_base + processed_t.integer * bytes_per_tile_line;
+                    // TODO: end of block referenced above
+
+                    const auto processed_s = process_st(flip ? t : s, descriptor->cs, descriptor->ms, descriptor->mask_s, descriptor->shift_s);
+                    const u16 tmem_addr_rg = ((tmem_line + processed_s.integer * 2) & 0X7FF) ^ tmem_xor;
+                    const u16 tmem_addr_ba = tmem_addr_rg | 0x800;
+
+                    const u16 rg = tmem_read16(rdp, tmem_addr_rg);
+                    const u16 ba = tmem_read16(rdp, tmem_addr_ba);
+                    const u32 pixel = (u32)rg << 16 | ba;
+
+                    // TODO: implement a write_pixel(x, y, color) function - texels are processed internally as 32bpp always and written out to the framebuffer in the correct format
+                    // TODO: real transparency support
+                    if ((pixel & 0xFF) > 0) {
+                        rdram_write32(rdp, screen_line + x * bytes_per_pixel, pixel);
+                    }
+                    s += dsdx;
+                }
+                t += dtdy;
+                s = orig_s;
+            }
+            break;
+        default:
+            logfatal("Unknown texel size: %d", descriptor->size);
     }
 }
 
