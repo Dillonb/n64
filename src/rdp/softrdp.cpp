@@ -687,6 +687,11 @@ DEF_RDP_COMMAND(texture_rectangle) {
     const auto orig_t = cmd->t;
 
     auto dsdx = cmd->dsdx;
+    if (rdp->other_modes.cycle_type == 2) {
+        // Copy mode copies 4 texels at a time
+        // This is a hack to simulate it
+        dsdx.raw >>= 2;
+    }
     const auto dtdy = cmd->dtdy;
 
     int bytes_per_pixel = get_bytes_per_pixel(rdp);
@@ -699,7 +704,6 @@ DEF_RDP_COMMAND(texture_rectangle) {
     auto t = orig_t;
     switch (descriptor->size) {
         case TEXEL_SIZE_16:
-            dsdx.raw >>= 2; // TODO: hack for sm64!
             for (int y = yh; y < yl; y++) {
                 u32 screen_line = rdp->color_image.dram_addr + y * bytes_per_screen_line;
                 for (int x = xh; x < xl; x++) {
