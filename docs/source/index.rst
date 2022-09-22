@@ -12,7 +12,7 @@ I'm by no means the leading expert on the N64. If you have any corrections for m
 Assumed Prior Knowledge
 -----------------------
 
-While my goal is to be as clear and accessible as possible, I expect readers to be somewhat familiar with emulation already. If you've written an emulator for a system on the level of the original GameBoy or NES, you should be fine.
+While my goal is to be as clear and accessible as possible, I expect readers to be somewhat familiar with emulation already. If you've written an emulator for a system on the level of the original Game Boy or NES, you should be fine.
 
 .. toctree::
    :maxdepth: 2

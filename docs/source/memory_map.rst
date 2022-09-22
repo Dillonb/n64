@@ -20,7 +20,7 @@ Virtual Memory Map
 | 0xE0000000   | 0xFFFFFFFF | KSEG3 | Kernel segment 3. TLB mapped.              |
 +--------------+------------+-------+--------------------------------------------+
 
-Note that the cacheing mentioned above is not critical for emulation.
+Note that the caching mentioned above is not critical for emulation.
 
 Virtual-to-Physical Address Translation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -58,7 +58,7 @@ Physical Memory Map
 +---------------+------------+------------------------------+---------------------------------------------------------------------------+
 | 0x04300000    | 0x043FFFFF | MIPS Interface (MI)          | System information, interrupts.                                           |
 +---------------+------------+------------------------------+---------------------------------------------------------------------------+
-| 0x04400000    | 0x044FFFFF | Video Interface (VI)         | Screen resolution, framebuffer settings                                   |
+| 0x04400000    | 0x044FFFFF | Video Interface (VI)         | Screen resolution, frame buffer settings                                  |
 +---------------+------------+------------------------------+---------------------------------------------------------------------------+
 | 0x04500000    | 0x045FFFFF | Audio Interface (AI)         | Control the audio subsystem                                               |
 +---------------+------------+------------------------------+---------------------------------------------------------------------------+

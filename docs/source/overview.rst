@@ -4,7 +4,7 @@ Overview
 
 The Nintendo 64 is an early 3D console with some interesting quirks. Let's get right into it.
 
-The system is often thought of as having two main components - the CPU, and the Reality Coprocessor (RCP), with the RCP again being divided into two components, the Reality Signal Processor (RSP) and the Reality Display Processor (RDP.)
+The system is often thought of as having two main components - the CPU, and the Reality Coprocessor (RCP), with the RCP again being divided into two components, the Reality Signal Processor (RSP) and the Reality Display Processor (RDP).
 
 The system has 4MiB of RDRAM, expandable with an add-on (Expansion Pak) to 8MiB. The system is designed in such a way that all 3 processors (CPU, RSP, RDP) can access the same memory. Thus, this RAM acts as both normal system RAM and VRAM at the same time.
 
@@ -17,11 +17,11 @@ All memory is accessed using big-endian.
 CPU Overview
 ------------
 
-The CPU is a fairly standard 64 bit MIPS r4300i chip.
+The CPU is a fairly standard 64-bit MIPS NEC VR4300 CPU.
 
 It has 32 *64-bit* registers. The first register, r0 or $zero, is hardwired to a value of 0, at all times. There are also special-purpose registers for things like multiplication.
 
-It has a 64 bit program counter and can be configured to use 32 bit or 64 bit addresses to access memory, though in practice the vast majority of software uses 32 bit addressing. It can load and store 8, 16, 32, and 64 bit values. All memory accesses must be aligned, and loads/stores with unaligned addresses will throw exceptions.
+It has a 64-bit program counter and can be configured to use 32-bit or 64-bit addresses to access memory, though in practice the vast majority of software uses 32-bit addressing. It can load and store 8, 16, 32, and 64-bit values. All memory accesses must be aligned, and loads/stores with unaligned addresses will throw exceptions.
 
 
 All memory accesses, including instruction fetches, use virtual memory. There are segments of the address space that use fixed translation, and segments that are configurable.
@@ -55,7 +55,7 @@ All memory accesses use a physical address, there is no virtual memory involved 
 
 Unlike the CPU, the RSP is capable of reading and writing unaligned values. Not only will these accesses not throw exceptions, they'll work perfectly! Again, note that memory accesses can only be to DMEM.
 
-SP IMEM is only 0x1000 bytes in size and the bottom 12 bits of the program counter are used to address it. Because of this, the program counter can be thought of as being a simple 12 bit value.
+SP IMEM is only 0x1000 bytes in size and the bottom 12 bits of the program counter are used to address it. Because of this, the program counter can be thought of as being a simple 12-bit value.
 
 
 Reality Display Processor Overview

@@ -1,7 +1,7 @@
 Boot Process
 ============
 
-When the N64 boots, the program counter is initially set to 0xBFC00000. You'll notice this is a virtual address in the segment KSEG1 that translates to the physical address 0x1FC00000. While the virtual address 0x9FC00000 seemingly also could be used, this is in KSEG0 which is a cached segment. Because this is the very first code the n64 executes on boot, the caches will not be initialized yet, and this will not work on a real console!
+When the N64 boots, the program counter is initially set to 0xBFC00000. You'll notice this is a virtual address in the segment KSEG1 that translates to the physical address 0x1FC00000. While the virtual address 0x9FC00000 seemingly also could be used, this is in KSEG0 which is a cached segment. Because this is the very first code the N64 executes on boot, the caches will not be initialized yet, and this will not work on a real console!
 
 The code at this address is what's called the PIF ROM. This is code baked into the console, and it is used to initialize the hardware and boot the program on the cartridge.
 
@@ -48,4 +48,4 @@ The first 0x1000 bytes from the cartridge are then copied to SP DMEM. This is im
 
 The program counter is then set to 0xA4000040. Note that this skips the first 0x40 bytes of the ROM, as this is where the header is stored. Also note that execution begins with the CPU executing out of SP DMEM.
 
-The ROM now begins to execute! In practice, this is the Bootcode. A reverse-engineering and analysis of this bootcode can be found `Here <https://www.retroreversing.com/n64bootcode>`_.
+The ROM now begins to execute! In practice, this is the "bootcode". A reverse-engineering and analysis of this bootcode can be found `Here <https://www.retroreversing.com/n64bootcode>`_.
