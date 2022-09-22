@@ -107,6 +107,7 @@ void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error) {
             case EXCEPTION_ARITHMETIC_OVERFLOW:
             case EXCEPTION_TLB_MODIFICATION:
             case EXCEPTION_RESERVED_INSTR:
+            case EXCEPTION_FLOATING_POINT:
                 set_pc_word_r4300i(0x80000180);
                 break;
             // TLB exceptions go to different vectors
@@ -204,7 +205,13 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                     logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
                 }
             }
+        case COP_DCF:
+        case COP_DCT:
+            return mips_cp1_invalid;
+        case 0x9 ... 0xF:
+            return mips_invalid;
     }
+
     switch (instr.fr.funct) {
         case COP_FUNCT_ADD:
             switch (instr.fr.fmt) {
@@ -213,7 +220,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_add_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_TLBR_SUB: {
             switch (instr.fr.fmt) {
@@ -222,7 +229,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_sub_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         }
         case COP_FUNCT_TLBWI_MULT:
@@ -232,7 +239,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_mul_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_DIV:
             switch (instr.fr.fmt) {
@@ -241,7 +248,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_div_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_TRUNC_L:
             switch (instr.fr.fmt) {
@@ -250,7 +257,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_trunc_l_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_ROUND_L:
             switch (instr.fr.fmt) {
@@ -259,7 +266,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_round_l_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_TRUNC_W:
             switch (instr.fr.fmt) {
@@ -268,7 +275,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_trunc_w_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_FLOOR_W:
             switch (instr.fr.fmt) {
@@ -277,7 +284,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_floor_w_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_ROUND_W:
             switch (instr.fr.fmt) {
@@ -286,7 +293,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_round_w_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_CVT_D:
             switch (instr.fr.fmt) {
@@ -297,7 +304,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_L:
                     return mips_cp_cvt_d_l;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_CVT_L:
             switch (instr.fr.fmt) {
@@ -306,7 +313,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_cvt_l_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_CVT_S:
             switch (instr.fr.fmt) {
@@ -317,7 +324,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_L:
                     return mips_cp_cvt_s_l;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_CVT_W:
             switch (instr.fr.fmt) {
@@ -326,7 +333,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_cvt_w_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_SQRT:
             switch (instr.fr.fmt) {
@@ -335,7 +342,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_sqrt_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
 
         case COP_FUNCT_ABS:
@@ -345,7 +352,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_abs_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
 
 
@@ -356,7 +363,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_mov_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_NEG:
             switch (instr.fr.fmt) {
@@ -365,7 +372,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_neg_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_F:
             switch (instr.fr.fmt) {
@@ -374,7 +381,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_f_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_UN:
             switch (instr.fr.fmt) {
@@ -383,7 +390,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_un_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_EQ:
             switch (instr.fr.fmt) {
@@ -392,7 +399,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_eq_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_UEQ:
             switch (instr.fr.fmt) {
@@ -401,7 +408,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_ueq_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_OLT:
             switch (instr.fr.fmt) {
@@ -410,7 +417,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_olt_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_ULT:
             switch (instr.fr.fmt) {
@@ -419,7 +426,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_ult_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_OLE:
             switch (instr.fr.fmt) {
@@ -428,7 +435,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_ole_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_ULE:
             switch (instr.fr.fmt) {
@@ -437,7 +444,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_ule_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_SF:
             switch (instr.fr.fmt) {
@@ -446,7 +453,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_sf_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_NGLE:
             switch (instr.fr.fmt) {
@@ -455,7 +462,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_ngle_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_SEQ:
             switch (instr.fr.fmt) {
@@ -464,7 +471,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_seq_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_NGL:
             switch (instr.fr.fmt) {
@@ -473,7 +480,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_ngl_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_LT:
             switch (instr.fr.fmt) {
@@ -482,7 +489,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_lt_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_NGE:
             switch (instr.fr.fmt) {
@@ -491,7 +498,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_nge_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_LE:
             switch (instr.fr.fmt) {
@@ -500,7 +507,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_le_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
         case COP_FUNCT_C_NGT:
             switch (instr.fr.fmt) {
@@ -509,7 +516,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 case FP_FMT_SINGLE:
                     return mips_cp_c_ngt_s;
                 default:
-                    logfatal("Undefined!");
+                    return mips_cp1_invalid;
             }
     }
 
@@ -518,6 +525,25 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
     logfatal("other/unknown MIPS CP1 0x%08X with rs: %d%d%d%d%d and FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
              instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4,
              instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+}
+
+INLINE mipsinstr_handler_t r4300i_cp2_decode(u64 pc, mips_instruction_t instr) {
+    switch (instr.r.rs) {
+        case COP_MF:
+            return mips_mfc2;
+        case COP_DMF:
+            return mips_dmfc2;
+        case COP_MT:
+            return mips_mtc2;
+        case COP_DMT:
+            return mips_dmtc2;
+        case COP_CF:
+            return mips_cfc2;
+        case COP_CT:
+            return mips_ctc2;
+        default:
+            return mips_cp2_invalid;
+    }
 }
 
 INLINE mipsinstr_handler_t r4300i_special_decode(u64 pc, mips_instruction_t instr) {
@@ -621,6 +647,8 @@ mipsinstr_handler_t r4300i_instruction_decode(u64 pc, mips_instruction_t instr) 
     switch (instr.op) {
         case OPC_CP0:    return r4300i_cp0_decode(pc, instr);
         case OPC_CP1:    return r4300i_cp1_decode(pc, instr);
+        case OPC_CP2:    return r4300i_cp2_decode(pc, instr);
+        case OPC_CP3:    return mips_invalid;
         case OPC_SPCL:   return r4300i_special_decode(pc, instr);
         case OPC_REGIMM: return r4300i_regimm_decode(pc, instr);
 

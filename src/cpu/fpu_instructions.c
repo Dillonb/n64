@@ -7,7 +7,6 @@
 
 #include "r4300i_register_access.h"
 
-#define checkcp1 do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
 #ifdef N64_WIN
 #define ORDERED_S(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
 #define ORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
@@ -125,7 +124,8 @@ MIPS_INSTR(mips_ctc1) {
     u32 value = get_register(instruction.r.rt);
     switch (fs) {
         case 0:
-            logfatal("CTC1 FCR0: FCR0 is read only!");
+            logwarn("CTC1 FCR0: Wrote %08X to read-only register FCR0!", value);
+            break;
         case 31: {
             value &= 0x183ffff; // mask out bits held 0
             N64CPU.fcr31.raw = value;
@@ -783,4 +783,9 @@ MIPS_INSTR(mips_swc1) {
     u32 value    = get_fpu_register_word(instruction.fi.ft);
 
     n64_write_word(address, value);
+}
+
+MIPS_INSTR(mips_cp1_invalid) {
+    checkcp1;
+    r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_FLOATING_POINT, 0);
 }

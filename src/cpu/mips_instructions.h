@@ -143,4 +143,12 @@ MIPS_INSTR(mips_ri_tnei);
 
 MIPS_INSTR(mips_invalid);
 
+MIPS_INSTR(mips_mfc2);
+MIPS_INSTR(mips_mtc2);
+MIPS_INSTR(mips_dmfc2);
+MIPS_INSTR(mips_dmtc2);
+MIPS_INSTR(mips_cfc2);
+MIPS_INSTR(mips_ctc2);
+MIPS_INSTR(mips_cp2_invalid);
+
 #endif //N64_MIPS_INSTRUCTIONS_H

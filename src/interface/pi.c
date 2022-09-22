@@ -232,16 +232,15 @@ INLINE bool pi_write_latch(u32 value) {
     } else {
         n64sys.pi.io_busy = true;
         n64sys.pi.latch = value;
-        scheduler_enqueue_relative(300, SCHEDULER_PI_BUS_WRITE_COMPLETE);
+        scheduler_enqueue_relative(PI_BUS_WRITE, SCHEDULER_PI_BUS_WRITE_COMPLETE);
         return true;
     }
 }
 
 INLINE bool pi_read_latch() {
     if (unlikely(n64sys.pi.io_busy)) {
-        // TODO: should block until the scheduler event is triggered.
         n64sys.pi.io_busy = false;
-        scheduler_remove_event(SCHEDULER_PI_BUS_WRITE_COMPLETE);
+        cpu_stall(scheduler_remove_event(SCHEDULER_PI_BUS_WRITE_COMPLETE));
         return false;
     }
     return true;

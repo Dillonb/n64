@@ -13,6 +13,7 @@ typedef struct softrdp_tile {
     uint8_t line;
     uint8_t tmem_adrs;
     uint8_t palette;
+    bool ct;
     bool mt;
     uint8_t mask_t;
     uint8_t shift_t;
