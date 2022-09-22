@@ -3,6 +3,15 @@ TLB
 
 The TLB (transfer lookaside buffer) converts virtual addresses into physical addresses. The TLB is a fully associative cache with 32 entries, entries are mapped with odd and even numbers in pairs. When a virtual address is given, each entry in the TLB checks the 32 entries for whether they coincide with the address in the "address space identification" (ASID) area in the "Entry Hi" register. If it does, a "hit" occurs, and a physical address is generated in the TLB as well as an offset. If a miss occurs, then an exception occurs and the TLB entry is written by the software to a page table in memory, either to the TLB entry over the selected index register, or it writes to a random entry indicated by the random register. If 2 or more are hits, the TLB isn't correctly executed, and the TLB shutdown (TS) bit of the status register is set to 1, and the TLB cannot be used.
 
+Page sizes can be:
+0x0000: 4KB   (0x1000 bytes)
+0x0003: 16KB  (0x4000 bytes)
+0x000F: 64KB  (0x10000 bytes)
+0x003F: 256KB (0x40000 bytes)
+0x00FF: 1MB   (0x100000 bytes)
+0x03FF: 4MB   (0x400000 bytes)
+0x0FFF: 16MB  (0x1000000 bytes)
+
 Format of a virtual address: [G|ASID|VPN | OFFSET]
 
 G and ASID are just bits for controlling scopes of mapped pages, and VPN is the virtual page number, which is the upper bits of the virtual address.
