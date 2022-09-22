@@ -5,7 +5,9 @@ The TLB (transfer lookaside buffer) converts virtual addresses into physical add
 
 Format of a virtual address: [G|ASID|VPN | OFFSET]
 
-Converting a virtual address to a physical address begins by comparing the virtual address from the VR4300 MMU with the virtual addresses in the TLB; there is a match when the virtual page number (VPN) of the address is the same as the VPN field of the entry, and either:
+G and ASID are just bits for controlling scopes of mapped pages, and VPN is the virtual page number, which is the upper bits of the virtual address.
+
+Converting a virtual address to a physical address begins by comparing the virtual address from the VR4300 MMU with the virtual addresses in the TLB; there is a match when the VPN of the address is the same as the VPN field of the entry, and either:
 
 A. The Global (G) bit of the TLB entry is set, or
 B. The ASID field of the virtual address is the same as the ASID field of the TLB entry.
