@@ -7,6 +7,12 @@ Format of a virtual address: [G|ASID|VPN | OFFSET]
 
 G and ASID are just bits for controlling scopes of mapped pages, and VPN is the virtual page number, which is the upper bits of the virtual address.
 
+The upper bits [G|ASID|VPN] is a key to find a matching TLB Entry, each TLB entry contains page offset located in physical memory. Note that there are 2 physical page entries per TLB entry known as odd and even. You see the term VPN2, which is the VPN divided by 2. TLB is very simple and managed by the operating system, so the OS computes a VPN and divides it by 2 for possible mapping 2 different physical pages under one VPN.
+
+The design of virtual memory here, is that physical memory is divided into pages, which are presented by a page frame number. Globally the program uses one page size for all its entries.
+
+So multiplying the PFN and page size gives you multiple of the page size which determines the upper bits of the mapping physical address OR'd with the base address of where physical RAM begins on the CPU address map.
+
 Converting a virtual address to a physical address begins by comparing the virtual address from the VR4300 MMU with the virtual addresses in the TLB; there is a match when the VPN of the address is the same as the VPN field of the entry, and either:
 
 A. The Global (G) bit of the TLB entry is set, or
