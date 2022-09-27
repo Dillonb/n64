@@ -112,7 +112,7 @@ Reserved Instruction Exception cases:
   - Undefined opcode
   - Undefined SPECIAL sub-opcode
   - Undefined REGIMM sub-opcode
-  - 64-bit operation run in 32-bit mode. Note that in kernel mode, 64-bit operations are *always valid*, regardless if KX (enable 64-bit addressing in kernel mode) is set or not.
+  - 64 bit operation run in 32 bit mode. Note that in kernel mode, 64 bit operations are *always valid*, regardless if KX (enable 64 bit addressing in kernel mode) is set or not.
 
 Exception Handling Process
 --------------------------
@@ -132,18 +132,18 @@ Here is a description on what happens, step by step.
 Exception Vector Locations
 --------------------------
 
-Note that all of these addresses are sign extended to 64-bits.
+Note that all of these addresses are sign extended to 64 bits.
 
 The reset and NMI exceptions always jump to 0xBFC0'0000. You'll note that this is the base address of the PIF ROM - jumping here will start execution over from scratch.
 
 The locations of the rest of the vectors depend on the BEV bit. This bit is set by the boot process to let hardware know how much of the system's initialization has happened. If BEV=1, we are early in the boot process, and exception vectors should use different code than they will later on. I personally have never run into an exception early enough in the boot process for BEV to be 1, but it's good to check it anyway, just in case.
 
 When BEV is 0, exceptions are handled in a cached region, since it's assumed the cache has already been initialized.
-    - 32-bit TLB exceptions jump to 0x8000'0000 when EXL = 0, and 0x8000'0180 when EXL = 1.
-    - 64-bit TLB exceptions jump to 0x8000'0080 when EXL = 1, and 0x8000'0180 when EXL = 1.
+    - 32 bit TLB exceptions jump to 0x8000'0000 when EXL = 0, and 0x8000'0180 when EXL = 1.
+    - 64 bit TLB exceptions jump to 0x8000'0080 when EXL = 1, and 0x8000'0180 when EXL = 1.
     - All other exceptions jump to 0x8000'0180.
 
 When BEV is 1, exceptions are handled in an *uncached* region, since it's assumed the cache has *not* been initialized yet.
-    - 32-bit TLB exceptions jump to 0xBFC0'0200 when EXL = 0, and 0xBFC0'0380 when EXL = 1.
-    - 64-bit TLB exceptions jump to 0xBFC0'0280 when EXL = 1, and 0xBFC0'0380 when EXL = 1.
+    - 32 bit TLB exceptions jump to 0xBFC0'0200 when EXL = 0, and 0xBFC0'0380 when EXL = 1.
+    - 64 bit TLB exceptions jump to 0xBFC0'0280 when EXL = 1, and 0xBFC0'0380 when EXL = 1.
     - All other exceptions jump to 0xBFC0'0380.
