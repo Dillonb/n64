@@ -48,4 +48,4 @@ The first 0x1000 bytes from the cartridge are then copied to SP DMEM. This is im
 
 The program counter is then set to 0xA4000040. Note that this skips the first 0x40 bytes of the ROM, as this is where the header is stored. Also note that execution begins with the CPU executing out of SP DMEM.
 
-The ROM now begins to execute! In practice, this is the "bootcode". A reverse-engineering and analysis of this bootcode can be found `Here <https://www.retroreversing.com/n64bootcode>`_.
+The ROM now begins to execute! In practice, this is the "IPL3". A reverse-engineering and analysis of this IPL3 can be found `Here <https://www.retroreversing.com/n64bootcode>`_.
