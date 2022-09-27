@@ -5,7 +5,7 @@ CPU (detailed)
 Registers
 ---------
 
-As noted in the CPU overview, r0 is **hardwired to a value of zero**, and all registers are 64-bits.
+As noted in the CPU overview, r0 is **hardwired to a value of zero**, and all registers are 64 bits.
 
 +-----------------+---------------+
 | Register Number | Register Name |
@@ -87,47 +87,47 @@ COP0 Registers
 +-----------------+---------------+----------------------------------+
 | Register Number | Register Name | Size                             |
 +=================+===============+==================================+
-| 0               | Index         | 32-bits                          |
+| 0               | Index         | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 1               | Random        | 32-bits                          |
+| 1               | Random        | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 2               | EntryLo0      | 32 or 64-bits, depending on mode |
+| 2               | EntryLo0      | 32 or 64 bits, depending on mode |
 +-----------------+---------------+----------------------------------+
-| 3               | EntryLo1      | 32 or 64-bits, depending on mode |
+| 3               | EntryLo1      | 32 or 64 bits, depending on mode |
 +-----------------+---------------+----------------------------------+
-| 4               | Context       | 32 or 64-bits, depending on mode |
+| 4               | Context       | 32 or 64 bits, depending on mode |
 +-----------------+---------------+----------------------------------+
-| 5               | PageMask      | 32-bits                          |
+| 5               | PageMask      | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 6               | Wired         | 32-bits                          |
+| 6               | Wired         | 32 bits                          |
 +-----------------+---------------+----------------------------------+
 | 7               | 7             | ??                               |
 +-----------------+---------------+----------------------------------+
-| 8               | BadVAddr      | 32 or 64-bits, depending on mode |
+| 8               | BadVAddr      | 32 or 64 bits, depending on mode |
 +-----------------+---------------+----------------------------------+
-| 9               | Count         | 32-bits                          |
+| 9               | Count         | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 10              | EntryHi       | 32 or 64-bits, depending on mode |
+| 10              | EntryHi       | 32 or 64 bits, depending on mode |
 +-----------------+---------------+----------------------------------+
-| 11              | Compare       | 32-bits                          |
+| 11              | Compare       | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 12              | Status        | 32-bits                          |
+| 12              | Status        | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 13              | Cause         | 32-bits                          |
+| 13              | Cause         | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 14              | EPC           | 32 or 64-bits, depending on mode |
+| 14              | EPC           | 32 or 64 bits, depending on mode |
 +-----------------+---------------+----------------------------------+
-| 15              | PRId          | 32-bits                          |
+| 15              | PRId          | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 16              | Config        | 32-bits                          |
+| 16              | Config        | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 17              | LLAddr        | 32-bits                          |
+| 17              | LLAddr        | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 18              | WatchLo       | 32-bits                          |
+| 18              | WatchLo       | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 19              | WatchHi       | 32-bits                          |
+| 19              | WatchHi       | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 20              | XContext      | 64-bits                          |
+| 20              | XContext      | 64 bits                          |
 +-----------------+---------------+----------------------------------+
 | 21              | 21            | ??                               |
 +-----------------+---------------+----------------------------------+
@@ -139,15 +139,15 @@ COP0 Registers
 +-----------------+---------------+----------------------------------+
 | 25              | 25            | ??                               |
 +-----------------+---------------+----------------------------------+
-| 26              | Parity Error  | 32-bits                          |
+| 26              | Parity Error  | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 27              | Cache Error   | 32-bits                          |
+| 27              | Cache Error   | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 28              | TagLo         | 32-bits                          |
+| 28              | TagLo         | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 29              | TagHi         | 32-bits                          |
+| 29              | TagHi         | 32 bits                          |
 +-----------------+---------------+----------------------------------+
-| 30              | ErrorEPC      | 32 or 64-bits, depending on mode |
+| 30              | ErrorEPC      | 32 or 64 bits, depending on mode |
 +-----------------+---------------+----------------------------------+
 | 31              | 31            | ??                               |
 +-----------------+---------------+----------------------------------+
@@ -192,7 +192,7 @@ Since the N64 has no timers, these registers are the only way the system can tel
 
 This value is incremented every other cycle, and compared to the value in Compare. As noted below, fire an interrupt when Count == Compare.
 
-The easiest way to emulate this would be to store count as a 64-bit integer, increment it once per cycle, and shift it to the right by one when read or compared.
+The easiest way to emulate this would be to store count as a 64 bit integer, increment it once per cycle, and shift it to the right by one when read or compared.
 
 * Compare
 
@@ -273,11 +273,11 @@ These registers don't fit cleanly into any other category.
   +-------+---------------------------------------------------------------------------------------+
   | 3-4   | ksu - execution mode (00 = kernel, 01 = supervisor, 10 = user)                        |
   +-------+---------------------------------------------------------------------------------------+
-  | 5     | ux - 64-bit addressing enabled in user mode                                           |
+  | 5     | ux - 64 bit addressing enabled in user mode                                           |
   +-------+---------------------------------------------------------------------------------------+
-  | 6     | sx - 64-bit addressing enabled in supervisor mode                                     |
+  | 6     | sx - 64 bit addressing enabled in supervisor mode                                     |
   +-------+---------------------------------------------------------------------------------------+
-  | 7     | kx - 64-bit addressing enabled in kernel mode                                         |
+  | 7     | kx - 64 bit addressing enabled in kernel mode                                         |
   +-------+---------------------------------------------------------------------------------------+
   | 8-15  | im - interrupt mask (&'d against interrupt pending in $Cause)                         |
   +-------+---------------------------------------------------------------------------------------+
