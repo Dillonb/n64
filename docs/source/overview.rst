@@ -45,7 +45,7 @@ The RSP is a secondary CPU mostly used for 3D and audio calculations. While it r
 
 It is effectively a stripped-down version of the MIPS chip used for the main CPU, missing some instructions and running at a slightly slower speed.
 
-It has 32 *32-bit* registers. Note that this is different than the main CPU, which has 64-bit registers! As in the CPU, the first register, r0 or $zero, is hardwired to 0 at all times.
+It has 32 *32 bit* registers. Note that this is different than the main CPU, which has 64 bit registers! As in the CPU, the first register, r0 or $zero, is hardwired to 0 at all times.
 
 The RSP has no COP0 in the same way the CPU does. Instead, the COP0 registers are used to communicate with the DMA engine, RDP, and various other things. It also does not have a floating point unit available on COP1.
 
