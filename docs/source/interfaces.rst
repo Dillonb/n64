@@ -154,12 +154,12 @@ Video Interface
 -----------------------------------------
 Can be called the VI_STATUS_REG, or the VI_CONTROL REG, whichever you prefer.
 
-This register describes the format of the frame buffer in RDRAM, as well as enables and disables effects such as gamma, dithering, anti-aliasing, etc.
+This register describes the format of the framebuffer in RDRAM, as well as enables and disables effects such as gamma, dithering, anti-aliasing, etc.
 
 +-------+----------------------------------------+
 | Bit   | Explanation                            |
 +-------+----------------------------------------+
-| 0-1   | Frame buffer bits-per-pixel (see below)|
+| 0-1   | Framebuffer bits-per-pixel (see below)|
 +-------+----------------------------------------+
 | 2     | Gamma dither enable                    |
 +-------+----------------------------------------+
@@ -187,7 +187,7 @@ This register describes the format of the frame buffer in RDRAM, as well as enab
 Enum Definitions
 ^^^^^^^^^^^^^^^^
 
-Frame buffer bits per pixel:
+Framebuffer bits per pixel:
   0. Blank
   1. Reserved
   2. RGBA 5553 "16" bits per pixel (should be able to ignore alpha channel and treat this as RGBA5551)
@@ -203,12 +203,12 @@ Anti-alias mode:
 0x04400004 - VI_ORIGIN_REG
 --------------------------
 
-Describes where in RDRAM the VI should display the frame buffer from. Bits 0 through 23 are used, bits 24 through 31 are ignored by hardware.
+Describes where in RDRAM the VI should display the framebuffer from. Bits 0 through 23 are used, bits 24 through 31 are ignored by hardware.
 
 +-------+------------------------------+
 | Bit   | Description                  |
 +-------+------------------------------+
-| 0-23  | RDRAM address of frame buffer|
+| 0-23  | RDRAM address of framebuffer |
 +-------+------------------------------+
 | 24-31 | Unused                       |
 +-------+------------------------------+
