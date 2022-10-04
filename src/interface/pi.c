@@ -349,18 +349,26 @@ u16 read_half_pibus(u32 address) {
 }
 
 void write_word_pibus(u32 address, u32 value) {
-    if (!pi_write_latch(value)) {
-        return; // Couldn't latch, ignore the write.
-    }
-
     switch (address) {
         case REGION_CART_2_1:
+            if (!pi_write_latch(value)) {
+                logwarn("Couldn't latch PI bus, ignoring write to REGION_CART_2_1");
+                return; // Couldn't latch, ignore the write.
+            }
             logwarn("Writing word 0x%08X to address 0x%08X in region: REGION_CART_1_1, this is the 64DD, ignoring!", value, address);
             return;
         case REGION_CART_1_1:
+            if (!pi_write_latch(value)) {
+                logwarn("Couldn't latch PI bus, ignoring write to REGION_CART_1_1");
+                return; // Couldn't latch, ignore the write.
+            }
             logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
             return;
         case REGION_CART_2_2:
+            if (!pi_write_latch(value)) {
+                logwarn("Couldn't latch PI bus, ignoring write to REGION_CART_2_2");
+                return; // Couldn't latch, ignore the write.
+            }
             backup_write_word(address - SREGION_CART_2_2, value);
             return;
         case REGION_CART_1_2:
@@ -381,6 +389,10 @@ void write_word_pibus(u32 address, u32 value) {
                     break;
                 }
                 default:
+                    if (!pi_write_latch(value)) {
+                        logwarn("Couldn't latch PI bus, ignoring write to REGION_CART_1_2");
+                        return; // Couldn't latch, ignore the write.
+                    }
                     logwarn("Writing word 0x%08X to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
             }
             return;
