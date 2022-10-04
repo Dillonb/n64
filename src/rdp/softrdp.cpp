@@ -212,14 +212,14 @@ union fixed_point_16 {
 };
 
 typedef struct texture_rectangle {
-    uint16_t yh:12;
-    uint16_t xh:12;
-    uint16_t tile:3;
-    uint16_t:5;
-    uint16_t yl:12;
-    uint16_t xl:12;
-    uint16_t cmd:6;
-    uint16_t:2;
+    u64 yh:12;
+    u64 xh:12;
+    u64 tile:3;
+    u64:5;
+    u64 yl:12;
+    u64 xl:12;
+    u64 cmd:6;
+    u64:2;
 
     // Change in texture T coordinate per Y coordinate of rectangle
     fixed_point_16<6, 10> dtdy;
@@ -232,14 +232,14 @@ typedef struct texture_rectangle {
 } PACKED texture_rectangle_t;
 
 typedef struct load_block {
-    u16 dxt:12;
-    u16 sh:12;
-    u16 tile:3;
-    u16:5;
-    u16 tl:12;
-    u16 sl:12;
-    u16 cmd:6;
-    u16:2;
+    u64 dxt:12;
+    u64 sh:12;
+    u64 tile:3;
+    u64:5;
+    u64 tl:12;
+    u64 sl:12;
+    u64 cmd:6;
+    u64:2;
 } PACKED load_block_t;
 
 static_assert(sizeof(load_block_t) == sizeof(u64));
