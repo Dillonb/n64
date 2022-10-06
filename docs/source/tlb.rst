@@ -29,6 +29,35 @@ B. The ASID field of the virtual address is the same as the ASID field of the TL
 
 This match is referred to as a TLB "hit". If there is no match, a "TLB Miss" exception occurs in the CPU and software is allowed to reference a page table of virtual/physical addresses in memory and to write its contents to the TLB. If there is a virtual address match in the TLB, the physical address is output from the TLB and concatenated with the offset, which represents an address within the page frame space. The offset does not pass through the TLB. The lower bits of the virtual address are output as is. 
 
+EntryLo0 & EntryLo1:
+ 00 pppppppppppppppppppppppp ccc d v g
+ (32-bit: 2.24.3.1.1.1)
+
+ p = Page frame number; the upper bits of the physical address.
+ c = Specifies the TLB page coherency attribute. (See below)
+ d = Dirty. If this bit is set, the page is marked as dirty and, therefore, writable
+     This bit is actually a write-protect bit that software can use to prevent alteration
+     of data.
+ v = Valid. If this bit is set, it indicated that the TLB entry is valid; otherwise, a
+     TLBL or TLBS miss occurs.
+ g = Global. If this bit is set in both Lo0 and Lo1, then the process ignores the ASID
+     during TLB lookup.
+
+PageMask:
+ 0000000 mmmmmmmmmmmm 0000000000000
+ (32-bit: 7.12.13)
+
+ m = Page comparison mask
+
+EntryHi:
+ vvvvvvvvvvvvvvvvvvv 00000 aaaaaaaa
+ (32-bit: 19.5.8)
+
+ v = Virtual page number divided by 2 (maps to two pages)
+ a = Address space ID field. (ASID) An 8-bit field that lets multiple processes share
+     the TLB; each process has a distinct mapping of otherwise identical virtual page
+     numbers.
+
 The TLB page coherency attribute (C) bits specify whether references to the page should be cached or not, and, if cached, then selects between several coherency attributes. The table below shows the coherency attributes selected by the various C bits.
 
 TLB Page Coherency (C) Bit Values
