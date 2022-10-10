@@ -31,6 +31,7 @@ FIND_LIBRARY(Capstone_LIBRARIES
         NAMES
         libcapstone.a
         capstone
+        capstone_dll
         HINTS
         ${Capstone_ROOT_DIR}
         PATH_SUFFIXES
