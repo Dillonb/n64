@@ -823,8 +823,8 @@ MIPS_INSTR(mips_spc_div) {
             N64CPU.mult_lo = (s64)1;
         }
     } else {
-        s64 quotient  = dividend / divisor;
-        s64 remainder = dividend % divisor;
+        s32 quotient  = dividend / divisor;
+        s32 remainder = dividend % divisor;
 
         N64CPU.mult_lo = quotient;
         N64CPU.mult_hi = remainder;
@@ -868,7 +868,7 @@ MIPS_INSTR(mips_spc_ddiv) {
     s64 dividend = (s64)get_register(instruction.r.rs);
     s64 divisor  = (s64)get_register(instruction.r.rt);
 
-    if (divisor == 0) {
+    if (unlikely(divisor == 0)) {
         logwarn("Divide by zero");
         N64CPU.mult_hi = dividend;
         if (dividend >= 0) {
@@ -876,6 +876,9 @@ MIPS_INSTR(mips_spc_ddiv) {
         } else {
             N64CPU.mult_lo = (s64)1;
         }
+    } else if (unlikely(divisor == -1 && dividend == INT64_MIN)) {
+        N64CPU.mult_lo = dividend;
+        N64CPU.mult_hi = 0;
     } else {
         s64 quotient  = (s64)(dividend / divisor);
         s64 remainder = (s64)(dividend % divisor);
