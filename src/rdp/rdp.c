@@ -237,7 +237,6 @@ void process_rdp_list() {
     }
 
     dpc->current = end;
-    dpc->start = end;
     dpc->end = end;
 
     dpc->status.freeze = false;
