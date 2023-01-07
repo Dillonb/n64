@@ -1,7 +1,7 @@
 #ifndef N64_ASM_EMITTER_H
 #define N64_ASM_EMITTER_H
 
-#include "dynarec.h"
+#include <cpu/dynarec/v1/v1_compiler.h>
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
 

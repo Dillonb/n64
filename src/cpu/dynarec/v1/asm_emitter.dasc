@@ -1,5 +1,5 @@
-#include <cpu/dynarec/asm_emitter.h>
-#include <cpu/dynarec/dynarec.h>
+#include <cpu/dynarec/v1/asm_emitter.h>
+#include <cpu/dynarec/v1/v1_compiler.h>
 #include <cpu/dynarec/dynarec_memory_management.h>
 #include <cpu/r4300i.h>
 
