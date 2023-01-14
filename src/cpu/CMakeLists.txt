@@ -32,9 +32,13 @@ add_library(r4300i
         mips_instruction_decode.h
 
         dynarec/dynarec.c dynarec/dynarec.h
+        dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h
+
         dynarec/v1/v1_compiler.c dynarec/v1/v1_compiler.h
         asm_emitter.c dynarec/v1/asm_emitter.h
-        dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h)
+
+        dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h)
+
 
 add_library(rsp
         n64_rsp_bus.h

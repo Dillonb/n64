@@ -4,8 +4,6 @@
 #include "v1_compiler.h"
 #include "asm_emitter.h"
 
-#define IS_PAGE_BOUNDARY(address) (((address) & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
-
 static void* link_and_encode(dasm_State** d) {
     size_t code_size;
     dasm_link(d, &code_size);
@@ -144,7 +142,6 @@ bool branch_is_loop(mips_instruction_t instr, u32 block_length) {
 }
 
 void v1_compile_new_block(n64_dynarec_block_t* block, bool* code_mask, u64 virtual_address, u32 physical_address) {
-    mark_metric(METRIC_BLOCK_COMPILATION);
     static dasm_State* d;
     d = block_header();
     dasm_State** Dst = &d;

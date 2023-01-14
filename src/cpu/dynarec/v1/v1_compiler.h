@@ -3,19 +3,6 @@
 
 #include <dynarec/dynarec.h>
 
-typedef enum dynarec_instruction_category {
-    NORMAL,
-    STORE,
-    BRANCH,
-    BRANCH_LIKELY,
-    TLB_WRITE,
-    BLOCK_ENDER
-} dynarec_instruction_category_t;
-
-INLINE bool is_branch(dynarec_instruction_category_t category) {
-    return category == BRANCH || category == BRANCH_LIKELY;
-}
-
 typedef enum instruction_format {
     CALL_INTERPRETER,
     FORMAT_NOP,

@@ -12,6 +12,22 @@
 // word aligned instructions
 #define BLOCKCACHE_INNER_SIZE (BLOCKCACHE_PAGE_SIZE >> 2)
 #define BLOCKCACHE_INNER_INDEX(physical) (((physical) & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2)
+#define IS_PAGE_BOUNDARY(address) (((address) & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
+
+
+typedef enum dynarec_instruction_category {
+    NORMAL,
+    CACHE,
+    STORE,
+    BRANCH,
+    BRANCH_LIKELY,
+    TLB_WRITE,
+    BLOCK_ENDER
+} dynarec_instruction_category_t;
+
+INLINE bool is_branch(dynarec_instruction_category_t category) {
+    return category == BRANCH || category == BRANCH_LIKELY;
+}
 
 typedef struct n64_dynarec_block {
     int (*run)(r4300i_t* cpu);

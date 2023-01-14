@@ -3,9 +3,9 @@
 #include <mem/n64bus.h>
 #include <dynasm/dasm_proto.h>
 #include <metrics.h>
-#include <cpu/dynarec/v1/asm_emitter.h>
 #include "dynarec_memory_management.h"
 #include "v1/v1_compiler.h"
+#include "v2/v2_compiler.h"
 
 static int missing_block_handler() {
     u32 physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
@@ -14,13 +14,18 @@ static int missing_block_handler() {
     u32 inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
     n64_dynarec_block_t* block = &block_list[inner_index];
+    block->run = NULL;
     bool* code_mask = N64DYNAREC->code_mask[outer_index];
 
 #ifdef N64_LOG_COMPILATIONS
     printf("Compilin' new block at 0x%08X / 0x%08X\n", N64CPU.pc, physical);
 #endif
 
-    v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
+    mark_metric(METRIC_BLOCK_COMPILATION);
+    v2_compile_new_block(block, code_mask, N64CPU.pc, physical);
+    if (block->run == NULL) {
+        v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
+    }
 
     return block->run(&N64CPU);
 }
@@ -89,6 +94,7 @@ n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
     dynarec->codecache = codecache;
 
     v1_compiler_init();
+    v2_compiler_init();
 
     return dynarec;
 }
