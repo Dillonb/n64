@@ -44,7 +44,6 @@ void fill_temp_code(u32 physical_address, bool* code_mask) {
             case STORE:
             case TLB_WRITE:
             case NORMAL:
-                printf("Normal instr.\n");
                 instr_ends_block = instructions_left_in_block == 0;
                 break;
 
@@ -54,7 +53,6 @@ void fill_temp_code(u32 physical_address, bool* code_mask) {
                 if (is_branch(prev_instr_category)) {
                     logfatal("Branch in a branch delay slot");
                 }
-                printf("Branch or branch likely\n");
                 instr_ends_block = false;
                 instructions_left_in_block = 1; // emit delay slot
                 break;
@@ -62,7 +60,7 @@ void fill_temp_code(u32 physical_address, bool* code_mask) {
             // End block immediately
             case BLOCK_ENDER:
                 instr_ends_block = true;
-                printf("end block immediately\n");
+                break;
         }
 
         // If we still need to emit the delay slot, emit it, even if it's in the next block.
@@ -74,10 +72,10 @@ void fill_temp_code(u32 physical_address, bool* code_mask) {
             }
         }
 
-        printf("%d [%08X]=%08X\n", i, instr_address, temp_code[i].instr.raw);
+        //printf("%d [%08X]=%08X\n", i, instr_address, temp_code[i].instr.raw);
 
         if (instr_ends_block || page_boundary_ends_block) {
-            printf("Ending block after %d instructions\n", temp_code_len);
+            //printf("Ending block after %d instructions\n", temp_code_len);
             break;
         }
     }
@@ -96,8 +94,8 @@ void v2_compile_new_block(
         u32 physical_address) {
 
     fill_temp_code(physical_address, code_mask);
-    printf("Compiling a block of %d instructions\n", temp_code_len);
-    logfatal("Compiling block at %016lX / %08X", virtual_address, physical_address);
+    //printf("Compiling a block of %d instructions\n", temp_code_len);
+    //logfatal("Compiling block at %016lX / %08X", virtual_address, physical_address);
 }
 
 void v2_compiler_init() {
