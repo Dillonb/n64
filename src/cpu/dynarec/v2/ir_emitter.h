@@ -4,6 +4,9 @@
 #include <util.h>
 #include <mips_instruction_decode.h>
 
-void emit_instruction_ir(mips_instruction_t instr);
+#define IR_EMITTER(name) void emit_##name##_ir(mips_instruction_t instruction, u64 virtual_address, u32 physical_address)
+#define CALL_IR_EMITTER(name) emit_##name##_ir(instruction, virtual_address, physical_address); break
+
+IR_EMITTER(instruction);
 
 #endif //N64_IR_EMITTER_H

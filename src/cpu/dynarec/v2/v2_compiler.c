@@ -4,6 +4,7 @@
 
 #include "instruction_category.h"
 #include "ir_emitter.h"
+#include "ir_context.h"
 
 #define N64_LOG_COMPILATIONS
 
@@ -109,8 +110,9 @@ void v2_compile_new_block(
         u32 physical_address) {
 
     fill_temp_code(virtual_address, physical_address, code_mask);
+    ir_context_reset();
     for (int i = 0; i < temp_code_len; i++) {
-        emit_instruction_ir(temp_code[i].instr);
+        emit_instruction_ir(temp_code[i].instr, virtual_address, physical_address);
     }
     logfatal("Emitted IR for a block. It's time to optimize/emit");
 }

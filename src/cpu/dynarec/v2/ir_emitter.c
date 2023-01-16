@@ -1,4 +1,5 @@
 #include "ir_emitter.h"
+#include "ir_context.h"
 
 #include <util.h>
 #include <dynarec/dynarec.h>
@@ -6,9 +7,15 @@
 
 #define IR_UNIMPLEMENTED(opc) logfatal("Unimplemented IR translation for instruction " #opc)
 
-void emit_cp0_instruction_ir(mips_instruction_t instr) {
-    if (instr.last11 == 0) {
-        switch (instr.r.rs) {
+IR_EMITTER(lui) {
+    s64 value = (s16)instruction.i.immediate;
+    value *= 65536;
+    ir_emit_set_register_constant(instruction.i.rt, value);
+}
+
+IR_EMITTER(cp0_instruction) {
+    if (instruction.last11 == 0) {
+        switch (instruction.r.rs) {
             case COP_MF: IR_UNIMPLEMENTED(COP_MF);
             case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
             // Last 11 bits are 0
@@ -16,13 +23,13 @@ void emit_cp0_instruction_ir(mips_instruction_t instr) {
             case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
             default: {
                 char buf[50];
-                disassemble(0, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
-                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+                disassemble(0, instruction.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instruction.raw,
+                         instruction.rs0, instruction.rs1, instruction.rs2, instruction.rs3, instruction.rs4, buf);
             }
         }
     } else {
-        switch (instr.fr.funct) {
+        switch (instruction.fr.funct) {
             case COP_FUNCT_TLBWI_MULT: IR_UNIMPLEMENTED(COP_FUNCT_TLBWI_MULT);
             case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
             case COP_FUNCT_TLBP: IR_UNIMPLEMENTED(COP_FUNCT_TLBP);
@@ -31,16 +38,16 @@ void emit_cp0_instruction_ir(mips_instruction_t instr) {
             case COP_FUNCT_WAIT: IR_UNIMPLEMENTED(COP_FUNCT_WAIT);
             default: {
                 char buf[50];
-                disassemble(0, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+                disassemble(0, instruction.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instruction.raw,
+                         instruction.funct0, instruction.funct1, instruction.funct2, instruction.funct3, instruction.funct4, instruction.funct5, buf);
             }
         }
     }
 }
 
-void emit_special_instruction_ir(mips_instruction_t instr) {
-    switch (instr.r.funct) {
+IR_EMITTER(special_instruction) {
+    switch (instruction.r.funct) {
         case FUNCT_SLL: IR_UNIMPLEMENTED(FUNCT_SLL);
         case FUNCT_SRL: IR_UNIMPLEMENTED(FUNCT_SRL);
         case FUNCT_SRA: IR_UNIMPLEMENTED(FUNCT_SRA);
@@ -95,16 +102,16 @@ void emit_special_instruction_ir(mips_instruction_t instr) {
         case FUNCT_TNE: IR_UNIMPLEMENTED(FUNCT_TNE);
         default: {
             char buf[50];
-            disassemble(0, instr.raw, buf, 50);
-            logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                     instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            disassemble(0, instruction.raw, buf, 50);
+            logfatal("other/unknown MIPS Special 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instruction.raw,
+                     instruction.funct0, instruction.funct1, instruction.funct2, instruction.funct3, instruction.funct4, instruction.funct5, buf);
         }
     }
 }
 
 
-void emit_regimm_instruction_ir(mips_instruction_t instr) {
-    switch (instr.i.rt) {
+IR_EMITTER(regimm_instruction) {
+    switch (instruction.i.rt) {
         case RT_BLTZ: IR_UNIMPLEMENTED(RT_BLTZ);
         case RT_BLTZL: IR_UNIMPLEMENTED(RT_BLTZL);
         case RT_BLTZAL: IR_UNIMPLEMENTED(RT_BLTZAL);
@@ -120,18 +127,18 @@ void emit_regimm_instruction_ir(mips_instruction_t instr) {
         case RT_TNEI: IR_UNIMPLEMENTED(RT_TNEI);
         default: {
             char buf[50];
-            disassemble(0, instr.raw, buf, 50);
-            logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instr.raw,
-                     instr.rt0, instr.rt1, instr.rt2, instr.rt3, instr.rt4, buf);
+            disassemble(0, instruction.raw, buf, 50);
+            logfatal("other/unknown MIPS REGIMM 0x%08X with RT: %d%d%d%d%d [%s]", instruction.raw,
+                     instruction.rt0, instruction.rt1, instruction.rt2, instruction.rt3, instruction.rt4, buf);
         }
     }
 }
 
-void emit_cp1_instruction_ir(mips_instruction_t instr) {
+IR_EMITTER(cp1_instruction) {
     // This function uses a series of two switch statements.
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
-    switch (instr.r.rs) {
+    switch (instruction.r.rs) {
         case COP_CF: IR_UNIMPLEMENTED(COP_CF);
         case COP_MF: IR_UNIMPLEMENTED(COP_MF);
         case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
@@ -139,33 +146,33 @@ void emit_cp1_instruction_ir(mips_instruction_t instr) {
         case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
         case COP_CT: IR_UNIMPLEMENTED(COP_CT);
         case COP_BC:
-            switch (instr.r.rt) {
+            switch (instruction.r.rt) {
                 case COP_BC_BCT: IR_UNIMPLEMENTED(COP_BC_BCT);
                 case COP_BC_BCF: IR_UNIMPLEMENTED(COP_BC_BCF);
                 case COP_BC_BCTL: IR_UNIMPLEMENTED(COP_BC_BCTL);
                 case COP_BC_BCFL: IR_UNIMPLEMENTED(COP_BC_BCFL);
                 default: {
                     char buf[50];
-                    disassemble(0, instr.raw, buf, 50);
-                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+                    disassemble(0, instruction.raw, buf, 50);
+                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instruction.raw, buf);
                 }
             }
     }
     IR_UNIMPLEMENTED(SomeFPUInstruction);
 }
 
-void emit_instruction_ir(mips_instruction_t instr) {
-    if (unlikely(instr.raw == 0)) {
+IR_EMITTER(instruction) {
+    if (unlikely(instruction.raw == 0)) {
         return; // do nothing for NOP
     }
-    switch (instr.op) {
-        case OPC_CP0:    emit_cp0_instruction_ir(instr); break;
-        case OPC_CP1:    emit_cp1_instruction_ir(instr); break;
-        case OPC_SPCL:   emit_special_instruction_ir(instr); break;
-        case OPC_REGIMM: emit_regimm_instruction_ir(instr); break;
+    switch (instruction.op) {
+        case OPC_CP0:    CALL_IR_EMITTER(cp0_instruction);
+        case OPC_CP1:    CALL_IR_EMITTER(cp1_instruction);
+        case OPC_SPCL:   CALL_IR_EMITTER(special_instruction);
+        case OPC_REGIMM: CALL_IR_EMITTER(regimm_instruction);
 
         case OPC_LD: IR_UNIMPLEMENTED(OPC_LD);
-        case OPC_LUI: IR_UNIMPLEMENTED(OPC_LUI);
+        case OPC_LUI: CALL_IR_EMITTER(lui);
         case OPC_ADDIU: IR_UNIMPLEMENTED(OPC_ADDIU);
         case OPC_ADDI: IR_UNIMPLEMENTED(OPC_ADDI);
         case OPC_DADDI: IR_UNIMPLEMENTED(OPC_DADDI);
@@ -215,9 +222,9 @@ void emit_instruction_ir(mips_instruction_t instr) {
         case OPC_RDHWR: IR_UNIMPLEMENTED(OPC_RDHWR); // Invalid instruction used by Linux
         default: {
             char buf[50];
-            disassemble(0, instr.raw, buf, 50);
+            disassemble(0, instruction.raw, buf, 50);
             logfatal("Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
-                     instr.raw, instr.op0, instr.op1, instr.op2, instr.op3, instr.op4, instr.op5, buf);
+                     instruction.raw, instruction.op0, instruction.op1, instruction.op2, instruction.op3, instruction.op4, instruction.op5, buf);
         }
     }
 }
