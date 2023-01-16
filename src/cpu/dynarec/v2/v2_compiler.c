@@ -3,6 +3,9 @@
 #include "v2_compiler.h"
 
 #include "instruction_category.h"
+#include "ir_emitter.h"
+
+#define N64_LOG_COMPILATIONS
 
 typedef struct source_instruction {
     mips_instruction_t instr;
@@ -15,14 +18,19 @@ int temp_code_len = 0;
 source_instruction_t temp_code[TEMP_CODE_SIZE];
 
 // Determine what instructions should be compiled into the block and load them into temp_code
-void fill_temp_code(u32 physical_address, bool* code_mask) {
+void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) {
     bool should_continue_block = true;
     int instructions_left_in_block = -1;
 
     temp_code_len = 0;
+#ifdef N64_LOG_COMPILATIONS
+    printf("Starting a new block:\n");
+#endif
     for (int i = 0; i < TEMP_CODE_SIZE; i++) {
         u32 instr_address = physical_address + (i << 2);
         u32 next_instr_address = instr_address + 4;
+        u64 instr_virtual_address = virtual_address + (i << 2);
+
         bool page_boundary_ends_block = IS_PAGE_BOUNDARY(next_instr_address);
 
         dynarec_instruction_category_t prev_instr_category = NORMAL;
@@ -72,10 +80,17 @@ void fill_temp_code(u32 physical_address, bool* code_mask) {
             }
         }
 
-        //printf("%d [%08X]=%08X\n", i, instr_address, temp_code[i].instr.raw);
+#ifdef N64_LOG_COMPILATIONS
+        static char buf[50];
+        disassemble(instr_virtual_address, temp_code[i].instr.raw, buf, 50);
+        printf("%d [%08X]=%08X %s\n", i, (u32)instr_virtual_address, temp_code[i].instr.raw, buf);
+#endif
+
 
         if (instr_ends_block || page_boundary_ends_block) {
-            //printf("Ending block after %d instructions\n", temp_code_len);
+#ifdef N64_LOG_COMPILATIONS
+            printf("Ending block after %d instructions\n", temp_code_len);
+#endif
             break;
         }
     }
@@ -93,9 +108,11 @@ void v2_compile_new_block(
         u64 virtual_address,
         u32 physical_address) {
 
-    fill_temp_code(physical_address, code_mask);
-    //printf("Compiling a block of %d instructions\n", temp_code_len);
-    //logfatal("Compiling block at %016lX / %08X", virtual_address, physical_address);
+    fill_temp_code(virtual_address, physical_address, code_mask);
+    for (int i = 0; i < temp_code_len; i++) {
+        emit_instruction_ir(temp_code[i].instr);
+    }
+    logfatal("Emitted IR for a block. It's time to optimize/emit");
 }
 
 void v2_compiler_init() {

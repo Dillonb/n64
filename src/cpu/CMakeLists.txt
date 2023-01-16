@@ -37,7 +37,8 @@ add_library(r4300i
         dynarec/v1/v1_compiler.c dynarec/v1/v1_compiler.h
         asm_emitter.c dynarec/v1/asm_emitter.h
 
-        dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h)
+        dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
+        dynarec/v2/ir_emitter.c dynarec/v2/ir_emitter.h)
 
 
 add_library(rsp
