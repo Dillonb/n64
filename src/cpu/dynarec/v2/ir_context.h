@@ -6,15 +6,44 @@
 // Number of IR instructions that can be cached per block. 4x the max number of instructions per block - should be safe.
 #define IR_CACHE_SIZE 4096
 
+typedef enum ir_value_type {
+    VALUE_TYPE_S16,
+    VALUE_TYPE_U16,
+    //VALUE_TYPE_S32,
+    VALUE_TYPE_U32,
+    VALUE_TYPE_64
+} ir_value_type_t;
+
+typedef struct ir_set_constant {
+    ir_value_type_t type;
+    union {
+        s16 value_s16;
+        u16 value_u16;
+        //s32 value_s32;
+        //u32 value_u32;
+        u64 value_64;
+    };
+} ir_set_constant_t;
+
 typedef struct ir_instruction {
     enum {
         IR_UNKNOWN,
-        IR_SET_REG_CONSTANT
+        IR_SET_CONSTANT,
+        IR_OR,
+        IR_ADD,
+        IR_STORE
     } type;
     union {
+        ir_set_constant_t set_constant;
         struct {
-            u64 value;
-        } set_reg_constant;
+            int operand1;
+            int operand2;
+        } bin_op;
+        struct {
+            ir_value_type_t type;
+            int address;
+            int value;
+        } store;
     };
 } ir_instruction_t;
 
@@ -29,6 +58,18 @@ typedef struct ir_context {
 extern ir_context_t ir_context;
 
 void ir_context_reset();
-void ir_emit_set_register_constant(u8 guest_reg, u64 value);
+
+#define NO_GUEST_REG 0xFF
+
+// Emit a constant to the IR, optionally associating it with a guest register.
+int ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
+// Load a guest register, or return a reference to it if it's already loaded.
+int ir_emit_load_guest_reg(u8 guest_reg);
+// OR two values together.
+int ir_emit_or(int operand, int operand2, u8 guest_reg);
+// ADD two values together.
+int ir_emit_add(int operand, int operand2, u8 guest_reg);
+// STORE a typed value into memory at an address
+int ir_emit_store(ir_value_type_t type, int address, int value);
 
 #endif //N64_IR_CONTEXT_H

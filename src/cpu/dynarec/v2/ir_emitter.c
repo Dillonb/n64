@@ -8,16 +8,44 @@
 #define IR_UNIMPLEMENTED(opc) logfatal("Unimplemented IR translation for instruction " #opc)
 
 IR_EMITTER(lui) {
-    s64 value = (s16)instruction.i.immediate;
-    value *= 65536;
-    ir_emit_set_register_constant(instruction.i.rt, value);
+    s64 ext = (s16)instruction.i.immediate;
+    ext *= 65536;
+
+    ir_set_constant_t value;
+    value.type = VALUE_TYPE_64;
+    value.value_64 = ext;
+
+    ir_emit_set_constant(value, instruction.i.rt);
+}
+
+IR_EMITTER(ori) {
+    int i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+
+    ir_set_constant_t operand2;
+    operand2.type = VALUE_TYPE_U16;
+    operand2.value_u16 = instruction.i.immediate;
+    int i_operand2 = ir_emit_set_constant(operand2, NO_GUEST_REG);
+
+    ir_emit_or(i_operand, i_operand2, instruction.i.rt);
+}
+
+IR_EMITTER(sw) {
+    int base = ir_emit_load_guest_reg(instruction.i.rs);
+
+    ir_set_constant_t offset;
+    offset.type = VALUE_TYPE_S16;
+    offset.value_s16 = instruction.i.immediate;
+    int i_offset = ir_emit_set_constant(offset, NO_GUEST_REG);
+
+    int address = ir_emit_add(base, i_offset, NO_GUEST_REG);
+
+    int value = ir_emit_load_guest_reg(instruction.i.rt);
+
+    ir_emit_store(VALUE_TYPE_U32, address, value);
 }
 
 IR_EMITTER(mtc0) {
     int ssa_index = ir_context.guest_gpr_to_value[instruction.r.rt];
-    if (ssa_index >= 0) {
-        printf("MTC0 from SSA index %d, guest gpr: %d\n", ssa_index, ir_context.);
-    }
     switch (instruction.r.rd) {
         case R4300I_CP0_REG_INDEX: logfatal("emit MTC0 R4300I_CP0_REG_INDEX");
         case R4300I_CP0_REG_RANDOM: logfatal("emit MTC0 R4300I_CP0_REG_RANDOM");
@@ -26,7 +54,10 @@ IR_EMITTER(mtc0) {
         case R4300I_CP0_REG_TAGLO: logfatal("emit MTC0 R4300I_CP0_REG_TAGLO");
         case R4300I_CP0_REG_TAGHI: logfatal("emit MTC0 R4300I_CP0_REG_TAGHI");
         case R4300I_CP0_REG_COMPARE: logfatal("emit MTC0 R4300I_CP0_REG_COMPARE");
-        case R4300I_CP0_REG_STATUS: logfatal("emit MTC0 R4300I_CP0_REG_STATUS");
+        case R4300I_CP0_REG_STATUS: {
+            logfatal("emit MTC0 R4300I_CP0_REG_STATUS");
+            break;
+        }
         case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MTC0 R4300I_CP0_REG_ENTRYLO0");
         case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MTC0 R4300I_CP0_REG_ENTRYLO1");
         case R4300I_CP0_REG_ENTRYHI: logfatal("emit MTC0 R4300I_CP0_REG_ENTRYHI");
@@ -235,9 +266,9 @@ IR_EMITTER(instruction) {
         case OPC_CACHE: IR_UNIMPLEMENTED(OPC_CACHE);
         case OPC_SB: IR_UNIMPLEMENTED(OPC_SB);
         case OPC_SH: IR_UNIMPLEMENTED(OPC_SH);
-        case OPC_SW: IR_UNIMPLEMENTED(OPC_SW);
+        case OPC_SW:CALL_IR_EMITTER(sw);
         case OPC_SD: IR_UNIMPLEMENTED(OPC_SD);
-        case OPC_ORI: IR_UNIMPLEMENTED(OPC_ORI);
+        case OPC_ORI: CALL_IR_EMITTER(ori);
         case OPC_J: IR_UNIMPLEMENTED(OPC_J);
         case OPC_JAL: IR_UNIMPLEMENTED(OPC_JAL);
         case OPC_SLTI: IR_UNIMPLEMENTED(OPC_SLTI);
