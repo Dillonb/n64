@@ -30,6 +30,7 @@ typedef struct ir_instruction {
         IR_UNKNOWN,
         IR_SET_CONSTANT,
         IR_OR,
+        IR_AND,
         IR_ADD,
         IR_STORE,
         IR_LOAD,
@@ -72,6 +73,8 @@ int ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
 int ir_emit_load_guest_reg(u8 guest_reg);
 // OR two values together.
 int ir_emit_or(int operand, int operand2, u8 guest_reg);
+// AND two values together.
+int ir_emit_and(int operand, int operand2, u8 guest_reg);
 // ADD two values together.
 int ir_emit_add(int operand, int operand2, u8 guest_reg);
 // STORE a typed value into memory at an address

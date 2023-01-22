@@ -40,6 +40,17 @@ IR_EMITTER(ori) {
     ir_emit_or(i_operand, i_operand2, instruction.i.rt);
 }
 
+IR_EMITTER(andi) {
+    int i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+
+    ir_set_constant_t operand2;
+    operand2.type = VALUE_TYPE_U16;
+    operand2.value_u16 = instruction.i.immediate;
+    int i_operand2 = ir_emit_set_constant(operand2, NO_GUEST_REG);
+
+    ir_emit_and(i_operand, i_operand2, instruction.i.rt);
+}
+
 IR_EMITTER(sw) {
     int address = get_memory_access_address(instruction);
     int value = ir_emit_load_guest_reg(instruction.i.rt);
@@ -255,7 +266,7 @@ IR_EMITTER(instruction) {
         case OPC_ADDIU: IR_UNIMPLEMENTED(OPC_ADDIU);
         case OPC_ADDI: IR_UNIMPLEMENTED(OPC_ADDI);
         case OPC_DADDI: IR_UNIMPLEMENTED(OPC_DADDI);
-        case OPC_ANDI: IR_UNIMPLEMENTED(OPC_ANDI);
+        case OPC_ANDI:CALL_IR_EMITTER(andi);
         case OPC_LBU: IR_UNIMPLEMENTED(OPC_LBU);
         case OPC_LHU: IR_UNIMPLEMENTED(OPC_LHU);
         case OPC_LH: IR_UNIMPLEMENTED(OPC_LH);

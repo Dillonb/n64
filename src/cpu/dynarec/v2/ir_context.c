@@ -55,6 +55,15 @@ int ir_emit_or(int operand, int operand2, u8 guest_reg) {
     return append_ir_instruction(instruction, guest_reg);
 }
 
+int ir_emit_and(int operand, int operand2, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_AND;
+    instruction.bin_op.operand1 = operand;
+    instruction.bin_op.operand2 = operand2;
+
+    return append_ir_instruction(instruction, guest_reg);
+}
+
 int ir_emit_add(int operand, int operand2, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_ADD;
