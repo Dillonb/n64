@@ -7,6 +7,17 @@
 
 #define IR_UNIMPLEMENTED(opc) logfatal("Unimplemented IR translation for instruction " #opc)
 
+int get_memory_access_address(mips_instruction_t instruction) {
+    int base = ir_emit_load_guest_reg(instruction.i.rs);
+
+    ir_set_constant_t offset;
+    offset.type = VALUE_TYPE_S16;
+    offset.value_s16 = instruction.i.immediate;
+    int i_offset = ir_emit_set_constant(offset, NO_GUEST_REG);
+
+    return ir_emit_add(base, i_offset, NO_GUEST_REG);
+}
+
 IR_EMITTER(lui) {
     s64 ext = (s16)instruction.i.immediate;
     ext *= 65536;
@@ -30,18 +41,13 @@ IR_EMITTER(ori) {
 }
 
 IR_EMITTER(sw) {
-    int base = ir_emit_load_guest_reg(instruction.i.rs);
-
-    ir_set_constant_t offset;
-    offset.type = VALUE_TYPE_S16;
-    offset.value_s16 = instruction.i.immediate;
-    int i_offset = ir_emit_set_constant(offset, NO_GUEST_REG);
-
-    int address = ir_emit_add(base, i_offset, NO_GUEST_REG);
-
+    int address = get_memory_access_address(instruction);
     int value = ir_emit_load_guest_reg(instruction.i.rt);
-
     ir_emit_store(VALUE_TYPE_U32, address, value);
+}
+
+IR_EMITTER(lw) {
+    ir_emit_load(VALUE_TYPE_S32, get_memory_access_address(instruction), instruction.i.rt);
 }
 
 IR_EMITTER(mtc0) {
@@ -253,7 +259,7 @@ IR_EMITTER(instruction) {
         case OPC_LBU: IR_UNIMPLEMENTED(OPC_LBU);
         case OPC_LHU: IR_UNIMPLEMENTED(OPC_LHU);
         case OPC_LH: IR_UNIMPLEMENTED(OPC_LH);
-        case OPC_LW: IR_UNIMPLEMENTED(OPC_LW);
+        case OPC_LW:CALL_IR_EMITTER(lw);
         case OPC_LWU: IR_UNIMPLEMENTED(OPC_LWU);
         case OPC_BEQ: IR_UNIMPLEMENTED(OPC_BEQ);
         case OPC_BEQL: IR_UNIMPLEMENTED(OPC_BEQL);

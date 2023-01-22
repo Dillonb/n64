@@ -72,3 +72,11 @@ int ir_emit_store(ir_value_type_t type, int address, int value) {
     instruction.store.value = value;
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
+
+int ir_emit_load(ir_value_type_t type, int address, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_LOAD;
+    instruction.load.type = type;
+    instruction.load.address = address;
+    return append_ir_instruction(instruction, guest_reg);
+}

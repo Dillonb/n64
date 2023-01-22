@@ -9,7 +9,7 @@
 typedef enum ir_value_type {
     VALUE_TYPE_S16,
     VALUE_TYPE_U16,
-    //VALUE_TYPE_S32,
+    VALUE_TYPE_S32,
     VALUE_TYPE_U32,
     VALUE_TYPE_64
 } ir_value_type_t;
@@ -31,7 +31,8 @@ typedef struct ir_instruction {
         IR_SET_CONSTANT,
         IR_OR,
         IR_ADD,
-        IR_STORE
+        IR_STORE,
+        IR_LOAD,
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -44,6 +45,10 @@ typedef struct ir_instruction {
             int address;
             int value;
         } store;
+        struct {
+            ir_value_type_t type;
+            int address;
+        } load;
     };
 } ir_instruction_t;
 
@@ -71,5 +76,7 @@ int ir_emit_or(int operand, int operand2, u8 guest_reg);
 int ir_emit_add(int operand, int operand2, u8 guest_reg);
 // STORE a typed value into memory at an address
 int ir_emit_store(ir_value_type_t type, int address, int value);
+// LOAD a typed value a register from an address
+int ir_emit_load(ir_value_type_t type, int address, u8 guest_reg);
 
 #endif //N64_IR_CONTEXT_H
