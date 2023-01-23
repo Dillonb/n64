@@ -18,6 +18,68 @@ void ir_context_reset() {
     ir_context.ir_cache_index = 1;
 }
 
+const char* val_type_to_str(ir_value_type_t type) {
+    switch (type) {
+        case VALUE_TYPE_S16:
+            return "S16";
+        case VALUE_TYPE_U16:
+            return "U16";
+        case VALUE_TYPE_S32:
+            return "S32";
+        case VALUE_TYPE_U32:
+            return "U32";
+        case VALUE_TYPE_64:
+            return "_64";
+    }
+}
+
+void ir_instr_to_string(int index, char* buf, size_t buf_size) {
+    int written = snprintf(buf, buf_size, "v%d = ", index);
+    buf += written;
+    buf_size -= written;
+    ir_instruction_t instr = ir_context.ir_cache[index];
+    switch (instr.type) {
+        case IR_UNKNOWN:
+            snprintf(buf, buf_size, "<UNKNOWN OPERATION>");
+            break;
+        case IR_SET_CONSTANT:
+            switch (instr.set_constant.type) {
+                case VALUE_TYPE_S16:
+                    snprintf(buf, buf_size, "0x%04X ;%d", (u16)instr.set_constant.value_s16, instr.set_constant.value_s16);
+                    break;
+                case VALUE_TYPE_U16:
+                    snprintf(buf, buf_size, "0x%04X ;%u", instr.set_constant.value_u16, instr.set_constant.value_u16);
+                    break;
+                case VALUE_TYPE_S32:
+                    logfatal("set const s32 to string");
+                    //snprintf(buf, buf_size, "0x%08X ;%d", (u32)instr.set_constant.value_s32, instr.set_constant.value_s32);
+                    break;
+                case VALUE_TYPE_U32:
+                    logfatal("set const u32 to string");
+                    //snprintf(buf, buf_size, "0x%08X ;%u", instr.set_constant.value_u32, instr.set_constant.value_u32);
+                    break;
+                case VALUE_TYPE_64:
+                    snprintf(buf, buf_size, "0x%016lX ;%ld", instr.set_constant.value_64, instr.set_constant.value_64);
+                    break;
+            }
+            break;
+        case IR_OR:
+            snprintf(buf, buf_size, "v%d | v%d", instr.bin_op.operand1, instr.bin_op.operand2);
+            break;
+        case IR_AND:
+            snprintf(buf, buf_size, "v%d & v%d", instr.bin_op.operand1, instr.bin_op.operand2);
+            break;
+        case IR_ADD:
+            snprintf(buf, buf_size, "v%d + v%d", instr.bin_op.operand1, instr.bin_op.operand2);
+            break;
+        case IR_STORE:
+            snprintf(buf, buf_size, "STORE(type = %s, address = v%d, value = v%d)", val_type_to_str(instr.store.type), instr.store.address, instr.store.value);
+            break;
+        case IR_LOAD:
+            snprintf(buf, buf_size, "LOAD(type = %s, address = v%d)", val_type_to_str(instr.store.type), instr.store.address);
+            break;
+    }
+}
 
 void update_guest_reg_mapping(u8 guest_reg, int index) {
     if (guest_reg < 32) {

@@ -111,8 +111,18 @@ void v2_compile_new_block(
 
     fill_temp_code(virtual_address, physical_address, code_mask);
     ir_context_reset();
+    int last_ir_index = 0;
+    printf("Translating to IR:\n");
     for (int i = 0; i < temp_code_len; i++) {
         emit_instruction_ir(temp_code[i].instr, virtual_address, physical_address);
+
+        // TODO when we can compile full blocks, move this to a separate for loop
+        while (last_ir_index < ir_context.ir_cache_index) {
+            static char buf[100];
+            ir_instr_to_string(last_ir_index, buf, 100);
+            printf("%s\n", buf);
+            last_ir_index++;
+        }
     }
     logfatal("Emitted IR for a block. It's time to optimize/emit");
 }

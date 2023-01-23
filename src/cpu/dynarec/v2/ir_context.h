@@ -64,6 +64,7 @@ typedef struct ir_context {
 extern ir_context_t ir_context;
 
 void ir_context_reset();
+void ir_instr_to_string(int index, char* buf, size_t buf_size);
 
 #define NO_GUEST_REG 0xFF
 
