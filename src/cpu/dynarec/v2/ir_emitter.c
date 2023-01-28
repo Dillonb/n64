@@ -18,6 +18,21 @@ int get_memory_access_address(mips_instruction_t instruction) {
     return ir_emit_add(base, i_offset, NO_GUEST_REG);
 }
 
+void ir_emit_conditional_branch(int condition, s16 offset, u64 virtual_address) {
+    ir_set_constant_t pc_if_false_value;
+    pc_if_false_value.type = VALUE_TYPE_64;
+    pc_if_false_value.value_64 = virtual_address + 8; // Account for instruction in delay slot
+    int pc_if_false = ir_emit_set_constant(pc_if_false_value, NO_GUEST_REG);
+
+    ir_set_constant_t pc_if_true_value;
+    pc_if_true_value.type = VALUE_TYPE_64;
+    pc_if_true_value.value_64 = virtual_address + 4 + (s32)offset * 4;
+    int pc_if_true = ir_emit_set_constant(pc_if_true_value, NO_GUEST_REG);
+
+    ir_emit_set_block_exit_pc(condition, pc_if_true, pc_if_false);
+}
+
+
 IR_EMITTER(lui) {
     s64 ext = (s16)instruction.i.immediate;
     ext *= 65536;
@@ -65,21 +80,7 @@ IR_EMITTER(bne) {
     int rs = ir_emit_load_guest_reg(instruction.i.rs);
     int rt = ir_emit_load_guest_reg(instruction.i.rt);
     int cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt);
-
-    s32 signed_offset = (s16)instruction.i.immediate;
-    signed_offset *= 4;
-
-    ir_set_constant_t pc_if_false_value;
-    pc_if_false_value.type = VALUE_TYPE_64;
-    pc_if_false_value.value_64 = virtual_address + 8; // Account for instruction in delay slot
-    int pc_if_false = ir_emit_set_constant(pc_if_false_value, NO_GUEST_REG);
-
-    ir_set_constant_t pc_if_true_value;
-    pc_if_true_value.type = VALUE_TYPE_64;
-    pc_if_true_value.value_64 = virtual_address + 4 + signed_offset;
-    int pc_if_true = ir_emit_set_constant(pc_if_true_value, NO_GUEST_REG);
-
-    ir_emit_set_block_exit_pc(cond, pc_if_true, pc_if_false);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(mtc0) {
