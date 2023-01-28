@@ -176,3 +176,23 @@ void ir_optimize_eliminate_dead_code() {
         }
     }
 }
+
+void ir_optimize_shrink_constants() {
+    for (int i = 0; i < ir_context.ir_cache_index; i++) {
+        ir_instruction_t* instr = &ir_context.ir_cache[i];
+        if (instr->type == IR_SET_CONSTANT && instr->set_constant.type == VALUE_TYPE_64) {
+            u64 val = instr->set_constant.value_64;
+            if (val == (s64)(s16)val) {
+                printf("%016lX is actually a sign-extended 16 bit value!\n", val);
+
+                instr->set_constant.type = VALUE_TYPE_S16;
+                instr->set_constant.value_s16 = val & 0xFFFF;
+            } else if (val == (s64)(s32)val) {
+                printf("%016lX is actually a sign-extended 32 bit value!\n", val);
+
+                instr->set_constant.type = VALUE_TYPE_S32;
+                instr->set_constant.value_s32 = val & 0xFFFFFFFF;
+            }
+        }
+    }
+}

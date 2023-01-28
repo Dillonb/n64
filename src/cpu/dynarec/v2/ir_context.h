@@ -23,8 +23,8 @@ typedef struct ir_set_constant {
     union {
         s16 value_s16;
         u16 value_u16;
-        //s32 value_s32;
-        //u32 value_u32;
+        s32 value_s32;
+        u32 value_u32;
         u64 value_64;
     };
 } ir_set_constant_t;

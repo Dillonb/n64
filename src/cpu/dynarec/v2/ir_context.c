@@ -63,12 +63,10 @@ void ir_instr_to_string(int index, char* buf, size_t buf_size) {
                     snprintf(buf, buf_size, "0x%04X ;%u", instr.set_constant.value_u16, instr.set_constant.value_u16);
                     break;
                 case VALUE_TYPE_S32:
-                    logfatal("set const s32 to string");
-                    //snprintf(buf, buf_size, "0x%08X ;%d", (u32)instr.set_constant.value_s32, instr.set_constant.value_s32);
+                    snprintf(buf, buf_size, "0x%08X ;%d", (u32)instr.set_constant.value_s32, instr.set_constant.value_s32);
                     break;
                 case VALUE_TYPE_U32:
-                    logfatal("set const u32 to string");
-                    //snprintf(buf, buf_size, "0x%08X ;%u", instr.set_constant.value_u32, instr.set_constant.value_u32);
+                    snprintf(buf, buf_size, "0x%08X ;%u", instr.set_constant.value_u32, instr.set_constant.value_u32);
                     break;
                 case VALUE_TYPE_64:
                     snprintf(buf, buf_size, "0x%016lX ;%ld", instr.set_constant.value_64, instr.set_constant.value_64);
@@ -133,12 +131,10 @@ int ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
             is_zero = value.value_u16 == 0;
             break;
         case VALUE_TYPE_S32:
-            logfatal("Set constant S32");
-            //is_zero = value.value_s32 == 0;
+            is_zero = value.value_s32 == 0;
             break;
         case VALUE_TYPE_U32:
-            logfatal("Set constant U32");
-            //is_zero = value.value_u32 == 0;
+            is_zero = value.value_u32 == 0;
             break;
         case VALUE_TYPE_64:
             is_zero = value.value_64 == 0;
