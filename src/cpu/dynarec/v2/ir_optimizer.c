@@ -61,6 +61,7 @@ void ir_optimize_constant_propagation() {
                     instr->set_constant.type = VALUE_TYPE_64;
                     instr->set_constant.value_64 = operand1 & operand2;
                 }
+                // TODO: check if one operand is constant, if it's zero, and replace with a const zero here
                 break;
 
             case IR_ADD:
@@ -115,6 +116,7 @@ void ir_optimize_eliminate_dead_code() {
         int ssa_index = ir_context.guest_gpr_to_value[i];
         if (ssa_index >= 0) {
             printf("v%d is used for the value of r%d after the block!\n", ssa_index, i);
+            ir_result_used[ssa_index] = true;
         }
     }
 
