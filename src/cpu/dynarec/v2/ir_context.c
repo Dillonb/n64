@@ -14,6 +14,7 @@ void ir_context_reset() {
     ir_context.ir_cache[0].type = IR_SET_CONSTANT;
     ir_context.ir_cache[0].set_constant.type = VALUE_TYPE_64;
     ir_context.ir_cache[0].set_constant.value_64 = 0;
+    ir_context.guest_gpr_to_value[0] = 0;
 
     ir_context.ir_cache_index = 1;
 }
@@ -30,6 +31,13 @@ const char* val_type_to_str(ir_value_type_t type) {
             return "U32";
         case VALUE_TYPE_64:
             return "_64";
+    }
+}
+
+const char* cond_to_str(ir_condition_t condition) {
+    switch (condition) {
+        case CONDITION_NOT_EQUAL:
+            return "!=";
     }
 }
 
@@ -77,6 +85,18 @@ void ir_instr_to_string(int index, char* buf, size_t buf_size) {
             break;
         case IR_LOAD:
             snprintf(buf, buf_size, "LOAD(type = %s, address = v%d)", val_type_to_str(instr.store.type), instr.store.address);
+            break;
+        case IR_MASK_AND_CAST:
+            snprintf(buf, buf_size, "mask_cast(%s, v%d)", val_type_to_str(instr.mask_and_cast.type), instr.mask_and_cast.operand);
+            break;
+        case IR_CHECK_CONDITION:
+            snprintf(buf, buf_size, "v%d %s v%d",
+                     instr.check_condition.operand1,
+                     cond_to_str(instr.check_condition.condition),
+                     instr.check_condition.operand2);
+            break;
+        case IR_SET_BLOCK_EXIT_PC:
+            snprintf(buf, buf_size, "set_block_exit(v%d, if_true = v%d, if_false = v%d)", instr.set_exit_pc.condition, instr.set_exit_pc.pc_if_true, instr.set_exit_pc.pc_if_false);
             break;
     }
 }
@@ -186,4 +206,34 @@ int ir_emit_load(ir_value_type_t type, int address, u8 guest_reg) {
     instruction.load.type = type;
     instruction.load.address = address;
     return append_ir_instruction(instruction, guest_reg);
+}
+
+int ir_emit_mask_and_cast(int operand, ir_value_type_t type, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_MASK_AND_CAST;
+    instruction.mask_and_cast.type = type;
+    instruction.mask_and_cast.operand = operand;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+int ir_emit_check_condition(ir_condition_t condition, int operand1, int operand2) {
+    ir_instruction_t instruction;
+    instruction.type = IR_CHECK_CONDITION;
+    instruction.check_condition.condition = condition;
+    instruction.check_condition.operand1 = operand1;
+    instruction.check_condition.operand2 = operand2;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+int ir_emit_set_block_exit_pc(int condition, int pc_if_true, int pc_if_false) {
+    ir_instruction_t instruction;
+    instruction.type = IR_SET_BLOCK_EXIT_PC;
+    instruction.set_exit_pc.condition = condition;
+    instruction.set_exit_pc.pc_if_true = pc_if_true;
+    instruction.set_exit_pc.pc_if_false = pc_if_false;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+int ir_emit_interpreter_fallback(int num_instructions) {
+    logfatal("Unimplemented: Fall back to interpreter for %d instructions", num_instructions);
 }

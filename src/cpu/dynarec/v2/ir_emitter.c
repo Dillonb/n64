@@ -61,6 +61,27 @@ IR_EMITTER(lw) {
     ir_emit_load(VALUE_TYPE_S32, get_memory_access_address(instruction), instruction.i.rt);
 }
 
+IR_EMITTER(bne) {
+    int rs = ir_emit_load_guest_reg(instruction.i.rs);
+    int rt = ir_emit_load_guest_reg(instruction.i.rt);
+    int cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt);
+
+    s32 signed_offset = (s16)instruction.i.immediate;
+    signed_offset *= 4;
+
+    ir_set_constant_t pc_if_false_value;
+    pc_if_false_value.type = VALUE_TYPE_64;
+    pc_if_false_value.value_64 = virtual_address + 8; // Account for instruction in delay slot
+    int pc_if_false = ir_emit_set_constant(pc_if_false_value, NO_GUEST_REG);
+
+    ir_set_constant_t pc_if_true_value;
+    pc_if_true_value.type = VALUE_TYPE_64;
+    pc_if_true_value.value_64 = virtual_address + 4 + signed_offset;
+    int pc_if_true = ir_emit_set_constant(pc_if_true_value, NO_GUEST_REG);
+
+    ir_emit_set_block_exit_pc(cond, pc_if_true, pc_if_false);
+}
+
 IR_EMITTER(mtc0) {
     int ssa_index = ir_context.guest_gpr_to_value[instruction.r.rt];
     switch (instruction.r.rd) {
@@ -278,7 +299,7 @@ IR_EMITTER(instruction) {
         case OPC_BGTZL: IR_UNIMPLEMENTED(OPC_BGTZL);
         case OPC_BLEZ: IR_UNIMPLEMENTED(OPC_BLEZ);
         case OPC_BLEZL: IR_UNIMPLEMENTED(OPC_BLEZL);
-        case OPC_BNE: IR_UNIMPLEMENTED(OPC_BNE);
+        case OPC_BNE: CALL_IR_EMITTER(bne);
         case OPC_BNEL: IR_UNIMPLEMENTED(OPC_BNEL);
         case OPC_CACHE: IR_UNIMPLEMENTED(OPC_CACHE);
         case OPC_SB: IR_UNIMPLEMENTED(OPC_SB);

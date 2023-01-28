@@ -114,7 +114,9 @@ void v2_compile_new_block(
     int last_ir_index = 0;
     printf("Translating to IR:\n");
     for (int i = 0; i < temp_code_len; i++) {
-        emit_instruction_ir(temp_code[i].instr, virtual_address, physical_address);
+        u64 instr_virtual_address = virtual_address + (i << 2);
+        u32 instr_physical_address = physical_address + (i << 2);
+        emit_instruction_ir(temp_code[i].instr, instr_virtual_address, instr_physical_address);
 
         // TODO when we can compile full blocks, move this to a separate for loop
         while (last_ir_index < ir_context.ir_cache_index) {
