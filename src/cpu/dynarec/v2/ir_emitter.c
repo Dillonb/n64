@@ -9,26 +9,13 @@
 
 int get_memory_access_address(mips_instruction_t instruction) {
     int base = ir_emit_load_guest_reg(instruction.i.rs);
-
-    ir_set_constant_t offset;
-    offset.type = VALUE_TYPE_S16;
-    offset.value_s16 = instruction.i.immediate;
-    int i_offset = ir_emit_set_constant(offset, NO_GUEST_REG);
-
+    int i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     return ir_emit_add(base, i_offset, NO_GUEST_REG);
 }
 
 void ir_emit_conditional_branch(int condition, s16 offset, u64 virtual_address) {
-    ir_set_constant_t pc_if_false_value;
-    pc_if_false_value.type = VALUE_TYPE_64;
-    pc_if_false_value.value_64 = virtual_address + 8; // Account for instruction in delay slot
-    int pc_if_false = ir_emit_set_constant(pc_if_false_value, NO_GUEST_REG);
-
-    ir_set_constant_t pc_if_true_value;
-    pc_if_true_value.type = VALUE_TYPE_64;
-    pc_if_true_value.value_64 = virtual_address + 4 + (s32)offset * 4;
-    int pc_if_true = ir_emit_set_constant(pc_if_true_value, NO_GUEST_REG);
-
+    int pc_if_false = ir_emit_set_constant_64(virtual_address + 8, NO_GUEST_REG); // Account for instruction in delay slot
+    int pc_if_true = ir_emit_set_constant_64(virtual_address + 4 + (s64)offset * 4, NO_GUEST_REG);
     ir_emit_set_block_exit_pc(condition, pc_if_true, pc_if_false);
 }
 
@@ -36,32 +23,19 @@ void ir_emit_conditional_branch(int condition, s16 offset, u64 virtual_address) 
 IR_EMITTER(lui) {
     s64 ext = (s16)instruction.i.immediate;
     ext *= 65536;
-
-    ir_set_constant_t value;
-    value.type = VALUE_TYPE_64;
-    value.value_64 = ext;
-
-    ir_emit_set_constant(value, instruction.i.rt);
+    ir_emit_set_constant_64(ext, instruction.i.rt);
 }
 
 IR_EMITTER(ori) {
     int i_operand = ir_emit_load_guest_reg(instruction.i.rs);
-
-    ir_set_constant_t operand2;
-    operand2.type = VALUE_TYPE_U16;
-    operand2.value_u16 = instruction.i.immediate;
-    int i_operand2 = ir_emit_set_constant(operand2, NO_GUEST_REG);
+    int i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
 
     ir_emit_or(i_operand, i_operand2, instruction.i.rt);
 }
 
 IR_EMITTER(andi) {
     int i_operand = ir_emit_load_guest_reg(instruction.i.rs);
-
-    ir_set_constant_t operand2;
-    operand2.type = VALUE_TYPE_U16;
-    operand2.value_u16 = instruction.i.immediate;
-    int i_operand2 = ir_emit_set_constant(operand2, NO_GUEST_REG);
+    int i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
 
     ir_emit_and(i_operand, i_operand2, instruction.i.rt);
 }

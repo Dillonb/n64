@@ -106,8 +106,36 @@ int ir_emit_store(ir_value_type_t type, int address, int value);
 int ir_emit_load(ir_value_type_t type, int address, u8 guest_reg);
 // mask and cast a value to a different type.
 int ir_emit_mask_and_cast(int operand, ir_value_type_t type, u8 guest_reg);
+// check two operands with a condition and return 0 or 1
 int ir_emit_check_condition(ir_condition_t condition, int operand1, int operand2);
+// set the block exit pc to one of two values based on a condition
 int ir_emit_set_block_exit_pc(int condition, int pc_if_true, int pc_if_false);
+// fall back to the interpreter for the next num_instructions instructions
 int ir_emit_interpreter_fallback(int num_instructions);
+
+
+// Emit an s16 constant to the IR, optionally associating it with a guest register.
+INLINE int ir_emit_set_constant_s16(s16 value, u8 guest_reg) {
+    ir_set_constant_t constant;
+    constant.type = VALUE_TYPE_S16;
+    constant.value_s16 = value;
+    return ir_emit_set_constant(constant, guest_reg);
+}
+
+// Emit a u16 constant to the IR, optionally associating it with a guest register.
+INLINE int ir_emit_set_constant_u16(u16 value, u8 guest_reg) {
+    ir_set_constant_t constant;
+    constant.type = VALUE_TYPE_U16;
+    constant.value_u16 = value;
+    return ir_emit_set_constant(constant, guest_reg);
+}
+
+// Emit a u64 constant to the IR, optionally associating it with a guest register.
+INLINE int ir_emit_set_constant_64(u64 value, u8 guest_reg) {
+    ir_set_constant_t constant;
+    constant.type = VALUE_TYPE_64;
+    constant.value_64 = value;
+    return ir_emit_set_constant(constant, guest_reg);
+}
 
 #endif //N64_IR_CONTEXT_H
