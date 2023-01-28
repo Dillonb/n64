@@ -42,10 +42,14 @@ const char* cond_to_str(ir_condition_t condition) {
 }
 
 void ir_instr_to_string(int index, char* buf, size_t buf_size) {
-    int written = snprintf(buf, buf_size, "v%d = ", index);
-    buf += written;
-    buf_size -= written;
     ir_instruction_t instr = ir_context.ir_cache[index];
+
+    if (instr.type != IR_STORE && instr.type != IR_SET_BLOCK_EXIT_PC) {
+        int written = snprintf(buf, buf_size, "v%d = ", index);
+        buf += written;
+        buf_size -= written;
+    }
+
     switch (instr.type) {
         case IR_UNKNOWN:
             snprintf(buf, buf_size, "<UNKNOWN OPERATION>");
