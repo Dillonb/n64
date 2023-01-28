@@ -39,7 +39,8 @@ add_library(r4300i
 
         dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
         dynarec/v2/ir_context.c dynarec/v2/ir_context.h
-        dynarec/v2/ir_emitter.c dynarec/v2/ir_emitter.h)
+        dynarec/v2/ir_emitter.c dynarec/v2/ir_emitter.h
+        dynarec/v2/ir_optimizer.c dynarec/v2/ir_optimizer.h)
 
 
 add_library(rsp

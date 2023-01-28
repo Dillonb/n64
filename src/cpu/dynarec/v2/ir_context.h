@@ -31,7 +31,7 @@ typedef struct ir_set_constant {
 
 typedef struct ir_instruction {
     enum {
-        IR_UNKNOWN,
+        IR_NOP,
         IR_SET_CONSTANT,
         IR_OR,
         IR_AND,

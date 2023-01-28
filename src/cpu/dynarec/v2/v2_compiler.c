@@ -5,6 +5,7 @@
 #include "instruction_category.h"
 #include "ir_emitter.h"
 #include "ir_context.h"
+#include "ir_optimizer.h"
 
 #define N64_LOG_COMPILATIONS
 
@@ -103,6 +104,16 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
     }
 }
 
+void print_ir_block() {
+    for (int i = 0; i < ir_context.ir_cache_index; i++) {
+        if (ir_context.ir_cache[i].type != IR_NOP) {
+            static char buf[100];
+            ir_instr_to_string(i, buf, 100);
+            printf("%s\n", buf);
+        }
+    }
+}
+
 void v2_compile_new_block(
         n64_dynarec_block_t* block,
         bool* code_mask,
@@ -117,15 +128,14 @@ void v2_compile_new_block(
         u64 instr_virtual_address = virtual_address + (i << 2);
         u32 instr_physical_address = physical_address + (i << 2);
         emit_instruction_ir(temp_code[i].instr, instr_virtual_address, instr_physical_address);
-
-        // TODO when we can compile full blocks, move this to a separate for loop
-        while (last_ir_index < ir_context.ir_cache_index) {
-            static char buf[100];
-            ir_instr_to_string(last_ir_index, buf, 100);
-            printf("%s\n", buf);
-            last_ir_index++;
-        }
     }
+    print_ir_block();
+    printf("Optimizing IR: constant propagation\n");
+    ir_optimize_constant_propagation();
+    print_ir_block();
+    printf("Optimizing IR: eliminating dead code\n");
+    ir_optimize_eliminate_dead_code();
+    print_ir_block();
     logfatal("Emitted IR for a block. It's time to optimize/emit");
 }
 
