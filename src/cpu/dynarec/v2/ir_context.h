@@ -35,6 +35,7 @@ typedef struct ir_instruction {
     struct ir_instruction* prev;
     int index;
     bool dead_code;
+    int allocated_host_register;
 
     enum {
         IR_NOP,

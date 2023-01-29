@@ -2,6 +2,7 @@
 #include <string.h>
 #include "ir_optimizer.h"
 #include "ir_context.h"
+#include "target_platform.h"
 
 INLINE bool is_constant(ir_instruction_t* instr) {
     return instr->type == IR_SET_CONSTANT;
@@ -214,6 +215,31 @@ void ir_optimize_shrink_constants() {
     }
 }
 
+int first_available_register(bool* available_registers, int num_registers) {
+    for (int i = 0; i < num_registers; i++) {
+        if (available_registers[i]) {
+            available_registers[i] = false;
+            return i;
+        }
+    }
+    logfatal("No more registers!");
+}
+
 void ir_allocate_registers() {
-    logfatal("Allocating registers");
+    bool available_registers[get_num_registers()];
+    for (int i = 0; i < get_num_registers(); i++) {
+        available_registers[i] = false;
+    }
+    for (int i = 0; i < get_num_preserved_registers(); i++) {
+        available_registers[get_preserved_registers()[i]] = true;
+    }
+
+    ir_instruction_t* instr = ir_context.ir_cache_head;
+    while (instr != NULL) {
+        if ((instr->type == IR_SET_CONSTANT && !is_valid_immediate(instr->set_constant.type)) || instr->type != IR_SET_CONSTANT) {
+            instr->allocated_host_register = first_available_register(available_registers, get_num_registers());
+            printf("v%d allocated to host register r%d\n", instr->index, instr->allocated_host_register);
+        }
+        instr = instr->next;
+    }
 }

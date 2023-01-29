@@ -137,7 +137,8 @@ void v2_compile_new_block(
     ir_optimize_eliminate_dead_code();
     ir_optimize_shrink_constants();
     print_ir_block();
-    logfatal("Emitted IR for a block. It's time to optimize/emit");
+    ir_allocate_registers();
+    logfatal("Emitted IR and allocated registers for a block. It's time to emit");
 }
 
 void v2_compiler_init() {

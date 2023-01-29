@@ -16,4 +16,8 @@ int get_num_scratch_registers();
 // Gets whether a given value type is a valid immediate on the target platform
 bool is_valid_immediate(ir_value_type_t value_type);
 
+INLINE int get_num_registers() {
+    return get_num_preserved_registers() + get_num_scratch_registers();
+}
+
 #endif //N64_TARGET_PLATFORM_H

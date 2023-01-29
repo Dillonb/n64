@@ -121,6 +121,7 @@ ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, u8 guest_r
     allocation->prev = ir_context.ir_cache_tail;
     allocation->index = index;
     allocation->dead_code = true; // Will be marked false at the dead code elimination stage
+    allocation->allocated_host_register = -1;
 
     ir_context.ir_cache_tail->next = allocation;
     ir_context.ir_cache_tail = allocation;
