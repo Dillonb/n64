@@ -23,3 +23,16 @@ const int* get_scratch_registers() {
 int get_num_scratch_registers() {
     return 9;
 }
+
+bool is_valid_immediate(ir_value_type_t value_type) {
+    switch (value_type) {
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+        case VALUE_TYPE_S32:
+        case VALUE_TYPE_U32:
+            return true;
+
+        case VALUE_TYPE_64:
+            return false;
+    }
+}
