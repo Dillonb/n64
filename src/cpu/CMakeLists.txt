@@ -18,9 +18,9 @@ if (WIN32)
     set(DYNASM_EXTRA_FLAGS -D WIN)
 endif()
 
-add_custom_command(OUTPUT asm_emitter.c
-        COMMAND $<TARGET_FILE:minilua> ARGS dynasm/dynasm.lua -D X64 ${DYNASM_EXTRA_FLAGS} -o asm_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/v1/asm_emitter.dasc
-        MAIN_DEPENDENCY dynarec/v1/asm_emitter.dasc
+add_custom_command(OUTPUT v1_emitter.c
+        COMMAND $<TARGET_FILE:minilua> ARGS dynasm/dynasm.lua -D X64 ${DYNASM_EXTRA_FLAGS} -o v1_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/v1/v1_emitter.dasc
+        MAIN_DEPENDENCY dynarec/v1/v1_emitter.dasc
         DEPENDS minilua)
 
 add_library(r4300i
@@ -35,7 +35,7 @@ add_library(r4300i
         dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h
 
         dynarec/v1/v1_compiler.c dynarec/v1/v1_compiler.h
-        asm_emitter.c dynarec/v1/asm_emitter.h
+        v1_emitter.c dynarec/v1/v1_emitter.h
 
         dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
         dynarec/v2/ir_context.c dynarec/v2/ir_context.h

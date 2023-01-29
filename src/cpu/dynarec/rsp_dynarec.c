@@ -1,7 +1,7 @@
 #include <log.h>
 #include <rsp.h>
 #include "rsp_dynarec.h"
-#include "v1/asm_emitter.h"
+#include "v1/v1_emitter.h"
 #include "dynarec_memory_management.h"
 
 void* rsp_link_and_encode(dasm_State** d) {

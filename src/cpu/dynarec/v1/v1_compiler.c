@@ -2,7 +2,7 @@
 #include <dynarec/dynarec_memory_management.h>
 #include <mem/n64bus.h>
 #include "v1_compiler.h"
-#include "asm_emitter.h"
+#include "v1_emitter.h"
 
 static void* link_and_encode(dasm_State** d) {
     size_t code_size;
