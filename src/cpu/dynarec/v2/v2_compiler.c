@@ -122,7 +122,6 @@ void v2_compile_new_block(
 
     fill_temp_code(virtual_address, physical_address, code_mask);
     ir_context_reset();
-    int last_ir_index = 0;
     printf("Translating to IR:\n");
     for (int i = 0; i < temp_code_len; i++) {
         u64 instr_virtual_address = virtual_address + (i << 2);
