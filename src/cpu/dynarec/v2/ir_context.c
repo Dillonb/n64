@@ -106,8 +106,8 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 }
 
 void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
-    printf("Updating guest reg r%u to value %016lX\n", guest_reg, (uintptr_t)value);
     if (guest_reg < 32) {
+        printf("Updating guest reg r%u to value %016lX\n", guest_reg, (uintptr_t)value);
         ir_context.guest_gpr_to_value[guest_reg] = value;
     }
 }
