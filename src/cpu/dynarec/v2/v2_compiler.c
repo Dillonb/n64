@@ -105,12 +105,13 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
 }
 
 void print_ir_block() {
-    for (int i = 0; i < ir_context.ir_cache_index; i++) {
-        if (ir_context.ir_cache[i].type != IR_NOP) {
-            static char buf[100];
-            ir_instr_to_string(i, buf, 100);
-            printf("%s\n", buf);
-        }
+    ir_instruction_t* instr = ir_context.ir_cache_head;
+    while (instr != NULL) {
+        static char buf[100];
+        ir_instr_to_string(instr, buf, 100);
+        printf("%s\n", buf);
+
+        instr = instr->next;
     }
 }
 

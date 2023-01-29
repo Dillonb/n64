@@ -40,8 +40,16 @@ add_library(r4300i
         dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
         dynarec/v2/ir_context.c dynarec/v2/ir_context.h
         dynarec/v2/ir_emitter.c dynarec/v2/ir_emitter.h
-        dynarec/v2/ir_optimizer.c dynarec/v2/ir_optimizer.h)
+        dynarec/v2/ir_optimizer.c dynarec/v2/ir_optimizer.h
+        dynarec/v2/target_platform.h)
 
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    target_sources(r4300i PRIVATE dynarec/v2/x86_64_target_platform.c)
+else()
+    message(FATAL_ERROR "Unsupported target CPU architecture ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+message("System processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
 add_library(rsp
         n64_rsp_bus.h

@@ -7,15 +7,15 @@
 
 #define IR_UNIMPLEMENTED(opc) logfatal("Unimplemented IR translation for instruction " #opc)
 
-int get_memory_access_address(mips_instruction_t instruction) {
-    int base = ir_emit_load_guest_reg(instruction.i.rs);
-    int i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+ir_instruction_t* get_memory_access_address(mips_instruction_t instruction) {
+    ir_instruction_t* base = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     return ir_emit_add(base, i_offset, NO_GUEST_REG);
 }
 
-void ir_emit_conditional_branch(int condition, s16 offset, u64 virtual_address) {
-    int pc_if_false = ir_emit_set_constant_64(virtual_address + 8, NO_GUEST_REG); // Account for instruction in delay slot
-    int pc_if_true = ir_emit_set_constant_64(virtual_address + 4 + (s64)offset * 4, NO_GUEST_REG);
+void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 virtual_address) {
+    ir_instruction_t* pc_if_false = ir_emit_set_constant_64(virtual_address + 8, NO_GUEST_REG); // Account for instruction in delay slot
+    ir_instruction_t* pc_if_true = ir_emit_set_constant_64(virtual_address + 4 + (s64)offset * 4, NO_GUEST_REG);
     ir_emit_set_block_exit_pc(condition, pc_if_true, pc_if_false);
 }
 
@@ -27,22 +27,22 @@ IR_EMITTER(lui) {
 }
 
 IR_EMITTER(ori) {
-    int i_operand = ir_emit_load_guest_reg(instruction.i.rs);
-    int i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
+    ir_instruction_t* i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
 
     ir_emit_or(i_operand, i_operand2, instruction.i.rt);
 }
 
 IR_EMITTER(andi) {
-    int i_operand = ir_emit_load_guest_reg(instruction.i.rs);
-    int i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
+    ir_instruction_t* i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
 
     ir_emit_and(i_operand, i_operand2, instruction.i.rt);
 }
 
 IR_EMITTER(sw) {
-    int address = get_memory_access_address(instruction);
-    int value = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* address = get_memory_access_address(instruction);
+    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U32, address, value);
 }
 
@@ -51,14 +51,14 @@ IR_EMITTER(lw) {
 }
 
 IR_EMITTER(bne) {
-    int rs = ir_emit_load_guest_reg(instruction.i.rs);
-    int rt = ir_emit_load_guest_reg(instruction.i.rt);
-    int cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt);
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(mtc0) {
-    int ssa_index = ir_context.guest_gpr_to_value[instruction.r.rt];
+    ir_instruction_t* value = ir_context.guest_gpr_to_value[instruction.r.rt];
     switch (instruction.r.rd) {
         case R4300I_CP0_REG_INDEX: logfatal("emit MTC0 R4300I_CP0_REG_INDEX");
         case R4300I_CP0_REG_RANDOM: logfatal("emit MTC0 R4300I_CP0_REG_RANDOM");

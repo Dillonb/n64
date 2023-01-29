@@ -4,5 +4,6 @@
 void ir_optimize_constant_propagation();
 void ir_optimize_eliminate_dead_code();
 void ir_optimize_shrink_constants();
+void ir_allocate_registers();
 
 #endif //N64_IR_OPTIMIZER_H

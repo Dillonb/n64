@@ -8,7 +8,7 @@ INLINE bool is_constant(ir_instruction_t* instr) {
 }
 
 INLINE bool binop_constant(ir_instruction_t* instr) {
-    return is_constant(&ir_context.ir_cache[instr->bin_op.operand1]) && is_constant(&ir_context.ir_cache[instr->bin_op.operand2]);
+    return is_constant(instr->bin_op.operand1) && is_constant(instr->bin_op.operand2);
 }
 
 u64 const_to_u64(ir_instruction_t* constant) {
@@ -18,19 +18,17 @@ u64 const_to_u64(ir_instruction_t* constant) {
         case VALUE_TYPE_U16:
             return constant->set_constant.value_u16;
         case VALUE_TYPE_S32:
-            logfatal("Unimplemented");
-            //return (s64)constant->set_constant.value_s32;
+            return (s64)constant->set_constant.value_s32;
         case VALUE_TYPE_U32:
-            logfatal("Unimplemented");
-            //return constant->set_constant.value_u32;
+            return constant->set_constant.value_u32;
         case VALUE_TYPE_64:
             return constant->set_constant.value_64;
     }
 }
 
 void ir_optimize_constant_propagation() {
-    for (int i = 0; i < ir_context.ir_cache_index; i++) {
-        ir_instruction_t* instr = &ir_context.ir_cache[i];
+    ir_instruction_t* instr = ir_context.ir_cache_head;
+    while (instr != NULL) {
 
         switch (instr->type) {
             // Unable to be optimized further
@@ -43,8 +41,8 @@ void ir_optimize_constant_propagation() {
 
             case IR_OR:
                 if (binop_constant(instr)) {
-                    u64 operand1 = const_to_u64(&ir_context.ir_cache[instr->bin_op.operand1]);
-                    u64 operand2 = const_to_u64(&ir_context.ir_cache[instr->bin_op.operand2]);
+                    u64 operand1 = const_to_u64(instr->bin_op.operand1);
+                    u64 operand2 = const_to_u64(instr->bin_op.operand2);
 
                     instr->type = IR_SET_CONSTANT;
                     instr->set_constant.type = VALUE_TYPE_64;
@@ -54,8 +52,8 @@ void ir_optimize_constant_propagation() {
 
             case IR_AND:
                 if (binop_constant(instr)) {
-                    u64 operand1 = const_to_u64(&ir_context.ir_cache[instr->bin_op.operand1]);
-                    u64 operand2 = const_to_u64(&ir_context.ir_cache[instr->bin_op.operand2]);
+                    u64 operand1 = const_to_u64(instr->bin_op.operand1);
+                    u64 operand2 = const_to_u64(instr->bin_op.operand2);
 
                     instr->type = IR_SET_CONSTANT;
                     instr->set_constant.type = VALUE_TYPE_64;
@@ -66,8 +64,8 @@ void ir_optimize_constant_propagation() {
 
             case IR_ADD:
                 if (binop_constant(instr)) {
-                    u64 operand1 = const_to_u64(&ir_context.ir_cache[instr->bin_op.operand1]);
-                    u64 operand2 = const_to_u64(&ir_context.ir_cache[instr->bin_op.operand2]);
+                    u64 operand1 = const_to_u64(instr->bin_op.operand1);
+                    u64 operand2 = const_to_u64(instr->bin_op.operand2);
 
                     instr->type = IR_SET_CONSTANT;
                     instr->set_constant.type = VALUE_TYPE_64;
@@ -76,8 +74,8 @@ void ir_optimize_constant_propagation() {
                 break;
 
             case IR_MASK_AND_CAST:
-                if (is_constant(&ir_context.ir_cache[instr->mask_and_cast.operand])) {
-                    u64 value = const_to_u64(&ir_context.ir_cache[instr->mask_and_cast.operand]);
+                if (is_constant(instr->mask_and_cast.operand)) {
+                    u64 value = const_to_u64(instr->mask_and_cast.operand);
                     u64 result;
                     instr->type = IR_SET_CONSTANT;
                     switch (instr->mask_and_cast.type) {
@@ -105,60 +103,59 @@ void ir_optimize_constant_propagation() {
             case IR_CHECK_CONDITION:
                 break;
         }
+
+        instr = instr->next;
     }
 }
 
 void ir_optimize_eliminate_dead_code() {
-    static bool ir_result_used[IR_CACHE_SIZE];
-    memset(ir_result_used, 0, sizeof(bool) * IR_CACHE_SIZE);
-
     for (int i = 1; i < 32; i++) {
-        int ssa_index = ir_context.guest_gpr_to_value[i];
-        if (ssa_index >= 0) {
-            printf("v%d is used for the value of r%d after the block!\n", ssa_index, i);
-            ir_result_used[ssa_index] = true;
+        ir_instruction_t* instr = ir_context.guest_gpr_to_value[i];
+        if (instr) {
+            instr->dead_code = false;
+            printf("v%d is used for the value of r%d after the block!\n", instr->index, i);
         }
     }
 
-    for (int i = ir_context.ir_cache_index - 1; i >= 0; i--) {
-        ir_instruction_t* instr = &ir_context.ir_cache[i];
-
-        switch (ir_context.ir_cache[i].type) {
+    ir_instruction_t* instr = ir_context.ir_cache_tail;
+    // Loop through instructions backwards
+    while (instr != NULL) {
+        switch (instr->type) {
             // Never eliminated
             case IR_STORE:
-                ir_result_used[instr->store.address] = true;
-                ir_result_used[instr->store.value] = true;
-                ir_result_used[i] = true;
+                instr->store.address->dead_code = false;
+                instr->store.value->dead_code = false;
+                instr->dead_code = false;
                 break;
             case IR_LOAD:
-                ir_result_used[instr->load.address] = true;
-                ir_result_used[i] = true;
+                instr->load.address->dead_code = false;
+                instr->dead_code = false;
                 break;
             case IR_SET_BLOCK_EXIT_PC:
-                ir_result_used[instr->set_exit_pc.condition] = true;
-                ir_result_used[instr->set_exit_pc.pc_if_true] = true;
-                ir_result_used[instr->set_exit_pc.pc_if_false] = true;
-                ir_result_used[i] = true;
+                instr->set_exit_pc.condition->dead_code = false;
+                instr->set_exit_pc.pc_if_true->dead_code = false;
+                instr->set_exit_pc.pc_if_false->dead_code = false;
+                instr->dead_code = false;
                 break;
 
             // Bin ops
             case IR_OR:
             case IR_AND:
             case IR_ADD:
-                if (ir_result_used[i]) {
-                    ir_result_used[instr->bin_op.operand1] = true;
-                    ir_result_used[instr->bin_op.operand2] = true;
+                if (!instr->dead_code) {
+                    instr->bin_op.operand1->dead_code = false;
+                    instr->bin_op.operand2->dead_code = false;
                 }
                 break;
             case IR_MASK_AND_CAST:
-                if (ir_result_used[i]) {
-                    ir_result_used[instr->mask_and_cast.operand] = true;
+                if (!instr->dead_code) {
+                    instr->mask_and_cast.operand->dead_code = false;
                 }
                 break;
             case IR_CHECK_CONDITION:
-                if (ir_result_used[i]) {
-                    ir_result_used[instr->check_condition.operand1] = true;
-                    ir_result_used[instr->check_condition.operand2] = true;
+                if (!instr->dead_code) {
+                    instr->check_condition.operand1->dead_code = false;
+                    instr->check_condition.operand2->dead_code = false;
                 }
                 break;
 
@@ -168,18 +165,36 @@ void ir_optimize_eliminate_dead_code() {
             case IR_SET_CONSTANT:
                 break;
         }
+
+        instr = instr->prev;
     }
 
-    for (int i = 0; i < ir_context.ir_cache_index; i++) {
-        if (!ir_result_used[i]) {
-            ir_context.ir_cache[i].type = IR_NOP;
+    instr = ir_context.ir_cache_head;
+
+    while (instr != NULL) {
+        if (instr->dead_code) {
+            printf("Can eliminate v%d\n", instr->index);
+            ir_instruction_t* prev = instr->prev;
+            ir_instruction_t* next = instr->next;
+
+            if (!prev) {
+                logfatal("Eliminating head");
+            }
+
+            if (!next) {
+                logfatal("Eliminating tail");
+            }
+
+            next->prev = prev;
+            prev->next = next;
         }
+        instr = instr->next;
     }
 }
 
 void ir_optimize_shrink_constants() {
-    for (int i = 0; i < ir_context.ir_cache_index; i++) {
-        ir_instruction_t* instr = &ir_context.ir_cache[i];
+    ir_instruction_t* instr = ir_context.ir_cache_head;
+    while (instr != NULL) {
         if (instr->type == IR_SET_CONSTANT && instr->set_constant.type == VALUE_TYPE_64) {
             u64 val = instr->set_constant.value_64;
             if (val == (s64)(s16)val) {
@@ -194,5 +209,11 @@ void ir_optimize_shrink_constants() {
                 instr->set_constant.value_s32 = val & 0xFFFFFFFF;
             }
         }
+
+        instr = instr->next;
     }
+}
+
+void ir_allocate_registers() {
+    logfatal("Allocating registers");
 }

@@ -30,6 +30,12 @@ typedef struct ir_set_constant {
 } ir_set_constant_t;
 
 typedef struct ir_instruction {
+    // Metadata
+    struct ir_instruction* next;
+    struct ir_instruction* prev;
+    int index;
+    bool dead_code;
+
     enum {
         IR_NOP,
         IR_SET_CONSTANT,
@@ -45,77 +51,79 @@ typedef struct ir_instruction {
     union {
         ir_set_constant_t set_constant;
         struct {
-            int operand1;
-            int operand2;
+            struct ir_instruction* operand1;
+            struct ir_instruction* operand2;
         } bin_op;
         struct {
             ir_value_type_t type;
-            int address;
-            int value;
+            struct ir_instruction* address;
+            struct ir_instruction* value;
         } store;
         struct {
             ir_value_type_t type;
-            int address;
+            struct ir_instruction* address;
         } load;
         struct {
             ir_value_type_t type;
-            int operand;
+            struct ir_instruction* operand;
         } mask_and_cast;
         struct {
-            int condition;
-            int pc_if_true;
-            int pc_if_false;
+            struct ir_instruction* condition;
+            struct ir_instruction* pc_if_true;
+            struct ir_instruction* pc_if_false;
         } set_exit_pc;
 
         struct {
             ir_condition_t condition;
-            int operand1;
-            int operand2;
+            struct ir_instruction* operand1;
+            struct ir_instruction* operand2;
         } check_condition;
     };
 } ir_instruction_t;
 
 typedef struct ir_context {
     // Maps a guest register to the SSA value currently in it, as of the current context
-    int guest_gpr_to_value[32];
+    ir_instruction_t* guest_gpr_to_value[32];
 
     ir_instruction_t ir_cache[IR_CACHE_SIZE];
+    ir_instruction_t* ir_cache_head;
+    ir_instruction_t* ir_cache_tail;
     int ir_cache_index;
 } ir_context_t;
 
 extern ir_context_t ir_context;
 
 void ir_context_reset();
-void ir_instr_to_string(int index, char* buf, size_t buf_size);
+void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size);
 
 #define NO_GUEST_REG 0xFF
 
 // Emit a constant to the IR, optionally associating it with a guest register.
-int ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
+ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
 // Load a guest register, or return a reference to it if it's already loaded.
-int ir_emit_load_guest_reg(u8 guest_reg);
+ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg);
 // OR two values together.
-int ir_emit_or(int operand, int operand2, u8 guest_reg);
+ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // AND two values together.
-int ir_emit_and(int operand, int operand2, u8 guest_reg);
+ir_instruction_t* ir_emit_and(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // ADD two values together.
-int ir_emit_add(int operand, int operand2, u8 guest_reg);
+ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // STORE a typed value into memory at an address
-int ir_emit_store(ir_value_type_t type, int address, int value);
+ir_instruction_t* ir_emit_store(ir_value_type_t type, ir_instruction_t* address, ir_instruction_t* value);
 // LOAD a typed value a register from an address
-int ir_emit_load(ir_value_type_t type, int address, u8 guest_reg);
+ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, u8 guest_reg);
 // mask and cast a value to a different type.
-int ir_emit_mask_and_cast(int operand, ir_value_type_t type, u8 guest_reg);
+ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type_t type, u8 guest_reg);
 // check two operands with a condition and return 0 or 1
-int ir_emit_check_condition(ir_condition_t condition, int operand1, int operand2);
+ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2);
 // set the block exit pc to one of two values based on a condition
-int ir_emit_set_block_exit_pc(int condition, int pc_if_true, int pc_if_false);
+ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
 // fall back to the interpreter for the next num_instructions instructions
-int ir_emit_interpreter_fallback(int num_instructions);
+ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.
-INLINE int ir_emit_set_constant_s16(s16 value, u8 guest_reg) {
+INLINE ir_instruction_t* ir_emit_set_constant_s16(s16 value, u8 guest_reg) {
     ir_set_constant_t constant;
     constant.type = VALUE_TYPE_S16;
     constant.value_s16 = value;
@@ -123,7 +131,7 @@ INLINE int ir_emit_set_constant_s16(s16 value, u8 guest_reg) {
 }
 
 // Emit a u16 constant to the IR, optionally associating it with a guest register.
-INLINE int ir_emit_set_constant_u16(u16 value, u8 guest_reg) {
+INLINE ir_instruction_t* ir_emit_set_constant_u16(u16 value, u8 guest_reg) {
     ir_set_constant_t constant;
     constant.type = VALUE_TYPE_U16;
     constant.value_u16 = value;
@@ -131,7 +139,7 @@ INLINE int ir_emit_set_constant_u16(u16 value, u8 guest_reg) {
 }
 
 // Emit a u64 constant to the IR, optionally associating it with a guest register.
-INLINE int ir_emit_set_constant_64(u64 value, u8 guest_reg) {
+INLINE ir_instruction_t* ir_emit_set_constant_64(u64 value, u8 guest_reg) {
     ir_set_constant_t constant;
     constant.type = VALUE_TYPE_64;
     constant.value_64 = value;
