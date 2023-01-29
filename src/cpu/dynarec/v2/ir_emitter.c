@@ -10,7 +10,8 @@
 ir_instruction_t* get_memory_access_address(mips_instruction_t instruction) {
     ir_instruction_t* base = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
-    return ir_emit_add(base, i_offset, NO_GUEST_REG);
+    ir_instruction_t* virtual = ir_emit_add(base, i_offset, NO_GUEST_REG);
+    return ir_emit_tlb_lookup(virtual, NO_GUEST_REG);
 }
 
 void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 virtual_address) {

@@ -102,6 +102,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_SET_BLOCK_EXIT_PC:
             snprintf(buf, buf_size, "set_block_exit(v%d, if_true = v%d, if_false = v%d)", instr->set_exit_pc.condition->index, instr->set_exit_pc.pc_if_true->index, instr->set_exit_pc.pc_if_false->index);
             break;
+        case IR_TLB_LOOKUP:
+            snprintf(buf, buf_size, "tlb_lookup(v%d)", instr->tlb_lookup.virtual_address->index);
+            break;
     }
 }
 
@@ -250,4 +253,11 @@ ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* condition, ir_inst
 
 ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions) {
     logfatal("Unimplemented: Fall back to interpreter for %d instructions", num_instructions);
+}
+
+ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_TLB_LOOKUP;
+    instruction.tlb_lookup.virtual_address = virtual_address;
+    return append_ir_instruction(instruction, guest_reg);
 }

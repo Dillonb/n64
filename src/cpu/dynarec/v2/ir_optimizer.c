@@ -1,16 +1,8 @@
 #include <log.h>
 #include <string.h>
+#include <mem/n64bus.h>
 #include "ir_optimizer.h"
-#include "ir_context.h"
 #include "target_platform.h"
-
-INLINE bool is_constant(ir_instruction_t* instr) {
-    return instr->type == IR_SET_CONSTANT;
-}
-
-INLINE bool binop_constant(ir_instruction_t* instr) {
-    return is_constant(instr->bin_op.operand1) && is_constant(instr->bin_op.operand2);
-}
 
 u64 const_to_u64(ir_instruction_t* constant) {
     switch (constant->set_constant.type) {
@@ -101,7 +93,19 @@ void ir_optimize_constant_propagation() {
                 }
                 break;
 
-            case IR_CHECK_CONDITION:
+            case IR_CHECK_CONDITION: // TODO
+                break;
+
+            case IR_TLB_LOOKUP:
+                if (is_constant(instr->tlb_lookup.virtual_address)) {
+                    u64 vaddr = const_to_u64(instr->tlb_lookup.virtual_address);
+                    if (!is_tlb(vaddr)) {
+                        // If the address is direct mapped, we can translate it at compile time
+                        instr->type = IR_SET_CONSTANT;
+                        instr->set_constant.type = VALUE_TYPE_U32;
+                        instr->set_constant.value_u32 = resolve_virtual_address_or_die(vaddr, -1);
+                    }
+                }
                 break;
         }
 
@@ -164,6 +168,11 @@ void ir_optimize_eliminate_dead_code() {
             case IR_NOP:
                 break;
             case IR_SET_CONSTANT:
+                break;
+            case IR_TLB_LOOKUP:
+                if (!instr->dead_code) {
+                    instr->tlb_lookup.virtual_address->dead_code = false;
+                }
                 break;
         }
 
@@ -236,6 +245,7 @@ void ir_allocate_registers() {
 
     ir_instruction_t* instr = ir_context.ir_cache_head;
     while (instr != NULL) {
+        instr->allocated_host_register = -1;
         if ((instr->type == IR_SET_CONSTANT && !is_valid_immediate(instr->set_constant.type)) || instr->type != IR_SET_CONSTANT) {
             instr->allocated_host_register = first_available_register(available_registers, get_num_registers());
             printf("v%d allocated to host register r%d\n", instr->index, instr->allocated_host_register);

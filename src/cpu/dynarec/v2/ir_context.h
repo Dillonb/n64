@@ -47,7 +47,8 @@ typedef struct ir_instruction {
         IR_LOAD,
         IR_MASK_AND_CAST,
         IR_CHECK_CONDITION,
-        IR_SET_BLOCK_EXIT_PC
+        IR_SET_BLOCK_EXIT_PC,
+        IR_TLB_LOOKUP
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -79,6 +80,9 @@ typedef struct ir_instruction {
             struct ir_instruction* operand1;
             struct ir_instruction* operand2;
         } check_condition;
+        struct {
+            struct ir_instruction* virtual_address;
+        } tlb_lookup;
     };
 } ir_instruction_t;
 
@@ -121,6 +125,8 @@ ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instructi
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
 // fall back to the interpreter for the next num_instructions instructions
 ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
+// lookup a memory address in the TLB
+ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.
