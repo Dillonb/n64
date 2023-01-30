@@ -1,11 +1,15 @@
+#include "v2_compiler.h"
+
 #include <mem/n64bus.h>
 #include <disassemble.h>
-#include "v2_compiler.h"
+#include <dynarec/dynarec_memory_management.h>
+#include "v2_emitter.h"
 
 #include "instruction_category.h"
 #include "ir_emitter.h"
 #include "ir_context.h"
 #include "ir_optimizer.h"
+#include "target_platform.h"
 
 #define N64_LOG_COMPILATIONS
 
@@ -114,6 +118,147 @@ void print_ir_block() {
         instr = instr->next;
     }
 }
+static void* link_and_encode(dasm_State** d) {
+    size_t code_size;
+    dasm_link(d, &code_size);
+    void* buf = dynarec_bumpalloc(code_size);
+    dasm_encode(d, buf);
+
+#ifdef N64_LOG_COMPILATIONS
+    printf("Generated %ld bytes of code\n", code_size);
+    char* disassembly = malloc(4096);
+    disassemble_x86_64((uintptr_t)buf, buf, code_size, disassembly, 4096);
+    printf("%s", disassembly);
+/*
+    FILE* f = fopen("compiled.bin", "wb");
+    fwrite(buf, 1, code_size, f);
+    fclose(f);
+    */
+#endif
+
+    return buf;
+}
+
+void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
+    logfatal("Emitting IR_OR");
+}
+
+bool is_memory(u64 address) {
+    return false; // TODO
+}
+
+void val_to_func_arg(dasm_State** Dst, ir_instruction_t* val, int arg_index) {
+    if (arg_index >= get_num_func_arg_registers()) {
+        logfatal("Too many args (%d) passed to fit into registers", arg_index + 1);
+    }
+    if (is_constant(val) && is_valid_immediate(val->set_constant.type)) {
+        host_emit_mov_reg_imm(Dst, get_func_arg_registers()[arg_index], val->set_constant);
+    } else {
+        logfatal("Non constant func arg");
+    }
+}
+
+void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
+    // If the address is known and is memory, it can be compiled as a direct store to memory
+    if (is_constant(instr->store.address) && is_memory(const_to_u64(instr->store.address))) {
+        logfatal("Emitting IR_STORE directly to memory");
+    } else {
+        switch (instr->store.type) {
+            case VALUE_TYPE_S16:
+            case VALUE_TYPE_U16:
+                logfatal("Store 16 bit");
+                break;
+            case VALUE_TYPE_S32:
+            case VALUE_TYPE_U32:
+                val_to_func_arg(Dst, instr->store.address, 0);
+                val_to_func_arg(Dst, instr->store.value, 1);
+                host_emit_call(Dst, (uintptr_t)n64_write_physical_word);
+                break;
+            case VALUE_TYPE_64:
+                logfatal("Store 64 bit");
+                break;
+        }
+    }
+}
+
+void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
+    // If the address is known and is memory, it can be compiled as a direct load from memory
+    if (is_constant(instr->load.address) && is_memory(const_to_u64(instr->load.address))) {
+        logfatal("Emitting IR_LOAD directly from memory");
+    } else {
+        switch (instr->load.type) {
+            case VALUE_TYPE_S16:
+            case VALUE_TYPE_U16:
+                logfatal("Load 16 bit");
+                break;
+            case VALUE_TYPE_S32:
+            case VALUE_TYPE_U32:
+                val_to_func_arg(Dst, instr->load.address, 0);
+                host_emit_call(Dst, (uintptr_t)n64_read_physical_word);
+                host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg());
+                break;
+            case VALUE_TYPE_64:
+                logfatal("Load 64 bit");
+                break;
+        }
+    }
+}
+
+void v2_emit_block(n64_dynarec_block_t* block) {
+    static dasm_State* d;
+    d = v2_block_header();
+    dasm_State** Dst = &d;
+    ir_instruction_t* instr = ir_context.ir_cache_head;
+    while (instr) {
+        switch (instr->type) {
+            case IR_NOP: break;
+            case IR_SET_CONSTANT:
+                // Only load into a host register if it was determined by the allocator that we need to
+                // Otherwise, it can be used as an immediate when needed
+                if (instr->allocated_host_register >= 0) {
+                    logfatal("Emit set constant");
+                }
+                break;
+            case IR_OR:
+                compile_ir_or(Dst, instr);
+                break;
+            case IR_AND:
+                logfatal("Emitting IR_AND");
+                break;
+            case IR_ADD:
+                logfatal("Emitting IR_ADD");
+                break;
+            case IR_STORE:
+                compile_ir_store(Dst, instr);
+                break;
+            case IR_LOAD:
+                compile_ir_load(Dst, instr);
+                break;
+            case IR_MASK_AND_CAST:
+                logfatal("Emitting IR_MASK_AND_CAST");
+                break;
+            case IR_CHECK_CONDITION:
+                logfatal("Emitting IR_CHECK_CONDITION");
+                break;
+            case IR_SET_BLOCK_EXIT_PC:
+                logfatal("Emitting IR_SET_BLOCK_EXIT_PC");
+                break;
+            case IR_TLB_LOOKUP:
+                logfatal("Emitting IR_TLB_LOOKUP");
+                break;
+        }
+        instr = instr->next;
+    }
+    DONE_COMPILING:
+    // TODO: emit end block PC
+    v2_end_block(Dst, temp_code_len);
+    void* compiled = link_and_encode(&d);
+    dasm_free(&d);
+
+    block->run = compiled;
+
+    logfatal("TODO: emit end of block PC");
+}
 
 void v2_compile_new_block(
         n64_dynarec_block_t* block,
@@ -138,7 +283,9 @@ void v2_compile_new_block(
     ir_optimize_shrink_constants();
     print_ir_block();
     ir_allocate_registers();
-    logfatal("Emitted IR and allocated registers for a block. It's time to emit");
+    v2_emit_block(block);
+
+    logfatal("Done emitting block, save and execute");
 }
 
 void v2_compiler_init() {

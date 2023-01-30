@@ -161,7 +161,7 @@ COMPILER(mips_cp_c_lt_s);
 COMPILER(mips_cp_c_le_d);
 COMPILER(mips_cp_c_le_s);
 
-dasm_State* block_header();
+dasm_State* v1_block_header();
 void clear_branch_flag(dasm_State** Dst);
 void advance_pc(dasm_State** Dst);
 void advance_rsp_pc(dasm_State** Dst);

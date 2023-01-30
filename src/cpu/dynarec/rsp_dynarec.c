@@ -22,7 +22,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
     static dasm_State* d;
     static dasm_State** Dst;
 
-    d = block_header();
+    d = v1_block_header();
     Dst = &d;
 
     int block_length = 0;

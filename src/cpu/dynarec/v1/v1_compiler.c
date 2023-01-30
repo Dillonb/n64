@@ -143,7 +143,7 @@ bool branch_is_loop(mips_instruction_t instr, u32 block_length) {
 
 void v1_compile_new_block(n64_dynarec_block_t* block, bool* code_mask, u64 virtual_address, u32 physical_address) {
     static dasm_State* d;
-    d = block_header();
+    d = v1_block_header();
     dasm_State** Dst = &d;
 
     memset(guest_reg_loaded, 0, sizeof(guest_reg_loaded));

@@ -1,0 +1,138 @@
+#include <cpu/dynarec/v2/v2_emitter.h>
+#include <cpu/dynarec/v2/v2_compiler.h>
+#include <cpu/dynarec/dynarec_memory_management.h>
+#include <cpu/r4300i.h>
+
+#include <dynasm/dasm_proto.h>
+#ifndef N64_WIN
+#include <sys/mman.h>
+#endif
+
+||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
+#error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
+#endif
+
+|.if X64
+|.arch x64
+|.else
+|#error "Only x64 is supported"
+|.endif
+
+|.if X64
+  |.define cpuState, r12
+  |.define instrArg, r13
+  |.if WIN
+    |.define rArg1, rcx
+    |.define rArg2, rdx
+  |.else
+    |.define rArg1, rdi
+    |.define rArg2, rsi
+  |.endif
+  |.macro prepcall1, arg1
+    | mov rArg1, arg1
+  |.endmacro
+  |.macro prepcall2, arg1, arg2
+    | mov rArg1, arg1
+    | mov rArg2, arg2
+  |.endmacro
+  |.define postcall, .nop
+    // Called before our block
+    |.macro prologue
+      // Push callee-saved registers onto the stack so we don't trample them
+      //| push cpuState
+      //| push instrArg
+      //| sub rsp, 8 // Stack needs to be 16 byte aligned. Return address + the two regs above + this == 32 bytes.
+      // The CPU's state is passed in as argument 1
+      //| mov cpuState, rArg1
+    |.endmacro
+    // Called at the end of our block
+    |.macro epilogue
+      // Pop callee-saved registers off the stack and then return
+      //| add rsp, 8
+      //| pop instrArg
+      //| pop cpuState
+      | ret
+    |.endmacro
+|.endif // TODO ARM version?
+|.type cpu_state, r4300i_t, cpuState
+|.type rsp_state, rsp_t, cpuState
+
+dasm_State* v2_block_header() {
+    dasm_State* d;
+    unsigned npc = 8; // number of dynamic labels
+
+    |.section code
+    dasm_init(&d, DASM_MAXSECTION);
+
+    |.globals lbl_
+
+    void* labels[lbl__MAX];
+    dasm_setupglobal(&d, labels, lbl__MAX);
+
+    |.actionlist actions
+    dasm_setup(&d, actions);
+    dasm_growpc(&d, npc);
+
+    dasm_State** Dst = &d;
+    |.code
+    |->compiled_block:
+    | prologue
+    return d;
+}
+
+const char* reg_names[] = {
+        "rax",
+        "rcx",
+        "rdx",
+        "rbx",
+        "rsp",
+        "rbp",
+        "rsi",
+        "rdi",
+        "r8",
+        "r9",
+        "r10",
+        "r11",
+        "r12",
+        "r13",
+        "r14",
+        "r15",
+};
+
+
+void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
+    //printf("Moving imm to host reg %s\n", reg_names[reg]);
+    switch (imm_value.type) {
+        case VALUE_TYPE_S16:
+            | mov Rw(reg), imm_value.value_s16
+            | movsx Rq(reg), Rw(reg)
+            break;
+        case VALUE_TYPE_U16:
+            | mov Rd(reg), imm_value.value_s16
+            break;
+        case VALUE_TYPE_S32:
+            | mov Rd(reg), imm_value.value_s32
+            | movsxd Rq(reg), Rd(reg)
+            break;
+        case VALUE_TYPE_U32:
+            | mov Rd(reg), imm_value.value_u32
+            break;
+        case VALUE_TYPE_64:
+            | mov Rq(reg), imm_value.value_64
+            break;
+    }
+}
+
+void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg) {
+    | mov Rq(dst_reg), Rq(src_reg)
+}
+
+void host_emit_call(dasm_State** Dst, uintptr_t function) {
+    | mov64 rax, function
+    | call rax
+}
+
+void v2_end_block(dasm_State** Dst, int block_length) {
+    | mov eax, block_length
+    | epilogue // return block_length
+}

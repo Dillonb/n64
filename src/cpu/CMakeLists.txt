@@ -23,6 +23,11 @@ add_custom_command(OUTPUT v1_emitter.c
         MAIN_DEPENDENCY dynarec/v1/v1_emitter.dasc
         DEPENDS minilua)
 
+add_custom_command(OUTPUT v2_emitter.c
+        COMMAND $<TARGET_FILE:minilua> ARGS dynasm/dynasm.lua -D X64 ${DYNASM_EXTRA_FLAGS} -o v2_emitter.c ${CMAKE_CURRENT_SOURCE_DIR}/dynarec/v2/v2_emitter.dasc
+        MAIN_DEPENDENCY dynarec/v2/v2_emitter.dasc
+        DEPENDS minilua)
+
 add_library(r4300i
         r4300i.c r4300i.h r4300i_register_access.h
         mips_instructions.c mips_instructions.h
@@ -31,12 +36,15 @@ add_library(r4300i
         rsp_interface.c rsp_interface.h
         mips_instruction_decode.h
 
+        dynarec/dynasm_impl.c
+
         dynarec/dynarec.c dynarec/dynarec.h
         dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h
 
         dynarec/v1/v1_compiler.c dynarec/v1/v1_compiler.h
         v1_emitter.c dynarec/v1/v1_emitter.h
 
+        v2_emitter.c dynarec/v2/v2_emitter.h
         dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
         dynarec/v2/ir_context.c dynarec/v2/ir_context.h
         dynarec/v2/ir_emitter.c dynarec/v2/ir_emitter.h

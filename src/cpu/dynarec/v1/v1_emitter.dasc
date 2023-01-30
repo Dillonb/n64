@@ -4,7 +4,6 @@
 #include <cpu/r4300i.h>
 
 #include <dynasm/dasm_proto.h>
-#include <dynasm/dasm_x86.h>
 #ifndef N64_WIN
 #include <sys/mman.h>
 #endif
@@ -1457,7 +1456,7 @@ dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, u32 address) {
     }
 }
 
-dasm_State* block_header() {
+dasm_State* v1_block_header() {
     dasm_State* d;
     unsigned npc = 8; // number of dynamic labels
 

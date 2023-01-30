@@ -13,6 +13,7 @@
 bool disassembler_initialized = false;
 #ifdef HAVE_CAPSTONE
 csh handle_mips64;
+csh handle_x86_64;
 cs_insn* insn;
 #endif
 
@@ -24,6 +25,9 @@ void disassembler_initialize() {
 #ifdef HAVE_CAPSTONE
     if (cs_open(CS_ARCH_MIPS, CS_MODE_MIPS64, &handle_mips64) != CS_ERR_OK) {
         logfatal("Failed to initialize capstone");
+    }
+    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle_x86_64) != CS_ERR_OK) {
+        logfatal("Failed to initialize capstone ");
     }
 #endif
 
@@ -48,6 +52,23 @@ int disassemble(u32 address, u32 raw, char* buf, int buflen) {
     }
 
     snprintf(buf, buflen, "%s %s", insn[0].mnemonic, insn[0].op_str);
+
+    cs_free(insn, count);
+#else
+    snprintf(buf, buflen, "[Disassembly Unsupported]");
+#endif
+    return 1;
+}
+
+int disassemble_x86_64(uintptr_t address, u8* code, size_t code_size, char* buf, size_t buflen) {
+#ifdef HAVE_CAPSTONE
+    disassembler_initialize();
+    size_t count = cs_disasm(handle_x86_64, code, code_size, address, 0, &insn);
+    for (int i = 0; i < count; i++) {
+        int written = snprintf(buf, buflen, "%s %s\n", insn[i].mnemonic, insn[i].op_str);
+        buf += written;
+        buflen -= written;
+    }
 
     cs_free(insn, count);
 #else
