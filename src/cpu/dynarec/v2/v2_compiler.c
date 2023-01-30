@@ -143,6 +143,20 @@ void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
     logfatal("Emitting IR_OR");
 }
 
+void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
+    if (binop_constant(instr)) {
+        logfatal("Should have been caught by constant propagation");
+    } else if (is_constant(instr->bin_op.operand1)) {
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
+        host_emit_and_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
+    } else if (is_constant(instr->bin_op.operand2)) {
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register);
+        host_emit_and_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
+    } else {
+        logfatal("Emitting IR_AND with two variable regs");
+    }
+}
+
 bool is_memory(u64 address) {
     return false; // TODO
 }
@@ -223,7 +237,7 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 compile_ir_or(Dst, instr);
                 break;
             case IR_AND:
-                logfatal("Emitting IR_AND");
+                compile_ir_and(Dst, instr);
                 break;
             case IR_ADD:
                 logfatal("Emitting IR_ADD");

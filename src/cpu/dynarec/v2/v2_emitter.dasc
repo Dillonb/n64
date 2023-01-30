@@ -123,6 +123,27 @@ void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
     }
 }
 
+void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
+    //printf("ANDing imm to host reg %s\n", reg_names[reg]);
+    switch (imm_value.type) {
+        case VALUE_TYPE_S16:
+            | and Rq(reg), imm_value.value_s16
+            break;
+        case VALUE_TYPE_U16:
+            | and Rq(reg), imm_value.value_s16
+            break;
+        case VALUE_TYPE_S32:
+            | and Rq(reg), imm_value.value_s32
+            break;
+        case VALUE_TYPE_U32:
+            | and Rq(reg), imm_value.value_u32
+            break;
+        case VALUE_TYPE_64:
+            | and Rq(reg), imm_value.value_64
+            break;
+    }
+}
+
 void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg) {
     | mov Rq(dst_reg), Rq(src_reg)
 }
