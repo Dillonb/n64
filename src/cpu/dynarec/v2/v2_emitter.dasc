@@ -156,7 +156,7 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, int allocated_host_register, ir_con
 
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
     uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
-    | mov rax, n64_cpu_addr
+    | mov64 rax, n64_cpu_addr
     if (is_constant(value)) {
         u64 const_value = const_to_u64(value);
         | mov64 rdi, const_value

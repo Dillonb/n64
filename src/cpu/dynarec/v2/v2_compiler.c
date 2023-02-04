@@ -324,8 +324,6 @@ void v2_compile_new_block(
     print_ir_block();
     ir_allocate_registers();
     v2_emit_block(block);
-
-    logfatal("Done emitting block, save and execute");
 }
 
 void v2_compiler_init() {

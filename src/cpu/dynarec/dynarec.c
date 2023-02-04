@@ -3,6 +3,7 @@
 #include <mem/n64bus.h>
 #include <dynasm/dasm_proto.h>
 #include <metrics.h>
+#include <dynarec/v2/dispatcher.h>
 #include "dynarec_memory_management.h"
 #include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
@@ -24,10 +25,11 @@ static int missing_block_handler() {
     mark_metric(METRIC_BLOCK_COMPILATION);
     v2_compile_new_block(block, code_mask, N64CPU.pc, physical);
     if (block->run == NULL) {
-        v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
+        logfatal("Failed to compile block!");
+        //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
     }
 
-    return block->run(&N64CPU);
+    return run_block((u64)block->run);
 }
 
 int n64_dynarec_step() {

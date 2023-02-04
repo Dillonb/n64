@@ -180,7 +180,7 @@ ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
         return ir_context.guest_gpr_to_value[guest_reg];
     }
 
-    logfatal("implement me");
+    logfatal("implement me: loading r%d set by another block", guest_reg);
 }
 
 ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {
