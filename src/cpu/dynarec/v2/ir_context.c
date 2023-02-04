@@ -20,6 +20,8 @@ void ir_context_reset() {
 
     ir_context.ir_cache_head = &ir_context.ir_cache[0];
     ir_context.ir_cache_tail = &ir_context.ir_cache[0];
+
+    ir_context.block_end_pc_set = false;
 }
 
 const char* val_type_to_str(ir_value_type_t type) {

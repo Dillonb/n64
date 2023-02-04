@@ -4,19 +4,23 @@
 #include "ir_optimizer.h"
 #include "target_platform.h"
 
-u64 const_to_u64(ir_instruction_t* constant) {
-    switch (constant->set_constant.type) {
+u64 set_const_to_u64(ir_set_constant_t constant) {
+    switch (constant.type) {
         case VALUE_TYPE_S16:
-            return (s64)constant->set_constant.value_s16;
+            return (s64)constant.value_s16;
         case VALUE_TYPE_U16:
-            return constant->set_constant.value_u16;
+            return constant.value_u16;
         case VALUE_TYPE_S32:
-            return (s64)constant->set_constant.value_s32;
+            return (s64)constant.value_s32;
         case VALUE_TYPE_U32:
-            return constant->set_constant.value_u32;
+            return constant.value_u32;
         case VALUE_TYPE_64:
-            return constant->set_constant.value_64;
+            return constant.value_64;
     }
+}
+
+u64 const_to_u64(ir_instruction_t* constant) {
+    return set_const_to_u64(constant->set_constant);
 }
 
 void ir_optimize_constant_propagation() {
@@ -234,6 +238,14 @@ int first_available_register(bool* available_registers, int num_registers) {
     logfatal("No more registers!");
 }
 
+bool needs_register_allocated(ir_instruction_t* instr) {
+    if (instr->type == IR_SET_CONSTANT) {
+        return !is_valid_immediate(instr->set_constant.type);
+    } else {
+        return true;
+    }
+}
+
 void ir_allocate_registers() {
     bool available_registers[get_num_registers()];
     for (int i = 0; i < get_num_registers(); i++) {
@@ -246,7 +258,7 @@ void ir_allocate_registers() {
     ir_instruction_t* instr = ir_context.ir_cache_head;
     while (instr != NULL) {
         instr->allocated_host_register = -1;
-        if ((instr->type == IR_SET_CONSTANT && !is_valid_immediate(instr->set_constant.type)) || instr->type != IR_SET_CONSTANT) {
+        if (needs_register_allocated(instr)) {
             instr->allocated_host_register = first_available_register(available_registers, get_num_registers());
             printf("v%d allocated to host register r%d\n", instr->index, instr->allocated_host_register);
         }

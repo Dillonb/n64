@@ -218,6 +218,30 @@ void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_check_condition(dasm_State** Dst, ir_instruction_t* instr) {
+    bool op1_const = is_constant(instr->check_condition.operand1);
+    bool op2_const = is_constant(instr->check_condition.operand2);
+
+    if (op1_const && op2_const) {
+        logfatal("Should have been caught by constant propagation");
+    } else if (op1_const) {
+        host_emit_cmp_reg_imm(Dst, instr->allocated_host_register, instr->check_condition.condition, instr->check_condition.operand2->allocated_host_register, instr->check_condition.operand1->set_constant, ARGS_REVERSED);
+    } else if (op2_const) {
+        host_emit_cmp_reg_imm(Dst, instr->allocated_host_register, instr->check_condition.condition, instr->check_condition.operand1->allocated_host_register, instr->check_condition.operand2->set_constant, ARGS_NORMAL_ORDER);
+    } else {
+        logfatal("Check condition with two variable regs");
+    }
+}
+
+void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
+    ir_context.block_end_pc_set = true;
+    if (is_constant(instr->set_exit_pc.condition)) {
+        logfatal("Set exit PC with const condition");
+    } else {
+        host_emit_cmov_pc_binary(Dst, instr->set_exit_pc.condition->allocated_host_register, instr->set_exit_pc.pc_if_true, instr->set_exit_pc.pc_if_false);
+    }
+}
+
 void v2_emit_block(n64_dynarec_block_t* block) {
     static dasm_State* d;
     d = v2_block_header();
@@ -252,10 +276,10 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 logfatal("Emitting IR_MASK_AND_CAST");
                 break;
             case IR_CHECK_CONDITION:
-                logfatal("Emitting IR_CHECK_CONDITION");
+                compile_ir_check_condition(Dst, instr);
                 break;
             case IR_SET_BLOCK_EXIT_PC:
-                logfatal("Emitting IR_SET_BLOCK_EXIT_PC");
+                compile_ir_set_block_exit_pc(Dst, instr);
                 break;
             case IR_TLB_LOOKUP:
                 logfatal("Emitting IR_TLB_LOOKUP");
@@ -265,13 +289,15 @@ void v2_emit_block(n64_dynarec_block_t* block) {
     }
     DONE_COMPILING:
     // TODO: emit end block PC
+    if (!ir_context.block_end_pc_set) {
+        logfatal("TODO: emit end of block PC");
+    }
     v2_end_block(Dst, temp_code_len);
     void* compiled = link_and_encode(&d);
     dasm_free(&d);
 
     block->run = compiled;
 
-    logfatal("TODO: emit end of block PC");
 }
 
 void v2_compile_new_block(
@@ -303,5 +329,8 @@ void v2_compile_new_block(
 }
 
 void v2_compiler_init() {
-
+    uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
+    if (n64_cpu_addr > 0x7fffffff) {
+        logwarn("N64 CPU was not statically allocated in the low 2GiB of the address space, the recompiler will not be able to use absolute addressing. It was allocated at: %016lX", n64_cpu_addr);
+    }
 }

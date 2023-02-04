@@ -13,6 +13,7 @@ INLINE bool binop_constant(ir_instruction_t* instr) {
 }
 
 
+u64 set_const_to_u64(ir_set_constant_t constant);
 u64 const_to_u64(ir_instruction_t* constant);
 
 void ir_optimize_constant_propagation();

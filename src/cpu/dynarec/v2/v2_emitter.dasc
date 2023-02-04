@@ -1,5 +1,6 @@
 #include <cpu/dynarec/v2/v2_emitter.h>
 #include <cpu/dynarec/v2/v2_compiler.h>
+#include <cpu/dynarec/v2/ir_optimizer.h>
 #include <cpu/dynarec/dynarec_memory_management.h>
 #include <cpu/r4300i.h>
 
@@ -7,6 +8,8 @@
 #ifndef N64_WIN
 #include <sys/mman.h>
 #endif
+
+#define IMM64_INVALID() logfatal("Should never end up here, x86_64 has no 64 bit immediates")
 
 ||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
 #error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
@@ -19,8 +22,7 @@
 |.endif
 
 |.if X64
-  |.define cpuState, r12
-  |.define instrArg, r13
+  |.define cpuState, rax // TODO: put this in a more permanent reg?
   |.if WIN
     |.define rArg1, rcx
     |.define rArg2, rdx
@@ -38,19 +40,9 @@
   |.define postcall, .nop
     // Called before our block
     |.macro prologue
-      // Push callee-saved registers onto the stack so we don't trample them
-      //| push cpuState
-      //| push instrArg
-      //| sub rsp, 8 // Stack needs to be 16 byte aligned. Return address + the two regs above + this == 32 bytes.
-      // The CPU's state is passed in as argument 1
-      //| mov cpuState, rArg1
     |.endmacro
     // Called at the end of our block
     |.macro epilogue
-      // Pop callee-saved registers off the stack and then return
-      //| add rsp, 8
-      //| pop instrArg
-      //| pop cpuState
       | ret
     |.endmacro
 |.endif // TODO ARM version?
@@ -101,30 +93,12 @@ const char* reg_names[] = {
 
 
 void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
-    //printf("Moving imm to host reg %s\n", reg_names[reg]);
-    switch (imm_value.type) {
-        case VALUE_TYPE_S16:
-            | mov Rw(reg), imm_value.value_s16
-            | movsx Rq(reg), Rw(reg)
-            break;
-        case VALUE_TYPE_U16:
-            | mov Rd(reg), imm_value.value_s16
-            break;
-        case VALUE_TYPE_S32:
-            | mov Rd(reg), imm_value.value_s32
-            | movsxd Rq(reg), Rd(reg)
-            break;
-        case VALUE_TYPE_U32:
-            | mov Rd(reg), imm_value.value_u32
-            break;
-        case VALUE_TYPE_64:
-            | mov Rq(reg), imm_value.value_64
-            break;
-    }
+    u64 value = set_const_to_u64(imm_value);
+    // DynASM will automatically detect sign extension here, and use the smallest possible immediate
+    | mov Rq(reg), value
 }
 
 void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
-    //printf("ANDing imm to host reg %s\n", reg_names[reg]);
     switch (imm_value.type) {
         case VALUE_TYPE_S16:
             | and Rq(reg), imm_value.value_s16
@@ -139,7 +113,7 @@ void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
             | and Rq(reg), imm_value.value_u32
             break;
         case VALUE_TYPE_64:
-            | and Rq(reg), imm_value.value_64
+            IMM64_INVALID();
             break;
     }
 }
@@ -151,6 +125,61 @@ void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg) {
 void host_emit_call(dasm_State** Dst, uintptr_t function) {
     | mov64 rax, function
     | call rax
+}
+
+void host_emit_cmp_reg_imm(dasm_State** Dst, int allocated_host_register, ir_condition_t cond, int reg, ir_set_constant_t imm_value, enum args_reversed args_reversed) {
+    switch (imm_value.type) {
+        case VALUE_TYPE_S16:
+            | cmp Rq(reg), imm_value.value_s16
+            break;
+        case VALUE_TYPE_U16:
+            | cmp Rq(reg), imm_value.value_s16
+            break;
+        case VALUE_TYPE_S32:
+            | cmp Rq(reg), imm_value.value_s32
+            break;
+        case VALUE_TYPE_U32:
+            | cmp Rq(reg), imm_value.value_u32
+            break;
+        case VALUE_TYPE_64:
+            IMM64_INVALID();
+            break;
+    }
+    if (allocated_host_register >= 0) {
+        switch (cond) {
+            case CONDITION_NOT_EQUAL:
+                | setne Rb(allocated_host_register)
+                break;
+        }
+    }
+}
+
+void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
+    uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
+    | mov rax, n64_cpu_addr
+    if (is_constant(value)) {
+        u64 const_value = const_to_u64(value);
+        | mov64 rdi, const_value
+        | mov cpu_state->pc, rdi
+        | add rdi, 4
+        | mov cpu_state->next_pc, rdi
+    } else {
+        logfatal("Mov from allocated host reg to PC, check to make sure this works");
+        | mov rdi, Rq(value->allocated_host_register)
+        | mov cpu_state->pc, rdi
+        | add rdi, 4
+        | mov cpu_state->next_pc, rdi
+    }
+}
+
+void host_emit_cmov_pc_binary(dasm_State** Dst, int cond_register, ir_instruction_t* if_true, ir_instruction_t* if_false) {
+    | test Rb(cond_register), Rb(cond_register)
+    | jz >1
+    host_emit_mov_pc(Dst, if_true);
+    | jmp >2 // done
+    |1:
+    host_emit_mov_pc(Dst, if_false);
+    |2:
 }
 
 void v2_end_block(dasm_State** Dst, int block_length) {

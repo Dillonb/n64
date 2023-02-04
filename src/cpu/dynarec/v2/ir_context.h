@@ -94,6 +94,8 @@ typedef struct ir_context {
     ir_instruction_t* ir_cache_head;
     ir_instruction_t* ir_cache_tail;
     int ir_cache_index;
+
+    bool block_end_pc_set;
 } ir_context_t;
 
 extern ir_context_t ir_context;
