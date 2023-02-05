@@ -48,7 +48,8 @@ typedef struct ir_instruction {
         IR_MASK_AND_CAST,
         IR_CHECK_CONDITION,
         IR_SET_BLOCK_EXIT_PC,
-        IR_TLB_LOOKUP
+        IR_TLB_LOOKUP,
+        IR_FLUSH_GUEST_REG
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -83,6 +84,10 @@ typedef struct ir_instruction {
         struct {
             struct ir_instruction* virtual_address;
         } tlb_lookup;
+        struct {
+            struct ir_instruction* value;
+            u8 guest_reg;
+        } flush_guest_reg;
     };
 } ir_instruction_t;
 
@@ -109,6 +114,8 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size);
 ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
 // Load a guest register, or return a reference to it if it's already loaded.
 ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg);
+// Flush a guest register back to memory. Emitted at the end of the block to flush values back to memory.
+ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* value, u8 guest_reg);
 // OR two values together.
 ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // AND two values together.

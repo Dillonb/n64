@@ -48,7 +48,7 @@ const char* cond_to_str(ir_condition_t condition) {
 
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 
-    if (instr->type != IR_STORE && instr->type != IR_SET_BLOCK_EXIT_PC && instr->type != IR_NOP) {
+    if (instr->type != IR_STORE && instr->type != IR_SET_BLOCK_EXIT_PC && instr->type != IR_NOP && instr->type != IR_FLUSH_GUEST_REG) {
         int written = snprintf(buf, buf_size, "v%d = ", instr->index);
         buf += written;
         buf_size -= written;
@@ -106,6 +106,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             break;
         case IR_TLB_LOOKUP:
             snprintf(buf, buf_size, "tlb_lookup(v%d)", instr->tlb_lookup.virtual_address->index);
+            break;
+        case IR_FLUSH_GUEST_REG:
+            snprintf(buf, buf_size, "guest_gpr[%d] = v%d", instr->flush_guest_reg.guest_reg, instr->flush_guest_reg.value->index);
             break;
     }
 }
@@ -181,6 +184,18 @@ ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
     }
 
     logfatal("implement me: loading r%d set by another block", guest_reg);
+}
+
+ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* value, u8 guest_reg) {
+    if (guest_reg == 0) {
+        logfatal("Should never flush r0");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLUSH_GUEST_REG;
+    instruction.flush_guest_reg.guest_reg = guest_reg;
+    instruction.flush_guest_reg.value = value;
+
+    return append_ir_instruction(instruction, guest_reg);
 }
 
 ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {

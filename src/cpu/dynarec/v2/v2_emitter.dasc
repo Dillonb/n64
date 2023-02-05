@@ -1,6 +1,7 @@
 #include <cpu/dynarec/v2/v2_emitter.h>
 #include <cpu/dynarec/v2/v2_compiler.h>
 #include <cpu/dynarec/v2/ir_optimizer.h>
+#include <cpu/dynarec/v2/target_platform.h>
 #include <cpu/dynarec/dynarec_memory_management.h>
 #include <cpu/r4300i.h>
 
@@ -94,8 +95,12 @@ const char* reg_names[] = {
 
 void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
     u64 value = set_const_to_u64(imm_value);
-    // DynASM will automatically detect sign extension here, and use the smallest possible immediate
-    | mov Rq(reg), value
+    if (imm_value.type == VALUE_TYPE_64) {
+        | mov64 Rq(reg), value
+    } else {
+        // DynASM will automatically detect sign extension here, and use the smallest possible immediate
+        | mov Rq(reg), value
+    }
 }
 
 void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
@@ -180,6 +185,20 @@ void host_emit_cmov_pc_binary(dasm_State** Dst, int cond_register, ir_instructio
     |1:
     host_emit_mov_pc(Dst, if_false);
     |2:
+}
+
+void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t guest_reg, ir_set_constant_t value) {
+    int tmp1 = get_scratch_registers()[0];
+    int tmp2 = get_scratch_registers()[1];
+
+    | mov64 Rq(tmp1), guest_reg
+    host_emit_mov_reg_imm(Dst, tmp2, value);
+    |mov [Rq(tmp1)], Rq(tmp2)
+}
+
+void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t guest_reg, int reg) {
+    | mov64 rax, guest_reg
+    | mov [rax], Rq(reg)
 }
 
 void v2_end_block(dasm_State** Dst, int block_length) {

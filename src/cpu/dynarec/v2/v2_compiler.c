@@ -242,6 +242,14 @@ void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr->flush_guest_reg.value)) {
+        host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant);
+    } else {
+        host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->allocated_host_register);
+    }
+}
+
 void v2_emit_block(n64_dynarec_block_t* block) {
     static dasm_State* d;
     d = v2_block_header();
@@ -284,6 +292,9 @@ void v2_emit_block(n64_dynarec_block_t* block) {
             case IR_TLB_LOOKUP:
                 logfatal("Emitting IR_TLB_LOOKUP");
                 break;
+            case IR_FLUSH_GUEST_REG:
+                compile_ir_flush_guest_reg(Dst, instr);
+                break;
         }
         instr = instr->next;
     }
@@ -313,6 +324,13 @@ void v2_compile_new_block(
         u64 instr_virtual_address = virtual_address + (i << 2);
         u32 instr_physical_address = physical_address + (i << 2);
         emit_instruction_ir(temp_code[i].instr, instr_virtual_address, instr_physical_address);
+    }
+    // Flush all guest regs in use at the end
+    for (int i = 1; i < 32; i++) {
+        ir_instruction_t* val = ir_context.guest_gpr_to_value[i];
+        if (val) {
+            ir_emit_flush_guest_reg(ir_context.guest_gpr_to_value[i], i);
+        }
     }
     print_ir_block();
     printf("Optimizing IR: constant propagation\n");

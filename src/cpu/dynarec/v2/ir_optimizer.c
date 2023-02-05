@@ -34,6 +34,7 @@ void ir_optimize_constant_propagation() {
             case IR_STORE:
             case IR_LOAD:
             case IR_SET_BLOCK_EXIT_PC:
+            case IR_FLUSH_GUEST_REG:
                 break;
 
             case IR_OR:
@@ -118,14 +119,6 @@ void ir_optimize_constant_propagation() {
 }
 
 void ir_optimize_eliminate_dead_code() {
-    for (int i = 1; i < 32; i++) {
-        ir_instruction_t* instr = ir_context.guest_gpr_to_value[i];
-        if (instr) {
-            instr->dead_code = false;
-            printf("v%d is used for the value of r%d after the block!\n", instr->index, i);
-        }
-    }
-
     ir_instruction_t* instr = ir_context.ir_cache_tail;
     // Loop through instructions backwards
     while (instr != NULL) {
@@ -144,6 +137,10 @@ void ir_optimize_eliminate_dead_code() {
                 instr->set_exit_pc.condition->dead_code = false;
                 instr->set_exit_pc.pc_if_true->dead_code = false;
                 instr->set_exit_pc.pc_if_false->dead_code = false;
+                instr->dead_code = false;
+                break;
+            case IR_FLUSH_GUEST_REG:
+                instr->flush_guest_reg.value->dead_code = false;
                 instr->dead_code = false;
                 break;
 
@@ -241,6 +238,8 @@ int first_available_register(bool* available_registers, int num_registers) {
 bool needs_register_allocated(ir_instruction_t* instr) {
     if (instr->type == IR_SET_CONSTANT) {
         return !is_valid_immediate(instr->set_constant.type);
+    } else if (instr->type == IR_FLUSH_GUEST_REG) {
+        return false;
     } else {
         return true;
     }
