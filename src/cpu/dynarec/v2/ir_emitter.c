@@ -17,9 +17,12 @@ ir_instruction_t* get_memory_access_address(mips_instruction_t instruction, bus_
 void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 virtual_address) {
     ir_instruction_t* pc_if_false = ir_emit_set_constant_64(virtual_address + 8, NO_GUEST_REG); // Account for instruction in delay slot
     ir_instruction_t* pc_if_true = ir_emit_set_constant_64(virtual_address + 4 + (s64)offset * 4, NO_GUEST_REG);
-    ir_emit_set_block_exit_pc(condition, pc_if_true, pc_if_false);
+    ir_emit_conditional_set_block_exit_pc(condition, pc_if_true, pc_if_false);
 }
 
+void ir_emit_abs_branch(ir_instruction_t* address) {
+    ir_emit_set_block_exit_pc(address);
+}
 
 IR_EMITTER(lui) {
     s64 ext = (s16)instruction.i.immediate;
@@ -51,11 +54,23 @@ IR_EMITTER(lw) {
     ir_emit_load(VALUE_TYPE_S32, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
+IR_EMITTER(lhu) {
+    ir_emit_load(VALUE_TYPE_U16, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+}
+
+IR_EMITTER(ld) {
+    ir_emit_load(VALUE_TYPE_64, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+}
+
 IR_EMITTER(bne) {
     ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+}
+
+IR_EMITTER(jr) {
+    ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
 }
 
 IR_EMITTER(mtc0) {
@@ -141,7 +156,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_SRAV: IR_UNIMPLEMENTED(FUNCT_SRAV);
         case FUNCT_SLLV: IR_UNIMPLEMENTED(FUNCT_SLLV);
         case FUNCT_SRLV: IR_UNIMPLEMENTED(FUNCT_SRLV);
-        case FUNCT_JR: IR_UNIMPLEMENTED(FUNCT_JR);
+        case FUNCT_JR: CALL_IR_EMITTER(jr);
         case FUNCT_JALR: IR_UNIMPLEMENTED(FUNCT_JALR);
         case FUNCT_SYSCALL: IR_UNIMPLEMENTED(FUNCT_SYSCALL);
         case FUNCT_MFHI: IR_UNIMPLEMENTED(FUNCT_MFHI);
@@ -258,16 +273,16 @@ IR_EMITTER(instruction) {
         case OPC_SPCL:   CALL_IR_EMITTER(special_instruction);
         case OPC_REGIMM: CALL_IR_EMITTER(regimm_instruction);
 
-        case OPC_LD: IR_UNIMPLEMENTED(OPC_LD);
+        case OPC_LD: CALL_IR_EMITTER(ld);
         case OPC_LUI: CALL_IR_EMITTER(lui);
         case OPC_ADDIU: IR_UNIMPLEMENTED(OPC_ADDIU);
         case OPC_ADDI: IR_UNIMPLEMENTED(OPC_ADDI);
         case OPC_DADDI: IR_UNIMPLEMENTED(OPC_DADDI);
-        case OPC_ANDI:CALL_IR_EMITTER(andi);
+        case OPC_ANDI: CALL_IR_EMITTER(andi);
         case OPC_LBU: IR_UNIMPLEMENTED(OPC_LBU);
-        case OPC_LHU: IR_UNIMPLEMENTED(OPC_LHU);
+        case OPC_LHU: CALL_IR_EMITTER(lhu);
         case OPC_LH: IR_UNIMPLEMENTED(OPC_LH);
-        case OPC_LW:CALL_IR_EMITTER(lw);
+        case OPC_LW: CALL_IR_EMITTER(lw);
         case OPC_LWU: IR_UNIMPLEMENTED(OPC_LWU);
         case OPC_BEQ: IR_UNIMPLEMENTED(OPC_BEQ);
         case OPC_BEQL: IR_UNIMPLEMENTED(OPC_BEQL);

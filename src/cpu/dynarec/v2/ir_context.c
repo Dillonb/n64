@@ -48,7 +48,7 @@ const char* cond_to_str(ir_condition_t condition) {
 
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 
-    if (instr->type != IR_STORE && instr->type != IR_SET_BLOCK_EXIT_PC && instr->type != IR_NOP && instr->type != IR_FLUSH_GUEST_REG) {
+    if (instr->type != IR_STORE && instr->type != IR_SET_COND_BLOCK_EXIT_PC && instr->type != IR_SET_BLOCK_EXIT_PC && instr->type != IR_NOP && instr->type != IR_FLUSH_GUEST_REG) {
         int written = snprintf(buf, buf_size, "v%d = ", instr->index);
         buf += written;
         buf_size -= written;
@@ -102,7 +102,10 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                      instr->check_condition.operand2->index);
             break;
         case IR_SET_BLOCK_EXIT_PC:
-            snprintf(buf, buf_size, "set_block_exit(v%d, if_true = v%d, if_false = v%d)", instr->set_exit_pc.condition->index, instr->set_exit_pc.pc_if_true->index, instr->set_exit_pc.pc_if_false->index);
+            snprintf(buf, buf_size, "set_block_exit(v%d)", instr->set_exit_pc.address->index);
+            break;
+        case IR_SET_COND_BLOCK_EXIT_PC:
+            snprintf(buf, buf_size, "set_block_exit(v%d, if_true = v%d, if_false = v%d)", instr->set_cond_exit_pc.condition->index, instr->set_cond_exit_pc.pc_if_true->index, instr->set_cond_exit_pc.pc_if_false->index);
             break;
         case IR_TLB_LOOKUP:
             snprintf(buf, buf_size, "tlb_lookup(v%d)", instr->tlb_lookup.virtual_address->index);
@@ -266,12 +269,19 @@ ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instructi
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false) {
+ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false) {
+    ir_instruction_t instruction;
+    instruction.type = IR_SET_COND_BLOCK_EXIT_PC;
+    instruction.set_cond_exit_pc.condition = condition;
+    instruction.set_cond_exit_pc.pc_if_true = pc_if_true;
+    instruction.set_cond_exit_pc.pc_if_false = pc_if_false;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {
     ir_instruction_t instruction;
     instruction.type = IR_SET_BLOCK_EXIT_PC;
-    instruction.set_exit_pc.condition = condition;
-    instruction.set_exit_pc.pc_if_true = pc_if_true;
-    instruction.set_exit_pc.pc_if_false = pc_if_false;
+    instruction.set_exit_pc.address = address;
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 

@@ -247,14 +247,20 @@ void compile_ir_check_condition(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
-void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
+void compile_ir_set_cond_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
     ir_context.block_end_pc_set = true;
-    if (is_constant(instr->set_exit_pc.condition)) {
+    if (is_constant(instr->set_cond_exit_pc.condition)) {
         logfatal("Set exit PC with const condition");
     } else {
-        host_emit_cmov_pc_binary(Dst, instr->set_exit_pc.condition->allocated_host_register, instr->set_exit_pc.pc_if_true, instr->set_exit_pc.pc_if_false);
+        host_emit_cmov_pc_binary(Dst, instr->set_cond_exit_pc.condition->allocated_host_register, instr->set_cond_exit_pc.pc_if_true, instr->set_cond_exit_pc.pc_if_false);
     }
 }
+
+void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
+    ir_context.block_end_pc_set = true;
+    host_emit_mov_pc(Dst, instr->set_exit_pc.address);
+}
+
 
 void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     val_to_func_arg(Dst, instr->tlb_lookup.virtual_address, 0);
@@ -318,6 +324,9 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 break;
             case IR_SET_BLOCK_EXIT_PC:
                 compile_ir_set_block_exit_pc(Dst, instr);
+                break;
+            case IR_SET_COND_BLOCK_EXIT_PC:
+                compile_ir_set_cond_block_exit_pc(Dst, instr);
                 break;
             case IR_TLB_LOOKUP:
                 compile_ir_tlb_lookup(Dst, instr);

@@ -48,6 +48,7 @@ typedef struct ir_instruction {
         IR_LOAD,
         IR_MASK_AND_CAST,
         IR_CHECK_CONDITION,
+        IR_SET_COND_BLOCK_EXIT_PC,
         IR_SET_BLOCK_EXIT_PC,
         IR_TLB_LOOKUP,
         IR_LOAD_GUEST_REG,
@@ -73,11 +74,13 @@ typedef struct ir_instruction {
             struct ir_instruction* operand;
         } mask_and_cast;
         struct {
+            struct ir_instruction* address;
+        } set_exit_pc;
+        struct {
             struct ir_instruction* condition;
             struct ir_instruction* pc_if_true;
             struct ir_instruction* pc_if_false;
-        } set_exit_pc;
-
+        } set_cond_exit_pc;
         struct {
             ir_condition_t condition;
             struct ir_instruction* operand1;
@@ -137,7 +140,9 @@ ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type
 // check two operands with a condition and return 0 or 1
 ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2);
 // set the block exit pc to one of two values based on a condition
-ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
+ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
+// set the block exit pc
+ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 // fall back to the interpreter for the next num_instructions instructions
 ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
 // lookup a memory address in the TLB

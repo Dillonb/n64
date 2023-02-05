@@ -34,6 +34,7 @@ void ir_optimize_constant_propagation() {
             case IR_STORE:
             case IR_LOAD:
             case IR_SET_BLOCK_EXIT_PC:
+            case IR_SET_COND_BLOCK_EXIT_PC:
             case IR_LOAD_GUEST_REG:
             case IR_FLUSH_GUEST_REG:
                 break;
@@ -135,9 +136,13 @@ void ir_optimize_eliminate_dead_code() {
                 instr->dead_code = false;
                 break;
             case IR_SET_BLOCK_EXIT_PC:
-                instr->set_exit_pc.condition->dead_code = false;
-                instr->set_exit_pc.pc_if_true->dead_code = false;
-                instr->set_exit_pc.pc_if_false->dead_code = false;
+                instr->set_exit_pc.address->dead_code = false;
+                instr->dead_code = false;
+                break;
+            case IR_SET_COND_BLOCK_EXIT_PC:
+                instr->set_cond_exit_pc.condition->dead_code = false;
+                instr->set_cond_exit_pc.pc_if_true->dead_code = false;
+                instr->set_cond_exit_pc.pc_if_false->dead_code = false;
                 instr->dead_code = false;
                 break;
             case IR_FLUSH_GUEST_REG:
@@ -237,12 +242,25 @@ int first_available_register(bool* available_registers, const int* register_life
 }
 
 bool needs_register_allocated(ir_instruction_t* instr) {
-    if (instr->type == IR_SET_CONSTANT) {
-        return !is_valid_immediate(instr->set_constant.type);
-    } else if (instr->type == IR_FLUSH_GUEST_REG || instr->type == IR_STORE || instr->type == IR_SET_BLOCK_EXIT_PC) {
-        return false;
-    } else {
-        return true;
+    switch (instr->type) {
+        case IR_SET_CONSTANT:
+            return !is_valid_immediate(instr->set_constant.type);
+        case IR_NOP:
+        case IR_SET_COND_BLOCK_EXIT_PC:
+        case IR_SET_BLOCK_EXIT_PC:
+        case IR_STORE:
+        case IR_FLUSH_GUEST_REG:
+            return false;
+
+        case IR_TLB_LOOKUP:
+        case IR_OR:
+        case IR_AND:
+        case IR_ADD:
+        case IR_LOAD:
+        case IR_MASK_AND_CAST:
+        case IR_CHECK_CONDITION:
+        case IR_LOAD_GUEST_REG:
+            return true;
     }
 }
 
@@ -253,7 +271,9 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_LOAD:
             return instr->load.address == value;
         case IR_SET_BLOCK_EXIT_PC:
-            return instr->set_exit_pc.condition == value || instr->set_exit_pc.pc_if_true == value || instr->set_exit_pc.pc_if_false == value;
+            return instr->set_exit_pc.address == value;
+        case IR_SET_COND_BLOCK_EXIT_PC:
+            return instr->set_cond_exit_pc.condition == value || instr->set_cond_exit_pc.pc_if_true == value || instr->set_cond_exit_pc.pc_if_false == value;
         case IR_FLUSH_GUEST_REG:
             return instr->flush_guest_reg.value == value;
 
