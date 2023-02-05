@@ -21,14 +21,21 @@ typedef enum x86_64_register {
 
 const int* get_preserved_registers() {
     const static int preserved_regs[] = {
-            REG_RBX, REG_RSP, REG_RBP, REG_R12, REG_R13, REG_R14, REG_R15
+            REG_RBX,
+            // Yes, it's preserved, but we can't use it for register allocation.
+            //REG_RSP,
+            REG_RBP,
+            REG_R12,
+            REG_R13,
+            REG_R14,
+            REG_R15
     };
 
     return preserved_regs;
 }
 
 int get_num_preserved_registers() {
-    return 7;
+    return 6; // 7 if we include the stack pointer, but we can't.
 }
 
 const int* get_scratch_registers() {
