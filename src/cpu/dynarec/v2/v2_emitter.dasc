@@ -187,18 +187,23 @@ void host_emit_cmov_pc_binary(dasm_State** Dst, int cond_register, ir_instructio
     |2:
 }
 
-void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t guest_reg, ir_set_constant_t value) {
+void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value) {
     int tmp1 = get_scratch_registers()[0];
     int tmp2 = get_scratch_registers()[1];
 
-    | mov64 Rq(tmp1), guest_reg
+    | mov64 Rq(tmp1), mem
     host_emit_mov_reg_imm(Dst, tmp2, value);
     |mov [Rq(tmp1)], Rq(tmp2)
 }
 
-void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t guest_reg, int reg) {
-    | mov64 rax, guest_reg
+void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg) {
+    | mov64 rax, mem
     | mov [rax], Rq(reg)
+}
+
+void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem) {
+    | mov64 rax, mem
+    | mov Rq(reg), [rax]
 }
 
 void v2_end_block(dasm_State** Dst, int block_length) {

@@ -107,6 +107,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_TLB_LOOKUP:
             snprintf(buf, buf_size, "tlb_lookup(v%d)", instr->tlb_lookup.virtual_address->index);
             break;
+        case IR_LOAD_GUEST_REG:
+            snprintf(buf, buf_size, "guest_gpr[%d]", instr->load_guest_reg.guest_reg);
+            break;
         case IR_FLUSH_GUEST_REG:
             snprintf(buf, buf_size, "guest_gpr[%d] = v%d", instr->flush_guest_reg.guest_reg, instr->flush_guest_reg.value->index);
             break;
@@ -183,7 +186,11 @@ ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
         return ir_context.guest_gpr_to_value[guest_reg];
     }
 
-    logfatal("implement me: loading r%d set by another block", guest_reg);
+    ir_instruction_t instruction;
+    instruction.type = IR_LOAD_GUEST_REG;
+    instruction.load_guest_reg.guest_reg = guest_reg;
+
+    return append_ir_instruction(instruction, guest_reg);
 }
 
 ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* value, u8 guest_reg) {
@@ -195,7 +202,7 @@ ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* value, u8 guest_reg)
     instruction.flush_guest_reg.guest_reg = guest_reg;
     instruction.flush_guest_reg.value = value;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {

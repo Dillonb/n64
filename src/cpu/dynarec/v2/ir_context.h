@@ -49,6 +49,7 @@ typedef struct ir_instruction {
         IR_CHECK_CONDITION,
         IR_SET_BLOCK_EXIT_PC,
         IR_TLB_LOOKUP,
+        IR_LOAD_GUEST_REG,
         IR_FLUSH_GUEST_REG
     } type;
     union {
@@ -84,6 +85,9 @@ typedef struct ir_instruction {
         struct {
             struct ir_instruction* virtual_address;
         } tlb_lookup;
+        struct {
+            u8 guest_reg;
+        } load_guest_reg;
         struct {
             struct ir_instruction* value;
             u8 guest_reg;

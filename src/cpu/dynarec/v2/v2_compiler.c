@@ -250,6 +250,10 @@ void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg]);
+}
+
 void v2_emit_block(n64_dynarec_block_t* block) {
     static dasm_State* d;
     d = v2_block_header();
@@ -292,6 +296,10 @@ void v2_emit_block(n64_dynarec_block_t* block) {
             case IR_TLB_LOOKUP:
                 logfatal("Emitting IR_TLB_LOOKUP");
                 break;
+            case IR_LOAD_GUEST_REG:
+                compile_ir_load_guest_reg(Dst, instr);
+                break;
+
             case IR_FLUSH_GUEST_REG:
                 compile_ir_flush_guest_reg(Dst, instr);
                 break;
@@ -329,7 +337,10 @@ void v2_compile_new_block(
     for (int i = 1; i < 32; i++) {
         ir_instruction_t* val = ir_context.guest_gpr_to_value[i];
         if (val) {
-            ir_emit_flush_guest_reg(ir_context.guest_gpr_to_value[i], i);
+            // If the guest reg was just loaded and never modified, don't need to flush it
+            if (val->type != IR_LOAD_GUEST_REG) {
+                ir_emit_flush_guest_reg(ir_context.guest_gpr_to_value[i], i);
+            }
         }
     }
     print_ir_block();

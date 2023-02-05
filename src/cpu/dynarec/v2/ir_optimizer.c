@@ -34,6 +34,7 @@ void ir_optimize_constant_propagation() {
             case IR_STORE:
             case IR_LOAD:
             case IR_SET_BLOCK_EXIT_PC:
+            case IR_LOAD_GUEST_REG:
             case IR_FLUSH_GUEST_REG:
                 break;
 
@@ -164,16 +165,16 @@ void ir_optimize_eliminate_dead_code() {
                     instr->check_condition.operand2->dead_code = false;
                 }
                 break;
-
-            // No dependencies
-            case IR_NOP:
-                break;
-            case IR_SET_CONSTANT:
-                break;
             case IR_TLB_LOOKUP:
                 if (!instr->dead_code) {
                     instr->tlb_lookup.virtual_address->dead_code = false;
                 }
+                break;
+
+            // No dependencies
+            case IR_NOP:
+            case IR_SET_CONSTANT:
+            case IR_LOAD_GUEST_REG:
                 break;
         }
 
