@@ -6,6 +6,10 @@
 
 u64 set_const_to_u64(ir_set_constant_t constant) {
     switch (constant.type) {
+        case VALUE_TYPE_S8:
+            return (s64)constant.value_s8;
+        case VALUE_TYPE_U8:
+            return constant.value_u8;
         case VALUE_TYPE_S16:
             return (s64)constant.value_s16;
         case VALUE_TYPE_U16:
@@ -34,9 +38,18 @@ void ir_optimize_constant_propagation() {
             case IR_STORE:
             case IR_LOAD:
             case IR_SET_BLOCK_EXIT_PC:
-            case IR_SET_COND_BLOCK_EXIT_PC:
             case IR_LOAD_GUEST_REG:
             case IR_FLUSH_GUEST_REG:
+                break;
+
+            case IR_SET_COND_BLOCK_EXIT_PC:
+                if (is_constant(instr->set_cond_exit_pc.condition)) {
+                    u64 cond = const_to_u64(instr->set_cond_exit_pc.condition);
+                    ir_instruction_t* if_false = instr->set_cond_exit_pc.pc_if_false;
+                    ir_instruction_t* if_true  = instr->set_cond_exit_pc.pc_if_true;
+                    instr->type = IR_SET_BLOCK_EXIT_PC;
+                    instr->set_exit_pc.address = cond != 0 ? if_true : if_false;
+                }
                 break;
 
             case IR_OR:
@@ -85,6 +98,12 @@ void ir_optimize_constant_propagation() {
                     u64 result;
                     instr->type = IR_SET_CONSTANT;
                     switch (instr->mask_and_cast.type) {
+                        case VALUE_TYPE_S8:
+                            result = (s64)(s8)(value & 0xFF);
+                            break;
+                        case VALUE_TYPE_U8:
+                            result = value & 0xFF;
+                            break;
                         case VALUE_TYPE_S16:
                             result = (s64)(s16)(value & 0xFFFF);
                             break;
@@ -92,10 +111,10 @@ void ir_optimize_constant_propagation() {
                             result = value & 0xFFFF;
                             break;
                         case VALUE_TYPE_S32:
-                            logfatal("Unimplemented");
+                            result = (s64)(s32)(value & 0xFFFFFFFF);
                             break;
                         case VALUE_TYPE_U32:
-                            logfatal("Unimplemented");
+                            result = value & 0xFFFFFFFF;
                             break;
                         case VALUE_TYPE_64:
                             result = value;
@@ -106,7 +125,26 @@ void ir_optimize_constant_propagation() {
                 }
                 break;
 
-            case IR_CHECK_CONDITION: // TODO
+            case IR_CHECK_CONDITION:
+                if (is_constant(instr->check_condition.operand1) && is_constant(instr->check_condition.operand2)) {
+                    s64 operand1 = const_to_u64(instr->check_condition.operand1);
+                    s64 operand2 = const_to_u64(instr->check_condition.operand2);
+                    bool result = false;
+                    switch (instr->check_condition.condition) {
+                        case CONDITION_NOT_EQUAL:
+                            result = operand1 != operand2;
+                            break;
+                        case CONDITION_EQUAL:
+                            result = operand1 == operand2;
+                            break;
+                        case CONDITION_LESS_THAN:
+                            result = operand1 < operand2;
+                            break;
+                    }
+                    instr->type = IR_SET_CONSTANT;
+                    instr->set_constant.type = VALUE_TYPE_64;
+                    instr->set_constant.value_64 = result ? 1 : 0;
+                }
                 break;
 
             case IR_TLB_LOOKUP:

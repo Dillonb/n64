@@ -26,6 +26,10 @@ void ir_context_reset() {
 
 const char* val_type_to_str(ir_value_type_t type) {
     switch (type) {
+        case VALUE_TYPE_U8:
+            return "U8";
+        case VALUE_TYPE_S8:
+            return "S8";
         case VALUE_TYPE_S16:
             return "S16";
         case VALUE_TYPE_U16:
@@ -45,6 +49,8 @@ const char* cond_to_str(ir_condition_t condition) {
             return "!=";
         case CONDITION_EQUAL:
             return "==";
+        case CONDITION_LESS_THAN:
+            return "<";
     }
 }
 
@@ -62,6 +68,12 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             break;
         case IR_SET_CONSTANT:
             switch (instr->set_constant.type) {
+                case VALUE_TYPE_U8:
+                    snprintf(buf, buf_size, "0x%04X ;%u", (u16)instr->set_constant.value_u8, instr->set_constant.value_u8);
+                    break;
+                case VALUE_TYPE_S8:
+                    snprintf(buf, buf_size, "0x%04X ;%d", (u16)instr->set_constant.value_s8, instr->set_constant.value_s8);
+                    break;
                 case VALUE_TYPE_S16:
                     snprintf(buf, buf_size, "0x%04X ;%d", (u16)instr->set_constant.value_s16, instr->set_constant.value_s16);
                     break;
@@ -164,6 +176,12 @@ ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
 
     bool is_zero = false;
     switch (value.type) {
+        case VALUE_TYPE_S8:
+            is_zero = value.value_s8 == 0;
+            break;
+        case VALUE_TYPE_U8:
+            is_zero = value.value_u8 == 0;
+            break;
         case VALUE_TYPE_S16:
             is_zero = value.value_s16 == 0;
             break;
@@ -283,13 +301,13 @@ ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type
     return append_ir_instruction(instruction, guest_reg);
 }
 
-ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2) {
+ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_CHECK_CONDITION;
     instruction.check_condition.condition = condition;
     instruction.check_condition.operand1 = operand1;
     instruction.check_condition.operand2 = operand2;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, guest_reg);
 }
 
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false) {

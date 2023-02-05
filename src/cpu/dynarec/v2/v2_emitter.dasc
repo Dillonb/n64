@@ -105,6 +105,12 @@ void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
 
 void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
     switch (imm_value.type) {
+        case VALUE_TYPE_S8:
+            | and Rq(reg), imm_value.value_s8
+            break;
+        case VALUE_TYPE_U8:
+            | and Rq(reg), imm_value.value_s8
+            break;
         case VALUE_TYPE_S16:
             | and Rq(reg), imm_value.value_s16
             break;
@@ -125,6 +131,12 @@ void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
 
 void host_emit_add_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
     switch (imm_value.type) {
+        case VALUE_TYPE_S8:
+            | add Rq(reg), imm_value.value_s8
+            break;
+        case VALUE_TYPE_U8:
+            | add Rq(reg), imm_value.value_s8
+            break;
         case VALUE_TYPE_S16:
             | add Rq(reg), imm_value.value_s16
             break;
@@ -145,6 +157,10 @@ void host_emit_add_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
 
 void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
    switch (type) {
+       case VALUE_TYPE_S8:
+       case VALUE_TYPE_U8:
+           logfatal("Shift 8 bit value");
+           break;
        case VALUE_TYPE_S16:
        case VALUE_TYPE_U16:
            logfatal("Shift 16 bit value");
@@ -190,6 +206,12 @@ void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_
         return;
     }
     switch (source_value_type) {
+        case VALUE_TYPE_S8:
+            | movsx Rq(dst_reg), Rb(src_reg)
+            break;
+        case VALUE_TYPE_U8:
+            | movzx Rq(dst_reg), Rb(src_reg)
+            break;
         case VALUE_TYPE_S16:
             | movsx Rq(dst_reg), Rw(src_reg)
             break;
@@ -214,7 +236,7 @@ void host_emit_call(dasm_State** Dst, uintptr_t function) {
     | call rax
 }
 
-void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond) {
+void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum args_reversed args_reversed) {
     if (dest_reg >= 0) {
         switch (cond) {
             case CONDITION_NOT_EQUAL:
@@ -223,12 +245,25 @@ void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond) {
             case CONDITION_EQUAL:
                 | sete Rb(dest_reg)
                 break;
+            case CONDITION_LESS_THAN:
+                if (args_reversed) {
+                    | setge Rb(dest_reg)
+                } else {
+                    | setl Rb(dest_reg)
+                }
+
         }
     }
 }
 
 void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, ir_set_constant_t operand2, enum args_reversed args_reversed) {
     switch (operand2.type) {
+        case VALUE_TYPE_S8:
+            | cmp Rq(operand1), operand2.value_s8
+            break;
+        case VALUE_TYPE_U8:
+            | cmp Rq(operand1), operand2.value_s8
+            break;
         case VALUE_TYPE_S16:
             | cmp Rq(operand1), operand2.value_s16
             break;
@@ -245,12 +280,12 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, 
             IMM64_INVALID();
             break;
     }
-    set_dest_cond(Dst, dest_reg, cond);
+    set_dest_cond(Dst, dest_reg, cond, args_reversed);
 }
 
 void host_emit_cmp_reg_reg(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, int operand2, enum args_reversed args_reversed) {
     | cmp Rq(operand1), Rq(operand2)
-    set_dest_cond(Dst, dest_reg, cond);
+    set_dest_cond(Dst, dest_reg, cond, args_reversed);
 }
 
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {

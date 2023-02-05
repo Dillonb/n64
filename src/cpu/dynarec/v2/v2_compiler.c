@@ -192,9 +192,17 @@ void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
         logfatal("Emitting IR_STORE directly to memory");
     } else {
         switch (instr->store.type) {
+            case VALUE_TYPE_S8:
+            case VALUE_TYPE_U8:
+                val_to_func_arg(Dst, instr->store.address, 0);
+                val_to_func_arg(Dst, instr->store.value, 1);
+                host_emit_call(Dst, (uintptr_t)n64_write_physical_byte);
+                break;
             case VALUE_TYPE_S16:
             case VALUE_TYPE_U16:
-                logfatal("Store 16 bit");
+                val_to_func_arg(Dst, instr->store.address, 0);
+                val_to_func_arg(Dst, instr->store.value, 1);
+                host_emit_call(Dst, (uintptr_t)n64_write_physical_half);
                 break;
             case VALUE_TYPE_S32:
             case VALUE_TYPE_U32:
@@ -203,7 +211,9 @@ void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
                 host_emit_call(Dst, (uintptr_t)n64_write_physical_word);
                 break;
             case VALUE_TYPE_64:
-                logfatal("Store 64 bit");
+                val_to_func_arg(Dst, instr->store.address, 0);
+                val_to_func_arg(Dst, instr->store.value, 1);
+                host_emit_call(Dst, (uintptr_t)n64_write_physical_dword);
                 break;
         }
     }
@@ -215,6 +225,12 @@ void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
         logfatal("Emitting IR_LOAD directly from memory");
     } else {
         switch (instr->load.type) {
+            case VALUE_TYPE_S8:
+            case VALUE_TYPE_U8:
+                val_to_func_arg(Dst, instr->load.address, 0);
+                host_emit_call(Dst, (uintptr_t)n64_read_physical_byte);
+                host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg(), instr->load.type);
+                break;
             case VALUE_TYPE_S16:
             case VALUE_TYPE_U16:
                 val_to_func_arg(Dst, instr->load.address, 0);

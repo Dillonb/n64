@@ -9,10 +9,13 @@
 
 typedef enum ir_condition {
     CONDITION_NOT_EQUAL,
-    CONDITION_EQUAL
+    CONDITION_EQUAL,
+    CONDITION_LESS_THAN
 } ir_condition_t;
 
 typedef enum ir_value_type {
+    VALUE_TYPE_U8,
+    VALUE_TYPE_S8,
     VALUE_TYPE_S16,
     VALUE_TYPE_U16,
     VALUE_TYPE_S32,
@@ -28,6 +31,8 @@ typedef enum ir_shift_direction {
 typedef struct ir_set_constant {
     ir_value_type_t type;
     union {
+        s8 value_s8;
+        u8 value_u8;
         s16 value_s16;
         u16 value_u16;
         s32 value_s32;
@@ -153,7 +158,7 @@ ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, 
 // mask and cast a value to a different type.
 ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type_t type, u8 guest_reg);
 // check two operands with a condition and return 0 or 1
-ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2);
+ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2, u8 guest_reg);
 // set the block exit pc to one of two values based on a condition
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
 // set the block exit pc
