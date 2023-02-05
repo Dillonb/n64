@@ -245,7 +245,6 @@ void ir_optimize_eliminate_dead_code() {
 
     while (instr != NULL) {
         if (instr->dead_code) {
-            printf("Can eliminate v%d\n", instr->index);
             ir_instruction_t* prev = instr->prev;
             ir_instruction_t* next = instr->next;
 
@@ -270,13 +269,9 @@ void ir_optimize_shrink_constants() {
         if (instr->type == IR_SET_CONSTANT && instr->set_constant.type == VALUE_TYPE_64) {
             u64 val = instr->set_constant.value_64;
             if (val == (s64)(s16)val) {
-                printf("%016lX is actually a sign-extended 16 bit value!\n", val);
-
                 instr->set_constant.type = VALUE_TYPE_S16;
                 instr->set_constant.value_s16 = val & 0xFFFF;
             } else if (val == (s64)(s32)val) {
-                printf("%016lX is actually a sign-extended 32 bit value!\n", val);
-
                 instr->set_constant.type = VALUE_TYPE_S32;
                 instr->set_constant.value_s32 = val & 0xFFFFFFFF;
             }
@@ -393,7 +388,9 @@ void ir_allocate_registers() {
         if (needs_register_allocated(instr)) {
             instr->allocated_host_register = first_available_register(available_registers, register_lifetimes, num_registers);
             register_lifetimes[instr->allocated_host_register] = value_lifetime(instr);
+#ifdef N64_LOG_COMPILATIONS
             printf("v%d allocated to host register r%d with a lifetime of %d\n", instr->index, instr->allocated_host_register, register_lifetimes[instr->allocated_host_register]);
+#endif
         }
         instr = instr->next;
         for (int i = 0; i < num_registers; i++) {

@@ -11,7 +11,7 @@
 #include "ir_optimizer.h"
 #include "target_platform.h"
 
-#define N64_LOG_COMPILATIONS
+//#define N64_LOG_COMPILATIONS
 
 typedef struct source_instruction {
     mips_instruction_t instr;
@@ -415,7 +415,9 @@ void v2_compile_new_block(
 
     fill_temp_code(virtual_address, physical_address, code_mask);
     ir_context_reset();
+#ifdef N64_LOG_COMPILATIONS
     printf("Translating to IR:\n");
+#endif
     for (int i = 0; i < temp_code_len; i++) {
         u64 instr_virtual_address = virtual_address + (i << 2);
         u32 instr_physical_address = physical_address + (i << 2);
@@ -431,14 +433,20 @@ void v2_compile_new_block(
             }
         }
     }
+#ifdef N64_LOG_COMPILATIONS
     print_ir_block();
     printf("Optimizing IR: constant propagation\n");
+#endif
     ir_optimize_constant_propagation();
+#ifdef N64_LOG_COMPILATIONS
     print_ir_block();
     printf("Optimizing IR: eliminating dead code\n");
+#endif
     ir_optimize_eliminate_dead_code();
     ir_optimize_shrink_constants();
+#ifdef N64_LOG_COMPILATIONS
     print_ir_block();
+#endif
     ir_allocate_registers();
     v2_emit_block(block);
 }
