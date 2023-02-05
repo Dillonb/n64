@@ -19,6 +19,11 @@ typedef enum ir_value_type {
     VALUE_TYPE_64
 } ir_value_type_t;
 
+typedef enum ir_shift_direction {
+    SHIFT_DIRECTION_LEFT,
+    SHIFT_DIRECTION_RIGHT
+} ir_shift_direction_t;
+
 typedef struct ir_set_constant {
     ir_value_type_t type;
     union {
@@ -44,6 +49,7 @@ typedef struct ir_instruction {
         IR_OR,
         IR_AND,
         IR_ADD,
+        IR_SHIFT,
         IR_STORE,
         IR_LOAD,
         IR_MASK_AND_CAST,
@@ -97,6 +103,12 @@ typedef struct ir_instruction {
             struct ir_instruction* value;
             u8 guest_reg;
         } flush_guest_reg;
+        struct {
+            struct ir_instruction* operand;
+            struct ir_instruction* amount;
+            ir_value_type_t type;
+            ir_shift_direction_t direction;
+        } shift;
     };
 } ir_instruction_t;
 
@@ -131,6 +143,8 @@ ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operan
 ir_instruction_t* ir_emit_and(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // ADD two values together.
 ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
+// SHIFT a value of a given size in a given direction by a given amount
+ir_instruction_t* ir_emit_shift(ir_instruction_t* operand, ir_instruction_t* amount, ir_value_type_t value_type, ir_shift_direction_t direction, u8 guest_reg);
 // STORE a typed value into memory at an address
 ir_instruction_t* ir_emit_store(ir_value_type_t type, ir_instruction_t* address, ir_instruction_t* value);
 // LOAD a typed value a register from an address

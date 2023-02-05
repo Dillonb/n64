@@ -73,6 +73,12 @@ void ir_optimize_constant_propagation() {
                 }
                 break;
 
+            case IR_SHIFT:
+                if (binop_constant(instr)) {
+                    logfatal("const shift");
+                }
+                break;
+
             case IR_MASK_AND_CAST:
                 if (is_constant(instr->mask_and_cast.operand)) {
                     u64 value = const_to_u64(instr->mask_and_cast.operand);
@@ -159,6 +165,8 @@ void ir_optimize_eliminate_dead_code() {
                     instr->bin_op.operand2->dead_code = false;
                 }
                 break;
+
+            // Other
             case IR_MASK_AND_CAST:
                 if (!instr->dead_code) {
                     instr->mask_and_cast.operand->dead_code = false;
@@ -173,6 +181,12 @@ void ir_optimize_eliminate_dead_code() {
             case IR_TLB_LOOKUP:
                 if (!instr->dead_code) {
                     instr->tlb_lookup.virtual_address->dead_code = false;
+                }
+                break;
+            case IR_SHIFT:
+                if (!instr->dead_code) {
+                    instr->shift.operand->dead_code = false;
+                    instr->shift.amount->dead_code = false;
                 }
                 break;
 
@@ -260,6 +274,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_MASK_AND_CAST:
         case IR_CHECK_CONDITION:
         case IR_LOAD_GUEST_REG:
+        case IR_SHIFT:
             return true;
     }
 }
@@ -277,19 +292,23 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_FLUSH_GUEST_REG:
             return instr->flush_guest_reg.value == value;
 
-            // Bin ops
+        // Bin ops
         case IR_OR:
         case IR_AND:
         case IR_ADD:
             return instr->bin_op.operand1 == value || instr->bin_op.operand2 == value;
+
+        // Other
         case IR_MASK_AND_CAST:
             return instr->mask_and_cast.operand == value;
         case IR_CHECK_CONDITION:
             return instr->check_condition.operand1 == value || instr->check_condition.operand2 == value;
         case IR_TLB_LOOKUP:
             return instr->tlb_lookup.virtual_address == value;
+        case IR_SHIFT:
+            return instr->shift.operand == value || instr->shift.amount == value;
 
-            // No dependencies
+        // No dependencies
         case IR_NOP:
         case IR_SET_CONSTANT:
         case IR_LOAD_GUEST_REG:

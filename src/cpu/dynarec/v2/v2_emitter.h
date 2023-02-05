@@ -12,10 +12,11 @@ enum args_reversed {
 };
 
 void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
-void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg);
+void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_type_t source_value_type);
 
 void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
 void host_emit_add_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
+void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction);
 
 void v2_end_block(dasm_State** Dst, int block_length);
 void host_emit_cmp_reg_imm(dasm_State** Dst, int allocated_host_register, ir_condition_t cond, int reg, ir_set_constant_t imm_value, enum args_reversed args_reversed);
@@ -24,6 +25,7 @@ void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value);
 void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value);
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg);
 void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem);
+
 
 void host_emit_call(dasm_State** Dst, uintptr_t function);
 

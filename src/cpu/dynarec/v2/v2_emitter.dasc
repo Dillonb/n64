@@ -143,8 +143,70 @@ void host_emit_add_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
     }
 }
 
-void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg) {
-    | mov Rq(dst_reg), Rq(src_reg)
+void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
+   switch (type) {
+       case VALUE_TYPE_S16:
+       case VALUE_TYPE_U16:
+           logfatal("Shift 16 bit value");
+           break;
+
+       case VALUE_TYPE_S32:
+           switch (direction) {
+               case SHIFT_DIRECTION_LEFT:
+                   | sal Rd(reg), shift_amount
+                   break;
+               case SHIFT_DIRECTION_RIGHT:
+                   | sar Rd(reg), shift_amount
+                   break;
+           }
+           break;
+
+       case VALUE_TYPE_U32:
+           switch (direction) {
+               case SHIFT_DIRECTION_LEFT:
+                   | shl Rd(reg), shift_amount
+                   break;
+               case SHIFT_DIRECTION_RIGHT:
+                   | shr Rd(reg), shift_amount
+                   break;
+           }
+           break;
+
+       case VALUE_TYPE_64:
+           switch (direction) {
+               case SHIFT_DIRECTION_LEFT:
+                   logfatal("shl 64");
+                   break;
+               case SHIFT_DIRECTION_RIGHT:
+                   logfatal("shr 64");
+                   break;
+           }
+           break;
+   }
+}
+
+void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_type_t source_value_type) {
+    if (source_value_type == VALUE_TYPE_64 && dst_reg == src_reg) {
+        return;
+    }
+    switch (source_value_type) {
+        case VALUE_TYPE_S16:
+            | movsx Rq(dst_reg), Rw(src_reg)
+            break;
+        case VALUE_TYPE_U16:
+            | movzx Rq(dst_reg), Rw(src_reg)
+            break;
+        case VALUE_TYPE_S32:
+            | movsxd Rq(dst_reg), Rd(src_reg)
+            break;
+        case VALUE_TYPE_U32:
+            // Writing to a 32 bit reg zero extends to the 64 bit reg
+            | mov Rd(dst_reg), Rd(src_reg)
+            break;
+        case VALUE_TYPE_64:
+            | mov Rq(dst_reg), Rq(src_reg)
+            break;
+    }
 }
 
 void host_emit_call(dasm_State** Dst, uintptr_t function) {
@@ -189,7 +251,6 @@ void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
         | add rdi, 4
         | mov cpu_state->next_pc, rdi
     } else {
-        logfatal("Mov from allocated host reg to PC, check to make sure this works");
         | mov rdi, Rq(value->allocated_host_register)
         | mov cpu_state->pc, rdi
         | add rdi, 4

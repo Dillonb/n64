@@ -147,10 +147,10 @@ void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
     if (binop_constant(instr)) {
         logfatal("Should have been caught by constant propagation");
     } else if (is_constant(instr->bin_op.operand1)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_64);
         host_emit_and_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
     } else if (is_constant(instr->bin_op.operand2)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
         host_emit_and_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
     } else {
         logfatal("Emitting IR_AND with two variable regs");
@@ -161,10 +161,10 @@ void compile_ir_add(dasm_State** Dst, ir_instruction_t* instr) {
     if (binop_constant(instr)) {
         logfatal("Should have been caught by constant propagation");
     } else if (is_constant(instr->bin_op.operand1)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_64);
         host_emit_add_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
     } else if (is_constant(instr->bin_op.operand2)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
         host_emit_add_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
     } else {
         logfatal("Emitting IR_AND with two variable regs");
@@ -182,7 +182,7 @@ void val_to_func_arg(dasm_State** Dst, ir_instruction_t* val, int arg_index) {
     if (is_constant(val) && is_valid_immediate(val->set_constant.type)) {
         host_emit_mov_reg_imm(Dst, get_func_arg_registers()[arg_index], val->set_constant);
     } else {
-        host_emit_mov_reg_reg(Dst, get_func_arg_registers()[arg_index], val->allocated_host_register);
+        host_emit_mov_reg_reg(Dst, get_func_arg_registers()[arg_index], val->allocated_host_register, VALUE_TYPE_64);
     }
 }
 
@@ -217,18 +217,30 @@ void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
         switch (instr->load.type) {
             case VALUE_TYPE_S16:
             case VALUE_TYPE_U16:
-                logfatal("Load 16 bit");
+                val_to_func_arg(Dst, instr->load.address, 0);
+                host_emit_call(Dst, (uintptr_t)n64_read_physical_half);
+                host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg(), instr->load.type);
                 break;
             case VALUE_TYPE_S32:
             case VALUE_TYPE_U32:
                 val_to_func_arg(Dst, instr->load.address, 0);
                 host_emit_call(Dst, (uintptr_t)n64_read_physical_word);
-                host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg());
+                host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg(), instr->load.type);
                 break;
             case VALUE_TYPE_64:
-                logfatal("Load 64 bit");
+                val_to_func_arg(Dst, instr->load.address, 0);
+                host_emit_call(Dst, (uintptr_t)n64_read_physical_dword);
+                host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg(), instr->load.type);
                 break;
         }
+    }
+}
+
+void compile_ir_mask_and_cast(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr->mask_and_cast.operand)) {
+        logfatal("Should have been caught by constant propagation");
+    } else {
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->mask_and_cast.operand->allocated_host_register, instr->mask_and_cast.operand->type);
     }
 }
 
@@ -271,7 +283,7 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_reg_imm(Dst, get_func_arg_registers()[1], bus_access);
 
     host_emit_call(Dst, (uintptr_t)resolve_virtual_address_or_die);
-    host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg());
+    host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg(), VALUE_TYPE_64);
 }
 
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
@@ -279,6 +291,25 @@ void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
         host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant);
     } else {
         host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->allocated_host_register);
+    }
+}
+
+void compile_ir_shift(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr->shift.operand)) {
+        logfatal("Shift const operand");
+    } else {
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->shift.operand->allocated_host_register, VALUE_TYPE_64);
+        if (is_constant(instr->shift.amount)) {
+            u64 shift_amount_64 = const_to_u64(instr->shift.amount);
+            u8 shift_amount = shift_amount_64;
+            if (shift_amount_64 != shift_amount) {
+                logfatal("Const shift amount > 0xFF: %lu", shift_amount_64);
+            }
+
+            host_emit_shift_reg_imm(Dst, instr->allocated_host_register, instr->shift.type, shift_amount, instr->shift.direction);
+        } else {
+            logfatal("Shift variable operand and variable amount");
+        }
     }
 }
 
@@ -317,7 +348,7 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 compile_ir_load(Dst, instr);
                 break;
             case IR_MASK_AND_CAST:
-                logfatal("Emitting IR_MASK_AND_CAST");
+                compile_ir_mask_and_cast(Dst, instr);
                 break;
             case IR_CHECK_CONDITION:
                 compile_ir_check_condition(Dst, instr);
@@ -334,9 +365,11 @@ void v2_emit_block(n64_dynarec_block_t* block) {
             case IR_LOAD_GUEST_REG:
                 compile_ir_load_guest_reg(Dst, instr);
                 break;
-
             case IR_FLUSH_GUEST_REG:
                 compile_ir_flush_guest_reg(Dst, instr);
+                break;
+            case IR_SHIFT:
+                compile_ir_shift(Dst, instr);
                 break;
         }
         instr = instr->next;

@@ -24,6 +24,11 @@ void ir_emit_abs_branch(ir_instruction_t* address) {
     ir_emit_set_block_exit_pc(address);
 }
 
+void ir_emit_link(u8 guest_reg, u64 virtual_address) {
+    u64 link_addr = virtual_address + 4; // Skip delay slot
+    ir_emit_set_constant_64(link_addr, guest_reg);
+}
+
 IR_EMITTER(lui) {
     s64 ext = (s16)instruction.i.immediate;
     ext *= 65536;
@@ -42,6 +47,13 @@ IR_EMITTER(andi) {
     ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
 
     ir_emit_and(i_operand, i_operand2, instruction.i.rt);
+}
+
+IR_EMITTER(sll) {
+    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
+    ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_S32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(sw) {
@@ -71,6 +83,19 @@ IR_EMITTER(bne) {
 
 IR_EMITTER(jr) {
     ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
+}
+
+IR_EMITTER(jalr) {
+    ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
+    ir_emit_link(instruction.r.rd, virtual_address);
+}
+
+IR_EMITTER(add) {
+    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* addend2 = ir_emit_load_guest_reg(instruction.r.rt);
+    // TODO: check for signed overflow
+    ir_instruction_t* result = ir_emit_add(addend1, addend2, NO_GUEST_REG);
+    ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(mtc0) {
@@ -150,14 +175,14 @@ IR_EMITTER(cp0_instruction) {
 
 IR_EMITTER(special_instruction) {
     switch (instruction.r.funct) {
-        case FUNCT_SLL: IR_UNIMPLEMENTED(FUNCT_SLL);
+        case FUNCT_SLL: CALL_IR_EMITTER(sll);
         case FUNCT_SRL: IR_UNIMPLEMENTED(FUNCT_SRL);
         case FUNCT_SRA: IR_UNIMPLEMENTED(FUNCT_SRA);
         case FUNCT_SRAV: IR_UNIMPLEMENTED(FUNCT_SRAV);
         case FUNCT_SLLV: IR_UNIMPLEMENTED(FUNCT_SLLV);
         case FUNCT_SRLV: IR_UNIMPLEMENTED(FUNCT_SRLV);
         case FUNCT_JR: CALL_IR_EMITTER(jr);
-        case FUNCT_JALR: IR_UNIMPLEMENTED(FUNCT_JALR);
+        case FUNCT_JALR: CALL_IR_EMITTER(jalr);
         case FUNCT_SYSCALL: IR_UNIMPLEMENTED(FUNCT_SYSCALL);
         case FUNCT_MFHI: IR_UNIMPLEMENTED(FUNCT_MFHI);
         case FUNCT_MTHI: IR_UNIMPLEMENTED(FUNCT_MTHI);
@@ -174,7 +199,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DMULTU: IR_UNIMPLEMENTED(FUNCT_DMULTU);
         case FUNCT_DDIV: IR_UNIMPLEMENTED(FUNCT_DDIV);
         case FUNCT_DDIVU: IR_UNIMPLEMENTED(FUNCT_DDIVU);
-        case FUNCT_ADD: IR_UNIMPLEMENTED(FUNCT_ADD);
+        case FUNCT_ADD: CALL_IR_EMITTER(add);
         case FUNCT_ADDU: IR_UNIMPLEMENTED(FUNCT_ADDU);
         case FUNCT_AND: IR_UNIMPLEMENTED(FUNCT_AND);
         case FUNCT_NOR: IR_UNIMPLEMENTED(FUNCT_NOR);

@@ -116,6 +116,16 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_FLUSH_GUEST_REG:
             snprintf(buf, buf_size, "guest_gpr[%d] = v%d", instr->flush_guest_reg.guest_reg, instr->flush_guest_reg.value->index);
             break;
+        case IR_SHIFT:
+            switch (instr->shift.direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    snprintf(buf, buf_size, "v%d << v%d", instr->shift.operand->index, instr->shift.amount->index);
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    snprintf(buf, buf_size, "v%d >> v%d", instr->shift.operand->index, instr->shift.amount->index);
+                    break;
+            }
+            break;
     }
 }
 
@@ -231,6 +241,17 @@ ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* opera
     instruction.type = IR_ADD;
     instruction.bin_op.operand1 = operand;
     instruction.bin_op.operand2 = operand2;
+
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_shift(ir_instruction_t* operand, ir_instruction_t* amount, ir_value_type_t value_type, ir_shift_direction_t direction, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_SHIFT;
+    instruction.shift.operand = operand;
+    instruction.shift.amount = amount;
+    instruction.shift.type = value_type;
+    instruction.shift.direction = direction;
 
     return append_ir_instruction(instruction, guest_reg);
 }
