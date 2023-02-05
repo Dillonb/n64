@@ -51,6 +51,8 @@ const char* cond_to_str(ir_condition_t condition) {
             return "==";
         case CONDITION_LESS_THAN:
             return "<";
+        case CONDITION_GREATER_THAN:
+            return ">";
     }
 }
 

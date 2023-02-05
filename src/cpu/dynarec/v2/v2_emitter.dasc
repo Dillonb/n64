@@ -103,25 +103,25 @@ void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
     }
 }
 
-void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
-    switch (imm_value.type) {
+void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
+    switch (operand2.type) {
         case VALUE_TYPE_S8:
-            | and Rq(reg), imm_value.value_s8
+            | and Rq(operand1), operand2.value_s8
             break;
         case VALUE_TYPE_U8:
-            | and Rq(reg), imm_value.value_s8
+            | and Rq(operand1), operand2.value_s8
             break;
         case VALUE_TYPE_S16:
-            | and Rq(reg), imm_value.value_s16
+            | and Rq(operand1), operand2.value_s16
             break;
         case VALUE_TYPE_U16:
-            | and Rq(reg), imm_value.value_s16
+            | and Rq(operand1), operand2.value_s16
             break;
         case VALUE_TYPE_S32:
-            | and Rq(reg), imm_value.value_s32
+            | and Rq(operand1), operand2.value_s32
             break;
         case VALUE_TYPE_U32:
-            | and Rq(reg), imm_value.value_u32
+            | and Rq(operand1), operand2.value_u32
             break;
         case VALUE_TYPE_64:
             IMM64_INVALID();
@@ -129,30 +129,34 @@ void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
     }
 }
 
-void host_emit_add_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
-    switch (imm_value.type) {
+void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
+    switch (operand2.type) {
         case VALUE_TYPE_S8:
-            | add Rq(reg), imm_value.value_s8
+            | add Rq(operand1), operand2.value_s8
             break;
         case VALUE_TYPE_U8:
-            | add Rq(reg), imm_value.value_s8
+            | add Rq(operand1), operand2.value_s8
             break;
         case VALUE_TYPE_S16:
-            | add Rq(reg), imm_value.value_s16
+            | add Rq(operand1), operand2.value_s16
             break;
         case VALUE_TYPE_U16:
-            | add Rq(reg), imm_value.value_s16
+            | add Rq(operand1), operand2.value_s16
             break;
         case VALUE_TYPE_S32:
-            | add Rq(reg), imm_value.value_s32
+            | add Rq(operand1), operand2.value_s32
             break;
         case VALUE_TYPE_U32:
-            | add Rq(reg), imm_value.value_u32
+            | add Rq(operand1), operand2.value_u32
             break;
         case VALUE_TYPE_64:
             IMM64_INVALID();
             break;
     }
+}
+
+void host_emit_add_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    | add Rq(operand1), Rq(operand2)
 }
 
 void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
@@ -251,9 +255,17 @@ void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum arg
                 } else {
                     | setl Rb(dest_reg)
                 }
-
+                break;
+            case CONDITION_GREATER_THAN:
+                if (args_reversed) {
+                    | setle Rb(dest_reg)
+                } else {
+                    | setg Rb(dest_reg)
+                }
+                break;
         }
     }
+    | movzx Rd(dest_reg), Rb(dest_reg)
 }
 
 void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, ir_set_constant_t operand2, enum args_reversed args_reversed) {

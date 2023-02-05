@@ -140,6 +140,9 @@ void ir_optimize_constant_propagation() {
                         case CONDITION_LESS_THAN:
                             result = operand1 < operand2;
                             break;
+                        case CONDITION_GREATER_THAN:
+                            result = operand1 > operand2;
+                            break;
                     }
                     instr->type = IR_SET_CONSTANT;
                     instr->set_constant.type = VALUE_TYPE_64;

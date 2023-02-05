@@ -14,8 +14,9 @@ enum args_reversed {
 void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
 void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_type_t source_value_type);
 
-void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
-void host_emit_add_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
+void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2);
+void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2);
+void host_emit_add_reg_reg(dasm_State** Dst, int operand1, int operand2);
 void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction);
 
 void v2_end_block(dasm_State** Dst, int block_length);

@@ -10,7 +10,8 @@
 typedef enum ir_condition {
     CONDITION_NOT_EQUAL,
     CONDITION_EQUAL,
-    CONDITION_LESS_THAN
+    CONDITION_LESS_THAN,
+    CONDITION_GREATER_THAN
 } ir_condition_t;
 
 typedef enum ir_value_type {
