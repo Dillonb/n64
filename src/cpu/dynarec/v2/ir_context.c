@@ -279,9 +279,10 @@ ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions) {
     logfatal("Unimplemented: Fall back to interpreter for %d instructions", num_instructions);
 }
 
-ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg) {
+ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access) {
     ir_instruction_t instruction;
     instruction.type = IR_TLB_LOOKUP;
     instruction.tlb_lookup.virtual_address = virtual_address;
+    instruction.tlb_lookup.bus_access = bus_access;
     return append_ir_instruction(instruction, guest_reg);
 }

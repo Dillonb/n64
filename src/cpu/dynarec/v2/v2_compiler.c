@@ -157,6 +157,20 @@ void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_add(dasm_State** Dst, ir_instruction_t* instr) {
+    if (binop_constant(instr)) {
+        logfatal("Should have been caught by constant propagation");
+    } else if (is_constant(instr->bin_op.operand1)) {
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
+        host_emit_add_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
+    } else if (is_constant(instr->bin_op.operand2)) {
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register);
+        host_emit_add_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
+    } else {
+        logfatal("Emitting IR_AND with two variable regs");
+    }
+}
+
 bool is_memory(u64 address) {
     return false; // TODO
 }
@@ -168,7 +182,7 @@ void val_to_func_arg(dasm_State** Dst, ir_instruction_t* val, int arg_index) {
     if (is_constant(val) && is_valid_immediate(val->set_constant.type)) {
         host_emit_mov_reg_imm(Dst, get_func_arg_registers()[arg_index], val->set_constant);
     } else {
-        logfatal("Non constant func arg");
+        host_emit_mov_reg_reg(Dst, get_func_arg_registers()[arg_index], val->allocated_host_register);
     }
 }
 
@@ -242,6 +256,18 @@ void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
+    val_to_func_arg(Dst, instr->tlb_lookup.virtual_address, 0);
+
+    ir_set_constant_t bus_access;
+    bus_access.type = VALUE_TYPE_U16;
+    bus_access.value_u16 = instr->tlb_lookup.bus_access;
+    host_emit_mov_reg_imm(Dst, get_func_arg_registers()[1], bus_access);
+
+    host_emit_call(Dst, (uintptr_t)resolve_virtual_address_or_die);
+    host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg());
+}
+
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->flush_guest_reg.value)) {
         host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant);
@@ -276,7 +302,7 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 compile_ir_and(Dst, instr);
                 break;
             case IR_ADD:
-                logfatal("Emitting IR_ADD");
+                compile_ir_add(Dst, instr);
                 break;
             case IR_STORE:
                 compile_ir_store(Dst, instr);
@@ -294,7 +320,7 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 compile_ir_set_block_exit_pc(Dst, instr);
                 break;
             case IR_TLB_LOOKUP:
-                logfatal("Emitting IR_TLB_LOOKUP");
+                compile_ir_tlb_lookup(Dst, instr);
                 break;
             case IR_LOAD_GUEST_REG:
                 compile_ir_load_guest_reg(Dst, instr);

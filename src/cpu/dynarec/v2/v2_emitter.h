@@ -15,6 +15,7 @@ void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
 void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg);
 
 void host_emit_and_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
+void host_emit_add_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value);
 
 void v2_end_block(dasm_State** Dst, int block_length);
 void host_emit_cmp_reg_imm(dasm_State** Dst, int allocated_host_register, ir_condition_t cond, int reg, ir_set_constant_t imm_value, enum args_reversed args_reversed);

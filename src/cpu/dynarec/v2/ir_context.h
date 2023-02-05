@@ -2,6 +2,7 @@
 #define N64_IR_CONTEXT_H
 
 #include <util.h>
+#include <cpu/r4300i.h>
 
 // Number of IR instructions that can be cached per block. 4x the max number of instructions per block - should be safe.
 #define IR_CACHE_SIZE 4096
@@ -84,6 +85,7 @@ typedef struct ir_instruction {
         } check_condition;
         struct {
             struct ir_instruction* virtual_address;
+            bus_access_t bus_access;
         } tlb_lookup;
         struct {
             u8 guest_reg;
@@ -139,7 +141,7 @@ ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* condition, ir_inst
 // fall back to the interpreter for the next num_instructions instructions
 ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
 // lookup a memory address in the TLB
-ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg);
+ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

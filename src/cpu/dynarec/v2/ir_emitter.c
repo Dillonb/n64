@@ -7,11 +7,11 @@
 
 #define IR_UNIMPLEMENTED(opc) logfatal("Unimplemented IR translation for instruction " #opc)
 
-ir_instruction_t* get_memory_access_address(mips_instruction_t instruction) {
+ir_instruction_t* get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
     ir_instruction_t* base = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     ir_instruction_t* virtual = ir_emit_add(base, i_offset, NO_GUEST_REG);
-    return ir_emit_tlb_lookup(virtual, NO_GUEST_REG);
+    return ir_emit_tlb_lookup(virtual, NO_GUEST_REG, bus_access);
 }
 
 void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 virtual_address) {
@@ -42,13 +42,13 @@ IR_EMITTER(andi) {
 }
 
 IR_EMITTER(sw) {
-    ir_instruction_t* address = get_memory_access_address(instruction);
+    ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U32, address, value);
 }
 
 IR_EMITTER(lw) {
-    ir_emit_load(VALUE_TYPE_S32, get_memory_access_address(instruction), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S32, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(bne) {
