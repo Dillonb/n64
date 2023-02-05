@@ -49,9 +49,11 @@ const char* cond_to_str(ir_condition_t condition) {
             return "!=";
         case CONDITION_EQUAL:
             return "==";
-        case CONDITION_LESS_THAN:
+        case CONDITION_LESS_THAN_SIGNED:
+        case CONDITION_LESS_THAN_UNSIGNED:
             return "<";
-        case CONDITION_GREATER_THAN:
+        case CONDITION_GREATER_THAN_SIGNED:
+        case CONDITION_GREATER_THAN_UNSIGNED:
             return ">";
     }
 }

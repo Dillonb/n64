@@ -240,8 +240,8 @@ void ir_optimize_constant_propagation() {
 
             case IR_CHECK_CONDITION:
                 if (is_constant(instr->check_condition.operand1) && is_constant(instr->check_condition.operand2)) {
-                    s64 operand1 = const_to_u64(instr->check_condition.operand1);
-                    s64 operand2 = const_to_u64(instr->check_condition.operand2);
+                    u64 operand1 = const_to_u64(instr->check_condition.operand1);
+                    u64 operand2 = const_to_u64(instr->check_condition.operand2);
                     bool result = false;
                     switch (instr->check_condition.condition) {
                         case CONDITION_NOT_EQUAL:
@@ -250,10 +250,16 @@ void ir_optimize_constant_propagation() {
                         case CONDITION_EQUAL:
                             result = operand1 == operand2;
                             break;
-                        case CONDITION_LESS_THAN:
+                        case CONDITION_LESS_THAN_SIGNED:
+                            result = (s64)operand1 < (s64)operand2;
+                            break;
+                        case CONDITION_LESS_THAN_UNSIGNED:
                             result = operand1 < operand2;
                             break;
-                        case CONDITION_GREATER_THAN:
+                        case CONDITION_GREATER_THAN_SIGNED:
+                            result = (s64)operand1 > (s64)operand2;
+                            break;
+                        case CONDITION_GREATER_THAN_UNSIGNED:
                             result = operand1 > operand2;
                             break;
                     }

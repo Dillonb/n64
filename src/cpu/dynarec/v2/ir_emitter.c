@@ -122,7 +122,7 @@ IR_EMITTER(beq) {
 IR_EMITTER(bgtz) {
     ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* zero = ir_emit_load_guest_reg(0);
-    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_THAN, rs, zero, NO_GUEST_REG);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_THAN_SIGNED, rs, zero, NO_GUEST_REG);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
@@ -164,6 +164,18 @@ IR_EMITTER(addu) {
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
+IR_EMITTER(and) {
+    ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_emit_and(operand1, operand2, instruction.r.rd);
+}
+
+IR_EMITTER(or) {
+    ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_emit_or(operand1, operand2, instruction.r.rd);
+}
+
 IR_EMITTER(addiu) {
     ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
@@ -182,12 +194,25 @@ IR_EMITTER(addi) {
 IR_EMITTER(slt) {
     ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.r.rs);
     ir_instruction_t* op2 = ir_emit_load_guest_reg(instruction.r.rt);
-    ir_emit_check_condition(CONDITION_LESS_THAN, op1, op2, instruction.r.rd);
+    ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, op1, op2, instruction.r.rd);
+}
+
+IR_EMITTER(sltu) {
+    ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* op2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_emit_check_condition(CONDITION_LESS_THAN_UNSIGNED, op1, op2, instruction.r.rd);
 }
 
 IR_EMITTER(mtc0) {
     ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
     switch (instruction.r.rd) {
+        // Passthrough
+        case R4300I_CP0_REG_TAGLO:
+        case R4300I_CP0_REG_TAGHI:
+            ir_emit_set_cp0(instruction.r.rd, value);
+            break;
+
+        // Other
         case R4300I_CP0_REG_INDEX: logfatal("emit MTC0 R4300I_CP0_REG_INDEX");
         case R4300I_CP0_REG_RANDOM: logfatal("emit MTC0 R4300I_CP0_REG_RANDOM");
         case R4300I_CP0_REG_COUNT: {
@@ -208,10 +233,6 @@ IR_EMITTER(mtc0) {
             ir_emit_set_cp0(R4300I_CP0_REG_CAUSE, new_cause);
             break;
         }
-        case R4300I_CP0_REG_TAGLO: {
-            logfatal("emit MTC0 R4300I_CP0_REG_TAGLO");
-        }
-        case R4300I_CP0_REG_TAGHI: logfatal("emit MTC0 R4300I_CP0_REG_TAGHI");
         case R4300I_CP0_REG_COMPARE: {
             // Lower compare interrupt
             ir_emit_set_cp0(R4300I_CP0_REG_CAUSE,
@@ -321,14 +342,14 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DDIVU: IR_UNIMPLEMENTED(FUNCT_DDIVU);
         case FUNCT_ADD: CALL_IR_EMITTER(add);
         case FUNCT_ADDU: CALL_IR_EMITTER(addu);
-        case FUNCT_AND: IR_UNIMPLEMENTED(FUNCT_AND);
+        case FUNCT_AND: CALL_IR_EMITTER(and);
         case FUNCT_NOR: IR_UNIMPLEMENTED(FUNCT_NOR);
         case FUNCT_SUB: IR_UNIMPLEMENTED(FUNCT_SUB);
         case FUNCT_SUBU: IR_UNIMPLEMENTED(FUNCT_SUBU);
-        case FUNCT_OR: IR_UNIMPLEMENTED(FUNCT_OR);
+        case FUNCT_OR: CALL_IR_EMITTER(or);
         case FUNCT_XOR: IR_UNIMPLEMENTED(FUNCT_XOR);
         case FUNCT_SLT: CALL_IR_EMITTER(slt);
-        case FUNCT_SLTU: IR_UNIMPLEMENTED(FUNCT_SLTU);
+        case FUNCT_SLTU: CALL_IR_EMITTER(sltu);
         case FUNCT_DADD: IR_UNIMPLEMENTED(FUNCT_DADD);
         case FUNCT_DADDU: IR_UNIMPLEMENTED(FUNCT_DADDU);
         case FUNCT_DSUB: IR_UNIMPLEMENTED(FUNCT_DSUB);
@@ -437,7 +458,7 @@ IR_EMITTER(instruction) {
         case OPC_BLEZL: IR_UNIMPLEMENTED(OPC_BLEZL);
         case OPC_BNE: CALL_IR_EMITTER(bne);
         case OPC_BNEL: IR_UNIMPLEMENTED(OPC_BNEL);
-        case OPC_CACHE: IR_UNIMPLEMENTED(OPC_CACHE);
+        case OPC_CACHE: return; // treat CACHE as a NOP for now
         case OPC_SB: IR_UNIMPLEMENTED(OPC_SB);
         case OPC_SH: CALL_IR_EMITTER(sh);
         case OPC_SW: CALL_IR_EMITTER(sw);
