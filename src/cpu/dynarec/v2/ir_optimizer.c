@@ -226,9 +226,9 @@ void ir_optimize_shrink_constants() {
     }
 }
 
-int first_available_register(bool* available_registers, int num_registers) {
+int first_available_register(bool* available_registers, const int* register_lifetimes, int num_registers) {
     for (int i = 0; i < num_registers; i++) {
-        if (available_registers[i]) {
+        if (available_registers[i] || register_lifetimes[i] < 0) {
             available_registers[i] = false;
             return i;
         }
@@ -239,17 +239,68 @@ int first_available_register(bool* available_registers, int num_registers) {
 bool needs_register_allocated(ir_instruction_t* instr) {
     if (instr->type == IR_SET_CONSTANT) {
         return !is_valid_immediate(instr->set_constant.type);
-    } else if (instr->type == IR_FLUSH_GUEST_REG) {
+    } else if (instr->type == IR_FLUSH_GUEST_REG || instr->type == IR_STORE || instr->type == IR_SET_BLOCK_EXIT_PC) {
         return false;
     } else {
         return true;
     }
 }
 
+bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
+    switch (instr->type) {
+        case IR_STORE:
+            return instr->store.address == value || instr->store.value == value;
+        case IR_LOAD:
+            return instr->load.address == value;
+        case IR_SET_BLOCK_EXIT_PC:
+            return instr->set_exit_pc.condition == value || instr->set_exit_pc.pc_if_true == value || instr->set_exit_pc.pc_if_false == value;
+        case IR_FLUSH_GUEST_REG:
+            return instr->flush_guest_reg.value == value;
+
+            // Bin ops
+        case IR_OR:
+        case IR_AND:
+        case IR_ADD:
+            return instr->bin_op.operand1 == value || instr->bin_op.operand2 == value;
+        case IR_MASK_AND_CAST:
+            return instr->mask_and_cast.operand == value;
+        case IR_CHECK_CONDITION:
+            return instr->check_condition.operand1 == value || instr->check_condition.operand2 == value;
+        case IR_TLB_LOOKUP:
+            return instr->tlb_lookup.virtual_address == value;
+
+            // No dependencies
+        case IR_NOP:
+        case IR_SET_CONSTANT:
+        case IR_LOAD_GUEST_REG:
+            return false;
+    }
+}
+
+int value_lifetime(ir_instruction_t* value) {
+    int lifetime = 0;
+    ir_instruction_t* instr = value->next;
+    int times_stepped = 1;
+
+    while (instr) {
+        if (instr_uses_value(instr, value)) {
+            lifetime = times_stepped;
+        }
+        instr = instr->next;
+        times_stepped++;
+    }
+
+    return lifetime;
+}
+
 void ir_allocate_registers() {
-    bool available_registers[get_num_registers()];
-    for (int i = 0; i < get_num_registers(); i++) {
+    int num_registers = get_num_registers();
+
+    bool available_registers[num_registers];
+    int register_lifetimes[num_registers];
+    for (int i = 0; i < num_registers; i++) {
         available_registers[i] = false;
+        register_lifetimes[i] = -1;
     }
     for (int i = 0; i < get_num_preserved_registers(); i++) {
         available_registers[get_preserved_registers()[i]] = true;
@@ -259,9 +310,15 @@ void ir_allocate_registers() {
     while (instr != NULL) {
         instr->allocated_host_register = -1;
         if (needs_register_allocated(instr)) {
-            instr->allocated_host_register = first_available_register(available_registers, get_num_registers());
-            printf("v%d allocated to host register r%d\n", instr->index, instr->allocated_host_register);
+            instr->allocated_host_register = first_available_register(available_registers, register_lifetimes, num_registers);
+            register_lifetimes[instr->allocated_host_register] = value_lifetime(instr);
+            printf("v%d allocated to host register r%d with a lifetime of %d\n", instr->index, instr->allocated_host_register, register_lifetimes[instr->allocated_host_register]);
         }
         instr = instr->next;
+        for (int i = 0; i < num_registers; i++) {
+            if (register_lifetimes[i] >= 0) {
+                register_lifetimes[i]--;
+            }
+        }
     }
 }
