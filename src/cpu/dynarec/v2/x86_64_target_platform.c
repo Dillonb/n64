@@ -1,5 +1,9 @@
 #include "target_platform.h"
 
+int get_num_registers() {
+    return 16;
+}
+
 typedef enum x86_64_register {
     REG_RAX,
     REG_RCX,
@@ -25,7 +29,8 @@ const int* get_preserved_registers() {
             // Yes, it's preserved, but we can't use it for register allocation.
             //REG_RSP,
             REG_RBP,
-            REG_R12,
+            // holds the CPU state
+            //REG_R12,
             REG_R13,
             REG_R14,
             REG_R15
@@ -35,7 +40,7 @@ const int* get_preserved_registers() {
 }
 
 int get_num_preserved_registers() {
-    return 6; // 7 if we include the stack pointer, but we can't.
+    return 5; // 7 if we include the stack pointer and r12, but we can't.
 }
 
 const int* get_scratch_registers() {

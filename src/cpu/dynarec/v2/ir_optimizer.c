@@ -4,6 +4,48 @@
 #include "ir_optimizer.h"
 #include "target_platform.h"
 
+bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
+    switch (instr->type) {
+        // Unary ops
+        case IR_SET_BLOCK_EXIT_PC:
+        case IR_NOT:
+            return instr->unary_op.operand == value;
+
+            // Bin ops
+        case IR_OR:
+        case IR_AND:
+        case IR_ADD:
+            return instr->bin_op.operand1 == value || instr->bin_op.operand2 == value;
+
+            // Other
+        case IR_MASK_AND_CAST:
+            return instr->mask_and_cast.operand == value;
+        case IR_CHECK_CONDITION:
+            return instr->check_condition.operand1 == value || instr->check_condition.operand2 == value;
+        case IR_TLB_LOOKUP:
+            return instr->tlb_lookup.virtual_address == value;
+        case IR_SHIFT:
+            return instr->shift.operand == value || instr->shift.amount == value;
+        case IR_STORE:
+            return instr->store.address == value || instr->store.value == value;
+        case IR_LOAD:
+            return instr->load.address == value;
+        case IR_SET_COND_BLOCK_EXIT_PC:
+            return instr->set_cond_exit_pc.condition == value || instr->set_cond_exit_pc.pc_if_true == value || instr->set_cond_exit_pc.pc_if_false == value;
+        case IR_FLUSH_GUEST_REG:
+            return instr->flush_guest_reg.value == value;
+        case IR_SET_CP0:
+            return instr->set_cp0.value == value;
+
+            // No dependencies
+        case IR_NOP:
+        case IR_SET_CONSTANT:
+        case IR_LOAD_GUEST_REG:
+        case IR_GET_CP0:
+            return false;
+    }
+}
+
 u64 set_const_to_u64(ir_set_constant_t constant) {
     switch (constant.type) {
         case VALUE_TYPE_S8:
@@ -27,6 +69,34 @@ u64 const_to_u64(ir_instruction_t* constant) {
     return set_const_to_u64(constant->set_constant);
 }
 
+ir_instruction_t* last_value_usage(ir_instruction_t* value) {
+    ir_instruction_t* last_usage = value;
+    ir_instruction_t* iter = value->next;
+
+    while (iter != NULL) {
+        if (instr_uses_value(iter, value)) {
+            last_usage = iter;
+        }
+        iter = iter->next;
+    }
+
+    return last_usage;
+}
+
+void ir_optimize_flush_guest_regs() {
+    // Flush all guest regs in use at the end
+    for (int i = 1; i < 32; i++) {
+        ir_instruction_t* val = ir_context.guest_gpr_to_value[i];
+        if (val) {
+            // If the guest reg was just loaded and never modified, don't need to flush it
+            if (val->type != IR_LOAD_GUEST_REG) {
+                ir_instruction_t* last_usage = last_value_usage(val);
+                ir_emit_flush_guest_reg(last_usage, val, i);
+            }
+        }
+    }
+}
+
 void ir_optimize_constant_propagation() {
     ir_instruction_t* instr = ir_context.ir_cache_head;
     while (instr != NULL) {
@@ -40,6 +110,17 @@ void ir_optimize_constant_propagation() {
             case IR_SET_BLOCK_EXIT_PC:
             case IR_LOAD_GUEST_REG:
             case IR_FLUSH_GUEST_REG:
+            case IR_GET_CP0:
+            case IR_SET_CP0:
+                break;
+
+            case IR_NOT:
+                if (is_constant(instr->unary_op.operand)) {
+                    u64 new_value = ~const_to_u64(instr->unary_op.operand);
+                    instr->type = IR_SET_CONSTANT;
+                    instr->set_constant.type = VALUE_TYPE_64;
+                    instr->set_constant.value_64 = new_value;
+                }
                 break;
 
             case IR_SET_COND_BLOCK_EXIT_PC:
@@ -48,7 +129,7 @@ void ir_optimize_constant_propagation() {
                     ir_instruction_t* if_false = instr->set_cond_exit_pc.pc_if_false;
                     ir_instruction_t* if_true  = instr->set_cond_exit_pc.pc_if_true;
                     instr->type = IR_SET_BLOCK_EXIT_PC;
-                    instr->set_exit_pc.address = cond != 0 ? if_true : if_false;
+                    instr->unary_op.operand = cond != 0 ? if_true : if_false;
                 }
                 break;
 
@@ -87,8 +168,40 @@ void ir_optimize_constant_propagation() {
                 break;
 
             case IR_SHIFT:
-                if (binop_constant(instr)) {
-                    logfatal("const shift");
+                if (is_constant(instr->shift.operand) && is_constant(instr->shift.amount)) {
+                    u64 operand = const_to_u64(instr->shift.operand);
+                    u64 amount_64 = const_to_u64(instr->shift.amount);
+                    if (amount_64 > 63) {
+                        logfatal("const shift amount (%lu) much too large - something is wrong", amount_64);
+                    }
+                    u8 amount = amount_64 & 0xFF;
+
+                    switch (instr->shift.direction) {
+                        case SHIFT_DIRECTION_LEFT:
+                            switch (instr->shift.type) {
+                                case VALUE_TYPE_U8:
+                                case VALUE_TYPE_S8:
+                                    logfatal("const left 8 bit shift");
+                                    break;
+                                case VALUE_TYPE_S16:
+                                case VALUE_TYPE_U16:
+                                    logfatal("const left 16 bit shift");
+                                    break;
+                                case VALUE_TYPE_S32:
+                                case VALUE_TYPE_U32:
+                                    logfatal("const left 32 bit shift");
+                                    break;
+                                case VALUE_TYPE_64:
+                                    instr->type = IR_SET_CONSTANT;
+                                    instr->set_constant.type = VALUE_TYPE_64;
+                                    instr->set_constant.value_64 = operand << amount;
+                                    break;
+                            }
+                            break;
+                        case SHIFT_DIRECTION_RIGHT:
+                            logfatal("const right shift");
+                            break;
+                    }
                 }
                 break;
 
@@ -183,7 +296,7 @@ void ir_optimize_eliminate_dead_code() {
                 instr->dead_code = false;
                 break;
             case IR_SET_BLOCK_EXIT_PC:
-                instr->set_exit_pc.address->dead_code = false;
+                instr->unary_op.operand->dead_code = false;
                 instr->dead_code = false;
                 break;
             case IR_SET_COND_BLOCK_EXIT_PC:
@@ -195,6 +308,17 @@ void ir_optimize_eliminate_dead_code() {
             case IR_FLUSH_GUEST_REG:
                 instr->flush_guest_reg.value->dead_code = false;
                 instr->dead_code = false;
+                break;
+            case IR_SET_CP0:
+                instr->dead_code = false;
+                instr->set_cp0.value->dead_code = false;
+                break;
+
+            // Unary ops
+            case IR_NOT:
+                if (!instr->dead_code) {
+                    instr->unary_op.operand->dead_code = false;
+                }
                 break;
 
             // Bin ops
@@ -232,6 +356,7 @@ void ir_optimize_eliminate_dead_code() {
                 break;
 
             // No dependencies
+            case IR_GET_CP0: // Getting a CP0 reg never has side effects
             case IR_NOP:
             case IR_SET_CONSTANT:
             case IR_LOAD_GUEST_REG:
@@ -301,6 +426,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_SET_BLOCK_EXIT_PC:
         case IR_STORE:
         case IR_FLUSH_GUEST_REG:
+        case IR_SET_CP0:
             return false;
 
         case IR_TLB_LOOKUP:
@@ -312,44 +438,9 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_CHECK_CONDITION:
         case IR_LOAD_GUEST_REG:
         case IR_SHIFT:
+        case IR_NOT:
+        case IR_GET_CP0:
             return true;
-    }
-}
-
-bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
-    switch (instr->type) {
-        case IR_STORE:
-            return instr->store.address == value || instr->store.value == value;
-        case IR_LOAD:
-            return instr->load.address == value;
-        case IR_SET_BLOCK_EXIT_PC:
-            return instr->set_exit_pc.address == value;
-        case IR_SET_COND_BLOCK_EXIT_PC:
-            return instr->set_cond_exit_pc.condition == value || instr->set_cond_exit_pc.pc_if_true == value || instr->set_cond_exit_pc.pc_if_false == value;
-        case IR_FLUSH_GUEST_REG:
-            return instr->flush_guest_reg.value == value;
-
-        // Bin ops
-        case IR_OR:
-        case IR_AND:
-        case IR_ADD:
-            return instr->bin_op.operand1 == value || instr->bin_op.operand2 == value;
-
-        // Other
-        case IR_MASK_AND_CAST:
-            return instr->mask_and_cast.operand == value;
-        case IR_CHECK_CONDITION:
-            return instr->check_condition.operand1 == value || instr->check_condition.operand2 == value;
-        case IR_TLB_LOOKUP:
-            return instr->tlb_lookup.virtual_address == value;
-        case IR_SHIFT:
-            return instr->shift.operand == value || instr->shift.amount == value;
-
-        // No dependencies
-        case IR_NOP:
-        case IR_SET_CONSTANT:
-        case IR_LOAD_GUEST_REG:
-            return false;
     }
 }
 

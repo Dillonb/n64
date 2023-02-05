@@ -99,6 +99,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_AND:
             snprintf(buf, buf_size, "v%d & v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
             break;
+        case IR_NOT:
+            snprintf(buf, buf_size, "~v%d", instr->unary_op.operand->index);
+            break;
         case IR_ADD:
             snprintf(buf, buf_size, "v%d + v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
             break;
@@ -118,7 +121,7 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                      instr->check_condition.operand2->index);
             break;
         case IR_SET_BLOCK_EXIT_PC:
-            snprintf(buf, buf_size, "set_block_exit(v%d)", instr->set_exit_pc.address->index);
+            snprintf(buf, buf_size, "set_block_exit(v%d)", instr->unary_op.operand->index);
             break;
         case IR_SET_COND_BLOCK_EXIT_PC:
             snprintf(buf, buf_size, "set_block_exit(v%d, if_true = v%d, if_false = v%d)", instr->set_cond_exit_pc.condition->index, instr->set_cond_exit_pc.pc_if_true->index, instr->set_cond_exit_pc.pc_if_false->index);
@@ -142,6 +145,12 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                     break;
             }
             break;
+        case IR_GET_CP0:
+            snprintf(buf, buf_size, "guest_cp0[%d]", instr->get_cp0.reg);
+            break;
+        case IR_SET_CP0:
+            snprintf(buf, buf_size, "guest_cp0[%d] = v%d", instr->set_cp0.reg, instr->set_cp0.value->index);
+            break;
     }
 }
 
@@ -151,22 +160,47 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
     }
 }
 
-ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, u8 guest_reg) {
+ir_instruction_t* allocate_ir_instruction(ir_instruction_t instruction) {
     int index = ir_context.ir_cache_index++;
-    ir_instruction_t* allocation = &ir_context.ir_cache[index];
-    *allocation = instruction;
+    ir_context.ir_cache[index] = instruction;
+    ir_context.ir_cache[index].index = index;
+    ir_context.ir_cache[index].dead_code = true; // Will be marked false at the dead code elimination stage
+    ir_context.ir_cache[index].allocated_host_register = -1;
+    return &ir_context.ir_cache[index];
+}
+
+ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, u8 guest_reg) {
+    ir_instruction_t* allocation = allocate_ir_instruction(instruction);
 
     allocation->next = NULL;
     allocation->prev = ir_context.ir_cache_tail;
-    allocation->index = index;
-    allocation->dead_code = true; // Will be marked false at the dead code elimination stage
-    allocation->allocated_host_register = -1;
 
     ir_context.ir_cache_tail->next = allocation;
     ir_context.ir_cache_tail = allocation;
 
     update_guest_reg_mapping(guest_reg, allocation);
     return allocation;
+}
+
+ir_instruction_t* insert_ir_instruction(ir_instruction_t* after, ir_instruction_t instruction) {
+    if (after == NULL) {
+        logfatal("insert_ir_instruction with null 'after'");
+    }
+    ir_instruction_t* old_next = after->next;
+    if (old_next == NULL) {
+        // Inserting at the end
+        return append_ir_instruction(instruction, NO_GUEST_REG);
+    } else {
+        ir_instruction_t* allocation = allocate_ir_instruction(instruction);
+
+        after->next = allocation;
+
+        allocation->prev = after;
+        allocation->next = old_next;
+
+        old_next->prev = allocation;
+        return allocation;
+    }
 }
 
 ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
@@ -227,7 +261,11 @@ ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
     return append_ir_instruction(instruction, guest_reg);
 }
 
-ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* value, u8 guest_reg) {
+ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* last_usage, ir_instruction_t* value, u8 guest_reg) {
+    if (last_usage == NULL) {
+        logfatal("ir_emit_flush_guest_reg with null last_usage");
+    }
+
     if (guest_reg == 0) {
         logfatal("Should never flush r0");
     }
@@ -236,7 +274,7 @@ ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* value, u8 guest_reg)
     instruction.flush_guest_reg.guest_reg = guest_reg;
     instruction.flush_guest_reg.value = value;
 
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return insert_ir_instruction(last_usage, instruction);
 }
 
 ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {
@@ -244,6 +282,14 @@ ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operan
     instruction.type = IR_OR;
     instruction.bin_op.operand1 = operand;
     instruction.bin_op.operand2 = operand2;
+
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_not(ir_instruction_t* operand, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_NOT;
+    instruction.unary_op.operand = operand;
 
     return append_ir_instruction(instruction, guest_reg);
 }
@@ -323,7 +369,7 @@ ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condit
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {
     ir_instruction_t instruction;
     instruction.type = IR_SET_BLOCK_EXIT_PC;
-    instruction.set_exit_pc.address = address;
+    instruction.unary_op.operand = address;
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
@@ -337,4 +383,21 @@ ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest
     instruction.tlb_lookup.virtual_address = virtual_address;
     instruction.tlb_lookup.bus_access = bus_access;
     return append_ir_instruction(instruction, guest_reg);
+}
+
+// Get a CP0 register
+ir_instruction_t* ir_emit_get_cp0(int cp0_reg, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_GET_CP0;
+    instruction.get_cp0.reg = cp0_reg;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+// Set a CP0 register
+ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value) {
+    ir_instruction_t instruction;
+    instruction.type = IR_SET_CP0;
+    instruction.set_cp0.reg = cp0_reg;
+    instruction.set_cp0.value = new_value;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
 }

@@ -140,7 +140,23 @@ static void* link_and_encode(dasm_State** d) {
 }
 
 void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
-    logfatal("Emitting IR_OR");
+    if (binop_constant(instr)) {
+        logfatal("Should have been caught by constant propagation");
+    } else if (is_constant(instr->bin_op.operand1)) {
+        u64 operand1 = const_to_u64(instr->bin_op.operand1);
+        if (operand1 != 0) { // TODO: catch this earlier in constant propagation
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_64);
+            host_emit_or_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
+        }
+    } else if (is_constant(instr->bin_op.operand2)) {
+        u64 operand2 = const_to_u64(instr->bin_op.operand2);
+        if (operand2 != 0) { // TODO: catch this earlier in constant propagation
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
+            host_emit_or_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
+        }
+    } else {
+        logfatal("Emitting IR_AND with two variable regs");
+    }
 }
 
 void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
@@ -290,7 +306,7 @@ void compile_ir_set_cond_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr
 
 void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
     ir_context.block_end_pc_set = true;
-    host_emit_mov_pc(Dst, instr->set_exit_pc.address);
+    host_emit_mov_pc(Dst, instr->unary_op.operand);
 }
 
 
@@ -337,6 +353,18 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg]);
 }
 
+void compile_ir_get_cp0(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_mov_reg_cp0(Dst, instr->allocated_host_register, instr->get_cp0.reg);
+}
+
+void compile_ir_set_cp0(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr)) {
+        logfatal("set cp0 const");
+    } else {
+        host_emit_mov_cp0_reg(Dst, instr->get_cp0.reg, instr->allocated_host_register);
+    }
+}
+
 void v2_emit_block(n64_dynarec_block_t* block) {
     static dasm_State* d;
     d = v2_block_header();
@@ -357,6 +385,10 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 break;
             case IR_AND:
                 compile_ir_and(Dst, instr);
+                break;
+            case IR_NOT:
+                logfatal("compile ir not");
+                //compile_ir_not(Dst, instr);
                 break;
             case IR_ADD:
                 compile_ir_add(Dst, instr);
@@ -391,6 +423,12 @@ void v2_emit_block(n64_dynarec_block_t* block) {
             case IR_SHIFT:
                 compile_ir_shift(Dst, instr);
                 break;
+            case IR_GET_CP0:
+                compile_ir_get_cp0(Dst, instr);
+                break;
+            case IR_SET_CP0:
+                compile_ir_set_cp0(Dst, instr);
+                break;
         }
         instr = instr->next;
     }
@@ -423,16 +461,7 @@ void v2_compile_new_block(
         u32 instr_physical_address = physical_address + (i << 2);
         emit_instruction_ir(temp_code[i].instr, instr_virtual_address, instr_physical_address);
     }
-    // Flush all guest regs in use at the end
-    for (int i = 1; i < 32; i++) {
-        ir_instruction_t* val = ir_context.guest_gpr_to_value[i];
-        if (val) {
-            // If the guest reg was just loaded and never modified, don't need to flush it
-            if (val->type != IR_LOAD_GUEST_REG) {
-                ir_emit_flush_guest_reg(ir_context.guest_gpr_to_value[i], i);
-            }
-        }
-    }
+    ir_optimize_flush_guest_regs();
 #ifdef N64_LOG_COMPILATIONS
     print_ir_block();
     printf("Optimizing IR: constant propagation\n");
@@ -444,10 +473,10 @@ void v2_compile_new_block(
 #endif
     ir_optimize_eliminate_dead_code();
     ir_optimize_shrink_constants();
+    ir_allocate_registers();
 #ifdef N64_LOG_COMPILATIONS
     print_ir_block();
 #endif
-    ir_allocate_registers();
     v2_emit_block(block);
 }
 

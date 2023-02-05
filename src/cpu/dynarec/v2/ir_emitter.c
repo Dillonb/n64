@@ -186,17 +186,51 @@ IR_EMITTER(slt) {
 }
 
 IR_EMITTER(mtc0) {
-    ir_instruction_t* value = ir_context.guest_gpr_to_value[instruction.r.rt];
+    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
     switch (instruction.r.rd) {
         case R4300I_CP0_REG_INDEX: logfatal("emit MTC0 R4300I_CP0_REG_INDEX");
         case R4300I_CP0_REG_RANDOM: logfatal("emit MTC0 R4300I_CP0_REG_RANDOM");
-        case R4300I_CP0_REG_COUNT: logfatal("emit MTC0 R4300I_CP0_REG_COUNT");
-        case R4300I_CP0_REG_CAUSE: logfatal("emit MTC0 R4300I_CP0_REG_CAUSE");
-        case R4300I_CP0_REG_TAGLO: logfatal("emit MTC0 R4300I_CP0_REG_TAGLO");
+        case R4300I_CP0_REG_COUNT: {
+            ir_instruction_t* shift_amount = ir_emit_set_constant_u16(1, NO_GUEST_REG);
+            ir_instruction_t* value_shifted = ir_emit_shift(value, shift_amount, VALUE_TYPE_64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+            ir_emit_set_cp0(R4300I_CP0_REG_COUNT, value_shifted);
+            break;
+        }
+        case R4300I_CP0_REG_CAUSE: {
+            ir_instruction_t* cause_mask = ir_emit_set_constant_u16(0x300, NO_GUEST_REG);
+            ir_instruction_t* cause_masked = ir_emit_and(value, cause_mask, NO_GUEST_REG);
+
+            ir_instruction_t* inverse_cause_mask = ir_emit_not(cause_mask, NO_GUEST_REG);
+            ir_instruction_t* old_cause = ir_emit_get_cp0(R4300I_CP0_REG_CAUSE, NO_GUEST_REG);
+            ir_instruction_t* old_cause_masked = ir_emit_and(old_cause, inverse_cause_mask, NO_GUEST_REG);
+
+            ir_instruction_t* new_cause = ir_emit_or(old_cause_masked, cause_masked, NO_GUEST_REG);
+            ir_emit_set_cp0(R4300I_CP0_REG_CAUSE, new_cause);
+            break;
+        }
+        case R4300I_CP0_REG_TAGLO: {
+            logfatal("emit MTC0 R4300I_CP0_REG_TAGLO");
+        }
         case R4300I_CP0_REG_TAGHI: logfatal("emit MTC0 R4300I_CP0_REG_TAGHI");
-        case R4300I_CP0_REG_COMPARE: logfatal("emit MTC0 R4300I_CP0_REG_COMPARE");
+        case R4300I_CP0_REG_COMPARE: {
+            // Lower compare interrupt
+            ir_emit_set_cp0(R4300I_CP0_REG_CAUSE,
+                            ir_emit_and(
+                                    ir_emit_get_cp0(R4300I_CP0_REG_CAUSE, NO_GUEST_REG),
+                                    ir_emit_set_constant_s32(~(1 << 15), NO_GUEST_REG),
+                                    NO_GUEST_REG));
+            ir_emit_set_cp0(R4300I_CP0_REG_COMPARE, value);
+            break;
+        }
         case R4300I_CP0_REG_STATUS: {
-            logfatal("emit MTC0 R4300I_CP0_REG_STATUS");
+            ir_instruction_t* status_mask = ir_emit_set_constant_u32(CP0_STATUS_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* inverse_status_mask = ir_emit_not(status_mask, NO_GUEST_REG);
+            ir_instruction_t* old_status = ir_emit_get_cp0(R4300I_CP0_REG_STATUS, NO_GUEST_REG);
+            ir_instruction_t* old_status_masked = ir_emit_and(old_status, inverse_status_mask, NO_GUEST_REG);
+            ir_instruction_t* value_masked = ir_emit_and(value, status_mask, NO_GUEST_REG);
+            ir_instruction_t* new_status = ir_emit_or(value_masked, old_status_masked, NO_GUEST_REG);
+            ir_emit_set_cp0(R4300I_CP0_REG_STATUS, new_status);
+            // TODO: handle all the side effects of this write
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MTC0 R4300I_CP0_REG_ENTRYLO0");
@@ -224,7 +258,6 @@ IR_EMITTER(mtc0) {
         case R4300I_CP0_REG_31: logfatal("emit MTC0 R4300I_CP0_REG_31");
             break;
     }
-    logfatal("Emit MTC0");
 }
 
 IR_EMITTER(cp0_instruction) {

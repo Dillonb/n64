@@ -55,6 +55,7 @@ typedef struct ir_instruction {
         IR_SET_CONSTANT,
         IR_OR,
         IR_AND,
+        IR_NOT,
         IR_ADD,
         IR_SHIFT,
         IR_STORE,
@@ -64,6 +65,8 @@ typedef struct ir_instruction {
         IR_SET_COND_BLOCK_EXIT_PC,
         IR_SET_BLOCK_EXIT_PC,
         IR_TLB_LOOKUP,
+        IR_GET_CP0,
+        IR_SET_CP0,
         IR_LOAD_GUEST_REG,
         IR_FLUSH_GUEST_REG
     } type;
@@ -87,8 +90,8 @@ typedef struct ir_instruction {
             struct ir_instruction* operand;
         } mask_and_cast;
         struct {
-            struct ir_instruction* address;
-        } set_exit_pc;
+            struct ir_instruction* operand;
+        } unary_op;
         struct {
             struct ir_instruction* condition;
             struct ir_instruction* pc_if_true;
@@ -116,6 +119,13 @@ typedef struct ir_instruction {
             ir_value_type_t type;
             ir_shift_direction_t direction;
         } shift;
+        struct {
+            int reg;
+        } get_cp0;
+        struct {
+            int reg;
+            struct ir_instruction* value;
+        } set_cp0;
     };
 } ir_instruction_t;
 
@@ -142,12 +152,14 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size);
 ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
 // Load a guest register, or return a reference to it if it's already loaded.
 ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg);
-// Flush a guest register back to memory. Emitted at the end of the block to flush values back to memory.
-ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* value, u8 guest_reg);
+// Flush a guest register back to memory. Emitted after a value's last usage to flush values back to memory.
+ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* last_usage, ir_instruction_t* value, u8 guest_reg);
 // OR two values together.
 ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // AND two values together.
 ir_instruction_t* ir_emit_and(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
+// Bitwise NOT
+ir_instruction_t* ir_emit_not(ir_instruction_t* operand, u8 guest_reg);
 // ADD two values together.
 ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // SHIFT a value of a given size in a given direction by a given amount
@@ -168,6 +180,10 @@ ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
 // lookup a memory address in the TLB
 ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access);
+// Get a CP0 register
+ir_instruction_t* ir_emit_get_cp0(int cp0_reg, u8 guest_reg);
+// Set a CP0 register
+ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.
@@ -183,6 +199,22 @@ INLINE ir_instruction_t* ir_emit_set_constant_u16(u16 value, u8 guest_reg) {
     ir_set_constant_t constant;
     constant.type = VALUE_TYPE_U16;
     constant.value_u16 = value;
+    return ir_emit_set_constant(constant, guest_reg);
+}
+
+// Emit an s32 constant to the IR, optionally associating it with a guest register.
+INLINE ir_instruction_t* ir_emit_set_constant_s32(s32 value, u8 guest_reg) {
+    ir_set_constant_t constant;
+    constant.type = VALUE_TYPE_S32;
+    constant.value_s32 = value;
+    return ir_emit_set_constant(constant, guest_reg);
+}
+
+// Emit a u32 constant to the IR, optionally associating it with a guest register.
+INLINE ir_instruction_t* ir_emit_set_constant_u32(u32 value, u8 guest_reg) {
+    ir_set_constant_t constant;
+    constant.type = VALUE_TYPE_U32;
+    constant.value_u32 = value;
     return ir_emit_set_constant(constant, guest_reg);
 }
 

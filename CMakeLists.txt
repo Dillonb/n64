@@ -5,9 +5,25 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
-set(DEFAULT_C_OPTIONS -mssse3 -msse4.1 -Werror=switch)
-add_compile_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_OPTIONS}>")
-add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_OPTIONS}>")
+set(DEFAULT_C_COMP_OPTIONS -mssse3 -msse4.1 -Werror=switch)
+set(DEFAULT_C_LINK_OPTIONS "")
+
+# Asan
+#set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -fsanitize=address)
+#set(DEFAULT_C_LINK_OPTIONS ${DEFAULT_C_LINK_OPTIONS} -fsanitize=address)
+
+# Ubsan
+#set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -fsanitize=undefined)
+#set(DEFAULT_C_LINK_OPTIONS ${DEFAULT_C_LINK_OPTIONS} -fsanitize=undefined)
+
+# Thread sanitizer
+#set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -fsanitize=thread)
+#set(DEFAULT_C_LINK_OPTIONS ${DEFAULT_C_LINK_OPTIONS} -fsanitize=thread)
+
+add_compile_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_COMP_OPTIONS}>")
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_COMP_OPTIONS}>")
+add_link_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_LINK_OPTIONS}>")
+add_link_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_LINK_OPTIONS}>")
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DN64_DEBUG_MODE -g")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DN64_DEBUG_MODE -g")
@@ -26,15 +42,6 @@ else()
 endif()
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
-
-#add_compile_options(-fsanitize=undefined)
-#add_link_options(-fsanitize=undefined)
-
-#add_compile_options(-fsanitize=address)
-#add_link_options(-fsanitize=address)
-
-#add_compile_options(-fsanitize=thread)
-#add_link_options(-fsanitize=thread)
 
 ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
 
