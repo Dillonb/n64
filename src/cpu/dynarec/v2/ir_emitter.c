@@ -98,6 +98,13 @@ IR_EMITTER(add) {
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
+IR_EMITTER(addiu) {
+    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+    ir_instruction_t* result = ir_emit_add(addend1, addend2, NO_GUEST_REG);
+    ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.i.rt);
+}
+
 IR_EMITTER(mtc0) {
     ir_instruction_t* value = ir_context.guest_gpr_to_value[instruction.r.rt];
     switch (instruction.r.rd) {
@@ -300,7 +307,7 @@ IR_EMITTER(instruction) {
 
         case OPC_LD: CALL_IR_EMITTER(ld);
         case OPC_LUI: CALL_IR_EMITTER(lui);
-        case OPC_ADDIU: IR_UNIMPLEMENTED(OPC_ADDIU);
+        case OPC_ADDIU: CALL_IR_EMITTER(addiu);
         case OPC_ADDI: IR_UNIMPLEMENTED(OPC_ADDI);
         case OPC_DADDI: IR_UNIMPLEMENTED(OPC_DADDI);
         case OPC_ANDI: CALL_IR_EMITTER(andi);
