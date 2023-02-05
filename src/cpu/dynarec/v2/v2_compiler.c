@@ -240,7 +240,7 @@ void compile_ir_mask_and_cast(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->mask_and_cast.operand)) {
         logfatal("Should have been caught by constant propagation");
     } else {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->mask_and_cast.operand->allocated_host_register, instr->mask_and_cast.operand->type);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->mask_and_cast.operand->allocated_host_register, instr->mask_and_cast.type);
     }
 }
 
