@@ -81,6 +81,13 @@ IR_EMITTER(bne) {
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
+IR_EMITTER(beq) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+}
+
 IR_EMITTER(jr) {
     ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
 }
@@ -316,7 +323,7 @@ IR_EMITTER(instruction) {
         case OPC_LH: IR_UNIMPLEMENTED(OPC_LH);
         case OPC_LW: CALL_IR_EMITTER(lw);
         case OPC_LWU: IR_UNIMPLEMENTED(OPC_LWU);
-        case OPC_BEQ: IR_UNIMPLEMENTED(OPC_BEQ);
+        case OPC_BEQ: CALL_IR_EMITTER(beq);
         case OPC_BEQL: IR_UNIMPLEMENTED(OPC_BEQL);
         case OPC_BGTZ: IR_UNIMPLEMENTED(OPC_BGTZ);
         case OPC_BGTZL: IR_UNIMPLEMENTED(OPC_BGTZL);

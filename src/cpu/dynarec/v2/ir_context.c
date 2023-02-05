@@ -43,6 +43,8 @@ const char* cond_to_str(ir_condition_t condition) {
     switch (condition) {
         case CONDITION_NOT_EQUAL:
             return "!=";
+        case CONDITION_EQUAL:
+            return "==";
     }
 }
 

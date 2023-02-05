@@ -8,7 +8,8 @@
 #define IR_CACHE_SIZE 4096
 
 typedef enum ir_condition {
-    CONDITION_NOT_EQUAL
+    CONDITION_NOT_EQUAL,
+    CONDITION_EQUAL
 } ir_condition_t;
 
 typedef enum ir_value_type {

@@ -255,7 +255,7 @@ void compile_ir_check_condition(dasm_State** Dst, ir_instruction_t* instr) {
     } else if (op2_const) {
         host_emit_cmp_reg_imm(Dst, instr->allocated_host_register, instr->check_condition.condition, instr->check_condition.operand1->allocated_host_register, instr->check_condition.operand2->set_constant, ARGS_NORMAL_ORDER);
     } else {
-        logfatal("Check condition with two variable regs");
+        host_emit_cmp_reg_reg(Dst, instr->allocated_host_register, instr->check_condition.condition, instr->check_condition.operand1->allocated_host_register, instr->check_condition.operand2->allocated_host_register, ARGS_NORMAL_ORDER);
     }
 }
 

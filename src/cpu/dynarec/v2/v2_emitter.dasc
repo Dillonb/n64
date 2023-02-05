@@ -214,31 +214,43 @@ void host_emit_call(dasm_State** Dst, uintptr_t function) {
     | call rax
 }
 
-void host_emit_cmp_reg_imm(dasm_State** Dst, int allocated_host_register, ir_condition_t cond, int reg, ir_set_constant_t imm_value, enum args_reversed args_reversed) {
-    switch (imm_value.type) {
+void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond) {
+    if (dest_reg >= 0) {
+        switch (cond) {
+            case CONDITION_NOT_EQUAL:
+                | setne Rb(dest_reg)
+                break;
+            case CONDITION_EQUAL:
+                | sete Rb(dest_reg)
+                break;
+        }
+    }
+}
+
+void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, ir_set_constant_t operand2, enum args_reversed args_reversed) {
+    switch (operand2.type) {
         case VALUE_TYPE_S16:
-            | cmp Rq(reg), imm_value.value_s16
+            | cmp Rq(operand1), operand2.value_s16
             break;
         case VALUE_TYPE_U16:
-            | cmp Rq(reg), imm_value.value_s16
+            | cmp Rq(operand1), operand2.value_s16
             break;
         case VALUE_TYPE_S32:
-            | cmp Rq(reg), imm_value.value_s32
+            | cmp Rq(operand1), operand2.value_s32
             break;
         case VALUE_TYPE_U32:
-            | cmp Rq(reg), imm_value.value_u32
+            | cmp Rq(operand1), operand2.value_u32
             break;
         case VALUE_TYPE_64:
             IMM64_INVALID();
             break;
     }
-    if (allocated_host_register >= 0) {
-        switch (cond) {
-            case CONDITION_NOT_EQUAL:
-                | setne Rb(allocated_host_register)
-                break;
-        }
-    }
+    set_dest_cond(Dst, dest_reg, cond);
+}
+
+void host_emit_cmp_reg_reg(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, int operand2, enum args_reversed args_reversed) {
+    | cmp Rq(operand1), Rq(operand2)
+    set_dest_cond(Dst, dest_reg, cond);
 }
 
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
