@@ -64,7 +64,7 @@ int n64_dynarec_step() {
     logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
 #endif
     N64CPU.exception = false;
-    int taken = block->run(&N64CPU);
+    int taken = run_block((u64)block->run);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, N64CPU.pc);
     for (int i = 0; i < 32; i++) {
