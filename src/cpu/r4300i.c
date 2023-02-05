@@ -38,7 +38,7 @@ const char* register_names[] = {
         "k1",   // 27
         "gp",   // 28
         "sp",   // 29
-        "s8",   // 30
+        "fp",   // 30
         "ra"    // 31
 };
 
