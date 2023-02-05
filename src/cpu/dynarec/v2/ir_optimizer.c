@@ -246,10 +246,11 @@ void ir_optimize_shrink_constants() {
 }
 
 int first_available_register(bool* available_registers, const int* register_lifetimes, int num_registers) {
-    for (int i = 0; i < num_registers; i++) {
-        if (available_registers[i] || register_lifetimes[i] < 0) {
-            available_registers[i] = false;
-            return i;
+    for (int i = 0; i < get_num_preserved_registers(); i++) {
+        int reg = get_preserved_registers()[i];
+        if (available_registers[reg] || register_lifetimes[reg] < 0) {
+            available_registers[reg] = false;
+            return reg;
         }
     }
     logfatal("No more registers!");
