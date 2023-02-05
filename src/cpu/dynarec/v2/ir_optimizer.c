@@ -409,8 +409,19 @@ void ir_optimize_shrink_constants() {
 int first_available_register(bool* available_registers, const int* register_lifetimes, int num_registers) {
     for (int i = 0; i < get_num_preserved_registers(); i++) {
         int reg = get_preserved_registers()[i];
+#ifdef N64_LOG_COMPILATIONS
+        printf("Trying r%d: available? %d", reg, available_registers[reg]);
+        if (!available_registers[reg]) {
+            printf(" lifetime? %d", register_lifetimes[reg]);
+        }
+        printf("\n");
+#endif
+
         if (available_registers[reg] || register_lifetimes[reg] < 0) {
             available_registers[reg] = false;
+#ifdef N64_LOG_COMPILATIONS
+            printf("Allocated r%d\n", reg);
+#endif
             return reg;
         }
     }
@@ -477,6 +488,11 @@ void ir_allocate_registers() {
     while (instr != NULL) {
         instr->allocated_host_register = -1;
         if (needs_register_allocated(instr)) {
+#ifdef N64_LOG_COMPILATIONS
+            static char buf[100];
+            ir_instr_to_string(instr, buf, 100);
+            printf("Allocating register for %s\n", buf);
+#endif
             instr->allocated_host_register = first_available_register(available_registers, register_lifetimes, num_registers);
             register_lifetimes[instr->allocated_host_register] = value_lifetime(instr);
 #ifdef N64_LOG_COMPILATIONS

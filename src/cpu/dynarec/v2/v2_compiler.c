@@ -464,18 +464,15 @@ void v2_compile_new_block(
     ir_optimize_flush_guest_regs();
 #ifdef N64_LOG_COMPILATIONS
     print_ir_block();
-    printf("Optimizing IR: constant propagation\n");
+    printf("Optimizing:\n");
 #endif
     ir_optimize_constant_propagation();
-#ifdef N64_LOG_COMPILATIONS
-    print_ir_block();
-    printf("Optimizing IR: eliminating dead code\n");
-#endif
     ir_optimize_eliminate_dead_code();
     ir_optimize_shrink_constants();
     ir_allocate_registers();
 #ifdef N64_LOG_COMPILATIONS
     print_ir_block();
+    printf("Emitting to host code:\n");
 #endif
     v2_emit_block(block);
 }
