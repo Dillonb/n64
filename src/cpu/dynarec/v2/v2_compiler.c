@@ -173,6 +173,15 @@ void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_not(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr->unary_op.operand)) {
+        logfatal("Should have been caught by constant propagation");
+    } else {
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->unary_op.operand->allocated_host_register, VALUE_TYPE_64);
+        host_emit_not(Dst, instr->allocated_host_register);
+    }
+}
+
 void compile_ir_add(dasm_State** Dst, ir_instruction_t* instr) {
     if (binop_constant(instr)) {
         logfatal("Should have been caught by constant propagation");
@@ -296,7 +305,7 @@ void compile_ir_check_condition(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_set_cond_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
-    ir_context.block_end_pc_set = true;
+    ir_context.block_end_pc_compiled = true;
     if (is_constant(instr->set_cond_exit_pc.condition)) {
         logfatal("Set exit PC with const condition");
     } else {
@@ -305,7 +314,7 @@ void compile_ir_set_cond_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr
 }
 
 void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
-    ir_context.block_end_pc_set = true;
+    ir_context.block_end_pc_compiled = true;
     host_emit_mov_pc(Dst, instr->unary_op.operand);
 }
 
@@ -387,8 +396,7 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 compile_ir_and(Dst, instr);
                 break;
             case IR_NOT:
-                logfatal("compile ir not");
-                //compile_ir_not(Dst, instr);
+                compile_ir_not(Dst, instr);
                 break;
             case IR_ADD:
                 compile_ir_add(Dst, instr);
@@ -429,12 +437,15 @@ void v2_emit_block(n64_dynarec_block_t* block) {
             case IR_SET_CP0:
                 compile_ir_set_cp0(Dst, instr);
                 break;
+            case IR_COND_BLOCK_EXIT:
+                logfatal("compile IR_COND_BLOCK_EXIT");
+                break;
         }
         instr = instr->next;
     }
     DONE_COMPILING:
     // TODO: emit end block PC
-    if (!ir_context.block_end_pc_set) {
+    if (!ir_context.block_end_pc_compiled) {
         logfatal("TODO: emit end of block PC");
     }
     v2_end_block(Dst, temp_code_len);

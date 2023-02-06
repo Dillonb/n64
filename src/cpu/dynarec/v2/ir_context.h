@@ -66,6 +66,7 @@ typedef struct ir_instruction {
         IR_CHECK_CONDITION,
         IR_SET_COND_BLOCK_EXIT_PC,
         IR_SET_BLOCK_EXIT_PC,
+        IR_COND_BLOCK_EXIT,
         IR_TLB_LOOKUP,
         IR_GET_CP0,
         IR_SET_CP0,
@@ -128,6 +129,9 @@ typedef struct ir_instruction {
             int reg;
             struct ir_instruction* value;
         } set_cp0;
+        struct {
+            struct ir_instruction* condition;
+        } cond_block_exit;
     };
 } ir_instruction_t;
 
@@ -140,7 +144,8 @@ typedef struct ir_context {
     ir_instruction_t* ir_cache_tail;
     int ir_cache_index;
 
-    bool block_end_pc_set;
+    bool block_end_pc_ir_emitted;
+    bool block_end_pc_compiled;
 } ir_context_t;
 
 extern ir_context_t ir_context;
@@ -176,6 +181,8 @@ ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type
 ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2, u8 guest_reg);
 // set the block exit pc to one of two values based on a condition
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
+// exit the block early if the condition is true
+ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition);
 // set the block exit pc
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 // fall back to the interpreter for the next num_instructions instructions

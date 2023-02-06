@@ -19,8 +19,9 @@ add_test(test_vmadm_overflow test_vmadm_overflow)
 find_program(BASS_FOUND bass)
 find_program(CHKSUM64_FOUND chksum64)
 
-if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/n64-tests)
-    if (BASS_FOUND)
+if (BASS_FOUND)
+    # Test roms
+    if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/n64-tests)
         if (CHKSUM64_FOUND)
             add_subdirectory(n64-tests/src)
             add_executable(test_rom test_rom.c unit.h)
@@ -37,9 +38,29 @@ if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/n64-tests)
         else()
             message("chksum64 not found, not building/running test ROMs. Install it from here: https://raw.githubusercontent.com/DragonMinded/libdragon/trunk/tools/chksum64.c")
         endif()
-    else()
-        message("Bass not found, not building/running test ROMs. Install it from here: https://github.com/ARM9/bass")
     endif()
+
+    # Dynarec tests
+    add_executable(test_dynarec_v2 test_dynarec_v2.c unit.h)
+    target_link_libraries(test_dynarec_v2 r4300i common core)
+    add_test(test_dynarec_v2 test_dynarec_v2)
+
+    file(GLOB asmfiles ${CMAKE_CURRENT_LIST_DIR}/dynarec_v2_tests/*.asm)
+    foreach(asmfile ${asmfiles})
+        get_filename_component(name ${asmfile} NAME_WLE)
+        set(output_bin dynarec_v2_tests/${name}.bin)
+
+        add_custom_command(OUTPUT ${output_bin}
+                COMMAND bass ${asmfile} -o ${output_bin}
+                DEPENDS ${asmfile})
+
+        add_custom_target(assemble_dynarec_v2_test_${name} ALL DEPENDS ${output_bin})
+
+        add_dependencies(test_dynarec_v2 assemble_dynarec_v2_test_${name})
+    endforeach()
+
+else()
+    message("Bass not found, not building/running test ROMs. Install it from here: https://github.com/ARM9/bass")
 endif()
 
 if (NOT WIN32)

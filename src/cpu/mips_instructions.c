@@ -191,7 +191,7 @@ MIPS_INSTR(mips_j) {
 }
 
 MIPS_INSTR(mips_jal) {
-    link_r4300i(R4300I_REG_LR);
+    link_r4300i(MIPS_REG_RA);
 
     u64 target = instruction.j.target;
     target <<= 2;
@@ -1137,18 +1137,18 @@ MIPS_INSTR(mips_ri_bgezl) {
 MIPS_INSTR(mips_ri_bltzal) {
     s64 reg = get_register(instruction.i.rs);
     conditional_branch(instruction.i.immediate, reg < 0);
-    link_r4300i(R4300I_REG_LR);
+    link_r4300i(MIPS_REG_RA);
 }
 
 MIPS_INSTR(mips_ri_bgezal) {
     s64 reg = get_register(instruction.i.rs);
     conditional_branch(instruction.i.immediate, reg >= 0);
-    link_r4300i(R4300I_REG_LR);
+    link_r4300i(MIPS_REG_RA);
 }
 
 MIPS_INSTR(mips_ri_bgezall) {
     s64 reg = get_register(instruction.i.rs);
-    link_r4300i(R4300I_REG_LR);
+    link_r4300i(MIPS_REG_RA);
     conditional_branch_likely(instruction.i.immediate, reg >= 0);
 }
 

@@ -21,7 +21,8 @@ void ir_context_reset() {
     ir_context.ir_cache_head = &ir_context.ir_cache[0];
     ir_context.ir_cache_tail = &ir_context.ir_cache[0];
 
-    ir_context.block_end_pc_set = false;
+    ir_context.block_end_pc_compiled = false;
+    ir_context.block_end_pc_ir_emitted = false;
 }
 
 const char* val_type_to_str(ir_value_type_t type) {
@@ -152,6 +153,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             break;
         case IR_SET_CP0:
             snprintf(buf, buf_size, "guest_cp0[%d] = v%d", instr->set_cp0.reg, instr->set_cp0.value->index);
+            break;
+        case IR_COND_BLOCK_EXIT:
+            snprintf(buf, buf_size, "exit_block_if(v%d)", instr->cond_block_exit.condition->index);
             break;
     }
 }
@@ -365,6 +369,13 @@ ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condit
     instruction.set_cond_exit_pc.condition = condition;
     instruction.set_cond_exit_pc.pc_if_true = pc_if_true;
     instruction.set_cond_exit_pc.pc_if_false = pc_if_false;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition) {
+    ir_instruction_t instruction;
+    instruction.type = IR_COND_BLOCK_EXIT;
+    instruction.cond_block_exit.condition = condition;
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 

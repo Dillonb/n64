@@ -230,6 +230,10 @@ void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8
    }
 }
 
+void host_emit_not(dasm_State** Dst, int reg) {
+    | not Rq(reg)
+}
+
 void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_type_t source_value_type) {
     if (source_value_type == VALUE_TYPE_64 && dst_reg == src_reg) {
         return;

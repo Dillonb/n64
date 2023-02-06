@@ -20,6 +20,13 @@ void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 vir
     ir_emit_conditional_set_block_exit_pc(condition, pc_if_true, pc_if_false);
 }
 
+void ir_emit_conditional_branch_likely(ir_instruction_t* condition, s16 offset, u64 virtual_address) {
+    // Identical - ir_emit_conditional_branch already skips the delay slot when calculating the exit PC.
+    ir_emit_conditional_branch(condition, offset, virtual_address);
+    // The only difference is likely branches conditionally exit the block early when not taken.
+    ir_emit_conditional_block_exit(ir_emit_not(condition, NO_GUEST_REG));
+}
+
 void ir_emit_abs_branch(ir_instruction_t* address) {
     ir_emit_set_block_exit_pc(address);
 }
@@ -112,6 +119,13 @@ IR_EMITTER(bne) {
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
+IR_EMITTER(bnel) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt, NO_GUEST_REG);
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address);
+}
+
 IR_EMITTER(beq) {
     ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
@@ -137,7 +151,7 @@ IR_EMITTER(j) {
 
 IR_EMITTER(jal) {
     emit_j_ir(instruction, virtual_address, physical_address);
-    ir_emit_link(R4300I_REG_LR, virtual_address);
+    ir_emit_link(MIPS_REG_RA, virtual_address);
 }
 
 IR_EMITTER(jr) {
@@ -457,7 +471,7 @@ IR_EMITTER(instruction) {
         case OPC_BLEZ: IR_UNIMPLEMENTED(OPC_BLEZ);
         case OPC_BLEZL: IR_UNIMPLEMENTED(OPC_BLEZL);
         case OPC_BNE: CALL_IR_EMITTER(bne);
-        case OPC_BNEL: IR_UNIMPLEMENTED(OPC_BNEL);
+        case OPC_BNEL: CALL_IR_EMITTER(bnel);
         case OPC_CACHE: return; // treat CACHE as a NOP for now
         case OPC_SB: IR_UNIMPLEMENTED(OPC_SB);
         case OPC_SH: CALL_IR_EMITTER(sh);

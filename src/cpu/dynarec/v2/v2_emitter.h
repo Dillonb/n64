@@ -19,6 +19,7 @@ void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t oper
 void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2);
 void host_emit_add_reg_reg(dasm_State** Dst, int operand1, int operand2);
 void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction);
+void host_emit_not(dasm_State** Dst, int reg);
 
 void v2_end_block(dasm_State** Dst, int block_length);
 void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, ir_set_constant_t operand2, enum args_reversed args_reversed);

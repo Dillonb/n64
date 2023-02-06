@@ -11,13 +11,13 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_NOT:
             return instr->unary_op.operand == value;
 
-            // Bin ops
+        // Bin ops
         case IR_OR:
         case IR_AND:
         case IR_ADD:
             return instr->bin_op.operand1 == value || instr->bin_op.operand2 == value;
 
-            // Other
+        // Other
         case IR_MASK_AND_CAST:
             return instr->mask_and_cast.operand == value;
         case IR_CHECK_CONDITION:
@@ -36,6 +36,8 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->flush_guest_reg.value == value;
         case IR_SET_CP0:
             return instr->set_cp0.value == value;
+        case IR_COND_BLOCK_EXIT:
+            return instr->cond_block_exit.condition == value;
 
             // No dependencies
         case IR_NOP:
@@ -112,6 +114,12 @@ void ir_optimize_constant_propagation() {
             case IR_FLUSH_GUEST_REG:
             case IR_GET_CP0:
             case IR_SET_CP0:
+                break;
+
+            case IR_COND_BLOCK_EXIT:
+                if (is_constant(instr->cond_block_exit.condition)) {
+                    logfatal("Cond block exit with const condition");
+                }
                 break;
 
             case IR_NOT:
@@ -319,6 +327,10 @@ void ir_optimize_eliminate_dead_code() {
                 instr->dead_code = false;
                 instr->set_cp0.value->dead_code = false;
                 break;
+            case IR_COND_BLOCK_EXIT:
+                instr->dead_code = false;
+                instr->cond_block_exit.condition->dead_code = false;
+                break;
 
             // Unary ops
             case IR_NOT:
@@ -444,6 +456,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_STORE:
         case IR_FLUSH_GUEST_REG:
         case IR_SET_CP0:
+        case IR_COND_BLOCK_EXIT:
             return false;
 
         case IR_TLB_LOOKUP:
