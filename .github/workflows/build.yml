@@ -12,8 +12,9 @@ jobs:
         with:
           submodules: true
 
+      - uses: ilammy/setup-nasm@v1
+
       - name: Setup dependencies
-        uses: ilammy/setup-nasm@v1
         run: |
           vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
