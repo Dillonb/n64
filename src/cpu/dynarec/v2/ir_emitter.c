@@ -20,11 +20,11 @@ void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 vir
     ir_emit_conditional_set_block_exit_pc(condition, pc_if_true, pc_if_false);
 }
 
-void ir_emit_conditional_branch_likely(ir_instruction_t* condition, s16 offset, u64 virtual_address) {
+void ir_emit_conditional_branch_likely(ir_instruction_t* condition, s16 offset, u64 virtual_address, int index) {
     // Identical - ir_emit_conditional_branch already skips the delay slot when calculating the exit PC.
     ir_emit_conditional_branch(condition, offset, virtual_address);
     // The only difference is likely branches conditionally exit the block early when not taken.
-    ir_emit_conditional_block_exit(ir_emit_not(condition, NO_GUEST_REG));
+    ir_emit_conditional_block_exit(ir_emit_not(condition, NO_GUEST_REG), index);
 }
 
 void ir_emit_abs_branch(ir_instruction_t* address) {
@@ -123,7 +123,7 @@ IR_EMITTER(bnel) {
     ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt, NO_GUEST_REG);
-    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address);
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(beq) {
@@ -150,7 +150,7 @@ IR_EMITTER(j) {
 }
 
 IR_EMITTER(jal) {
-    emit_j_ir(instruction, virtual_address, physical_address);
+    emit_j_ir(instruction, index, virtual_address, physical_address);
     ir_emit_link(MIPS_REG_RA, virtual_address);
 }
 

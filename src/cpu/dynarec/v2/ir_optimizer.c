@@ -36,8 +36,19 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->flush_guest_reg.value == value;
         case IR_SET_CP0:
             return instr->set_cp0.value == value;
-        case IR_COND_BLOCK_EXIT:
-            return instr->cond_block_exit.condition == value;
+        case IR_COND_BLOCK_EXIT: {
+            if (instr->cond_block_exit.condition == value) {
+                return true;
+            }
+            ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
+            while (flush_iter != NULL) {
+                if (flush_iter->item == value) {
+                    return true;
+                }
+                flush_iter = flush_iter->next;
+            }
+            return false;
+        }
 
             // No dependencies
         case IR_NOP:
@@ -330,6 +341,11 @@ void ir_optimize_eliminate_dead_code() {
             case IR_COND_BLOCK_EXIT:
                 instr->dead_code = false;
                 instr->cond_block_exit.condition->dead_code = false;
+                ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
+                while (flush_iter != NULL) {
+                    flush_iter->item->dead_code = false;
+                    flush_iter = flush_iter->next;
+                }
                 break;
 
             // Unary ops

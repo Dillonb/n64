@@ -378,8 +378,8 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr)) {
         logfatal("compile_ir_cond_block_exit with constant condition");
     } else {
-        logwarn("TODO: FLUSH REGISTERS!");
-        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->allocated_host_register);
+        ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
+        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->allocated_host_register, flush_iter, instr->cond_block_exit.block_length);
     }
 }
 
@@ -479,7 +479,7 @@ void v2_compile_new_block(
     for (int i = 0; i < temp_code_len; i++) {
         u64 instr_virtual_address = virtual_address + (i << 2);
         u32 instr_physical_address = physical_address + (i << 2);
-        emit_instruction_ir(temp_code[i].instr, instr_virtual_address, instr_physical_address);
+        emit_instruction_ir(temp_code[i].instr, i, instr_virtual_address, instr_physical_address);
     }
     ir_optimize_flush_guest_regs();
 #ifdef N64_LOG_COMPILATIONS

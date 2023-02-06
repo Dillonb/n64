@@ -6,6 +6,8 @@
 
 // Number of IR instructions that can be cached per block. 4x the max number of instructions per block - should be safe.
 #define IR_CACHE_SIZE 4096
+// Number of values that can be flushed conditionally per block when the block is exited early.
+#define IR_FLUSH_CACHE_SIZE 100
 
 typedef enum ir_condition {
     CONDITION_NOT_EQUAL,
@@ -43,6 +45,13 @@ typedef struct ir_set_constant {
         u64 value_64;
     };
 } ir_set_constant_t;
+
+
+typedef struct ir_instruction_flush {
+    u8 guest_gpr;
+    struct ir_instruction* item;
+    struct ir_instruction_flush* next;
+} ir_instruction_flush_t;
 
 typedef struct ir_instruction {
     // Metadata
@@ -130,7 +139,9 @@ typedef struct ir_instruction {
             struct ir_instruction* value;
         } set_cp0;
         struct {
+            ir_instruction_flush_t* regs_to_flush;
             struct ir_instruction* condition;
+            int block_length;
         } cond_block_exit;
     };
 } ir_instruction_t;
@@ -143,6 +154,9 @@ typedef struct ir_context {
     ir_instruction_t* ir_cache_head;
     ir_instruction_t* ir_cache_tail;
     int ir_cache_index;
+
+    ir_instruction_flush_t ir_flush_cache[IR_FLUSH_CACHE_SIZE];
+    int ir_flush_cache_index;
 
     bool block_end_pc_ir_emitted;
     bool block_end_pc_compiled;
@@ -182,7 +196,7 @@ ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instructi
 // set the block exit pc to one of two values based on a condition
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
 // exit the block early if the condition is true
-ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition);
+ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index);
 // set the block exit pc
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 // fall back to the interpreter for the next num_instructions instructions

@@ -591,9 +591,19 @@ void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg) {
     }
 }
 
-void host_emit_cond_ret(dasm_State** Dst, int cond_reg) {
+void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* flush_iter, int block_length) {
     | test Rq(cond_reg), Rq(cond_reg)
     | jz >1
+    while (flush_iter != NULL) {
+        if (is_constant(flush_iter->item)) {
+            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant);
+        } else {
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->allocated_host_register);
+        }
+
+        flush_iter = flush_iter->next;
+    }
+    | mov eax, block_length
     | ret
     |1:
 }
