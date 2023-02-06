@@ -73,26 +73,6 @@ dasm_State* v2_block_header() {
     return d;
 }
 
-const char* reg_names[] = {
-        "rax",
-        "rcx",
-        "rdx",
-        "rbx",
-        "rsp",
-        "rbp",
-        "rsi",
-        "rdi",
-        "r8",
-        "r9",
-        "r10",
-        "r11",
-        "r12",
-        "r13",
-        "r14",
-        "r15",
-};
-
-
 void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
     u64 value = set_const_to_u64(imm_value);
     if (imm_value.type == VALUE_TYPE_64) {
@@ -128,6 +108,11 @@ void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
             break;
     }
 }
+
+void host_emit_and_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    | and Rq(operand1), Rq(operand2)
+}
+
 void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
     switch (operand2.type) {
         case VALUE_TYPE_S8:

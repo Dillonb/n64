@@ -169,7 +169,16 @@ void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
         host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
         host_emit_and_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
     } else {
-        logfatal("Emitting IR_AND with two variable regs");
+        if (instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register) {
+            // operand1 matches, do `and operand1, operand2`
+            logfatal("operand1 matches, do `and operand1, operand2`");
+        } else if (instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register) {
+            // operand2 matches, do `and operand2, operand1`
+            logfatal("operand2 matches, do `and operand2, operand1`");
+        } else {
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
+            host_emit_and_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
+        }
     }
 }
 
