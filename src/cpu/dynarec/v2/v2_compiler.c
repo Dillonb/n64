@@ -374,6 +374,15 @@ void compile_ir_set_cp0(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr)) {
+        logfatal("compile_ir_cond_block_exit with constant condition");
+    } else {
+        logwarn("TODO: FLUSH REGISTERS!");
+        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->allocated_host_register);
+    }
+}
+
 void v2_emit_block(n64_dynarec_block_t* block) {
     static dasm_State* d;
     d = v2_block_header();
@@ -438,7 +447,7 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 compile_ir_set_cp0(Dst, instr);
                 break;
             case IR_COND_BLOCK_EXIT:
-                logfatal("compile IR_COND_BLOCK_EXIT");
+                compile_ir_cond_block_exit(Dst, instr);
                 break;
         }
         instr = instr->next;

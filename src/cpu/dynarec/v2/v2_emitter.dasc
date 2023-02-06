@@ -591,6 +591,13 @@ void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg) {
     }
 }
 
+void host_emit_cond_ret(dasm_State** Dst, int cond_reg) {
+    | test Rq(cond_reg), Rq(cond_reg)
+    | jz >1
+    | ret
+    |1:
+}
+
 void v2_end_block(dasm_State** Dst, int block_length) {
     | mov eax, block_length
     | epilogue // return block_length
