@@ -342,7 +342,7 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
 
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->flush_guest_reg.value)) {
-        host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant);
+        host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_64);
     } else {
         host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->allocated_host_register, VALUE_TYPE_64);
     }

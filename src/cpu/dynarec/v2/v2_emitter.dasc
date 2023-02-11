@@ -354,33 +354,81 @@ void host_emit_cmov_pc_binary(dasm_State** Dst, int cond_register, ir_instructio
     |2:
 }
 
-void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value) {
+// Gets the offset within N64CPU for a pointer, or negative if the pointer is not within n64cpu
+int get_n64cpu_offset(uintptr_t absolute) {
+    const uintptr_t n64cpu_addr = (uintptr_t)&N64CPU;
+    const uintptr_t offset = absolute - n64cpu_addr;
+
+    // Check if the pointer is within N64CPU
+    if (absolute > n64cpu_addr && offset < sizeof(N64CPU)) {
+        return offset;
+    } else {
+        return -1;
+    }
+}
+
+void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size) {
+    int offset = get_n64cpu_offset(mem);
     int tmp1 = get_scratch_registers()[0];
     int tmp2 = get_scratch_registers()[1];
-
-    | mov64 Rq(tmp1), mem
-    host_emit_mov_reg_imm(Dst, tmp2, value);
-    |mov [Rq(tmp1)], Rq(tmp2)
+    u64 imm = set_const_to_u64(value);
+    // Check if the pointer is within N64CPU
+    if (offset > 0) {
+        switch (write_size) {
+            case VALUE_TYPE_U8:
+            case VALUE_TYPE_S8:
+                | mov byte [cpu_state + offset], (u8)imm
+                break;
+            case VALUE_TYPE_S16:
+            case VALUE_TYPE_U16:
+                | mov word [cpu_state + offset], (u16)imm
+                break;
+            case VALUE_TYPE_S32:
+            case VALUE_TYPE_U32:
+                | mov dword [cpu_state + offset], (u32)imm
+                break;
+            case VALUE_TYPE_64:
+                host_emit_mov_reg_imm(Dst, tmp1, value);
+                | mov [cpu_state + offset], Rq(tmp1)
+                break;
+        }
+    } else {
+        logfatal("Not within N64CPU");
+        | mov64 Rq(tmp1), mem
+        host_emit_mov_reg_imm(Dst, tmp2, value);
+        | mov [Rq(tmp1)], Rq(tmp2)
+    }
 }
 
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_type_t type) {
-    const uintptr_t n64cpu_addr = (uintptr_t)&N64CPU;
-    const uintptr_t offset = mem - n64cpu_addr;
+    int offset = get_n64cpu_offset(mem);
 
     // Check if the pointer is within N64CPU
-    if (mem > n64cpu_addr && offset < sizeof(N64CPU)) {
+    if (offset > 0) {
         unimplemented(type != VALUE_TYPE_64, "non-64 bit write within N64CPU");
         | mov [cpu_state + offset], Rq(reg)
     } else {
         unimplemented(type != VALUE_TYPE_64, "non-64 bit write not within N64CPU");
+        logfatal("Not within n64cpu");
         | mov64 rax, mem
         | mov [rax], Rq(reg)
     }
 }
 
 void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem) {
-    | mov64 rax, mem
-    | mov Rq(reg), [rax]
+    int offset = get_n64cpu_offset(mem);
+
+    // Check if the pointer is within N64CPU
+    if (offset > 0) {
+        // TODO add type as a param to here
+        //unimplemented(type != VALUE_TYPE_64, "non-64 bit read within N64CPU");
+        | mov Rq(reg), [cpu_state + offset]
+    } else {
+        //unimplemented(type != VALUE_TYPE_64, "non-64 bit read not within N64CPU");
+        logfatal("Not within n64cpu");
+        | mov64 rax, mem
+        | mov Rq(reg), [rax]
+    }
 }
 
 void host_emit_mov_reg_cp0(dasm_State** Dst, int reg, int cp0_reg) {
@@ -591,7 +639,7 @@ void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* 
     | jz >1
     while (flush_iter != NULL) {
         if (is_constant(flush_iter->item)) {
-            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant);
+            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant, VALUE_TYPE_64);
         } else {
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->allocated_host_register, VALUE_TYPE_64);
         }

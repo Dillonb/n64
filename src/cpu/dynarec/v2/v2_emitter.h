@@ -27,7 +27,7 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, 
 void host_emit_cmp_reg_reg(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, int operand2, enum args_reversed args_reversed);
 void host_emit_cmov_pc_binary(dasm_State** Dst, int cond_register, ir_instruction_t* if_true, ir_instruction_t* if_false);
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value);
-void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value);
+void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size);
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_type_t type);
 void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem);
 void host_emit_mov_reg_cp0(dasm_State** Dst, int reg, int cp0_reg);
