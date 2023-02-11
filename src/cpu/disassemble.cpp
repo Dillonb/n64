@@ -60,19 +60,37 @@ int disassemble(u32 address, u32 raw, char* buf, int buflen) {
     return 1;
 }
 
-int disassemble_x86_64(uintptr_t address, u8* code, size_t code_size, char* buf, size_t buflen) {
+std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code, size_t code_size) {
 #ifdef HAVE_CAPSTONE
+    std::string output;
     disassembler_initialize();
-    size_t count = cs_disasm(handle_x86_64, code, code_size, address, 0, &insn);
-    for (int i = 0; i < count; i++) {
-        int written = snprintf(buf, buflen, "%s %s\n", insn[i].mnemonic, insn[i].op_str);
-        buf += written;
-        buflen -= written;
+    csh handle;
+    switch (arch) {
+        case DisassemblyArch::HOST:
+            handle = handle_x86_64;
+            break;
+        case DisassemblyArch::GUEST:
+            handle = handle_mips64;
+            break;
     }
 
+    size_t count = cs_disasm(handle, code, code_size, address, 0, &insn);
+    for (int i = 0; i < count; i++) {
+        char tmp[100];
+        int res;
+        if (arch == DisassemblyArch::HOST) {
+            res = snprintf(tmp, 100, "%016lX\t%s %s\n", insn[i].address, insn[i].mnemonic, insn[i].op_str);
+        } else {
+            res = snprintf(tmp, 100, "%08lX\t%s %s\n", insn[i].address, insn[i].mnemonic, insn[i].op_str);
+        }
+        output += std::string(tmp);
+        if (res < 0) {
+            return "Error " + std::to_string(res) + " from snprintf when disassembling:";
+        }
+    }
     cs_free(insn, count);
+    return output;
 #else
-    snprintf(buf, buflen, "[Disassembly Unsupported]");
+    return "[Disassembly Unsupported]";
 #endif
-    return 1;
 }

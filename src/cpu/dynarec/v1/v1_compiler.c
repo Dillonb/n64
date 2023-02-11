@@ -4,7 +4,7 @@
 #include "v1_compiler.h"
 #include "v1_emitter.h"
 
-static void* link_and_encode(dasm_State** d) {
+static void* link_and_encode(dasm_State** d, size_t* code_size_result) {
     size_t code_size;
     dasm_link(d, &code_size);
 #ifdef N64_LOG_COMPILATIONS
@@ -12,6 +12,10 @@ static void* link_and_encode(dasm_State** d) {
 #endif
     void* buf = dynarec_bumpalloc(code_size);
     dasm_encode(d, buf);
+
+    if (code_size_result) {
+        *code_size_result = code_size;
+    }
 
     return buf;
 }
@@ -320,10 +324,13 @@ void v1_compile_new_block(n64_dynarec_block_t* block, bool* code_mask, u64 virtu
     }
     flush_all(Dst);
     end_block(Dst, block_length + block_extra_cycles);
-    void* compiled = link_and_encode(&d);
+    size_t code_size;
+    void* compiled = link_and_encode(&d, &code_size);
     dasm_free(&d);
 
     block->run = compiled;
+    block->host_size = code_size;
+    block->guest_size = block_length * 4;
 }
 
 void v1_compiler_init() {

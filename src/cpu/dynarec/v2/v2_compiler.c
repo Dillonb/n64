@@ -118,7 +118,7 @@ void print_ir_block() {
         instr = instr->next;
     }
 }
-static void* link_and_encode(dasm_State** d) {
+static void* link_and_encode(dasm_State** d, size_t* code_size_result) {
     size_t code_size;
     dasm_link(d, &code_size);
     void* buf = dynarec_bumpalloc(code_size);
@@ -126,9 +126,6 @@ static void* link_and_encode(dasm_State** d) {
 
 #ifdef N64_LOG_COMPILATIONS
     printf("Generated %ld bytes of code\n", code_size);
-    char* disassembly = malloc(4096);
-    disassemble_x86_64((uintptr_t)buf, buf, code_size, disassembly, 4096);
-    printf("%s", disassembly);
 /*
     FILE* f = fopen("compiled.bin", "wb");
     fwrite(buf, 1, code_size, f);
@@ -136,6 +133,9 @@ static void* link_and_encode(dasm_State** d) {
     */
 #endif
 
+    if (code_size_result) {
+        *code_size_result = code_size;
+    }
     return buf;
 }
 
@@ -467,10 +467,13 @@ void v2_emit_block(n64_dynarec_block_t* block) {
         logfatal("TODO: emit end of block PC");
     }
     v2_end_block(Dst, temp_code_len);
-    void* compiled = link_and_encode(&d);
+    size_t code_size;
+    void* compiled = link_and_encode(&d, &code_size);
     dasm_free(&d);
 
     block->run = compiled;
+    block->guest_size = temp_code_len * 4;
+    block->host_size = code_size;
 
 }
 

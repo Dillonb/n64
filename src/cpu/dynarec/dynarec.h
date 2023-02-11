@@ -13,6 +13,7 @@
 #define BLOCKCACHE_INNER_SIZE (BLOCKCACHE_PAGE_SIZE >> 2)
 #define BLOCKCACHE_INNER_INDEX(physical) (((physical) & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2)
 #define IS_PAGE_BOUNDARY(address) (((address) & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
+#define INDICES_TO_ADDRESS(outer, inner) (((outer) << BLOCKCACHE_OUTER_SHIFT) | ((inner) << 2))
 
 
 typedef enum dynarec_instruction_category {
@@ -31,12 +32,15 @@ INLINE bool is_branch(dynarec_instruction_category_t category) {
 
 typedef struct n64_dynarec_block {
     int (*run)(r4300i_t* cpu);
+    size_t guest_size;
+    size_t host_size;
 } n64_dynarec_block_t;
 
 typedef struct n64_dynarec {
     u8* codecache;
     u64 codecache_size;
     u64 codecache_used;
+    uintptr_t missing_block_handler;
 
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];

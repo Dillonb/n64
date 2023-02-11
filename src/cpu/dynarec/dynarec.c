@@ -16,6 +16,8 @@ static int missing_block_handler() {
 
     n64_dynarec_block_t* block = &block_list[inner_index];
     block->run = NULL;
+    block->host_size = 0;
+    block->guest_size = 0;
     bool* code_mask = N64DYNAREC->code_mask[outer_index];
 
 #ifdef N64_LOG_COMPILATIONS
@@ -53,6 +55,8 @@ int n64_dynarec_step() {
         block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
             block_list[i].run = missing_block_handler;
+            block_list[i].host_size = 0;
+            block_list[i].guest_size = 0;
         }
         N64DYNAREC->blockcache[outer_index] = block_list;
         N64DYNAREC->code_mask[outer_index] = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(bool));
@@ -95,6 +99,8 @@ n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
     }
 
     dynarec->codecache = codecache;
+
+    dynarec->missing_block_handler = (uintptr_t)missing_block_handler;
 
     v1_compiler_init();
     v2_compiler_init();

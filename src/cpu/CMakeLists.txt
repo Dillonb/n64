@@ -1,5 +1,5 @@
 add_library(disassemble
-        disassemble.c disassemble.h)
+        disassemble.cpp disassemble.h)
 
 configure_file(../contrib/tools/dynasm/dynasm.lua dynasm/dynasm.lua COPYONLY)
 configure_file(../contrib/tools/dynasm/dasm_arm.lua dynasm/dasm_arm.lua COPYONLY)
