@@ -159,60 +159,61 @@ void render_metrics_window() {
     dp_interrupts.add_point(get_metric(METRIC_DP_INTERRUPT));
     sp_interrupts.add_point(get_metric(METRIC_SP_INTERRUPT));
 
+    const auto flags = ImDrawListFlags_AntiAliasedLines;
 
     ImGui::Begin("Performance Metrics", &show_metrics_window);
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", frametime, ImGui::GetIO().Framerate);
 
-    ImPlot::GetStyle().AntiAliasedLines = true;
+    //ImPlot::GetStyle().AntiAliasedLines = true;
 
-    ImPlot::SetNextPlotLimitsY(0, frame_times.max(), ImGuiCond_Always, 0);
-    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, frame_times.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Frame Times")) {
-        ImPlot::PlotLine("Frame Time (ms)", frame_times.data, METRICS_HISTORY_ITEMS, 1, 0, frame_times.offset);
+        ImPlot::PlotLine("Frame Time (ms)", frame_times.data, METRICS_HISTORY_ITEMS, 1, 0, flags, frame_times.offset);
         ImPlot::EndPlot();
     }
 
-    ImPlot::SetNextPlotLimitsY(0, rsp_steps.max(), ImGuiCond_Always, 0);
-    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, rsp_steps.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("RSP Steps Per Frame")) {
-        ImPlot::PlotLine("RSP Steps", rsp_steps.data, METRICS_HISTORY_ITEMS, 1, 0, rsp_steps.offset);
+        ImPlot::PlotLine("RSP Steps", rsp_steps.data, METRICS_HISTORY_ITEMS, 1, 0, flags, rsp_steps.offset);
         ImPlot::EndPlot();
     }
 
     ImGui::Text("Block compilations this frame: %ld", get_metric(METRIC_BLOCK_COMPILATION));
-    ImPlot::SetNextPlotLimitsY(0, block_complilations.max(), ImGuiCond_Always, 0);
-    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_complilations.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Block Compilations Per Frame")) {
-        ImPlot::PlotBars("Block compilations", block_complilations.data, METRICS_HISTORY_ITEMS, 1, 0, block_complilations.offset);
+        ImPlot::PlotBars("Block compilations", block_complilations.data, METRICS_HISTORY_ITEMS, 1, 0, flags, block_complilations.offset);
         ImPlot::EndPlot();
     }
 
-    ImPlot::SetNextPlotLimitsY(0, n64sys.dynarec->codecache_size, ImGuiCond_Always, 0);
-    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, n64sys.dynarec->codecache_size, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Codecache bytes used")) {
-        ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, codecache_bytes_used.offset);
+        ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, flags, codecache_bytes_used.offset);
         ImPlot::EndPlot();
     }
 
     ImGui::Text("Audio stream bytes available: %ld", get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
-    ImPlot::SetNextPlotLimitsY(0, audiostream_bytes_available.max(), ImGuiCond_Always, 0);
-    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, audiostream_bytes_available.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Audio Stream Bytes Available")) {
-        ImPlot::PlotLine("Audio Stream Bytes Available", audiostream_bytes_available.data, METRICS_HISTORY_ITEMS, 1, 0, audiostream_bytes_available.offset);
+        ImPlot::PlotLine("Audio Stream Bytes Available", audiostream_bytes_available.data, METRICS_HISTORY_ITEMS, 1, 0, flags, audiostream_bytes_available.offset);
         ImPlot::EndPlot();
     }
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
     int interruptsMax = MAX(MAX(MAX(MAX(si_interrupts.max(), pi_interrupts.max()), ai_interrupts.max()), dp_interrupts.max()), sp_interrupts.max());
-    ImPlot::SetNextPlotLimitsY(0, interruptsMax, ImGuiCond_Always, 0);
-    ImPlot::SetNextPlotLimitsX(0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, interruptsMax, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Interrupts Per Frame")) {
-        ImPlot::PlotLine("SI Interrupts", si_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, si_interrupts.offset);
-        ImPlot::PlotLine("PI Interrupts", pi_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, pi_interrupts.offset);
-        ImPlot::PlotLine("AI Interrupts", ai_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, ai_interrupts.offset);
-        ImPlot::PlotLine("DP Interrupts", dp_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, dp_interrupts.offset);
-        ImPlot::PlotLine("SP Interrupts", sp_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, sp_interrupts.offset);
+        ImPlot::PlotLine("SI Interrupts", si_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, flags, si_interrupts.offset);
+        ImPlot::PlotLine("PI Interrupts", pi_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, flags, pi_interrupts.offset);
+        ImPlot::PlotLine("AI Interrupts", ai_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, flags, ai_interrupts.offset);
+        ImPlot::PlotLine("DP Interrupts", dp_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, flags, dp_interrupts.offset);
+        ImPlot::PlotLine("SP Interrupts", sp_interrupts.data, METRICS_HISTORY_ITEMS, 1, 0, flags, sp_interrupts.offset);
         ImPlot::EndPlot();
     }
 
