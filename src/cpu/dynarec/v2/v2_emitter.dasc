@@ -10,6 +10,9 @@
 #include <sys/mman.h>
 #endif
 
+#define TMPREG1 get_scratch_registers()[0]
+#define TMPREG2 get_scratch_registers()[1]
+
 #define IMM64_INVALID() logfatal("Should never end up here, x86_64 has no 64 bit immediates")
 
 ||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
@@ -250,8 +253,8 @@ void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_
 }
 
 void host_emit_call(dasm_State** Dst, uintptr_t function) {
-    | mov64 rax, function
-    | call rax
+    | mov64 Rq(TMPREG1), function
+    | call Rq(TMPREG1)
 }
 
 void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum args_reversed args_reversed) {
@@ -332,15 +335,15 @@ void host_emit_cmp_reg_reg(dasm_State** Dst, int dest_reg, ir_condition_t cond, 
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
     if (is_constant(value)) {
         u64 const_value = const_to_u64(value);
-        | mov64 rdi, const_value
-        | mov cpu_state->pc, rdi
-        | add rdi, 4
-        | mov cpu_state->next_pc, rdi
+        | mov64 Rq(TMPREG2), const_value
+        | mov cpu_state->pc, Rq(TMPREG2)
+        | add Rq(TMPREG2), 4
+        | mov cpu_state->next_pc, Rq(TMPREG2)
     } else {
-        | mov rdi, Rq(value->allocated_host_register)
-        | mov cpu_state->pc, rdi
-        | add rdi, 4
-        | mov cpu_state->next_pc, rdi
+        | mov Rq(TMPREG2), Rq(value->allocated_host_register)
+        | mov cpu_state->pc, Rq(TMPREG2)
+        | add Rq(TMPREG2), 4
+        | mov cpu_state->next_pc, Rq(TMPREG2)
     }
 }
 
@@ -369,8 +372,6 @@ int get_n64cpu_offset(uintptr_t absolute) {
 
 void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size) {
     int offset = get_n64cpu_offset(mem);
-    int tmp1 = get_scratch_registers()[0];
-    int tmp2 = get_scratch_registers()[1];
     u64 imm = set_const_to_u64(value);
     // Check if the pointer is within N64CPU
     if (offset > 0) {
@@ -388,15 +389,15 @@ void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t va
                 | mov dword [cpu_state + offset], (u32)imm
                 break;
             case VALUE_TYPE_64:
-                host_emit_mov_reg_imm(Dst, tmp1, value);
-                | mov [cpu_state + offset], Rq(tmp1)
+                host_emit_mov_reg_imm(Dst, TMPREG1, value);
+                | mov [cpu_state + offset], Rq(TMPREG1)
                 break;
         }
     } else {
         logfatal("Not within N64CPU");
-        | mov64 Rq(tmp1), mem
-        host_emit_mov_reg_imm(Dst, tmp2, value);
-        | mov [Rq(tmp1)], Rq(tmp2)
+        | mov64 Rq(TMPREG1), mem
+        host_emit_mov_reg_imm(Dst, TMPREG2, value);
+        | mov [Rq(TMPREG1)], Rq(TMPREG2)
     }
 }
 
@@ -410,8 +411,8 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_ty
     } else {
         unimplemented(type != VALUE_TYPE_64, "non-64 bit write not within N64CPU");
         logfatal("Not within n64cpu");
-        | mov64 rax, mem
-        | mov [rax], Rq(reg)
+        | mov64 Rq(TMPREG1), mem
+        | mov [Rq(TMPREG1)], Rq(reg)
     }
 }
 
@@ -426,8 +427,8 @@ void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem) {
     } else {
         //unimplemented(type != VALUE_TYPE_64, "non-64 bit read not within N64CPU");
         logfatal("Not within n64cpu");
-        | mov64 rax, mem
-        | mov Rq(reg), [rax]
+        | mov64 Rq(TMPREG1), mem
+        | mov Rq(reg), [TMPREG1]
     }
 }
 
