@@ -344,7 +344,7 @@ void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->flush_guest_reg.value)) {
         host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant);
     } else {
-        host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->allocated_host_register);
+        host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->allocated_host_register, VALUE_TYPE_64);
     }
 }
 

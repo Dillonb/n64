@@ -363,9 +363,19 @@ void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t va
     |mov [Rq(tmp1)], Rq(tmp2)
 }
 
-void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg) {
-    | mov64 rax, mem
-    | mov [rax], Rq(reg)
+void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_type_t type) {
+    const uintptr_t n64cpu_addr = (uintptr_t)&N64CPU;
+    const uintptr_t offset = mem - n64cpu_addr;
+
+    // Check if the pointer is within N64CPU
+    if (mem > n64cpu_addr && offset < sizeof(N64CPU)) {
+        unimplemented(type != VALUE_TYPE_64, "non-64 bit write within N64CPU");
+        | mov [cpu_state + offset], Rq(reg)
+    } else {
+        unimplemented(type != VALUE_TYPE_64, "non-64 bit write not within N64CPU");
+        | mov64 rax, mem
+        | mov [rax], Rq(reg)
+    }
 }
 
 void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem) {
@@ -583,7 +593,7 @@ void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* 
         if (is_constant(flush_iter->item)) {
             host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant);
         } else {
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->allocated_host_register);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->allocated_host_register, VALUE_TYPE_64);
         }
 
         flush_iter = flush_iter->next;
