@@ -13,6 +13,8 @@
 
 //#define N64_LOG_COMPILATIONS
 
+#define binop_checkdest unimplemented(instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register || instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register, "op1 == dest || op2 == dest")
+
 typedef struct source_instruction {
     mips_instruction_t instr;
     dynarec_instruction_category_t category;
@@ -155,8 +157,7 @@ void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_or_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
         }
     } else {
-        unimplemented(instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register, "op1 == dest");
-        unimplemented(instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register, "op2 == dest");
+        binop_checkdest;
         host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
         host_emit_or_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
     }
@@ -178,8 +179,7 @@ void compile_ir_xor(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_xor_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
         }
     } else {
-        unimplemented(instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register, "op1 == dest");
-        unimplemented(instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register, "op2 == dest");
+        binop_checkdest;
         host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
         host_emit_xor_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
     }
@@ -228,8 +228,10 @@ void compile_ir_add(dasm_State** Dst, ir_instruction_t* instr) {
         host_emit_add_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
     } else {
         if (instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register) {
+            // operand1 matches, do `add operand1, operand2`
             logfatal("operand1 matches");
         } else if (instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register) {
+            // operand2 matches, do `add operand2, operand1`
             logfatal("operand2 matches");
         } else {
             host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
@@ -247,9 +249,9 @@ void compile_ir_sub(dasm_State** Dst, ir_instruction_t* instr) {
         logfatal("Half const sub: (var) - (const)");
     } else {
         if (instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register) {
-            logfatal("operand1 matches");
+            host_emit_sub_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
         } else if (instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register) {
-            logfatal("operand2 matches");
+            logfatal("operand2 matches. This might be weird");
         } else {
             host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
             host_emit_sub_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
