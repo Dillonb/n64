@@ -146,6 +146,10 @@ void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t oper
     }
 }
 
+void host_emit_or_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    | or Rq(operand1), Rq(operand2)
+}
+
 void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
     switch (operand2.type) {
         case VALUE_TYPE_S8:
@@ -171,6 +175,10 @@ void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
             IMM64_INVALID();
             break;
     }
+}
+
+void host_emit_xor_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    | xor Rq(operand1), Rq(operand2)
 }
 
 void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {

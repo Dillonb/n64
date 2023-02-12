@@ -155,7 +155,10 @@ void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_or_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
         }
     } else {
-        logfatal("Emitting IR_OR with two variable regs");
+        unimplemented(instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register, "op1 == dest");
+        unimplemented(instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register, "op2 == dest");
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
+        host_emit_or_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
     }
 }
 
@@ -175,7 +178,10 @@ void compile_ir_xor(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_xor_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
         }
     } else {
-        logfatal("Emitting IR_XOR with two variable regs");
+        unimplemented(instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register, "op1 == dest");
+        unimplemented(instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register, "op2 == dest");
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
+        host_emit_xor_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
     }
 }
 
