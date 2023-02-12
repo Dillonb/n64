@@ -183,7 +183,7 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 }
 
 void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
-    if (guest_reg < 32) {
+    if (guest_reg > 0 && guest_reg < 32) {
         ir_context.guest_gpr_to_value[guest_reg] = value;
     }
 }
