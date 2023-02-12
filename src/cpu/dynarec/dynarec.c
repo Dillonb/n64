@@ -8,7 +8,7 @@
 #include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
 
-static int missing_block_handler() {
+int missing_block_handler() {
     u32 physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
     u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
     n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
@@ -99,8 +99,6 @@ n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
     }
 
     dynarec->codecache = codecache;
-
-    dynarec->missing_block_handler = (uintptr_t)missing_block_handler;
 
     v1_compiler_init();
     v2_compiler_init();

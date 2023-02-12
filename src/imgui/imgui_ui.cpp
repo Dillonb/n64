@@ -248,7 +248,7 @@ void render_dynarec_block_browser() {
         blocks.clear();
         mips_block.clear();
         host_block.clear();
-        uintptr_t missing_block_handler = N64DYNAREC->missing_block_handler;
+        uintptr_t missing_block_handler = missing_block_handler;
         for (int outer_index = 0; outer_index < BLOCKCACHE_OUTER_SIZE; outer_index++) {
             if (N64DYNAREC->blockcache[outer_index]) {
                 n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];

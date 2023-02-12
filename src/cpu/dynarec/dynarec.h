@@ -40,7 +40,6 @@ typedef struct n64_dynarec {
     u8* codecache;
     u64 codecache_size;
     u64 codecache_used;
-    uintptr_t missing_block_handler;
 
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];
@@ -68,6 +67,7 @@ INLINE void invalidate_dynarec_page(u32 physical_address) {
 int n64_dynarec_step();
 n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);
-void invalidate_dynarec_all_pages();
+void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec);
+int missing_block_handler();
 
 #endif //N64_DYNAREC_H
