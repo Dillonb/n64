@@ -15,6 +15,8 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_OR:
         case IR_AND:
         case IR_ADD:
+        case IR_SUB:
+        case IR_XOR:
             return instr->bin_op.operand1 == value || instr->bin_op.operand2 == value;
 
         // Other
@@ -171,6 +173,17 @@ void ir_optimize_constant_propagation() {
                 }
                 break;
 
+            case IR_XOR:
+                if (binop_constant(instr)) {
+                    u64 operand1 = const_to_u64(instr->bin_op.operand1);
+                    u64 operand2 = const_to_u64(instr->bin_op.operand2);
+
+                    instr->type = IR_SET_CONSTANT;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = operand1 ^ operand2;
+                }
+                break;
+
             case IR_AND:
                 if (binop_constant(instr)) {
                     u64 operand1 = const_to_u64(instr->bin_op.operand1);
@@ -193,6 +206,16 @@ void ir_optimize_constant_propagation() {
                     instr->set_constant.value_u64 = operand1 + operand2;
                 }
                 break;
+
+            case IR_SUB:
+                if (binop_constant(instr)) {
+                    u64 operand1 = const_to_u64(instr->bin_op.operand1);
+                    u64 operand2 = const_to_u64(instr->bin_op.operand2);
+
+                    instr->type = IR_SET_CONSTANT;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = operand1 - operand2;
+                }
 
             case IR_SHIFT:
                 if (is_constant(instr->shift.operand) && is_constant(instr->shift.amount)) {
@@ -374,8 +397,10 @@ void ir_optimize_eliminate_dead_code() {
 
             // Bin ops
             case IR_OR:
+            case IR_XOR:
             case IR_AND:
             case IR_ADD:
+            case IR_SUB:
                 if (!instr->dead_code) {
                     instr->bin_op.operand1->dead_code = false;
                     instr->bin_op.operand2->dead_code = false;
@@ -496,8 +521,10 @@ bool needs_register_allocated(ir_instruction_t* instr) {
 
         case IR_TLB_LOOKUP:
         case IR_OR:
+        case IR_XOR:
         case IR_AND:
         case IR_ADD:
+        case IR_SUB:
         case IR_LOAD:
         case IR_MASK_AND_CAST:
         case IR_CHECK_CONDITION:

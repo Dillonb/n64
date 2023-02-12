@@ -146,6 +146,33 @@ void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t oper
     }
 }
 
+void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
+    switch (operand2.type) {
+        case VALUE_TYPE_S8:
+            | xor Rq(operand1), operand2.value_s8
+            break;
+        case VALUE_TYPE_U8:
+            | xor Rq(operand1), operand2.value_s8
+            break;
+        case VALUE_TYPE_S16:
+            | xor Rq(operand1), operand2.value_s16
+            break;
+        case VALUE_TYPE_U16:
+            | xor Rq(operand1), operand2.value_s16
+            break;
+        case VALUE_TYPE_S32:
+            | xor Rq(operand1), operand2.value_s32
+            break;
+        case VALUE_TYPE_U32:
+            | xor Rq(operand1), operand2.value_u32
+            break;
+        case VALUE_TYPE_U64:
+        case VALUE_TYPE_S64:
+            IMM64_INVALID();
+            break;
+    }
+}
+
 void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
     switch (operand2.type) {
         case VALUE_TYPE_S8:
@@ -232,6 +259,64 @@ void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8
            }
            break;
    }
+}
+
+void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, int amount_reg, ir_shift_direction_t direction) {
+    | mov cl, Rb(amount_reg)
+    switch (type) {
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_U8:
+            logfatal("Shift 8 bit value");
+            break;
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Shift 16 bit value");
+            break;
+
+        case VALUE_TYPE_S32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | sal Rd(reg), cl
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | sar Rd(reg), cl
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_U32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | shl Rd(reg), cl
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | shr Rd(reg), cl
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_U64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    logfatal("shl 64");
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    logfatal("shr 64");
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_S64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    logfatal("shift left arithmetic 64");
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    logfatal("shift right arithmetic 64");
+                    break;
+            }
+            break;
+    }
 }
 
 void host_emit_not(dasm_State** Dst, int reg) {

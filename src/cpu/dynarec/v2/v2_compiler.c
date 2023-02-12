@@ -155,7 +155,27 @@ void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_or_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
         }
     } else {
-        logfatal("Emitting IR_AND with two variable regs");
+        logfatal("Emitting IR_OR with two variable regs");
+    }
+}
+
+void compile_ir_xor(dasm_State** Dst, ir_instruction_t* instr) {
+    if (binop_constant(instr)) {
+        logfatal("Should have been caught by constant propagation");
+    } else if (is_constant(instr->bin_op.operand1)) {
+        u64 operand1 = const_to_u64(instr->bin_op.operand1);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_U64);
+        if (operand1 != 0) { // TODO: catch this earlier in constant propagation
+            host_emit_xor_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
+        }
+    } else if (is_constant(instr->bin_op.operand2)) {
+        u64 operand2 = const_to_u64(instr->bin_op.operand2);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
+        if (operand2 != 0) { // TODO: catch this earlier in constant propagation
+            host_emit_xor_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
+        }
+    } else {
+        logfatal("Emitting IR_XOR with two variable regs");
     }
 }
 
@@ -209,6 +229,18 @@ void compile_ir_add(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
             host_emit_add_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
         }
+    }
+}
+
+void compile_ir_sub(dasm_State** Dst, ir_instruction_t* instr) {
+    if (binop_constant(instr)) {
+        logfatal("Should have been caught by constant propagation");
+    } else if (is_constant(instr->bin_op.operand1)) {
+        logfatal("Half const sub: (const) - (var): this one will be awkward");
+    } else if (is_constant(instr->bin_op.operand2)) {
+        logfatal("Half const sub: (var) - (const)");
+    } else {
+        logfatal("Non const sub");
     }
 }
 
@@ -364,7 +396,7 @@ void compile_ir_shift(dasm_State** Dst, ir_instruction_t* instr) {
 
             host_emit_shift_reg_imm(Dst, instr->allocated_host_register, instr->shift.type, shift_amount, instr->shift.direction);
         } else {
-            logfatal("Shift variable operand and variable amount");
+            host_emit_shift_reg_reg(Dst, instr->allocated_host_register, instr->shift.type, instr->shift.amount->allocated_host_register, instr->shift.direction);
         }
     }
 }
@@ -435,6 +467,9 @@ void v2_emit_block(n64_dynarec_block_t* block) {
             case IR_OR:
                 compile_ir_or(Dst, instr);
                 break;
+            case IR_XOR:
+                compile_ir_xor(Dst, instr);
+                break;
             case IR_AND:
                 compile_ir_and(Dst, instr);
                 break;
@@ -443,6 +478,9 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 break;
             case IR_ADD:
                 compile_ir_add(Dst, instr);
+                break;
+            case IR_SUB:
+                compile_ir_sub(Dst, instr);
                 break;
             case IR_STORE:
                 compile_ir_store(Dst, instr);

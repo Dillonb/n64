@@ -17,9 +17,11 @@ void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_
 void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2);
 void host_emit_and_reg_reg(dasm_State** Dst, int operand1, int operand2);
 void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2);
+void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2);
 void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2);
 void host_emit_add_reg_reg(dasm_State** Dst, int operand1, int operand2);
 void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction);
+void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, int amount_reg, ir_shift_direction_t direction);
 void host_emit_not(dasm_State** Dst, int reg);
 void host_emit_mult_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm, ir_value_type_t multiplicand_type);
 

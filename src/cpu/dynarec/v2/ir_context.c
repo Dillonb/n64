@@ -106,6 +106,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_OR:
             snprintf(buf, buf_size, "v%d | v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
             break;
+        case IR_XOR:
+            snprintf(buf, buf_size, "v%d ^ v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
+            break;
         case IR_AND:
             snprintf(buf, buf_size, "v%d & v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
             break;
@@ -170,6 +173,8 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_GET_MULT_RESULT:
             snprintf(buf, buf_size, "GET_MULT_%s()", instr->mult_result.result_bits == MULT_RESULT_HI ? "HI" : "LO");
             break;
+        case IR_SUB:
+            snprintf(buf, buf_size, "v%d - v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
     }
 }
 
@@ -314,6 +319,15 @@ ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operan
     return append_ir_instruction(instruction, guest_reg);
 }
 
+ir_instruction_t* ir_emit_xor(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_XOR;
+    instruction.bin_op.operand1 = operand;
+    instruction.bin_op.operand2 = operand2;
+
+    return append_ir_instruction(instruction, guest_reg);
+}
+
 ir_instruction_t* ir_emit_not(ir_instruction_t* operand, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_NOT;
@@ -329,6 +343,13 @@ ir_instruction_t* ir_emit_and(ir_instruction_t* operand, ir_instruction_t* opera
     instruction.bin_op.operand2 = operand2;
 
     return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_sub(ir_instruction_t* minuend, ir_instruction_t* subtrahend, ir_value_type_t type, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_SUB;
+    instruction.bin_op.operand1 = minuend;
+    instruction.bin_op.operand2 = subtrahend;
 }
 
 ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {
