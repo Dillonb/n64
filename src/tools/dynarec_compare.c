@@ -8,6 +8,7 @@
 #include <system/scheduler.h>
 #include <disassemble.h>
 #include <mem/n64bus.h>
+#include <cpu/dynarec/dynarec.h>
 
 n64_system_t n64sys_interpreter;
 r4300i_t n64cpu_interpreter;
@@ -28,18 +29,16 @@ bool compare() {
 }
 
 void print_state() {
-    printf("PC: %016lX %016lX\n", n64cpu_interpreter.pc, n64cpu_dynarec.pc);
+    printf("expected (interpreter) actual (dynarec)\n");
+    printf("PC: %016lX %016lX%s\n", n64cpu_interpreter.pc, n64cpu_dynarec.pc, n64cpu_interpreter.pc == n64cpu_dynarec.pc ? "" : " BAD!");
     for (int i = 0; i < 32; i++) {
         bool good = n64cpu_interpreter.gpr[i] == n64cpu_dynarec.gpr[i];
-        printf("%s: %016lX %016lX\n", register_names[i], n64cpu_interpreter.gpr[i], n64cpu_dynarec.gpr[i]);
-        if (!good) {
-            printf("BAD!\n");
-        }
+        printf("%s: %016lX %016lX%s\n", register_names[i], n64cpu_interpreter.gpr[i], n64cpu_dynarec.gpr[i], good ? "" : " BAD!");
     }
 
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
         if (n64sys_interpreter.mem.rdram[i] != n64sys_dynarec.mem.rdram[i]) {
-            printf("%08X: %02X %02X\n", n64sys_interpreter.mem.rdram[i], n64sys_dynarec.mem.rdram[i]);
+            printf("%08X: %02X %02X\n", i, n64sys_interpreter.mem.rdram[i], n64sys_dynarec.mem.rdram[i]);
         }
     }
 }
@@ -101,6 +100,9 @@ int main(int argc, char** argv) {
     if (physical >= N64_RDRAM_SIZE) {
         printf("outside of RDAM, can't disassemble (TODO)");
     }
-    print_multi_guest(physical, &n64sys.mem.rdram[physical], steps * 4);
+    n64_dynarec_block_t* block = &n64sys.dynarec->blockcache[dynarec_outer_index(physical)][BLOCKCACHE_INNER_INDEX(physical)];
+    print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
+    printf("Host code:\n");
+    print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
     print_state();
 }
