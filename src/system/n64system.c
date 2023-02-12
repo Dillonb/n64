@@ -285,7 +285,7 @@ void handle_scheduler_event(scheduler_event_t* event) {
 }
 
 // This is used for debugging tools, it's fine for now if timing is a little off.
-void n64_system_step(bool dynarec) {
+int n64_system_step(bool dynarec) {
     int taken;
     if (dynarec) {
         taken = jit_system_step();
@@ -297,11 +297,11 @@ void n64_system_step(bool dynarec) {
         }
     }
 
-
     scheduler_event_t event;
     if (scheduler_tick(taken, &event)) {
         handle_scheduler_event(&event);
     }
+    return taken;
 }
 
 void check_vsync() {

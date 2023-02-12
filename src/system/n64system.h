@@ -205,7 +205,7 @@ void reset_n64system();
 bool n64_should_quit();
 void n64_load_rom(const char* rom_path);
 
-void n64_system_step(bool dynarec);
+int n64_system_step(bool dynarec);
 void n64_system_loop();
 void n64_system_cleanup();
 void n64_request_quit();

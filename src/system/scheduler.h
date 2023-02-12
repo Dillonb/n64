@@ -15,6 +15,21 @@ typedef struct scheduler_event {
     scheduler_event_type_t type;
 } scheduler_event_t;
 
+#define NUM_EVENT_NODES 10
+typedef struct scheduler_event_node {
+    scheduler_event_t event;
+    struct scheduler_event_node* next;
+} scheduler_event_node_t;
+
+typedef struct scheduler {
+    u64 scheduler_ticks;
+    scheduler_event_node_t event_nodes[NUM_EVENT_NODES];
+    int free_event_nodes_stack_ptr;
+    scheduler_event_node_t* free_event_nodes[NUM_EVENT_NODES];
+    scheduler_event_node_t* scheduler_list;
+} scheduler_t;
+
+extern scheduler_t n64scheduler;
 
 void scheduler_reset();
 bool scheduler_tick(u64 cycles, scheduler_event_t* event);
