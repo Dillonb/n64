@@ -139,8 +139,12 @@ void write_word_pireg(u32 address, u32 value) {
             }
 
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
-            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
             n64sys.pi.dma_busy = true;
+#ifdef INSTANT_PI_DMA
+            on_pi_dma_complete();
+#else
+            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
+#endif
 
             logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = dram_addr + length;
@@ -183,8 +187,13 @@ void write_word_pireg(u32 address, u32 value) {
             }
 
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
-            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
             n64sys.pi.dma_busy = true;
+#ifdef INSTANT_PI_DMA
+            on_pi_dma_complete();
+#else
+            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
+#endif
+            on_pi_dma_complete();
 
             logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = dram_addr + length;

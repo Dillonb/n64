@@ -8,6 +8,9 @@ unsigned int extra_cycles = 0;
 // Thanks m64p
 u32 timing_pi_access(u8 domain, u32 length)
 {
+#ifdef INSTANT_PI_DMA
+    return 0;
+#else
     uint32_t cycles = 0;
     uint32_t latency = 0;
     uint32_t pulse_width = 0;
@@ -38,4 +41,5 @@ u32 timing_pi_access(u8 domain, u32 length)
     cycles += (pulse_width + release) * (length / 2);
     cycles += 5 * pages;
     return cycles * 1.5; // Converting RCP clock speed to CPU clock speed
+#endif
 }
