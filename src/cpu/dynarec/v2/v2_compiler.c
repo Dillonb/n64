@@ -145,13 +145,13 @@ void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
     } else if (is_constant(instr->bin_op.operand1)) {
         u64 operand1 = const_to_u64(instr->bin_op.operand1);
         if (operand1 != 0) { // TODO: catch this earlier in constant propagation
-            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_64);
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_U64);
             host_emit_or_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
         }
     } else if (is_constant(instr->bin_op.operand2)) {
         u64 operand2 = const_to_u64(instr->bin_op.operand2);
         if (operand2 != 0) { // TODO: catch this earlier in constant propagation
-            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
             host_emit_or_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
         }
     } else {
@@ -163,10 +163,10 @@ void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
     if (binop_constant(instr)) {
         logfatal("Should have been caught by constant propagation");
     } else if (is_constant(instr->bin_op.operand1)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_U64);
         host_emit_and_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
     } else if (is_constant(instr->bin_op.operand2)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
         host_emit_and_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
     } else {
         if (instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register) {
@@ -176,7 +176,7 @@ void compile_ir_and(dasm_State** Dst, ir_instruction_t* instr) {
             // operand2 matches, do `and operand2, operand1`
             logfatal("operand2 matches, do `and operand2, operand1`");
         } else {
-            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
             host_emit_and_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
         }
     }
@@ -186,7 +186,7 @@ void compile_ir_not(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->unary_op.operand)) {
         logfatal("Should have been caught by constant propagation");
     } else {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->unary_op.operand->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->unary_op.operand->allocated_host_register, VALUE_TYPE_U64);
         host_emit_not(Dst, instr->allocated_host_register);
     }
 }
@@ -195,10 +195,10 @@ void compile_ir_add(dasm_State** Dst, ir_instruction_t* instr) {
     if (binop_constant(instr)) {
         logfatal("Should have been caught by constant propagation");
     } else if (is_constant(instr->bin_op.operand1)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register, VALUE_TYPE_U64);
         host_emit_add_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand1->set_constant);
     } else if (is_constant(instr->bin_op.operand2)) {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
         host_emit_add_reg_imm(Dst, instr->allocated_host_register, instr->bin_op.operand2->set_constant);
     } else {
         if (instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register) {
@@ -206,7 +206,7 @@ void compile_ir_add(dasm_State** Dst, ir_instruction_t* instr) {
         } else if (instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register) {
             logfatal("operand2 matches");
         } else {
-            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_64);
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
             host_emit_add_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
         }
     }
@@ -223,7 +223,7 @@ void val_to_func_arg(dasm_State** Dst, ir_instruction_t* val, int arg_index) {
     if (is_constant(val) && is_valid_immediate(val->set_constant.type)) {
         host_emit_mov_reg_imm(Dst, get_func_arg_registers()[arg_index], val->set_constant);
     } else {
-        host_emit_mov_reg_reg(Dst, get_func_arg_registers()[arg_index], val->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_reg_reg(Dst, get_func_arg_registers()[arg_index], val->allocated_host_register, VALUE_TYPE_U64);
     }
 }
 
@@ -251,7 +251,8 @@ void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
                 val_to_func_arg(Dst, instr->store.value, 1);
                 host_emit_call(Dst, (uintptr_t)n64_write_physical_word);
                 break;
-            case VALUE_TYPE_64:
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
                 val_to_func_arg(Dst, instr->store.address, 0);
                 val_to_func_arg(Dst, instr->store.value, 1);
                 host_emit_call(Dst, (uintptr_t)n64_write_physical_dword);
@@ -279,7 +280,8 @@ void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
             case VALUE_TYPE_U32:
                 fp = (uintptr_t)n64_read_physical_word;
                 break;
-            case VALUE_TYPE_64:
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
                 fp = (uintptr_t)n64_read_physical_dword;
                 break;
         }
@@ -337,14 +339,14 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_reg_imm(Dst, get_func_arg_registers()[1], bus_access);
 
     host_emit_call(Dst, (uintptr_t)resolve_virtual_address_or_die);
-    host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg(), VALUE_TYPE_64);
+    host_emit_mov_reg_reg(Dst, instr->allocated_host_register, get_return_value_reg(), VALUE_TYPE_U64);
 }
 
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->flush_guest_reg.value)) {
-        host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_64);
+        host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U64);
     } else {
-        host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->allocated_host_register, VALUE_TYPE_U64);
     }
 }
 
@@ -352,7 +354,7 @@ void compile_ir_shift(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->shift.operand)) {
         logfatal("Shift const operand");
     } else {
-        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->shift.operand->allocated_host_register, VALUE_TYPE_64);
+        host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->shift.operand->allocated_host_register, VALUE_TYPE_U64);
         if (is_constant(instr->shift.amount)) {
             u64 shift_amount_64 = const_to_u64(instr->shift.amount);
             u8 shift_amount = shift_amount_64;
@@ -389,6 +391,29 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
     } else {
         ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
         host_emit_cond_ret(Dst, instr->cond_block_exit.condition->allocated_host_register, flush_iter, instr->cond_block_exit.block_length);
+    }
+}
+
+void compile_ir_multiply(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr->multiply.multiplicand1) && is_constant(instr->multiply.multiplicand2)) {
+        logfatal("const mult");
+    } else if (is_constant(instr->multiply.multiplicand1)) {
+        host_emit_mult_reg_imm(Dst, instr->allocated_host_register, instr->multiply.multiplicand1->set_constant, instr->multiply.multiplicand_type);
+    } else if (is_constant(instr->multiply.multiplicand2)) {
+        host_emit_mult_reg_imm(Dst, instr->allocated_host_register, instr->multiply.multiplicand2->set_constant, instr->multiply.multiplicand_type);
+    } else {
+        logfatal("non const mult");
+    }
+}
+
+void compile_ir_get_mult_result(dasm_State** Dst, ir_instruction_t* instr) {
+    switch (instr->mult_result.result_bits) {
+        case MULT_RESULT_HI:
+            host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.mult_hi);
+            break;
+        case MULT_RESULT_LO:
+            host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.mult_lo);
+            break;
     }
 }
 
@@ -458,6 +483,11 @@ void v2_emit_block(n64_dynarec_block_t* block) {
             case IR_COND_BLOCK_EXIT:
                 compile_ir_cond_block_exit(Dst, instr);
                 break;
+            case IR_MULTIPLY:
+                compile_ir_multiply(Dst, instr);
+                break;
+            case IR_GET_MULT_RESULT:
+                compile_ir_get_mult_result(Dst, instr);
         }
         instr = instr->next;
     }

@@ -85,7 +85,7 @@ IR_EMITTER(sw) {
 IR_EMITTER(sd) {
     ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
-    ir_emit_store(VALUE_TYPE_64, address, value);
+    ir_emit_store(VALUE_TYPE_U64, address, value);
 }
 
 IR_EMITTER(lw) {
@@ -109,7 +109,7 @@ IR_EMITTER(lh) {
 }
 
 IR_EMITTER(ld) {
-    ir_emit_load(VALUE_TYPE_64, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U64, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(bne) {
@@ -161,6 +161,20 @@ IR_EMITTER(jr) {
 IR_EMITTER(jalr) {
     ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
     ir_emit_link(instruction.r.rd, virtual_address);
+}
+
+IR_EMITTER(multu) {
+    ir_instruction_t* multiplicand1 = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* multiplicand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_U32);
+}
+
+IR_EMITTER(mflo) {
+    ir_emit_get_mult_result(MULT_RESULT_LO, instruction.r.rd);
+}
+
+IR_EMITTER(mfhi) {
+    ir_emit_get_mult_result(MULT_RESULT_LO, instruction.r.rd);
 }
 
 IR_EMITTER(add) {
@@ -231,7 +245,7 @@ IR_EMITTER(mtc0) {
         case R4300I_CP0_REG_RANDOM: logfatal("emit MTC0 R4300I_CP0_REG_RANDOM");
         case R4300I_CP0_REG_COUNT: {
             ir_instruction_t* shift_amount = ir_emit_set_constant_u16(1, NO_GUEST_REG);
-            ir_instruction_t* value_shifted = ir_emit_shift(value, shift_amount, VALUE_TYPE_64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+            ir_instruction_t* value_shifted = ir_emit_shift(value, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
             ir_emit_set_cp0(R4300I_CP0_REG_COUNT, value_shifted);
             break;
         }
@@ -341,13 +355,13 @@ IR_EMITTER(special_instruction) {
         case FUNCT_SYSCALL: IR_UNIMPLEMENTED(FUNCT_SYSCALL);
         case FUNCT_MFHI: IR_UNIMPLEMENTED(FUNCT_MFHI);
         case FUNCT_MTHI: IR_UNIMPLEMENTED(FUNCT_MTHI);
-        case FUNCT_MFLO: IR_UNIMPLEMENTED(FUNCT_MFLO);
+        case FUNCT_MFLO: CALL_IR_EMITTER(mflo);
         case FUNCT_MTLO: IR_UNIMPLEMENTED(FUNCT_MTLO);
         case FUNCT_DSLLV: IR_UNIMPLEMENTED(FUNCT_DSLLV);
         case FUNCT_DSRLV: IR_UNIMPLEMENTED(FUNCT_DSRLV);
         case FUNCT_DSRAV: IR_UNIMPLEMENTED(FUNCT_DSRAV);
         case FUNCT_MULT: IR_UNIMPLEMENTED(FUNCT_MULT);
-        case FUNCT_MULTU: IR_UNIMPLEMENTED(FUNCT_MULTU);
+        case FUNCT_MULTU: CALL_IR_EMITTER(multu);
         case FUNCT_DIV: IR_UNIMPLEMENTED(FUNCT_DIV);
         case FUNCT_DIVU: IR_UNIMPLEMENTED(FUNCT_DIVU);
         case FUNCT_DMULT: IR_UNIMPLEMENTED(FUNCT_DMULT);

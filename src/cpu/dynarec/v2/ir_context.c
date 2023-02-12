@@ -13,8 +13,8 @@ void ir_context_reset() {
     memset(ir_context.ir_flush_cache, 0, sizeof(ir_instruction_flush_t) * IR_FLUSH_CACHE_SIZE);
 
     ir_context.ir_cache[0].type = IR_SET_CONSTANT;
-    ir_context.ir_cache[0].set_constant.type = VALUE_TYPE_64;
-    ir_context.ir_cache[0].set_constant.value_64 = 0;
+    ir_context.ir_cache[0].set_constant.type = VALUE_TYPE_U64;
+    ir_context.ir_cache[0].set_constant.value_u64 = 0;
     ir_context.guest_gpr_to_value[0] = &ir_context.ir_cache[0];
 
     ir_context.ir_cache_index = 1;
@@ -41,8 +41,10 @@ const char* val_type_to_str(ir_value_type_t type) {
             return "S32";
         case VALUE_TYPE_U32:
             return "U32";
-        case VALUE_TYPE_64:
-            return "_64";
+        case VALUE_TYPE_U64:
+            return "U64";
+        case VALUE_TYPE_S64:
+            return "S64";
     }
 }
 
@@ -93,8 +95,11 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                 case VALUE_TYPE_U32:
                     snprintf(buf, buf_size, "0x%08X ;%u", instr->set_constant.value_u32, instr->set_constant.value_u32);
                     break;
-                case VALUE_TYPE_64:
-                    snprintf(buf, buf_size, "0x%016lX ;%ld", instr->set_constant.value_64, instr->set_constant.value_64);
+                case VALUE_TYPE_U64:
+                    snprintf(buf, buf_size, "0x%016lX ;%lu", instr->set_constant.value_u64, instr->set_constant.value_u64);
+                    break;
+                case VALUE_TYPE_S64:
+                    snprintf(buf, buf_size, "0x%016lX ;%ld", instr->set_constant.value_s64, instr->set_constant.value_s64);
                     break;
             }
             break;
@@ -158,6 +163,12 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             break;
         case IR_COND_BLOCK_EXIT:
             snprintf(buf, buf_size, "exit_block_if(v%d)", instr->cond_block_exit.condition->index);
+            break;
+        case IR_MULTIPLY:
+            snprintf(buf, buf_size, "(%s)v%d * (%s)v%d", val_type_to_str(instr->multiply.multiplicand_type), instr->multiply.multiplicand1->index, val_type_to_str(instr->multiply.multiplicand_type), instr->multiply.multiplicand2->index);
+            break;
+        case IR_GET_MULT_RESULT:
+            snprintf(buf, buf_size, "GET_MULT_%s()", instr->mult_result.result_bits == MULT_RESULT_HI ? "HI" : "LO");
             break;
     }
 }
@@ -243,8 +254,11 @@ ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
         case VALUE_TYPE_U32:
             is_zero = value.value_u32 == 0;
             break;
-        case VALUE_TYPE_64:
-            is_zero = value.value_64 == 0;
+        case VALUE_TYPE_U64:
+            is_zero = value.value_u64 == 0;
+            break;
+        case VALUE_TYPE_S64:
+            is_zero = value.value_s64 == 0;
             break;
     }
     if (is_zero) {
@@ -437,4 +451,20 @@ ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value) {
     instruction.set_cp0.reg = cp0_reg;
     instruction.set_cp0.value = new_value;
     return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type) {
+    ir_instruction_t instruction;
+    instruction.type = IR_MULTIPLY;
+    instruction.multiply.multiplicand1 = multiplicand1;
+    instruction.multiply.multiplicand2 = multiplicand2;
+    instruction.multiply.multiplicand_type = multiplicand_type;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_get_mult_result(ir_get_mult_result_bits_t bits, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_GET_MULT_RESULT;
+    instruction.mult_result.result_bits = bits;
+    return append_ir_instruction(instruction, guest_reg);
 }

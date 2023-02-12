@@ -49,12 +49,15 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             }
             return false;
         }
+        case IR_MULTIPLY:
+            return instr->multiply.multiplicand1 == value || instr->multiply.multiplicand2 == value;
 
             // No dependencies
         case IR_NOP:
         case IR_SET_CONSTANT:
         case IR_LOAD_GUEST_REG:
         case IR_GET_CP0:
+        case IR_GET_MULT_RESULT:
             return false;
     }
 }
@@ -73,8 +76,10 @@ u64 set_const_to_u64(ir_set_constant_t constant) {
             return (s64)constant.value_s32;
         case VALUE_TYPE_U32:
             return constant.value_u32;
-        case VALUE_TYPE_64:
-            return constant.value_64;
+        case VALUE_TYPE_U64:
+            return constant.value_u64;
+        case VALUE_TYPE_S64:
+            return constant.value_s64;
     }
 }
 
@@ -125,6 +130,9 @@ void ir_optimize_constant_propagation() {
             case IR_FLUSH_GUEST_REG:
             case IR_GET_CP0:
             case IR_SET_CP0:
+            // TODO
+            case IR_MULTIPLY:
+            case IR_GET_MULT_RESULT:
                 break;
 
             case IR_COND_BLOCK_EXIT:
@@ -137,8 +145,8 @@ void ir_optimize_constant_propagation() {
                 if (is_constant(instr->unary_op.operand)) {
                     u64 new_value = ~const_to_u64(instr->unary_op.operand);
                     instr->type = IR_SET_CONSTANT;
-                    instr->set_constant.type = VALUE_TYPE_64;
-                    instr->set_constant.value_64 = new_value;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = new_value;
                 }
                 break;
 
@@ -158,8 +166,8 @@ void ir_optimize_constant_propagation() {
                     u64 operand2 = const_to_u64(instr->bin_op.operand2);
 
                     instr->type = IR_SET_CONSTANT;
-                    instr->set_constant.type = VALUE_TYPE_64;
-                    instr->set_constant.value_64 = operand1 | operand2;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = operand1 | operand2;
                 }
                 break;
 
@@ -169,8 +177,8 @@ void ir_optimize_constant_propagation() {
                     u64 operand2 = const_to_u64(instr->bin_op.operand2);
 
                     instr->type = IR_SET_CONSTANT;
-                    instr->set_constant.type = VALUE_TYPE_64;
-                    instr->set_constant.value_64 = operand1 & operand2;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = operand1 & operand2;
                 }
                 // TODO: check if one operand is constant, if it's zero, and replace with a const zero here
                 break;
@@ -181,8 +189,8 @@ void ir_optimize_constant_propagation() {
                     u64 operand2 = const_to_u64(instr->bin_op.operand2);
 
                     instr->type = IR_SET_CONSTANT;
-                    instr->set_constant.type = VALUE_TYPE_64;
-                    instr->set_constant.value_64 = operand1 + operand2;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = operand1 + operand2;
                 }
                 break;
 
@@ -210,10 +218,13 @@ void ir_optimize_constant_propagation() {
                                 case VALUE_TYPE_U32:
                                     logfatal("const left 32 bit shift");
                                     break;
-                                case VALUE_TYPE_64:
+                                case VALUE_TYPE_U64:
                                     instr->type = IR_SET_CONSTANT;
-                                    instr->set_constant.type = VALUE_TYPE_64;
-                                    instr->set_constant.value_64 = operand << amount;
+                                    instr->set_constant.type = VALUE_TYPE_U64;
+                                    instr->set_constant.value_u64 = operand << amount;
+                                    break;
+                                case VALUE_TYPE_S64:
+                                    logfatal("const left 64 bit signed shift");
                                     break;
                             }
                             break;
@@ -248,12 +259,13 @@ void ir_optimize_constant_propagation() {
                         case VALUE_TYPE_U32:
                             result = value & 0xFFFFFFFF;
                             break;
-                        case VALUE_TYPE_64:
+                        case VALUE_TYPE_U64:
+                        case VALUE_TYPE_S64:
                             result = value;
                             break;
                     }
-                    instr->set_constant.type = VALUE_TYPE_64;
-                    instr->set_constant.value_64 = result;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = result;
                 }
                 break;
 
@@ -283,8 +295,8 @@ void ir_optimize_constant_propagation() {
                             break;
                     }
                     instr->type = IR_SET_CONSTANT;
-                    instr->set_constant.type = VALUE_TYPE_64;
-                    instr->set_constant.value_64 = result ? 1 : 0;
+                    instr->set_constant.type = VALUE_TYPE_U64;
+                    instr->set_constant.value_u64 = result ? 1 : 0;
                 }
                 break;
 
@@ -346,6 +358,14 @@ void ir_optimize_eliminate_dead_code() {
                     flush_iter->item->dead_code = false;
                     flush_iter = flush_iter->next;
                 }
+                break;
+            case IR_MULTIPLY:
+                instr->multiply.multiplicand1->dead_code = false;
+                instr->multiply.multiplicand1->dead_code = false;
+                instr->dead_code = false;
+                break;
+            case IR_GET_MULT_RESULT:
+                instr->dead_code = false;
                 break;
 
             // Unary ops
@@ -425,8 +445,8 @@ void ir_optimize_eliminate_dead_code() {
 void ir_optimize_shrink_constants() {
     ir_instruction_t* instr = ir_context.ir_cache_head;
     while (instr != NULL) {
-        if (instr->type == IR_SET_CONSTANT && instr->set_constant.type == VALUE_TYPE_64) {
-            u64 val = instr->set_constant.value_64;
+        if (instr->type == IR_SET_CONSTANT && instr->set_constant.type == VALUE_TYPE_U64) {
+            u64 val = instr->set_constant.value_u64;
             if (val == (s64)(s16)val) {
                 instr->set_constant.type = VALUE_TYPE_S16;
                 instr->set_constant.value_s16 = val & 0xFFFF;
@@ -473,6 +493,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_FLUSH_GUEST_REG:
         case IR_SET_CP0:
         case IR_COND_BLOCK_EXIT:
+        case IR_MULTIPLY:
             return false;
 
         case IR_TLB_LOOKUP:
@@ -486,6 +507,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_SHIFT:
         case IR_NOT:
         case IR_GET_CP0:
+        case IR_GET_MULT_RESULT:
             return true;
     }
 }

@@ -25,13 +25,19 @@ typedef enum ir_value_type {
     VALUE_TYPE_U16,
     VALUE_TYPE_S32,
     VALUE_TYPE_U32,
-    VALUE_TYPE_64
+    VALUE_TYPE_U64,
+    VALUE_TYPE_S64
 } ir_value_type_t;
 
 typedef enum ir_shift_direction {
     SHIFT_DIRECTION_LEFT,
     SHIFT_DIRECTION_RIGHT
 } ir_shift_direction_t;
+
+typedef enum ir_get_mult_result_bits {
+    MULT_RESULT_HI,
+    MULT_RESULT_LO
+} ir_get_mult_result_bits_t;
 
 typedef struct ir_set_constant {
     ir_value_type_t type;
@@ -42,7 +48,8 @@ typedef struct ir_set_constant {
         u16 value_u16;
         s32 value_s32;
         u32 value_u32;
-        u64 value_64;
+        u64 value_u64;
+        u64 value_s64;
     };
 } ir_set_constant_t;
 
@@ -80,7 +87,9 @@ typedef struct ir_instruction {
         IR_GET_CP0,
         IR_SET_CP0,
         IR_LOAD_GUEST_REG,
-        IR_FLUSH_GUEST_REG
+        IR_FLUSH_GUEST_REG,
+        IR_MULTIPLY,
+        IR_GET_MULT_RESULT
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -143,6 +152,14 @@ typedef struct ir_instruction {
             struct ir_instruction* condition;
             int block_length;
         } cond_block_exit;
+        struct {
+            struct ir_instruction* multiplicand1;
+            struct ir_instruction* multiplicand2;
+            ir_value_type_t multiplicand_type;
+        } multiply;
+        struct {
+            ir_get_mult_result_bits_t result_bits;
+        } mult_result;
     };
 } ir_instruction_t;
 
@@ -207,6 +224,10 @@ ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest
 ir_instruction_t* ir_emit_get_cp0(int cp0_reg, u8 guest_reg);
 // Set a CP0 register
 ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value);
+// Multiply two values of type multiplicand_type to get a result of result_type. Result must be accessed with ir_emit_get_mult_result().
+ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type);
+// Get the result of a multiplication.
+ir_instruction_t* ir_emit_get_mult_result(ir_get_mult_result_bits_t bits, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.
@@ -244,8 +265,8 @@ INLINE ir_instruction_t* ir_emit_set_constant_u32(u32 value, u8 guest_reg) {
 // Emit a u64 constant to the IR, optionally associating it with a guest register.
 INLINE ir_instruction_t* ir_emit_set_constant_64(u64 value, u8 guest_reg) {
     ir_set_constant_t constant;
-    constant.type = VALUE_TYPE_64;
-    constant.value_64 = value;
+    constant.type = VALUE_TYPE_U64;
+    constant.value_u64 = value;
     return ir_emit_set_constant(constant, guest_reg);
 }
 
