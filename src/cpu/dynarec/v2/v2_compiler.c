@@ -120,10 +120,10 @@ void print_ir_block() {
         instr = instr->next;
     }
 }
-void* v2_link_and_encode(dasm_State** d, size_t* code_size_result) {
+void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block) {
     size_t code_size;
     dasm_link(d, &code_size);
-    void* buf = dynarec_bumpalloc(code_size);
+    u8* buf = dynarec_bumpalloc(code_size);
     dasm_encode(d, buf);
 
 #ifdef N64_LOG_COMPILATIONS
@@ -135,9 +135,10 @@ void* v2_link_and_encode(dasm_State** d, size_t* code_size_result) {
     */
 #endif
 
-    if (code_size_result) {
-        *code_size_result = code_size;
-    }
+    block->run = (int(*)(r4300i_t *)) buf;
+    block->guest_size = temp_code_len * 4;
+    block->host_size = code_size;
+
     return buf;
 }
 
@@ -551,12 +552,8 @@ void v2_emit_block(n64_dynarec_block_t* block) {
     }
     v2_end_block(Dst, temp_code_len);
     size_t code_size;
-    void* compiled = v2_link_and_encode(&d, &code_size);
+    u8* compiled = v2_link_and_encode(&d, block);
     dasm_free(&d);
-
-    block->run = compiled;
-    block->guest_size = temp_code_len * 4;
-    block->host_size = code_size;
 
 }
 
