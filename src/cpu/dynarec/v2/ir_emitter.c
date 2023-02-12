@@ -108,6 +108,10 @@ IR_EMITTER(lw) {
     ir_emit_load(VALUE_TYPE_S32, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
+IR_EMITTER(lwu) {
+    ir_emit_load(VALUE_TYPE_U32, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+}
+
 IR_EMITTER(lbu) {
     ir_emit_load(VALUE_TYPE_U8, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
@@ -254,6 +258,13 @@ IR_EMITTER(addiu) {
     ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     ir_instruction_t* result = ir_emit_add(addend1, addend2, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.i.rt);
+}
+
+IR_EMITTER(daddi) {
+    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+    // TODO: check for overflow
+    ir_emit_add(addend1, addend2, instruction.i.rt);
 }
 
 IR_EMITTER(addi) {
@@ -516,13 +527,13 @@ IR_EMITTER(instruction) {
         case OPC_LUI: CALL_IR_EMITTER(lui);
         case OPC_ADDIU: CALL_IR_EMITTER(addiu);
         case OPC_ADDI: CALL_IR_EMITTER(addi);
-        case OPC_DADDI: IR_UNIMPLEMENTED(OPC_DADDI);
+        case OPC_DADDI: CALL_IR_EMITTER(daddi);
         case OPC_ANDI: CALL_IR_EMITTER(andi);
         case OPC_LBU: CALL_IR_EMITTER(lbu);
         case OPC_LHU: CALL_IR_EMITTER(lhu);
         case OPC_LH: CALL_IR_EMITTER(lh);
         case OPC_LW: CALL_IR_EMITTER(lw);
-        case OPC_LWU: IR_UNIMPLEMENTED(OPC_LWU);
+        case OPC_LWU: CALL_IR_EMITTER(lwu);
         case OPC_BEQ: CALL_IR_EMITTER(beq);
         case OPC_BEQL: CALL_IR_EMITTER(beql);
         case OPC_BGTZ: CALL_IR_EMITTER(bgtz);
