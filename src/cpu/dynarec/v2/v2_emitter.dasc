@@ -436,7 +436,20 @@ void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum arg
                     | seta Rb(dest_reg)
                 }
                 break;
-
+            case CONDITION_GREATER_OR_EQUAL_TO_SIGNED:
+                if (args_reversed) {
+                    | setl Rb(dest_reg)
+                } else {
+                    | setge Rb(dest_reg)
+                }
+                break;
+            case CONDITION_GREATER_OR_EQUAL_TO_UNSIGNED:
+                if (args_reversed) {
+                    | setb Rb(dest_reg)
+                } else {
+                    | setae Rb(dest_reg)
+                }
+                break;
         }
     }
     | movzx Rd(dest_reg), Rb(dest_reg)

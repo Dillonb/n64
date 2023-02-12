@@ -316,6 +316,12 @@ void ir_optimize_constant_propagation() {
                         case CONDITION_GREATER_THAN_UNSIGNED:
                             result = operand1 > operand2;
                             break;
+                        case CONDITION_GREATER_OR_EQUAL_TO_SIGNED:
+                            result = (s64)operand1 >= (s64)operand2;
+                            break;
+                        case CONDITION_GREATER_OR_EQUAL_TO_UNSIGNED:
+                            result = operand1 >= operand2;
+                            break;
                     }
                     instr->type = IR_SET_CONSTANT;
                     instr->set_constant.type = VALUE_TYPE_U64;
