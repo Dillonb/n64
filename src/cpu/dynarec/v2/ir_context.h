@@ -206,6 +206,8 @@ ir_instruction_t* ir_emit_and(ir_instruction_t* operand, ir_instruction_t* opera
 ir_instruction_t* ir_emit_sub(ir_instruction_t* minuend, ir_instruction_t* subtrahend, ir_value_type_t type, u8 guest_reg);
 // Bitwise NOT
 ir_instruction_t* ir_emit_not(ir_instruction_t* operand, u8 guest_reg);
+// Boolean NOT
+ir_instruction_t* ir_emit_boolean_not(ir_instruction_t* operand, u8 guest_reg);
 // ADD two values together.
 ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg);
 // SHIFT a value of a given size in a given direction by a given amount

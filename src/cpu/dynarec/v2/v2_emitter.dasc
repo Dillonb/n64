@@ -331,7 +331,7 @@ void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, in
     }
 }
 
-void host_emit_not(dasm_State** Dst, int reg) {
+void host_emit_bitwise_not(dasm_State** Dst, int reg) {
     | not Rq(reg)
 }
 
@@ -796,9 +796,7 @@ void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg) {
     }
 }
 
-void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* flush_iter, int block_length) {
-    | test Rq(cond_reg), Rq(cond_reg)
-    | jz >1
+void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int block_length) {
     while (flush_iter != NULL) {
         if (is_constant(flush_iter->item)) {
             host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant, VALUE_TYPE_U64);
@@ -810,6 +808,12 @@ void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* 
     }
     | mov eax, block_length
     | ret
+}
+
+void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* flush_iter, int block_length) {
+    | test Rq(cond_reg), Rq(cond_reg)
+    | jz >1
+    host_emit_ret(Dst, flush_iter, block_length);
     |1:
 }
 

@@ -132,15 +132,10 @@ void ir_optimize_constant_propagation() {
             case IR_FLUSH_GUEST_REG:
             case IR_GET_CP0:
             case IR_SET_CP0:
+            case IR_COND_BLOCK_EXIT: // Const condition checked in compiler
             // TODO
             case IR_MULTIPLY:
             case IR_GET_MULT_RESULT:
-                break;
-
-            case IR_COND_BLOCK_EXIT:
-                if (is_constant(instr->cond_block_exit.condition)) {
-                    logfatal("Cond block exit with const condition");
-                }
                 break;
 
             case IR_NOT:

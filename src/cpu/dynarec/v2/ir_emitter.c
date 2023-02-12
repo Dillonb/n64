@@ -24,7 +24,7 @@ void ir_emit_conditional_branch_likely(ir_instruction_t* condition, s16 offset, 
     // Identical - ir_emit_conditional_branch already skips the delay slot when calculating the exit PC.
     ir_emit_conditional_branch(condition, offset, virtual_address);
     // The only difference is likely branches conditionally exit the block early when not taken.
-    ir_emit_conditional_block_exit(ir_emit_not(condition, NO_GUEST_REG), index);
+    ir_emit_conditional_block_exit(ir_emit_boolean_not(condition, NO_GUEST_REG), index);
 }
 
 void ir_emit_abs_branch(ir_instruction_t* address) {
@@ -147,6 +147,13 @@ IR_EMITTER(beq) {
     ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+}
+
+IR_EMITTER(beql) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(bgtz) {
@@ -517,7 +524,7 @@ IR_EMITTER(instruction) {
         case OPC_LW: CALL_IR_EMITTER(lw);
         case OPC_LWU: IR_UNIMPLEMENTED(OPC_LWU);
         case OPC_BEQ: CALL_IR_EMITTER(beq);
-        case OPC_BEQL: IR_UNIMPLEMENTED(OPC_BEQL);
+        case OPC_BEQL: CALL_IR_EMITTER(beql);
         case OPC_BGTZ: CALL_IR_EMITTER(bgtz);
         case OPC_BGTZL: IR_UNIMPLEMENTED(OPC_BGTZL);
         case OPC_BLEZ: IR_UNIMPLEMENTED(OPC_BLEZ);

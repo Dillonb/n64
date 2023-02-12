@@ -340,6 +340,12 @@ ir_instruction_t* ir_emit_not(ir_instruction_t* operand, u8 guest_reg) {
     return append_ir_instruction(instruction, guest_reg);
 }
 
+ir_instruction_t* ir_emit_boolean_not(ir_instruction_t* operand, u8 guest_reg) {
+    ir_instruction_t* mask = ir_emit_set_constant_u16(1, NO_GUEST_REG);
+    ir_instruction_t* notted = ir_emit_not(operand, NO_GUEST_REG);
+    return ir_emit_and(notted, mask, guest_reg);
+}
+
 ir_instruction_t* ir_emit_and(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_AND;
@@ -431,14 +437,17 @@ ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, in
 
     for (int i = 1; i < 32; i++) {
         ir_instruction_t* gpr_value = ir_context.guest_gpr_to_value[i];
-        if (gpr_value && gpr_value->type != IR_LOAD_GUEST_REG) { // If it's just a load, no need to flush it back as it has not been modified
-            ir_instruction_flush_t* old_head = instruction.cond_block_exit.regs_to_flush;
+        if (gpr_value) {
+            // If it's just a load, no need to flush it back as it has not been modified
+            if (gpr_value->type != IR_LOAD_GUEST_REG && gpr_value->load_guest_reg.guest_reg != i) {
+                ir_instruction_flush_t* old_head = instruction.cond_block_exit.regs_to_flush;
 
-            ir_instruction_flush_t flush;
-            flush.next = old_head;
-            flush.guest_gpr = i;
-            flush.item = gpr_value;
-            instruction.cond_block_exit.regs_to_flush = allocate_ir_flush(flush);
+                ir_instruction_flush_t flush;
+                flush.next = old_head;
+                flush.guest_gpr = i;
+                flush.item = gpr_value;
+                instruction.cond_block_exit.regs_to_flush = allocate_ir_flush(flush);
+            }
         }
     }
 

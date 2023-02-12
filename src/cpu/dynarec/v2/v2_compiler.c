@@ -194,7 +194,7 @@ void compile_ir_not(dasm_State** Dst, ir_instruction_t* instr) {
         logfatal("Should have been caught by constant propagation");
     } else {
         host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->unary_op.operand->allocated_host_register, VALUE_TYPE_U64);
-        host_emit_not(Dst, instr->allocated_host_register);
+        host_emit_bitwise_not(Dst, instr->allocated_host_register);
     }
 }
 
@@ -414,10 +414,13 @@ void compile_ir_set_cp0(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
-    if (is_constant(instr)) {
-        logfatal("compile_ir_cond_block_exit with constant condition");
+    ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
+    if (is_constant(instr->cond_block_exit.condition)) {
+        bool cond = const_to_u64(instr->cond_block_exit.condition) != 0;
+        if (cond) {
+            host_emit_ret(Dst, flush_iter, instr->cond_block_exit.block_length);
+        }
     } else {
-        ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
         host_emit_cond_ret(Dst, instr->cond_block_exit.condition->allocated_host_register, flush_iter, instr->cond_block_exit.block_length);
     }
 }
