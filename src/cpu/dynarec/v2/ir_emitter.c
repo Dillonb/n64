@@ -267,6 +267,12 @@ IR_EMITTER(daddi) {
     ir_emit_add(addend1, addend2, instruction.i.rt);
 }
 
+IR_EMITTER(daddiu) {
+    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+    ir_emit_add(addend1, addend2, instruction.i.rt);
+}
+
 IR_EMITTER(addi) {
     ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
@@ -553,7 +559,7 @@ IR_EMITTER(instruction) {
         case OPC_SLTI: IR_UNIMPLEMENTED(OPC_SLTI);
         case OPC_SLTIU: IR_UNIMPLEMENTED(OPC_SLTIU);
         case OPC_XORI: IR_UNIMPLEMENTED(OPC_XORI);
-        case OPC_DADDIU: IR_UNIMPLEMENTED(OPC_DADDIU);
+        case OPC_DADDIU: CALL_IR_EMITTER(daddiu);
         case OPC_LB: CALL_IR_EMITTER(lb);
         case OPC_LDC1: IR_UNIMPLEMENTED(OPC_LDC1);
         case OPC_SDC1: IR_UNIMPLEMENTED(OPC_SDC1);
