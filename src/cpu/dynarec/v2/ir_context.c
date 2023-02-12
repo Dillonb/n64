@@ -178,6 +178,7 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             break;
         case IR_SUB:
             snprintf(buf, buf_size, "v%d - v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
+            break;
     }
 }
 
@@ -353,6 +354,7 @@ ir_instruction_t* ir_emit_sub(ir_instruction_t* minuend, ir_instruction_t* subtr
     instruction.type = IR_SUB;
     instruction.bin_op.operand1 = minuend;
     instruction.bin_op.operand2 = subtrahend;
+    return append_ir_instruction(instruction, guest_reg);
 }
 
 ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {

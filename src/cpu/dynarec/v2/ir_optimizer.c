@@ -216,6 +216,7 @@ void ir_optimize_constant_propagation() {
                     instr->set_constant.type = VALUE_TYPE_U64;
                     instr->set_constant.value_u64 = operand1 - operand2;
                 }
+                break;
 
             case IR_SHIFT:
                 if (is_constant(instr->shift.operand) && is_constant(instr->shift.amount)) {

@@ -212,6 +212,10 @@ void host_emit_add_reg_reg(dasm_State** Dst, int operand1, int operand2) {
     | add Rq(operand1), Rq(operand2)
 }
 
+void host_emit_sub_reg_reg(dasm_State** Dst, int minuend, int subtrahend) {
+    | sub Rq(minuend), Rq(subtrahend)
+}
+
 void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
    switch (type) {
        case VALUE_TYPE_S8:

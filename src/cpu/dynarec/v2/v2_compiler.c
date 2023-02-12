@@ -246,7 +246,14 @@ void compile_ir_sub(dasm_State** Dst, ir_instruction_t* instr) {
     } else if (is_constant(instr->bin_op.operand2)) {
         logfatal("Half const sub: (var) - (const)");
     } else {
-        logfatal("Non const sub");
+        if (instr->allocated_host_register == instr->bin_op.operand1->allocated_host_register) {
+            logfatal("operand1 matches");
+        } else if (instr->allocated_host_register == instr->bin_op.operand2->allocated_host_register) {
+            logfatal("operand2 matches");
+        } else {
+            host_emit_mov_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand1->allocated_host_register, VALUE_TYPE_U64);
+            host_emit_sub_reg_reg(Dst, instr->allocated_host_register, instr->bin_op.operand2->allocated_host_register);
+        }
     }
 }
 
