@@ -412,6 +412,7 @@ ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instructi
 }
 
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false) {
+    ir_context.block_end_pc_ir_emitted = true;
     ir_instruction_t instruction;
     instruction.type = IR_SET_COND_BLOCK_EXIT_PC;
     instruction.set_cond_exit_pc.condition = condition;
@@ -426,6 +427,7 @@ ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, in
     instruction.cond_block_exit.condition = condition;
     instruction.cond_block_exit.block_length = index + 1;
     instruction.cond_block_exit.regs_to_flush = NULL;
+    unimplemented(!ir_context.block_end_pc_ir_emitted, "Conditionally exiting block without knowing what PC should be");
 
     for (int i = 1; i < 32; i++) {
         ir_instruction_t* gpr_value = ir_context.guest_gpr_to_value[i];
@@ -444,6 +446,7 @@ ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, in
 }
 
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {
+    ir_context.block_end_pc_ir_emitted = true;
     ir_instruction_t instruction;
     instruction.type = IR_SET_BLOCK_EXIT_PC;
     instruction.unary_op.operand = address;

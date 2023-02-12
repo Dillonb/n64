@@ -817,3 +817,25 @@ void v2_end_block(dasm_State** Dst, int block_length) {
     | mov eax, block_length
     | epilogue // return block_length
 }
+
+void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block, int guest_len) {
+    size_t code_size;
+    dasm_link(d, &code_size);
+    u8* buf = dynarec_bumpalloc(code_size);
+    dasm_encode(d, buf);
+
+#ifdef N64_LOG_COMPILATIONS
+    printf("Generated %ld bytes of code\n", code_size);
+/*
+    FILE* f = fopen("compiled.bin", "wb");
+    fwrite(buf, 1, code_size, f);
+    fclose(f);
+    */
+#endif
+
+    block->run = (int(*)(r4300i_t *)) buf;
+    block->guest_size = guest_len * 4;
+    block->host_size = code_size;
+
+    return buf;
+}

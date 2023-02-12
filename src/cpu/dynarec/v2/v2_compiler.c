@@ -120,27 +120,7 @@ void print_ir_block() {
         instr = instr->next;
     }
 }
-void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block) {
-    size_t code_size;
-    dasm_link(d, &code_size);
-    u8* buf = dynarec_bumpalloc(code_size);
-    dasm_encode(d, buf);
 
-#ifdef N64_LOG_COMPILATIONS
-    printf("Generated %ld bytes of code\n", code_size);
-/*
-    FILE* f = fopen("compiled.bin", "wb");
-    fwrite(buf, 1, code_size, f);
-    fclose(f);
-    */
-#endif
-
-    block->run = (int(*)(r4300i_t *)) buf;
-    block->guest_size = temp_code_len * 4;
-    block->host_size = code_size;
-
-    return buf;
-}
 
 void compile_ir_or(dasm_State** Dst, ir_instruction_t* instr) {
     if (binop_constant(instr)) {
@@ -551,8 +531,7 @@ void v2_emit_block(n64_dynarec_block_t* block) {
         logfatal("TODO: emit end of block PC");
     }
     v2_end_block(Dst, temp_code_len);
-    size_t code_size;
-    u8* compiled = v2_link_and_encode(&d, block);
+    v2_link_and_encode(&d, block, temp_code_len);
     dasm_free(&d);
 
 }
@@ -572,6 +551,10 @@ void v2_compile_new_block(
         u64 instr_virtual_address = virtual_address + (i << 2);
         u32 instr_physical_address = physical_address + (i << 2);
         emit_instruction_ir(temp_code[i].instr, i, instr_virtual_address, instr_physical_address);
+    }
+    if (!ir_context.block_end_pc_ir_emitted) {
+        ir_instruction_t* end_pc = ir_emit_set_constant_64(virtual_address + (temp_code_len << 2), NO_GUEST_REG);
+        ir_emit_set_block_exit_pc(end_pc);
     }
     ir_optimize_flush_guest_regs();
 #ifdef N64_LOG_COMPILATIONS

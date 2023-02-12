@@ -3,6 +3,7 @@
 
 #include <dynasm/dasm_proto.h>
 #include "ir_context.h"
+#include <cpu/dynarec/dynarec.h>
 
 dasm_State* v2_block_header();
 
@@ -42,5 +43,7 @@ void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* 
 
 
 void host_emit_call(dasm_State** Dst, uintptr_t function);
+
+void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block, int guest_len);
 
 #endif // N64_V2_EMITTER_H
