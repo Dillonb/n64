@@ -174,7 +174,7 @@ IR_EMITTER(mflo) {
 }
 
 IR_EMITTER(mfhi) {
-    ir_emit_get_mult_result(MULT_RESULT_LO, instruction.r.rd);
+    ir_emit_get_mult_result(MULT_RESULT_HI, instruction.r.rd);
 }
 
 IR_EMITTER(add) {

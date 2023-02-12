@@ -361,10 +361,7 @@ void ir_optimize_eliminate_dead_code() {
                 break;
             case IR_MULTIPLY:
                 instr->multiply.multiplicand1->dead_code = false;
-                instr->multiply.multiplicand1->dead_code = false;
-                instr->dead_code = false;
-                break;
-            case IR_GET_MULT_RESULT:
+                instr->multiply.multiplicand2->dead_code = false;
                 instr->dead_code = false;
                 break;
 
@@ -410,6 +407,7 @@ void ir_optimize_eliminate_dead_code() {
                 break;
 
             // No dependencies
+            case IR_GET_MULT_RESULT: // TODO: this technically has a dependency, but multiplies are never eliminated (for now?)
             case IR_GET_CP0: // Getting a CP0 reg never has side effects
             case IR_NOP:
             case IR_SET_CONSTANT:
