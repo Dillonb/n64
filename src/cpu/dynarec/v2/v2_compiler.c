@@ -323,6 +323,14 @@ void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_get_ptr(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_mov_reg_mem(Dst, instr->allocated_host_register, instr->get_ptr.ptr, instr->get_ptr.type);
+}
+
+void compile_ir_set_ptr(dasm_State** Dst, ir_instruction_t* instr) {
+    logfatal("Compile ir set ptr");
+}
+
 void compile_ir_mask_and_cast(dasm_State** Dst, ir_instruction_t* instr) {
     if (instr_valid_immediate(instr->mask_and_cast.operand)) {
         logfatal("Should have been caught by constant propagation");
@@ -403,7 +411,7 @@ void compile_ir_shift(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
-    host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg]);
+    host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U64);
 }
 
 void compile_ir_get_cp0(dasm_State** Dst, ir_instruction_t* instr) {
@@ -445,10 +453,10 @@ void compile_ir_multiply(dasm_State** Dst, ir_instruction_t* instr) {
 void compile_ir_get_mult_result(dasm_State** Dst, ir_instruction_t* instr) {
     switch (instr->mult_result.result_bits) {
         case MULT_RESULT_HI:
-            host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.mult_hi);
+            host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.mult_hi, VALUE_TYPE_U64);
             break;
         case MULT_RESULT_LO:
-            host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.mult_lo);
+            host_emit_mov_reg_mem(Dst, instr->allocated_host_register, (uintptr_t)&N64CPU.mult_lo, VALUE_TYPE_U64);
             break;
     }
 }
@@ -491,6 +499,12 @@ void v2_emit_block(n64_dynarec_block_t* block) {
                 break;
             case IR_LOAD:
                 compile_ir_load(Dst, instr);
+                break;
+            case IR_GET_PTR:
+                compile_ir_get_ptr(Dst, instr);
+                break;
+            case IR_SET_PTR:
+                compile_ir_set_ptr(Dst, instr);
                 break;
             case IR_MASK_AND_CAST:
                 compile_ir_mask_and_cast(Dst, instr);

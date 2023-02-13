@@ -82,6 +82,8 @@ typedef struct ir_instruction {
         IR_SHIFT,
         IR_STORE,
         IR_LOAD,
+        IR_GET_PTR,
+        IR_SET_PTR,
         IR_MASK_AND_CAST,
         IR_CHECK_CONDITION,
         IR_SET_COND_BLOCK_EXIT_PC,
@@ -110,6 +112,15 @@ typedef struct ir_instruction {
             ir_value_type_t type;
             struct ir_instruction* address;
         } load;
+        struct {
+            ir_value_type_t type;
+            uintptr_t ptr;
+        } get_ptr;
+        struct {
+            ir_value_type_t type;
+            uintptr_t ptr;
+            struct ir_instruction* value;
+        } set_ptr;
         struct {
             ir_value_type_t type;
             struct ir_instruction* operand;
@@ -216,6 +227,10 @@ ir_instruction_t* ir_emit_shift(ir_instruction_t* operand, ir_instruction_t* amo
 ir_instruction_t* ir_emit_store(ir_value_type_t type, ir_instruction_t* address, ir_instruction_t* value);
 // LOAD a typed value a register from an address
 ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, u8 guest_reg);
+// LOAD a typed value to a register from a host pointer.
+ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, uintptr_t ptr, u8 guest_reg);
+//STORE a typed value to a pointer
+ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, uintptr_t ptr, ir_instruction_t* value);
 // mask and cast a value to a different type.
 ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type_t type, u8 guest_reg);
 // check two operands with a condition and return 0 or 1

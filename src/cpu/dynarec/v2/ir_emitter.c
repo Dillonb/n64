@@ -442,6 +442,59 @@ IR_EMITTER(mtc0) {
     }
 }
 
+IR_EMITTER(cfc1) {
+    //checkcp1; // TODO: check cp1 is enabled
+    u8 fs = instruction.r.rd;
+    switch (fs) {
+        case 0:
+            ir_emit_get_ptr(VALUE_TYPE_U32, (uintptr_t)&N64CPU.fcr0.raw, instruction.r.rt);
+            break;
+        case 31:
+            ir_emit_get_ptr(VALUE_TYPE_U32, (uintptr_t)&N64CPU.fcr31.raw, instruction.r.rt);
+            break;
+        default:
+            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
+    }
+}
+/*
+    checkcp1;
+    u8 fs = instruction.r.rd;
+    u32 value = get_register(instruction.r.rt);
+    switch (fs) {
+        case 0:
+            logwarn("CTC1 FCR0: Wrote %08X to read-only register FCR0!", value);
+            break;
+        case 31: {
+            value &= 0x183ffff; // mask out bits held 0
+            N64CPU.fcr31.raw = value;
+            check_fpu_exception();
+            break;
+        }
+        default:
+            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
+    }
+}
+ */
+
+IR_EMITTER(ctc1) {
+    //checkcp1; // TODO: check cp1 is enabled
+    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
+    u8 fs = instruction.r.rd;
+    switch (fs) {
+        case 0:
+            logwarn("CTC1 FCR0: Wrote to read-only register FCR0!");
+            break;
+        case 31: {
+            ir_instruction_t* mask = ir_emit_set_constant_u32(0x183ffff, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(mask, value, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, (uintptr_t)&N64CPU.fcr31.raw, masked);
+            break;
+        }
+        default:
+            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
+    }
+}
+
 IR_EMITTER(mfc0) {
     switch (instruction.r.rd) {
         // passthrough
@@ -608,12 +661,12 @@ IR_EMITTER(cp1_instruction) {
     // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
     // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
     switch (instruction.r.rs) {
-        case COP_CF: IR_UNIMPLEMENTED(COP_CF);
+        case COP_CF: CALL_IR_EMITTER(cfc1);
         case COP_MF: IR_UNIMPLEMENTED(COP_MF);
         case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
         case COP_MT: IR_UNIMPLEMENTED(COP_MT);
         case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
-        case COP_CT: IR_UNIMPLEMENTED(COP_CT);
+        case COP_CT: CALL_IR_EMITTER(ctc1);
         case COP_BC:
             switch (instruction.r.rt) {
                 case COP_BC_BCT: IR_UNIMPLEMENTED(COP_BC_BCT);
@@ -627,7 +680,9 @@ IR_EMITTER(cp1_instruction) {
                 }
             }
     }
-    IR_UNIMPLEMENTED(SomeFPUInstruction);
+    //IR_UNIMPLEMENTED(SomeFPUInstruction);
+    logwarn("Ignoring FPU instruction!");
+    return;
 }
 
 IR_EMITTER(instruction) {

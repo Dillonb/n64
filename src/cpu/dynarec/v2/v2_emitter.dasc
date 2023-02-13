@@ -608,17 +608,32 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_ty
     }
 }
 
-void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem) {
+void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem, ir_value_type_t type) {
     check_reg(reg);
     int offset = get_n64cpu_offset(mem);
 
     // Check if the pointer is within N64CPU
     if (offset > 0) {
-        // TODO add type as a param to here
-        //unimplemented(type != VALUE_TYPE_U64, "non-64 bit read within N64CPU");
-        | mov Rq(reg), [cpu_state + offset]
+        switch (type) {
+            case VALUE_TYPE_U8:
+            case VALUE_TYPE_S8:
+                | mov Rb(reg), [cpu_state + offset]
+                break;
+            case VALUE_TYPE_S16:
+            case VALUE_TYPE_U16:
+                | mov Rw(reg), [cpu_state + offset]
+                break;
+            case VALUE_TYPE_S32:
+            case VALUE_TYPE_U32:
+                | mov Rd(reg), [cpu_state + offset]
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                | mov Rq(reg), [cpu_state + offset]
+                break;
+        }
     } else {
-        //unimplemented(type != VALUE_TYPE_U64, "non-64 bit read not within N64CPU");
+        unimplemented(type != VALUE_TYPE_U64, "non-64 bit read not within N64CPU");
         logfatal("Not within n64cpu");
         | mov64 Rq(TMPREG1), mem
         | mov Rq(reg), [TMPREG1]

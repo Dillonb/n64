@@ -53,8 +53,11 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         }
         case IR_MULTIPLY:
             return instr->multiply.multiplicand1 == value || instr->multiply.multiplicand2 == value;
+        case IR_SET_PTR:
+            return instr->set_ptr.value == value;
 
-            // No dependencies
+        // No dependencies
+        case IR_GET_PTR:
         case IR_NOP:
         case IR_SET_CONSTANT:
         case IR_LOAD_GUEST_REG:
@@ -127,6 +130,8 @@ void ir_optimize_constant_propagation() {
             case IR_SET_CONSTANT:
             case IR_STORE:
             case IR_LOAD:
+            case IR_GET_PTR:
+            case IR_SET_PTR:
             case IR_SET_BLOCK_EXIT_PC:
             case IR_LOAD_GUEST_REG:
             case IR_FLUSH_GUEST_REG:
@@ -432,6 +437,11 @@ void ir_optimize_eliminate_dead_code() {
                     instr->shift.amount->dead_code = false;
                 }
                 break;
+            case IR_SET_PTR:
+                if (!instr->dead_code) {
+                    instr->set_ptr.value->dead_code = false;
+                }
+                break;
 
             // No dependencies
             case IR_GET_MULT_RESULT: // TODO: this technically has a dependency, but multiplies are never eliminated (for now?)
@@ -439,6 +449,7 @@ void ir_optimize_eliminate_dead_code() {
             case IR_NOP:
             case IR_SET_CONSTANT:
             case IR_LOAD_GUEST_REG:
+            case IR_GET_PTR:
                 break;
         }
 
@@ -519,6 +530,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_SET_CP0:
         case IR_COND_BLOCK_EXIT:
         case IR_MULTIPLY:
+        case IR_SET_PTR:
             return false;
 
         case IR_TLB_LOOKUP:
@@ -528,6 +540,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_ADD:
         case IR_SUB:
         case IR_LOAD:
+        case IR_GET_PTR:
         case IR_MASK_AND_CAST:
         case IR_CHECK_CONDITION:
         case IR_LOAD_GUEST_REG:

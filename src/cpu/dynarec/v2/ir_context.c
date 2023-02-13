@@ -125,7 +125,13 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             snprintf(buf, buf_size, "STORE(type = %s, address = v%d, value = v%d)", val_type_to_str(instr->store.type), instr->store.address->index, instr->store.value->index);
             break;
         case IR_LOAD:
-            snprintf(buf, buf_size, "LOAD(type = %s, address = v%d)", val_type_to_str(instr->store.type), instr->store.address->index);
+            snprintf(buf, buf_size, "LOAD(type = %s, address = v%d)", val_type_to_str(instr->load.type), instr->load.address->index);
+            break;
+        case IR_GET_PTR:
+            snprintf(buf, buf_size, "GETPTR(type = %s, ptr = %lx)", val_type_to_str(instr->set_ptr.type), instr->set_ptr.ptr);
+            break;
+        case IR_SET_PTR:
+            snprintf(buf, buf_size, "SETPTR(type = %s, ptr = %lx, value = v%d)", val_type_to_str(instr->set_ptr.type), instr->set_ptr.ptr, instr->set_ptr.value->index);
             break;
         case IR_MASK_AND_CAST:
             snprintf(buf, buf_size, "mask_cast(%s, v%d)", val_type_to_str(instr->mask_and_cast.type), instr->mask_and_cast.operand->index);
@@ -398,6 +404,23 @@ ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, 
     instruction.load.type = type;
     instruction.load.address = address;
     return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, uintptr_t ptr, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_GET_PTR;
+    instruction.get_ptr.type = type;
+    instruction.get_ptr.ptr = ptr;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, uintptr_t ptr, ir_instruction_t* value) {
+    ir_instruction_t instruction;
+    instruction.type = IR_SET_PTR;
+    instruction.set_ptr.type = type;
+    instruction.set_ptr.ptr = ptr;
+    instruction.set_ptr.value = value;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type_t type, u8 guest_reg) {
