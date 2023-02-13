@@ -32,7 +32,7 @@ void ir_emit_abs_branch(ir_instruction_t* address) {
 }
 
 void ir_emit_link(u8 guest_reg, u64 virtual_address) {
-    u64 link_addr = virtual_address + 4; // Skip delay slot
+    u64 link_addr = virtual_address + 8; // Skip delay slot
     ir_emit_set_constant_64(link_addr, guest_reg);
 }
 
