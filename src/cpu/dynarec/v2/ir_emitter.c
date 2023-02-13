@@ -442,10 +442,50 @@ IR_EMITTER(mtc0) {
     }
 }
 
+IR_EMITTER(mfc0) {
+    switch (instruction.r.rd) {
+        // passthrough
+        case R4300I_CP0_REG_STATUS:
+            ir_emit_get_cp0(instruction.r.rd, instruction.r.rt);
+            break;
+        case R4300I_CP0_REG_TAGLO: logfatal("emit MFC0 R4300I_CP0_REG_TAGLO");
+        case R4300I_CP0_REG_TAGHI: logfatal("emit MFC0 R4300I_CP0_REG_TAGHI");
+        case R4300I_CP0_REG_INDEX: logfatal("emit MFC0 R4300I_CP0_REG_INDEX");
+        case R4300I_CP0_REG_RANDOM: logfatal("emit MFC0 R4300I_CP0_REG_RANDOM");
+        case R4300I_CP0_REG_COUNT: logfatal("emit MFC0 R4300I_CP0_REG_COUNT");
+        case R4300I_CP0_REG_CAUSE: logfatal("emit MFC0 R4300I_CP0_REG_CAUSE");
+        case R4300I_CP0_REG_COMPARE: logfatal("emit MFC0 R4300I_CP0_REG_COMPARE");
+        case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO0");
+        case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO1");
+        case R4300I_CP0_REG_ENTRYHI: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYHI");
+        case R4300I_CP0_REG_PAGEMASK: logfatal("emit MFC0 R4300I_CP0_REG_PAGEMASK");
+        case R4300I_CP0_REG_EPC: logfatal("emit MFC0 R4300I_CP0_REG_EPC");
+        case R4300I_CP0_REG_CONFIG: logfatal("emit MFC0 R4300I_CP0_REG_CONFIG");
+        case R4300I_CP0_REG_WATCHLO: logfatal("emit MFC0 R4300I_CP0_REG_WATCHLO");
+        case R4300I_CP0_REG_WATCHHI: logfatal("emit MFC0 R4300I_CP0_REG_WATCHHI");
+        case R4300I_CP0_REG_WIRED: logfatal("emit MFC0 R4300I_CP0_REG_WIRED");
+        case R4300I_CP0_REG_CONTEXT: logfatal("emit MFC0 R4300I_CP0_REG_CONTEXT");
+        case R4300I_CP0_REG_XCONTEXT: logfatal("emit MFC0 R4300I_CP0_REG_XCONTEXT");
+        case R4300I_CP0_REG_LLADDR: logfatal("emit MFC0 R4300I_CP0_REG_LLADDR");
+        case R4300I_CP0_REG_ERR_EPC: logfatal("emit MFC0 R4300I_CP0_REG_ERR_EPC");
+        case R4300I_CP0_REG_PRID: logfatal("emit MFC0 R4300I_CP0_REG_PRID");
+        case R4300I_CP0_REG_PARITYER: logfatal("emit MFC0 R4300I_CP0_REG_PARITYER");
+        case R4300I_CP0_REG_CACHEER: logfatal("emit MFC0 R4300I_CP0_REG_CACHEER");
+        case R4300I_CP0_REG_7: logfatal("emit MFC0 R4300I_CP0_REG_7");
+        case R4300I_CP0_REG_21: logfatal("emit MFC0 R4300I_CP0_REG_21");
+        case R4300I_CP0_REG_22: logfatal("emit MFC0 R4300I_CP0_REG_22");
+        case R4300I_CP0_REG_23: logfatal("emit MFC0 R4300I_CP0_REG_23");
+        case R4300I_CP0_REG_24: logfatal("emit MFC0 R4300I_CP0_REG_24");
+        case R4300I_CP0_REG_25: logfatal("emit MFC0 R4300I_CP0_REG_25");
+        case R4300I_CP0_REG_31: logfatal("emit MFC0 R4300I_CP0_REG_31");
+            break;
+    }
+}
+
 IR_EMITTER(cp0_instruction) {
     if (instruction.last11 == 0) {
         switch (instruction.r.rs) {
-            case COP_MF: IR_UNIMPLEMENTED(COP_MF);
+            case COP_MF: CALL_IR_EMITTER(mfc0);
             case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
             // Last 11 bits are 0
             case COP_MT: CALL_IR_EMITTER(mtc0);

@@ -38,6 +38,7 @@ void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t va
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_type_t type);
 void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem);
 void host_emit_mov_reg_cp0(dasm_State** Dst, int reg, int cp0_reg);
+void host_emit_mov_cp0_imm(dasm_State** Dst, int cp0_reg, ir_set_constant_t value);
 void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg);
 void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int block_length);
 void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* flush_iter, int block_length);
