@@ -252,10 +252,10 @@ void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8
        case VALUE_TYPE_U64:
            switch (direction) {
                case SHIFT_DIRECTION_LEFT:
-                   logfatal("shl 64");
+                   | shl Rq(reg), shift_amount
                    break;
                case SHIFT_DIRECTION_RIGHT:
-                   logfatal("shr 64");
+                   | shr Rq(reg), shift_amount
                    break;
            }
            break;
@@ -263,10 +263,10 @@ void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8
        case VALUE_TYPE_S64:
            switch (direction) {
                case SHIFT_DIRECTION_LEFT:
-                   logfatal("shift left arithmetic 64");
+                   | sal Rq(reg), shift_amount
                    break;
                case SHIFT_DIRECTION_RIGHT:
-                   logfatal("shift right arithmetic 64");
+                   | sar Rq(reg), shift_amount
                    break;
            }
            break;
@@ -310,10 +310,10 @@ void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, in
         case VALUE_TYPE_U64:
             switch (direction) {
                 case SHIFT_DIRECTION_LEFT:
-                    logfatal("shl 64");
+                    | shl Rq(reg), cl
                     break;
                 case SHIFT_DIRECTION_RIGHT:
-                    logfatal("shr 64");
+                    | shr Rq(reg), cl
                     break;
             }
             break;
@@ -321,10 +321,10 @@ void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, in
         case VALUE_TYPE_S64:
             switch (direction) {
                 case SHIFT_DIRECTION_LEFT:
-                    logfatal("shift left arithmetic 64");
+                    | sal Rq(reg), cl
                     break;
                 case SHIFT_DIRECTION_RIGHT:
-                    logfatal("shift right arithmetic 64");
+                    | sar Rq(reg), cl
                     break;
             }
             break;
@@ -456,7 +456,7 @@ void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum arg
                 break;
         }
     }
-    | movzx Rd(dest_reg), Rb(dest_reg)
+    | movzx Rq(dest_reg), Rb(dest_reg)
 }
 
 void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, ir_set_constant_t operand2, enum args_reversed args_reversed) {

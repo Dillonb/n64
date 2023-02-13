@@ -63,10 +63,49 @@ IR_EMITTER(sll) {
     ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
+IR_EMITTER(dsll) {
+    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
+    ir_emit_shift(operand, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
+}
+
+IR_EMITTER(dsll32) {
+    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa + 32, NO_GUEST_REG);
+    ir_emit_shift(operand, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
+}
+
+IR_EMITTER(dsra) {
+    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
+    ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, instruction.r.rd);
+}
+
+IR_EMITTER(dsra32) {
+    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa + 32, NO_GUEST_REG);
+    ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, instruction.r.rd);
+}
+
 IR_EMITTER(srl) {
     ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
     ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+    ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
+}
+
+IR_EMITTER(sra) {
+    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
+    ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+    ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
+}
+
+IR_EMITTER(srav) {
+    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_load_guest_reg(instruction.r.rs);
+    shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b11111, NO_GUEST_REG), NO_GUEST_REG);
+    ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
     ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
@@ -76,6 +115,13 @@ IR_EMITTER(sllv) {
     shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b11111, NO_GUEST_REG), NO_GUEST_REG);
     ir_instruction_t* result = ir_emit_shift(value, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
+}
+
+IR_EMITTER(dsllv) {
+    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_load_guest_reg(instruction.r.rs);
+    shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b111111, NO_GUEST_REG), NO_GUEST_REG);
+    ir_emit_shift(value, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
 }
 
 IR_EMITTER(srlv) {
@@ -234,6 +280,13 @@ IR_EMITTER(and) {
     ir_emit_and(operand1, operand2, instruction.r.rd);
 }
 
+IR_EMITTER(nor) {
+    ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* or_result = ir_emit_or(operand1, operand2, NO_GUEST_REG);
+    ir_emit_not(or_result, instruction.r.rd);
+}
+
 IR_EMITTER(subu) {
     ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rs), VALUE_TYPE_U32, NO_GUEST_REG);
     ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rt), VALUE_TYPE_U32, NO_GUEST_REG);
@@ -251,6 +304,12 @@ IR_EMITTER(xor) {
     ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
     ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
     ir_emit_xor(operand1, operand2, instruction.r.rd);
+}
+
+IR_EMITTER(xori) {
+    ir_instruction_t* i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
+    ir_emit_xor(i_operand, i_operand2, instruction.i.rt);
 }
 
 IR_EMITTER(addiu) {
@@ -291,6 +350,18 @@ IR_EMITTER(sltu) {
     ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.r.rs);
     ir_instruction_t* op2 = ir_emit_load_guest_reg(instruction.r.rt);
     ir_emit_check_condition(CONDITION_LESS_THAN_UNSIGNED, op1, op2, instruction.r.rd);
+}
+
+IR_EMITTER(slti) {
+    ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* op2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+    ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, op1, op2, instruction.i.rt);
+}
+
+IR_EMITTER(sltiu) {
+    ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* op2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+    ir_emit_check_condition(CONDITION_LESS_THAN_UNSIGNED, op1, op2, instruction.i.rt);
 }
 
 IR_EMITTER(mtc0) {
@@ -408,8 +479,8 @@ IR_EMITTER(special_instruction) {
     switch (instruction.r.funct) {
         case FUNCT_SLL: CALL_IR_EMITTER(sll);
         case FUNCT_SRL: CALL_IR_EMITTER(srl);
-        case FUNCT_SRA: IR_UNIMPLEMENTED(FUNCT_SRA);
-        case FUNCT_SRAV: IR_UNIMPLEMENTED(FUNCT_SRAV);
+        case FUNCT_SRA: CALL_IR_EMITTER(sra);
+        case FUNCT_SRAV: CALL_IR_EMITTER(srav);
         case FUNCT_SLLV: CALL_IR_EMITTER(sllv);
         case FUNCT_SRLV: CALL_IR_EMITTER(srlv);
         case FUNCT_JR: CALL_IR_EMITTER(jr);
@@ -419,7 +490,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_MTHI: IR_UNIMPLEMENTED(FUNCT_MTHI);
         case FUNCT_MFLO: CALL_IR_EMITTER(mflo);
         case FUNCT_MTLO: IR_UNIMPLEMENTED(FUNCT_MTLO);
-        case FUNCT_DSLLV: IR_UNIMPLEMENTED(FUNCT_DSLLV);
+        case FUNCT_DSLLV: CALL_IR_EMITTER(dsllv);
         case FUNCT_DSRLV: IR_UNIMPLEMENTED(FUNCT_DSRLV);
         case FUNCT_DSRAV: IR_UNIMPLEMENTED(FUNCT_DSRAV);
         case FUNCT_MULT: IR_UNIMPLEMENTED(FUNCT_MULT);
@@ -433,7 +504,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_ADD: CALL_IR_EMITTER(add);
         case FUNCT_ADDU: CALL_IR_EMITTER(addu);
         case FUNCT_AND: CALL_IR_EMITTER(and);
-        case FUNCT_NOR: IR_UNIMPLEMENTED(FUNCT_NOR);
+        case FUNCT_NOR: CALL_IR_EMITTER(nor);
         case FUNCT_SUB: IR_UNIMPLEMENTED(FUNCT_SUB);
         case FUNCT_SUBU: CALL_IR_EMITTER(subu);
         case FUNCT_OR: CALL_IR_EMITTER(or);
@@ -445,12 +516,12 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DSUB: IR_UNIMPLEMENTED(FUNCT_DSUB);
         case FUNCT_DSUBU: IR_UNIMPLEMENTED(FUNCT_DSUBU);
         case FUNCT_TEQ: IR_UNIMPLEMENTED(FUNCT_TEQ);
-        case FUNCT_DSLL: IR_UNIMPLEMENTED(FUNCT_DSLL);
+        case FUNCT_DSLL: CALL_IR_EMITTER(dsll);
         case FUNCT_DSRL: IR_UNIMPLEMENTED(FUNCT_DSRL);
-        case FUNCT_DSRA: IR_UNIMPLEMENTED(FUNCT_DSRA);
-        case FUNCT_DSLL32: IR_UNIMPLEMENTED(FUNCT_DSLL32);
+        case FUNCT_DSRA: CALL_IR_EMITTER(dsra);
+        case FUNCT_DSLL32: CALL_IR_EMITTER(dsll32);
         case FUNCT_DSRL32: IR_UNIMPLEMENTED(FUNCT_DSRL32);
-        case FUNCT_DSRA32: IR_UNIMPLEMENTED(FUNCT_DSRA32);
+        case FUNCT_DSRA32: CALL_IR_EMITTER(dsra32);
         case FUNCT_BREAK: IR_UNIMPLEMENTED(FUNCT_BREAK);
         case FUNCT_SYNC: IR_UNIMPLEMENTED(FUNCT_SYNC);
         case FUNCT_TGE: IR_UNIMPLEMENTED(FUNCT_TGE);
@@ -556,9 +627,9 @@ IR_EMITTER(instruction) {
         case OPC_ORI: CALL_IR_EMITTER(ori);
         case OPC_J: CALL_IR_EMITTER(j);
         case OPC_JAL: CALL_IR_EMITTER(jal);
-        case OPC_SLTI: IR_UNIMPLEMENTED(OPC_SLTI);
-        case OPC_SLTIU: IR_UNIMPLEMENTED(OPC_SLTIU);
-        case OPC_XORI: IR_UNIMPLEMENTED(OPC_XORI);
+        case OPC_SLTI: CALL_IR_EMITTER(slti);
+        case OPC_SLTIU: CALL_IR_EMITTER(sltiu);
+        case OPC_XORI: CALL_IR_EMITTER(xori);
         case OPC_DADDIU: CALL_IR_EMITTER(daddiu);
         case OPC_LB: CALL_IR_EMITTER(lb);
         case OPC_LDC1: IR_UNIMPLEMENTED(OPC_LDC1);
