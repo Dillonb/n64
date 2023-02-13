@@ -879,7 +879,7 @@ void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg) {
             | mov cpu_state->cp0.compare, Rd(reg)
             break;
         case R4300I_CP0_REG_STATUS:
-            logfatal("Compile set R4300I_CP0_REG_STATUS");
+            | mov cpu_state->cp0.status.raw, Rd(reg)
             break;
         case R4300I_CP0_REG_CAUSE:
             | mov cpu_state->cp0.cause.raw, Rd(reg)
