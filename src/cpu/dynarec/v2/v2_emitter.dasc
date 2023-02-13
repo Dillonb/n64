@@ -77,8 +77,10 @@ dasm_State* v2_block_header() {
     | prologue
     return d;
 }
+#define check_reg(reg) unimplemented((reg) < 0 || (reg) > get_num_registers(), "Invalid register value: %d", reg)
 
 void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
+    check_reg(reg);
     u64 value = set_const_to_u64(imm_value);
     if (imm_value.type == VALUE_TYPE_U64) {
         | mov64 Rq(reg), value
@@ -89,6 +91,7 @@ void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
 }
 
 void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
+    check_reg(operand1);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | and Rq(operand1), operand2.value_s8
@@ -116,10 +119,13 @@ void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
 }
 
 void host_emit_and_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    check_reg(operand1);
+    check_reg(operand2);
     | and Rq(operand1), Rq(operand2)
 }
 
 void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
+    check_reg(operand1);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | or Rq(operand1), operand2.value_s8
@@ -147,10 +153,13 @@ void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t oper
 }
 
 void host_emit_or_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    check_reg(operand1);
+    check_reg(operand2);
     | or Rq(operand1), Rq(operand2)
 }
 
 void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
+    check_reg(operand1);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | xor Rq(operand1), operand2.value_s8
@@ -178,10 +187,13 @@ void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
 }
 
 void host_emit_xor_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    check_reg(operand1);
+    check_reg(operand2);
     | xor Rq(operand1), Rq(operand2)
 }
 
 void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
+    check_reg(operand1);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | add Rq(operand1), operand2.value_s8
@@ -209,71 +221,78 @@ void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
 }
 
 void host_emit_add_reg_reg(dasm_State** Dst, int operand1, int operand2) {
+    check_reg(operand1);
+    check_reg(operand2);
     | add Rq(operand1), Rq(operand2)
 }
 
 void host_emit_sub_reg_reg(dasm_State** Dst, int minuend, int subtrahend) {
+    check_reg(minuend);
+    check_reg(subtrahend);
     | sub Rq(minuend), Rq(subtrahend)
 }
 
 void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
-   switch (type) {
-       case VALUE_TYPE_S8:
-       case VALUE_TYPE_U8:
-           logfatal("Shift 8 bit value");
-           break;
-       case VALUE_TYPE_S16:
-       case VALUE_TYPE_U16:
-           logfatal("Shift 16 bit value");
-           break;
+    check_reg(reg);
+    switch (type) {
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_U8:
+            logfatal("Shift 8 bit value");
+            break;
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Shift 16 bit value");
+            break;
 
-       case VALUE_TYPE_S32:
-           switch (direction) {
-               case SHIFT_DIRECTION_LEFT:
-                   | sal Rd(reg), shift_amount
-                   break;
-               case SHIFT_DIRECTION_RIGHT:
-                   | sar Rd(reg), shift_amount
-                   break;
-           }
-           break;
+        case VALUE_TYPE_S32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | sal Rd(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | sar Rd(reg), shift_amount
+                    break;
+            }
+            break;
 
-       case VALUE_TYPE_U32:
-           switch (direction) {
-               case SHIFT_DIRECTION_LEFT:
-                   | shl Rd(reg), shift_amount
-                   break;
-               case SHIFT_DIRECTION_RIGHT:
-                   | shr Rd(reg), shift_amount
-                   break;
-           }
-           break;
+        case VALUE_TYPE_U32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | shl Rd(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | shr Rd(reg), shift_amount
+                    break;
+            }
+            break;
 
-       case VALUE_TYPE_U64:
-           switch (direction) {
-               case SHIFT_DIRECTION_LEFT:
-                   | shl Rq(reg), shift_amount
-                   break;
-               case SHIFT_DIRECTION_RIGHT:
-                   | shr Rq(reg), shift_amount
-                   break;
-           }
-           break;
+        case VALUE_TYPE_U64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | shl Rq(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | shr Rq(reg), shift_amount
+                    break;
+            }
+            break;
 
-       case VALUE_TYPE_S64:
-           switch (direction) {
-               case SHIFT_DIRECTION_LEFT:
-                   | sal Rq(reg), shift_amount
-                   break;
-               case SHIFT_DIRECTION_RIGHT:
-                   | sar Rq(reg), shift_amount
-                   break;
-           }
-           break;
-   }
+        case VALUE_TYPE_S64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | sal Rq(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | sar Rq(reg), shift_amount
+                    break;
+            }
+            break;
+    }
 }
 
 void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, int amount_reg, ir_shift_direction_t direction) {
+    check_reg(reg);
+    check_reg(amount_reg);
     | mov cl, Rb(amount_reg)
     switch (type) {
         case VALUE_TYPE_S8:
@@ -332,10 +351,12 @@ void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, in
 }
 
 void host_emit_bitwise_not(dasm_State** Dst, int reg) {
+    check_reg(reg);
     | not Rq(reg)
 }
 
 void host_emit_mult_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm, ir_value_type_t multiplicand_type) {
+    check_reg(reg);
     u64 imm_value = set_const_to_u64(imm);
     switch (multiplicand_type) {
         case VALUE_TYPE_U8:
@@ -368,6 +389,8 @@ void host_emit_mult_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm, ir
 }
 
 void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_type_t source_value_type) {
+    check_reg(dst_reg);
+    check_reg(src_reg);
     if (source_value_type == VALUE_TYPE_U64 && dst_reg == src_reg) {
         return;
     }
@@ -404,6 +427,7 @@ void host_emit_call(dasm_State** Dst, uintptr_t function) {
 }
 
 void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum args_reversed args_reversed) {
+    check_reg(dest_reg);
     if (dest_reg >= 0) {
         switch (cond) {
             case CONDITION_NOT_EQUAL:
@@ -460,6 +484,8 @@ void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum arg
 }
 
 void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, ir_set_constant_t operand2, enum args_reversed args_reversed) {
+    check_reg(dest_reg);
+    check_reg(operand1);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | cmp Rq(operand1), operand2.value_s8
@@ -488,6 +514,9 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, 
 }
 
 void host_emit_cmp_reg_reg(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, int operand2, enum args_reversed args_reversed) {
+    check_reg(dest_reg);
+    check_reg(operand1);
+    check_reg(operand2);
     | cmp Rq(operand1), Rq(operand2)
     set_dest_cond(Dst, dest_reg, cond, args_reversed);
 }
@@ -508,6 +537,7 @@ void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
 }
 
 void host_emit_cmov_pc_binary(dasm_State** Dst, int cond_register, ir_instruction_t* if_true, ir_instruction_t* if_false) {
+    check_reg(cond_register);
     | test Rb(cond_register), Rb(cond_register)
     | jz >1
     host_emit_mov_pc(Dst, if_true);
@@ -563,6 +593,7 @@ void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t va
 }
 
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_type_t type) {
+    check_reg(reg);
     int offset = get_n64cpu_offset(mem);
 
     // Check if the pointer is within N64CPU
@@ -578,6 +609,7 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_ty
 }
 
 void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem) {
+    check_reg(reg);
     int offset = get_n64cpu_offset(mem);
 
     // Check if the pointer is within N64CPU
@@ -594,6 +626,7 @@ void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem) {
 }
 
 void host_emit_mov_reg_cp0(dasm_State** Dst, int reg, int cp0_reg) {
+    check_reg(reg);
     switch (cp0_reg) {
         case R4300I_CP0_REG_INDEX:
             logfatal("Compile get R4300I_CP0_REG_INDEX");
@@ -696,6 +729,7 @@ void host_emit_mov_reg_cp0(dasm_State** Dst, int reg, int cp0_reg) {
 }
 
 void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg) {
+    check_reg(reg);
     switch (cp0_reg) {
         case R4300I_CP0_REG_INDEX:
             logfatal("Compile set R4300I_CP0_REG_INDEX");
@@ -811,6 +845,7 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
 }
 
 void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* flush_iter, int block_length) {
+    check_reg(cond_reg);
     | test Rq(cond_reg), Rq(cond_reg)
     | jz >1
     host_emit_ret(Dst, flush_iter, block_length);
