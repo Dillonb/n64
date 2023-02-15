@@ -60,6 +60,9 @@ const char* cond_to_str(ir_condition_t condition) {
         case CONDITION_GREATER_THAN_SIGNED:
         case CONDITION_GREATER_THAN_UNSIGNED:
             return ">";
+        case CONDITION_LESS_OR_EQUAL_TO_SIGNED:
+        case CONDITION_LESS_OR_EQUAL_TO_UNSIGNED:
+            return "<=";
         case CONDITION_GREATER_OR_EQUAL_TO_SIGNED:
         case CONDITION_GREATER_OR_EQUAL_TO_UNSIGNED:
             return ">=";

@@ -132,6 +132,12 @@ IR_EMITTER(srlv) {
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
+IR_EMITTER(sb) {
+    ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_emit_store(VALUE_TYPE_U8, address, value);
+}
+
 IR_EMITTER(sh) {
     ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
@@ -176,6 +182,13 @@ IR_EMITTER(lh) {
 
 IR_EMITTER(ld) {
     ir_emit_load(VALUE_TYPE_U64, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+}
+
+IR_EMITTER(blez) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_reg(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_OR_EQUAL_TO_SIGNED, rs, rt, NO_GUEST_REG);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(bne) {
@@ -710,12 +723,12 @@ IR_EMITTER(instruction) {
         case OPC_BEQL: CALL_IR_EMITTER(beql);
         case OPC_BGTZ: CALL_IR_EMITTER(bgtz);
         case OPC_BGTZL: IR_UNIMPLEMENTED(OPC_BGTZL);
-        case OPC_BLEZ: IR_UNIMPLEMENTED(OPC_BLEZ);
+        case OPC_BLEZ: CALL_IR_EMITTER(blez);
         case OPC_BLEZL: IR_UNIMPLEMENTED(OPC_BLEZL);
         case OPC_BNE: CALL_IR_EMITTER(bne);
         case OPC_BNEL: CALL_IR_EMITTER(bnel);
         case OPC_CACHE: return; // treat CACHE as a NOP for now
-        case OPC_SB: IR_UNIMPLEMENTED(OPC_SB);
+        case OPC_SB: CALL_IR_EMITTER(sb);
         case OPC_SH: CALL_IR_EMITTER(sh);
         case OPC_SW: CALL_IR_EMITTER(sw);
         case OPC_SD: CALL_IR_EMITTER(sd);
