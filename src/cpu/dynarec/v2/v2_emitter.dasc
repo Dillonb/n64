@@ -442,28 +442,28 @@ void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum arg
                 break;
             case CONDITION_LESS_THAN_SIGNED:
                 if (args_reversed) {
-                    | setge Rb(dest_reg)
+                    | setg Rb(dest_reg)
                 } else {
                     | setl Rb(dest_reg)
                 }
                 break;
             case CONDITION_LESS_THAN_UNSIGNED:
                 if (args_reversed) {
-                    | setae Rb(dest_reg)
+                    | seta Rb(dest_reg)
                 } else {
                     | setb Rb(dest_reg)
                 }
                 break;
             case CONDITION_GREATER_THAN_SIGNED:
                 if (args_reversed) {
-                    | setle Rb(dest_reg)
+                    | setl Rb(dest_reg)
                 } else {
                     | setg Rb(dest_reg)
                 }
                 break;
             case CONDITION_GREATER_THAN_UNSIGNED:
                 if (args_reversed) {
-                    | setbe Rb(dest_reg)
+                    | setb Rb(dest_reg)
                 } else {
                     | seta Rb(dest_reg)
                 }
