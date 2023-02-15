@@ -25,6 +25,22 @@ typedef struct source_instruction {
 int temp_code_len = 0;
 source_instruction_t temp_code[TEMP_CODE_SIZE];
 
+INLINE bool should_break(u32 address) {
+#ifdef N64_DEBUG_MODE
+    switch (address) {
+        //case 0x8F550:
+        //case 0x8F5A0:
+        //case 0x8F56C:
+        //case 0x8F588:
+            //return true;
+        default:
+            return false;
+    }
+#else
+    return false;
+#endif
+}
+
 // Determine what instructions should be compiled into the block and load them into temp_code
 void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) {
     bool should_continue_block = true;
@@ -461,10 +477,13 @@ void compile_ir_get_mult_result(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
-void v2_emit_block(n64_dynarec_block_t* block) {
+void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     static dasm_State* d;
     d = v2_block_header();
     dasm_State** Dst = &d;
+    if (should_break(physical_address)) {
+        host_emit_debugbreak(Dst);
+    }
     ir_instruction_t* instr = ir_context.ir_cache_head;
     while (instr) {
         switch (instr->type) {
@@ -591,7 +610,15 @@ void v2_compile_new_block(
     print_ir_block();
     printf("Emitting to host code:\n");
 #endif
-    v2_emit_block(block);
+    v2_emit_block(block, physical_address);
+#ifdef N64_DEBUG_MODE
+    if (should_break(physical_address)) {
+        print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
+        if (physical_address < N64_RDRAM_SIZE) {
+            print_multi_guest((uintptr_t)physical_address, &n64sys.mem.rdram[physical_address], block->guest_size);
+        }
+    }
+#endif
 #ifdef N64_LOG_COMPILATIONS
     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
 #endif

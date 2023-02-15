@@ -43,7 +43,7 @@ void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg);
 void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int block_length);
 void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* flush_iter, int block_length);
 
-
+void host_emit_debugbreak(dasm_State** Dst);
 void host_emit_call(dasm_State** Dst, uintptr_t function);
 
 void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block, int guest_len);
