@@ -240,6 +240,7 @@ std::vector<block> blocks;
 std::map<u32, std::string> mips_block;
 std::map<u32, std::string> host_block;
 block selected_block;
+char block_filter[9] = { 0 };
 void render_dynarec_block_browser() {
     ImGui::Begin("Block Browser", &show_dynarec_block_browser);
     if (ImGui::Button("Refresh")) {
@@ -248,12 +249,11 @@ void render_dynarec_block_browser() {
         blocks.clear();
         mips_block.clear();
         host_block.clear();
-        uintptr_t missing_block_handler = missing_block_handler;
         for (int outer_index = 0; outer_index < BLOCKCACHE_OUTER_SIZE; outer_index++) {
             if (N64DYNAREC->blockcache[outer_index]) {
                 n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
                 for (int inner_index = 0; inner_index < BLOCKCACHE_INNER_SIZE; inner_index++) {
-                    if ((uintptr_t)block_list[inner_index].run != missing_block_handler) {
+                    if ((uintptr_t)block_list[inner_index].run != (uintptr_t)missing_block_handler) {
                         u32 addr = INDICES_TO_ADDRESS(outer_index, inner_index);
                         if (addr == old_selected_block.address) {
                             old_selected_block_still_valid = true;
@@ -272,18 +272,27 @@ void render_dynarec_block_browser() {
             selected_block = blocks[0].address;
         }
     }
+    ImGui::SameLine();
+    ImGui::PushItemWidth(100);
+    ImGui::InputText("Filter blocks", block_filter, 8);
+    ImGui::PopItemWidth();
+    for (int i = 0; i < 9 && block_filter[i] != 0; i++) {
+        block_filter[i] = toupper(block_filter[i]);
+    }
 
     ImGui::BeginGroup();
     ImGui::Text("Blocks");
-    if (ImGui::BeginListBox("##Blocks", ImVec2(150, 300))) {
+    if (ImGui::BeginListBox("##Blocks", ImVec2(150, -1))) {
         if (blocks.empty()) {
             ImGui::Selectable("No blocks loaded", false);
         }
         for (const block b : blocks) {
             char str_block_addr[9];
             snprintf(str_block_addr, 9, "%08X", b.address);
-            if (ImGui::Selectable((std::string(str_block_addr)).c_str(), selected_block.address == b.address)) {
-                selected_block = b.address;
+            if (strlen(block_filter) == 0 || strstr(str_block_addr, block_filter) != nullptr) {
+                if (ImGui::Selectable((std::string(str_block_addr)).c_str(), selected_block.address == b.address)) {
+                    selected_block = b.address;
+                }
             }
         }
         ImGui::EndListBox();
@@ -337,7 +346,7 @@ void render_dynarec_block_browser() {
             "##MipsDisAsm",
             mips_disasm.data(),
             mips_disasm.size(),
-            ImVec2(400, 300),
+            ImVec2(400, -1),
             ImGuiInputTextFlags_ReadOnly);
     ImGui::EndGroup();
     ImGui::SameLine();
@@ -348,7 +357,7 @@ void render_dynarec_block_browser() {
             "##HostDisAsm",
             host_disasm.data(),
             host_disasm.size(),
-            ImVec2(400, 300),
+            ImVec2(-1, -1),
             ImGuiInputTextFlags_ReadOnly);
     ImGui::EndGroup();
     ImGui::End();

@@ -1,6 +1,10 @@
 #ifndef N64_DYNAREC_H
 #define N64_DYNAREC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
 #include <common/util.h>
@@ -69,5 +73,9 @@ n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);
 void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec);
 int missing_block_handler();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //N64_DYNAREC_H
