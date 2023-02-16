@@ -226,6 +226,15 @@ IR_EMITTER(bgtz) {
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
+IR_EMITTER(bltz) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, rs, zero, NO_GUEST_REG);
+
+    ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+    ir_emit_link(MIPS_REG_RA, virtual_address);
+}
+
 IR_EMITTER(bgezal) {
     ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* zero = ir_emit_load_guest_reg(0);
@@ -256,6 +265,12 @@ IR_EMITTER(jr) {
 IR_EMITTER(jalr) {
     ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
     ir_emit_link(instruction.r.rd, virtual_address);
+}
+
+IR_EMITTER(mult) {
+    ir_instruction_t* multiplicand1 = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* multiplicand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_S32);
 }
 
 IR_EMITTER(multu) {
@@ -303,6 +318,13 @@ IR_EMITTER(nor) {
 IR_EMITTER(subu) {
     ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rs), VALUE_TYPE_U32, NO_GUEST_REG);
     ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rt), VALUE_TYPE_U32, NO_GUEST_REG);
+    ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U32, NO_GUEST_REG);
+    ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
+}
+
+IR_EMITTER(sub) {
+    ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rs), VALUE_TYPE_S32, NO_GUEST_REG);
+    ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rt), VALUE_TYPE_S32, NO_GUEST_REG);
     ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U32, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
@@ -599,7 +621,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DSLLV: CALL_IR_EMITTER(dsllv);
         case FUNCT_DSRLV: IR_UNIMPLEMENTED(FUNCT_DSRLV);
         case FUNCT_DSRAV: IR_UNIMPLEMENTED(FUNCT_DSRAV);
-        case FUNCT_MULT: IR_UNIMPLEMENTED(FUNCT_MULT);
+        case FUNCT_MULT: CALL_IR_EMITTER(mult);
         case FUNCT_MULTU: CALL_IR_EMITTER(multu);
         case FUNCT_DIV: IR_UNIMPLEMENTED(FUNCT_DIV);
         case FUNCT_DIVU: IR_UNIMPLEMENTED(FUNCT_DIVU);
@@ -611,7 +633,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_ADDU: CALL_IR_EMITTER(addu);
         case FUNCT_AND: CALL_IR_EMITTER(and);
         case FUNCT_NOR: CALL_IR_EMITTER(nor);
-        case FUNCT_SUB: IR_UNIMPLEMENTED(FUNCT_SUB);
+        case FUNCT_SUB: CALL_IR_EMITTER(sub);
         case FUNCT_SUBU: CALL_IR_EMITTER(subu);
         case FUNCT_OR: CALL_IR_EMITTER(or);
         case FUNCT_XOR: CALL_IR_EMITTER(xor);
@@ -647,7 +669,7 @@ IR_EMITTER(special_instruction) {
 
 IR_EMITTER(regimm_instruction) {
     switch (instruction.i.rt) {
-        case RT_BLTZ: IR_UNIMPLEMENTED(RT_BLTZ);
+        case RT_BLTZ: CALL_IR_EMITTER(bltz);
         case RT_BLTZL: IR_UNIMPLEMENTED(RT_BLTZL);
         case RT_BLTZAL: IR_UNIMPLEMENTED(RT_BLTZAL);
         case RT_BGEZ: IR_UNIMPLEMENTED(RT_BGEZ);
