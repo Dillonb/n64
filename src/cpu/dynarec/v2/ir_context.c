@@ -203,6 +203,7 @@ ir_instruction_t* allocate_ir_instruction(ir_instruction_t instruction) {
     ir_context.ir_cache[index].index = index;
     ir_context.ir_cache[index].dead_code = true; // Will be marked false at the dead code elimination stage
     ir_context.ir_cache[index].allocated_host_register = -1;
+    ir_context.ir_cache[index].last_use = -1;
     return &ir_context.ir_cache[index];
 }
 

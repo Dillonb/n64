@@ -71,6 +71,7 @@ typedef struct ir_instruction {
     int index;
     bool dead_code;
     int allocated_host_register;
+    int last_use;
 
     enum {
         IR_NOP,

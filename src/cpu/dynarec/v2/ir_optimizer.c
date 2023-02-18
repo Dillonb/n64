@@ -502,26 +502,25 @@ void ir_optimize_shrink_constants() {
     }
 }
 
-int first_available_register(bool* available_registers, const int* register_lifetimes, int num_registers) {
-    for (int i = 0; i < get_num_preserved_registers(); i++) {
-        int reg = get_preserved_registers()[i];
-#ifdef N64_LOG_COMPILATIONS
-        printf("Trying r%d: available? %d", reg, available_registers[reg]);
-        if (!available_registers[reg]) {
-            printf(" lifetime? %d", register_lifetimes[reg]);
-        }
-        printf("\n");
-#endif
+// How many more instructions this value needs to hang around for
+int value_lifetime(ir_instruction_t* value, ir_instruction_t** last_use) {
+    int lifetime = 0;
+    ir_instruction_t* instr = value->next;
+    int times_stepped = 1;
 
-        if (available_registers[reg] || register_lifetimes[reg] < 0) {
-            available_registers[reg] = false;
-#ifdef N64_LOG_COMPILATIONS
-            printf("Allocated r%d\n", reg);
-#endif
-            return reg;
+    while (instr) {
+        if (instr_uses_value(instr, value)) {
+            lifetime = times_stepped;
+
+            if (last_use) {
+                *last_use = instr;
+            }
         }
+        instr = instr->next;
+        times_stepped++;
     }
-    logfatal("No more registers!");
+
+    return lifetime;
 }
 
 bool needs_register_allocated(ir_instruction_t* instr) {
@@ -558,55 +557,107 @@ bool needs_register_allocated(ir_instruction_t* instr) {
     }
 }
 
-int value_lifetime(ir_instruction_t* value) {
-    int lifetime = 0;
-    ir_instruction_t* instr = value->next;
-    int times_stepped = 1;
-
-    while (instr) {
-        if (instr_uses_value(instr, value)) {
-            lifetime = times_stepped;
+int first_available_register(bool* registers_available, int num_total_regs) {
+    for (int i = 0; i < num_total_regs; i++) {
+        if (registers_available[i]) {
+            return i;
         }
-        instr = instr->next;
-        times_stepped++;
+    }
+    return -1;
+}
+
+int active_value_comparator(const void* a, const void* b) {
+    ir_instruction_t* val_a = *(ir_instruction_t**)a;
+    ir_instruction_t* val_b = *(ir_instruction_t**)b;
+    if (val_a == NULL && val_b == NULL) {
+        return 0;
+    } else if (val_a == NULL) {
+        return 1; // null a comes after b (a - b, 1 - 0, 1)
+    } else if (val_b == NULL) {
+        return -1; // null b comes after a (a - b, 0 - 1, -1)
+    } else {
+        return val_a->last_use - val_b->last_use;
+    }
+}
+
+void ir_recalculate_indices() {
+    ir_instruction_t* value = ir_context.ir_cache_head;
+    int index = 0;
+    while (value != NULL) {
+        value->index = index++;
+        value = value->next;
+    }
+}
+
+INLINE void sort_active(ir_instruction_t* active, int num_active) {
+    if (num_active > 0) {
+        qsort(active, num_active, sizeof(ir_instruction_t*), active_value_comparator);
+    }
+}
+
+void expire_old_intervals(ir_instruction_t** active, bool* registers_available, ir_instruction_t* current_value, int* num_active) {
+    int num_expired = 0;
+    for (int i = 0; i < *num_active; i++) {
+        if (active[i]->last_use >= current_value->index) {
+            break;
+        }
+        registers_available[active[i]->allocated_host_register] = true;
+        active[i] = NULL;
+        num_expired++;
     }
 
-    return lifetime;
+    if (num_expired > 0) {
+        sort_active((ir_instruction_t*)active, *num_active);
+        *num_active -= num_expired;
+    }
 }
 
 void ir_allocate_registers() {
-    int num_registers = get_num_registers();
+    // Recalculate indices before register allocation. Needed because previous steps can insert values into the middle of the list without updating the index values.
+    ir_recalculate_indices();
 
-    bool available_registers[num_registers];
-    int register_lifetimes[num_registers];
-    for (int i = 0; i < num_registers; i++) {
-        available_registers[i] = false;
-        register_lifetimes[i] = -1;
-    }
-    for (int i = 0; i < get_num_preserved_registers(); i++) {
-        available_registers[get_preserved_registers()[i]] = true;
+    int num_total_regs = get_num_registers();
+    bool registers_available[num_total_regs];
+    memset(registers_available, 0, sizeof(bool) * num_total_regs);
+
+    int num_regs = get_num_preserved_registers();
+    int num_active = 0;
+    ir_instruction_t* active[num_regs];
+    for (int i = 0; i < num_regs; i++) {
+        active[i] = NULL;
+        registers_available[get_preserved_registers()[i]] = true;
     }
 
-    ir_instruction_t* instr = ir_context.ir_cache_head;
-    while (instr != NULL) {
-        instr->allocated_host_register = -1;
-        if (needs_register_allocated(instr)) {
-#ifdef N64_LOG_COMPILATIONS
-            static char buf[100];
-            ir_instr_to_string(instr, buf, 100);
-            printf("Allocating register for %s\n", buf);
-#endif
-            instr->allocated_host_register = first_available_register(available_registers, register_lifetimes, num_registers);
-            register_lifetimes[instr->allocated_host_register] = value_lifetime(instr);
-#ifdef N64_LOG_COMPILATIONS
-            printf("v%d allocated to host register r%d with a lifetime of %d\n", instr->index, instr->allocated_host_register, register_lifetimes[instr->allocated_host_register]);
-#endif
-        }
-        instr = instr->next;
-        for (int i = 0; i < num_registers; i++) {
-            if (register_lifetimes[i] >= 0) {
-                register_lifetimes[i]--;
+    // TODO: replace last_use calculations with a single backwards pass instead of the worst-case O(n^2) algorithm of calling value_lifetime()
+    ir_instruction_t* value = ir_context.ir_cache_head;
+    while (value != NULL) {
+        // Sort in order of increasing last usage
+        sort_active((ir_instruction_t*)active, num_active);
+        expire_old_intervals(active, registers_available, value, &num_active);
+        if (needs_register_allocated(value)) {
+            ir_instruction_t* last_use = NULL;
+            value_lifetime(value, &last_use);
+            if (!last_use) {
+                logfatal("Value had no last usage. Should have been caught by dead code elimination");
             }
+            value->last_use = last_use->index;
+
+            // if length(active) == R then
+            if (num_active == num_regs) {
+                logfatal("SpillAtInterval()");
+            } else {
+                int reg = first_available_register(registers_available, num_total_regs);
+                if (reg < 0) {
+                    logfatal("Unable to allocate register when one should be available.");
+                }
+                value->allocated_host_register = reg;
+                registers_available[reg] = false;
+                //  add interval to active, sorted by increasing end point
+                active[num_active] = value;
+                num_active++;
+            }
+
         }
+        value = value->next;
     }
 }
