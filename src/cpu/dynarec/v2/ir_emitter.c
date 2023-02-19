@@ -232,7 +232,6 @@ IR_EMITTER(bltz) {
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, rs, zero, NO_GUEST_REG);
 
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
-    ir_emit_link(MIPS_REG_RA, virtual_address);
 }
 
 IR_EMITTER(bgezal) {
