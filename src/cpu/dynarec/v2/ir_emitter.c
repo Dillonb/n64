@@ -548,6 +548,11 @@ IR_EMITTER(cfc1) {
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
     }
 }
+
+IR_EMITTER(eret) {
+    ir_emit_eret();
+}
+
 /*
     checkcp1;
     u8 fs = instruction.r.rd;
@@ -658,7 +663,7 @@ IR_EMITTER(cp0_instruction) {
             case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
             case COP_FUNCT_TLBP: IR_UNIMPLEMENTED(COP_FUNCT_TLBP);
             case COP_FUNCT_TLBR_SUB: IR_UNIMPLEMENTED(COP_FUNCT_TLBR_SUB);
-            case COP_FUNCT_ERET: IR_UNIMPLEMENTED(COP_FUNCT_ERET);
+            case COP_FUNCT_ERET: CALL_IR_EMITTER(eret);
             case COP_FUNCT_WAIT: IR_UNIMPLEMENTED(COP_FUNCT_WAIT);
             default: {
                 char buf[50];

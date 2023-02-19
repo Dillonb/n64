@@ -267,7 +267,8 @@ typedef enum bus_access {
     BUS_STORE
 } bus_access_t;
 
-
+#define STATUS_EXL_MASK (1 << 1)
+#define STATUS_ERL_MASK (1 << 2)
 typedef union cp0_status {
     u32 raw;
     struct {

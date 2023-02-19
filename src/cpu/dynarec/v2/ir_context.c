@@ -182,6 +182,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_SUB:
             snprintf(buf, buf_size, "v%d - v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
             break;
+        case IR_ERET:
+            snprintf(buf, buf_size, "eret()");
+            break;
     }
 }
 
@@ -512,5 +515,12 @@ ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* d
     instruction.mult_div.operand1 = dividend;
     instruction.mult_div.operand2 = divisor;
     instruction.mult_div.mult_div_type = divide_type;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_eret() {
+    ir_context.block_end_pc_ir_emitted = true;
+    ir_instruction_t instruction;
+    instruction.type = IR_ERET;
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }

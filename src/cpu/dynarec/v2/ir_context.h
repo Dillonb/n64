@@ -130,6 +130,7 @@ typedef struct ir_instruction {
         IR_FLUSH_GUEST_REG,
         IR_MULTIPLY,
         IR_DIVIDE,
+        IR_ERET
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -280,6 +281,8 @@ ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type);
 // Divide a value of type divide_type by a value of the same type. Result must be accessed with ir_emit_get_ptr()
 ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type);
+// Run the MIPS ERET instruction
+ir_instruction_t* ir_emit_eret();
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

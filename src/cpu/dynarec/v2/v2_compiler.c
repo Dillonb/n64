@@ -441,6 +441,11 @@ void compile_ir_divide(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_eret(dasm_State** Dst) {
+    ir_context.block_end_pc_compiled = true;
+    host_emit_eret(Dst);
+}
+
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     static dasm_State* d;
     d = v2_block_header();
@@ -521,6 +526,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_DIVIDE:
                 compile_ir_divide(Dst, instr);
+                break;
+            case IR_ERET:
+                compile_ir_eret(Dst);
                 break;
         }
         instr = instr->next;

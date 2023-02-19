@@ -56,6 +56,7 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->set_ptr.value == value;
 
         // No dependencies
+        case IR_ERET:
         case IR_GET_PTR:
         case IR_NOP:
         case IR_SET_CONSTANT:
@@ -124,6 +125,7 @@ void ir_optimize_constant_propagation() {
         switch (instr->type) {
             // Unable to be optimized further
             case IR_NOP:
+            case IR_ERET:
             case IR_SET_CONSTANT:
             case IR_STORE:
             case IR_LOAD:
@@ -425,6 +427,9 @@ void ir_optimize_eliminate_dead_code() {
                 instr->mult_div.operand2->dead_code = false;
                 instr->dead_code = false;
                 break;
+            case IR_ERET:
+                instr->dead_code = false;
+                break;
 
             // Unary ops
             case IR_NOT:
@@ -559,6 +564,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_MULTIPLY:
         case IR_DIVIDE:
         case IR_SET_PTR:
+        case IR_ERET:
             return false;
 
         case IR_TLB_LOOKUP:

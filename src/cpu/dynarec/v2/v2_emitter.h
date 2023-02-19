@@ -49,6 +49,8 @@ void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_allo
 void host_emit_debugbreak(dasm_State** Dst);
 void host_emit_call(dasm_State** Dst, uintptr_t function);
 
+void host_emit_eret(dasm_State** Dst);
+
 void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block, int guest_len);
 
 #endif // N64_V2_EMITTER_H
