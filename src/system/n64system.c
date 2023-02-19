@@ -25,6 +25,7 @@
 #include <interface/pi.h>
 #include <dynarec/rsp_dynarec.h>
 #include <mem/pif.h>
+#include <timing.h>
 
 static bool should_quit = false;
 
@@ -296,11 +297,35 @@ int n64_system_step(bool dynarec) {
             rsp_step();
         }
     }
+    taken += pop_stalled_cycles();
 
     scheduler_event_t event;
     if (scheduler_tick(taken, &event)) {
+        logfatal("Scheduler event hit");
         handle_scheduler_event(&event);
     }
+
+    // VI timing
+    n64sys.vi.halfline_cycles += taken;
+
+    if (n64sys.vi.halfline_cycles > n64sys.vi.cycles_per_halfline) {
+        n64sys.vi.halfline_cycles = 0;
+        n64sys.vi.halfline++;
+    }
+
+    if (n64sys.vi.halfline > n64sys.vi.num_halflines) {
+        n64sys.vi.halfline = 0;
+        n64sys.vi.field++;
+    }
+
+    if (n64sys.vi.field > n64sys.vi.num_fields) {
+        n64sys.vi.field = 0;
+    }
+
+    n64sys.vi.v_current = (n64sys.vi.halfline << 1) + n64sys.vi.field;
+    check_vi_interrupt();
+
+
     return taken;
 }
 

@@ -143,6 +143,11 @@ typedef struct n64_system {
         mi_intr_t intr;
     } mi;
     struct {
+        // For debugging tools
+        int field; // what field we're on
+        int halfline; // what halfline we're on
+        int halfline_cycles; // how many cycles into the halfline we are
+
         vi_status_t status;
         u32 vi_origin;
         u32 vi_width;

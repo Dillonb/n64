@@ -9,13 +9,16 @@
 #include <disassemble.h>
 #include <mem/n64bus.h>
 #include <cpu/dynarec/dynarec.h>
+#include <rsp.h>
 
 n64_system_t n64sys_interpreter;
 r4300i_t n64cpu_interpreter;
+rsp_t n64rsp_interpreter;
 scheduler_t n64scheduler_interpreter;
 
 n64_system_t n64sys_dynarec;
 r4300i_t n64cpu_dynarec;
+rsp_t n64rsp_dynarec;
 scheduler_t n64scheduler_dynarec;
 
 bool compare() {
@@ -43,15 +46,17 @@ void print_state() {
     }
 }
 
-void copy_to(n64_system_t* sys, r4300i_t* cpu, scheduler_t* scheduler) {
+void copy_to(n64_system_t* sys, r4300i_t* cpu, rsp_t* rsp, scheduler_t* scheduler) {
     memcpy(sys, &n64sys, sizeof(n64_system_t));
     memcpy(cpu, &N64CPU, sizeof(r4300i_t));
+    memcpy(rsp, &N64RSP, sizeof(rsp_t));
     memcpy(scheduler, &n64scheduler, sizeof(scheduler_t));
 }
 
-void restore_from(n64_system_t* sys, r4300i_t* cpu, scheduler_t* scheduler) {
+void restore_from(n64_system_t* sys, r4300i_t* cpu, rsp_t* rsp, scheduler_t* scheduler) {
     memcpy(&n64sys, sys, sizeof(n64_system_t));
     memcpy(&N64CPU, cpu, sizeof(r4300i_t));
+    memcpy(&N64RSP, rsp, sizeof(rsp_t));
     memcpy(&n64scheduler, scheduler, sizeof(scheduler_t));
 }
 
@@ -65,7 +70,8 @@ int main(int argc, char** argv) {
     const char* rom_path = argv[1];
 
     // TODO: enable the UI
-    init_n64system(rom_path, false, false, UNKNOWN_VIDEO_TYPE, false);
+    init_n64system(rom_path, true, false, SOFTWARE_VIDEO_TYPE, false);
+    softrdp_init(&n64sys.softrdp_state, (u8 *) &n64sys.mem.rdram);
     /*
     prdp_init_internal_swapchain();
     load_imgui_ui();
@@ -74,24 +80,35 @@ int main(int argc, char** argv) {
     n64_load_rom(rom_path);
     pif_rom_execute();
 
-    copy_to(&n64sys_dynarec, &n64cpu_dynarec, &n64scheduler_dynarec);
-    copy_to(&n64sys_interpreter, &n64cpu_interpreter, &n64scheduler_interpreter);
+
+    u64 start_comparing_at = 0xFFFFFFFF80001000;
+
+    while (N64CPU.pc != start_comparing_at) {
+        n64_system_step(true);
+    }
+
+    copy_to(&n64sys_dynarec, &n64cpu_dynarec, &n64rsp_dynarec, &n64scheduler_dynarec);
+    copy_to(&n64sys_interpreter, &n64cpu_interpreter, &n64rsp_interpreter, &n64scheduler_interpreter);
 
     u64 start_pc = 0;
     int steps = 0;
     do {
-        restore_from(&n64sys_dynarec, &n64cpu_dynarec, &n64scheduler_dynarec);
+        restore_from(&n64sys_dynarec, &n64cpu_dynarec, &n64rsp_dynarec, &n64scheduler_dynarec);
         start_pc = n64cpu.pc;
+        printf("Running compare at 0x%08X\n", (u32)start_pc);
+        printf("Running dynarec: rdp rdram pointer: %p\n", n64sys.softrdp_state.rdram);
         // Step
         steps = n64_system_step(true);
-        copy_to(&n64sys_dynarec, &n64cpu_dynarec, &n64scheduler_dynarec);
+        copy_to(&n64sys_dynarec, &n64cpu_dynarec, &n64rsp_dynarec, &n64scheduler_dynarec);
 
-        restore_from(&n64sys_interpreter, &n64cpu_interpreter, &n64scheduler_interpreter);
+        restore_from(&n64sys_interpreter, &n64cpu_interpreter, &n64rsp_interpreter, &n64scheduler_interpreter);
         // Step
-        for (int i = 0; i < steps; i++) {
-            n64_system_step(false);
+        printf("Running interpreter: rdp rdram pointer: %p\n", n64sys.softrdp_state.rdram);
+        int run_for = steps;
+        while (run_for > 0) {
+            run_for -= n64_system_step(false);
         }
-        copy_to(&n64sys_interpreter, &n64cpu_interpreter, &n64scheduler_interpreter);
+        copy_to(&n64sys_interpreter, &n64cpu_interpreter, &n64rsp_interpreter, &n64scheduler_interpreter);
 
     } while (compare());
     printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
