@@ -586,7 +586,9 @@ IR_EMITTER(mfc0) {
             break;
         case R4300I_CP0_REG_TAGLO: logfatal("emit MFC0 R4300I_CP0_REG_TAGLO");
         case R4300I_CP0_REG_TAGHI: logfatal("emit MFC0 R4300I_CP0_REG_TAGHI");
-        case R4300I_CP0_REG_CAUSE: logfatal("emit MFC0 R4300I_CP0_REG_CAUSE");
+        case R4300I_CP0_REG_CAUSE:
+            ir_emit_get_ptr(value_type, &N64CP0.cause.raw, instruction.r.rt);
+            break;
         case R4300I_CP0_REG_COMPARE: logfatal("emit MFC0 R4300I_CP0_REG_COMPARE");
         case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO0");
         case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO1");

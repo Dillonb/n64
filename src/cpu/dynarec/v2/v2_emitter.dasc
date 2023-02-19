@@ -747,9 +747,19 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, ir_register_allocation_t dest_reg_a
 }
 
 void host_emit_cmp_reg_reg(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, enum args_reversed args_reversed) {
-    int operand1 = check_reg(operand1_alloc, false);
-    int operand2 = check_reg(operand2_alloc, false);
-    | cmp Rq(operand1), Rq(operand2)
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + operand1]
+        | cmp Rq(TMPREG1), qword [rsp + operand2]
+    } else if (operand1_alloc.spilled) {
+        logfatal("Operand1 spilled");
+        | cmp qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | cmp Rq(operand1), qword [rsp + operand2]
+    } else {
+        | cmp Rq(operand1), Rq(operand2)
+    }
     set_dest_cond(Dst, dest_reg_alloc, cond, args_reversed);
 }
 
@@ -904,8 +914,6 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
     while (flush_iter != NULL) {
         if (is_constant(flush_iter->item)) {
             host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant, VALUE_TYPE_U64);
-        } else if (flush_iter->item->reg_alloc.spilled) {
-            logfatal("Flushing spilled reg");
         } else {
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->reg_alloc, VALUE_TYPE_U64);
         }
