@@ -319,7 +319,11 @@ void compile_ir_get_ptr(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_set_ptr(dasm_State** Dst, ir_instruction_t* instr) {
-    logfatal("Compile ir set ptr");
+    if (is_constant(instr->set_ptr.value)) {
+        host_emit_mov_mem_imm(Dst, instr->set_ptr.ptr, instr->set_ptr.value->set_constant, instr->set_ptr.type);
+    } else {
+        host_emit_mov_mem_reg(Dst, instr->set_ptr.ptr, instr->set_ptr.value->reg_alloc, instr->set_ptr.type);
+    }
 }
 
 void compile_ir_mask_and_cast(dasm_State** Dst, ir_instruction_t* instr) {

@@ -109,30 +109,57 @@ void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc,
 }
 
 void host_emit_and_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
-    int operand1 = check_reg(operand1_alloc, false);
-    switch (operand2.type) {
-        case VALUE_TYPE_S8:
-            | and Rq(operand1), operand2.value_s8
-            break;
-        case VALUE_TYPE_U8:
-            | and Rq(operand1), operand2.value_s8
-            break;
-        case VALUE_TYPE_S16:
-            | and Rq(operand1), operand2.value_s16
-            break;
-        case VALUE_TYPE_U16:
-            | and Rq(operand1), operand2.value_u16
-            break;
-        case VALUE_TYPE_S32:
-            | and Rq(operand1), operand2.value_s32
-            break;
-        case VALUE_TYPE_U32:
-            | and Rq(operand1), operand2.value_u32
-            break;
-        case VALUE_TYPE_U64:
-        case VALUE_TYPE_S64:
-            IMM64_INVALID();
-            break;
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | and byte [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | and byte [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | and word [rsp + operand1], operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | and word [rsp + operand1], operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | and dword [rsp + operand1], operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | and dword [rsp + operand1], operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | and Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | and Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | and Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | and Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | and Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | and Rq(operand1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
     }
 }
 
@@ -870,8 +897,24 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
 
     // Check if the pointer is within N64CPU
     if (offset > 0) {
-        unimplemented(type != VALUE_TYPE_U64, "non-64 bit write within N64CPU");
-        | mov [cpu_state + offset], Rq(reg)
+        switch (type) {
+            case VALUE_TYPE_U8:
+            case VALUE_TYPE_S8:
+                | mov [cpu_state + offset], Rb(reg)
+                break;
+            case VALUE_TYPE_S16:
+            case VALUE_TYPE_U16:
+                | mov [cpu_state + offset], Rw(reg)
+                break;
+            case VALUE_TYPE_S32:
+            case VALUE_TYPE_U32:
+                | mov [cpu_state + offset], Rd(reg)
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                | mov [cpu_state + offset], Rq(reg)
+                break;
+        }
     } else {
         unimplemented(type != VALUE_TYPE_U64, "non-64 bit write not within N64CPU");
         logfatal("Not within n64cpu");
