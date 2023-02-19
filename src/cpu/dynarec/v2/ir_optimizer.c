@@ -52,7 +52,8 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return false;
         }
         case IR_MULTIPLY:
-            return instr->multiply.multiplicand1 == value || instr->multiply.multiplicand2 == value;
+        case IR_DIVIDE:
+            return instr->mult_div.operand1 == value || instr->mult_div.operand2 == value;
         case IR_SET_PTR:
             return instr->set_ptr.value == value;
 
@@ -140,6 +141,7 @@ void ir_optimize_constant_propagation() {
             case IR_COND_BLOCK_EXIT: // Const condition checked in compiler
             // TODO
             case IR_MULTIPLY:
+            case IR_DIVIDE:
             case IR_GET_MULT_RESULT:
                 break;
 
@@ -396,8 +398,9 @@ void ir_optimize_eliminate_dead_code() {
                 }
                 break;
             case IR_MULTIPLY:
-                instr->multiply.multiplicand1->dead_code = false;
-                instr->multiply.multiplicand2->dead_code = false;
+            case IR_DIVIDE:
+                instr->mult_div.operand1->dead_code = false;
+                instr->mult_div.operand2->dead_code = false;
                 instr->dead_code = false;
                 break;
 
@@ -535,6 +538,7 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_SET_CP0:
         case IR_COND_BLOCK_EXIT:
         case IR_MULTIPLY:
+        case IR_DIVIDE:
         case IR_SET_PTR:
             return false;
 

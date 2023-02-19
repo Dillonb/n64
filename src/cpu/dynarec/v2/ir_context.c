@@ -180,7 +180,10 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             snprintf(buf, buf_size, "exit_block_if(v%d)", instr->cond_block_exit.condition->index);
             break;
         case IR_MULTIPLY:
-            snprintf(buf, buf_size, "(%s)v%d * (%s)v%d", val_type_to_str(instr->multiply.multiplicand_type), instr->multiply.multiplicand1->index, val_type_to_str(instr->multiply.multiplicand_type), instr->multiply.multiplicand2->index);
+            snprintf(buf, buf_size, "(%s)v%d * (%s)v%d", val_type_to_str(instr->mult_div.mult_div_type), instr->mult_div.operand1->index, val_type_to_str(instr->mult_div.mult_div_type), instr->mult_div.operand2->index);
+            break;
+        case IR_DIVIDE:
+            snprintf(buf, buf_size, "(%s)v%d / (%s)v%d", val_type_to_str(instr->mult_div.mult_div_type), instr->mult_div.operand1->index, val_type_to_str(instr->mult_div.mult_div_type), instr->mult_div.operand2->index);
             break;
         case IR_GET_MULT_RESULT:
             snprintf(buf, buf_size, "GET_MULT_%s()", instr->mult_result.result_bits == MULT_RESULT_HI ? "HI" : "LO");
@@ -523,9 +526,18 @@ ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value) {
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type) {
     ir_instruction_t instruction;
     instruction.type = IR_MULTIPLY;
-    instruction.multiply.multiplicand1 = multiplicand1;
-    instruction.multiply.multiplicand2 = multiplicand2;
-    instruction.multiply.multiplicand_type = multiplicand_type;
+    instruction.mult_div.operand1 = multiplicand1;
+    instruction.mult_div.operand2 = multiplicand2;
+    instruction.mult_div.mult_div_type = multiplicand_type;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type) {
+    ir_instruction_t instruction;
+    instruction.type = IR_DIVIDE;
+    instruction.mult_div.operand1 = dividend;
+    instruction.mult_div.operand2 = divisor;
+    instruction.mult_div.mult_div_type = divide_type;
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 

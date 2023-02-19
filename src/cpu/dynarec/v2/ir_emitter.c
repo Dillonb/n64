@@ -279,6 +279,18 @@ IR_EMITTER(multu) {
     ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_U32);
 }
 
+IR_EMITTER(div) {
+    ir_instruction_t* dividend = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* divisor = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_emit_divide(dividend, divisor, VALUE_TYPE_S32);
+}
+
+IR_EMITTER(divu) {
+    ir_instruction_t* dividend = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* divisor = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_emit_divide(dividend, divisor, VALUE_TYPE_U32);
+}
+
 IR_EMITTER(mflo) {
     ir_emit_get_mult_result(MULT_RESULT_LO, instruction.r.rd);
 }
@@ -614,7 +626,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_JR: CALL_IR_EMITTER(jr);
         case FUNCT_JALR: CALL_IR_EMITTER(jalr);
         case FUNCT_SYSCALL: IR_UNIMPLEMENTED(FUNCT_SYSCALL);
-        case FUNCT_MFHI: IR_UNIMPLEMENTED(FUNCT_MFHI);
+        case FUNCT_MFHI: CALL_IR_EMITTER(mfhi);
         case FUNCT_MTHI: IR_UNIMPLEMENTED(FUNCT_MTHI);
         case FUNCT_MFLO: CALL_IR_EMITTER(mflo);
         case FUNCT_MTLO: IR_UNIMPLEMENTED(FUNCT_MTLO);
@@ -623,8 +635,8 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DSRAV: IR_UNIMPLEMENTED(FUNCT_DSRAV);
         case FUNCT_MULT: CALL_IR_EMITTER(mult);
         case FUNCT_MULTU: CALL_IR_EMITTER(multu);
-        case FUNCT_DIV: IR_UNIMPLEMENTED(FUNCT_DIV);
-        case FUNCT_DIVU: IR_UNIMPLEMENTED(FUNCT_DIVU);
+        case FUNCT_DIV: CALL_IR_EMITTER(div);
+        case FUNCT_DIVU: CALL_IR_EMITTER(divu);
         case FUNCT_DMULT: IR_UNIMPLEMENTED(FUNCT_DMULT);
         case FUNCT_DMULTU: IR_UNIMPLEMENTED(FUNCT_DMULTU);
         case FUNCT_DDIV: IR_UNIMPLEMENTED(FUNCT_DDIV);

@@ -93,9 +93,6 @@ int check_reg(ir_register_allocation_t reg, bool spill_ok) {
         unimplemented((reg.spill_location) < 0 || (reg.spill_location) > SPILL_SPACE_SIZE_BYTES, "Invalid spill location value: %d", reg.spill_location);
         return reg.spill_location;
     } else {
-        if (reg.host_reg == REG_RSP) {
-            logfatal("Accessing the stack pointer, bad!");
-        }
         unimplemented((reg.host_reg) < 0 || (reg.host_reg) > get_num_registers(), "Invalid host register value: %d", reg.host_reg);
         return reg.host_reg;
     }
@@ -450,69 +447,155 @@ void host_emit_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_
     }
 }
 
+void host_emit_div_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t multiplicand_type) {
+    logfatal("host_emit_div_reg_imm");
+}
+
+void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_value_type_t divide_type) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+
+    switch (divide_type) {
+        case VALUE_TYPE_U8:
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Smaller than 32 bit divide");
+        case VALUE_TYPE_S32:
+            if (operand1_alloc.spilled) {
+                | movsxd rax, dword [rsp + operand1]
+            } else {
+                | movsxd rax, Rd(operand1)
+            }
+            | cqo
+
+            if (operand2_alloc.spilled) {
+                | movsxd Rq(TMPREG2), dword [rsp + operand2]
+            } else {
+                | movsxd Rq(TMPREG2), Rd(operand2)
+            }
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1
+            | idiv Rq(TMPREG2)
+
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+
+            | jmp >2
+            |1:
+            // Divide by zero
+            // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
+            | mov rdx, rax
+            // If divisor is negative
+            | test rax, rax
+            | js >3
+            | mov rax, -1
+            | jmp >2
+            |3:
+            | mov rax, 1
+            |2:
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
+
+            break;
+        case VALUE_TYPE_U32:
+            logfatal("u32 divide");
+        case VALUE_TYPE_U64:
+            logfatal("u64 divide");
+        case VALUE_TYPE_S64:
+            logfatal("s64 divide");
+    }
+}
+
 void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_alloc, ir_register_allocation_t src_reg_alloc, ir_value_type_t source_value_type) {
     if (source_value_type == VALUE_TYPE_U64 && reg_alloc_equal(src_reg_alloc, dst_reg_alloc)) {
         return;
     }
 
-    int dst_reg = check_reg(dst_reg_alloc, true);
-    int src_reg = check_reg(src_reg_alloc, false);
-
     unimplemented(dst_reg_alloc.spilled && src_reg_alloc.spilled, "both regs spilled");
+
+    int dst = check_reg(dst_reg_alloc, true);
+    int src = check_reg(src_reg_alloc, true);
+
     if (dst_reg_alloc.spilled) {
-        int dst_ptr = dst_reg;
         switch (source_value_type) {
             case VALUE_TYPE_S8:
-                | movsx Rq(TMPREG1), Rb(src_reg)
+                | movsx Rq(TMPREG1), Rb(src)
                 break;
             case VALUE_TYPE_U8:
-                | movzx Rq(TMPREG1), Rb(src_reg)
+                | movzx Rq(TMPREG1), Rb(src)
                 break;
             case VALUE_TYPE_S16:
-                | movsx Rq(TMPREG1), Rw(src_reg)
+                | movsx Rq(TMPREG1), Rw(src)
                 break;
             case VALUE_TYPE_U16:
-                | movzx Rq(TMPREG1), Rw(src_reg)
+                | movzx Rq(TMPREG1), Rw(src)
                 break;
             case VALUE_TYPE_S32:
-                | movsxd Rq(TMPREG1), Rd(src_reg)
+                | movsxd Rq(TMPREG1), Rd(src)
                 break;
             case VALUE_TYPE_U32:
                 // Writing to a 32 bit reg zero extends to the 64 bit reg
-                | mov Rd(TMPREG1), Rd(src_reg)
+                | mov Rd(TMPREG1), Rd(src)
                 break;
             case VALUE_TYPE_U64:
             case VALUE_TYPE_S64:
-                | mov Rq(TMPREG1), Rq(src_reg)
+                | mov Rq(TMPREG1), Rq(src)
                 break;
         }
-        | mov qword [rsp + dst_ptr], Rq(TMPREG1)
+        | mov qword [rsp + dst], Rq(TMPREG1)
     } else if (src_reg_alloc.spilled) {
-        logfatal("src spilled");
+        switch (source_value_type) {
+            case VALUE_TYPE_S8:
+                | movsx Rq(dst), byte [rsp + src]
+                break;
+            case VALUE_TYPE_U8:
+                | movzx Rq(dst), byte [rsp + src]
+                break;
+            case VALUE_TYPE_S16:
+                | movsx Rq(dst), word [rsp + src]
+                break;
+            case VALUE_TYPE_U16:
+                | movzx Rd(dst), word [rsp + src]
+                break;
+            case VALUE_TYPE_S32:
+                | movsxd Rq(dst), dword [rsp + src]
+                break;
+            case VALUE_TYPE_U32:
+                // Writing to a 32 bit reg zero extends to the 64 bit reg
+                | mov Rd(dst), dword [rsp + src]
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                | mov Rq(dst), qword [rsp + src]
+                break;
+        }
     } else {
         switch (source_value_type) {
             case VALUE_TYPE_S8:
-                | movsx Rq(dst_reg), Rb(src_reg)
+                | movsx Rq(dst), Rb(src)
                 break;
             case VALUE_TYPE_U8:
-                | movzx Rq(dst_reg), Rb(src_reg)
+                | movzx Rq(dst), Rb(src)
                 break;
             case VALUE_TYPE_S16:
-                | movsx Rq(dst_reg), Rw(src_reg)
+                | movsx Rq(dst), Rw(src)
                 break;
             case VALUE_TYPE_U16:
-                | movzx Rq(dst_reg), Rw(src_reg)
+                | movzx Rq(dst), Rw(src)
                 break;
             case VALUE_TYPE_S32:
-                | movsxd Rq(dst_reg), Rd(src_reg)
+                | movsxd Rq(dst), Rd(src)
                 break;
             case VALUE_TYPE_U32:
                 // Writing to a 32 bit reg zero extends to the 64 bit reg
-                | mov Rd(dst_reg), Rd(src_reg)
+                | mov Rd(dst), Rd(src)
                 break;
             case VALUE_TYPE_U64:
             case VALUE_TYPE_S64:
-                | mov Rq(dst_reg), Rq(src_reg)
+                | mov Rq(dst), Rq(src)
                 break;
         }
     }
@@ -730,21 +813,37 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
 }
 
 void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type) {
-    int reg = check_reg(reg_alloc, false);
+    int reg = check_reg(reg_alloc, true);
     int offset = get_n64cpu_offset(mem);
+
+    if (reg_alloc.spilled) {
+        | mov Rq(TMPREG2), qword [rsp + reg]
+        reg = TMPREG2;
+    }
 
     // Check if the pointer is within N64CPU
     if (offset > 0) {
         switch (type) {
             case VALUE_TYPE_U8:
+                | mov Rb(reg), [cpu_state + offset]
+                | movzx Rq(reg), Rb(reg)
+                break;
             case VALUE_TYPE_S8:
                 | mov Rb(reg), [cpu_state + offset]
+                | movsx Rq(reg), Rb(reg)
                 break;
             case VALUE_TYPE_S16:
+                | mov Rw(reg), [cpu_state + offset]
+                | movsx Rq(reg), Rw(reg)
+                break;
             case VALUE_TYPE_U16:
                 | mov Rw(reg), [cpu_state + offset]
+                | movzx Rq(reg), Rw(reg)
                 break;
             case VALUE_TYPE_S32:
+                | mov Rd(reg), [cpu_state + offset]
+                | movsxd Rq(reg), Rd(reg)
+                break;
             case VALUE_TYPE_U32:
                 | mov Rd(reg), [cpu_state + offset]
                 break;
@@ -758,6 +857,10 @@ void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc,
         logfatal("Not within n64cpu");
         | mov64 Rq(TMPREG1), mem
         | mov Rq(reg), [TMPREG1]
+    }
+
+    if (reg_alloc.spilled) {
+        | mov qword [rsp + reg_alloc.spill_location], Rq(TMPREG2)
     }
 }
 

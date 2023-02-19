@@ -429,14 +429,26 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_multiply(dasm_State** Dst, ir_instruction_t* instr) {
-    if (is_constant(instr->multiply.multiplicand1) && is_constant(instr->multiply.multiplicand2)) {
+    if (is_constant(instr->mult_div.operand1) && is_constant(instr->mult_div.operand2)) {
         logfatal("const mult");
-    } else if (instr_valid_immediate(instr->multiply.multiplicand1)) {
-        host_emit_mult_reg_imm(Dst, instr->multiply.multiplicand2->reg_alloc, instr->multiply.multiplicand1->set_constant, instr->multiply.multiplicand_type);
-    } else if (instr_valid_immediate(instr->multiply.multiplicand2)) {
-        host_emit_mult_reg_imm(Dst, instr->multiply.multiplicand1->reg_alloc, instr->multiply.multiplicand2->set_constant, instr->multiply.multiplicand_type);
+    } else if (instr_valid_immediate(instr->mult_div.operand1)) {
+        host_emit_mult_reg_imm(Dst, instr->mult_div.operand2->reg_alloc, instr->mult_div.operand1->set_constant, instr->mult_div.mult_div_type);
+    } else if (instr_valid_immediate(instr->mult_div.operand2)) {
+        host_emit_mult_reg_imm(Dst, instr->mult_div.operand1->reg_alloc, instr->mult_div.operand2->set_constant, instr->mult_div.mult_div_type);
     } else {
-        host_emit_mult_reg_reg(Dst, instr->multiply.multiplicand1->reg_alloc, instr->multiply.multiplicand2->reg_alloc, instr->multiply.multiplicand_type);
+        host_emit_mult_reg_reg(Dst, instr->mult_div.operand1->reg_alloc, instr->mult_div.operand2->reg_alloc, instr->mult_div.mult_div_type);
+    }
+}
+
+void compile_ir_divide(dasm_State** Dst, ir_instruction_t* instr) {
+    if (is_constant(instr->mult_div.operand1) && is_constant(instr->mult_div.operand2)) {
+        logfatal("const div");
+    } else if (instr_valid_immediate(instr->mult_div.operand1)) {
+        host_emit_div_reg_imm(Dst, instr->mult_div.operand2->reg_alloc, instr->mult_div.operand1->set_constant, instr->mult_div.mult_div_type);
+    } else if (instr_valid_immediate(instr->mult_div.operand2)) {
+        host_emit_div_reg_imm(Dst, instr->mult_div.operand1->reg_alloc, instr->mult_div.operand2->set_constant, instr->mult_div.mult_div_type);
+    } else {
+        host_emit_div_reg_reg(Dst, instr->mult_div.operand1->reg_alloc, instr->mult_div.operand2->reg_alloc, instr->mult_div.mult_div_type);
     }
 }
 
@@ -534,6 +546,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_MULTIPLY:
                 compile_ir_multiply(Dst, instr);
+                break;
+            case IR_DIVIDE:
+                compile_ir_divide(Dst, instr);
                 break;
             case IR_GET_MULT_RESULT:
                 compile_ir_get_mult_result(Dst, instr);

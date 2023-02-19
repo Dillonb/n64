@@ -128,6 +128,7 @@ typedef struct ir_instruction {
         IR_LOAD_GUEST_REG,
         IR_FLUSH_GUEST_REG,
         IR_MULTIPLY,
+        IR_DIVIDE,
         IR_GET_MULT_RESULT
     } type;
     union {
@@ -201,10 +202,10 @@ typedef struct ir_instruction {
             int block_length;
         } cond_block_exit;
         struct {
-            struct ir_instruction* multiplicand1;
-            struct ir_instruction* multiplicand2;
-            ir_value_type_t multiplicand_type;
-        } multiply;
+            struct ir_instruction* operand1;
+            struct ir_instruction* operand2;
+            ir_value_type_t mult_div_type;
+        } mult_div;
         struct {
             ir_get_mult_result_bits_t result_bits;
         } mult_result;
@@ -282,8 +283,10 @@ ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest
 ir_instruction_t* ir_emit_get_cp0(int cp0_reg, u8 guest_reg);
 // Set a CP0 register
 ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value);
-// Multiply two values of type multiplicand_type to get a result of result_type. Result must be accessed with ir_emit_get_mult_result().
+// Multiply two values of type mult_div_type to get a double-sized result. Result must be accessed with ir_emit_get_mult_result().
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type);
+// Divide a value of type divide_type by a value of the same type. Result must be accessed with ir_emit_get_mult_result().
+ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type);
 // Get the result of a multiplication.
 ir_instruction_t* ir_emit_get_mult_result(ir_get_mult_result_bits_t bits, u8 guest_reg);
 
