@@ -15,6 +15,9 @@
 #define TMPREG1 get_scratch_registers()[0]
 #define TMPREG2 get_scratch_registers()[1]
 
+#define TMPREG1_ALLOC alloc_reg(get_scratch_registers()[0])
+#define TMPREG2_ALLOC alloc_reg(get_scratch_registers()[1])
+
 #define IMM64_INVALID() logfatal("Should never end up here, x86_64 has no 64 bit immediates")
 
 ||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
@@ -46,9 +49,11 @@
   |.define postcall, .nop
     // Called before our block
     |.macro prologue
+      | sub rsp, SPILL_SPACE_SIZE_BYTES
     |.endmacro
     // Called at the end of our block
     |.macro epilogue
+      | add rsp, SPILL_SPACE_SIZE_BYTES
       | ret
     |.endmacro
 |.endif // TODO ARM version?
@@ -77,10 +82,18 @@ dasm_State* v2_block_header() {
     | prologue
     return d;
 }
-#define check_reg(reg) unimplemented((reg) < 0 || (reg) > get_num_registers(), "Invalid register value: %d", reg)
 
-void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_value) {
-    check_reg(reg);
+int check_reg(ir_register_allocation_t reg) {
+    printf("Checking reg: allocated: %d spilled: %d host reg: %d\n", reg.allocated, reg.spilled, reg.host_reg);
+    fflush(stdout);
+    unimplemented(!reg.allocated, "Register was not allocated!");
+    unimplemented(reg.spilled, "Register is spilled! Allocate a temp reg just for this emission and load the value");
+    unimplemented((reg.host_reg) < 0 || (reg.host_reg) > get_num_registers(), "Invalid host register value: %d", reg.host_reg);
+    return reg.host_reg;
+}
+
+void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm_value) {
+    int reg = check_reg(reg_alloc);
     u64 value = set_const_to_u64(imm_value);
     if (imm_value.type == VALUE_TYPE_U64) {
         | mov64 Rq(reg), value
@@ -90,8 +103,8 @@ void host_emit_mov_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm_valu
     }
 }
 
-void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
-    check_reg(operand1);
+void host_emit_and_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | and Rq(operand1), operand2.value_s8
@@ -118,14 +131,14 @@ void host_emit_and_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
     }
 }
 
-void host_emit_and_reg_reg(dasm_State** Dst, int operand1, int operand2) {
-    check_reg(operand1);
-    check_reg(operand2);
+void host_emit_and_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc);
+    int operand2 = check_reg(operand2_alloc);
     | and Rq(operand1), Rq(operand2)
 }
 
-void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
-    check_reg(operand1);
+void host_emit_or_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | or Rq(operand1), operand2.value_s8
@@ -152,14 +165,14 @@ void host_emit_or_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t oper
     }
 }
 
-void host_emit_or_reg_reg(dasm_State** Dst, int operand1, int operand2) {
-    check_reg(operand1);
-    check_reg(operand2);
+void host_emit_or_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc);
+    int operand2 = check_reg(operand2_alloc);
     | or Rq(operand1), Rq(operand2)
 }
 
-void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
-    check_reg(operand1);
+void host_emit_xor_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | xor Rq(operand1), operand2.value_s8
@@ -186,14 +199,14 @@ void host_emit_xor_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
     }
 }
 
-void host_emit_xor_reg_reg(dasm_State** Dst, int operand1, int operand2) {
-    check_reg(operand1);
-    check_reg(operand2);
+void host_emit_xor_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc);
+    int operand2 = check_reg(operand2_alloc);
     | xor Rq(operand1), Rq(operand2)
 }
 
-void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t operand2) {
-    check_reg(operand1);
+void host_emit_add_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | add Rq(operand1), operand2.value_s8
@@ -220,20 +233,20 @@ void host_emit_add_reg_imm(dasm_State** Dst, int operand1, ir_set_constant_t ope
     }
 }
 
-void host_emit_add_reg_reg(dasm_State** Dst, int operand1, int operand2) {
-    check_reg(operand1);
-    check_reg(operand2);
+void host_emit_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc);
+    int operand2 = check_reg(operand2_alloc);
     | add Rq(operand1), Rq(operand2)
 }
 
-void host_emit_sub_reg_reg(dasm_State** Dst, int minuend, int subtrahend) {
-    check_reg(minuend);
-    check_reg(subtrahend);
+void host_emit_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_register_allocation_t subtrahend_alloc) {
+    int minuend = check_reg(minuend_alloc);
+    int subtrahend = check_reg(subtrahend_alloc);
     | sub Rq(minuend), Rq(subtrahend)
 }
 
-void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
-    check_reg(reg);
+void host_emit_shift_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
+    int reg = check_reg(reg_alloc);
     switch (type) {
         case VALUE_TYPE_S8:
         case VALUE_TYPE_U8:
@@ -290,9 +303,9 @@ void host_emit_shift_reg_imm(dasm_State** Dst, int reg, ir_value_type_t type, u8
     }
 }
 
-void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, int amount_reg, ir_shift_direction_t direction) {
-    check_reg(reg);
-    check_reg(amount_reg);
+void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, ir_register_allocation_t amount_reg_alloc, ir_shift_direction_t direction) {
+    int reg = check_reg(reg_alloc);
+    int amount_reg = check_reg(amount_reg_alloc);
     | mov cl, Rb(amount_reg)
     switch (type) {
         case VALUE_TYPE_S8:
@@ -350,13 +363,13 @@ void host_emit_shift_reg_reg(dasm_State** Dst, int reg, ir_value_type_t type, in
     }
 }
 
-void host_emit_bitwise_not(dasm_State** Dst, int reg) {
-    check_reg(reg);
+void host_emit_bitwise_not(dasm_State** Dst, ir_register_allocation_t reg_alloc) {
+    int reg = check_reg(reg_alloc);
     | not Rq(reg)
 }
 
-void host_emit_mult_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm, ir_value_type_t multiplicand_type) {
-    check_reg(reg);
+void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t multiplicand_type) {
+    int reg = check_reg(reg_alloc);
     u64 imm_value = set_const_to_u64(imm);
     switch (multiplicand_type) {
         case VALUE_TYPE_U8:
@@ -370,15 +383,15 @@ void host_emit_mult_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm, ir
             logfatal("s32 multiply");
             break;
         case VALUE_TYPE_U32:
-            host_emit_mov_reg_imm(Dst, REG_RAX, imm);
+            host_emit_mov_reg_imm(Dst, alloc_reg(REG_RAX), imm);
             // mul writes the low 32 bits to eax, and the high 32 to edx.
             | mul Rd(reg)
             // Sign extend results
-            host_emit_mov_reg_reg(Dst, REG_RDX, REG_RDX, VALUE_TYPE_S32);
-            host_emit_mov_reg_reg(Dst, REG_RAX, REG_RAX, VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
             // Save results to mem
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, REG_RDX, VALUE_TYPE_U64);
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, REG_RAX, VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_U64:
             logfatal("u64 multiply");
@@ -388,9 +401,9 @@ void host_emit_mult_reg_imm(dasm_State** Dst, int reg, ir_set_constant_t imm, ir
     }
 }
 
-void host_emit_mov_reg_reg(dasm_State** Dst, int dst_reg, int src_reg, ir_value_type_t source_value_type) {
-    check_reg(dst_reg);
-    check_reg(src_reg);
+void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_alloc, ir_register_allocation_t src_reg_alloc, ir_value_type_t source_value_type) {
+    int dst_reg = check_reg(dst_reg_alloc);
+    int src_reg = check_reg(src_reg_alloc);
     if (source_value_type == VALUE_TYPE_U64 && dst_reg == src_reg) {
         return;
     }
@@ -430,8 +443,8 @@ void host_emit_debugbreak(dasm_State** Dst) {
     | int3
 }
 
-void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum args_reversed args_reversed) {
-    check_reg(dest_reg);
+void set_dest_cond(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, enum args_reversed args_reversed) {
+    int dest_reg = check_reg(dest_reg_alloc);
     if (dest_reg >= 0) {
         switch (cond) {
             case CONDITION_NOT_EQUAL:
@@ -501,9 +514,8 @@ void set_dest_cond(dasm_State** Dst, int dest_reg, ir_condition_t cond, enum arg
     | movzx Rq(dest_reg), Rb(dest_reg)
 }
 
-void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, ir_set_constant_t operand2, enum args_reversed args_reversed) {
-    check_reg(dest_reg);
-    check_reg(operand1);
+void host_emit_cmp_reg_imm(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2, enum args_reversed args_reversed) {
+    int operand1 = check_reg(operand1_alloc);
     switch (operand2.type) {
         case VALUE_TYPE_S8:
             | cmp Rq(operand1), operand2.value_s8
@@ -528,15 +540,14 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, int dest_reg, ir_condition_t cond, 
             IMM64_INVALID();
             break;
     }
-    set_dest_cond(Dst, dest_reg, cond, args_reversed);
+    set_dest_cond(Dst, dest_reg_alloc, cond, args_reversed);
 }
 
-void host_emit_cmp_reg_reg(dasm_State** Dst, int dest_reg, ir_condition_t cond, int operand1, int operand2, enum args_reversed args_reversed) {
-    check_reg(dest_reg);
-    check_reg(operand1);
-    check_reg(operand2);
+void host_emit_cmp_reg_reg(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, enum args_reversed args_reversed) {
+    int operand1 = check_reg(operand1_alloc);
+    int operand2 = check_reg(operand2_alloc);
     | cmp Rq(operand1), Rq(operand2)
-    set_dest_cond(Dst, dest_reg, cond, args_reversed);
+    set_dest_cond(Dst, dest_reg_alloc, cond, args_reversed);
 }
 
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
@@ -546,16 +557,19 @@ void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
         | mov cpu_state->pc, Rq(TMPREG2)
         | add Rq(TMPREG2), 4
         | mov cpu_state->next_pc, Rq(TMPREG2)
+    } else if (value->reg_alloc.spilled) {
+        logfatal("Mov to PC from spilled");
     } else {
-        | mov Rq(TMPREG2), Rq(value->allocated_host_register)
+        int reg = check_reg(value->reg_alloc);
+        | mov Rq(TMPREG2), Rq(reg)
         | mov cpu_state->pc, Rq(TMPREG2)
         | add Rq(TMPREG2), 4
         | mov cpu_state->next_pc, Rq(TMPREG2)
     }
 }
 
-void host_emit_cmov_pc_binary(dasm_State** Dst, int cond_register, ir_instruction_t* if_true, ir_instruction_t* if_false) {
-    check_reg(cond_register);
+void host_emit_cmov_pc_binary(dasm_State** Dst, ir_register_allocation_t cond_register_alloc, ir_instruction_t* if_true, ir_instruction_t* if_false) {
+    int cond_register = check_reg(cond_register_alloc);
     | test Rb(cond_register), Rb(cond_register)
     | jz >1
     host_emit_mov_pc(Dst, if_true);
@@ -598,20 +612,20 @@ void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t va
                 break;
             case VALUE_TYPE_U64:
             case VALUE_TYPE_S64:
-                host_emit_mov_reg_imm(Dst, TMPREG1, value);
+                host_emit_mov_reg_imm(Dst, TMPREG1_ALLOC, value);
                 | mov [cpu_state + offset], Rq(TMPREG1)
                 break;
         }
     } else {
         logfatal("Not within N64CPU");
         | mov64 Rq(TMPREG1), mem
-        host_emit_mov_reg_imm(Dst, TMPREG2, value);
+        host_emit_mov_reg_imm(Dst, TMPREG2_ALLOC, value);
         | mov [Rq(TMPREG1)], Rq(TMPREG2)
     }
 }
 
-void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_type_t type) {
-    check_reg(reg);
+void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc, ir_value_type_t type) {
+    int reg = check_reg(reg_alloc);
     int offset = get_n64cpu_offset(mem);
 
     // Check if the pointer is within N64CPU
@@ -626,8 +640,8 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, int reg, ir_value_ty
     }
 }
 
-void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem, ir_value_type_t type) {
-    check_reg(reg);
+void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type) {
+    int reg = check_reg(reg_alloc);
     int offset = get_n64cpu_offset(mem);
 
     // Check if the pointer is within N64CPU
@@ -658,8 +672,8 @@ void host_emit_mov_reg_mem(dasm_State** Dst, int reg, uintptr_t mem, ir_value_ty
     }
 }
 
-void host_emit_mov_reg_cp0(dasm_State** Dst, int reg, int cp0_reg) {
-    check_reg(reg);
+void host_emit_mov_reg_cp0(dasm_State** Dst, ir_register_allocation_t reg_alloc, int cp0_reg) {
+    int reg = check_reg(reg_alloc);
     switch (cp0_reg) {
         case R4300I_CP0_REG_INDEX:
             logfatal("Compile get R4300I_CP0_REG_INDEX");
@@ -869,11 +883,8 @@ void host_emit_mov_cp0_imm(dasm_State** Dst, int cp0_reg, ir_set_constant_t valu
     }
 }
 
-void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, int reg) {
-    if (reg < 0) {
-        logfatal("here");
-    }
-    check_reg(reg);
+void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, ir_register_allocation_t reg_alloc) {
+    int reg = check_reg(reg_alloc);
     switch (cp0_reg) {
         case R4300I_CP0_REG_INDEX:
             logfatal("Compile set R4300I_CP0_REG_INDEX");
@@ -978,18 +989,20 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
     while (flush_iter != NULL) {
         if (is_constant(flush_iter->item)) {
             host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant, VALUE_TYPE_U64);
+        } else if (flush_iter->item->reg_alloc.spilled) {
+            logfatal("Flushing spilled reg");
         } else {
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->allocated_host_register, VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->reg_alloc, VALUE_TYPE_U64);
         }
 
         flush_iter = flush_iter->next;
     }
     | mov eax, block_length
-    | ret
+    | epilogue
 }
 
-void host_emit_cond_ret(dasm_State** Dst, int cond_reg, ir_instruction_flush_t* flush_iter, int block_length) {
-    check_reg(cond_reg);
+void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length) {
+    int cond_reg = check_reg(cond_reg_alloc);
     | test Rq(cond_reg), Rq(cond_reg)
     | jz >1
     host_emit_ret(Dst, flush_iter, block_length);

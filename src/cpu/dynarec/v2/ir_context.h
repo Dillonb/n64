@@ -64,13 +64,30 @@ typedef struct ir_instruction_flush {
     struct ir_instruction_flush* next;
 } ir_instruction_flush_t;
 
+typedef struct ir_register_allocation {
+    bool allocated;
+    bool spilled;
+    union {
+        int host_reg;
+        int spill_location;
+    };
+} ir_register_allocation_t;
+
+INLINE ir_register_allocation_t alloc_reg(int reg) {
+    ir_register_allocation_t alloc;
+    alloc.allocated = true;
+    alloc.spilled = false;
+    alloc.host_reg = reg;
+    return alloc;
+}
+
 typedef struct ir_instruction {
     // Metadata
     struct ir_instruction* next;
     struct ir_instruction* prev;
     int index;
     bool dead_code;
-    int allocated_host_register;
+    ir_register_allocation_t reg_alloc;
     int last_use;
 
     enum {

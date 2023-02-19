@@ -601,7 +601,7 @@ void expire_old_intervals(ir_instruction_t** active, bool* registers_available, 
         if (active[i]->last_use >= current_value->index) {
             break;
         }
-        registers_available[active[i]->allocated_host_register] = true;
+        registers_available[active[i]->reg_alloc.host_reg] = true;
         active[i] = NULL;
         num_expired++;
     }
@@ -612,6 +612,7 @@ void expire_old_intervals(ir_instruction_t** active, bool* registers_available, 
     }
 }
 
+// https://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
 void ir_allocate_registers() {
     // Recalculate indices before register allocation. Needed because previous steps can insert values into the middle of the list without updating the index values.
     ir_recalculate_indices();
@@ -628,6 +629,8 @@ void ir_allocate_registers() {
         registers_available[get_preserved_registers()[i]] = true;
     }
 
+    int spill_index = 0;
+
     // TODO: replace last_use calculations with a single backwards pass instead of the worst-case O(n^2) algorithm of calling value_lifetime()
     ir_instruction_t* value = ir_context.ir_cache_head;
     while (value != NULL) {
@@ -642,15 +645,33 @@ void ir_allocate_registers() {
             }
             value->last_use = last_use->index;
 
-            // if length(active) == R then
             if (num_active == num_regs) {
-                logfatal("SpillAtInterval()");
+                int spill_index = num_active - 1; // last entry in active
+                ir_instruction_t* spill = active[spill_index];
+                // If the spilled value is used for longer than the value we're trying to allocate, spill the existing value instead of the new value
+                if (spill->last_use > value->last_use) {
+                    // Transfer register allocation information from the spilled register to the new reg
+                    value->reg_alloc = spill->reg_alloc;
+
+                    // Allocate a new space on the stack for the spilled value
+                    spill->reg_alloc.spilled = true;
+                    spill->reg_alloc.spill_location = spill_index;
+                    spill_index += SPILL_ENTRY_SIZE;
+
+                    // Replace spilled value in active list with the new value
+                    active[spill_index] = value;
+                } else {
+                    // Allocate a new space on the stack for the new value
+                    spill->reg_alloc.spilled = true;
+                    spill->reg_alloc.spill_location = spill_index;
+                    spill_index += SPILL_ENTRY_SIZE;
+                }
             } else {
                 int reg = first_available_register(registers_available, num_total_regs);
                 if (reg < 0) {
                     logfatal("Unable to allocate register when one should be available.");
                 }
-                value->allocated_host_register = reg;
+                value->reg_alloc = alloc_reg(reg);
                 registers_available[reg] = false;
                 //  add interval to active, sorted by increasing end point
                 active[num_active] = value;

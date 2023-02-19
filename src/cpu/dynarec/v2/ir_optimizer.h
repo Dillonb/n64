@@ -5,6 +5,11 @@
 #include "ir_context.h"
 #include <cpu/dynarec/v2/target_platform.h>
 
+#define SPILL_ENTRY_SIZE (sizeof(u64))
+#define SPILL_SPACE_NUM_ENTRIES (64)
+#define SPILL_SPACE_SIZE_BYTES (SPILL_SPACE_NUM_ENTRIES * SPILL_ENTRY_SIZE)
+static_assert((SPILL_SPACE_SIZE_BYTES % 16) == 0, "spill space should not misalign the stack");
+
 INLINE bool is_constant(ir_instruction_t* instr) {
     return instr->type == IR_SET_CONSTANT;
 }
