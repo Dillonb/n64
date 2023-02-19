@@ -171,9 +171,17 @@ void host_emit_or_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_al
 }
 
 void host_emit_or_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
-    int operand1 = check_reg(operand1_alloc, false);
-    int operand2 = check_reg(operand2_alloc, false);
-    | or Rq(operand1), Rq(operand2)
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        logfatal("Both spilled");
+    } else if (operand1_alloc.spilled) {
+        | or qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        logfatal("operand2 spilled");
+    } else {
+        | or Rq(operand1), Rq(operand2)
+    }
 }
 
 void host_emit_xor_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
@@ -497,10 +505,39 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             // Save results to mem
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
-
             break;
         case VALUE_TYPE_U32:
-            logfatal("u32 divide");
+            if (operand1_alloc.spilled) {
+                | mov eax, dword [rsp + operand1]
+            } else {
+                | mov eax, Rd(operand1)
+            }
+            | cqo
+
+            if (operand2_alloc.spilled) {
+                | mov Rd(TMPREG2), dword [rsp + operand2]
+            } else {
+                | mov Rd(TMPREG2), Rd(operand2)
+            }
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1
+            | div Rq(TMPREG2)
+
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+
+            | jmp >2
+            |1:
+            // Divide by zero
+            // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
+            | mov rdx, rax
+            | mov rax, -1
+            |2:
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
+            break;
         case VALUE_TYPE_U64:
             logfatal("u64 divide");
         case VALUE_TYPE_S64:

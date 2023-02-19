@@ -224,7 +224,8 @@ void compile_ir_sub(dasm_State** Dst, ir_instruction_t* instr) {
     if (binop_constant(instr)) {
         logfatal("Should have been caught by constant propagation");
     } else if (instr_valid_immediate(instr->bin_op.operand1)) {
-        logfatal("Half const sub: (const) - (var): this one will be awkward");
+        host_emit_mov_reg_imm(Dst, instr->reg_alloc, instr->bin_op.operand1->set_constant);
+        host_emit_sub_reg_reg(Dst, instr->reg_alloc, instr->bin_op.operand2->reg_alloc);
     } else if (instr_valid_immediate(instr->bin_op.operand2)) {
         logfatal("Half const sub: (var) - (const)");
     } else {
