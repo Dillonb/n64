@@ -170,12 +170,6 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                     break;
             }
             break;
-        case IR_GET_CP0:
-            snprintf(buf, buf_size, "guest_cp0[%d]", instr->get_cp0.reg);
-            break;
-        case IR_SET_CP0:
-            snprintf(buf, buf_size, "guest_cp0[%d] = v%d", instr->set_cp0.reg, instr->set_cp0.value->index);
-            break;
         case IR_COND_BLOCK_EXIT:
             snprintf(buf, buf_size, "exit_block_if(v%d)", instr->cond_block_exit.condition->index);
             break;
@@ -415,19 +409,19 @@ ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, 
     return append_ir_instruction(instruction, guest_reg);
 }
 
-ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, uintptr_t ptr, u8 guest_reg) {
+ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, void* ptr, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_GET_PTR;
     instruction.get_ptr.type = type;
-    instruction.get_ptr.ptr = ptr;
+    instruction.get_ptr.ptr = (uintptr_t)ptr;
     return append_ir_instruction(instruction, guest_reg);
 }
 
-ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, uintptr_t ptr, ir_instruction_t* value) {
+ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, void* ptr, ir_instruction_t* value) {
     ir_instruction_t instruction;
     instruction.type = IR_SET_PTR;
     instruction.set_ptr.type = type;
-    instruction.set_ptr.ptr = ptr;
+    instruction.set_ptr.ptr = (uintptr_t)ptr;
     instruction.set_ptr.value = value;
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
@@ -504,23 +498,6 @@ ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest
     instruction.tlb_lookup.virtual_address = virtual_address;
     instruction.tlb_lookup.bus_access = bus_access;
     return append_ir_instruction(instruction, guest_reg);
-}
-
-// Get a CP0 register
-ir_instruction_t* ir_emit_get_cp0(int cp0_reg, u8 guest_reg) {
-    ir_instruction_t instruction;
-    instruction.type = IR_GET_CP0;
-    instruction.get_cp0.reg = cp0_reg;
-    return append_ir_instruction(instruction, guest_reg);
-}
-
-// Set a CP0 register
-ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value) {
-    ir_instruction_t instruction;
-    instruction.type = IR_SET_CP0;
-    instruction.set_cp0.reg = cp0_reg;
-    instruction.set_cp0.value = new_value;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type) {

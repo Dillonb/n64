@@ -243,6 +243,14 @@ IR_EMITTER(bgezal) {
     ir_emit_link(MIPS_REG_RA, virtual_address);
 }
 
+IR_EMITTER(bgez) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_OR_EQUAL_TO_SIGNED, rs, zero, NO_GUEST_REG);
+
+    ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+}
+
 IR_EMITTER(j) {
     u64 target = instruction.j.target;
     target <<= 2;
@@ -415,9 +423,13 @@ IR_EMITTER(mtc0) {
     switch (instruction.r.rd) {
         // Passthrough
         case R4300I_CP0_REG_TAGLO:
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.tag_lo, value);
+            break;
         case R4300I_CP0_REG_TAGHI:
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.tag_hi, value);
+            break;
         case R4300I_CP0_REG_INDEX:
-            ir_emit_set_cp0(instruction.r.rd, value);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.index, value);
             break;
 
         // Other
@@ -425,7 +437,7 @@ IR_EMITTER(mtc0) {
         case R4300I_CP0_REG_COUNT: {
             ir_instruction_t* shift_amount = ir_emit_set_constant_u16(1, NO_GUEST_REG);
             ir_instruction_t* value_shifted = ir_emit_shift(value, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
-            ir_emit_set_cp0(R4300I_CP0_REG_COUNT, value_shifted);
+            ir_emit_set_ptr(VALUE_TYPE_U64, &N64CP0.count, value_shifted);
             break;
         }
         case R4300I_CP0_REG_CAUSE: {
@@ -433,49 +445,59 @@ IR_EMITTER(mtc0) {
             ir_instruction_t* cause_masked = ir_emit_and(value, cause_mask, NO_GUEST_REG);
 
             ir_instruction_t* inverse_cause_mask = ir_emit_not(cause_mask, NO_GUEST_REG);
-            ir_instruction_t* old_cause = ir_emit_get_cp0(R4300I_CP0_REG_CAUSE, NO_GUEST_REG);
+            ir_instruction_t* old_cause = ir_emit_get_ptr(VALUE_TYPE_U32, &N64CP0.cause.raw, NO_GUEST_REG);
             ir_instruction_t* old_cause_masked = ir_emit_and(old_cause, inverse_cause_mask, NO_GUEST_REG);
 
             ir_instruction_t* new_cause = ir_emit_or(old_cause_masked, cause_masked, NO_GUEST_REG);
-            ir_emit_set_cp0(R4300I_CP0_REG_CAUSE, new_cause);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.cause.raw, new_cause);
             break;
         }
         case R4300I_CP0_REG_COMPARE: {
             // Lower compare interrupt
-            ir_emit_set_cp0(R4300I_CP0_REG_CAUSE,
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.cause.raw,
                             ir_emit_and(
-                                    ir_emit_get_cp0(R4300I_CP0_REG_CAUSE, NO_GUEST_REG),
+                                    ir_emit_get_ptr(VALUE_TYPE_U32, &N64CP0.cause.raw, NO_GUEST_REG),
                                     ir_emit_set_constant_s32(~(1 << 15), NO_GUEST_REG),
                                     NO_GUEST_REG));
-            ir_emit_set_cp0(R4300I_CP0_REG_COMPARE, value);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.compare, value);
             break;
         }
         case R4300I_CP0_REG_STATUS: {
             ir_instruction_t* status_mask = ir_emit_set_constant_u32(CP0_STATUS_WRITE_MASK, NO_GUEST_REG);
             ir_instruction_t* inverse_status_mask = ir_emit_not(status_mask, NO_GUEST_REG);
-            ir_instruction_t* old_status = ir_emit_get_cp0(R4300I_CP0_REG_STATUS, NO_GUEST_REG);
+            ir_instruction_t* old_status = ir_emit_get_ptr(VALUE_TYPE_U32, &N64CP0.status.raw, NO_GUEST_REG);
             ir_instruction_t* old_status_masked = ir_emit_and(old_status, inverse_status_mask, NO_GUEST_REG);
             ir_instruction_t* value_masked = ir_emit_and(value, status_mask, NO_GUEST_REG);
             ir_instruction_t* new_status = ir_emit_or(value_masked, old_status_masked, NO_GUEST_REG);
-            ir_emit_set_cp0(R4300I_CP0_REG_STATUS, new_status);
-            // TODO: handle all the side effects of this write
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.status.raw, new_status);
+            logwarn("CP0 status written without side effects!");
             break;
         }
-        case R4300I_CP0_REG_ENTRYLO0:
+        case R4300I_CP0_REG_ENTRYLO0: {
+            ir_instruction_t* mask = ir_emit_set_constant_u32(CP0_ENTRY_LO_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value, mask, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.entry_lo0.raw, masked);
+            break;
+        }
         case R4300I_CP0_REG_ENTRYLO1: {
-            ir_instruction_t* mask = ir_emit_set_constant_64(CP0_ENTRY_LO_WRITE_MASK, NO_GUEST_REG);
-            ir_instruction_t* value_sign_extended = ir_emit_mask_and_cast(value, VALUE_TYPE_S32, NO_GUEST_REG);
-            ir_instruction_t* masked = ir_emit_and(value_sign_extended, mask, NO_GUEST_REG);
-            ir_emit_set_cp0(instruction.r.rd, masked);
+            ir_instruction_t* mask = ir_emit_set_constant_u32(CP0_ENTRY_LO_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value, mask, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.entry_lo1.raw, masked);
+            break;
         }
         case R4300I_CP0_REG_ENTRYHI: {
             ir_instruction_t* mask = ir_emit_set_constant_64(CP0_ENTRY_HI_WRITE_MASK, NO_GUEST_REG);
             ir_instruction_t* value_sign_extended = ir_emit_mask_and_cast(value, VALUE_TYPE_S32, NO_GUEST_REG);
             ir_instruction_t* masked = ir_emit_and(value_sign_extended, mask, NO_GUEST_REG);
-            ir_emit_set_cp0(R4300I_CP0_REG_ENTRYHI, masked);
+            ir_emit_set_ptr(VALUE_TYPE_U64, &N64CP0.entry_hi.raw, masked);
             break;
         }
-        case R4300I_CP0_REG_PAGEMASK: logfatal("emit MTC0 R4300I_CP0_REG_PAGEMASK");
+        case R4300I_CP0_REG_PAGEMASK: {
+            ir_instruction_t* mask = ir_emit_set_constant_64(CP0_ENTRY_HI_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value, mask, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.page_mask.raw, masked);
+            break;
+        }
         case R4300I_CP0_REG_EPC: logfatal("emit MTC0 R4300I_CP0_REG_EPC");
         case R4300I_CP0_REG_CONFIG: logfatal("emit MTC0 R4300I_CP0_REG_CONFIG");
         case R4300I_CP0_REG_WATCHLO: logfatal("emit MTC0 R4300I_CP0_REG_WATCHLO");
@@ -504,10 +526,10 @@ IR_EMITTER(cfc1) {
     u8 fs = instruction.r.rd;
     switch (fs) {
         case 0:
-            ir_emit_get_ptr(VALUE_TYPE_U32, (uintptr_t)&N64CPU.fcr0.raw, instruction.r.rt);
+            ir_emit_get_ptr(VALUE_TYPE_U32, &N64CPU.fcr0.raw, instruction.r.rt);
             break;
         case 31:
-            ir_emit_get_ptr(VALUE_TYPE_U32, (uintptr_t)&N64CPU.fcr31.raw, instruction.r.rt);
+            ir_emit_get_ptr(VALUE_TYPE_U32, &N64CPU.fcr31.raw, instruction.r.rt);
             break;
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
@@ -544,7 +566,7 @@ IR_EMITTER(ctc1) {
         case 31: {
             ir_instruction_t* mask = ir_emit_set_constant_u32(0x183ffff, NO_GUEST_REG);
             ir_instruction_t* masked = ir_emit_and(mask, value, NO_GUEST_REG);
-            ir_emit_set_ptr(VALUE_TYPE_U32, (uintptr_t)&N64CPU.fcr31.raw, masked);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CPU.fcr31.raw, masked);
             break;
         }
         default:
@@ -553,11 +575,14 @@ IR_EMITTER(ctc1) {
 }
 
 IR_EMITTER(mfc0) {
+    const ir_value_type_t value_type; // all MFC0 results are S32
     switch (instruction.r.rd) {
         // passthrough
         case R4300I_CP0_REG_ENTRYHI:
+            ir_emit_get_ptr(value_type, &N64CP0.entry_hi.raw, instruction.r.rt);
+            break;
         case R4300I_CP0_REG_STATUS:
-            ir_emit_get_cp0(instruction.r.rd, instruction.r.rt);
+            ir_emit_get_ptr(value_type, &N64CP0.status.raw, instruction.r.rt);
             break;
         case R4300I_CP0_REG_TAGLO: logfatal("emit MFC0 R4300I_CP0_REG_TAGLO");
         case R4300I_CP0_REG_TAGHI: logfatal("emit MFC0 R4300I_CP0_REG_TAGHI");
@@ -699,7 +724,7 @@ IR_EMITTER(regimm_instruction) {
         case RT_BLTZ: CALL_IR_EMITTER(bltz);
         case RT_BLTZL: IR_UNIMPLEMENTED(RT_BLTZL);
         case RT_BLTZAL: IR_UNIMPLEMENTED(RT_BLTZAL);
-        case RT_BGEZ: IR_UNIMPLEMENTED(RT_BGEZ);
+        case RT_BGEZ: CALL_IR_EMITTER(bgez);
         case RT_BGEZL: IR_UNIMPLEMENTED(RT_BGEZL);
         case RT_BGEZAL: CALL_IR_EMITTER(bgezal);
         case RT_BGEZALL: IR_UNIMPLEMENTED(RT_BGEZALL);

@@ -404,18 +404,6 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U64);
 }
 
-void compile_ir_get_cp0(dasm_State** Dst, ir_instruction_t* instr) {
-    host_emit_mov_reg_cp0(Dst, instr->reg_alloc, instr->get_cp0.reg);
-}
-
-void compile_ir_set_cp0(dasm_State** Dst, ir_instruction_t* instr) {
-    if (is_constant(instr->set_cp0.value)) {
-        host_emit_mov_cp0_imm(Dst, instr->set_cp0.reg, instr->set_cp0.value->set_constant);
-    } else {
-        host_emit_mov_cp0_reg(Dst, instr->set_cp0.reg, instr->set_cp0.value->reg_alloc);
-    }
-}
-
 void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
     ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
     if (is_constant(instr->cond_block_exit.condition)) {
@@ -534,12 +522,6 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_SHIFT:
                 compile_ir_shift(Dst, instr);
-                break;
-            case IR_GET_CP0:
-                compile_ir_get_cp0(Dst, instr);
-                break;
-            case IR_SET_CP0:
-                compile_ir_set_cp0(Dst, instr);
                 break;
             case IR_COND_BLOCK_EXIT:
                 compile_ir_cond_block_exit(Dst, instr);

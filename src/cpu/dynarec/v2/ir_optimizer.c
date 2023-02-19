@@ -36,8 +36,6 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->set_cond_exit_pc.condition == value || instr->set_cond_exit_pc.pc_if_true == value || instr->set_cond_exit_pc.pc_if_false == value;
         case IR_FLUSH_GUEST_REG:
             return instr->flush_guest_reg.value == value;
-        case IR_SET_CP0:
-            return instr->set_cp0.value == value;
         case IR_COND_BLOCK_EXIT: {
             if (instr->cond_block_exit.condition == value) {
                 return true;
@@ -62,7 +60,6 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_NOP:
         case IR_SET_CONSTANT:
         case IR_LOAD_GUEST_REG:
-        case IR_GET_CP0:
         case IR_GET_MULT_RESULT:
             return false;
     }
@@ -136,8 +133,6 @@ void ir_optimize_constant_propagation() {
             case IR_SET_BLOCK_EXIT_PC:
             case IR_LOAD_GUEST_REG:
             case IR_FLUSH_GUEST_REG:
-            case IR_GET_CP0:
-            case IR_SET_CP0:
             case IR_COND_BLOCK_EXIT: // Const condition checked in compiler
             // TODO
             case IR_MULTIPLY:
@@ -384,10 +379,6 @@ void ir_optimize_eliminate_dead_code() {
                 instr->flush_guest_reg.value->dead_code = false;
                 instr->dead_code = false;
                 break;
-            case IR_SET_CP0:
-                instr->dead_code = false;
-                instr->set_cp0.value->dead_code = false;
-                break;
             case IR_COND_BLOCK_EXIT:
                 instr->dead_code = false;
                 instr->cond_block_exit.condition->dead_code = false;
@@ -454,7 +445,6 @@ void ir_optimize_eliminate_dead_code() {
 
             // No dependencies
             case IR_GET_MULT_RESULT: // TODO: this technically has a dependency, but multiplies are never eliminated (for now?)
-            case IR_GET_CP0: // Getting a CP0 reg never has side effects
             case IR_NOP:
             case IR_SET_CONSTANT:
             case IR_LOAD_GUEST_REG:
@@ -535,7 +525,6 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_SET_BLOCK_EXIT_PC:
         case IR_STORE:
         case IR_FLUSH_GUEST_REG:
-        case IR_SET_CP0:
         case IR_COND_BLOCK_EXIT:
         case IR_MULTIPLY:
         case IR_DIVIDE:
@@ -555,7 +544,6 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_LOAD_GUEST_REG:
         case IR_SHIFT:
         case IR_NOT:
-        case IR_GET_CP0:
         case IR_GET_MULT_RESULT:
             return true;
     }

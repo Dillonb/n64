@@ -131,8 +131,6 @@ typedef struct ir_instruction {
         IR_SET_BLOCK_EXIT_PC,
         IR_COND_BLOCK_EXIT,
         IR_TLB_LOOKUP,
-        IR_GET_CP0,
-        IR_SET_CP0,
         IR_LOAD_GUEST_REG,
         IR_FLUSH_GUEST_REG,
         IR_MULTIPLY,
@@ -270,9 +268,9 @@ ir_instruction_t* ir_emit_store(ir_value_type_t type, ir_instruction_t* address,
 // LOAD a typed value a register from an address
 ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, u8 guest_reg);
 // LOAD a typed value to a register from a host pointer.
-ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, uintptr_t ptr, u8 guest_reg);
+ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, void* ptr, u8 guest_reg);
 //STORE a typed value to a pointer
-ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, uintptr_t ptr, ir_instruction_t* value);
+ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, void* ptr, ir_instruction_t* value);
 // mask and cast a value to a different type.
 ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type_t type, u8 guest_reg);
 // check two operands with a condition and return 0 or 1
@@ -287,10 +285,6 @@ ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
 // lookup a memory address in the TLB
 ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access);
-// Get a CP0 register
-ir_instruction_t* ir_emit_get_cp0(int cp0_reg, u8 guest_reg);
-// Set a CP0 register
-ir_instruction_t* ir_emit_set_cp0(int cp0_reg, ir_instruction_t* new_value);
 // Multiply two values of type mult_div_type to get a double-sized result. Result must be accessed with ir_emit_get_mult_result().
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type);
 // Divide a value of type divide_type by a value of the same type. Result must be accessed with ir_emit_get_mult_result().
