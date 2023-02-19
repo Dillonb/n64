@@ -179,9 +179,6 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_DIVIDE:
             snprintf(buf, buf_size, "(%s)v%d / (%s)v%d", val_type_to_str(instr->mult_div.mult_div_type), instr->mult_div.operand1->index, val_type_to_str(instr->mult_div.mult_div_type), instr->mult_div.operand2->index);
             break;
-        case IR_GET_MULT_RESULT:
-            snprintf(buf, buf_size, "GET_MULT_%s()", instr->mult_result.result_bits == MULT_RESULT_HI ? "HI" : "LO");
-            break;
         case IR_SUB:
             snprintf(buf, buf_size, "v%d - v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
             break;
@@ -516,11 +513,4 @@ ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* d
     instruction.mult_div.operand2 = divisor;
     instruction.mult_div.mult_div_type = divide_type;
     return append_ir_instruction(instruction, NO_GUEST_REG);
-}
-
-ir_instruction_t* ir_emit_get_mult_result(ir_get_mult_result_bits_t bits, u8 guest_reg) {
-    ir_instruction_t instruction;
-    instruction.type = IR_GET_MULT_RESULT;
-    instruction.mult_result.result_bits = bits;
-    return append_ir_instruction(instruction, guest_reg);
 }

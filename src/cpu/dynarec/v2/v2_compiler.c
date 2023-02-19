@@ -441,17 +441,6 @@ void compile_ir_divide(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
-void compile_ir_get_mult_result(dasm_State** Dst, ir_instruction_t* instr) {
-    switch (instr->mult_result.result_bits) {
-        case MULT_RESULT_HI:
-            host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.mult_hi, VALUE_TYPE_U64);
-            break;
-        case MULT_RESULT_LO:
-            host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.mult_lo, VALUE_TYPE_U64);
-            break;
-    }
-}
-
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     static dasm_State* d;
     d = v2_block_header();
@@ -533,8 +522,6 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
             case IR_DIVIDE:
                 compile_ir_divide(Dst, instr);
                 break;
-            case IR_GET_MULT_RESULT:
-                compile_ir_get_mult_result(Dst, instr);
         }
         instr = instr->next;
     }

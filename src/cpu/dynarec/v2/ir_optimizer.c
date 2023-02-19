@@ -60,7 +60,6 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_NOP:
         case IR_SET_CONSTANT:
         case IR_LOAD_GUEST_REG:
-        case IR_GET_MULT_RESULT:
             return false;
     }
 }
@@ -137,7 +136,6 @@ void ir_optimize_constant_propagation() {
             // TODO
             case IR_MULTIPLY:
             case IR_DIVIDE:
-            case IR_GET_MULT_RESULT:
                 break;
 
             case IR_NOT:
@@ -236,8 +234,14 @@ void ir_optimize_constant_propagation() {
                                     logfatal("const left 16 bit shift");
                                     break;
                                 case VALUE_TYPE_S32:
+                                    instr->type = IR_SET_CONSTANT;
+                                    instr->set_constant.type = VALUE_TYPE_S32;
+                                    instr->set_constant.value_s32 = (s32)operand << amount;
+                                    break;
                                 case VALUE_TYPE_U32:
-                                    logfatal("const left 32 bit shift");
+                                    instr->type = IR_SET_CONSTANT;
+                                    instr->set_constant.type = VALUE_TYPE_U32;
+                                    instr->set_constant.value_u32 = (u32)operand << amount;
                                     break;
                                 case VALUE_TYPE_U64:
                                     instr->type = IR_SET_CONSTANT;
@@ -264,14 +268,18 @@ void ir_optimize_constant_propagation() {
                                     break;
                                 case VALUE_TYPE_U32:
                                     instr->type = IR_SET_CONSTANT;
-                                    instr->set_constant.type = VALUE_TYPE_U64;
+                                    instr->set_constant.type = VALUE_TYPE_U32;
                                     instr->set_constant.value_u32 = (u32)operand >> amount;
                                     break;
                                 case VALUE_TYPE_U64:
-                                    logfatal("const right 64 bit shift");
+                                    instr->type = IR_SET_CONSTANT;
+                                    instr->set_constant.type = VALUE_TYPE_U64;
+                                    instr->set_constant.value_u64 = (u64)operand >> amount;
                                     break;
                                 case VALUE_TYPE_S64:
-                                    logfatal("const right 64 bit signed shift");
+                                    instr->type = IR_SET_CONSTANT;
+                                    instr->set_constant.type = VALUE_TYPE_S64;
+                                    instr->set_constant.value_s64 = (s64)operand >> amount;
                                     break;
                             }
                             break;
@@ -467,7 +475,6 @@ void ir_optimize_eliminate_dead_code() {
                 break;
 
             // No dependencies
-            case IR_GET_MULT_RESULT: // TODO: this technically has a dependency, but multiplies are never eliminated (for now?)
             case IR_NOP:
             case IR_SET_CONSTANT:
             case IR_LOAD_GUEST_REG:
@@ -567,7 +574,6 @@ bool needs_register_allocated(ir_instruction_t* instr) {
         case IR_LOAD_GUEST_REG:
         case IR_SHIFT:
         case IR_NOT:
-        case IR_GET_MULT_RESULT:
             return true;
     }
 }
@@ -658,8 +664,9 @@ void ir_allocate_registers() {
         if (needs_register_allocated(value)) {
             ir_instruction_t* last_use = NULL;
             value_lifetime(value, &last_use);
+            // Value never used, but dead code elimination didn't get rid of it - might be a LOAD, or something else that has a side effect
             if (!last_use) {
-                logfatal("Value had no last usage. Should have been caught by dead code elimination");
+                last_use = value;
             }
             value->last_use = last_use->index;
 

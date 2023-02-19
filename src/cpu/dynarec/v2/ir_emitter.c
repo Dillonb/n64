@@ -299,11 +299,21 @@ IR_EMITTER(divu) {
 }
 
 IR_EMITTER(mflo) {
-    ir_emit_get_mult_result(MULT_RESULT_LO, instruction.r.rd);
+    ir_emit_get_ptr(VALUE_TYPE_U64, &N64CPU.mult_lo, instruction.r.rd);
+}
+
+IR_EMITTER(mtlo) {
+    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_emit_set_ptr(VALUE_TYPE_U64, &N64CPU.mult_lo, value);
 }
 
 IR_EMITTER(mfhi) {
-    ir_emit_get_mult_result(MULT_RESULT_HI, instruction.r.rd);
+    ir_emit_get_ptr(VALUE_TYPE_U64, &N64CPU.mult_hi, instruction.r.rd);
+}
+
+IR_EMITTER(mthi) {
+    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_emit_set_ptr(VALUE_TYPE_U64, &N64CPU.mult_hi, value);
 }
 
 IR_EMITTER(add) {
@@ -435,8 +445,9 @@ IR_EMITTER(mtc0) {
         // Other
         case R4300I_CP0_REG_RANDOM: logfatal("emit MTC0 R4300I_CP0_REG_RANDOM");
         case R4300I_CP0_REG_COUNT: {
+            ir_instruction_t* value_u32 = ir_emit_mask_and_cast(value, VALUE_TYPE_U32, NO_GUEST_REG);
             ir_instruction_t* shift_amount = ir_emit_set_constant_u16(1, NO_GUEST_REG);
-            ir_instruction_t* value_shifted = ir_emit_shift(value, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+            ir_instruction_t* value_shifted = ir_emit_shift(value_u32, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
             ir_emit_set_ptr(VALUE_TYPE_U64, &N64CP0.count, value_shifted);
             break;
         }
@@ -498,7 +509,9 @@ IR_EMITTER(mtc0) {
             ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.page_mask.raw, masked);
             break;
         }
-        case R4300I_CP0_REG_EPC: logfatal("emit MTC0 R4300I_CP0_REG_EPC");
+        case R4300I_CP0_REG_EPC:
+            ir_emit_set_ptr(VALUE_TYPE_S64, &N64CP0.EPC, value);
+            break;
         case R4300I_CP0_REG_CONFIG: logfatal("emit MTC0 R4300I_CP0_REG_CONFIG");
         case R4300I_CP0_REG_WATCHLO: logfatal("emit MTC0 R4300I_CP0_REG_WATCHLO");
         case R4300I_CP0_REG_WATCHHI: logfatal("emit MTC0 R4300I_CP0_REG_WATCHHI");
@@ -575,7 +588,7 @@ IR_EMITTER(ctc1) {
 }
 
 IR_EMITTER(mfc0) {
-    const ir_value_type_t value_type; // all MFC0 results are S32
+    const ir_value_type_t value_type = VALUE_TYPE_S32; // all MFC0 results are S32
     switch (instruction.r.rd) {
         // passthrough
         case R4300I_CP0_REG_ENTRYHI:
@@ -669,9 +682,9 @@ IR_EMITTER(special_instruction) {
         case FUNCT_JALR: CALL_IR_EMITTER(jalr);
         case FUNCT_SYSCALL: IR_UNIMPLEMENTED(FUNCT_SYSCALL);
         case FUNCT_MFHI: CALL_IR_EMITTER(mfhi);
-        case FUNCT_MTHI: IR_UNIMPLEMENTED(FUNCT_MTHI);
+        case FUNCT_MTHI: CALL_IR_EMITTER(mthi);
         case FUNCT_MFLO: CALL_IR_EMITTER(mflo);
-        case FUNCT_MTLO: IR_UNIMPLEMENTED(FUNCT_MTLO);
+        case FUNCT_MTLO: CALL_IR_EMITTER(mtlo);
         case FUNCT_DSLLV: CALL_IR_EMITTER(dsllv);
         case FUNCT_DSRLV: IR_UNIMPLEMENTED(FUNCT_DSRLV);
         case FUNCT_DSRAV: IR_UNIMPLEMENTED(FUNCT_DSRAV);

@@ -38,11 +38,6 @@ typedef enum ir_shift_direction {
     SHIFT_DIRECTION_RIGHT
 } ir_shift_direction_t;
 
-typedef enum ir_get_mult_result_bits {
-    MULT_RESULT_HI,
-    MULT_RESULT_LO
-} ir_get_mult_result_bits_t;
-
 typedef struct ir_set_constant {
     ir_value_type_t type;
     union {
@@ -135,7 +130,6 @@ typedef struct ir_instruction {
         IR_FLUSH_GUEST_REG,
         IR_MULTIPLY,
         IR_DIVIDE,
-        IR_GET_MULT_RESULT
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -212,9 +206,6 @@ typedef struct ir_instruction {
             struct ir_instruction* operand2;
             ir_value_type_t mult_div_type;
         } mult_div;
-        struct {
-            ir_get_mult_result_bits_t result_bits;
-        } mult_result;
     };
 } ir_instruction_t;
 
@@ -285,12 +276,10 @@ ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
 // lookup a memory address in the TLB
 ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access);
-// Multiply two values of type mult_div_type to get a double-sized result. Result must be accessed with ir_emit_get_mult_result().
+// Multiply two values of type mult_div_type to get a double-sized result. Result must be accessed with ir_emit_get_ptr()
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type);
-// Divide a value of type divide_type by a value of the same type. Result must be accessed with ir_emit_get_mult_result().
+// Divide a value of type divide_type by a value of the same type. Result must be accessed with ir_emit_get_ptr()
 ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type);
-// Get the result of a multiplication.
-ir_instruction_t* ir_emit_get_mult_result(ir_get_mult_result_bits_t bits, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

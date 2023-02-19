@@ -49,11 +49,11 @@
   |.define postcall, .nop
     // Called before our block
     |.macro prologue
-      | sub rsp, SPILL_SPACE_SIZE_BYTES
+      | sub rsp, (SPILL_SPACE_SIZE_BYTES + 8)
     |.endmacro
     // Called at the end of our block
     |.macro epilogue
-      | add rsp, SPILL_SPACE_SIZE_BYTES
+      | add rsp, (SPILL_SPACE_SIZE_BYTES + 8)
       | ret
     |.endmacro
 |.endif // TODO ARM version?
