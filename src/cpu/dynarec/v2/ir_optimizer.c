@@ -669,8 +669,7 @@ void ir_allocate_registers() {
                     active[active_index] = value;
                 } else {
                     // Allocate a new space on the stack for the new value
-                    value->reg_alloc.spilled = true;
-                    value->reg_alloc.spill_location = spill_index;
+                    value->reg_alloc = alloc_reg_spilled(spill_index);
                     spill_index += SPILL_ENTRY_SIZE;
                 }
             } else {

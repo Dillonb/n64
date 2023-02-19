@@ -81,6 +81,14 @@ INLINE ir_register_allocation_t alloc_reg(int reg) {
     return alloc;
 }
 
+INLINE ir_register_allocation_t alloc_reg_spilled(int spill_location) {
+    ir_register_allocation_t alloc;
+    alloc.allocated = true;
+    alloc.spilled = true;
+    alloc.spill_location = spill_location;
+    return alloc;
+}
+
 INLINE bool reg_alloc_equal(ir_register_allocation_t a, ir_register_allocation_t b) {
     if (a.allocated != b.allocated) {
         return false;
