@@ -416,11 +416,11 @@ IR_EMITTER(mtc0) {
         // Passthrough
         case R4300I_CP0_REG_TAGLO:
         case R4300I_CP0_REG_TAGHI:
+        case R4300I_CP0_REG_INDEX:
             ir_emit_set_cp0(instruction.r.rd, value);
             break;
 
         // Other
-        case R4300I_CP0_REG_INDEX: logfatal("emit MTC0 R4300I_CP0_REG_INDEX");
         case R4300I_CP0_REG_RANDOM: logfatal("emit MTC0 R4300I_CP0_REG_RANDOM");
         case R4300I_CP0_REG_COUNT: {
             ir_instruction_t* shift_amount = ir_emit_set_constant_u16(1, NO_GUEST_REG);
@@ -461,9 +461,20 @@ IR_EMITTER(mtc0) {
             // TODO: handle all the side effects of this write
             break;
         }
-        case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MTC0 R4300I_CP0_REG_ENTRYLO0");
-        case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MTC0 R4300I_CP0_REG_ENTRYLO1");
-        case R4300I_CP0_REG_ENTRYHI: logfatal("emit MTC0 R4300I_CP0_REG_ENTRYHI");
+        case R4300I_CP0_REG_ENTRYLO0:
+        case R4300I_CP0_REG_ENTRYLO1: {
+            ir_instruction_t* mask = ir_emit_set_constant_64(CP0_ENTRY_LO_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* value_sign_extended = ir_emit_mask_and_cast(value, VALUE_TYPE_S32, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value_sign_extended, mask, NO_GUEST_REG);
+            ir_emit_set_cp0(instruction.r.rd, masked);
+        }
+        case R4300I_CP0_REG_ENTRYHI: {
+            ir_instruction_t* mask = ir_emit_set_constant_64(CP0_ENTRY_HI_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* value_sign_extended = ir_emit_mask_and_cast(value, VALUE_TYPE_S32, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value_sign_extended, mask, NO_GUEST_REG);
+            ir_emit_set_cp0(R4300I_CP0_REG_ENTRYHI, masked);
+            break;
+        }
         case R4300I_CP0_REG_PAGEMASK: logfatal("emit MTC0 R4300I_CP0_REG_PAGEMASK");
         case R4300I_CP0_REG_EPC: logfatal("emit MTC0 R4300I_CP0_REG_EPC");
         case R4300I_CP0_REG_CONFIG: logfatal("emit MTC0 R4300I_CP0_REG_CONFIG");
@@ -544,19 +555,16 @@ IR_EMITTER(ctc1) {
 IR_EMITTER(mfc0) {
     switch (instruction.r.rd) {
         // passthrough
+        case R4300I_CP0_REG_ENTRYHI:
         case R4300I_CP0_REG_STATUS:
             ir_emit_get_cp0(instruction.r.rd, instruction.r.rt);
             break;
         case R4300I_CP0_REG_TAGLO: logfatal("emit MFC0 R4300I_CP0_REG_TAGLO");
         case R4300I_CP0_REG_TAGHI: logfatal("emit MFC0 R4300I_CP0_REG_TAGHI");
-        case R4300I_CP0_REG_INDEX: logfatal("emit MFC0 R4300I_CP0_REG_INDEX");
-        case R4300I_CP0_REG_RANDOM: logfatal("emit MFC0 R4300I_CP0_REG_RANDOM");
-        case R4300I_CP0_REG_COUNT: logfatal("emit MFC0 R4300I_CP0_REG_COUNT");
         case R4300I_CP0_REG_CAUSE: logfatal("emit MFC0 R4300I_CP0_REG_CAUSE");
         case R4300I_CP0_REG_COMPARE: logfatal("emit MFC0 R4300I_CP0_REG_COMPARE");
         case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO0");
         case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO1");
-        case R4300I_CP0_REG_ENTRYHI: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYHI");
         case R4300I_CP0_REG_PAGEMASK: logfatal("emit MFC0 R4300I_CP0_REG_PAGEMASK");
         case R4300I_CP0_REG_EPC: logfatal("emit MFC0 R4300I_CP0_REG_EPC");
         case R4300I_CP0_REG_CONFIG: logfatal("emit MFC0 R4300I_CP0_REG_CONFIG");
@@ -577,7 +585,12 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_24: logfatal("emit MFC0 R4300I_CP0_REG_24");
         case R4300I_CP0_REG_25: logfatal("emit MFC0 R4300I_CP0_REG_25");
         case R4300I_CP0_REG_31: logfatal("emit MFC0 R4300I_CP0_REG_31");
-            break;
+
+        // Special case
+        case R4300I_CP0_REG_INDEX: logfatal("emit MFC0 R4300I_CP0_REG_INDEX");
+        case R4300I_CP0_REG_RANDOM: logfatal("emit MFC0 R4300I_CP0_REG_RANDOM");
+        case R4300I_CP0_REG_COUNT: logfatal("emit MFC0 R4300I_CP0_REG_COUNT");
+
     }
 }
 
@@ -598,7 +611,10 @@ IR_EMITTER(cp0_instruction) {
         }
     } else {
         switch (instruction.fr.funct) {
-            case COP_FUNCT_TLBWI_MULT: IR_UNIMPLEMENTED(COP_FUNCT_TLBWI_MULT);
+            case COP_FUNCT_TLBWI_MULT: {
+                logwarn("Ignoring tlbwi");
+                break;
+            }
             case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
             case COP_FUNCT_TLBP: IR_UNIMPLEMENTED(COP_FUNCT_TLBP);
             case COP_FUNCT_TLBR_SUB: IR_UNIMPLEMENTED(COP_FUNCT_TLBR_SUB);
