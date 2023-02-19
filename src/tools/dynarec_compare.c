@@ -31,12 +31,21 @@ bool compare() {
     return good;
 }
 
+void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
+    printf("%4s 0x%016lX 0x", name, expected);
+    for (int offset = 56; offset >= 0; offset -= 8) {
+        u64 good_byte = (expected >> offset) & 0xFF;
+        u64 bad_byte = (actual >> offset) & 0xFF;
+        printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte, good_byte == bad_byte ? "" : COLOR_END);
+    }
+    printf("%s\n", expected == actual ? "" : " BAD!");
+}
+
 void print_state() {
-    printf("expected (interpreter) actual (dynarec)\n");
-    printf("PC: %016lX %016lX%s\n", n64cpu_interpreter.pc, n64cpu_dynarec.pc, n64cpu_interpreter.pc == n64cpu_dynarec.pc ? "" : " BAD!");
+    printf("expected (interpreter)  actual (dynarec)\n");
+    print_colorcoded_u64("PC", n64cpu_interpreter.pc, n64cpu_dynarec.pc);
     for (int i = 0; i < 32; i++) {
-        bool good = n64cpu_interpreter.gpr[i] == n64cpu_dynarec.gpr[i];
-        printf("%s: %016lX %016lX%s\n", register_names[i], n64cpu_interpreter.gpr[i], n64cpu_dynarec.gpr[i], good ? "" : " BAD!");
+        print_colorcoded_u64(register_names[i], n64cpu_interpreter.gpr[i], n64cpu_dynarec.gpr[i]);
     }
 
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
