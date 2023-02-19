@@ -274,9 +274,18 @@ void host_emit_add_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_a
 }
 
 void host_emit_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
-    int operand1 = check_reg(operand1_alloc, false);
-    int operand2 = check_reg(operand2_alloc, false);
-    | add Rq(operand1), Rq(operand2)
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + operand2]
+        | add qword [rsp + operand1], Rq(TMPREG1)
+    } else if (operand1_alloc.spilled) {
+        | add qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | add Rq(operand1), qword [rsp + operand2]
+    } else {
+        | add Rq(operand1), Rq(operand2)
+    }
 }
 
 void host_emit_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_register_allocation_t subtrahend_alloc) {
