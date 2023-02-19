@@ -250,7 +250,30 @@ void ir_optimize_constant_propagation() {
                             }
                             break;
                         case SHIFT_DIRECTION_RIGHT:
-                            logfatal("const right shift");
+                            switch (instr->shift.type) {
+                                case VALUE_TYPE_U8:
+                                case VALUE_TYPE_S8:
+                                    logfatal("const right 8 bit shift");
+                                    break;
+                                case VALUE_TYPE_S16:
+                                case VALUE_TYPE_U16:
+                                    logfatal("const right 16 bit shift");
+                                    break;
+                                case VALUE_TYPE_S32:
+                                    logfatal("const right s32 shift");
+                                    break;
+                                case VALUE_TYPE_U32:
+                                    instr->type = IR_SET_CONSTANT;
+                                    instr->set_constant.type = VALUE_TYPE_U64;
+                                    instr->set_constant.value_u32 = (u32)operand >> amount;
+                                    break;
+                                case VALUE_TYPE_U64:
+                                    logfatal("const right 64 bit shift");
+                                    break;
+                                case VALUE_TYPE_S64:
+                                    logfatal("const right 64 bit signed shift");
+                                    break;
+                            }
                             break;
                     }
                 }
