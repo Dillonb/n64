@@ -436,7 +436,7 @@ void compile_ir_multiply(dasm_State** Dst, ir_instruction_t* instr) {
     } else if (instr_valid_immediate(instr->multiply.multiplicand2)) {
         host_emit_mult_reg_imm(Dst, instr->multiply.multiplicand1->reg_alloc, instr->multiply.multiplicand2->set_constant, instr->multiply.multiplicand_type);
     } else {
-        logfatal("non const mult");
+        host_emit_mult_reg_reg(Dst, instr->multiply.multiplicand1->reg_alloc, instr->multiply.multiplicand2->reg_alloc, instr->multiply.multiplicand_type);
     }
 }
 

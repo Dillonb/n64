@@ -81,6 +81,19 @@ INLINE ir_register_allocation_t alloc_reg(int reg) {
     return alloc;
 }
 
+INLINE bool reg_alloc_equal(ir_register_allocation_t a, ir_register_allocation_t b) {
+    if (a.allocated != b.allocated) {
+        return false;
+    }
+
+    if (a.spilled && b.spilled) {
+        return a.spill_location == b.spill_location;
+    } else if (!a.spilled && !b.spilled) {
+        return a.host_reg == b.host_reg;
+    }
+    return false;
+}
+
 typedef struct ir_instruction {
     // Metadata
     struct ir_instruction* next;

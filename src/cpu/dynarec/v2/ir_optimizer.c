@@ -598,6 +598,7 @@ INLINE void sort_active(ir_instruction_t* active, int num_active) {
 void expire_old_intervals(ir_instruction_t** active, bool* registers_available, ir_instruction_t* current_value, int* num_active) {
     int num_expired = 0;
     for (int i = 0; i < *num_active; i++) {
+        unimplemented(active[i]->reg_alloc.spilled, "Active value marked spilled");
         if (active[i]->last_use >= current_value->index) {
             break;
         }
@@ -619,7 +620,9 @@ void ir_allocate_registers() {
 
     int num_total_regs = get_num_registers();
     bool registers_available[num_total_regs];
-    memset(registers_available, 0, sizeof(bool) * num_total_regs);
+    for (int i = 0; i < num_total_regs; i++) {
+        registers_available[i] = false;
+    }
 
     int num_regs = get_num_preserved_registers();
     int num_active = 0;
@@ -646,8 +649,8 @@ void ir_allocate_registers() {
             value->last_use = last_use->index;
 
             if (num_active == num_regs) {
-                int spill_index = num_active - 1; // last entry in active
-                ir_instruction_t* spill = active[spill_index];
+                int active_index = num_active - 1; // last entry in active
+                ir_instruction_t* spill = active[active_index];
                 // If the spilled value is used for longer than the value we're trying to allocate, spill the existing value instead of the new value
                 if (spill->last_use > value->last_use) {
                     // Transfer register allocation information from the spilled register to the new reg
@@ -659,11 +662,11 @@ void ir_allocate_registers() {
                     spill_index += SPILL_ENTRY_SIZE;
 
                     // Replace spilled value in active list with the new value
-                    active[spill_index] = value;
+                    active[active_index] = value;
                 } else {
                     // Allocate a new space on the stack for the new value
-                    spill->reg_alloc.spilled = true;
-                    spill->reg_alloc.spill_location = spill_index;
+                    value->reg_alloc.spilled = true;
+                    value->reg_alloc.spill_location = spill_index;
                     spill_index += SPILL_ENTRY_SIZE;
                 }
             } else {
