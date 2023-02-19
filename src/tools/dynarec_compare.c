@@ -81,11 +81,13 @@ int main(int argc, char** argv) {
     pif_rom_execute();
 
 
-    u64 start_comparing_at = 0xFFFFFFFF80001000;
+    u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
 
     while (N64CPU.pc != start_comparing_at) {
         n64_system_step(true);
     }
+
+    logalways("ROM booted to %016lX, beginning comparison", start_comparing_at);
 
     copy_to(&n64sys_dynarec, &n64cpu_dynarec, &n64rsp_dynarec, &n64scheduler_dynarec);
     copy_to(&n64sys_interpreter, &n64cpu_interpreter, &n64rsp_interpreter, &n64scheduler_interpreter);
