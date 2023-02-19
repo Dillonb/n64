@@ -427,6 +427,10 @@ void ir_optimize_eliminate_dead_code() {
                 instr->mult_div.operand2->dead_code = false;
                 instr->dead_code = false;
                 break;
+            case IR_SET_PTR:
+                instr->dead_code = false;
+                instr->set_ptr.value->dead_code = false;
+                break;
             case IR_ERET:
                 instr->dead_code = false;
                 break;
@@ -471,11 +475,6 @@ void ir_optimize_eliminate_dead_code() {
                 if (!instr->dead_code) {
                     instr->shift.operand->dead_code = false;
                     instr->shift.amount->dead_code = false;
-                }
-                break;
-            case IR_SET_PTR:
-                if (!instr->dead_code) {
-                    instr->set_ptr.value->dead_code = false;
                 }
                 break;
 
