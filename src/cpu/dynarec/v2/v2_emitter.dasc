@@ -84,7 +84,6 @@ dasm_State* v2_block_header() {
 }
 
 int check_reg(ir_register_allocation_t reg, bool spill_ok) {
-    fflush(stdout);
     unimplemented(!reg.allocated, "Register was not allocated!");
     if (reg.spilled) {
         if (!spill_ok) {
