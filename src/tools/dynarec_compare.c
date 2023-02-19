@@ -96,16 +96,16 @@ int main(int argc, char** argv) {
     int steps = 0;
     do {
         restore_from(&n64sys_dynarec, &n64cpu_dynarec, &n64rsp_dynarec, &n64scheduler_dynarec);
+        if (n64cpu.pc != start_pc) {
+            printf("Running compare at 0x%08X\n", (u32)n64cpu.pc);
+        }
         start_pc = n64cpu.pc;
-        printf("Running compare at 0x%08X\n", (u32)start_pc);
-        printf("Running dynarec: rdp rdram pointer: %p\n", n64sys.softrdp_state.rdram);
         // Step
         steps = n64_system_step(true);
         copy_to(&n64sys_dynarec, &n64cpu_dynarec, &n64rsp_dynarec, &n64scheduler_dynarec);
 
         restore_from(&n64sys_interpreter, &n64cpu_interpreter, &n64rsp_interpreter, &n64scheduler_interpreter);
         // Step
-        printf("Running interpreter: rdp rdram pointer: %p\n", n64sys.softrdp_state.rdram);
         int run_for = steps;
         while (run_for > 0) {
             run_for -= n64_system_step(false);
