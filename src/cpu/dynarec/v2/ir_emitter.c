@@ -611,7 +611,9 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO0");
         case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO1");
         case R4300I_CP0_REG_PAGEMASK: logfatal("emit MFC0 R4300I_CP0_REG_PAGEMASK");
-        case R4300I_CP0_REG_EPC: logfatal("emit MFC0 R4300I_CP0_REG_EPC");
+        case R4300I_CP0_REG_EPC:
+            ir_emit_get_ptr(value_type, &N64CP0.EPC, instruction.r.rt);
+            break;
         case R4300I_CP0_REG_CONFIG: logfatal("emit MFC0 R4300I_CP0_REG_CONFIG");
         case R4300I_CP0_REG_WATCHLO: logfatal("emit MFC0 R4300I_CP0_REG_WATCHLO");
         case R4300I_CP0_REG_WATCHHI: logfatal("emit MFC0 R4300I_CP0_REG_WATCHHI");
