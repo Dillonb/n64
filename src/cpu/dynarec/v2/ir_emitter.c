@@ -560,7 +560,9 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_CAUSE:
             ir_emit_get_ptr(value_type, &N64CP0.cause.raw, instruction.r.rt);
             break;
-        case R4300I_CP0_REG_COMPARE: logfatal("emit MFC0 R4300I_CP0_REG_COMPARE");
+        case R4300I_CP0_REG_COMPARE:
+            ir_emit_get_ptr(VALUE_TYPE_U32, &N64CP0.compare, instruction.r.rt);
+            break;
         case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO0");
         case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO1");
         case R4300I_CP0_REG_PAGEMASK: logfatal("emit MFC0 R4300I_CP0_REG_PAGEMASK");
@@ -589,7 +591,12 @@ IR_EMITTER(mfc0) {
         // Special case
         case R4300I_CP0_REG_INDEX: logfatal("emit MFC0 R4300I_CP0_REG_INDEX");
         case R4300I_CP0_REG_RANDOM: logfatal("emit MFC0 R4300I_CP0_REG_RANDOM");
-        case R4300I_CP0_REG_COUNT: logfatal("emit MFC0 R4300I_CP0_REG_COUNT");
+        case R4300I_CP0_REG_COUNT: {
+            ir_instruction_t* count = ir_emit_get_ptr(VALUE_TYPE_U64, &N64CP0.count, NO_GUEST_REG);
+            ir_instruction_t* shifted = ir_emit_shift(count, ir_emit_set_constant_u16(1, NO_GUEST_REG), VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+            ir_emit_mask_and_cast(shifted, VALUE_TYPE_S32, instruction.r.rt);
+            break;
+        }
 
     }
 }
