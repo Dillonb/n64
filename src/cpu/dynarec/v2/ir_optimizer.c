@@ -142,10 +142,35 @@ void ir_optimize_constant_propagation() {
 
             case IR_NOT:
                 if (is_constant(instr->unary_op.operand)) {
-                    u64 new_value = ~const_to_u64(instr->unary_op.operand);
+                    ir_set_constant_t value = instr->unary_op.operand->set_constant;
                     instr->type = IR_SET_CONSTANT;
-                    instr->set_constant.type = VALUE_TYPE_U64;
-                    instr->set_constant.value_u64 = new_value;
+                    switch (value.type) {
+                        case VALUE_TYPE_U8:
+                            value.value_u8 = ~value.value_u8;
+                            break;
+                        case VALUE_TYPE_S8:
+                            value.value_s8 = ~value.value_s8;
+                            break;
+                        case VALUE_TYPE_S16:
+                            value.value_s16 = ~value.value_s16;
+                            break;
+                        case VALUE_TYPE_U16:
+                            value.value_u16 = ~value.value_u16;
+                            break;
+                        case VALUE_TYPE_S32:
+                            value.value_s32 = ~value.value_s32;
+                            break;
+                        case VALUE_TYPE_U32:
+                            value.value_u32 = ~value.value_u32;
+                            break;
+                        case VALUE_TYPE_U64:
+                            value.value_u64 = ~value.value_u64;
+                            break;
+                        case VALUE_TYPE_S64:
+                            value.value_s64 = ~value.value_s64;
+                            break;
+                    }
+                    instr->set_constant = value;
                 }
                 break;
 
