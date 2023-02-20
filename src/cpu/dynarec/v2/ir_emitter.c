@@ -273,11 +273,47 @@ IR_EMITTER(swr) {
 }
 
 IR_EMITTER(ldl) {
-    IR_UNIMPLEMENTED(ldl);
+    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
+    ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
+    //u32 shift = ((address ^ 0) & 7) << 3;
+    ir_instruction_t* shift = ir_emit_shift(ir_emit_and(physical, seven, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    //u64 mask = (u64) 0xFFFFFFFFFFFFFFFF << shift;
+    ir_instruction_t* mask = ir_emit_shift(ir_emit_set_constant_64(0xFFFFFFFFFFFFFFFF, NO_GUEST_REG), shift, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+
+    //u64 data = n64_read_physical_dword(physical & ~7);
+    ir_instruction_t* load_addr = ir_emit_and(physical, ir_emit_not(seven, NO_GUEST_REG), NO_GUEST_REG);
+    ir_instruction_t* data = ir_emit_load(VALUE_TYPE_U64, load_addr, NO_GUEST_REG);
+
+    //u64 result = (get_register(instruction.i.rt) & ~mask) | (data << shift);
+    //set_register(instruction.i.rt, result);
+    ir_instruction_t* reg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
+    ir_instruction_t* reg_masked = ir_emit_and(reg, inverse_mask, NO_GUEST_REG);
+    ir_instruction_t* shifted_data = ir_emit_shift(data, shift, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    ir_emit_or(reg_masked, shifted_data, instruction.r.rt);
 }
 
 IR_EMITTER(ldr) {
-    IR_UNIMPLEMENTED(ldr);
+    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
+    ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
+    //u32 shift = ((address ^ 7) & 7) << 3;
+    ir_instruction_t* shift = ir_emit_shift(ir_emit_and(ir_emit_xor(physical, seven, NO_GUEST_REG), seven, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    //u64 mask = (u64) 0xFFFFFFFFFFFFFFFF >> shift;
+    ir_instruction_t* mask = ir_emit_shift(ir_emit_set_constant_64(0xFFFFFFFFFFFFFFFF, NO_GUEST_REG), shift, VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+
+    //u64 data = n64_read_physical_dword(physical & ~7);
+    ir_instruction_t* load_addr = ir_emit_and(physical, ir_emit_not(seven, NO_GUEST_REG), NO_GUEST_REG);
+    ir_instruction_t* data = ir_emit_load(VALUE_TYPE_U64, load_addr, NO_GUEST_REG);
+
+    //u64 result = (get_register(instruction.i.rt) & ~mask) | (data >> shift);
+    //set_register(instruction.i.rt, result);
+    ir_instruction_t* reg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
+    ir_instruction_t* reg_masked = ir_emit_and(reg, inverse_mask, NO_GUEST_REG);
+    ir_instruction_t* shifted_data = ir_emit_shift(data, shift, VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+    ir_emit_or(reg_masked, shifted_data, instruction.r.rt);
 }
 
 IR_EMITTER(sdl) {
