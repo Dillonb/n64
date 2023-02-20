@@ -53,6 +53,7 @@ add_library(r4300i
         dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
         dynarec/v2/ir_context.c dynarec/v2/ir_context.h
         dynarec/v2/ir_emitter.c dynarec/v2/ir_emitter.h
+        dynarec/v2/ir_emitter_fpu.c dynarec/v2/ir_emitter_fpu.h
         dynarec/v2/ir_optimizer.c dynarec/v2/ir_optimizer.h
         dynarec/v2/target_platform.h
         dynarec/v2/dispatcher.nasm dynarec/v2/dispatcher.h)

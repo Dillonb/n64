@@ -4,8 +4,7 @@
 #include <util.h>
 #include <dynarec/dynarec.h>
 #include <disassemble.h>
-
-#define IR_UNIMPLEMENTED(opc) logfatal("Unimplemented IR translation for instruction " #opc)
+#include "ir_emitter_fpu.h"
 
 ir_instruction_t* get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
     ir_instruction_t* base = ir_emit_load_guest_reg(instruction.i.rs);
@@ -534,62 +533,8 @@ IR_EMITTER(mtc0) {
     }
 }
 
-IR_EMITTER(cfc1) {
-    //checkcp1; // TODO: check cp1 is enabled
-    u8 fs = instruction.r.rd;
-    switch (fs) {
-        case 0:
-            ir_emit_get_ptr(VALUE_TYPE_U32, &N64CPU.fcr0.raw, instruction.r.rt);
-            break;
-        case 31:
-            ir_emit_get_ptr(VALUE_TYPE_U32, &N64CPU.fcr31.raw, instruction.r.rt);
-            break;
-        default:
-            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
-    }
-}
-
 IR_EMITTER(eret) {
     ir_emit_eret();
-}
-
-/*
-    checkcp1;
-    u8 fs = instruction.r.rd;
-    u32 value = get_register(instruction.r.rt);
-    switch (fs) {
-        case 0:
-            logwarn("CTC1 FCR0: Wrote %08X to read-only register FCR0!", value);
-            break;
-        case 31: {
-            value &= 0x183ffff; // mask out bits held 0
-            N64CPU.fcr31.raw = value;
-            check_fpu_exception();
-            break;
-        }
-        default:
-            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
-    }
-}
- */
-
-IR_EMITTER(ctc1) {
-    //checkcp1; // TODO: check cp1 is enabled
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
-    u8 fs = instruction.r.rd;
-    switch (fs) {
-        case 0:
-            logwarn("CTC1 FCR0: Wrote to read-only register FCR0!");
-            break;
-        case 31: {
-            ir_instruction_t* mask = ir_emit_set_constant_u32(0x183ffff, NO_GUEST_REG);
-            ir_instruction_t* masked = ir_emit_and(mask, value, NO_GUEST_REG);
-            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CPU.fcr31.raw, masked);
-            break;
-        }
-        default:
-            logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
-    }
 }
 
 IR_EMITTER(mfc0) {
@@ -765,35 +710,6 @@ IR_EMITTER(regimm_instruction) {
     }
 }
 
-IR_EMITTER(cp1_instruction) {
-    // This function uses a series of two switch statements.
-    // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
-    // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
-    switch (instruction.r.rs) {
-        case COP_CF: CALL_IR_EMITTER(cfc1);
-        case COP_MF: IR_UNIMPLEMENTED(COP_MF);
-        case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
-        case COP_MT: IR_UNIMPLEMENTED(COP_MT);
-        case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
-        case COP_CT: CALL_IR_EMITTER(ctc1);
-        case COP_BC:
-            switch (instruction.r.rt) {
-                case COP_BC_BCT: IR_UNIMPLEMENTED(COP_BC_BCT);
-                case COP_BC_BCF: IR_UNIMPLEMENTED(COP_BC_BCF);
-                case COP_BC_BCTL: IR_UNIMPLEMENTED(COP_BC_BCTL);
-                case COP_BC_BCFL: IR_UNIMPLEMENTED(COP_BC_BCFL);
-                default: {
-                    char buf[50];
-                    disassemble(0, instruction.raw, buf, 50);
-                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instruction.raw, buf);
-                }
-            }
-    }
-    //IR_UNIMPLEMENTED(SomeFPUInstruction);
-    logwarn("Ignoring FPU instruction!");
-    return;
-}
-
 IR_EMITTER(instruction) {
     if (unlikely(instruction.raw == 0)) {
         return; // do nothing for NOP
@@ -836,11 +752,19 @@ IR_EMITTER(instruction) {
         case OPC_XORI: CALL_IR_EMITTER(xori);
         case OPC_DADDIU: CALL_IR_EMITTER(daddiu);
         case OPC_LB: CALL_IR_EMITTER(lb);
-        case OPC_LDC1: IR_UNIMPLEMENTED(OPC_LDC1);
-        case OPC_SDC1: IR_UNIMPLEMENTED(OPC_SDC1);
-        case OPC_LWC1: IR_UNIMPLEMENTED(OPC_LWC1);
-        case OPC_SWC1: IR_UNIMPLEMENTED(OPC_SWC1);
-        case OPC_LWL: IR_UNIMPLEMENTED(OPC_LWL);
+        case OPC_LDC1:
+            logwarn("Ignoring LDC1!");
+            break;
+        case OPC_SDC1:
+            logwarn("Ignoring SDC1!");
+            break;
+        case OPC_LWC1:
+            logwarn("Ignoring LWC1!");
+            break;
+        case OPC_SWC1:
+            logwarn("Ignoring SWC1!");
+            break;
+        case OPC_LWL: break;
         case OPC_LWR: IR_UNIMPLEMENTED(OPC_LWR);
         case OPC_SWL: IR_UNIMPLEMENTED(OPC_SWL);
         case OPC_SWR: IR_UNIMPLEMENTED(OPC_SWR);
