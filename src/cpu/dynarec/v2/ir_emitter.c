@@ -229,6 +229,65 @@ IR_EMITTER(lwr) {
     ir_instruction_t* result = ir_emit_or(reg_masked, shifted_data, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rt);
 }
+
+IR_EMITTER(swl) {
+    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
+    //u32 shift = (physical & 3) << 3;
+    ir_instruction_t* shift = ir_emit_shift(ir_emit_and(physical, three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    // u32 mask = 0xFFFFFFFF >> shift;
+    ir_instruction_t* mask = ir_emit_shift(ir_emit_set_constant_u32(0xFFFFFFFF, NO_GUEST_REG), shift, VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+
+    //u32 data = n64_read_physical_word(physical & ~3);
+    ir_instruction_t* data_addr = ir_emit_and(physical, ir_emit_not(three, NO_GUEST_REG), NO_GUEST_REG);
+    ir_instruction_t* data = ir_emit_load(VALUE_TYPE_U32, data_addr, NO_GUEST_REG);
+
+    //u32 oldreg = get_register(instruction.i.rt);
+    ir_instruction_t* oldreg = ir_emit_load_guest_reg(instruction.i.rt);
+    //n64_write_physical_word(physical & ~3, (data & ~mask) | (oldreg >> shift));
+    ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
+    ir_instruction_t* masked_data = ir_emit_and(data, inverse_mask, NO_GUEST_REG);
+    ir_instruction_t* shifted_reg = ir_emit_shift(oldreg, shift, VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+    ir_instruction_t* result = ir_emit_or(masked_data, shifted_reg, NO_GUEST_REG);
+    ir_emit_store(VALUE_TYPE_U32, data_addr, result);
+}
+
+IR_EMITTER(swr) {
+    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
+    //u32 shift = ((address ^ 3) & 3) << 3;
+    ir_instruction_t* shift = ir_emit_shift(ir_emit_and(ir_emit_xor(physical, three, NO_GUEST_REG), three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    //u32 mask = 0xFFFFFFFF << shift;
+    ir_instruction_t* mask = ir_emit_shift(ir_emit_set_constant_u32(0xFFFFFFFF, NO_GUEST_REG), shift, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    //u32 data = n64_read_physical_word(physical & ~3);
+    ir_instruction_t* data_addr = ir_emit_and(physical, ir_emit_not(three, NO_GUEST_REG), NO_GUEST_REG);
+    ir_instruction_t* data = ir_emit_load(VALUE_TYPE_U32, data_addr, NO_GUEST_REG);
+    //u32 oldreg = get_register(instruction.i.rt);
+    ir_instruction_t* oldreg = ir_emit_load_guest_reg(instruction.i.rt);
+    //n64_write_physical_word(physical & ~3, (data & ~mask) | oldreg << shift);
+    ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
+    ir_instruction_t* masked_data = ir_emit_and(data, inverse_mask, NO_GUEST_REG);
+    ir_instruction_t* shifted_reg = ir_emit_shift(oldreg, shift, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    ir_instruction_t* result = ir_emit_or(masked_data, shifted_reg, NO_GUEST_REG);
+    ir_emit_store(VALUE_TYPE_U32, data_addr, result);
+}
+
+IR_EMITTER(ldl) {
+    IR_UNIMPLEMENTED(ldl);
+}
+
+IR_EMITTER(ldr) {
+    IR_UNIMPLEMENTED(ldr);
+}
+
+IR_EMITTER(sdl) {
+    IR_UNIMPLEMENTED(sdl);
+}
+
+IR_EMITTER(sdr) {
+    IR_UNIMPLEMENTED(sdr);
+}
+
 IR_EMITTER(blez) {
     ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* rt = ir_emit_load_guest_reg(0);
@@ -842,12 +901,13 @@ IR_EMITTER(instruction) {
             break;
         case OPC_LWL: CALL_IR_EMITTER(lwl);
         case OPC_LWR: CALL_IR_EMITTER(lwr);
-        case OPC_SWL: IR_UNIMPLEMENTED(OPC_SWL);
-        case OPC_SWR: IR_UNIMPLEMENTED(OPC_SWR);
-        case OPC_LDL: IR_UNIMPLEMENTED(OPC_LDL);
-        case OPC_LDR: IR_UNIMPLEMENTED(OPC_LDR);
-        case OPC_SDL: IR_UNIMPLEMENTED(OPC_SDL);
-        case OPC_SDR: IR_UNIMPLEMENTED(OPC_SDR);
+        case OPC_SWL: CALL_IR_EMITTER(swl);
+        case OPC_SWR: CALL_IR_EMITTER(swr);
+        case OPC_LDL: CALL_IR_EMITTER(ldl);
+        case OPC_LDR: CALL_IR_EMITTER(ldr);
+        case OPC_SDL: CALL_IR_EMITTER(sdl);
+        case OPC_SDR: CALL_IR_EMITTER(sdr);
+
         case OPC_LL: IR_UNIMPLEMENTED(OPC_LL);
         case OPC_LLD: IR_UNIMPLEMENTED(OPC_LLD);
         case OPC_SC: IR_UNIMPLEMENTED(OPC_SC);
