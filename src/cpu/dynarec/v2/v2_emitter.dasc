@@ -429,7 +429,15 @@ void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc
             break;
 
         case VALUE_TYPE_S32:
-            logfatal("s32 multiply");
+            host_emit_mov_reg_imm(Dst, alloc_reg(REG_RAX), imm);
+            // mul writes the low 32 bits to eax, and the high 32 to edx.
+            | imul Rd(reg)
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_U32:
             host_emit_mov_reg_imm(Dst, alloc_reg(REG_RAX), imm);
