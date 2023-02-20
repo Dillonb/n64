@@ -225,12 +225,27 @@ IR_EMITTER(bgtz) {
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
+IR_EMITTER(bgtzl) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_THAN_SIGNED, rs, zero, NO_GUEST_REG);
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
+}
+
 IR_EMITTER(bltz) {
     ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
     ir_instruction_t* zero = ir_emit_load_guest_reg(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, rs, zero, NO_GUEST_REG);
 
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+}
+
+IR_EMITTER(bltzl) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, rs, zero, NO_GUEST_REG);
+
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(bgezal) {
@@ -704,7 +719,7 @@ IR_EMITTER(special_instruction) {
 IR_EMITTER(regimm_instruction) {
     switch (instruction.i.rt) {
         case RT_BLTZ: CALL_IR_EMITTER(bltz);
-        case RT_BLTZL: IR_UNIMPLEMENTED(RT_BLTZL);
+        case RT_BLTZL: CALL_IR_EMITTER(bltzl);
         case RT_BLTZAL: IR_UNIMPLEMENTED(RT_BLTZAL);
         case RT_BGEZ: CALL_IR_EMITTER(bgez);
         case RT_BGEZL: CALL_IR_EMITTER(bgezl);
@@ -749,7 +764,7 @@ IR_EMITTER(instruction) {
         case OPC_BEQ: CALL_IR_EMITTER(beq);
         case OPC_BEQL: CALL_IR_EMITTER(beql);
         case OPC_BGTZ: CALL_IR_EMITTER(bgtz);
-        case OPC_BGTZL: IR_UNIMPLEMENTED(OPC_BGTZL);
+        case OPC_BGTZL: CALL_IR_EMITTER(bgtzl);
         case OPC_BLEZ: CALL_IR_EMITTER(blez);
         case OPC_BLEZL: IR_UNIMPLEMENTED(OPC_BLEZL);
         case OPC_BNE: CALL_IR_EMITTER(bne);
@@ -779,7 +794,7 @@ IR_EMITTER(instruction) {
         case OPC_SWC1:
             logwarn("Ignoring SWC1!");
             break;
-        case OPC_LWL: break;
+        case OPC_LWL: IR_UNIMPLEMENTED(OPC_LWL);
         case OPC_LWR: IR_UNIMPLEMENTED(OPC_LWR);
         case OPC_SWL: IR_UNIMPLEMENTED(OPC_SWL);
         case OPC_SWR: IR_UNIMPLEMENTED(OPC_SWR);
