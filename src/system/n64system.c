@@ -237,7 +237,7 @@ INLINE int jit_system_step() {
     return taken;
 }
 
-INLINE int interpreter_system_step() {
+INLINE int interpreter_system_step(const int cycles) {
 #ifdef N64_DEBUG_MODE
 #ifndef N64_WIN
     if (n64sys.debugger_state.enabled && check_breakpoint(&n64sys.debugger_state, N64CPU.pc)) {
@@ -249,9 +249,40 @@ INLINE int interpreter_system_step() {
     }
 #endif
 #endif
-    int taken = CYCLES_PER_INSTR;
-    r4300i_step();
+
+    /* Commented out for now since the game never actually reads cp0.random
+    if (N64CPU.cp0.random <= N64CPU.cp0.wired) {
+        N64CPU.cp0.random = 31;
+    } else {
+        N64CPU.cp0.random--;
+    }
+     */
+
+    if (unlikely(N64CPU.interrupts > 0)) {
+        if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
+            N64CPU.prev_branch = N64CPU.branch;
+            r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, 0);
+            return CYCLES_PER_INSTR;
+        }
+    }
+
+    for (int i = 0; i < cycles; i++) {
+        r4300i_step();
+    }
+    const int taken = cycles;
+
     static int cpu_steps = 0;
+    {
+        uint64_t oldcount = N64CP0.count >> 1;
+        uint64_t newcount = (N64CP0.count + (taken * CYCLES_PER_INSTR)) >> 1;
+        if (unlikely(oldcount < N64CP0.compare && newcount >= N64CP0.compare)) {
+            N64CP0.cause.ip7 = true;
+            logalways("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, N64CP0.compare);
+            r4300i_interrupt_update();
+        }
+        N64CP0.count += taken;
+        N64CP0.count &= 0x1FFFFFFFF;
+    }
     cpu_steps += taken;
 
     if (N64RSP.status.halt) {
@@ -290,17 +321,7 @@ int n64_system_step(bool dynarec, int steps) {
     if (dynarec) {
         taken = jit_system_step();
     } else {
-        taken = steps;
-        for (int i = 0; i < steps; i++) {
-            r4300i_step();
-        }
-        if (!N64RSP.status.halt) {
-            // 2 RSP steps per 3 CPU steps
-            while (steps > 2) {
-                rsp_step();
-                steps -= 3;
-            }
-        }
+        taken = interpreter_system_step(steps);
     }
     taken += pop_stalled_cycles();
 
@@ -409,7 +430,7 @@ void interpreter_system_loop() {
                 check_vi_interrupt();
 
                 while (cycles <= n64sys.vi.cycles_per_halfline) {
-                    int taken = interpreter_system_step();
+                    int taken = interpreter_system_step(1);
                     ai_step(taken);
                     static scheduler_event_t event;
                     if (scheduler_tick(taken, &event)) {

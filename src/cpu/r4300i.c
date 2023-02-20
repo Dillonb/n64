@@ -729,22 +729,6 @@ void on_tlb_exception(u64 address) {
 }
 
 void r4300i_step() {
-    N64CPU.cp0.count += CYCLES_PER_INSTR;
-    N64CPU.cp0.count &= 0x1FFFFFFFF;
-    if (unlikely(N64CPU.cp0.count == (u64)N64CPU.cp0.compare << 1)) {
-        N64CPU.cp0.cause.ip7 = true;
-        loginfo("Compare interrupt! count = 0x%09lX compare << 1 = 0x%09lX", N64CP0.count, (u64)N64CP0.compare << 1);
-        r4300i_interrupt_update();
-    }
-
-    /* Commented out for now since the game never actually reads cp0.random
-    if (N64CPU.cp0.random <= N64CPU.cp0.wired) {
-        N64CPU.cp0.random = 31;
-    } else {
-        N64CPU.cp0.random--;
-    }
-     */
-
     N64CPU.prev_branch = N64CPU.branch;
     N64CPU.branch = false;
 
@@ -758,14 +742,6 @@ void r4300i_step() {
     }
     mips_instruction_t instruction;
     instruction.raw = n64_read_physical_word(physical_pc);
-
-    if (unlikely(N64CPU.interrupts > 0)) {
-        if(N64CPU.cp0.status.ie && !N64CPU.cp0.status.exl && !N64CPU.cp0.status.erl) {
-            r4300i_handle_exception(pc, EXCEPTION_INTERRUPT, 0);
-            return;
-        }
-    }
-
 
     N64CPU.prev_pc = N64CPU.pc;
     N64CPU.pc = N64CPU.next_pc;
