@@ -122,11 +122,14 @@ int main(int argc, char** argv) {
     printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
     printf("MIPS code:\n");
     u32 physical = resolve_virtual_address_or_die(start_pc, BUS_LOAD);
-    if (physical >= N64_RDRAM_SIZE) {
-        printf("outside of RDAM, can't disassemble (TODO)");
-    }
     n64_dynarec_block_t* block = &n64sys.dynarec->blockcache[dynarec_outer_index(physical)][BLOCKCACHE_INNER_INDEX(physical)];
-    print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
+    if (physical >= N64_RDRAM_SIZE) {
+        printf("outside of RDAM, can't disassemble (TODO)\n");
+    } else {
+        print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
+    }
+    printf("IR\n");
+    print_ir_block();
     printf("Host code:\n");
     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
     print_state();
