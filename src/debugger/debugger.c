@@ -122,7 +122,7 @@ void n64_debug_stop(void* user_data) {
 void n64_debug_step(void* user_data) {
     bool old_broken = n64sys.debugger_state.broken;
     n64sys.debugger_state.broken = false;
-    n64_system_step(false);
+    n64_system_step(false, 1);
     n64sys.debugger_state.broken = old_broken;
     n64sys.debugger_state.steps += 2;
 }

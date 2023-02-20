@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
 
     while (N64CPU.pc != start_comparing_at) {
-        n64_system_step(true);
+        n64_system_step(false, 1);
     }
 
     logalways("ROM booted to %016lX, beginning comparison", start_comparing_at);
@@ -109,16 +109,13 @@ int main(int argc, char** argv) {
             printf("Running compare at 0x%08X\n", (u32)n64cpu.pc);
         }
         start_pc = n64cpu.pc;
-        // Step
-        steps = n64_system_step(true);
+        // Step jit
+        steps = n64_system_step(true, -1);
         copy_to(&n64sys_dynarec, &n64cpu_dynarec, &n64rsp_dynarec, &n64scheduler_dynarec);
 
         restore_from(&n64sys_interpreter, &n64cpu_interpreter, &n64rsp_interpreter, &n64scheduler_interpreter);
-        // Step
-        int run_for = steps;
-        while (run_for > 0) {
-            run_for -= n64_system_step(false);
-        }
+        // Step interpreter
+        n64_system_step(false, steps);
         copy_to(&n64sys_interpreter, &n64cpu_interpreter, &n64rsp_interpreter, &n64scheduler_interpreter);
 
     } while (compare());

@@ -210,7 +210,8 @@ void reset_n64system();
 bool n64_should_quit();
 void n64_load_rom(const char* rom_path);
 
-int n64_system_step(bool dynarec);
+// For debugging tools. Run the system for a specified number of steps with the interpreter, or for a single block with the dynarec
+int n64_system_step(bool dynarec, int steps);
 void n64_system_loop();
 void n64_system_cleanup();
 void n64_request_quit();

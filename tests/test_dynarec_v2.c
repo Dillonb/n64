@@ -34,17 +34,17 @@ void test_branch_likely(bool jit) {
 
     // run with interpreter: t0 is now 0, and the JIT can't propagate it as a constant
     log_set_verbosity(LOG_VERBOSITY_TRACE);
-    n64_system_step(false);
-    n64_system_step(false);
+    n64_system_step(false, 1);
+    n64_system_step(false, 1);
 
     assert_reg_value((u64)0, MIPS_REG_T0);
     assert_eq_u64("pc", 0xFFFFFFFF80000008, N64CPU.pc);
 
     if (jit) {
-        n64_system_step(true);
+        n64_system_step(true, -1);
     } else {
-        n64_system_step(false);
-        n64_system_step(false);
+        n64_system_step(false, -1);
+        n64_system_step(false, -1);
     }
 
     // Branch was NOT taken.

@@ -285,16 +285,21 @@ void handle_scheduler_event(scheduler_event_t* event) {
     }
 }
 
-// This is used for debugging tools, it's fine for now if timing is a little off.
-int n64_system_step(bool dynarec) {
+int n64_system_step(bool dynarec, int steps) {
     int taken;
     if (dynarec) {
         taken = jit_system_step();
     } else {
-        r4300i_step();
-        taken = 1;
+        taken = steps;
+        for (int i = 0; i < steps; i++) {
+            r4300i_step();
+        }
         if (!N64RSP.status.halt) {
-            rsp_step();
+            // 2 RSP steps per 3 CPU steps
+            while (steps > 2) {
+                rsp_step();
+                steps -= 3;
+            }
         }
     }
     taken += pop_stalled_cycles();

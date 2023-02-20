@@ -307,7 +307,7 @@ void check_cpu_log(FILE* fp) {
         if (pc != N64CPU.pc) {
             logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, N64CPU.pc);
         }
-        n64_system_step(false);
+        n64_system_step(false, -1);
     }
 }
 
