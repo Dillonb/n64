@@ -250,6 +250,14 @@ IR_EMITTER(bgez) {
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
+IR_EMITTER(bgezl) {
+    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_OR_EQUAL_TO_SIGNED, rs, zero, NO_GUEST_REG);
+
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
+}
+
 IR_EMITTER(j) {
     u64 target = instruction.j.target;
     target <<= 2;
@@ -692,7 +700,7 @@ IR_EMITTER(regimm_instruction) {
         case RT_BLTZL: IR_UNIMPLEMENTED(RT_BLTZL);
         case RT_BLTZAL: IR_UNIMPLEMENTED(RT_BLTZAL);
         case RT_BGEZ: CALL_IR_EMITTER(bgez);
-        case RT_BGEZL: IR_UNIMPLEMENTED(RT_BGEZL);
+        case RT_BGEZL: CALL_IR_EMITTER(bgezl);
         case RT_BGEZAL: CALL_IR_EMITTER(bgezal);
         case RT_BGEZALL: IR_UNIMPLEMENTED(RT_BGEZALL);
         case RT_TGEI: IR_UNIMPLEMENTED(RT_TGEI);
