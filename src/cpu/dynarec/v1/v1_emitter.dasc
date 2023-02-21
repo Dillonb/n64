@@ -647,21 +647,7 @@ COMP(mips_cp_c_ult_d, NORMAL, true);
 COMP(mips_cp_c_ult_s, NORMAL, true);
 
 INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, u32 address) {
-    if (instr.last11 == 0) {
-        switch (instr.r.rs) {
-            CASEIR(COP_MF,  mips_mfc0);
-            CASEIR(COP_DMF, mips_dmfc0);
-            // Last 11 bits are 0
-            CASEIR(COP_MT,  mips_mtc0);
-            CASEIR(COP_DMT, mips_dmtc0);
-            default: {
-                char buf[50];
-                disassemble(address, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
-                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
-            }
-        }
-    } else {
+    if (instr.is_coprocessor_funct) {
         switch (instr.fr.funct) {
             CASEIR(COP_FUNCT_TLBWI_MULT, mips_tlbwi);
             CASEIR(COP_FUNCT_TLBWR_MOV,  mips_tlbwr);
@@ -674,6 +660,19 @@ INLINE dynarec_ir_t* cp0_instruction_ir(mips_instruction_t instr, u32 address) {
                 disassemble(address, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
                          instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    } else {
+        switch (instr.r.rs) {
+            CASEIR(COP_MF,  mips_mfc0);
+            CASEIR(COP_DMF, mips_dmfc0);
+            CASEIR(COP_MT,  mips_mtc0);
+            CASEIR(COP_DMT, mips_dmtc0);
+            default: {
+                char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
             }
         }
     }
@@ -768,241 +767,241 @@ INLINE dynarec_ir_t* regimm_instruction_ir(mips_instruction_t instr, u32 address
 }
 
 INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, u32 address) {
-    // This function uses a series of two switch statements.
-    // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
-    // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
-    switch (instr.r.rs) {
-        CASEIR(COP_CF, mips_cfc1);
-        CASEIR(COP_MF, mips_mfc1);
-        CASEIR(COP_DMF, mips_dmfc1);
-        CASEIR(COP_MT, mips_mtc1);
-        CASEIR(COP_DMT, mips_dmtc1);
-        CASEIR(COP_CT, mips_ctc1);
-        case COP_BC:
-            switch (instr.r.rt) {
-                CASEIR(COP_BC_BCT, mips_cp_bc1t);
-                CASEIR(COP_BC_BCF, mips_cp_bc1f);
-                CASEIR(COP_BC_BCTL, mips_cp_bc1tl);
-                CASEIR(COP_BC_BCFL, mips_cp_bc1fl);
-                default: {
-                    char buf[50];
-                    disassemble(address, instr.raw, buf, 50);
-                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+    if (instr.is_coprocessor_funct) {
+        switch (instr.fr.funct) {
+            case COP_FUNCT_ADD:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_add_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_add_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_TLBR_SUB: {
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_sub_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_sub_s);
+                    default:
+                        logfatal("Undefined!");
                 }
             }
-    }
-    switch (instr.fr.funct) {
-        case COP_FUNCT_ADD:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_add_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_add_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_TLBR_SUB: {
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_sub_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_sub_s);
-                default:
-                    logfatal("Undefined!");
-            }
+            case COP_FUNCT_TLBWI_MULT:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_mul_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_mul_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_DIV:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_div_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_div_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_TRUNC_L:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_l_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_trunc_l_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_ROUND_L:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_round_l_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_round_l_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_TRUNC_W:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_w_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_trunc_w_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_FLOOR_W:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_floor_w_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_floor_w_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_ROUND_W:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_round_w_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_round_w_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_CVT_D:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_SINGLE, mips_cp_cvt_d_s);
+                    CASEIR(FP_FMT_W, mips_cp_cvt_d_w);
+                    CASEIR(FP_FMT_L, mips_cp_cvt_d_l);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_CVT_L:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_l_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_cvt_l_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_CVT_S:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_s_d);
+                    CASEIR(FP_FMT_W, mips_cp_cvt_s_w);
+                    CASEIR(FP_FMT_L, mips_cp_cvt_s_l);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_CVT_W:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_w_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_cvt_w_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_SQRT:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_sqrt_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_sqrt_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+
+            case COP_FUNCT_ABS:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_abs_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_abs_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+
+            case COP_FUNCT_TLBWR_MOV:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_mov_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_mov_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_NEG:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_neg_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_neg_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_F:
+                logfatal("COP_FUNCT_C_F unimplemented");
+            case COP_FUNCT_C_UN:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_un_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_un_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_EQ:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_eq_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_eq_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_UEQ:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_ueq_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_ueq_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_OLT:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_olt_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_olt_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_ULT:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_ult_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_ult_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_OLE:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_ole_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_ole_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_ULE:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_ule_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_ule_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_SF:
+                logfatal("COP_FUNCT_C_SF unimplemented");
+            case COP_FUNCT_C_NGLE:
+                logfatal("COP_FUNCT_C_NGLE unimplemented");
+            case COP_FUNCT_C_SEQ:
+                logfatal("COP_FUNCT_C_SEQ unimplemented");
+            case COP_FUNCT_C_NGL:
+                logfatal("COP_FUNCT_C_NGL unimplemented");
+            case COP_FUNCT_C_LT:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_lt_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_lt_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_NGE:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_nge_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_nge_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_LE:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_le_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_le_s);
+                    default:
+                        logfatal("Undefined!");
+                }
+            case COP_FUNCT_C_NGT:
+                switch (instr.fr.fmt) {
+                    CASEIR(FP_FMT_DOUBLE, mips_cp_c_ngt_d);
+                    CASEIR(FP_FMT_SINGLE, mips_cp_c_ngt_s);
+                    default:
+                        logfatal("Undefined!");
+                }
         }
-        case COP_FUNCT_TLBWI_MULT:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_mul_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_mul_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_DIV:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_div_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_div_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_TRUNC_L:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_l_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_trunc_l_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_ROUND_L:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_round_l_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_round_l_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_TRUNC_W:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_trunc_w_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_trunc_w_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_FLOOR_W:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_floor_w_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_floor_w_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_ROUND_W:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_round_w_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_round_w_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_CVT_D:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_d_s);
-                CASEIR(FP_FMT_W, mips_cp_cvt_d_w);
-                CASEIR(FP_FMT_L, mips_cp_cvt_d_l);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_CVT_L:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_l_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_l_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_CVT_S:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_s_d);
-                CASEIR(FP_FMT_W, mips_cp_cvt_s_w);
-                CASEIR(FP_FMT_L, mips_cp_cvt_s_l);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_CVT_W:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_w_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_cvt_w_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_SQRT:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_sqrt_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_sqrt_s);
-                default:
-                    logfatal("Undefined!");
-            }
-
-        case COP_FUNCT_ABS:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_abs_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_abs_s);
-                default:
-                    logfatal("Undefined!");
-            }
-
-        case COP_FUNCT_TLBWR_MOV:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_mov_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_mov_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_NEG:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_neg_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_neg_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_F:
-            logfatal("COP_FUNCT_C_F unimplemented");
-        case COP_FUNCT_C_UN:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_un_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_un_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_EQ:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_eq_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_eq_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_UEQ:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ueq_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_ueq_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_OLT:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_olt_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_olt_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_ULT:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ult_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_ult_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_OLE:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ole_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_ole_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_ULE:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ule_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_ule_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_SF:
-            logfatal("COP_FUNCT_C_SF unimplemented");
-        case COP_FUNCT_C_NGLE:
-            logfatal("COP_FUNCT_C_NGLE unimplemented");
-        case COP_FUNCT_C_SEQ:
-            logfatal("COP_FUNCT_C_SEQ unimplemented");
-        case COP_FUNCT_C_NGL:
-            logfatal("COP_FUNCT_C_NGL unimplemented");
-        case COP_FUNCT_C_LT:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_lt_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_lt_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_NGE:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_nge_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_nge_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_LE:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_le_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_le_s);
-                default:
-                    logfatal("Undefined!");
-            }
-        case COP_FUNCT_C_NGT:
-            switch (instr.fr.fmt) {
-                CASEIR(FP_FMT_DOUBLE, mips_cp_c_ngt_d);
-                CASEIR(FP_FMT_SINGLE, mips_cp_c_ngt_s);
-                default:
-                    logfatal("Undefined!");
-            }
+    } else {
+        switch (instr.r.rs) {
+            CASEIR(COP_CF, mips_cfc1);
+            CASEIR(COP_MF, mips_mfc1);
+            CASEIR(COP_DMF, mips_dmfc1);
+            CASEIR(COP_MT, mips_mtc1);
+            CASEIR(COP_DMT, mips_dmtc1);
+            CASEIR(COP_CT, mips_ctc1);
+            case COP_BC:
+                switch (instr.r.rt) {
+                    CASEIR(COP_BC_BCT, mips_cp_bc1t);
+                    CASEIR(COP_BC_BCF, mips_cp_bc1f);
+                    CASEIR(COP_BC_BCTL, mips_cp_bc1tl);
+                    CASEIR(COP_BC_BCFL, mips_cp_bc1fl);
+                    default: {
+                        char buf[50];
+                        disassemble(address, instr.raw, buf, 50);
+                        logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+                    }
+                }
+        }
     }
 
     char buf[50];
@@ -1207,7 +1206,16 @@ COMP(rsp_swc2_swv, NORMAL, false);
 COMP(rsp_nop, NORMAL, false);
 
 dynarec_ir_t* rsp_cp0_ir(mips_instruction_t instr, u32 address) {
-    if (instr.last11 == 0) {
+    if (instr.is_coprocessor_funct) {
+        switch (instr.fr.funct) {
+            default: {
+                static char buf[50];
+                disassemble(address, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    } else {
         switch (instr.r.rs) {
             CASEIR(COP_MT, rsp_mtc0);
             CASEIR(COP_MF, rsp_mfc0);
@@ -1216,15 +1224,6 @@ dynarec_ir_t* rsp_cp0_ir(mips_instruction_t instr, u32 address) {
                 disassemble(address, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS RSP CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
                          instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
-            }
-        }
-    } else {
-        switch (instr.fr.funct) {
-            default: {
-                static char buf[50];
-                disassemble(address, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
             }
         }
     }

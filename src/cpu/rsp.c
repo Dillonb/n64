@@ -21,7 +21,16 @@ void rsp_release_semaphore() {
 }
 
 INLINE rspinstr_handler_t rsp_cp0_decode(u32 pc, mips_instruction_t instr) {
-    if (instr.last11 == 0) {
+    if (instr.is_coprocessor_funct == 0) {
+        switch (instr.fr.funct) {
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
+                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    } else {
         switch (instr.r.rs) {
             case COP_MT: return rsp_mtc0;
             case COP_MF: return rsp_mfc0;
@@ -30,15 +39,6 @@ INLINE rspinstr_handler_t rsp_cp0_decode(u32 pc, mips_instruction_t instr) {
                 disassemble(pc, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS RSP CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
                          instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
-            }
-        }
-    } else {
-        switch (instr.fr.funct) {
-            default: {
-                char buf[50];
-                disassemble(pc, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS RSP CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
-                         instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
             }
         }
     }

@@ -20,6 +20,7 @@ IR_EMITTER(cfc1) {
 }
 
 IR_EMITTER(ctc1) {
+    logwarn("CTC1: TODO: Check CP1 is enabled");
     //checkcp1; // TODO: check cp1 is enabled
     ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
     u8 fs = instruction.r.rd;
@@ -45,21 +46,57 @@ IR_EMITTER(bc1tl) {
 }
 
 IR_EMITTER(mfc1) {
-    logwarn("TODO: check CP1 is enabled, MFC1 unimplemented");
+    logfatal("TODO: check CP1 is enabled, MFC1 unimplemented");
     ir_emit_set_constant_u16(0, instruction.r.rt);
 }
 
+IR_EMITTER(mtc1) {
+    logfatal("TODO: check CP1 is enabled, MTC1 unimplemented");
+}
+
 IR_EMITTER(cp1_instruction) {
-        // This function uses a series of two switch statements.
-        // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
-        // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
+    if (instruction.is_coprocessor_funct) {
+        switch (instruction.fr.funct) {
+            case COP_FUNCT_ADD: IR_UNIMPLEMENTED(COP_FUNCT_ADD);
+            case COP_FUNCT_TLBR_SUB: IR_UNIMPLEMENTED(COP_FUNCT_TLBR_SUB);
+            case COP_FUNCT_TLBWI_MULT: IR_UNIMPLEMENTED(COP_FUNCT_TLBWI_MULT);
+            case COP_FUNCT_DIV: IR_UNIMPLEMENTED(COP_FUNCT_DIV);
+            case COP_FUNCT_TRUNC_L: IR_UNIMPLEMENTED(COP_FUNCT_TRUNC_L);
+            case COP_FUNCT_ROUND_L: IR_UNIMPLEMENTED(COP_FUNCT_ROUND_L);
+            case COP_FUNCT_TRUNC_W: IR_UNIMPLEMENTED(COP_FUNCT_TRUNC_W);
+            case COP_FUNCT_FLOOR_W: IR_UNIMPLEMENTED(COP_FUNCT_FLOOR_W);
+            case COP_FUNCT_ROUND_W: IR_UNIMPLEMENTED(COP_FUNCT_ROUND_W);
+            case COP_FUNCT_CVT_D: IR_UNIMPLEMENTED(COP_FUNCT_CVT_D);
+            case COP_FUNCT_CVT_L: IR_UNIMPLEMENTED(COP_FUNCT_CVT_L);
+            case COP_FUNCT_CVT_S: IR_UNIMPLEMENTED(COP_FUNCT_CVT_S);
+            case COP_FUNCT_CVT_W: IR_UNIMPLEMENTED(COP_FUNCT_CVT_W);
+            case COP_FUNCT_SQRT: IR_UNIMPLEMENTED(COP_FUNCT_SQRT);
+            case COP_FUNCT_ABS: IR_UNIMPLEMENTED(COP_FUNCT_ABS);
+            case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
+            case COP_FUNCT_NEG: IR_UNIMPLEMENTED(COP_FUNCT_NEG);
+            case COP_FUNCT_C_F: IR_UNIMPLEMENTED(COP_FUNCT_C_F);
+            case COP_FUNCT_C_UN: IR_UNIMPLEMENTED(COP_FUNCT_C_UN);
+            case COP_FUNCT_C_EQ: IR_UNIMPLEMENTED(COP_FUNCT_C_EQ);
+            case COP_FUNCT_C_UEQ: IR_UNIMPLEMENTED(COP_FUNCT_C_UEQ);
+            case COP_FUNCT_C_OLT: IR_UNIMPLEMENTED(COP_FUNCT_C_OLT);
+            case COP_FUNCT_C_ULT: IR_UNIMPLEMENTED(COP_FUNCT_C_ULT);
+            case COP_FUNCT_C_OLE: IR_UNIMPLEMENTED(COP_FUNCT_C_OLE);
+            case COP_FUNCT_C_ULE: IR_UNIMPLEMENTED(COP_FUNCT_C_ULE);
+            case COP_FUNCT_C_SF: IR_UNIMPLEMENTED(COP_FUNCT_C_SF);
+            case COP_FUNCT_C_NGLE: IR_UNIMPLEMENTED(COP_FUNCT_C_NGLE);
+            case COP_FUNCT_C_SEQ: IR_UNIMPLEMENTED(COP_FUNCT_C_SEQ);
+            case COP_FUNCT_C_NGL: IR_UNIMPLEMENTED(COP_FUNCT_C_NGL);
+            case COP_FUNCT_C_LT: IR_UNIMPLEMENTED(COP_FUNCT_C_LT);
+            case COP_FUNCT_C_NGE: IR_UNIMPLEMENTED(COP_FUNCT_C_NGE);
+            case COP_FUNCT_C_LE: IR_UNIMPLEMENTED(COP_FUNCT_C_LE);
+            case COP_FUNCT_C_NGT: IR_UNIMPLEMENTED(COP_FUNCT_C_NGT);
+        }
+    } else {
         switch (instruction.r.rs) {
             case COP_CF: CALL_IR_EMITTER(cfc1);
             case COP_MF: CALL_IR_EMITTER(mfc1);
             case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
-            case COP_MT:
-                logwarn("Ignoring MTC1!");
-            break;
+            case COP_MT: CALL_IR_EMITTER(mtc1);
             case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
             case COP_CT: CALL_IR_EMITTER(ctc1);
             case COP_BC:
@@ -74,9 +111,12 @@ IR_EMITTER(cp1_instruction) {
                         logfatal("other/unknown MIPS BC 0x%08X [%s]", instruction.raw, buf);
                     }
                 }
+            case COP_DCF:
+            case COP_DCT:
+                logfatal("Invalid CP1");
+            case 0x9 ... 0xF:
+                logfatal("Invalid");
         }
-        //IR_UNIMPLEMENTED(SomeFPUInstruction);
-        logwarn("Ignoring FPU instruction!");
-        return;
+    }
 }
 

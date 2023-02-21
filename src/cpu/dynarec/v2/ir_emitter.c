@@ -758,21 +758,7 @@ IR_EMITTER(mfc0) {
 }
 
 IR_EMITTER(cp0_instruction) {
-    if (instruction.last11 == 0) {
-        switch (instruction.r.rs) {
-            case COP_MF: CALL_IR_EMITTER(mfc0);
-            case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
-            // Last 11 bits are 0
-            case COP_MT: CALL_IR_EMITTER(mtc0);
-            case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
-            default: {
-                char buf[50];
-                disassemble(0, instruction.raw, buf, 50);
-                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instruction.raw,
-                         instruction.rs0, instruction.rs1, instruction.rs2, instruction.rs3, instruction.rs4, buf);
-            }
-        }
-    } else {
+    if (instruction.is_coprocessor_funct) {
         switch (instruction.fr.funct) {
             case COP_FUNCT_TLBWI_MULT: {
                 logwarn("Ignoring tlbwi");
@@ -788,6 +774,19 @@ IR_EMITTER(cp0_instruction) {
                 disassemble(0, instruction.raw, buf, 50);
                 logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instruction.raw,
                          instruction.funct0, instruction.funct1, instruction.funct2, instruction.funct3, instruction.funct4, instruction.funct5, buf);
+            }
+        }
+    } else {
+        switch (instruction.r.rs) {
+            case COP_MF: CALL_IR_EMITTER(mfc0);
+            case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
+            case COP_MT: CALL_IR_EMITTER(mtc0);
+            case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
+            default: {
+                char buf[50];
+                disassemble(0, instruction.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instruction.raw,
+                         instruction.rs0, instruction.rs1, instruction.rs2, instruction.rs3, instruction.rs4, buf);
             }
         }
     }

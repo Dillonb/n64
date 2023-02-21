@@ -13,21 +13,7 @@ typedef struct dynarec_instruction_info {
  */
 
 INLINE dynarec_instruction_category_t cp0_instruction_category(mips_instruction_t instr) {
-    if (instr.last11 == 0) {
-        switch (instr.r.rs) {
-            case COP_MF: return NORMAL;
-            case COP_DMF: return NORMAL;
-            // Last 11 bits are 0
-            case COP_MT: return NORMAL;
-            case COP_DMT: return NORMAL;
-            default: {
-                char buf[50];
-                disassemble(0, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
-                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
-            }
-        }
-    } else {
+    if (instr.is_coprocessor_funct) {
         switch (instr.fr.funct) {
             case COP_FUNCT_TLBWI_MULT: return TLB_WRITE;
             case COP_FUNCT_TLBWR_MOV: return TLB_WRITE;
@@ -40,6 +26,19 @@ INLINE dynarec_instruction_category_t cp0_instruction_category(mips_instruction_
                 disassemble(0, instr.raw, buf, 50);
                 logfatal("other/unknown MIPS CP0 0x%08X with FUNCT: %d%d%d%d%d%d [%s]", instr.raw,
                          instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
+            }
+        }
+    } else {
+        switch (instr.r.rs) {
+            case COP_MF: return NORMAL;
+            case COP_DMF: return NORMAL;
+            case COP_MT: return NORMAL;
+            case COP_DMT: return NORMAL;
+            default: {
+                char buf[50];
+                disassemble(0, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
             }
         }
     }
@@ -134,33 +133,33 @@ INLINE dynarec_instruction_category_t regimm_instruction_category(mips_instructi
 }
 
 INLINE dynarec_instruction_category_t cp1_instruction_category(mips_instruction_t instr) {
-    // This function uses a series of two switch statements.
-    // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
-    // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
-    switch (instr.r.rs) {
-        case COP_CF:
-        case COP_MF:
-        case COP_DMF:
-        case COP_MT:
-        case COP_DMT:
-        case COP_CT:
-            return NORMAL;
-        case COP_BC:
-            switch (instr.r.rt) {
-                case COP_BC_BCT:
-                case COP_BC_BCF:
-                    return BRANCH;
-                case COP_BC_BCTL:
-                case COP_BC_BCFL:
-                    return BRANCH_LIKELY;
-                default: {
-                    char buf[50];
-                    disassemble(0, instr.raw, buf, 50);
-                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+    if (instr.is_coprocessor_funct) {
+        return NORMAL;
+    } else {
+        switch (instr.r.rs) {
+            case COP_CF:
+            case COP_MF:
+            case COP_DMF:
+            case COP_MT:
+            case COP_DMT:
+            case COP_CT:
+                return NORMAL;
+            case COP_BC:
+                switch (instr.r.rt) {
+                    case COP_BC_BCT:
+                    case COP_BC_BCF:
+                        return BRANCH;
+                    case COP_BC_BCTL:
+                    case COP_BC_BCFL:
+                        return BRANCH_LIKELY;
+                    default: {
+                        char buf[50];
+                        disassemble(0, instr.raw, buf, 50);
+                        logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+                    }
                 }
-            }
+        }
     }
-    return NORMAL;
 }
 
 dynarec_instruction_category_t instr_category(mips_instruction_t instr) {

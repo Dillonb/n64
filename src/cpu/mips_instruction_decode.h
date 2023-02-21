@@ -94,6 +94,19 @@ typedef union mips_instruction {
 
     struct {
 #ifdef N64_BIG_ENDIAN
+        unsigned:6;
+        unsigned is_coprocessor_funct:1;
+        unsigned:25;
+
+#else
+        unsigned:25;
+        unsigned is_coprocessor_funct:1;
+        unsigned:6;
+#endif
+    } PACKED;
+
+    struct {
+#ifdef N64_BIG_ENDIAN
         unsigned op:6;
         unsigned fmt:5;
         unsigned ft:5;
@@ -225,17 +238,6 @@ typedef union mips_instruction {
         unsigned:6;
 #endif
     } PACKED;
-
-    struct {
-#ifdef N64_BIG_ENDIAN
-        unsigned:21;
-        unsigned last11:11;
-#else
-        unsigned last11:11;
-        unsigned:21;
-#endif
-    } PACKED;
-
 } PACKED mips_instruction_t;
 
 ASSERTWORD(mips_instruction_t);

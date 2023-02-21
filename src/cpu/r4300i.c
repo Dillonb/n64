@@ -131,24 +131,7 @@ void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error) {
 }
 
 INLINE mipsinstr_handler_t r4300i_cp0_decode(u64 pc, mips_instruction_t instr) {
-    if (instr.last11 == 0) {
-        switch (instr.r.rs) {
-            case COP_MF:
-                return mips_mfc0;
-            case COP_MT: // Last 11 bits are 0
-                return mips_mtc0;
-            case COP_DMT:
-                return mips_dmtc0;
-            case COP_DMF:
-                return mips_dmfc0;
-            default: {
-                char buf[50];
-                disassemble(pc, instr.raw, buf, 50);
-                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
-                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
-            }
-        }
-    } else {
+    if (instr.is_coprocessor_funct) {
         switch (instr.fr.funct) {
             case COP_FUNCT_TLBWI_MULT:
                 return mips_tlbwi;
@@ -169,355 +152,371 @@ INLINE mipsinstr_handler_t r4300i_cp0_decode(u64 pc, mips_instruction_t instr) {
                          instr.funct0, instr.funct1, instr.funct2, instr.funct3, instr.funct4, instr.funct5, buf);
             }
         }
+    } else {
+        switch (instr.r.rs) {
+            case COP_MF:
+                return mips_mfc0;
+            case COP_MT:
+                return mips_mtc0;
+            case COP_DMT:
+                return mips_dmtc0;
+            case COP_DMF:
+                return mips_dmfc0;
+            default: {
+                char buf[50];
+                disassemble(pc, instr.raw, buf, 50);
+                logfatal("other/unknown MIPS CP0 0x%08X with rs: %d%d%d%d%d [%s]", instr.raw,
+                         instr.rs0, instr.rs1, instr.rs2, instr.rs3, instr.rs4, buf);
+            }
+        }
     }
 }
 
 INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
-    // This function uses a series of two switch statements.
-    // If the instruction doesn't use the RS field for the opcode, then control will fall through to the next
-    // switch, and check the FUNCT. It may be worth profiling and seeing if it's faster to check FUNCT first at some point
-    switch (instr.r.rs) {
-        case COP_CF:
-            return mips_cfc1;
-        case COP_MF:
-            return mips_mfc1;
-        case COP_DMF:
-            return mips_dmfc1;
-        case COP_MT:
-            return mips_mtc1;
-        case COP_DMT:
-            return mips_dmtc1;
-        case COP_CT:
-            return mips_ctc1;
-        case COP_BC:
-            switch (instr.r.rt) {
-                case COP_BC_BCT:
-                    return mips_cp_bc1t;
-                case COP_BC_BCF:
-                    return mips_cp_bc1f;
-                case COP_BC_BCTL:
-                    return mips_cp_bc1tl;
-                case COP_BC_BCFL:
-                    return mips_cp_bc1fl;
-                default: {
-                    char buf[50];
-                    disassemble(pc, instr.raw, buf, 50);
-                    logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+    if (instr.is_coprocessor_funct) {
+        switch (instr.fr.funct) {
+            case COP_FUNCT_ADD:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_add_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_add_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_TLBR_SUB: {
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_sub_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_sub_s;
+                    default:
+                        return mips_cp1_invalid;
                 }
             }
-        case COP_DCF:
-        case COP_DCT:
-            return mips_cp1_invalid;
-        case 0x9 ... 0xF:
-            return mips_invalid;
-    }
+            case COP_FUNCT_TLBWI_MULT:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_mul_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_mul_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_DIV:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_div_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_div_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_TRUNC_L:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_trunc_l_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_trunc_l_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_ROUND_L:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_round_l_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_round_l_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_TRUNC_W:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_trunc_w_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_trunc_w_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_FLOOR_W:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_floor_w_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_floor_w_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_ROUND_W:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_round_w_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_round_w_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_CVT_D:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_SINGLE:
+                        return mips_cp_cvt_d_s;
+                    case FP_FMT_W:
+                        return mips_cp_cvt_d_w;
+                    case FP_FMT_L:
+                        return mips_cp_cvt_d_l;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_CVT_L:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_cvt_l_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_cvt_l_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_CVT_S:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_cvt_s_d;
+                    case FP_FMT_W:
+                        return mips_cp_cvt_s_w;
+                    case FP_FMT_L:
+                        return mips_cp_cvt_s_l;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_CVT_W:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_cvt_w_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_cvt_w_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_SQRT:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_sqrt_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_sqrt_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
 
-    switch (instr.fr.funct) {
-        case COP_FUNCT_ADD:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_add_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_add_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_TLBR_SUB: {
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_sub_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_sub_s;
-                default:
-                    return mips_cp1_invalid;
-            }
+            case COP_FUNCT_ABS:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_abs_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_abs_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+
+
+            case COP_FUNCT_TLBWR_MOV:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_mov_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_mov_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_NEG:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_neg_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_neg_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_F:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_f_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_f_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_UN:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_un_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_un_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_EQ:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_eq_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_eq_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_UEQ:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_ueq_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_ueq_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_OLT:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_olt_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_olt_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_ULT:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_ult_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_ult_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_OLE:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_ole_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_ole_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_ULE:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_ule_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_ule_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_SF:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_sf_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_sf_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_NGLE:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_ngle_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_ngle_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_SEQ:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_seq_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_seq_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_NGL:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_ngl_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_ngl_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_LT:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_lt_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_lt_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_NGE:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_nge_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_nge_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_LE:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_le_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_le_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_C_NGT:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_c_ngt_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_c_ngt_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
         }
-        case COP_FUNCT_TLBWI_MULT:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_mul_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_mul_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_DIV:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_div_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_div_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_TRUNC_L:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_trunc_l_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_trunc_l_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_ROUND_L:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_round_l_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_round_l_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_TRUNC_W:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_trunc_w_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_trunc_w_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_FLOOR_W:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_floor_w_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_floor_w_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_ROUND_W:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_round_w_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_round_w_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_CVT_D:
-            switch (instr.fr.fmt) {
-                case FP_FMT_SINGLE:
-                    return mips_cp_cvt_d_s;
-                case FP_FMT_W:
-                    return mips_cp_cvt_d_w;
-                case FP_FMT_L:
-                    return mips_cp_cvt_d_l;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_CVT_L:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_cvt_l_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_cvt_l_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_CVT_S:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_cvt_s_d;
-                case FP_FMT_W:
-                    return mips_cp_cvt_s_w;
-                case FP_FMT_L:
-                    return mips_cp_cvt_s_l;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_CVT_W:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_cvt_w_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_cvt_w_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_SQRT:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_sqrt_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_sqrt_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-
-        case COP_FUNCT_ABS:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_abs_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_abs_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-
-
-        case COP_FUNCT_TLBWR_MOV:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_mov_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_mov_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_NEG:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_neg_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_neg_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_F:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_f_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_f_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_UN:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_un_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_un_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_EQ:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_eq_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_eq_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_UEQ:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_ueq_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_ueq_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_OLT:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_olt_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_olt_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_ULT:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_ult_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_ult_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_OLE:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_ole_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_ole_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_ULE:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_ule_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_ule_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_SF:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_sf_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_sf_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_NGLE:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_ngle_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_ngle_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_SEQ:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_seq_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_seq_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_NGL:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_ngl_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_ngl_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_LT:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_lt_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_lt_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_NGE:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_nge_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_nge_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_LE:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_le_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_le_s;
-                default:
-                    return mips_cp1_invalid;
-            }
-        case COP_FUNCT_C_NGT:
-            switch (instr.fr.fmt) {
-                case FP_FMT_DOUBLE:
-                    return mips_cp_c_ngt_d;
-                case FP_FMT_SINGLE:
-                    return mips_cp_c_ngt_s;
-                default:
-                    return mips_cp1_invalid;
-            }
+    } else {
+        switch (instr.r.rs) {
+            case COP_CF:
+                return mips_cfc1;
+            case COP_MF:
+                return mips_mfc1;
+            case COP_DMF:
+                return mips_dmfc1;
+            case COP_MT:
+                return mips_mtc1;
+            case COP_DMT:
+                return mips_dmtc1;
+            case COP_CT:
+                return mips_ctc1;
+            case COP_BC:
+                switch (instr.r.rt) {
+                    case COP_BC_BCT:
+                        return mips_cp_bc1t;
+                    case COP_BC_BCF:
+                        return mips_cp_bc1f;
+                    case COP_BC_BCTL:
+                        return mips_cp_bc1tl;
+                    case COP_BC_BCFL:
+                        return mips_cp_bc1fl;
+                    default: {
+                        char buf[50];
+                        disassemble(pc, instr.raw, buf, 50);
+                        logfatal("other/unknown MIPS BC 0x%08X [%s]", instr.raw, buf);
+                    }
+                }
+            case COP_DCF:
+            case COP_DCT:
+                return mips_cp1_invalid;
+            case 0x9 ... 0xF:
+                return mips_invalid;
+        }
     }
 
     char buf[50];
