@@ -21,7 +21,7 @@ void rsp_release_semaphore() {
 }
 
 INLINE rspinstr_handler_t rsp_cp0_decode(u32 pc, mips_instruction_t instr) {
-    if (instr.is_coprocessor_funct == 0) {
+    if (instr.is_coprocessor_funct) {
         switch (instr.fr.funct) {
             default: {
                 char buf[50];
