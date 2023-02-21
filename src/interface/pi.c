@@ -179,8 +179,8 @@ void write_word_pireg(u32 address, u32 value) {
                 invalidate_dynarec_page(BYTE_ADDRESS(dram_addr + i));
             }
 
-            u32 begin_index = dynarec_outer_index(dram_addr);
-            u32 end_index = dynarec_outer_index(dram_addr + length);
+            u32 begin_index = BLOCKCACHE_OUTER_INDEX(dram_addr);
+            u32 end_index = BLOCKCACHE_OUTER_INDEX(dram_addr + length);
 
             for (u32 i = begin_index; i <= end_index; i++) {
                 invalidate_dynarec_page_by_index(i);

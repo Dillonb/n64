@@ -16,6 +16,7 @@ extern "C" {
 // word aligned instructions
 #define BLOCKCACHE_INNER_SIZE (BLOCKCACHE_PAGE_SIZE >> 2)
 #define BLOCKCACHE_INNER_INDEX(physical) (((physical) & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2)
+#define BLOCKCACHE_OUTER_INDEX(physical) ((physical) >> BLOCKCACHE_OUTER_SHIFT)
 #define IS_PAGE_BOUNDARY(address) (((address) & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
 #define INDICES_TO_ADDRESS(outer, inner) (((outer) << BLOCKCACHE_OUTER_SHIFT) | ((inner) << 2))
 
@@ -49,10 +50,6 @@ typedef struct n64_dynarec {
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
-INLINE u32 dynarec_outer_index(u32 physical_address) {
-    return physical_address >> BLOCKCACHE_OUTER_SHIFT;
-}
-
 INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
     N64DYNAREC->blockcache[outer_index] = NULL;
 }
@@ -64,7 +61,7 @@ INLINE bool is_code(u32 physical_address) {
 
 INLINE void invalidate_dynarec_page(u32 physical_address) {
     if (unlikely(is_code(physical_address))) {
-        invalidate_dynarec_page_by_index(dynarec_outer_index(physical_address));
+        invalidate_dynarec_page_by_index(BLOCKCACHE_OUTER_INDEX(physical_address));
     }
 }
 

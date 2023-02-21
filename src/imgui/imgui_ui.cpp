@@ -231,7 +231,7 @@ void render_settings_window() {
 struct block {
     block(u32 address, int outer_index, int inner_index) : address(address), outer_index(outer_index), inner_index(inner_index) {}
     block() : block(0, 0, 0) {}
-    block(u32 address) : block(address, dynarec_outer_index(address), BLOCKCACHE_INNER_INDEX(address)) {}
+    block(u32 address) : block(address, BLOCKCACHE_OUTER_INDEX(address), BLOCKCACHE_INNER_INDEX(address)) {}
     u32 address;
     int outer_index;
     int inner_index;
