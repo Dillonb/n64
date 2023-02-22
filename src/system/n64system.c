@@ -327,7 +327,6 @@ int n64_system_step(bool dynarec, int steps) {
 
     scheduler_event_t event;
     if (scheduler_tick(taken, &event)) {
-        logfatal("Scheduler event hit");
         handle_scheduler_event(&event);
     }
 
