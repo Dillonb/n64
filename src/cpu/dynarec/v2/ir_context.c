@@ -5,8 +5,8 @@
 ir_context_t ir_context;
 
 void ir_context_reset() {
-    for (int i = 0; i < 32; i++) {
-        ir_context.guest_gpr_to_value[i] = NULL;
+    for (int i = 0; i < 64; i++) {
+        ir_context.guest_reg_to_value[i] = NULL;
     }
 
     memset(ir_context.ir_cache, 0, sizeof(ir_instruction_t) * IR_CACHE_SIZE);
@@ -15,7 +15,7 @@ void ir_context_reset() {
     ir_context.ir_cache[0].type = IR_SET_CONSTANT;
     ir_context.ir_cache[0].set_constant.type = VALUE_TYPE_U64;
     ir_context.ir_cache[0].set_constant.value_u64 = 0;
-    ir_context.guest_gpr_to_value[0] = &ir_context.ir_cache[0];
+    ir_context.guest_reg_to_value[0] = &ir_context.ir_cache[0];
 
     ir_context.ir_cache_index = 1;
     ir_context.ir_flush_cache_index = 0;
@@ -45,6 +45,17 @@ const char* val_type_to_str(ir_value_type_t type) {
             return "U64";
         case VALUE_TYPE_S64:
             return "S64";
+    }
+}
+
+const char* reg_type_to_str(ir_register_type_t type) {
+    switch (type) {
+        case REGISTER_TYPE_NONE:
+            return "NONE";
+        case REGISTER_TYPE_GPR:
+            return "GPR";
+        case REGISTER_TYPE_FGR:
+            return "FGR";
     }
 }
 
@@ -155,10 +166,18 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             snprintf(buf, buf_size, "tlb_lookup(v%d)", instr->tlb_lookup.virtual_address->index);
             break;
         case IR_LOAD_GUEST_REG:
-            snprintf(buf, buf_size, "guest_gpr[%d]", instr->load_guest_reg.guest_reg);
+            if (instr->load_guest_reg.guest_reg < 32) {
+                snprintf(buf, buf_size, "guest_gpr[%d]", instr->load_guest_reg.guest_reg);
+            } else {
+                snprintf(buf, buf_size, "guest_fgr[%d]", instr->load_guest_reg.guest_reg - 32);
+            }
             break;
         case IR_FLUSH_GUEST_REG:
-            snprintf(buf, buf_size, "guest_gpr[%d] = v%d", instr->flush_guest_reg.guest_reg, instr->flush_guest_reg.value->index);
+            if (instr->flush_guest_reg.guest_reg < 32) {
+                snprintf(buf, buf_size, "guest_gpr[%d] = v%d", instr->flush_guest_reg.guest_reg, instr->flush_guest_reg.value->index);
+            } else {
+                snprintf(buf, buf_size, "guest_fgr[%d] = v%d", instr->flush_guest_reg.guest_reg - 32, instr->flush_guest_reg.value->index);
+            }
             break;
         case IR_SHIFT:
             switch (instr->shift.direction) {
@@ -185,12 +204,20 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_ERET:
             snprintf(buf, buf_size, "eret()");
             break;
+        case IR_MOV_REG_TYPE:
+            snprintf(buf, buf_size, "to_type(v%d, reg_type = %s, size = %s)", instr->mov_reg_type.value->index, reg_type_to_str(instr->mov_reg_type.new_type), val_type_to_str(instr->mov_reg_type.size));
+            break;
     }
 }
 
 void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
-    if (guest_reg > 0 && guest_reg < 32) {
-        ir_context.guest_gpr_to_value[guest_reg] = value;
+    if (guest_reg > 0) {
+        if (IR_IS_GPR(guest_reg)) {
+            ir_context.guest_reg_to_value[guest_reg] = value;
+        } else if (IR_IS_FGR(guest_reg)) {
+            ir_context.fgr_mapped = true;
+            ir_context.guest_reg_to_value[guest_reg] = value;
+        }
     }
 }
 
@@ -292,19 +319,21 @@ ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
 }
 
 ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
-    if (guest_reg > 31) {
+    if (guest_reg > 63) {
         logfatal("ir_emit_load_guest_reg: out of range guest reg value: %d", guest_reg);
+    } else if (guest_reg >= IR_FGR_BASE) {
+        logfatal("Getting FPU register f%d", guest_reg - IR_FGR_BASE);
+    } else {
+        if (ir_context.guest_reg_to_value[guest_reg] != NULL) {
+            return ir_context.guest_reg_to_value[guest_reg];
+        }
+
+        ir_instruction_t instruction;
+        instruction.type = IR_LOAD_GUEST_REG;
+        instruction.load_guest_reg.guest_reg = guest_reg;
+
+        return append_ir_instruction(instruction, guest_reg);
     }
-
-    if (ir_context.guest_gpr_to_value[guest_reg] != NULL) {
-        return ir_context.guest_gpr_to_value[guest_reg];
-    }
-
-    ir_instruction_t instruction;
-    instruction.type = IR_LOAD_GUEST_REG;
-    instruction.load_guest_reg.guest_reg = guest_reg;
-
-    return append_ir_instruction(instruction, guest_reg);
 }
 
 ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* last_usage, ir_instruction_t* value, u8 guest_reg) {
@@ -461,8 +490,8 @@ ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, in
     instruction.cond_block_exit.regs_to_flush = NULL;
     unimplemented(!ir_context.block_end_pc_ir_emitted, "Conditionally exiting block without knowing what PC should be");
 
-    for (int i = 1; i < 32; i++) {
-        ir_instruction_t* gpr_value = ir_context.guest_gpr_to_value[i];
+    for (int i = 1; i < 64; i++) {
+        ir_instruction_t* gpr_value = ir_context.guest_reg_to_value[i];
         if (gpr_value) {
             // If it's just a load, no need to flush it back as it has not been modified
             if (gpr_value->type != IR_LOAD_GUEST_REG && gpr_value->load_guest_reg.guest_reg != i) {
@@ -523,4 +552,18 @@ ir_instruction_t* ir_emit_eret() {
     ir_instruction_t instruction;
     instruction.type = IR_ERET;
     return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg) {
+    if (IR_IS_GPR(new_reg) && new_type != REGISTER_TYPE_GPR) {
+        logfatal("Trying to move value to a GPR, but register given was not a GPR!");
+    } else if (IR_IS_FGR(new_reg) && new_type != REGISTER_TYPE_FGR) {
+        logfatal("Trying to move value to an FGR, but register given was not a FGR!");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_MOV_REG_TYPE;
+    instruction.mov_reg_type.value = value;
+    instruction.mov_reg_type.new_type = new_type;
+    instruction.mov_reg_type.size = size;
+    return append_ir_instruction(instruction, new_reg);
 }

@@ -3,13 +3,15 @@
 
 #include "ir_context.h"
 
-// Get the total number of registers on the platform
-int get_num_registers();
+// Get the total number of GPRs on the platform
+int get_num_gprs();
+// Get the total number of FGRs on the platform
+int get_num_fgrs();
 
 // Get a list of the registers preserved under the target platform's calling convention
-const int* get_preserved_registers();
+const int* get_preserved_gprs();
 // Get the number of registers preserved under the target platform's calling convention
-int get_num_preserved_registers();
+int get_num_preserved_gprs();
 
 // Get a list of the registers NOT preserved under the target platform's calling convention
 const int* get_scratch_registers();

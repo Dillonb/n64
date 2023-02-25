@@ -54,6 +54,8 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->mult_div.operand1 == value || instr->mult_div.operand2 == value;
         case IR_SET_PTR:
             return instr->set_ptr.value == value;
+        case IR_MOV_REG_TYPE:
+            return instr->mov_reg_type.value == value;
 
         // No dependencies
         case IR_ERET:
@@ -106,8 +108,8 @@ ir_instruction_t* last_value_usage(ir_instruction_t* value) {
 
 void ir_optimize_flush_guest_regs() {
     // Flush all guest regs in use at the end
-    for (int i = 1; i < 32; i++) {
-        ir_instruction_t* val = ir_context.guest_gpr_to_value[i];
+    for (int i = 1; i < 64; i++) {
+        ir_instruction_t* val = ir_context.guest_reg_to_value[i];
         if (val) {
             // If the guest reg was just loaded and never modified, don't need to flush it
             if (val->type != IR_LOAD_GUEST_REG) {
@@ -138,6 +140,7 @@ void ir_optimize_constant_propagation() {
             // TODO
             case IR_MULTIPLY:
             case IR_DIVIDE:
+            case IR_MOV_REG_TYPE:
                 break;
 
             case IR_NOT:
@@ -502,6 +505,11 @@ void ir_optimize_eliminate_dead_code() {
                     instr->shift.amount->dead_code = false;
                 }
                 break;
+            case IR_MOV_REG_TYPE:
+                if (!instr->dead_code) {
+                    instr->mov_reg_type.value->dead_code = false;
+                }
+                break;
 
             // No dependencies
             case IR_NOP:
@@ -554,185 +562,3 @@ void ir_optimize_shrink_constants() {
     }
 }
 
-// How many more instructions this value needs to hang around for
-int value_lifetime(ir_instruction_t* value, ir_instruction_t** last_use) {
-    int lifetime = 0;
-    ir_instruction_t* instr = value->next;
-    int times_stepped = 1;
-
-    while (instr) {
-        if (instr_uses_value(instr, value)) {
-            lifetime = times_stepped;
-
-            if (last_use) {
-                *last_use = instr;
-            }
-        }
-        instr = instr->next;
-        times_stepped++;
-    }
-
-    return lifetime;
-}
-
-bool needs_register_allocated(ir_instruction_t* instr) {
-    switch (instr->type) {
-        case IR_SET_CONSTANT:
-            return !is_valid_immediate(instr->set_constant.type);
-        case IR_NOP:
-        case IR_SET_COND_BLOCK_EXIT_PC:
-        case IR_SET_BLOCK_EXIT_PC:
-        case IR_STORE:
-        case IR_FLUSH_GUEST_REG:
-        case IR_COND_BLOCK_EXIT:
-        case IR_MULTIPLY:
-        case IR_DIVIDE:
-        case IR_SET_PTR:
-        case IR_ERET:
-            return false;
-
-        case IR_TLB_LOOKUP:
-        case IR_OR:
-        case IR_XOR:
-        case IR_AND:
-        case IR_ADD:
-        case IR_SUB:
-        case IR_LOAD:
-        case IR_GET_PTR:
-        case IR_MASK_AND_CAST:
-        case IR_CHECK_CONDITION:
-        case IR_LOAD_GUEST_REG:
-        case IR_SHIFT:
-        case IR_NOT:
-            return true;
-    }
-}
-
-int first_available_register(bool* registers_available, int num_total_regs) {
-    for (int i = 0; i < num_total_regs; i++) {
-        if (registers_available[i]) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-int active_value_comparator(const void* a, const void* b) {
-    ir_instruction_t* val_a = *(ir_instruction_t**)a;
-    ir_instruction_t* val_b = *(ir_instruction_t**)b;
-    if (val_a == NULL && val_b == NULL) {
-        return 0;
-    } else if (val_a == NULL) {
-        return 1; // null a comes after b (a - b, 1 - 0, 1)
-    } else if (val_b == NULL) {
-        return -1; // null b comes after a (a - b, 0 - 1, -1)
-    } else {
-        return val_a->last_use - val_b->last_use;
-    }
-}
-
-void ir_recalculate_indices() {
-    ir_instruction_t* value = ir_context.ir_cache_head;
-    int index = 0;
-    while (value != NULL) {
-        value->index = index++;
-        value = value->next;
-    }
-}
-
-INLINE void sort_active(ir_instruction_t* active, int num_active) {
-    if (num_active > 0) {
-        qsort(active, num_active, sizeof(ir_instruction_t*), active_value_comparator);
-    }
-}
-
-void expire_old_intervals(ir_instruction_t** active, bool* registers_available, ir_instruction_t* current_value, int* num_active) {
-    int num_expired = 0;
-    for (int i = 0; i < *num_active; i++) {
-        unimplemented(active[i]->reg_alloc.spilled, "Active value marked spilled");
-        if (active[i]->last_use >= current_value->index) {
-            break;
-        }
-        registers_available[active[i]->reg_alloc.host_reg] = true;
-        active[i] = NULL;
-        num_expired++;
-    }
-
-    if (num_expired > 0) {
-        sort_active((ir_instruction_t*)active, *num_active);
-        *num_active -= num_expired;
-    }
-}
-
-// https://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
-void ir_allocate_registers() {
-    // Recalculate indices before register allocation. Needed because previous steps can insert values into the middle of the list without updating the index values.
-    ir_recalculate_indices();
-
-    int num_total_regs = get_num_registers();
-    bool registers_available[num_total_regs];
-    for (int i = 0; i < num_total_regs; i++) {
-        registers_available[i] = false;
-    }
-
-    int num_regs = get_num_preserved_registers();
-    int num_active = 0;
-    ir_instruction_t* active[num_regs];
-    for (int i = 0; i < num_regs; i++) {
-        active[i] = NULL;
-        registers_available[get_preserved_registers()[i]] = true;
-    }
-
-    int spill_index = 0;
-
-    // TODO: replace last_use calculations with a single backwards pass instead of the worst-case O(n^2) algorithm of calling value_lifetime()
-    ir_instruction_t* value = ir_context.ir_cache_head;
-    while (value != NULL) {
-        // Sort in order of increasing last usage
-        sort_active((ir_instruction_t*)active, num_active);
-        expire_old_intervals(active, registers_available, value, &num_active);
-        if (needs_register_allocated(value)) {
-            ir_instruction_t* last_use = NULL;
-            value_lifetime(value, &last_use);
-            // Value never used, but dead code elimination didn't get rid of it - might be a LOAD, or something else that has a side effect
-            if (!last_use) {
-                last_use = value;
-            }
-            value->last_use = last_use->index;
-
-            if (num_active == num_regs) {
-                int active_index = num_active - 1; // last entry in active
-                ir_instruction_t* spill = active[active_index];
-                // If the spilled value is used for longer than the value we're trying to allocate, spill the existing value instead of the new value
-                if (spill->last_use > value->last_use) {
-                    // Transfer register allocation information from the spilled register to the new reg
-                    value->reg_alloc = spill->reg_alloc;
-
-                    // Allocate a new space on the stack for the spilled value
-                    spill->reg_alloc.spilled = true;
-                    spill->reg_alloc.spill_location = spill_index;
-                    spill_index += SPILL_ENTRY_SIZE;
-
-                    // Replace spilled value in active list with the new value
-                    active[active_index] = value;
-                } else {
-                    // Allocate a new space on the stack for the new value
-                    value->reg_alloc = alloc_reg_spilled(spill_index);
-                    spill_index += SPILL_ENTRY_SIZE;
-                }
-            } else {
-                int reg = first_available_register(registers_available, num_total_regs);
-                if (reg < 0) {
-                    logfatal("Unable to allocate register when one should be available.");
-                }
-                value->reg_alloc = alloc_reg(reg);
-                registers_available[reg] = false;
-                //  add interval to active, sorted by increasing end point
-                active[num_active] = value;
-                num_active++;
-            }
-
-        }
-        value = value->next;
-    }
-}

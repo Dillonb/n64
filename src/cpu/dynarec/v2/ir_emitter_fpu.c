@@ -51,7 +51,11 @@ IR_EMITTER(mfc1) {
 }
 
 IR_EMITTER(mtc1) {
-    logfatal("TODO: check CP1 is enabled, MTC1 unimplemented");
+    logwarn("TODO: check CP1 is enabled. Also, rewrite this function when a real FPU jit exists");
+    //checkcp1;
+    ir_instruction_t* value = ir_emit_load_guest_reg(IR_GPR(instruction.r.rt));
+    ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR, VALUE_TYPE_U32, IR_FGR(instruction.r.rd));
+}
 }
 
 IR_EMITTER(cp1_instruction) {
@@ -111,6 +115,7 @@ IR_EMITTER(cp1_instruction) {
                         logfatal("other/unknown MIPS BC 0x%08X [%s]", instruction.raw, buf);
                     }
                 }
+                break;
             case COP_DCF:
             case COP_DCT:
                 logfatal("Invalid CP1");

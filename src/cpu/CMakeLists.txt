@@ -56,6 +56,7 @@ add_library(r4300i
         dynarec/v2/ir_emitter_fpu.c dynarec/v2/ir_emitter_fpu.h
         dynarec/v2/ir_optimizer.c dynarec/v2/ir_optimizer.h
         dynarec/v2/target_platform.h
+        dynarec/v2/register_allocator.c dynarec/v2/register_allocator.h
         dynarec/v2/dispatcher.nasm dynarec/v2/dispatcher.h)
 
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")

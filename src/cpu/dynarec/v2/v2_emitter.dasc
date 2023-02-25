@@ -15,8 +15,8 @@
 #define TMPREG1 get_scratch_registers()[0]
 #define TMPREG2 get_scratch_registers()[1]
 
-#define TMPREG1_ALLOC alloc_reg(get_scratch_registers()[0])
-#define TMPREG2_ALLOC alloc_reg(get_scratch_registers()[1])
+#define TMPREG1_ALLOC alloc_gpr(get_scratch_registers()[0])
+#define TMPREG2_ALLOC alloc_gpr(get_scratch_registers()[1])
 
 #define IMM64_INVALID() logfatal("Should never end up here, x86_64 has no 64 bit immediates")
 
@@ -92,7 +92,7 @@ int check_reg(ir_register_allocation_t reg, bool spill_ok) {
         unimplemented((reg.spill_location) < 0 || (reg.spill_location) > SPILL_SPACE_SIZE_BYTES, "Invalid spill location value: %d", reg.spill_location);
         return reg.spill_location;
     } else {
-        unimplemented((reg.host_reg) < 0 || (reg.host_reg) > get_num_registers(), "Invalid host register value: %d", reg.host_reg);
+        unimplemented((reg.host_reg) < 0 || (reg.host_reg) > get_num_gprs(), "Invalid host register value: %d", reg.host_reg);
         return reg.host_reg;
     }
 }
@@ -429,26 +429,26 @@ void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc
             break;
 
         case VALUE_TYPE_S32:
-            host_emit_mov_reg_imm(Dst, alloc_reg(REG_RAX), imm);
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
             // mul writes the low 32 bits to eax, and the high 32 to edx.
             | imul Rd(reg)
             // Sign extend results
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
             // Save results to mem
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_U32:
-            host_emit_mov_reg_imm(Dst, alloc_reg(REG_RAX), imm);
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
             // mul writes the low 32 bits to eax, and the high 32 to edx.
             | mul Rd(reg)
             // Sign extend results
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
             // Save results to mem
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_U64:
             logfatal("u64 multiply");
@@ -482,11 +482,11 @@ void host_emit_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_
             }
 
             // Sign extend results
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
             // Save results to mem
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
 
             break;
         case VALUE_TYPE_U32:
@@ -530,8 +530,8 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             | idiv Rq(TMPREG2)
 
             // Sign extend results
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
 
             | jmp >2
             |1:
@@ -547,8 +547,8 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             | mov rax, 1
             |2:
             // Save results to mem
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_U32:
             if (operand1_alloc.spilled) {
@@ -568,8 +568,8 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             | div Rq(TMPREG2)
 
             // Sign extend results
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RDX), alloc_reg(REG_RDX), VALUE_TYPE_S32);
-            host_emit_mov_reg_reg(Dst, alloc_reg(REG_RAX), alloc_reg(REG_RAX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
 
             | jmp >2
             |1:
@@ -579,8 +579,8 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             | mov rax, -1
             |2:
             // Save results to mem
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_reg(REG_RDX), VALUE_TYPE_U64);
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_reg(REG_RAX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_U64:
             logfatal("u64 divide");

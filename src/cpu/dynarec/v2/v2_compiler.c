@@ -10,6 +10,7 @@
 #include "ir_context.h"
 #include "ir_optimizer.h"
 #include "target_platform.h"
+#include "register_allocator.h"
 
 //#define N64_LOG_COMPILATIONS
 
@@ -243,9 +244,9 @@ void val_to_func_arg(dasm_State** Dst, ir_instruction_t* val, int arg_index) {
         logfatal("Too many args (%d) passed to fit into registers", arg_index + 1);
     }
     if (instr_valid_immediate(val) && is_valid_immediate(val->set_constant.type)) {
-        host_emit_mov_reg_imm(Dst, alloc_reg(get_func_arg_registers()[arg_index]), val->set_constant);
+        host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[arg_index]), val->set_constant);
     } else {
-        host_emit_mov_reg_reg(Dst, alloc_reg(get_func_arg_registers()[arg_index]), val->reg_alloc, VALUE_TYPE_U64);
+        host_emit_mov_reg_reg(Dst, alloc_gpr(get_func_arg_registers()[arg_index]), val->reg_alloc, VALUE_TYPE_U64);
     }
 }
 
@@ -310,7 +311,7 @@ void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
 
         val_to_func_arg(Dst, instr->load.address, 0);
         host_emit_call(Dst, fp);
-        host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_reg(get_return_value_reg()), instr->load.type);
+        host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_gpr(get_return_value_reg()), instr->load.type);
     }
 }
 
@@ -372,17 +373,25 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     ir_set_constant_t bus_access;
     bus_access.type = VALUE_TYPE_U16;
     bus_access.value_u16 = instr->tlb_lookup.bus_access;
-    host_emit_mov_reg_imm(Dst, alloc_reg(get_func_arg_registers()[1]), bus_access);
+    host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[1]), bus_access);
 
     host_emit_call(Dst, (uintptr_t)resolve_virtual_address_or_die);
-    host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_reg(get_return_value_reg()), VALUE_TYPE_U64);
+    host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_gpr(get_return_value_reg()), VALUE_TYPE_U64);
 }
 
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
-    if (is_constant(instr->flush_guest_reg.value)) {
-        host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U64);
+    if (IR_IS_FGR(instr->flush_guest_reg.guest_reg)) {
+        if (is_constant(instr->flush_guest_reg.value)) {
+            logfatal("Flushing const FPU reg");
+        } else {
+            logfatal("Flushing non const FPU reg");
+        }
     } else {
-        host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
+        if (is_constant(instr->flush_guest_reg.value)) {
+            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U64);
+        } else {
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
+        }
     }
 }
 
@@ -449,6 +458,10 @@ void compile_ir_divide(dasm_State** Dst, ir_instruction_t* instr) {
 void compile_ir_eret(dasm_State** Dst) {
     ir_context.block_end_pc_compiled = true;
     host_emit_eret(Dst);
+}
+
+void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
+    logfatal("compile_ir_mov_reg_type: %d", instr->reg_alloc.host_reg);
 }
 
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
@@ -534,6 +547,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_ERET:
                 compile_ir_eret(Dst);
+                break;
+            case IR_MOV_REG_TYPE:
+                compile_ir_mov_reg_type(Dst, instr);
                 break;
         }
         instr = instr->next;

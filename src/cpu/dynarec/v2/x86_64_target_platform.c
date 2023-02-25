@@ -1,11 +1,15 @@
 #include "target_platform.h"
 #include "x86_64_registers.h"
 
-int get_num_registers() {
+int get_num_gprs() {
     return 16;
 }
 
-const int* get_preserved_registers() {
+int get_num_fgrs() {
+    return 16; // xmm0-xmm15
+}
+
+const int* get_preserved_gprs() {
     const static int preserved_regs[] = {
             REG_RBX,
             // Yes, it's preserved, but we can't use it for register allocation.
@@ -21,7 +25,7 @@ const int* get_preserved_registers() {
     return preserved_regs;
 }
 
-int get_num_preserved_registers() {
+int get_num_preserved_gprs() {
     return 5; // 7 if we include the stack pointer and r12, but we can't.
 }
 

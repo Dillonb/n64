@@ -9,6 +9,13 @@
 // Number of values that can be flushed conditionally per block when the block is exited early.
 #define IR_FLUSH_CACHE_SIZE 100
 
+#define IR_GPR_BASE 0
+#define IR_FGR_BASE 32
+#define IR_GPR(r) ((r) + IR_GPR_BASE)
+#define IR_FGR(r) ((r) + IR_FGR_BASE)
+#define IR_IS_GPR(r) ((r) >= IR_GPR_BASE && (r) < (IR_GPR_BASE + 32))
+#define IR_IS_FGR(r) ((r) >= IR_FGR_BASE && (r) < (IR_FGR_BASE + 32))
+
 typedef enum ir_condition {
     CONDITION_NOT_EQUAL,
     CONDITION_EQUAL,
@@ -59,26 +66,43 @@ typedef struct ir_instruction_flush {
     struct ir_instruction_flush* next;
 } ir_instruction_flush_t;
 
+typedef enum register_type {
+    REGISTER_TYPE_NONE,
+    REGISTER_TYPE_GPR,
+    REGISTER_TYPE_FGR
+} ir_register_type_t;
+
 typedef struct ir_register_allocation {
     bool allocated;
     bool spilled;
+    ir_register_type_t type;
     union {
         int host_reg;
         int spill_location;
     };
 } ir_register_allocation_t;
 
-INLINE ir_register_allocation_t alloc_reg(int reg) {
+INLINE ir_register_allocation_t alloc_reg(int reg, ir_register_type_t type) {
     ir_register_allocation_t alloc;
     alloc.allocated = true;
+    alloc.type = type;
     alloc.spilled = false;
     alloc.host_reg = reg;
     return alloc;
 }
 
-INLINE ir_register_allocation_t alloc_reg_spilled(int spill_location) {
+INLINE ir_register_allocation_t alloc_gpr(int reg) {
+    return alloc_reg(reg, REGISTER_TYPE_GPR);
+}
+
+INLINE ir_register_allocation_t alloc_fgr(int reg) {
+    return alloc_reg(reg, REGISTER_TYPE_FGR);
+}
+
+INLINE ir_register_allocation_t alloc_reg_spilled(int spill_location, ir_register_type_t type) {
     ir_register_allocation_t alloc;
     alloc.allocated = true;
+    alloc.type = type;
     alloc.spilled = true;
     alloc.spill_location = spill_location;
     return alloc;
@@ -86,6 +110,10 @@ INLINE ir_register_allocation_t alloc_reg_spilled(int spill_location) {
 
 INLINE bool reg_alloc_equal(ir_register_allocation_t a, ir_register_allocation_t b) {
     if (a.allocated != b.allocated) {
+        return false;
+    }
+
+    if (a.type != b.type) {
         return false;
     }
 
@@ -130,7 +158,8 @@ typedef struct ir_instruction {
         IR_FLUSH_GUEST_REG,
         IR_MULTIPLY,
         IR_DIVIDE,
-        IR_ERET
+        IR_ERET,
+        IR_MOV_REG_TYPE
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -207,12 +236,21 @@ typedef struct ir_instruction {
             struct ir_instruction* operand2;
             ir_value_type_t mult_div_type;
         } mult_div;
+        struct {
+            struct ir_instruction* value;
+            ir_register_type_t new_type;
+            ir_value_type_t size;
+        } mov_reg_type;
     };
 } ir_instruction_t;
 
 typedef struct ir_context {
-    // Maps a guest register to the SSA value currently in it, as of the current context
-    ir_instruction_t* guest_gpr_to_value[32];
+    /*
+     * Maps a guest register to the SSA value currently in it, as of the current context
+     * 0-31  - GPR
+     * 32-63 - FGR
+     */
+    ir_instruction_t* guest_reg_to_value[64];
 
     ir_instruction_t ir_cache[IR_CACHE_SIZE];
     ir_instruction_t* ir_cache_head;
@@ -283,6 +321,8 @@ ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instructi
 ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type);
 // Run the MIPS ERET instruction
 ir_instruction_t* ir_emit_eret();
+// Move a value to a different register type
+ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.
