@@ -43,8 +43,8 @@ void test_branch_likely(bool jit) {
     if (jit) {
         n64_system_step(true, -1);
     } else {
-        n64_system_step(false, -1);
-        n64_system_step(false, -1);
+        n64_system_step(false, 1);
+        n64_system_step(false, 1);
     }
 
     // Branch was NOT taken.
