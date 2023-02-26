@@ -4,18 +4,25 @@
 #include "ir_context.h"
 
 IR_EMITTER(ldc1) {
-    logfatal("ldc1");
+    //checkcp1; // TODO: check cp1 is enabled
+    logwarn("LDC1: TODO: Check CP1 is enabled");
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_emit_load(VALUE_TYPE_U64, address, IR_FGR(instruction.fi.ft));
 }
 
 IR_EMITTER(sdc1) {
-    logfatal("sdc1");
+    //checkcp1; // TODO: check cp1 is enabled
+    logwarn("SDC1: TODO: Check CP1 is enabled");
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fi.ft), FLOAT_VALUE_TYPE_LONG);
+    ir_emit_store(VALUE_TYPE_U64, address, value);
 }
 
 IR_EMITTER(lwc1) {
     //checkcp1; // TODO: check cp1 is enabled
     logwarn("LWC1: TODO: Check CP1 is enabled");
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
-    ir_emit_load(VALUE_TYPE_S32, address, IR_FGR(instruction.fi.ft));
+    ir_emit_load(VALUE_TYPE_U32, address, IR_FGR(instruction.fi.ft));
 }
 
 IR_EMITTER(swc1) {
