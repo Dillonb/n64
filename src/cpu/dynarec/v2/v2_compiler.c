@@ -471,33 +471,37 @@ void compile_ir_eret(dasm_State** Dst) {
 }
 
 void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
-    ir_register_type_t source_type = instr->mov_reg_type.value->reg_alloc.type;
     ir_register_type_t dest_type = instr->mov_reg_type.new_type;
 
-    switch (source_type) {
-        case REGISTER_TYPE_NONE:
-            logfatal("mov_reg_type with source type REGISTER_TYPE_NONE");
-            break;
-        case REGISTER_TYPE_GPR:
-            switch (dest_type) {
-                case REGISTER_TYPE_NONE:
-                    logfatal("mov_reg_type with source type REGISTER_TYPE_GPR and dest type REGISTER_TYPE_NONE");
-                    break;
-                case REGISTER_TYPE_GPR:
-                    logfatal("mov_reg_type with source type REGISTER_TYPE_GPR and dest type REGISTER_TYPE_GPR");
-                    break;
-                case REGISTER_TYPE_FGR_32:
-                case REGISTER_TYPE_FGR_64:
-                    host_emit_mov_fgr_gpr(Dst, instr->reg_alloc, instr->mov_reg_type.value->reg_alloc, instr->mov_reg_type.size);
-                    break;
-            }
-            break;
-        case REGISTER_TYPE_FGR_32:
-            logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32");
-            break;
-        case REGISTER_TYPE_FGR_64:
-            logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_64");
-            break;
+    if (is_constant(instr->mov_reg_type.value)) {
+        logfatal("mov reg type with const arg");
+    } else {
+        ir_register_type_t source_type = instr->mov_reg_type.value->reg_alloc.type;
+        switch (source_type) {
+            case REGISTER_TYPE_NONE:
+                logfatal("mov_reg_type with source type REGISTER_TYPE_NONE");
+                break;
+            case REGISTER_TYPE_GPR:
+                switch (dest_type) {
+                    case REGISTER_TYPE_NONE:
+                        logfatal("mov_reg_type with source type REGISTER_TYPE_GPR and dest type REGISTER_TYPE_NONE");
+                        break;
+                    case REGISTER_TYPE_GPR:
+                        logfatal("mov_reg_type with source type REGISTER_TYPE_GPR and dest type REGISTER_TYPE_GPR");
+                        break;
+                    case REGISTER_TYPE_FGR_32:
+                    case REGISTER_TYPE_FGR_64:
+                        host_emit_mov_fgr_gpr(Dst, instr->reg_alloc, instr->mov_reg_type.value->reg_alloc, instr->mov_reg_type.size);
+                        break;
+                }
+                break;
+            case REGISTER_TYPE_FGR_32:
+                logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32");
+                break;
+            case REGISTER_TYPE_FGR_64:
+                logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_64");
+                break;
+        }
     }
 }
 
