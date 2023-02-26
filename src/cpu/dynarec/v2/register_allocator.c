@@ -54,17 +54,29 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         case IR_AND:
         case IR_ADD:
         case IR_SUB:
-        case IR_LOAD:
         case IR_GET_PTR:
         case IR_MASK_AND_CAST:
         case IR_CHECK_CONDITION:
-        case IR_LOAD_GUEST_REG:
         case IR_SHIFT:
         case IR_NOT:
             return REGISTER_TYPE_GPR;
 
+        case IR_LOAD_GUEST_REG:
+            if (IR_IS_FGR(instr->load_guest_reg.guest_reg)) {
+                logfatal("Load guest reg with FGR: need some way to determine type");
+            } else if (IR_IS_GPR(instr->load_guest_reg.guest_reg)) {
+                return REGISTER_TYPE_GPR;
+            }
+            break;
+
+        case IR_LOAD:
+            return instr->load.reg_type;
+
         case IR_MOV_REG_TYPE:
             return instr->mov_reg_type.new_type;
+
+        case IR_FLOAT_CONVERT:
+            return float_val_to_reg_type(instr->float_convert.to_type);
     }
 }
 

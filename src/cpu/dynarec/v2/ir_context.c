@@ -7,6 +7,13 @@ ir_context_t ir_context;
 void ir_context_reset() {
     for (int i = 0; i < 64; i++) {
         ir_context.guest_reg_to_value[i] = NULL;
+        if (IR_IS_GPR(i)) {
+            ir_context.guest_reg_to_reg_type[i] = REGISTER_TYPE_GPR;
+        } else if (IR_IS_FGR(i)) {
+            ir_context.guest_reg_to_reg_type[i] = REGISTER_TYPE_NONE; // Float size is unknown at this point
+        } else {
+            logfatal("Unknown or out of bounds guest register: %d", i);
+        }
     }
 
     memset(ir_context.ir_cache, 0, sizeof(ir_instruction_t) * IR_CACHE_SIZE);
@@ -58,6 +65,21 @@ const char* reg_type_to_str(ir_register_type_t type) {
             return "FGR32";
         case REGISTER_TYPE_FGR_64:
             return "FGR64";
+    }
+}
+
+const char* float_type_to_str(ir_float_value_type_t type) {
+    switch (type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            return "INVALID";
+        case FLOAT_VALUE_TYPE_WORD:
+            return "WORD";
+        case FLOAT_VALUE_TYPE_LONG:
+            return "LONG";
+        case FLOAT_VALUE_TYPE_SINGLE:
+            return "SINGLE";
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            return "DOUBLE";
     }
 }
 
@@ -209,6 +231,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_MOV_REG_TYPE:
             snprintf(buf, buf_size, "to_type(v%d, reg_type = %s, size = %s)", instr->mov_reg_type.value->index, reg_type_to_str(instr->mov_reg_type.new_type), val_type_to_str(instr->mov_reg_type.size));
             break;
+        case IR_FLOAT_CONVERT:
+            snprintf(buf, buf_size, "float_convert(v%d, from = %s, to = %s)", instr->float_convert.value->index, float_type_to_str(instr->float_convert.from_type), float_type_to_str(instr->float_convert.to_type));
+            break;
     }
 }
 
@@ -218,6 +243,45 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
             ir_context.guest_reg_to_value[guest_reg] = value;
         } else if (IR_IS_FGR(guest_reg)) {
             ir_context.guest_reg_to_value[guest_reg] = value;
+            switch (value->type) {
+                case IR_SET_CONSTANT:
+                case IR_NOP:
+                case IR_OR:
+                case IR_XOR:
+                case IR_AND:
+                case IR_SUB:
+                case IR_NOT:
+                case IR_ADD:
+                case IR_SHIFT:
+                case IR_STORE:
+                case IR_GET_PTR:
+                case IR_SET_PTR:
+                case IR_MASK_AND_CAST:
+                case IR_CHECK_CONDITION:
+                case IR_SET_COND_BLOCK_EXIT_PC:
+                case IR_SET_BLOCK_EXIT_PC:
+                case IR_COND_BLOCK_EXIT:
+                case IR_TLB_LOOKUP:
+                case IR_LOAD_GUEST_REG:
+                case IR_FLUSH_GUEST_REG:
+                case IR_MULTIPLY:
+                case IR_DIVIDE:
+                case IR_ERET:
+                    logfatal("Unsupported IR instruction assigned to FPU reg");
+
+                case IR_LOAD:
+                    ir_context.guest_reg_to_reg_type[guest_reg] = value->load.reg_type;
+                    break;
+
+                case IR_MOV_REG_TYPE:
+                    unimplemented(value->mov_reg_type.new_type != REGISTER_TYPE_FGR_32 && value->mov_reg_type.new_type != REGISTER_TYPE_FGR_64, "non-float mapped to FGR!");
+                    ir_context.guest_reg_to_reg_type[guest_reg] = value->mov_reg_type.new_type;
+                    break;
+
+                case IR_FLOAT_CONVERT:
+                    ir_context.guest_reg_to_reg_type[guest_reg] = float_val_to_reg_type(value->float_convert.to_type);
+                    break;
+            }
         }
     }
 }
@@ -316,17 +380,11 @@ ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
     instruction.type = IR_SET_CONSTANT;
     instruction.set_constant = value;
 
-    ir_instruction_t* allocated = append_ir_instruction(instruction, guest_reg);
-    allocated->reg_alloc.type = REGISTER_TYPE_GPR;
-    return allocated;
+    return append_ir_instruction(instruction, guest_reg);
 }
 
-ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
-    if (guest_reg > 63) {
-        logfatal("ir_emit_load_guest_reg: out of range guest reg value: %d", guest_reg);
-    } else if (guest_reg >= IR_FGR_BASE) {
-        logfatal("Getting FPU register f%d", guest_reg - IR_FGR_BASE);
-    } else {
+ir_instruction_t* ir_emit_load_guest_gpr(u8 guest_reg) {
+    if (IR_IS_GPR(guest_reg)) {
         if (ir_context.guest_reg_to_value[guest_reg] != NULL) {
             return ir_context.guest_reg_to_value[guest_reg];
         }
@@ -334,8 +392,32 @@ ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
         ir_instruction_t instruction;
         instruction.type = IR_LOAD_GUEST_REG;
         instruction.load_guest_reg.guest_reg = guest_reg;
+        instruction.load_guest_reg.guest_reg_type = REGISTER_TYPE_GPR;
 
         return append_ir_instruction(instruction, guest_reg);
+    } else if (IR_IS_FGR(guest_reg)) {
+        logfatal("Loading FGR with ir_emit_load_guest_gpr(), use ir_emit_load_guest_fgr()");
+    } else {
+        logfatal("Loading unknown (or out of range) guest register %d", guest_reg);
+    }
+}
+
+ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t type) {
+    if (IR_IS_GPR(guest_fgr)) {
+        logfatal("Loading GPR with ir_emit_load_guest_fgr(), use ir_emit_load_guest_gpr()");
+    } else if (IR_IS_FGR(guest_fgr)) {
+        bool should_reload =
+                // No cached value -> should reload
+                ir_context.guest_reg_to_value[guest_fgr] == NULL
+                // Reg type differs from what we need -> should reload
+                || ir_context.guest_reg_to_reg_type[guest_fgr] != float_val_to_reg_type(type);
+
+        if (!should_reload) {
+            return ir_context.guest_reg_to_value[guest_fgr];
+        }
+        logfatal("Unimplemented: need to reload");
+    } else {
+        logfatal("Loading unknown (or out of range) guest register %d", guest_fgr);
     }
 }
 
@@ -438,6 +520,23 @@ ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, 
     instruction.type = IR_LOAD;
     instruction.load.type = type;
     instruction.load.address = address;
+    if (IR_IS_GPR(guest_reg)) {
+        instruction.load.reg_type = REGISTER_TYPE_GPR;
+    } else if (IR_IS_FGR(guest_reg)) {
+        switch (type) {
+            CASE_SIZE_8:
+            CASE_SIZE_16:
+                logfatal("Invalid FGR size");
+            CASE_SIZE_32:
+                instruction.load.reg_type = REGISTER_TYPE_FGR_32;
+                break;
+            CASE_SIZE_64:
+                instruction.load.reg_type = REGISTER_TYPE_FGR_64;
+                break;
+        }
+    } else {
+        logfatal("Unknown guest reg type");
+    }
     return append_ir_instruction(instruction, guest_reg);
 }
 
@@ -568,7 +667,26 @@ ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type
     instruction.mov_reg_type.value = value;
     instruction.mov_reg_type.new_type = new_type;
     instruction.mov_reg_type.size = size;
-    ir_instruction_t* allocated = append_ir_instruction(instruction, new_reg);
-    allocated->reg_alloc.type = new_type;
-    return allocated;
+    return append_ir_instruction(instruction, new_reg);
+}
+
+ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg) {
+    if (from_type == FLOAT_VALUE_TYPE_INVALID) {
+        logfatal("Cannot convert from FLOAT_VALUE_TYPE_INVALID");
+    }
+
+    if (to_type == FLOAT_VALUE_TYPE_INVALID) {
+        logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+    }
+
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float convert must target an FGR");
+    }
+
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_CONVERT;
+    instruction.float_convert.value = value;
+    instruction.float_convert.from_type = from_type;
+    instruction.float_convert.to_type = to_type;
+    return append_ir_instruction(instruction, guest_reg);
 }

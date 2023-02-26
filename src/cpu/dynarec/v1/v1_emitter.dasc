@@ -836,8 +836,8 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, u32 address) {
             case COP_FUNCT_CVT_D:
                 switch (instr.fr.fmt) {
                     CASEIR(FP_FMT_SINGLE, mips_cp_cvt_d_s);
-                    CASEIR(FP_FMT_W, mips_cp_cvt_d_w);
-                    CASEIR(FP_FMT_L, mips_cp_cvt_d_l);
+                    CASEIR(FP_FMT_WORD, mips_cp_cvt_d_w);
+                    CASEIR(FP_FMT_LONG, mips_cp_cvt_d_l);
                     default:
                         logfatal("Undefined!");
                 }
@@ -851,8 +851,8 @@ INLINE dynarec_ir_t* cp1_instruction_ir(mips_instruction_t instr, u32 address) {
             case COP_FUNCT_CVT_S:
                 switch (instr.fr.fmt) {
                     CASEIR(FP_FMT_DOUBLE, mips_cp_cvt_s_d);
-                    CASEIR(FP_FMT_W, mips_cp_cvt_s_w);
-                    CASEIR(FP_FMT_L, mips_cp_cvt_s_l);
+                    CASEIR(FP_FMT_WORD, mips_cp_cvt_s_w);
+                    CASEIR(FP_FMT_LONG, mips_cp_cvt_s_l);
                     default:
                         logfatal("Undefined!");
                 }

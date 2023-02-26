@@ -608,6 +608,13 @@ void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_al
     if (source_value_type == VALUE_TYPE_U64 && reg_alloc_equal(src_reg_alloc, dst_reg_alloc)) {
         return;
     }
+    if (dst_reg_alloc.type == REGISTER_TYPE_FGR_32 || dst_reg_alloc.type == REGISTER_TYPE_FGR_64) {
+        unimplemented(src_reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR source reg");
+        host_emit_mov_fgr_gpr(Dst, dst_reg_alloc, src_reg_alloc, source_value_type);
+        return;
+    }
+    unimplemented(src_reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR source reg");
+    unimplemented(dst_reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR dest reg");
 
     unimplemented(dst_reg_alloc.spilled && src_reg_alloc.spilled, "both regs spilled");
 
@@ -983,7 +990,7 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
                 break;
             case REGISTER_TYPE_FGR_64:
                 unimplemented(type != VALUE_TYPE_U64 && type != VALUE_TYPE_S64, "non-64 bit FGR_64 flush");
-                logfatal("mov_mem_reg REGISTER_TYPE_FGR_64");
+                | movq qword [cpu_state + offset], xmm(reg)
                 break;
         }
     } else {
@@ -1107,6 +1114,109 @@ void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
             break;
     }
 }
+
+void host_emit_float_convert_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
+    int src = check_reg(src_reg, false);
+    int dst = check_fgr(dst_reg, false);
+
+    switch (src_type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("Cannot convert from FLOAT_VALUE_TYPE_INVALID");
+        case FLOAT_VALUE_TYPE_WORD:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_WORD to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_WORD to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    if (src_reg.type == REGISTER_TYPE_GPR) {
+                        // cvtsi2ss gpr -> xmm
+                        logfatal("Converting to word -> single from GPR: use cvtsi2ss");
+                    } else if (src_reg.type == REGISTER_TYPE_FGR_64) {
+                        logfatal("Converting to word -> single from FGR_64 - do I need to reload the source register?");
+                    } else {
+                        | cvtdq2ps xmm(dst), xmm(src)
+                    }
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    if (src_reg.type == REGISTER_TYPE_GPR) {
+                        //cvtsi2sd gpr -> xmm
+                        logfatal("Converting to word -> double from GPR: use cvtsi2sd");
+                    } else if (src_reg.type == REGISTER_TYPE_FGR_64) {
+                        logfatal("Converting to word -> double from FGR_64 - do I need to reload the source register?");
+                    } else {
+                        | cvtdq2pd xmm(dst), xmm(src)
+                    }
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_LONG to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_LONG to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_LONG to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_LONG to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    unimplemented(src_reg.type != REGISTER_TYPE_FGR_64, "converting from DOUBLE to SINGLE with a non-FGR64 source");
+                    unimplemented(dst_reg.type != REGISTER_TYPE_FGR_32, "converting from DOUBLE to SINGLE with a non-FGR32 dest");
+                    | cvtsd2ss xmm(dst), xmm(src)
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+    }
+}
+
 void v2_end_block(dasm_State** Dst, int block_length) {
     | mov eax, block_length
     | epilogue // return block_length

@@ -40,7 +40,7 @@ void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
         u64 bad_byte = (actual >> offset) & 0xFF;
         printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte, good_byte == bad_byte ? "" : COLOR_END);
     }
-    printf("%s\n", expected == actual ? "" : " BAD!");
+    printf("%s" COLOR_END "\n", expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
 }
 
 void print_state() {
@@ -77,6 +77,7 @@ void restore_from(n64_system_t* sys, r4300i_t* cpu, rsp_t* rsp, scheduler_t* sch
 }
 
 int main(int argc, char** argv) {
+    log_set_verbosity(LOG_VERBOSITY_WARN);
 #ifndef INSTANT_PI_DMA
     logfatal("The emulator must be built with INSTANT_PI_DMA for this tool to be effective! (TODO: and probably other DMAs, too)");
 #endif

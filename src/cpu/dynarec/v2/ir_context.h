@@ -45,6 +45,14 @@ typedef enum ir_value_type {
 #define CASE_SIZE_32 case VALUE_TYPE_S32: case VALUE_TYPE_U32
 #define CASE_SIZE_64 case VALUE_TYPE_U64: case VALUE_TYPE_S64
 
+typedef enum ir_float_value_type {
+    FLOAT_VALUE_TYPE_INVALID,
+    FLOAT_VALUE_TYPE_WORD,
+    FLOAT_VALUE_TYPE_LONG,
+    FLOAT_VALUE_TYPE_SINGLE,
+    FLOAT_VALUE_TYPE_DOUBLE
+} ir_float_value_type_t;
+
 typedef enum ir_shift_direction {
     SHIFT_DIRECTION_LEFT,
     SHIFT_DIRECTION_RIGHT
@@ -87,6 +95,19 @@ typedef struct ir_register_allocation {
         int spill_location;
     };
 } ir_register_allocation_t;
+
+INLINE ir_register_type_t float_val_to_reg_type(ir_float_value_type_t type) {
+    switch (type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("Getting register type of FLOAT_VALUE_TYPE_INVALID");
+        case FLOAT_VALUE_TYPE_WORD:
+        case FLOAT_VALUE_TYPE_SINGLE:
+            return REGISTER_TYPE_FGR_32;
+        case FLOAT_VALUE_TYPE_LONG:
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            return REGISTER_TYPE_FGR_64;
+    }
+}
 
 INLINE ir_register_allocation_t alloc_reg(int reg, ir_register_type_t type) {
     ir_register_allocation_t alloc;
@@ -169,7 +190,8 @@ typedef struct ir_instruction {
         IR_MULTIPLY,
         IR_DIVIDE,
         IR_ERET,
-        IR_MOV_REG_TYPE
+        IR_MOV_REG_TYPE,
+        IR_FLOAT_CONVERT
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -184,6 +206,7 @@ typedef struct ir_instruction {
         } store;
         struct {
             ir_value_type_t type;
+            ir_register_type_t reg_type;
             struct ir_instruction* address;
         } load;
         struct {
@@ -218,6 +241,7 @@ typedef struct ir_instruction {
         } tlb_lookup;
         struct {
             u8 guest_reg;
+            ir_register_type_t guest_reg_type;
         } load_guest_reg;
         struct {
             struct ir_instruction* value;
@@ -251,6 +275,11 @@ typedef struct ir_instruction {
             ir_register_type_t new_type;
             ir_value_type_t size;
         } mov_reg_type;
+        struct {
+            struct ir_instruction* value;
+            ir_float_value_type_t from_type;
+            ir_float_value_type_t to_type;
+        } float_convert;
     };
 } ir_instruction_t;
 
@@ -261,6 +290,7 @@ typedef struct ir_context {
      * 32-63 - FGR
      */
     ir_instruction_t* guest_reg_to_value[64];
+    ir_register_type_t guest_reg_to_reg_type[64];
 
     ir_instruction_t ir_cache[IR_CACHE_SIZE];
     ir_instruction_t* ir_cache_head;
@@ -283,8 +313,10 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size);
 
 // Emit a constant to the IR, optionally associating it with a guest register.
 ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
-// Load a guest register, or return a reference to it if it's already loaded.
-ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg);
+// Load a guest GPR, or return a reference to it if it's already loaded.
+ir_instruction_t* ir_emit_load_guest_gpr(u8 guest_reg);
+// Load a guest FGR, or return a reference to it if it's already loaded.
+ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t type);
 // Flush a guest register back to memory. Emitted after a value's last usage to flush values back to memory.
 ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* last_usage, ir_instruction_t* value, u8 guest_reg);
 // OR two values together.
@@ -333,6 +365,8 @@ ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* d
 ir_instruction_t* ir_emit_eret();
 // Move a value to a different register type
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
+// convert a float value to a different float value type
+ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

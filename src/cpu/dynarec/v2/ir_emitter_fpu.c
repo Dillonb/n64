@@ -3,6 +3,25 @@
 #include "ir_emitter_fpu.h"
 #include "ir_context.h"
 
+IR_EMITTER(ldc1) {
+    logfatal("ldc1");
+}
+
+IR_EMITTER(sdc1) {
+    logfatal("sdc1");
+}
+
+IR_EMITTER(lwc1) {
+    //checkcp1; // TODO: check cp1 is enabled
+    logwarn("LWC1: TODO: Check CP1 is enabled");
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_emit_load(VALUE_TYPE_S32, address, IR_FGR(instruction.fi.ft));
+}
+
+IR_EMITTER(swc1) {
+    logfatal("swc1");
+}
+
 IR_EMITTER(cfc1) {
     //checkcp1; // TODO: check cp1 is enabled
     logwarn("CFC1: TODO: Check CP1 is enabled");
@@ -22,7 +41,7 @@ IR_EMITTER(cfc1) {
 IR_EMITTER(ctc1) {
     logwarn("CTC1: TODO: Check CP1 is enabled");
     //checkcp1; // TODO: check cp1 is enabled
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
     u8 fs = instruction.r.rd;
     switch (fs) {
         case 0:
@@ -40,9 +59,9 @@ IR_EMITTER(ctc1) {
 }
 
 IR_EMITTER(bc1tl) {
-    logwarn("BC1TL unimplemented");
-    ir_instruction_t* cond = ir_emit_load_guest_reg(0); // Always false
-    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
+    logfatal("BC1TL unimplemented");
+    //ir_instruction_t* cond = ir_emit_load_guest_gpr(0); // Always false
+    //ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(mfc1) {
@@ -51,9 +70,9 @@ IR_EMITTER(mfc1) {
 }
 
 IR_EMITTER(mtc1) {
-    logwarn("TODO: check CP1 is enabled. Also, rewrite this function when a real FPU jit exists");
+    logwarn("TODO: check CP1 is enabled");
     //checkcp1;
-    ir_instruction_t* value = ir_emit_load_guest_reg(IR_GPR(instruction.r.rt));
+    ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
     ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR_32, VALUE_TYPE_U32, IR_FGR(instruction.r.rd));
 }
 
@@ -174,16 +193,20 @@ IR_EMITTER(cp1_round_w) {
     }
 }
 
+void emit_ir_cvt(mips_instruction_t instruction, ir_float_value_type_t from, ir_float_value_type_t to) {
+    ir_instruction_t* source = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), from);
+    ir_emit_float_convert(source, from, to, IR_FGR(instruction.fr.fd));
+}
+
+#define CVT(from, to) case FP_FMT_##from: emit_ir_cvt(instruction, FLOAT_VALUE_TYPE_##from, FLOAT_VALUE_TYPE_##to); break
+
 IR_EMITTER(cp1_cvt_d) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_cvt_d_s");
-        case FP_FMT_W:
-            logfatal("mips_cp_cvt_d_w");
-        case FP_FMT_L:
-            logfatal("mips_cp_cvt_d_l");
+        CVT(SINGLE, DOUBLE);
+        CVT(WORD,   DOUBLE);
+        CVT(LONG,   DOUBLE);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -193,10 +216,8 @@ IR_EMITTER(cp1_cvt_l) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_cvt_l_d");
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_cvt_l_s");
+        CVT(DOUBLE, LONG);
+        CVT(SINGLE, LONG);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -206,12 +227,9 @@ IR_EMITTER(cp1_cvt_s) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_cvt_s_d");
-        case FP_FMT_W:
-            logfatal("mips_cp_cvt_s_w");
-        case FP_FMT_L:
-            logfatal("mips_cp_cvt_s_l");
+        CVT(DOUBLE, SINGLE);
+        CVT(WORD,   SINGLE);
+        CVT(LONG,   SINGLE);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -221,10 +239,8 @@ IR_EMITTER(cp1_cvt_w) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_cvt_w_d");
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_cvt_w_s");
+        CVT(DOUBLE, WORD);
+        CVT(SINGLE, WORD);
         default:
             logfatal("mips_cp1_invalid");
     }

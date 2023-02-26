@@ -266,9 +266,9 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 switch (instr.fr.fmt) {
                     case FP_FMT_SINGLE:
                         return mips_cp_cvt_d_s;
-                    case FP_FMT_W:
+                    case FP_FMT_WORD:
                         return mips_cp_cvt_d_w;
-                    case FP_FMT_L:
+                    case FP_FMT_LONG:
                         return mips_cp_cvt_d_l;
                     default:
                         return mips_cp1_invalid;
@@ -286,9 +286,9 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 switch (instr.fr.fmt) {
                     case FP_FMT_DOUBLE:
                         return mips_cp_cvt_s_d;
-                    case FP_FMT_W:
+                    case FP_FMT_WORD:
                         return mips_cp_cvt_s_w;
-                    case FP_FMT_L:
+                    case FP_FMT_LONG:
                         return mips_cp_cvt_s_l;
                     default:
                         return mips_cp1_invalid;

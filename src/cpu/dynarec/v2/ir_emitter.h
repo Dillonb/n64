@@ -9,6 +9,7 @@
 #define CALL_IR_EMITTER(name) emit_##name##_ir(instruction, index, virtual_address, physical_address); break
 #define IR_UNIMPLEMENTED(opc) logfatal("Unimplemented IR translation for instruction " #opc " at PC: 0x%016lX", virtual_address)
 
+ir_instruction_t* ir_get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access);
 void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 virtual_address);
 void ir_emit_conditional_branch_likely(ir_instruction_t* condition, s16 offset, u64 virtual_address, int index);
 

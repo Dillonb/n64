@@ -505,6 +505,10 @@ void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_float_convert_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
+}
+
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     static dasm_State* d;
     d = v2_block_header();
@@ -591,6 +595,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_MOV_REG_TYPE:
                 compile_ir_mov_reg_type(Dst, instr);
+                break;
+            case IR_FLOAT_CONVERT:
+                compile_ir_float_convert(Dst, instr);
                 break;
         }
         instr = instr->next;

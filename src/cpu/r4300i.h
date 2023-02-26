@@ -188,8 +188,8 @@
 // Floating point
 #define FP_FMT_SINGLE 16
 #define FP_FMT_DOUBLE 17
-#define FP_FMT_W      20
-#define FP_FMT_L      21
+#define FP_FMT_WORD   20
+#define FP_FMT_LONG   21
 
 // Special
 #define FUNCT_SLL     0b000000

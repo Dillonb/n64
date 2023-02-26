@@ -6,8 +6,8 @@
 #include <disassemble.h>
 #include "ir_emitter_fpu.h"
 
-ir_instruction_t* get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
-    ir_instruction_t* base = ir_emit_load_guest_reg(instruction.i.rs);
+ir_instruction_t* ir_get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
+    ir_instruction_t* base = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     ir_instruction_t* virtual = ir_emit_add(base, i_offset, NO_GUEST_REG);
     return ir_emit_tlb_lookup(virtual, NO_GUEST_REG, bus_access);
@@ -42,149 +42,149 @@ IR_EMITTER(lui) {
 }
 
 IR_EMITTER(ori) {
-    ir_instruction_t* i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* i_operand = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
 
     ir_emit_or(i_operand, i_operand2, instruction.i.rt);
 }
 
 IR_EMITTER(andi) {
-    ir_instruction_t* i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* i_operand = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
 
     ir_emit_and(i_operand, i_operand2, instruction.i.rt);
 }
 
 IR_EMITTER(sll) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
     ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_S32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
     ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(dsll) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
     ir_emit_shift(operand, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
 }
 
 IR_EMITTER(dsll32) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa + 32, NO_GUEST_REG);
     ir_emit_shift(operand, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
 }
 
 IR_EMITTER(dsra) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
     ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, instruction.r.rd);
 }
 
 IR_EMITTER(dsra32) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa + 32, NO_GUEST_REG);
     ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, instruction.r.rd);
 }
 
 IR_EMITTER(srl) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
     ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
     ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(sra) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
     ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
     ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(srav) {
-    ir_instruction_t* operand = ir_emit_load_guest_reg(instruction.r.rt);
-    ir_instruction_t* shift_amount = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_load_guest_gpr(instruction.r.rs);
     shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b11111, NO_GUEST_REG), NO_GUEST_REG);
     ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_S64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
     ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(sllv) {
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
-    ir_instruction_t* shift_amount = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_load_guest_gpr(instruction.r.rs);
     shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b11111, NO_GUEST_REG), NO_GUEST_REG);
     ir_instruction_t* result = ir_emit_shift(value, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(dsllv) {
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
-    ir_instruction_t* shift_amount = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_load_guest_gpr(instruction.r.rs);
     shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b111111, NO_GUEST_REG), NO_GUEST_REG);
     ir_emit_shift(value, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
 }
 
 IR_EMITTER(srlv) {
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
-    ir_instruction_t* shift_amount = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_load_guest_gpr(instruction.r.rs);
     shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b11111, NO_GUEST_REG), NO_GUEST_REG);
     ir_instruction_t* result = ir_emit_shift(value, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(sb) {
-    ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U8, address, value);
 }
 
 IR_EMITTER(sh) {
-    ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U16, address, value);
 }
 
 IR_EMITTER(sw) {
-    ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U32, address, value);
 }
 
 IR_EMITTER(sd) {
-    ir_instruction_t* address = get_memory_access_address(instruction, BUS_STORE);
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U64, address, value);
 }
 
 IR_EMITTER(lw) {
-    ir_emit_load(VALUE_TYPE_S32, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S32, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lwu) {
-    ir_emit_load(VALUE_TYPE_U32, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U32, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lbu) {
-    ir_emit_load(VALUE_TYPE_U8, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U8, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lb) {
-    ir_emit_load(VALUE_TYPE_S8, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S8, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lhu) {
-    ir_emit_load(VALUE_TYPE_U16, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U16, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lh) {
-    ir_emit_load(VALUE_TYPE_S16, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S16, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(ld) {
-    ir_emit_load(VALUE_TYPE_U64, get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U64, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lwl) {
-    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = (physical & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(ir_emit_and(physical, three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -197,7 +197,7 @@ IR_EMITTER(lwl) {
 
     //s32 result = (get_register(instruction.i.rt) & ~mask) | data << shift;
     //set_register(instruction.i.rt, (s64)result);
-    ir_instruction_t* reg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* reg = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
     ir_instruction_t* reg_masked = ir_emit_and(reg, inverse_mask, NO_GUEST_REG);
     ir_instruction_t* shifted_data = ir_emit_shift(data, shift, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -206,7 +206,7 @@ IR_EMITTER(lwl) {
 }
 
 IR_EMITTER(lwr) {
-    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = ((address ^ 3) & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(
@@ -222,7 +222,7 @@ IR_EMITTER(lwr) {
     ir_instruction_t* data = ir_emit_load(VALUE_TYPE_U32, load_addr, NO_GUEST_REG);
     //s32 result = (get_register(instruction.i.rt) & ~mask) | data >> shift;
     //set_register(instruction.i.rt, (s64)result);
-    ir_instruction_t* reg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* reg = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
     ir_instruction_t* reg_masked = ir_emit_and(reg, inverse_mask, NO_GUEST_REG);
     ir_instruction_t* shifted_data = ir_emit_shift(data, shift, VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
@@ -231,7 +231,7 @@ IR_EMITTER(lwr) {
 }
 
 IR_EMITTER(swl) {
-    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = (physical & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(ir_emit_and(physical, three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -243,7 +243,7 @@ IR_EMITTER(swl) {
     ir_instruction_t* data = ir_emit_load(VALUE_TYPE_U32, data_addr, NO_GUEST_REG);
 
     //u32 oldreg = get_register(instruction.i.rt);
-    ir_instruction_t* oldreg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* oldreg = ir_emit_load_guest_gpr(instruction.i.rt);
     //n64_write_physical_word(physical & ~3, (data & ~mask) | (oldreg >> shift));
     ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
     ir_instruction_t* masked_data = ir_emit_and(data, inverse_mask, NO_GUEST_REG);
@@ -253,7 +253,7 @@ IR_EMITTER(swl) {
 }
 
 IR_EMITTER(swr) {
-    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = ((address ^ 3) & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(ir_emit_and(ir_emit_xor(physical, three, NO_GUEST_REG), three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -263,7 +263,7 @@ IR_EMITTER(swr) {
     ir_instruction_t* data_addr = ir_emit_and(physical, ir_emit_not(three, NO_GUEST_REG), NO_GUEST_REG);
     ir_instruction_t* data = ir_emit_load(VALUE_TYPE_U32, data_addr, NO_GUEST_REG);
     //u32 oldreg = get_register(instruction.i.rt);
-    ir_instruction_t* oldreg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* oldreg = ir_emit_load_guest_gpr(instruction.i.rt);
     //n64_write_physical_word(physical & ~3, (data & ~mask) | oldreg << shift);
     ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
     ir_instruction_t* masked_data = ir_emit_and(data, inverse_mask, NO_GUEST_REG);
@@ -273,7 +273,7 @@ IR_EMITTER(swr) {
 }
 
 IR_EMITTER(ldl) {
-    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
     //u32 shift = ((address ^ 0) & 7) << 3;
@@ -287,7 +287,7 @@ IR_EMITTER(ldl) {
 
     //u64 result = (get_register(instruction.i.rt) & ~mask) | (data << shift);
     //set_register(instruction.i.rt, result);
-    ir_instruction_t* reg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* reg = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
     ir_instruction_t* reg_masked = ir_emit_and(reg, inverse_mask, NO_GUEST_REG);
     ir_instruction_t* shifted_data = ir_emit_shift(data, shift, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -295,7 +295,7 @@ IR_EMITTER(ldl) {
 }
 
 IR_EMITTER(ldr) {
-    ir_instruction_t* physical = get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
     //u32 shift = ((address ^ 7) & 7) << 3;
@@ -309,7 +309,7 @@ IR_EMITTER(ldr) {
 
     //u64 result = (get_register(instruction.i.rt) & ~mask) | (data >> shift);
     //set_register(instruction.i.rt, result);
-    ir_instruction_t* reg = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* reg = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* inverse_mask = ir_emit_not(mask, NO_GUEST_REG);
     ir_instruction_t* reg_masked = ir_emit_and(reg, inverse_mask, NO_GUEST_REG);
     ir_instruction_t* shifted_data = ir_emit_shift(data, shift, VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
@@ -325,73 +325,73 @@ IR_EMITTER(sdr) {
 }
 
 IR_EMITTER(blez) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* rt = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_OR_EQUAL_TO_SIGNED, rs, rt, NO_GUEST_REG);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(bne) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt, NO_GUEST_REG);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(bnel) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, rs, rt, NO_GUEST_REG);
     ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(beq) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(beql) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* rt = ir_emit_load_guest_reg(instruction.i.rt);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
     ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(bgtz) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_THAN_SIGNED, rs, zero, NO_GUEST_REG);
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(bgtzl) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_THAN_SIGNED, rs, zero, NO_GUEST_REG);
     ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(bltz) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, rs, zero, NO_GUEST_REG);
 
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(bltzl) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, rs, zero, NO_GUEST_REG);
 
     ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
 IR_EMITTER(bgezal) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_OR_EQUAL_TO_SIGNED, rs, zero, NO_GUEST_REG);
 
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
@@ -399,16 +399,16 @@ IR_EMITTER(bgezal) {
 }
 
 IR_EMITTER(bgez) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_OR_EQUAL_TO_SIGNED, rs, zero, NO_GUEST_REG);
 
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
 IR_EMITTER(bgezl) {
-    ir_instruction_t* rs = ir_emit_load_guest_reg(instruction.i.rs);
-    ir_instruction_t* zero = ir_emit_load_guest_reg(0);
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_OR_EQUAL_TO_SIGNED, rs, zero, NO_GUEST_REG);
 
     ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
@@ -429,35 +429,35 @@ IR_EMITTER(jal) {
 }
 
 IR_EMITTER(jr) {
-    ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
+    ir_emit_abs_branch(ir_emit_load_guest_gpr(instruction.i.rs));
 }
 
 IR_EMITTER(jalr) {
-    ir_emit_abs_branch(ir_emit_load_guest_reg(instruction.i.rs));
+    ir_emit_abs_branch(ir_emit_load_guest_gpr(instruction.i.rs));
     ir_emit_link(instruction.r.rd, virtual_address);
 }
 
 IR_EMITTER(mult) {
-    ir_instruction_t* multiplicand1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* multiplicand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* multiplicand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* multiplicand2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_S32);
 }
 
 IR_EMITTER(multu) {
-    ir_instruction_t* multiplicand1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* multiplicand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* multiplicand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* multiplicand2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_U32);
 }
 
 IR_EMITTER(div) {
-    ir_instruction_t* dividend = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* divisor = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* dividend = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* divisor = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_divide(dividend, divisor, VALUE_TYPE_S32);
 }
 
 IR_EMITTER(divu) {
-    ir_instruction_t* dividend = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* divisor = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* dividend = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* divisor = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_divide(dividend, divisor, VALUE_TYPE_U32);
 }
 
@@ -466,7 +466,7 @@ IR_EMITTER(mflo) {
 }
 
 IR_EMITTER(mtlo) {
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_emit_set_ptr(VALUE_TYPE_U64, &N64CPU.mult_lo, value);
 }
 
@@ -475,92 +475,92 @@ IR_EMITTER(mfhi) {
 }
 
 IR_EMITTER(mthi) {
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rs);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_emit_set_ptr(VALUE_TYPE_U64, &N64CPU.mult_hi, value);
 }
 
 IR_EMITTER(add) {
-    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* addend2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* addend2 = ir_emit_load_guest_gpr(instruction.r.rt);
     // TODO: check for signed overflow
     ir_instruction_t* result = ir_emit_add(addend1, addend2, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(addu) {
-    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* addend2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* addend2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* result = ir_emit_add(addend1, addend2, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(and) {
-    ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_and(operand1, operand2, instruction.r.rd);
 }
 
 IR_EMITTER(nor) {
-    ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* or_result = ir_emit_or(operand1, operand2, NO_GUEST_REG);
     ir_emit_not(or_result, instruction.r.rd);
 }
 
 IR_EMITTER(subu) {
-    ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rs), VALUE_TYPE_U32, NO_GUEST_REG);
-    ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rt), VALUE_TYPE_U32, NO_GUEST_REG);
+    ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_gpr(instruction.r.rs), VALUE_TYPE_U32, NO_GUEST_REG);
+    ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_gpr(instruction.r.rt), VALUE_TYPE_U32, NO_GUEST_REG);
     ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U32, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(sub) {
-    ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rs), VALUE_TYPE_S32, NO_GUEST_REG);
-    ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_reg(instruction.r.rt), VALUE_TYPE_S32, NO_GUEST_REG);
+    ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_gpr(instruction.r.rs), VALUE_TYPE_S32, NO_GUEST_REG);
+    ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_gpr(instruction.r.rt), VALUE_TYPE_S32, NO_GUEST_REG);
     ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U32, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_EMITTER(or) {
-    ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_or(operand1, operand2, instruction.r.rd);
 }
 
 IR_EMITTER(xor) {
-    ir_instruction_t* operand1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* operand2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* operand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_xor(operand1, operand2, instruction.r.rd);
 }
 
 IR_EMITTER(xori) {
-    ir_instruction_t* i_operand = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* i_operand = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
     ir_emit_xor(i_operand, i_operand2, instruction.i.rt);
 }
 
 IR_EMITTER(addiu) {
-    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     ir_instruction_t* result = ir_emit_add(addend1, addend2, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.i.rt);
 }
 
 IR_EMITTER(daddi) {
-    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     // TODO: check for overflow
     ir_emit_add(addend1, addend2, instruction.i.rt);
 }
 
 IR_EMITTER(daddiu) {
-    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     ir_emit_add(addend1, addend2, instruction.i.rt);
 }
 
 IR_EMITTER(addi) {
-    ir_instruction_t* addend1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     // TODO: check for signed overflow
     ir_instruction_t* result = ir_emit_add(addend1, addend2, NO_GUEST_REG);
@@ -568,31 +568,31 @@ IR_EMITTER(addi) {
 }
 
 IR_EMITTER(slt) {
-    ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* op2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* op1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* op2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, op1, op2, instruction.r.rd);
 }
 
 IR_EMITTER(sltu) {
-    ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.r.rs);
-    ir_instruction_t* op2 = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* op1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* op2 = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_check_condition(CONDITION_LESS_THAN_UNSIGNED, op1, op2, instruction.r.rd);
 }
 
 IR_EMITTER(slti) {
-    ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* op1 = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* op2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     ir_emit_check_condition(CONDITION_LESS_THAN_SIGNED, op1, op2, instruction.i.rt);
 }
 
 IR_EMITTER(sltiu) {
-    ir_instruction_t* op1 = ir_emit_load_guest_reg(instruction.i.rs);
+    ir_instruction_t* op1 = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* op2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
     ir_emit_check_condition(CONDITION_LESS_THAN_UNSIGNED, op1, op2, instruction.i.rt);
 }
 
 IR_EMITTER(mtc0) {
-    ir_instruction_t* value = ir_emit_load_guest_reg(instruction.r.rt);
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
     switch (instruction.r.rd) {
         // Passthrough
         case R4300I_CP0_REG_TAGLO:
@@ -922,18 +922,10 @@ IR_EMITTER(instruction) {
         case OPC_XORI: CALL_IR_EMITTER(xori);
         case OPC_DADDIU: CALL_IR_EMITTER(daddiu);
         case OPC_LB: CALL_IR_EMITTER(lb);
-        case OPC_LDC1:
-            logwarn("Ignoring LDC1!");
-            break;
-        case OPC_SDC1:
-            logwarn("Ignoring SDC1!");
-            break;
-        case OPC_LWC1:
-            logwarn("Ignoring LWC1!");
-            break;
-        case OPC_SWC1:
-            logwarn("Ignoring SWC1!");
-            break;
+        case OPC_LDC1: CALL_IR_EMITTER(ldc1);
+        case OPC_SDC1: CALL_IR_EMITTER(sdc1);
+        case OPC_LWC1: CALL_IR_EMITTER(lwc1);
+        case OPC_SWC1: CALL_IR_EMITTER(swc1);
         case OPC_LWL: CALL_IR_EMITTER(lwl);
         case OPC_LWR: CALL_IR_EMITTER(lwr);
         case OPC_SWL: CALL_IR_EMITTER(swl);

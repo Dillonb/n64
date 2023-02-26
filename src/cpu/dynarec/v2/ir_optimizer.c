@@ -56,6 +56,8 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->set_ptr.value == value;
         case IR_MOV_REG_TYPE:
             return instr->mov_reg_type.value == value;
+        case IR_FLOAT_CONVERT:
+            return instr->float_convert.value == value;
 
         // No dependencies
         case IR_ERET:
@@ -405,6 +407,11 @@ void ir_optimize_constant_propagation() {
                     }
                 }
                 break;
+            case IR_FLOAT_CONVERT:
+                if (is_constant(instr->float_convert.value)) {
+                    logfatal("Constant propagation for IR_FLOAT_CONVERT");
+                }
+                break;
         }
 
         instr = instr->next;
@@ -508,6 +515,11 @@ void ir_optimize_eliminate_dead_code() {
             case IR_MOV_REG_TYPE:
                 if (!instr->dead_code) {
                     instr->mov_reg_type.value->dead_code = false;
+                }
+                break;
+            case IR_FLOAT_CONVERT:
+                if (!instr->dead_code) {
+                    instr->float_convert.value->dead_code = false;
                 }
                 break;
 
