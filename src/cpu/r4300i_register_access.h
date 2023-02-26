@@ -398,17 +398,17 @@ INLINE uintptr_t get_fpu_register_ptr_dword(u8 r) {
         r &= ~1;
     }
 
-    return &N64CPU.f[r].raw;
+    return (uintptr_t)&N64CPU.f[r].raw;
 }
 
 INLINE uintptr_t get_fpu_register_ptr_word(u8 r) {
     if (N64CPU.cp0.status.fr) {
-        return &N64CPU.f[r].lo;
+        return (uintptr_t)&N64CPU.f[r].lo;
     } else {
         if (r & 1) {
-            return &N64CPU.f[r & ~1].hi;
+            return (uintptr_t)&N64CPU.f[r & ~1].hi;
         } else {
-            return &N64CPU.f[r].lo;
+            return (uintptr_t)&N64CPU.f[r].lo;
         }
     }
 }
