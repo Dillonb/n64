@@ -46,10 +46,11 @@ void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
 void print_state() {
     printf("expected (interpreter)  actual (dynarec)\n");
     print_colorcoded_u64("PC", n64cpu_interpreter.pc, n64cpu_dynarec.pc);
+    printf("\n");
     for (int i = 0; i < 32; i++) {
         print_colorcoded_u64(register_names[i], n64cpu_interpreter.gpr[i], n64cpu_dynarec.gpr[i]);
     }
-
+    printf("\n");
     for (int i = 0; i < 32; i++) {
         print_colorcoded_u64(cp1_register_names[i], n64cpu_interpreter.f[i].raw, n64cpu_dynarec.f[i].raw);
     }
