@@ -54,8 +54,10 @@ const char* reg_type_to_str(ir_register_type_t type) {
             return "NONE";
         case REGISTER_TYPE_GPR:
             return "GPR";
-        case REGISTER_TYPE_FGR:
-            return "FGR";
+        case REGISTER_TYPE_FGR_32:
+            return "FGR32";
+        case REGISTER_TYPE_FGR_64:
+            return "FGR64";
     }
 }
 
@@ -215,7 +217,6 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
         if (IR_IS_GPR(guest_reg)) {
             ir_context.guest_reg_to_value[guest_reg] = value;
         } else if (IR_IS_FGR(guest_reg)) {
-            ir_context.fgr_mapped = true;
             ir_context.guest_reg_to_value[guest_reg] = value;
         }
     }
@@ -315,7 +316,9 @@ ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
     instruction.type = IR_SET_CONSTANT;
     instruction.set_constant = value;
 
-    return append_ir_instruction(instruction, guest_reg);
+    ir_instruction_t* allocated = append_ir_instruction(instruction, guest_reg);
+    allocated->reg_alloc.type = REGISTER_TYPE_GPR;
+    return allocated;
 }
 
 ir_instruction_t* ir_emit_load_guest_reg(u8 guest_reg) {
@@ -499,7 +502,7 @@ ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, in
 
                 ir_instruction_flush_t flush;
                 flush.next = old_head;
-                flush.guest_gpr = i;
+                flush.guest_reg = i;
                 flush.item = gpr_value;
                 instruction.cond_block_exit.regs_to_flush = allocate_ir_flush(flush);
             }
@@ -557,7 +560,7 @@ ir_instruction_t* ir_emit_eret() {
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg) {
     if (IR_IS_GPR(new_reg) && new_type != REGISTER_TYPE_GPR) {
         logfatal("Trying to move value to a GPR, but register given was not a GPR!");
-    } else if (IR_IS_FGR(new_reg) && new_type != REGISTER_TYPE_FGR) {
+    } else if (IR_IS_FGR(new_reg) && new_type != REGISTER_TYPE_FGR_32 && new_type != REGISTER_TYPE_FGR_64) {
         logfatal("Trying to move value to an FGR, but register given was not a FGR!");
     }
     ir_instruction_t instruction;
@@ -565,5 +568,7 @@ ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type
     instruction.mov_reg_type.value = value;
     instruction.mov_reg_type.new_type = new_type;
     instruction.mov_reg_type.size = size;
-    return append_ir_instruction(instruction, new_reg);
+    ir_instruction_t* allocated = append_ir_instruction(instruction, new_reg);
+    allocated->reg_alloc.type = new_type;
+    return allocated;
 }

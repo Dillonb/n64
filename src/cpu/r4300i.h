@@ -559,8 +559,8 @@ ASSERTWORD(fcr31_t);
 typedef union fgr {
     u64 raw;
     struct {
-        u32 lo:32;
-        u32 hi:32;
+        u32 lo;
+        u32 hi;
     } PACKED;
 } fgr_t;
 
@@ -613,6 +613,7 @@ bool instruction_stable(mips_instruction_t instr);
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
+extern const char* cp1_register_names[];
 
 typedef enum {
         MIPS_REG_ZERO = 0,

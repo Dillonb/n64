@@ -3,6 +3,7 @@
 #include <mem/n64bus.h>
 #include <disassemble.h>
 #include <dynarec/dynarec_memory_management.h>
+#include <r4300i_register_access.h>
 #include "v2_emitter.h"
 
 #include "instruction_category.h"
@@ -382,9 +383,18 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     if (IR_IS_FGR(instr->flush_guest_reg.guest_reg)) {
         if (is_constant(instr->flush_guest_reg.value)) {
-            logfatal("Flushing const FPU reg");
+            logfatal("Flushing const FPU reg with fr=%d", N64CP0.status.fr);
         } else {
-            logfatal("Flushing non const FPU reg");
+            ir_register_type_t reg_type = instr->flush_guest_reg.value->reg_alloc.type;
+            if (reg_type == REGISTER_TYPE_FGR_64) {
+                uintptr_t dest = get_fpu_register_ptr_dword(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
+                host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
+            } else if (reg_type == REGISTER_TYPE_FGR_32) {
+                uintptr_t dest = get_fpu_register_ptr_word(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
+                host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U32);
+            } else {
+                logfatal("Flushing non const FPU reg with unexpected reg_type %d", reg_type);
+            }
         }
     } else {
         if (is_constant(instr->flush_guest_reg.value)) {
@@ -461,7 +471,34 @@ void compile_ir_eret(dasm_State** Dst) {
 }
 
 void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
-    logfatal("compile_ir_mov_reg_type: %d", instr->reg_alloc.host_reg);
+    ir_register_type_t source_type = instr->mov_reg_type.value->reg_alloc.type;
+    ir_register_type_t dest_type = instr->mov_reg_type.new_type;
+
+    switch (source_type) {
+        case REGISTER_TYPE_NONE:
+            logfatal("mov_reg_type with source type REGISTER_TYPE_NONE");
+            break;
+        case REGISTER_TYPE_GPR:
+            switch (dest_type) {
+                case REGISTER_TYPE_NONE:
+                    logfatal("mov_reg_type with source type REGISTER_TYPE_GPR and dest type REGISTER_TYPE_NONE");
+                    break;
+                case REGISTER_TYPE_GPR:
+                    logfatal("mov_reg_type with source type REGISTER_TYPE_GPR and dest type REGISTER_TYPE_GPR");
+                    break;
+                case REGISTER_TYPE_FGR_32:
+                case REGISTER_TYPE_FGR_64:
+                    host_emit_mov_fgr_gpr(Dst, instr->reg_alloc, instr->mov_reg_type.value->reg_alloc, instr->mov_reg_type.size);
+                    break;
+            }
+            break;
+        case REGISTER_TYPE_FGR_32:
+            logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32");
+            break;
+        case REGISTER_TYPE_FGR_64:
+            logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_64");
+            break;
+    }
 }
 
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {

@@ -46,6 +46,8 @@ void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, ir_register_allocation
 void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int block_length);
 void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length);
 
+void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size);
+
 void host_emit_debugbreak(dasm_State** Dst);
 void host_emit_call(dasm_State** Dst, uintptr_t function);
 

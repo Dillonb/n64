@@ -9,6 +9,7 @@
 #ifndef N64_WIN
 #include <sys/mman.h>
 #include <cpu/dynarec/v2/x86_64_registers.h>
+#include <r4300i_register_access.h>
 
 #endif
 
@@ -95,6 +96,20 @@ int check_reg(ir_register_allocation_t reg, bool spill_ok) {
         unimplemented((reg.host_reg) < 0 || (reg.host_reg) > get_num_gprs(), "Invalid host register value: %d", reg.host_reg);
         return reg.host_reg;
     }
+}
+
+int check_fgr(ir_register_allocation_t reg, bool spill_ok) {
+    if (reg.type != REGISTER_TYPE_FGR_32 && reg.type != REGISTER_TYPE_FGR_64) {
+        logfatal("FGR expected, but register was not allocated as an FGR!");
+    }
+    return check_reg(reg, spill_ok);
+}
+
+int check_gpr(ir_register_allocation_t reg, bool spill_ok) {
+    if (reg.type != REGISTER_TYPE_GPR) {
+        logfatal("FGR expected, but register was not allocated as an FGR!");
+    }
+    return check_reg(reg, spill_ok);
 }
 
 void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm_value) {
@@ -935,31 +950,45 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
     int offset = get_n64cpu_offset(mem);
 
     if (reg_alloc.spilled) {
+        unimplemented(reg_alloc.type != REGISTER_TYPE_GPR, "spilled non-gpr to mem");
         | mov Rq(TMPREG2), qword [rsp + reg]
         reg = TMPREG2;
     }
 
     // Check if the pointer is within N64CPU
     if (offset > 0) {
-        switch (type) {
-            case VALUE_TYPE_U8:
-            case VALUE_TYPE_S8:
-                | mov [cpu_state + offset], Rb(reg)
+        switch (reg_alloc.type) {
+            case REGISTER_TYPE_NONE:
+                logfatal("mov_mem_reg REGISTER_TYPE_NONE");
                 break;
-            case VALUE_TYPE_S16:
-            case VALUE_TYPE_U16:
-                | mov [cpu_state + offset], Rw(reg)
+            case REGISTER_TYPE_GPR:
+                switch (type) {
+                    CASE_SIZE_8:
+                        | mov [cpu_state + offset], Rb(reg)
+                        break;
+                    CASE_SIZE_16:
+                        | mov [cpu_state + offset], Rw(reg)
+                        break;
+                    CASE_SIZE_32:
+                        | mov [cpu_state + offset], Rd(reg)
+                        break;
+                    CASE_SIZE_64:
+                        | mov [cpu_state + offset], Rq(reg)
+                        break;
+                }
                 break;
-            case VALUE_TYPE_S32:
-            case VALUE_TYPE_U32:
-                | mov [cpu_state + offset], Rd(reg)
+            case REGISTER_TYPE_FGR_32:
+                unimplemented(type != VALUE_TYPE_U32 && type != VALUE_TYPE_S32, "non-32 bit FGR_32 flush");
+                printf("mov fgr_32 to mem\n");
+                | movd dword [cpu_state + offset], xmm(reg)
                 break;
-            case VALUE_TYPE_U64:
-            case VALUE_TYPE_S64:
-                | mov [cpu_state + offset], Rq(reg)
+            case REGISTER_TYPE_FGR_64:
+                unimplemented(type != VALUE_TYPE_U64 && type != VALUE_TYPE_S64, "non-64 bit FGR_64 flush");
+                logfatal("mov_mem_reg REGISTER_TYPE_FGR_64");
                 break;
         }
     } else {
+        unimplemented(reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR write not within N64CPU");
         unimplemented(type != VALUE_TYPE_U64, "non-64 bit write not within N64CPU");
         logfatal("Not within n64cpu");
         | mov64 Rq(TMPREG1), mem
@@ -1021,10 +1050,31 @@ void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc,
 
 void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int block_length) {
     while (flush_iter != NULL) {
+        int guest_reg = flush_iter->guest_reg;
+        uintptr_t dest;
+        ir_value_type_t type;
+        switch (flush_iter->item->reg_alloc.type) {
+            case REGISTER_TYPE_NONE:
+                logfatal("Flushing REGISTER_TYPE_NONE");
+                break;
+            case REGISTER_TYPE_GPR:
+                dest = (uintptr_t)&N64CPU.gpr[flush_iter->guest_reg];
+                type = VALUE_TYPE_U64;
+                break;
+            case REGISTER_TYPE_FGR_32:
+                dest = get_fpu_register_ptr_word(guest_reg - IR_FGR_BASE);
+                type = VALUE_TYPE_U32;
+                break;
+            case REGISTER_TYPE_FGR_64:
+                dest = get_fpu_register_ptr_dword(guest_reg - IR_FGR_BASE);
+                type = VALUE_TYPE_U64;
+                break;
+        }
+
         if (is_constant(flush_iter->item)) {
-            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->set_constant, VALUE_TYPE_U64);
+            host_emit_mov_mem_imm(Dst, dest, flush_iter->item->set_constant, type);
         } else {
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[flush_iter->guest_gpr], flush_iter->item->reg_alloc, VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, dest, flush_iter->item->reg_alloc, type);
         }
 
         flush_iter = flush_iter->next;
@@ -1041,6 +1091,24 @@ void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_allo
     |1:
 }
 
+void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
+    int dst = check_fgr(dst_reg, false);
+    int src = check_gpr(src_reg, false);
+    printf("mov fgr, gpr\n");
+
+    switch (size) {
+        CASE_SIZE_8:
+            logfatal("Invalid 8 bit mov fgr, gpr");
+        CASE_SIZE_16:
+            logfatal("Invalid 16 bit mov fgr, gpr");
+        CASE_SIZE_32:
+            | movd xmm(dst), Rd(src)
+            break;
+        CASE_SIZE_64:
+            | movd xmm(dst), Rq(src)
+            break;
+    }
+}
 void v2_end_block(dasm_State** Dst, int block_length) {
     | mov eax, block_length
     | epilogue // return block_length

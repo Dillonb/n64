@@ -40,6 +40,11 @@ typedef enum ir_value_type {
     VALUE_TYPE_S64
 } ir_value_type_t;
 
+#define CASE_SIZE_8 case VALUE_TYPE_U8: case VALUE_TYPE_S8
+#define CASE_SIZE_16 case VALUE_TYPE_S16: case VALUE_TYPE_U16
+#define CASE_SIZE_32 case VALUE_TYPE_S32: case VALUE_TYPE_U32
+#define CASE_SIZE_64 case VALUE_TYPE_U64: case VALUE_TYPE_S64
+
 typedef enum ir_shift_direction {
     SHIFT_DIRECTION_LEFT,
     SHIFT_DIRECTION_RIGHT
@@ -61,7 +66,7 @@ typedef struct ir_set_constant {
 
 
 typedef struct ir_instruction_flush {
-    u8 guest_gpr;
+    u8 guest_reg;
     struct ir_instruction* item;
     struct ir_instruction_flush* next;
 } ir_instruction_flush_t;
@@ -69,7 +74,8 @@ typedef struct ir_instruction_flush {
 typedef enum register_type {
     REGISTER_TYPE_NONE,
     REGISTER_TYPE_GPR,
-    REGISTER_TYPE_FGR
+    REGISTER_TYPE_FGR_32,
+    REGISTER_TYPE_FGR_64
 } ir_register_type_t;
 
 typedef struct ir_register_allocation {
@@ -95,8 +101,12 @@ INLINE ir_register_allocation_t alloc_gpr(int reg) {
     return alloc_reg(reg, REGISTER_TYPE_GPR);
 }
 
-INLINE ir_register_allocation_t alloc_fgr(int reg) {
-    return alloc_reg(reg, REGISTER_TYPE_FGR);
+INLINE ir_register_allocation_t alloc_fgr_32(int reg) {
+    return alloc_reg(reg, REGISTER_TYPE_FGR_32);
+}
+
+INLINE ir_register_allocation_t alloc_fgr_64(int reg) {
+    return alloc_reg(reg, REGISTER_TYPE_FGR_64);
 }
 
 INLINE ir_register_allocation_t alloc_reg_spilled(int spill_location, ir_register_type_t type) {

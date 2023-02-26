@@ -392,6 +392,27 @@ INLINE u64 get_cp0_register_dword(u8 r) {
     }
 }
 
+INLINE uintptr_t get_fpu_register_ptr_dword(u8 r) {
+    if (!N64CPU.cp0.status.fr) {
+        // When this bit is not set, accessing odd registers is not allowed.
+        r &= ~1;
+    }
+
+    return &N64CPU.f[r].raw;
+}
+
+INLINE uintptr_t get_fpu_register_ptr_word(u8 r) {
+    if (N64CPU.cp0.status.fr) {
+        return &N64CPU.f[r].lo;
+    } else {
+        if (r & 1) {
+            return &N64CPU.f[r & ~1].hi;
+        } else {
+            return &N64CPU.f[r].lo;
+        }
+    }
+}
+
 INLINE void set_fpu_register_dword(u8 r, u64 value) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.

@@ -5,7 +5,7 @@
 
 IR_EMITTER(cfc1) {
     //checkcp1; // TODO: check cp1 is enabled
-    logwarn("TODO: Check CP1 is enabled");
+    logwarn("CFC1: TODO: Check CP1 is enabled");
     u8 fs = instruction.r.rd;
     switch (fs) {
         case 0:
@@ -54,7 +54,7 @@ IR_EMITTER(mtc1) {
     logwarn("TODO: check CP1 is enabled. Also, rewrite this function when a real FPU jit exists");
     //checkcp1;
     ir_instruction_t* value = ir_emit_load_guest_reg(IR_GPR(instruction.r.rt));
-    ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR, VALUE_TYPE_U32, IR_FGR(instruction.r.rd));
+    ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR_32, VALUE_TYPE_U32, IR_FGR(instruction.r.rd));
 }
 }
 

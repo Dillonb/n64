@@ -10,6 +10,7 @@
 #include <mem/n64bus.h>
 #include <cpu/dynarec/dynarec.h>
 #include <rsp.h>
+#include <dynarec/v2/v2_compiler.h>
 
 n64_system_t n64sys_interpreter;
 r4300i_t n64cpu_interpreter;
@@ -26,6 +27,7 @@ bool compare() {
     good &= n64cpu_interpreter.pc == n64cpu_dynarec.pc;
     for (int i = 0; i < 32; i++) {
         good &= n64cpu_interpreter.gpr[i] == n64cpu_dynarec.gpr[i];
+        good &= n64cpu_interpreter.f[i].raw == n64cpu_dynarec.f[i].raw;
     }
     good &= memcmp(n64sys_interpreter.mem.rdram, n64sys_dynarec.mem.rdram, N64_RDRAM_SIZE) == 0;
     return good;
@@ -46,6 +48,10 @@ void print_state() {
     print_colorcoded_u64("PC", n64cpu_interpreter.pc, n64cpu_dynarec.pc);
     for (int i = 0; i < 32; i++) {
         print_colorcoded_u64(register_names[i], n64cpu_interpreter.gpr[i], n64cpu_dynarec.gpr[i]);
+    }
+
+    for (int i = 0; i < 32; i++) {
+        print_colorcoded_u64(cp1_register_names[i], n64cpu_interpreter.f[i].raw, n64cpu_dynarec.f[i].raw);
     }
 
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
