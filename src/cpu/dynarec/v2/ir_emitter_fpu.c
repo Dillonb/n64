@@ -56,44 +56,478 @@ IR_EMITTER(mtc1) {
     ir_instruction_t* value = ir_emit_load_guest_reg(IR_GPR(instruction.r.rt));
     ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR_32, VALUE_TYPE_U32, IR_FGR(instruction.r.rd));
 }
+
+IR_EMITTER(cp1_add) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_add_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_add_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_sub) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_sub_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_sub_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_mult) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_mul_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_mul_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_div) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_div_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_div_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_trunc_l) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_trunc_l_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_trunc_l_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_round_l) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_round_l_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_round_l_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_trunc_w) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_trunc_w_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_trunc_w_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_floor_w) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_floor_w_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_floor_w_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_round_w) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_round_w_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_round_w_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_cvt_d) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_cvt_d_s");
+        case FP_FMT_W:
+            logfatal("mips_cp_cvt_d_w");
+        case FP_FMT_L:
+            logfatal("mips_cp_cvt_d_l");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_cvt_l) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_cvt_l_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_cvt_l_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_cvt_s) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_cvt_s_d");
+        case FP_FMT_W:
+            logfatal("mips_cp_cvt_s_w");
+        case FP_FMT_L:
+            logfatal("mips_cp_cvt_s_l");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_cvt_w) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_cvt_w_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_cvt_w_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_sqrt) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_sqrt_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_sqrt_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+
+}
+
+IR_EMITTER(cp1_abs) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_abs_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_abs_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+
+}
+
+IR_EMITTER(cp1_mov) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_mov_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_mov_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_neg) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_neg_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_neg_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_f) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_f_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_f_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_un) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_un_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_un_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_eq) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_eq_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_eq_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_ueq) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_ueq_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_ueq_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_olt) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_olt_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_olt_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_ult) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_ult_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_ult_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_ole) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_ole_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_ole_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_ule) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_ule_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_ule_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_sf) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_sf_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_sf_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_ngle) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_ngle_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_ngle_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_seq) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_seq_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_seq_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_ngl) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_ngl_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_ngl_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_lt) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_lt_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_lt_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_nge) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_nge_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_nge_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_le) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_le_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_le_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
+}
+
+IR_EMITTER(cp1_c_ngt) {
+    //checkcp1;
+    logwarn("TODO: check cp1 enabled");
+    switch (instruction.fr.fmt) {
+        case FP_FMT_DOUBLE:
+            logfatal("mips_cp_c_ngt_d");
+        case FP_FMT_SINGLE:
+            logfatal("mips_cp_c_ngt_s");
+        default:
+            logfatal("mips_cp1_invalid");
+    }
 }
 
 IR_EMITTER(cp1_instruction) {
     if (instruction.is_coprocessor_funct) {
         switch (instruction.fr.funct) {
-            case COP_FUNCT_ADD: IR_UNIMPLEMENTED(COP_FUNCT_ADD);
-            case COP_FUNCT_TLBR_SUB: IR_UNIMPLEMENTED(COP_FUNCT_TLBR_SUB);
-            case COP_FUNCT_TLBWI_MULT: IR_UNIMPLEMENTED(COP_FUNCT_TLBWI_MULT);
-            case COP_FUNCT_DIV: IR_UNIMPLEMENTED(COP_FUNCT_DIV);
-            case COP_FUNCT_TRUNC_L: IR_UNIMPLEMENTED(COP_FUNCT_TRUNC_L);
-            case COP_FUNCT_ROUND_L: IR_UNIMPLEMENTED(COP_FUNCT_ROUND_L);
-            case COP_FUNCT_TRUNC_W: IR_UNIMPLEMENTED(COP_FUNCT_TRUNC_W);
-            case COP_FUNCT_FLOOR_W: IR_UNIMPLEMENTED(COP_FUNCT_FLOOR_W);
-            case COP_FUNCT_ROUND_W: IR_UNIMPLEMENTED(COP_FUNCT_ROUND_W);
-            case COP_FUNCT_CVT_D: IR_UNIMPLEMENTED(COP_FUNCT_CVT_D);
-            case COP_FUNCT_CVT_L: IR_UNIMPLEMENTED(COP_FUNCT_CVT_L);
-            case COP_FUNCT_CVT_S: IR_UNIMPLEMENTED(COP_FUNCT_CVT_S);
-            case COP_FUNCT_CVT_W: IR_UNIMPLEMENTED(COP_FUNCT_CVT_W);
-            case COP_FUNCT_SQRT: IR_UNIMPLEMENTED(COP_FUNCT_SQRT);
-            case COP_FUNCT_ABS: IR_UNIMPLEMENTED(COP_FUNCT_ABS);
-            case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
-            case COP_FUNCT_NEG: IR_UNIMPLEMENTED(COP_FUNCT_NEG);
-            case COP_FUNCT_C_F: IR_UNIMPLEMENTED(COP_FUNCT_C_F);
-            case COP_FUNCT_C_UN: IR_UNIMPLEMENTED(COP_FUNCT_C_UN);
-            case COP_FUNCT_C_EQ: IR_UNIMPLEMENTED(COP_FUNCT_C_EQ);
-            case COP_FUNCT_C_UEQ: IR_UNIMPLEMENTED(COP_FUNCT_C_UEQ);
-            case COP_FUNCT_C_OLT: IR_UNIMPLEMENTED(COP_FUNCT_C_OLT);
-            case COP_FUNCT_C_ULT: IR_UNIMPLEMENTED(COP_FUNCT_C_ULT);
-            case COP_FUNCT_C_OLE: IR_UNIMPLEMENTED(COP_FUNCT_C_OLE);
-            case COP_FUNCT_C_ULE: IR_UNIMPLEMENTED(COP_FUNCT_C_ULE);
-            case COP_FUNCT_C_SF: IR_UNIMPLEMENTED(COP_FUNCT_C_SF);
-            case COP_FUNCT_C_NGLE: IR_UNIMPLEMENTED(COP_FUNCT_C_NGLE);
-            case COP_FUNCT_C_SEQ: IR_UNIMPLEMENTED(COP_FUNCT_C_SEQ);
-            case COP_FUNCT_C_NGL: IR_UNIMPLEMENTED(COP_FUNCT_C_NGL);
-            case COP_FUNCT_C_LT: IR_UNIMPLEMENTED(COP_FUNCT_C_LT);
-            case COP_FUNCT_C_NGE: IR_UNIMPLEMENTED(COP_FUNCT_C_NGE);
-            case COP_FUNCT_C_LE: IR_UNIMPLEMENTED(COP_FUNCT_C_LE);
-            case COP_FUNCT_C_NGT: IR_UNIMPLEMENTED(COP_FUNCT_C_NGT);
+            case COP_FUNCT_ADD:        CALL_IR_EMITTER(cp1_add);
+            case COP_FUNCT_TLBR_SUB:   CALL_IR_EMITTER(cp1_sub);
+            case COP_FUNCT_TLBWI_MULT: CALL_IR_EMITTER(cp1_mult);
+            case COP_FUNCT_DIV:        CALL_IR_EMITTER(cp1_div);
+            case COP_FUNCT_TRUNC_L:    CALL_IR_EMITTER(cp1_trunc_l);
+            case COP_FUNCT_ROUND_L:    CALL_IR_EMITTER(cp1_round_l);
+            case COP_FUNCT_TRUNC_W:    CALL_IR_EMITTER(cp1_trunc_w);
+            case COP_FUNCT_FLOOR_W:    CALL_IR_EMITTER(cp1_floor_w);
+            case COP_FUNCT_ROUND_W:    CALL_IR_EMITTER(cp1_round_w);
+            case COP_FUNCT_CVT_D:      CALL_IR_EMITTER(cp1_cvt_d);
+            case COP_FUNCT_CVT_L:      CALL_IR_EMITTER(cp1_cvt_l);
+            case COP_FUNCT_CVT_S:      CALL_IR_EMITTER(cp1_cvt_s);
+            case COP_FUNCT_CVT_W:      CALL_IR_EMITTER(cp1_cvt_w);
+            case COP_FUNCT_SQRT:       CALL_IR_EMITTER(cp1_sqrt);
+            case COP_FUNCT_ABS:        CALL_IR_EMITTER(cp1_abs);
+            case COP_FUNCT_TLBWR_MOV:  CALL_IR_EMITTER(cp1_mov);
+            case COP_FUNCT_NEG:        CALL_IR_EMITTER(cp1_neg);
+            case COP_FUNCT_C_F:        CALL_IR_EMITTER(cp1_c_f);
+            case COP_FUNCT_C_UN:       CALL_IR_EMITTER(cp1_c_un);
+            case COP_FUNCT_C_EQ:       CALL_IR_EMITTER(cp1_c_eq);
+            case COP_FUNCT_C_UEQ:      CALL_IR_EMITTER(cp1_c_ueq);
+            case COP_FUNCT_C_OLT:      CALL_IR_EMITTER(cp1_c_olt);
+            case COP_FUNCT_C_ULT:      CALL_IR_EMITTER(cp1_c_ult);
+            case COP_FUNCT_C_OLE:      CALL_IR_EMITTER(cp1_c_ole);
+            case COP_FUNCT_C_ULE:      CALL_IR_EMITTER(cp1_c_ule);
+            case COP_FUNCT_C_SF:       CALL_IR_EMITTER(cp1_c_sf);
+            case COP_FUNCT_C_NGLE:     CALL_IR_EMITTER(cp1_c_ngle);
+            case COP_FUNCT_C_SEQ:      CALL_IR_EMITTER(cp1_c_seq);
+            case COP_FUNCT_C_NGL:      CALL_IR_EMITTER(cp1_c_ngl);
+            case COP_FUNCT_C_LT:       CALL_IR_EMITTER(cp1_c_lt);
+            case COP_FUNCT_C_NGE:      CALL_IR_EMITTER(cp1_c_nge);
+            case COP_FUNCT_C_LE:       CALL_IR_EMITTER(cp1_c_le);
+            case COP_FUNCT_C_NGT:      CALL_IR_EMITTER(cp1_c_ngt);
         }
     } else {
         switch (instruction.r.rs) {
