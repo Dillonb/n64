@@ -114,7 +114,7 @@ void ir_optimize_flush_guest_regs() {
         ir_instruction_t* val = ir_context.guest_reg_to_value[i];
         if (val) {
             // If the guest reg was just loaded and never modified, don't need to flush it
-            if (val->type != IR_LOAD_GUEST_REG && val->load_guest_reg.guest_reg != i) {
+            if (val->type != IR_LOAD_GUEST_REG || val->load_guest_reg.guest_reg != i) {
                 ir_instruction_t* last_usage = last_value_usage(val);
                 ir_emit_flush_guest_reg(last_usage, val, i);
             }

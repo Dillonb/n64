@@ -596,7 +596,7 @@ ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, in
         ir_instruction_t* gpr_value = ir_context.guest_reg_to_value[i];
         if (gpr_value) {
             // If it's just a load, no need to flush it back as it has not been modified
-            if (gpr_value->type != IR_LOAD_GUEST_REG && gpr_value->load_guest_reg.guest_reg != i) {
+            if (gpr_value->type != IR_LOAD_GUEST_REG || gpr_value->load_guest_reg.guest_reg != i) {
                 ir_instruction_flush_t* old_head = instruction.cond_block_exit.regs_to_flush;
 
                 ir_instruction_flush_t flush;
