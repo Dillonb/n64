@@ -979,7 +979,6 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
                 break;
             case REGISTER_TYPE_FGR_32:
                 unimplemented(type != VALUE_TYPE_U32 && type != VALUE_TYPE_S32, "non-32 bit FGR_32 flush");
-                printf("mov fgr_32 to mem\n");
                 | movd dword [cpu_state + offset], xmm(reg)
                 break;
             case REGISTER_TYPE_FGR_64:
@@ -1094,7 +1093,6 @@ void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_allo
 void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
     int dst = check_fgr(dst_reg, false);
     int src = check_gpr(src_reg, false);
-    printf("mov fgr, gpr\n");
 
     switch (size) {
         CASE_SIZE_8:
