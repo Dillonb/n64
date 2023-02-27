@@ -234,6 +234,12 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_FLOAT_CONVERT:
             snprintf(buf, buf_size, "float_convert(v%d, from = %s, to = %s)", instr->float_convert.value->index, float_type_to_str(instr->float_convert.from_type), float_type_to_str(instr->float_convert.to_type));
             break;
+        case IR_FLOAT_DIVIDE:
+            snprintf(buf, buf_size, "(%s)v%d / (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
+            break;
+        case IR_FLOAT_ADD:
+            snprintf(buf, buf_size, "(%s)v%d + (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
+            break;
     }
 }
 
@@ -285,6 +291,12 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
 
                 case IR_FLOAT_CONVERT:
                     new_type = float_val_to_reg_type(value->float_convert.to_type);
+                    break;
+
+                // Float bin ops
+                case IR_FLOAT_DIVIDE:
+                case IR_FLOAT_ADD:
+                    new_type = float_val_to_reg_type(value->float_bin_op.format);
                     break;
             }
 
@@ -422,6 +434,9 @@ ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t typ
     if (IR_IS_GPR(guest_fgr)) {
         logfatal("Loading GPR with ir_emit_load_guest_fgr(), use ir_emit_load_guest_gpr()");
     } else if (IR_IS_FGR(guest_fgr)) {
+        if (ir_context.guest_reg_to_value[guest_fgr] != NULL && ir_context.guest_reg_to_reg_type[guest_fgr] != float_val_to_reg_type(type)) {
+            logfatal("Reg type differs. FLUSH and reload.");
+        }
         bool should_reload =
                 // No cached value -> should reload
                 ir_context.guest_reg_to_value[guest_fgr] == NULL
@@ -431,7 +446,12 @@ ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t typ
         if (!should_reload) {
             return ir_context.guest_reg_to_value[guest_fgr];
         }
-        logfatal("Unimplemented: need to reload");
+
+        ir_instruction_t instruction;
+        instruction.type = IR_LOAD_GUEST_REG;
+        instruction.load_guest_reg.guest_reg = IR_FGR(guest_fgr);
+        instruction.load_guest_reg.guest_reg_type = float_val_to_reg_type(type);
+        return append_ir_instruction(instruction, IR_FGR(guest_fgr));
     } else {
         logfatal("Loading unknown (or out of range) guest register %d", guest_fgr);
     }
@@ -704,5 +724,29 @@ ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_
     instruction.float_convert.value = value;
     instruction.float_convert.from_type = from_type;
     instruction.float_convert.to_type = to_type;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg) {
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float divide must target an FGR");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_DIVIDE;
+    instruction.float_bin_op.operand1 = dividend;
+    instruction.float_bin_op.operand2 = divisor;
+    instruction.float_bin_op.format = divide_type;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg) {
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float add must target an FGR");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_ADD;
+    instruction.float_bin_op.operand1 = operand1;
+    instruction.float_bin_op.operand2 = operand2;
+    instruction.float_bin_op.format = add_type;
     return append_ir_instruction(instruction, guest_reg);
 }

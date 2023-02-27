@@ -191,7 +191,9 @@ typedef struct ir_instruction {
         IR_DIVIDE,
         IR_ERET,
         IR_MOV_REG_TYPE,
-        IR_FLOAT_CONVERT
+        IR_FLOAT_CONVERT,
+        IR_FLOAT_DIVIDE,
+        IR_FLOAT_ADD
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -280,6 +282,11 @@ typedef struct ir_instruction {
             ir_float_value_type_t from_type;
             ir_float_value_type_t to_type;
         } float_convert;
+        struct {
+            struct ir_instruction* operand1;
+            struct ir_instruction* operand2;
+            ir_float_value_type_t format;
+        } float_bin_op;
     };
 } ir_instruction_t;
 
@@ -367,6 +374,10 @@ ir_instruction_t* ir_emit_eret();
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
 // convert a float value to a different float value type
 ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg);
+// Divide two float values of type divide_type.
+ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg);
+// Add two float values of type add_type.
+ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

@@ -511,6 +511,14 @@ void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_float_convert_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
 }
 
+void compile_ir_float_divide(dasm_State** Dst, ir_instruction_t* instr) {
+    logfatal("compile_ir_float_divide");
+}
+
+void compile_ir_float_add(dasm_State** Dst, ir_instruction_t* instr) {
+    logfatal("compile_ir_float_add");
+}
+
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     static dasm_State* d;
     d = v2_block_header();
@@ -600,6 +608,12 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_FLOAT_CONVERT:
                 compile_ir_float_convert(Dst, instr);
+                break;
+            case IR_FLOAT_DIVIDE:
+                compile_ir_float_divide(Dst, instr);
+                break;
+            case IR_FLOAT_ADD:
+                compile_ir_float_add(Dst, instr);
                 break;
         }
         instr = instr->next;

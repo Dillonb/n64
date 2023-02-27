@@ -77,7 +77,13 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
 
         case IR_FLOAT_CONVERT:
             return float_val_to_reg_type(instr->float_convert.to_type);
+
+        // Float bin ops
+        case IR_FLOAT_DIVIDE:
+        case IR_FLOAT_ADD:
+            return float_val_to_reg_type(instr->float_bin_op.format);
     }
+    logfatal("Did not match any cases.");
 }
 
 int first_available_register(register_allocation_state_t* state) {

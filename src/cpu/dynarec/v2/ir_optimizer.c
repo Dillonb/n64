@@ -59,6 +59,11 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_FLOAT_CONVERT:
             return instr->float_convert.value == value;
 
+        // Float bin ops
+        case IR_FLOAT_DIVIDE:
+        case IR_FLOAT_ADD:
+            return instr->float_bin_op.operand1 == value || instr->float_bin_op.operand2 == value;
+
         // No dependencies
         case IR_ERET:
         case IR_GET_PTR:
@@ -67,6 +72,7 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_LOAD_GUEST_REG:
             return false;
     }
+    logfatal("Did not match any cases");
 }
 
 u64 set_const_to_u64(ir_set_constant_t constant) {
@@ -412,6 +418,16 @@ void ir_optimize_constant_propagation() {
                     logfatal("Constant propagation for IR_FLOAT_CONVERT");
                 }
                 break;
+            case IR_FLOAT_DIVIDE:
+                if (float_binop_constant(instr)) {
+                    logfatal("Constant propagation for IR_FLOAT_DIVIDE");
+                }
+                break;
+            case IR_FLOAT_ADD:
+                if (float_binop_constant(instr)) {
+                    logfatal("Constant propagation for IR_FLOAT_ADD");
+                }
+                break;
         }
 
         instr = instr->next;
@@ -486,6 +502,15 @@ void ir_optimize_eliminate_dead_code() {
                 if (!instr->dead_code) {
                     instr->bin_op.operand1->dead_code = false;
                     instr->bin_op.operand2->dead_code = false;
+                }
+                break;
+
+            // Float bin ops
+            case IR_FLOAT_DIVIDE:
+            case IR_FLOAT_ADD:
+                if (!instr->dead_code) {
+                    instr->float_bin_op.operand1->dead_code = false;
+                    instr->float_bin_op.operand2->dead_code = false;
                 }
                 break;
 
