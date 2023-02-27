@@ -242,7 +242,11 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
         if (IR_IS_GPR(guest_reg)) {
             ir_context.guest_reg_to_value[guest_reg] = value;
         } else if (IR_IS_FGR(guest_reg)) {
-            ir_context.guest_reg_to_value[guest_reg] = value;
+            ir_instruction_t* old_value = ir_context.guest_reg_to_value[guest_reg];
+            ir_register_type_t old_type = ir_context.guest_reg_to_reg_type[guest_reg];
+            ir_register_type_t new_type = REGISTER_TYPE_NONE;
+
+
             switch (value->type) {
                 case IR_SET_CONSTANT:
                 case IR_NOP:
@@ -270,18 +274,30 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                     logfatal("Unsupported IR instruction assigned to FPU reg");
 
                 case IR_LOAD:
-                    ir_context.guest_reg_to_reg_type[guest_reg] = value->load.reg_type;
+                    new_type = value->load.reg_type;
                     break;
 
                 case IR_MOV_REG_TYPE:
-                    unimplemented(value->mov_reg_type.new_type != REGISTER_TYPE_FGR_32 && value->mov_reg_type.new_type != REGISTER_TYPE_FGR_64, "non-float mapped to FGR!");
-                    ir_context.guest_reg_to_reg_type[guest_reg] = value->mov_reg_type.new_type;
+                    unimplemented(value->mov_reg_type.new_type != REGISTER_TYPE_FGR_32 &&
+                                  value->mov_reg_type.new_type != REGISTER_TYPE_FGR_64, "non-float mapped to FGR!");
+                    new_type = value->mov_reg_type.new_type;
                     break;
 
                 case IR_FLOAT_CONVERT:
-                    ir_context.guest_reg_to_reg_type[guest_reg] = float_val_to_reg_type(value->float_convert.to_type);
+                    new_type = float_val_to_reg_type(value->float_convert.to_type);
                     break;
             }
+
+            // If there was a mapping before, check if the new mapping is smaller
+            if (old_value != NULL) {
+                if (new_type == REGISTER_TYPE_FGR_32 && old_type == REGISTER_TYPE_FGR_64) {
+                    logwarn("Register size is going down, flushing the old value");
+                    ir_emit_flush_guest_reg(old_value, old_value, guest_reg);
+                }
+            }
+
+            ir_context.guest_reg_to_value[guest_reg] = value;
+            ir_context.guest_reg_to_reg_type[guest_reg] = new_type;
         }
     }
 }

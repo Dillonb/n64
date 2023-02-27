@@ -26,7 +26,10 @@ IR_EMITTER(lwc1) {
 }
 
 IR_EMITTER(swc1) {
-    logfatal("swc1");
+    logwarn("SWC1: TODO: Check CP1 is enabled");
+    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fi.ft), FLOAT_VALUE_TYPE_WORD);
+    ir_emit_store(VALUE_TYPE_U32, address, value);
 }
 
 IR_EMITTER(cfc1) {

@@ -47,6 +47,7 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
 void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length);
 
 void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size);
+void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size);
 void host_emit_float_convert_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg);
 
 void host_emit_debugbreak(dasm_State** Dst);

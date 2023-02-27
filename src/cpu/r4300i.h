@@ -568,6 +568,7 @@ ASSERTDWORD(fgr_t);
 
 typedef struct r4300i {
     u64 gpr[32];
+    fgr_t f[32];
 
     u64 pc;
     u64 next_pc;
@@ -581,7 +582,6 @@ typedef struct r4300i {
     fcr0_t  fcr0;
     fcr31_t fcr31;
 
-    fgr_t f[32];
 
     cp0_t cp0;
     u64 cp2_latch;

@@ -28,11 +28,13 @@ source_instruction_t temp_code[TEMP_CODE_SIZE];
 INLINE bool should_break(u32 address) {
 #ifdef N64_DEBUG_MODE
     switch (address) {
+        case 0xFFFFFFFF:
         //case 0x8F550:
         //case 0x8F5A0:
         //case 0x8F56C:
         //case 0x8F588:
-            //return true;
+        //case 0x3934:
+            return true;
         default:
             return false;
     }

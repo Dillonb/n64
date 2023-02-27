@@ -79,7 +79,7 @@ typedef struct ir_instruction_flush {
     struct ir_instruction_flush* next;
 } ir_instruction_flush_t;
 
-typedef enum register_type {
+typedef enum ir_register_type {
     REGISTER_TYPE_NONE,
     REGISTER_TYPE_GPR,
     REGISTER_TYPE_FGR_32,
