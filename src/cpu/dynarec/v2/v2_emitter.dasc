@@ -1010,51 +1010,67 @@ void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc,
     int reg = check_reg(reg_alloc, true);
     int offset = get_n64cpu_offset(mem);
 
-    if (reg_alloc.spilled) {
-        | mov Rq(TMPREG2), qword [rsp + reg]
-        reg = TMPREG2;
-    }
-
-    // Check if the pointer is within N64CPU
-    if (offset > 0) {
-        switch (type) {
-            case VALUE_TYPE_U8:
-                | mov Rb(reg), [cpu_state + offset]
-                | movzx Rq(reg), Rb(reg)
-                break;
-            case VALUE_TYPE_S8:
-                | mov Rb(reg), [cpu_state + offset]
-                | movsx Rq(reg), Rb(reg)
-                break;
-            case VALUE_TYPE_S16:
-                | mov Rw(reg), [cpu_state + offset]
-                | movsx Rq(reg), Rw(reg)
-                break;
-            case VALUE_TYPE_U16:
-                | mov Rw(reg), [cpu_state + offset]
-                | movzx Rq(reg), Rw(reg)
-                break;
-            case VALUE_TYPE_S32:
-                | mov Rd(reg), [cpu_state + offset]
-                | movsxd Rq(reg), Rd(reg)
-                break;
-            case VALUE_TYPE_U32:
-                | mov Rd(reg), [cpu_state + offset]
-                break;
-            case VALUE_TYPE_U64:
-            case VALUE_TYPE_S64:
-                | mov Rq(reg), [cpu_state + offset]
-                break;
+    if (reg_alloc.type == REGISTER_TYPE_GPR) {
+        if (reg_alloc.spilled) {
+            | mov Rq(TMPREG2), qword [rsp + reg]
+            reg = TMPREG2;
         }
-    } else {
-        unimplemented(type != VALUE_TYPE_U64, "non-64 bit read not within N64CPU");
-        logfatal("Not within n64cpu");
-        | mov64 Rq(TMPREG1), mem
-        | mov Rq(reg), [TMPREG1]
-    }
 
-    if (reg_alloc.spilled) {
-        | mov qword [rsp + reg_alloc.spill_location], Rq(TMPREG2)
+        // Check if the pointer is within N64CPU
+        if (offset > 0) {
+            switch (type) {
+                case VALUE_TYPE_U8:
+                    | mov Rb(reg), [cpu_state + offset]
+                    | movzx Rq(reg), Rb(reg)
+                    break;
+                case VALUE_TYPE_S8:
+                    | mov Rb(reg), [cpu_state + offset]
+                    | movsx Rq(reg), Rb(reg)
+                    break;
+                case VALUE_TYPE_S16:
+                    | mov Rw(reg), [cpu_state + offset]
+                    | movsx Rq(reg), Rw(reg)
+                    break;
+                case VALUE_TYPE_U16:
+                    | mov Rw(reg), [cpu_state + offset]
+                    | movzx Rq(reg), Rw(reg)
+                    break;
+                case VALUE_TYPE_S32:
+                    | mov Rd(reg), [cpu_state + offset]
+                    | movsxd Rq(reg), Rd(reg)
+                    break;
+                case VALUE_TYPE_U32:
+                    | mov Rd(reg), [cpu_state + offset]
+                    break;
+                case VALUE_TYPE_U64:
+                case VALUE_TYPE_S64:
+                    | mov Rq(reg), [cpu_state + offset]
+                    break;
+            }
+        } else {
+            unimplemented(type != VALUE_TYPE_U64, "non-64 bit read not within N64CPU");
+            logfatal("Not within n64cpu");
+            | mov64 Rq(TMPREG1), mem
+            | mov Rq(reg), [TMPREG1]
+        }
+
+        if (reg_alloc.spilled) {
+            | mov qword [rsp + reg_alloc.spill_location], Rq(TMPREG2)
+        }
+    } else if (reg_alloc.type == REGISTER_TYPE_FGR_32) {
+        unimplemented(!(type == VALUE_TYPE_U32 || type == VALUE_TYPE_S32), "Loading FGR32 with non-32 bit type");
+        if (offset > 0) {
+            | movd xmm(reg), dword [cpu_state + offset]
+        } else {
+            logfatal("not from N64CPU mov to xmm reg");
+        }
+    } else if (reg_alloc.type == REGISTER_TYPE_FGR_64) {
+        unimplemented(!(type == VALUE_TYPE_U64 || type == VALUE_TYPE_S64), "Loading FGR64 with non-64 bit type");
+        if (offset > 0) {
+            | movd xmm(reg), qword [cpu_state + offset]
+        } else {
+            logfatal("not from N64CPU mov to xmm reg");
+        }
     }
 }
 

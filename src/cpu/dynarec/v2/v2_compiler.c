@@ -428,7 +428,23 @@ void compile_ir_shift(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
-    host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U64);
+    switch (instr->load_guest_reg.guest_reg_type) {
+        case REGISTER_TYPE_NONE:
+            logfatal("Loading reg of type NONE");
+            break;
+        case REGISTER_TYPE_GPR:
+            unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
+            host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U64);
+            break;
+        case REGISTER_TYPE_FGR_32:
+            unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_32, but register is not an FGR!");
+            host_emit_mov_reg_mem(Dst, instr->reg_alloc, get_fpu_register_ptr_word(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U32);
+            break;
+        case REGISTER_TYPE_FGR_64:
+            unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_64, but register is not an FGR!");
+            host_emit_mov_reg_mem(Dst, instr->reg_alloc, get_fpu_register_ptr_dword(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U64);
+            break;
+    }
 }
 
 void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
