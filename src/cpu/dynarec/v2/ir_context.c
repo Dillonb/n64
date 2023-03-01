@@ -109,6 +109,7 @@ const char* float_cond_to_str(ir_float_condition_t condition) {
         case CONDITION_FLOAT_LE:
             return "<=";
     }
+    logfatal("Did not match any cases");
 }
 
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
@@ -194,9 +195,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             break;
         case IR_FLOAT_CHECK_CONDITION:
             snprintf(buf, buf_size, "fcr31.compare = v%d %s v%d",
-                     instr->check_condition.operand1->index,
-                     float_cond_to_str(instr->check_condition.condition),
-                     instr->check_condition.operand2->index);
+                     instr->float_check_condition.operand1->index,
+                     float_cond_to_str(instr->float_check_condition.condition),
+                     instr->float_check_condition.operand2->index);
             break;
         case IR_SET_BLOCK_EXIT_PC:
             snprintf(buf, buf_size, "set_block_exit(v%d)", instr->unary_op.operand->index);
@@ -258,6 +259,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_FLOAT_ADD:
             snprintf(buf, buf_size, "(%s)v%d + (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
             break;
+        case IR_FLOAT_SUB:
+            snprintf(buf, buf_size, "(%s)v%d - (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
+            break;
     }
 }
 
@@ -315,6 +319,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 // Float bin ops
                 case IR_FLOAT_DIVIDE:
                 case IR_FLOAT_ADD:
+                case IR_FLOAT_SUB:
                     new_type = float_val_to_reg_type(value->float_bin_op.format);
                     break;
             }
@@ -468,7 +473,7 @@ ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t typ
 
         ir_instruction_t instruction;
         instruction.type = IR_LOAD_GUEST_REG;
-        instruction.load_guest_reg.guest_reg = IR_FGR(guest_fgr);
+        instruction.load_guest_reg.guest_reg = guest_fgr;
         instruction.load_guest_reg.guest_reg_type = float_val_to_reg_type(type);
         return append_ir_instruction(instruction, IR_FGR(guest_fgr));
     } else {
@@ -764,6 +769,18 @@ ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t
     }
     ir_instruction_t instruction;
     instruction.type = IR_FLOAT_ADD;
+    instruction.float_bin_op.operand1 = operand1;
+    instruction.float_bin_op.operand2 = operand2;
+    instruction.float_bin_op.format = add_type;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_sub(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg) {
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float add must target an FGR");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_SUB;
     instruction.float_bin_op.operand1 = operand1;
     instruction.float_bin_op.operand2 = operand2;
     instruction.float_bin_op.format = add_type;

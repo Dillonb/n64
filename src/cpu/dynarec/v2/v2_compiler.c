@@ -519,6 +519,10 @@ void compile_ir_float_add(dasm_State** Dst, ir_instruction_t* instr) {
     logfatal("compile_ir_float_add");
 }
 
+void compile_ir_float_sub(dasm_State** Dst, ir_instruction_t* instr) {
+    logfatal("compile_ir_float_sub");
+}
+
 void compile_ir_float_check_condition(dasm_State** Dst, ir_instruction_t* instr) {
     logfatal("compile_ir_float_check_condition");
 }
@@ -617,6 +621,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 compile_ir_float_divide(Dst, instr);
                 break;
             case IR_FLOAT_ADD:
+                compile_ir_float_add(Dst, instr);
+                break;
+            case IR_FLOAT_SUB:
                 compile_ir_float_add(Dst, instr);
                 break;
             case IR_FLOAT_CHECK_CONDITION:

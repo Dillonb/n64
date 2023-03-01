@@ -198,6 +198,7 @@ typedef struct ir_instruction {
         IR_FLOAT_CONVERT,
         IR_FLOAT_DIVIDE,
         IR_FLOAT_ADD,
+        IR_FLOAT_SUB,
         IR_FLOAT_CHECK_CONDITION
     } type;
     union {
@@ -389,6 +390,8 @@ ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_
 ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg);
 // Add two float values of type add_type.
 ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg);
+// Subtract two float values of type sub_type.
+ir_instruction_t* ir_emit_float_sub(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t sub_type, u8 guest_reg);
 // Compare two floating point values, set the result to FCR31.compare
 ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type);
 

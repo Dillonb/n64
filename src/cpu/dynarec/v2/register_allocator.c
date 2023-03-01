@@ -67,6 +67,8 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
                 logfatal("Load guest reg with FGR: need some way to determine type");
             } else if (IR_IS_GPR(instr->load_guest_reg.guest_reg)) {
                 return REGISTER_TYPE_GPR;
+            } else {
+                logfatal("Unknown register type for guest register %d", instr->load_guest_reg.guest_reg);
             }
             break;
 
@@ -82,6 +84,7 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         // Float bin ops
         case IR_FLOAT_DIVIDE:
         case IR_FLOAT_ADD:
+        case IR_FLOAT_SUB:
             return float_val_to_reg_type(instr->float_bin_op.format);
     }
     logfatal("Did not match any cases.");
