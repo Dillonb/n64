@@ -29,6 +29,10 @@ typedef enum ir_condition {
     CONDITION_GREATER_OR_EQUAL_TO_UNSIGNED
 } ir_condition_t;
 
+typedef enum ir_float_condition {
+    CONDITION_FLOAT_LE
+} ir_float_condition_t;
+
 typedef enum ir_value_type {
     VALUE_TYPE_U8,
     VALUE_TYPE_S8,
@@ -193,7 +197,8 @@ typedef struct ir_instruction {
         IR_MOV_REG_TYPE,
         IR_FLOAT_CONVERT,
         IR_FLOAT_DIVIDE,
-        IR_FLOAT_ADD
+        IR_FLOAT_ADD,
+        IR_FLOAT_CHECK_CONDITION
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -288,6 +293,12 @@ typedef struct ir_instruction {
             ir_float_value_type_t format;
         } float_bin_op;
     };
+    struct {
+        struct ir_instruction* operand1;
+        struct ir_instruction* operand2;
+        ir_float_condition_t condition;
+        ir_float_value_type_t format;
+    } float_check_condition;
 } ir_instruction_t;
 
 typedef struct ir_context {
@@ -378,6 +389,8 @@ ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_
 ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg);
 // Add two float values of type add_type.
 ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg);
+// Compare two floating point values, set the result to FCR31.compare
+ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

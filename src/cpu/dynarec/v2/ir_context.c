@@ -104,9 +104,21 @@ const char* cond_to_str(ir_condition_t condition) {
     }
 }
 
+const char* float_cond_to_str(ir_float_condition_t condition) {
+    switch (condition) {
+        case CONDITION_FLOAT_LE:
+            return "<=";
+    }
+}
+
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 
-    if (instr->type != IR_STORE && instr->type != IR_SET_COND_BLOCK_EXIT_PC && instr->type != IR_SET_BLOCK_EXIT_PC && instr->type != IR_NOP && instr->type != IR_FLUSH_GUEST_REG) {
+    if (instr->type != IR_STORE
+        && instr->type != IR_SET_COND_BLOCK_EXIT_PC
+        && instr->type != IR_SET_BLOCK_EXIT_PC
+        && instr->type != IR_NOP
+        && instr->type != IR_FLUSH_GUEST_REG
+        && instr->type != IR_FLOAT_CHECK_CONDITION) {
         int written = snprintf(buf, buf_size, "v%d = ", instr->index);
         buf += written;
         buf_size -= written;
@@ -178,6 +190,12 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             snprintf(buf, buf_size, "v%d %s v%d",
                      instr->check_condition.operand1->index,
                      cond_to_str(instr->check_condition.condition),
+                     instr->check_condition.operand2->index);
+            break;
+        case IR_FLOAT_CHECK_CONDITION:
+            snprintf(buf, buf_size, "fcr31.compare = v%d %s v%d",
+                     instr->check_condition.operand1->index,
+                     float_cond_to_str(instr->check_condition.condition),
                      instr->check_condition.operand2->index);
             break;
         case IR_SET_BLOCK_EXIT_PC:
@@ -268,6 +286,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 case IR_SET_PTR:
                 case IR_MASK_AND_CAST:
                 case IR_CHECK_CONDITION:
+                case IR_FLOAT_CHECK_CONDITION:
                 case IR_SET_COND_BLOCK_EXIT_PC:
                 case IR_SET_BLOCK_EXIT_PC:
                 case IR_COND_BLOCK_EXIT:
@@ -749,4 +768,14 @@ ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t
     instruction.float_bin_op.operand2 = operand2;
     instruction.float_bin_op.format = add_type;
     return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type) {
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_CHECK_CONDITION;
+    instruction.float_check_condition.operand1 = operand1;
+    instruction.float_check_condition.operand2 = operand2;
+    instruction.float_check_condition.condition = cond;
+    instruction.float_check_condition.format = operand_type;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
 }

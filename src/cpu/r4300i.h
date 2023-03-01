@@ -519,6 +519,8 @@ typedef union fcr0 {
     u32 raw;
 } fcr0_t;
 
+#define FCR31_COMPARE_MASK (1 << 23)
+
 typedef union fcr31 {
     u32 raw;
 

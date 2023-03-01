@@ -58,6 +58,8 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->mov_reg_type.value == value;
         case IR_FLOAT_CONVERT:
             return instr->float_convert.value == value;
+        case IR_FLOAT_CHECK_CONDITION:
+            return instr->float_check_condition.operand1 == value || instr->float_check_condition.operand2 == value;
 
         // Float bin ops
         case IR_FLOAT_DIVIDE:
@@ -428,6 +430,11 @@ void ir_optimize_constant_propagation() {
                     logfatal("Constant propagation for IR_FLOAT_ADD");
                 }
                 break;
+            case IR_FLOAT_CHECK_CONDITION:
+                if (is_constant(instr->float_check_condition.operand1) || is_constant(instr->float_check_condition.operand2)) {
+                    logfatal("Constant propagation for IR_FLOAT_CHECK_CONDITION");
+                }
+                break;
         }
 
         instr = instr->next;
@@ -484,6 +491,11 @@ void ir_optimize_eliminate_dead_code() {
                 break;
             case IR_ERET:
                 instr->dead_code = false;
+                break;
+            case IR_FLOAT_CHECK_CONDITION:
+                instr->dead_code = false;
+                instr->float_check_condition.operand1->dead_code = false;
+                instr->float_check_condition.operand2->dead_code = false;
                 break;
 
             // Unary ops
