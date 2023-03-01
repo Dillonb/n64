@@ -3,6 +3,13 @@
 #include "ir_emitter_fpu.h"
 #include "ir_context.h"
 
+void emit_ir_cvt(mips_instruction_t instruction, ir_float_value_type_t from, ir_float_value_type_t to, ir_float_convert_mode_t mode) {
+    ir_instruction_t* source = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), from);
+    ir_emit_float_convert(source, from, to, IR_FGR(instruction.fr.fd), mode);
+}
+
+#define CVT(from, to, mode) case FP_FMT_##from: emit_ir_cvt(instruction, FLOAT_VALUE_TYPE_##from, FLOAT_VALUE_TYPE_##to, FLOAT_CONVERT_MODE_##mode); break
+
 IR_EMITTER(ldc1) {
     //checkcp1; // TODO: check cp1 is enabled
     logwarn("LDC1: TODO: Check CP1 is enabled");
@@ -201,10 +208,8 @@ IR_EMITTER(cp1_trunc_w) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_trunc_w_d");
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_trunc_w_s");
+        CVT(DOUBLE, WORD, TRUNC);
+        CVT(SINGLE, WORD, TRUNC);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -214,10 +219,8 @@ IR_EMITTER(cp1_floor_w) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_floor_w_d");
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_floor_w_s");
+        CVT(DOUBLE, WORD, FLOOR);
+        CVT(SINGLE, WORD, FLOOR);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -227,29 +230,20 @@ IR_EMITTER(cp1_round_w) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_round_w_d");
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_round_w_s");
+        CVT(DOUBLE, WORD, ROUND);
+        CVT(SINGLE, WORD, ROUND);
         default:
             logfatal("mips_cp1_invalid");
     }
 }
 
-void emit_ir_cvt(mips_instruction_t instruction, ir_float_value_type_t from, ir_float_value_type_t to) {
-    ir_instruction_t* source = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), from);
-    ir_emit_float_convert(source, from, to, IR_FGR(instruction.fr.fd));
-}
-
-#define CVT(from, to) case FP_FMT_##from: emit_ir_cvt(instruction, FLOAT_VALUE_TYPE_##from, FLOAT_VALUE_TYPE_##to); break
-
 IR_EMITTER(cp1_cvt_d) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        CVT(SINGLE, DOUBLE);
-        CVT(WORD,   DOUBLE);
-        CVT(LONG,   DOUBLE);
+        CVT(SINGLE, DOUBLE, CONVERT);
+        CVT(WORD,   DOUBLE, CONVERT);
+        CVT(LONG,   DOUBLE, CONVERT);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -259,8 +253,8 @@ IR_EMITTER(cp1_cvt_l) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        CVT(DOUBLE, LONG);
-        CVT(SINGLE, LONG);
+        CVT(DOUBLE, LONG, CONVERT);
+        CVT(SINGLE, LONG, CONVERT);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -270,9 +264,9 @@ IR_EMITTER(cp1_cvt_s) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        CVT(DOUBLE, SINGLE);
-        CVT(WORD,   SINGLE);
-        CVT(LONG,   SINGLE);
+        CVT(DOUBLE, SINGLE, CONVERT);
+        CVT(WORD,   SINGLE, CONVERT);
+        CVT(LONG,   SINGLE, CONVERT);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -282,8 +276,8 @@ IR_EMITTER(cp1_cvt_w) {
     //checkcp1;
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
-        CVT(DOUBLE, WORD);
-        CVT(SINGLE, WORD);
+        CVT(DOUBLE, WORD, CONVERT);
+        CVT(SINGLE, WORD, CONVERT);
         default:
             logfatal("mips_cp1_invalid");
     }

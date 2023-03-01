@@ -57,6 +57,13 @@ typedef enum ir_float_value_type {
     FLOAT_VALUE_TYPE_DOUBLE
 } ir_float_value_type_t;
 
+typedef enum ir_float_convert_mode {
+    FLOAT_CONVERT_MODE_CONVERT,
+    FLOAT_CONVERT_MODE_TRUNC,
+    FLOAT_CONVERT_MODE_ROUND,
+    FLOAT_CONVERT_MODE_FLOOR,
+} ir_float_convert_mode_t;
+
 typedef enum ir_shift_direction {
     SHIFT_DIRECTION_LEFT,
     SHIFT_DIRECTION_RIGHT
@@ -298,6 +305,7 @@ typedef struct ir_instruction {
             struct ir_instruction* value;
             ir_float_value_type_t from_type;
             ir_float_value_type_t to_type;
+            ir_float_convert_mode_t mode;
         } float_convert;
         struct {
             struct ir_instruction* operand1;
@@ -396,7 +404,7 @@ ir_instruction_t* ir_emit_eret();
 // Move a value to a different register type
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
 // convert a float value to a different float value type
-ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg, ir_float_convert_mode_t mode);
 // Divide two float values of type divide_type.
 ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg);
 // Add two float values of type add_type.

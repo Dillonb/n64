@@ -548,7 +548,20 @@ void compile_ir_set_float_constant(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {
-    host_emit_float_convert_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
+    switch (instr->float_convert.mode) {
+        case FLOAT_CONVERT_MODE_CONVERT:
+            host_emit_float_convert_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
+            break;
+        case FLOAT_CONVERT_MODE_TRUNC:
+            logfatal("compile_ir_float_convert FLOAT_CONVERT_MODE_TRUNC");
+            break;
+        case FLOAT_CONVERT_MODE_ROUND:
+            logfatal("compile_ir_float_convert FLOAT_CONVERT_MODE_ROUND");
+            break;
+        case FLOAT_CONVERT_MODE_FLOOR:
+            logfatal("compile_ir_float_convert FLOAT_CONVERT_MODE_FLOOR");
+            break;
+    }
 }
 
 void compile_ir_float_divide(dasm_State** Dst, ir_instruction_t* instr) {

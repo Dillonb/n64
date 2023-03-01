@@ -736,7 +736,7 @@ ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type
     return append_ir_instruction(instruction, new_reg);
 }
 
-ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg, ir_float_convert_mode_t convert_mode) {
     if (from_type == FLOAT_VALUE_TYPE_INVALID) {
         logfatal("Cannot convert from FLOAT_VALUE_TYPE_INVALID");
     }
@@ -754,6 +754,7 @@ ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_
     instruction.float_convert.value = value;
     instruction.float_convert.from_type = from_type;
     instruction.float_convert.to_type = to_type;
+    instruction.float_convert.mode = convert_mode;
     return append_ir_instruction(instruction, guest_reg);
 }
 
