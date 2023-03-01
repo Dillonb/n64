@@ -64,7 +64,7 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
 
         case IR_LOAD_GUEST_REG:
             if (IR_IS_FGR(instr->load_guest_reg.guest_reg)) {
-                logfatal("Load guest reg with FGR: need some way to determine type");
+                return instr->load_guest_reg.guest_reg_type;
             } else if (IR_IS_GPR(instr->load_guest_reg.guest_reg)) {
                 return REGISTER_TYPE_GPR;
             } else {
