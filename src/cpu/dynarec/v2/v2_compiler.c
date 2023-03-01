@@ -543,7 +543,8 @@ void compile_ir_float_divide(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_float_add(dasm_State** Dst, ir_instruction_t* instr) {
-    logfatal("compile_ir_float_add");
+    host_emit_mov_fgr_fgr(Dst, instr->reg_alloc, instr->float_bin_op.operand1->reg_alloc, instr->float_bin_op.format);
+    host_emit_float_add_reg_reg(Dst, instr->reg_alloc, instr->float_bin_op.operand2->reg_alloc, instr->float_bin_op.format);
 }
 
 void compile_ir_float_sub(dasm_State** Dst, ir_instruction_t* instr) {
