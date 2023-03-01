@@ -512,7 +512,10 @@ void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_float_divide(dasm_State** Dst, ir_instruction_t* instr) {
-    logfatal("compile_ir_float_divide");
+    unimplemented(is_constant(instr->float_bin_op.operand1), "float div with constant dividend");
+    unimplemented(is_constant(instr->float_bin_op.operand2), "float div with constant divisor");
+    host_emit_mov_fgr_fgr(Dst, instr->reg_alloc, instr->float_bin_op.operand1->reg_alloc, instr->float_bin_op.format);
+    host_emit_float_div_reg_reg(Dst, instr->reg_alloc, instr->float_bin_op.operand2->reg_alloc, instr->float_bin_op.format);
 }
 
 void compile_ir_float_add(dasm_State** Dst, ir_instruction_t* instr) {

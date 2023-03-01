@@ -1137,6 +1137,28 @@ void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
     }
 }
 
+void host_emit_mov_fgr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_float_value_type_t format) {
+    int dst = check_fgr(dst_reg, false);
+    int src = check_fgr(src_reg, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_mov_fgr_fgr FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_mov_fgr_fgr FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_mov_fgr_fgr FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | movss xmm(dst), xmm(src)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | movsd xmm(dst), xmm(src)
+            break;
+    }
+}
+
 void host_emit_float_convert_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
     int src = check_reg(src_reg, false);
     int dst = check_fgr(dst_reg, false);
@@ -1264,6 +1286,36 @@ void host_emit_float_convert_reg_reg(dasm_State** Dst, ir_float_value_type_t src
                     logfatal("Converting from FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
                     break;
             }
+            break;
+    }
+}
+
+void host_emit_float_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    logfatal("host_emit_float_add_reg_reg");
+}
+
+void host_emit_float_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    logfatal("host_emit_float_sub_reg_reg");
+}
+
+void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    int dividend = check_fgr(operand1_alloc, false);
+    int divisor = check_fgr(operand2_alloc, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_div_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_div_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_div_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | divss xmm(dividend), xmm(divisor)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | divsd xmm(dividend), xmm(divisor)
             break;
     }
 }
