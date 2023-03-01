@@ -81,6 +81,9 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         case IR_FLOAT_CONVERT:
             return float_val_to_reg_type(instr->float_convert.to_type);
 
+        case IR_SET_FLOAT_CONSTANT:
+            return float_val_to_reg_type(instr->set_float_constant.format);
+
         // Float bin ops
         case IR_FLOAT_DIVIDE:
         case IR_FLOAT_ADD:

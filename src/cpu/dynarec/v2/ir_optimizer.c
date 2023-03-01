@@ -72,6 +72,7 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_GET_PTR:
         case IR_NOP:
         case IR_SET_CONSTANT:
+        case IR_SET_FLOAT_CONSTANT:
         case IR_LOAD_GUEST_REG:
             return false;
     }
@@ -140,6 +141,7 @@ void ir_optimize_constant_propagation() {
             case IR_NOP:
             case IR_ERET:
             case IR_SET_CONSTANT:
+            case IR_SET_FLOAT_CONSTANT:
             case IR_STORE:
             case IR_LOAD:
             case IR_GET_PTR:
@@ -151,7 +153,32 @@ void ir_optimize_constant_propagation() {
             // TODO
             case IR_MULTIPLY:
             case IR_DIVIDE:
+                break;
+
             case IR_MOV_REG_TYPE:
+                if (is_constant(instr->mov_reg_type.value)) {
+                    u64 const_val = set_const_to_u64(instr->mov_reg_type.value->set_constant);
+                    switch (instr->mov_reg_type.new_type) {
+                        case REGISTER_TYPE_NONE:
+                            logfatal("new_type cannot be REGISTER_TYPE_NONE");
+                            break;
+                        case REGISTER_TYPE_GPR:
+                            logfatal("new_type cannot be mov_reg_type from GPR to GPR?");
+                            break;
+                        case REGISTER_TYPE_FGR_32:
+                            instr->type = IR_SET_FLOAT_CONSTANT;
+                            instr->set_float_constant.format = FLOAT_VALUE_TYPE_WORD;
+                            instr->set_float_constant.value_word = const_val;
+                            break;
+                        case REGISTER_TYPE_FGR_64:
+                            instr->type = IR_SET_FLOAT_CONSTANT;
+                            instr->set_float_constant.format = FLOAT_VALUE_TYPE_LONG;
+                            instr->set_float_constant.value_long = const_val;
+                            break;
+                    }
+                } else if (float_is_constant(instr->mov_reg_type.value)) {
+                    logfatal("Constant propagation for IR_MOV_REG_TYPE: existing type == FGR");
+                }
                 break;
 
             case IR_NOT:
@@ -417,7 +444,7 @@ void ir_optimize_constant_propagation() {
                 }
                 break;
             case IR_FLOAT_CONVERT:
-                if (is_constant(instr->float_convert.value)) {
+                if (float_is_constant(instr->float_convert.value)) {
                     logfatal("Constant propagation for IR_FLOAT_CONVERT");
                 }
                 break;
@@ -437,7 +464,7 @@ void ir_optimize_constant_propagation() {
                 }
                 break;
             case IR_FLOAT_CHECK_CONDITION:
-                if (is_constant(instr->float_check_condition.operand1) || is_constant(instr->float_check_condition.operand2)) {
+                if (float_is_constant(instr->float_check_condition.operand1) && float_is_constant(instr->float_check_condition.operand2)) {
                     logfatal("Constant propagation for IR_FLOAT_CHECK_CONDITION");
                 }
                 break;
@@ -570,6 +597,7 @@ void ir_optimize_eliminate_dead_code() {
             // No dependencies
             case IR_NOP:
             case IR_SET_CONSTANT:
+            case IR_SET_FLOAT_CONSTANT:
             case IR_LOAD_GUEST_REG:
             case IR_GET_PTR:
                 break;

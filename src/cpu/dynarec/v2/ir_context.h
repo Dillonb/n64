@@ -76,6 +76,15 @@ typedef struct ir_set_constant {
     };
 } ir_set_constant_t;
 
+typedef struct ir_set_float_constant {
+    ir_float_value_type_t format;
+    union {
+        s32 value_word;
+        s64 value_long;
+        float value_single;
+        double value_double;
+    } PACKED;
+} ir_set_float_constant_t;
 
 typedef struct ir_instruction_flush {
     u8 guest_reg;
@@ -172,6 +181,7 @@ typedef struct ir_instruction {
     enum {
         IR_NOP,
         IR_SET_CONSTANT,
+        IR_SET_FLOAT_CONSTANT,
         IR_OR,
         IR_XOR,
         IR_AND,
@@ -203,6 +213,7 @@ typedef struct ir_instruction {
     } type;
     union {
         ir_set_constant_t set_constant;
+        ir_set_float_constant_t set_float_constant;
         struct {
             struct ir_instruction* operand1;
             struct ir_instruction* operand2;

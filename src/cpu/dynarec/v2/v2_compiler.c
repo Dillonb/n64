@@ -507,6 +507,30 @@ void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void compile_ir_set_float_constant(dasm_State** Dst, ir_instruction_t* instr) {
+    ir_set_float_constant_t fc = instr->set_float_constant;
+    ir_set_constant_t c;
+    switch (fc.format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("compile_ir_set_float_constant FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+        case FLOAT_VALUE_TYPE_SINGLE:
+            c.type = VALUE_TYPE_U32;
+            c.value_u32 = fc.value_word;
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            c.type = VALUE_TYPE_U32;
+            c.value_u64 = fc.value_long;
+            break;
+    }
+
+    ir_register_allocation_t tmpreg = alloc_gpr(get_scratch_registers()[0]);
+    host_emit_mov_reg_imm(Dst, tmpreg, c);
+    host_emit_mov_fgr_gpr(Dst, instr->reg_alloc, tmpreg, c.type);
+}
+
 void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_float_convert_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
 }
@@ -616,6 +640,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_MOV_REG_TYPE:
                 compile_ir_mov_reg_type(Dst, instr);
+                break;
+            case IR_SET_FLOAT_CONSTANT:
+                compile_ir_set_float_constant(Dst, instr);
                 break;
             case IR_FLOAT_CONVERT:
                 compile_ir_float_convert(Dst, instr);

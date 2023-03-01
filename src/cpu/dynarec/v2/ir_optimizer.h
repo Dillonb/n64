@@ -14,12 +14,16 @@ INLINE bool is_constant(ir_instruction_t* instr) {
     return instr->type == IR_SET_CONSTANT;
 }
 
+INLINE bool float_is_constant(ir_instruction_t* instr) {
+    return instr->type == IR_SET_FLOAT_CONSTANT;
+}
+
 INLINE bool binop_constant(ir_instruction_t* instr) {
     return is_constant(instr->bin_op.operand1) && is_constant(instr->bin_op.operand2);
 }
 
 INLINE bool float_binop_constant(ir_instruction_t* instr) {
-    return is_constant(instr->float_bin_op.operand1) && is_constant(instr->float_bin_op.operand2);
+    return float_is_constant(instr->float_bin_op.operand1) && float_is_constant(instr->float_bin_op.operand2);
 }
 
 // Is the instruction a constant that is also a valid immediate?

@@ -157,6 +157,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                     break;
             }
             break;
+        case IR_SET_FLOAT_CONSTANT:
+            snprintf(buf, buf_size, "FLOAT_CONSTANT");
+            break;
         case IR_OR:
             snprintf(buf, buf_size, "v%d | v%d", instr->bin_op.operand1->index, instr->bin_op.operand2->index);
             break;
@@ -321,6 +324,9 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 case IR_FLOAT_ADD:
                 case IR_FLOAT_SUB:
                     new_type = float_val_to_reg_type(value->float_bin_op.format);
+                    break;
+                case IR_SET_FLOAT_CONSTANT:
+                    new_type = float_val_to_reg_type(value->set_float_constant.format);
                     break;
             }
 
