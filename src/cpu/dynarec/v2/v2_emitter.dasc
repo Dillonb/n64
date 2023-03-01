@@ -1334,7 +1334,25 @@ void host_emit_float_add_reg_reg(dasm_State** Dst, ir_register_allocation_t oper
 }
 
 void host_emit_float_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
-    logfatal("host_emit_float_sub_reg_reg");
+    int operand1 = check_fgr(operand1_alloc, false);
+    int operand2 = check_fgr(operand2_alloc, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_sub_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_sub_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_sub_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | subss xmm(operand1), xmm(operand2)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | subsd xmm(operand1), xmm(operand2)
+            break;
+    }
 }
 
 void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
@@ -1357,6 +1375,35 @@ void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t oper
             | divsd xmm(dividend), xmm(divisor)
             break;
     }
+}
+
+void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2) {
+    int op1 = check_fgr(operand1, false);
+    int op2 = check_fgr(operand2, false);
+    | mov Rd(TMPREG1), cpu_state->fcr31.raw
+    | and Rd(TMPREG1), ~(FCR31_COMPARE_MASK)
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+        case FLOAT_VALUE_TYPE_WORD:
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("Invalid format for host_emit_float_cmp");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | comiss xmm(op1), xmm(op2)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | comisd xmm(op1), xmm(op2)
+            break;
+    }
+    switch (condition) {
+        case CONDITION_FLOAT_LE:
+            | setbe Rb(TMPREG2)
+            break;
+    }
+    | movzx Rd(TMPREG2), Rb(TMPREG2)
+    | sal Rd(TMPREG2), FCR31_COMPARE_SHIFT
+    | or Rd(TMPREG1), Rd(TMPREG2)
+    | mov cpu_state->fcr31.raw, Rd(TMPREG1)
 }
 
 void v2_end_block(dasm_State** Dst, int block_length) {

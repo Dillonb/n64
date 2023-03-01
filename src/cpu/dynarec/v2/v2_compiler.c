@@ -564,11 +564,12 @@ void compile_ir_float_add(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_float_sub(dasm_State** Dst, ir_instruction_t* instr) {
-    logfatal("compile_ir_float_sub");
+    host_emit_mov_fgr_fgr(Dst, instr->reg_alloc, instr->float_bin_op.operand1->reg_alloc, instr->float_bin_op.format);
+    host_emit_float_sub_reg_reg(Dst, instr->reg_alloc, instr->float_bin_op.operand2->reg_alloc, instr->float_bin_op.format);
 }
 
 void compile_ir_float_check_condition(dasm_State** Dst, ir_instruction_t* instr) {
-    logfatal("compile_ir_float_check_condition");
+    host_emit_float_cmp(Dst, instr->float_check_condition.condition, instr->float_check_condition.format, instr->float_check_condition.operand1->reg_alloc, instr->float_check_condition.operand2->reg_alloc);
 }
 
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
@@ -671,7 +672,7 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 compile_ir_float_add(Dst, instr);
                 break;
             case IR_FLOAT_SUB:
-                compile_ir_float_add(Dst, instr);
+                compile_ir_float_sub(Dst, instr);
                 break;
             case IR_FLOAT_CHECK_CONDITION:
                 compile_ir_float_check_condition(Dst, instr);
