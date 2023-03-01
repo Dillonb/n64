@@ -85,8 +85,9 @@ IR_EMITTER(bc1tl) {
 }
 
 IR_EMITTER(mfc1) {
-    logfatal("TODO: check CP1 is enabled, MFC1 unimplemented");
-    ir_emit_set_constant_u16(0, instruction.r.rt);
+    logwarn("TODO: MFC1: check CP1 is enabled");
+    ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_WORD);
+    ir_emit_mov_reg_type(value, REGISTER_TYPE_GPR, VALUE_TYPE_S32, IR_GPR(instruction.r.rt));
 }
 
 IR_EMITTER(mtc1) {
