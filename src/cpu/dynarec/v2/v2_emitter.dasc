@@ -506,8 +506,26 @@ void host_emit_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
 
             break;
-        case VALUE_TYPE_U32:
-            logfatal("u32 multiply");
+        case VALUE_TYPE_U32: // Same as above but with `mul` instead of `imul`
+            if (operand1_alloc.spilled) {
+                | mov eax, dword [rsp + operand1]
+            } else {
+                | mov eax, Rd(operand1)
+            }
+
+            if (operand2_alloc.spilled) {
+                | mul dword [rsp + operand2]
+            } else {
+                | mul Rd(operand2)
+            }
+
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
         case VALUE_TYPE_U64:
             logfatal("u64 multiply");
         case VALUE_TYPE_S64:
