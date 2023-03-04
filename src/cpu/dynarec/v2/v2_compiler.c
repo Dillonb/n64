@@ -586,6 +586,13 @@ void compile_ir_float_divide(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_float_div_reg_reg(Dst, instr->reg_alloc, instr->float_bin_op.operand2->reg_alloc, instr->float_bin_op.format);
 }
 
+void compile_ir_float_multiply(dasm_State** Dst, ir_instruction_t* instr) {
+    unimplemented(is_constant(instr->float_bin_op.operand1), "float mult with constant multiplicand1");
+    unimplemented(is_constant(instr->float_bin_op.operand2), "float mult with constant multiplicand2");
+    host_emit_mov_fgr_fgr(Dst, instr->reg_alloc, instr->float_bin_op.operand1->reg_alloc, instr->float_bin_op.format);
+    host_emit_float_mult_reg_reg(Dst, instr->reg_alloc, instr->float_bin_op.operand2->reg_alloc, instr->float_bin_op.format);
+}
+
 void compile_ir_float_add(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_fgr_fgr(Dst, instr->reg_alloc, instr->float_bin_op.operand1->reg_alloc, instr->float_bin_op.format);
     host_emit_float_add_reg_reg(Dst, instr->reg_alloc, instr->float_bin_op.operand2->reg_alloc, instr->float_bin_op.format);
@@ -695,6 +702,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
                 break;
             case IR_FLOAT_DIVIDE:
                 compile_ir_float_divide(Dst, instr);
+                break;
+            case IR_FLOAT_MULTIPLY:
+                compile_ir_float_multiply(Dst, instr);
                 break;
             case IR_FLOAT_ADD:
                 compile_ir_float_add(Dst, instr);

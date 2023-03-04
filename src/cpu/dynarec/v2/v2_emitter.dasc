@@ -1465,6 +1465,28 @@ void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t oper
     }
 }
 
+void host_emit_float_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    int multiplicand1 = check_fgr(operand1_alloc, false);
+    int multiplicand2 = check_fgr(operand2_alloc, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_mult_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_mult_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_mult_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | mulss xmm(multiplicand1), xmm(multiplicand2)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | mulsd xmm(multiplicand1), xmm(multiplicand2)
+            break;
+    }
+}
+
 void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2) {
     int op1 = check_fgr(operand1, false);
     int op2 = check_fgr(operand2, false);

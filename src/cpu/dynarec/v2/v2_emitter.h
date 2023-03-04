@@ -55,6 +55,7 @@ void host_emit_float_trunc_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
 void host_emit_float_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format);
 void host_emit_float_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format);
 void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format);
+void host_emit_float_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format);
 
 void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2);
 

@@ -259,6 +259,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_FLOAT_DIVIDE:
             snprintf(buf, buf_size, "(%s)v%d / (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
             break;
+        case IR_FLOAT_MULTIPLY:
+            snprintf(buf, buf_size, "(%s)v%d * (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
+            break;
         case IR_FLOAT_ADD:
             snprintf(buf, buf_size, "(%s)v%d + (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
             break;
@@ -324,6 +327,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
 
                 // Float bin ops
                 case IR_FLOAT_DIVIDE:
+                case IR_FLOAT_MULTIPLY:
                 case IR_FLOAT_ADD:
                 case IR_FLOAT_SUB:
                     new_type = float_val_to_reg_type(value->float_bin_op.format);
@@ -758,6 +762,18 @@ ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_
     instruction.float_convert.from_type = from_type;
     instruction.float_convert.to_type = to_type;
     instruction.float_convert.mode = convert_mode;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_mult(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_float_value_type_t mult_type, u8 guest_reg) {
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float multiply must target an FGR");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_MULTIPLY;
+    instruction.float_bin_op.operand1 = multiplicand1;
+    instruction.float_bin_op.operand2 = multiplicand2;
+    instruction.float_bin_op.format = mult_type;
     return append_ir_instruction(instruction, guest_reg);
 }
 

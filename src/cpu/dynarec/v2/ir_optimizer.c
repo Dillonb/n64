@@ -63,6 +63,7 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
 
         // Float bin ops
         case IR_FLOAT_DIVIDE:
+        case IR_FLOAT_MULTIPLY:
         case IR_FLOAT_ADD:
         case IR_FLOAT_SUB:
             return instr->float_bin_op.operand1 == value || instr->float_bin_op.operand2 == value;
@@ -451,6 +452,11 @@ void ir_optimize_constant_propagation() {
                     logfatal("Constant propagation for IR_FLOAT_CONVERT");
                 }
                 break;
+            case IR_FLOAT_MULTIPLY:
+                if (float_binop_constant(instr)) {
+                    logfatal("Constant propagation for IR_FLOAT_MULTIPLY");
+                }
+                break;
             case IR_FLOAT_DIVIDE:
                 if (float_binop_constant(instr)) {
                     logfatal("Constant propagation for IR_FLOAT_DIVIDE");
@@ -555,6 +561,7 @@ void ir_optimize_eliminate_dead_code() {
 
             // Float bin ops
             case IR_FLOAT_DIVIDE:
+            case IR_FLOAT_MULTIPLY:
             case IR_FLOAT_ADD:
             case IR_FLOAT_SUB:
                 if (!instr->dead_code) {

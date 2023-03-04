@@ -213,6 +213,7 @@ typedef struct ir_instruction {
         IR_ERET,
         IR_MOV_REG_TYPE,
         IR_FLOAT_CONVERT,
+        IR_FLOAT_MULTIPLY,
         IR_FLOAT_DIVIDE,
         IR_FLOAT_ADD,
         IR_FLOAT_SUB,
@@ -407,6 +408,8 @@ ir_instruction_t* ir_emit_eret();
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
 // convert a float value to a different float value type
 ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg, ir_float_convert_mode_t mode);
+// Multiply two float values of type mult_type.
+ir_instruction_t* ir_emit_float_mult(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_float_value_type_t mult_type, u8 guest_reg);
 // Divide two float values of type divide_type.
 ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg);
 // Add two float values of type add_type.

@@ -148,9 +148,19 @@ IR_EMITTER(cp1_mult) {
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_mul_d");
+            ir_emit_float_mult(
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
+                    FLOAT_VALUE_TYPE_DOUBLE,
+                    IR_FGR(instruction.fr.fd));
+            break;
         case FP_FMT_SINGLE:
-            logfatal("mips_cp_mul_s");
+            ir_emit_float_mult(
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE),
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_SINGLE),
+                    FLOAT_VALUE_TYPE_SINGLE,
+                    IR_FGR(instruction.fr.fd));
+            break;
         default:
             logfatal("mips_cp1_invalid");
     }
