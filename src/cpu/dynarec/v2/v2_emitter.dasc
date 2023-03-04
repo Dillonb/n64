@@ -311,6 +311,34 @@ void host_emit_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t minuend_al
     | sub Rq(minuend), Rq(subtrahend)
 }
 
+void host_emit_sub_reg_imm(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_set_constant_t subtrahend) {
+    int minuend = check_reg(minuend_alloc, false);
+    switch (subtrahend.type) {
+        case VALUE_TYPE_U8:
+            | sub Rq(minuend), byte subtrahend.value_u8
+            break;
+        case VALUE_TYPE_S8:
+            | sub Rq(minuend), byte subtrahend.value_s8
+            break;
+        case VALUE_TYPE_S16:
+            | sub Rq(minuend), word subtrahend.value_s16
+            break;
+        case VALUE_TYPE_U16:
+            | sub Rq(minuend), word subtrahend.value_u16
+            break;
+        case VALUE_TYPE_S32:
+            | sub Rq(minuend), dword subtrahend.value_s32
+            break;
+        case VALUE_TYPE_U32:
+            | sub Rq(minuend), dword subtrahend.value_u32
+            break;
+        case VALUE_TYPE_U64:
+        case VALUE_TYPE_S64:
+            logfatal("Sub reg imm with too large immediate");
+            break;
+    }
+}
+
 void host_emit_shift_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
     int reg = check_reg(reg_alloc, false);
     switch (type) {

@@ -24,6 +24,7 @@ void host_emit_xor_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
 void host_emit_add_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2);
 void host_emit_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc);
 void host_emit_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_register_allocation_t subtrahend_alloc);
+void host_emit_sub_reg_imm(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_set_constant_t subtrahend);
 void host_emit_shift_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction);
 void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, ir_register_allocation_t amount_reg_alloc, ir_shift_direction_t direction);
 void host_emit_bitwise_not(dasm_State** Dst, ir_register_allocation_t reg_alloc);

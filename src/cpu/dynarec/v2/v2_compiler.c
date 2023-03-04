@@ -232,7 +232,8 @@ void compile_ir_sub(dasm_State** Dst, ir_instruction_t* instr) {
         host_emit_mov_reg_imm(Dst, instr->reg_alloc, instr->bin_op.operand1->set_constant);
         host_emit_sub_reg_reg(Dst, instr->reg_alloc, instr->bin_op.operand2->reg_alloc);
     } else if (instr_valid_immediate(instr->bin_op.operand2)) {
-        logfatal("Half const sub: (var) - (const)");
+        host_emit_mov_reg_reg(Dst, instr->reg_alloc, instr->bin_op.operand1->reg_alloc, VALUE_TYPE_U64);
+        host_emit_sub_reg_imm(Dst, instr->reg_alloc, instr->bin_op.operand2->set_constant);
     } else {
         host_emit_mov_reg_reg(Dst, instr->reg_alloc, instr->bin_op.operand1->reg_alloc, VALUE_TYPE_U64);
         host_emit_sub_reg_reg(Dst, instr->reg_alloc, instr->bin_op.operand2->reg_alloc);
