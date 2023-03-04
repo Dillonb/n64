@@ -114,12 +114,13 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
 
 
         if (instr_ends_block || page_boundary_ends_block) {
-#ifdef N64_LOG_COMPILATIONS
-            printf("Ending block after %d instructions\n", temp_code_len);
-#endif
             break;
         }
     }
+
+#ifdef N64_LOG_COMPILATIONS
+    printf("Ending block after %d instructions\n", temp_code_len);
+#endif
 
     // If we filled up the buffer, make sure the last instruction is not a branch
     if (temp_code_len == TEMP_CODE_SIZE && is_branch(temp_code[TEMP_CODE_SIZE - 1].category)) {
