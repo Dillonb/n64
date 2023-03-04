@@ -79,7 +79,7 @@ typedef struct ir_set_constant {
         s32 value_s32;
         u32 value_u32;
         u64 value_u64;
-        u64 value_s64;
+        s64 value_s64;
     };
 } ir_set_constant_t;
 

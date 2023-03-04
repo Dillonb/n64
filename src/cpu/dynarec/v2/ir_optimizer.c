@@ -185,32 +185,35 @@ void ir_optimize_constant_propagation() {
                 if (is_constant(instr->unary_op.operand)) {
                     ir_set_constant_t value = instr->unary_op.operand->set_constant;
                     instr->type = IR_SET_CONSTANT;
+                    s64 temp;
                     switch (value.type) {
                         case VALUE_TYPE_U8:
-                            value.value_u8 = ~value.value_u8;
+                            temp = value.value_u8;
                             break;
                         case VALUE_TYPE_S8:
-                            value.value_s8 = ~value.value_s8;
+                            temp = value.value_s8;
                             break;
                         case VALUE_TYPE_S16:
-                            value.value_s16 = ~value.value_s16;
+                            temp = value.value_s16;
                             break;
                         case VALUE_TYPE_U16:
-                            value.value_u16 = ~value.value_u16;
+                            temp = value.value_u16;
                             break;
                         case VALUE_TYPE_S32:
-                            value.value_s32 = ~value.value_s32;
+                            temp = value.value_s32;
                             break;
                         case VALUE_TYPE_U32:
-                            value.value_u32 = ~value.value_u32;
+                            temp = value.value_u32;
                             break;
                         case VALUE_TYPE_U64:
-                            value.value_u64 = ~value.value_u64;
+                            temp = value.value_u64;
                             break;
                         case VALUE_TYPE_S64:
-                            value.value_s64 = ~value.value_s64;
+                            temp = value.value_s64;
                             break;
                     }
+                    value.value_s64 = ~temp;
+                    value.type = VALUE_TYPE_S64;
                     instr->set_constant = value;
                 }
                 break;
@@ -631,12 +634,18 @@ void ir_optimize_eliminate_dead_code() {
 void ir_optimize_shrink_constants() {
     ir_instruction_t* instr = ir_context.ir_cache_head;
     while (instr != NULL) {
-        if (instr->type == IR_SET_CONSTANT && instr->set_constant.type == VALUE_TYPE_U64) {
-            u64 val = instr->set_constant.value_u64;
-            if (val == (s64)(s16)val) {
+        if (instr->type == IR_SET_CONSTANT) {
+            u64 val = const_to_u64(instr);
+            if (val == (u64)(u16)val) { // U16
+                instr->set_constant.type = VALUE_TYPE_U16;
+                instr->set_constant.value_u16 = val & 0xFFFF;
+            } else if (val == (s64)(s16)val) { // S16
                 instr->set_constant.type = VALUE_TYPE_S16;
                 instr->set_constant.value_s16 = val & 0xFFFF;
-            } else if (val == (s64)(s32)val) {
+            } else if (val == (s64)(u32)val) { // U32
+                instr->set_constant.type = VALUE_TYPE_U32;
+                instr->set_constant.value_u32 = val & 0xFFFFFFFF;
+            } else if (val == (s64)(s32)val) { // S32
                 instr->set_constant.type = VALUE_TYPE_S32;
                 instr->set_constant.value_s32 = val & 0xFFFFFFFF;
             }
