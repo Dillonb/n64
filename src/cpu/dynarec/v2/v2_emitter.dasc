@@ -787,7 +787,10 @@ void host_emit_debugbreak(dasm_State** Dst) {
 }
 
 void set_dest_cond(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, enum args_reversed args_reversed) {
-    int dest_reg = check_reg(dest_reg_alloc, false);
+    int dest_reg = check_reg(dest_reg_alloc, true);
+    if (dest_reg_alloc.spilled) {
+        dest_reg = TMPREG1;
+    }
     if (dest_reg >= 0) {
         switch (cond) {
             case CONDITION_NOT_EQUAL:
@@ -855,6 +858,9 @@ void set_dest_cond(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir
         }
     }
     | movzx Rq(dest_reg), Rb(dest_reg)
+    if (dest_reg_alloc.spilled) {
+        | mov qword [rsp + dest_reg_alloc.spill_location], Rq(dest_reg)
+    }
 }
 
 void host_emit_cmp_reg_imm(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2, enum args_reversed args_reversed) {
