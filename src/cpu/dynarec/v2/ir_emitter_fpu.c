@@ -317,9 +317,11 @@ IR_EMITTER(cp1_mov) {
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_mov_d");
+            update_guest_reg_mapping(IR_FGR(instruction.fr.fd), ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE));
+            break;
         case FP_FMT_SINGLE:
-            logfatal("mips_cp_mov_s");
+            update_guest_reg_mapping(IR_FGR(instruction.fr.fd), ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE));
+            break;
         default:
             logfatal("mips_cp1_invalid");
     }

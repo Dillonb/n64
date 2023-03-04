@@ -349,6 +349,8 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size);
 
 #define NO_GUEST_REG 0xFF
 
+// Update a guest reg to point at a new value. Mostly used internally.
+void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value);
 // Emit a constant to the IR, optionally associating it with a guest register.
 ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
 // Load a guest GPR, or return a reference to it if it's already loaded.

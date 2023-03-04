@@ -298,12 +298,15 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 case IR_SET_BLOCK_EXIT_PC:
                 case IR_COND_BLOCK_EXIT:
                 case IR_TLB_LOOKUP:
-                case IR_LOAD_GUEST_REG:
                 case IR_FLUSH_GUEST_REG:
                 case IR_MULTIPLY:
                 case IR_DIVIDE:
                 case IR_ERET:
                     logfatal("Unsupported IR instruction assigned to FPU reg");
+
+                case IR_LOAD_GUEST_REG:
+                    new_type = value->load_guest_reg.guest_reg_type;
+                    break;
 
                 case IR_LOAD:
                     new_type = value->load.reg_type;
