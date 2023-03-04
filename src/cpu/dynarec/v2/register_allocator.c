@@ -230,6 +230,7 @@ void ir_allocate_registers() {
         expire_old_intervals(&gpr_state, value);
         expire_old_intervals(&fgr_state, value);
 
+        memset(&value->reg_alloc, 0, sizeof(value->reg_alloc));
         ir_register_type_t allocation_type = get_required_register_type(value);
         if (allocation_type != REGISTER_TYPE_NONE) {
             if (allocation_type == REGISTER_TYPE_GPR) {

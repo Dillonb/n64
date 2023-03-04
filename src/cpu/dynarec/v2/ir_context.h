@@ -13,7 +13,7 @@
 #define IR_FGR_BASE 32
 #define IR_GPR(r) ((r) + IR_GPR_BASE)
 #define IR_FGR(r) ((r) + IR_FGR_BASE)
-#define IR_IS_GPR(r) ((r) >= IR_GPR_BASE && (r) < (IR_GPR_BASE + 32))
+#define IR_IS_GPR(r) (((r) >= IR_GPR_BASE && (r) < (IR_GPR_BASE + 32)) || (r) == NO_GUEST_REG)
 #define IR_IS_FGR(r) ((r) >= IR_FGR_BASE && (r) < (IR_FGR_BASE + 32))
 
 typedef enum ir_condition {
