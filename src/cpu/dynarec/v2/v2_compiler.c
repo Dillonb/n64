@@ -13,7 +13,7 @@
 #include "target_platform.h"
 #include "register_allocator.h"
 
-//#define N64_LOG_COMPILATIONS
+#define N64_LOG_COMPILATIONS
 
 typedef struct source_instruction {
     mips_instruction_t instr;
@@ -22,6 +22,7 @@ typedef struct source_instruction {
 
 // Extra slot for the edge case where the branch delay slot is in the next page
 #define TEMP_CODE_SIZE (BLOCKCACHE_INNER_SIZE + 1)
+#define MAX_BLOCK_LENGTH BLOCKCACHE_INNER_SIZE
 int temp_code_len = 0;
 source_instruction_t temp_code[TEMP_CODE_SIZE];
 
@@ -45,14 +46,13 @@ INLINE bool should_break(u32 address) {
 
 // Determine what instructions should be compiled into the block and load them into temp_code
 void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) {
-    bool should_continue_block = true;
     int instructions_left_in_block = -1;
 
     temp_code_len = 0;
 #ifdef N64_LOG_COMPILATIONS
     printf("Starting a new block:\n");
 #endif
-    for (int i = 0; i < TEMP_CODE_SIZE; i++) {
+    for (int i = 0; i < MAX_BLOCK_LENGTH || instructions_left_in_block > 0; i++) {
         u32 instr_address = physical_address + (i << 2);
         u32 next_instr_address = instr_address + 4;
         u64 instr_virtual_address = virtual_address + (i << 2);
