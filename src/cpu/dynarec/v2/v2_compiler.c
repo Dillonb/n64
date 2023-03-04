@@ -514,7 +514,20 @@ void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
                 }
                 break;
             case REGISTER_TYPE_FGR_32:
-                logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32");
+                switch (dest_type) {
+                    case REGISTER_TYPE_NONE:
+                        logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32 and dest type REGISTER_TYPE_NONE");
+                        break;
+                    case REGISTER_TYPE_GPR:
+                        host_emit_mov_gpr_fgr(Dst, instr->reg_alloc, instr->mov_reg_type.value->reg_alloc, instr->mov_reg_type.size);
+                        break;
+                    case REGISTER_TYPE_FGR_32:
+                        logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32 and dest type REGISTER_TYPE_FGR_32");
+                        break;
+                    case REGISTER_TYPE_FGR_64:
+                        logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32 and dest type REGISTER_TYPE_FGR_64");
+                        break;
+                }
                 break;
             case REGISTER_TYPE_FGR_64:
                 logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_64");
@@ -553,7 +566,7 @@ void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_float_convert_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
             break;
         case FLOAT_CONVERT_MODE_TRUNC:
-            logfatal("compile_ir_float_convert FLOAT_CONVERT_MODE_TRUNC");
+            host_emit_float_trunc_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
             break;
         case FLOAT_CONVERT_MODE_ROUND:
             logfatal("compile_ir_float_convert FLOAT_CONVERT_MODE_ROUND");
