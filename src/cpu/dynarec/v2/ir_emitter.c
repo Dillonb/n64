@@ -456,6 +456,18 @@ IR_EMITTER(multu) {
     ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_U32);
 }
 
+IR_EMITTER(dmult) {
+    ir_instruction_t* multiplicand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* multiplicand2 = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_S64);
+}
+
+IR_EMITTER(dmultu) {
+    ir_instruction_t* multiplicand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* multiplicand2 = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_emit_multiply(multiplicand1, multiplicand2, VALUE_TYPE_U64);
+}
+
 IR_EMITTER(div) {
     ir_instruction_t* dividend = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* divisor = ir_emit_load_guest_gpr(instruction.r.rt);
@@ -466,6 +478,18 @@ IR_EMITTER(divu) {
     ir_instruction_t* dividend = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* divisor = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_emit_divide(dividend, divisor, VALUE_TYPE_U32);
+}
+
+IR_EMITTER(ddiv) {
+    ir_instruction_t* dividend = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* divisor = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_emit_divide(dividend, divisor, VALUE_TYPE_S64);
+}
+
+IR_EMITTER(ddivu) {
+    ir_instruction_t* dividend = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* divisor = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_emit_divide(dividend, divisor, VALUE_TYPE_U64);
 }
 
 IR_EMITTER(mflo) {
@@ -753,9 +777,15 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_COMPARE:
             ir_emit_get_ptr(VALUE_TYPE_U32, &N64CP0.compare, instruction.r.rt);
             break;
-        case R4300I_CP0_REG_ENTRYLO0: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO0");
-        case R4300I_CP0_REG_ENTRYLO1: logfatal("emit MFC0 R4300I_CP0_REG_ENTRYLO1");
-        case R4300I_CP0_REG_PAGEMASK: logfatal("emit MFC0 R4300I_CP0_REG_PAGEMASK");
+        case R4300I_CP0_REG_ENTRYLO0:
+            ir_emit_get_ptr(value_type, &N64CP0.entry_lo0.raw, instruction.r.rt);
+            break;
+        case R4300I_CP0_REG_ENTRYLO1:
+            ir_emit_get_ptr(value_type, &N64CP0.entry_lo1.raw, instruction.r.rt);
+            break;
+        case R4300I_CP0_REG_PAGEMASK:
+            ir_emit_get_ptr(value_type, &N64CP0.page_mask.raw, instruction.r.rt);
+            break;
         case R4300I_CP0_REG_EPC:
             ir_emit_get_ptr(value_type, &N64CP0.EPC, instruction.r.rt);
             break;
@@ -779,7 +809,11 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_31: logfatal("emit MFC0 R4300I_CP0_REG_31");
 
         // Special case
-        case R4300I_CP0_REG_INDEX: logfatal("emit MFC0 R4300I_CP0_REG_INDEX");
+        case R4300I_CP0_REG_INDEX:
+            ir_emit_and(
+                    ir_emit_get_ptr(value_type, &N64CP0.index, NO_GUEST_REG),
+                    ir_emit_set_constant_u32(0x8000003F, NO_GUEST_REG), instruction.r.rt);
+            break;
         case R4300I_CP0_REG_RANDOM: logfatal("emit MFC0 R4300I_CP0_REG_RANDOM");
         case R4300I_CP0_REG_COUNT: {
             ir_instruction_t* count = ir_emit_get_ptr(VALUE_TYPE_U64, &N64CP0.count, NO_GUEST_REG);
@@ -799,8 +833,12 @@ IR_EMITTER(cp0_instruction) {
                 break;
             }
             case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
-            case COP_FUNCT_TLBP: IR_UNIMPLEMENTED(COP_FUNCT_TLBP);
-            case COP_FUNCT_TLBR_SUB: IR_UNIMPLEMENTED(COP_FUNCT_TLBR_SUB);
+            case COP_FUNCT_TLBP:
+                logwarn("Ignoring TLBP\n");
+                break;
+            case COP_FUNCT_TLBR_SUB:
+                logwarn("Ignoring TLBR\n");
+                break;
             case COP_FUNCT_ERET: CALL_IR_EMITTER(eret);
             case COP_FUNCT_WAIT: IR_UNIMPLEMENTED(COP_FUNCT_WAIT);
             default: {
@@ -848,10 +886,10 @@ IR_EMITTER(special_instruction) {
         case FUNCT_MULTU: CALL_IR_EMITTER(multu);
         case FUNCT_DIV: CALL_IR_EMITTER(div);
         case FUNCT_DIVU: CALL_IR_EMITTER(divu);
-        case FUNCT_DMULT: IR_UNIMPLEMENTED(FUNCT_DMULT);
-        case FUNCT_DMULTU: IR_UNIMPLEMENTED(FUNCT_DMULTU);
-        case FUNCT_DDIV: IR_UNIMPLEMENTED(FUNCT_DDIV);
-        case FUNCT_DDIVU: IR_UNIMPLEMENTED(FUNCT_DDIVU);
+        case FUNCT_DMULT: CALL_IR_EMITTER(dmult);
+        case FUNCT_DMULTU: CALL_IR_EMITTER(dmultu);
+        case FUNCT_DDIV: CALL_IR_EMITTER(ddiv);
+        case FUNCT_DDIVU: CALL_IR_EMITTER(ddivu);
         case FUNCT_ADD: CALL_IR_EMITTER(add);
         case FUNCT_ADDU: CALL_IR_EMITTER(addu);
         case FUNCT_AND: CALL_IR_EMITTER(and);
