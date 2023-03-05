@@ -181,9 +181,18 @@ void host_emit_and_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_a
 }
 
 void host_emit_and_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
-    int operand1 = check_reg(operand1_alloc, false);
-    int operand2 = check_reg(operand2_alloc, false);
-    | and Rq(operand1), Rq(operand2)
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + operand2]
+        | and qword [rsp + operand1], Rq(TMPREG1)
+    } else if (operand1_alloc.spilled) {
+        | and qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | and Rq(operand1), qword [rsp + operand2]
+    } else {
+        | and Rq(operand1), Rq(operand2)
+    }
 }
 
 void host_emit_or_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
@@ -926,7 +935,6 @@ void host_emit_cmp_reg_reg(dasm_State** Dst, ir_register_allocation_t dest_reg_a
         | mov Rq(TMPREG1), qword [rsp + operand1]
         | cmp Rq(TMPREG1), qword [rsp + operand2]
     } else if (operand1_alloc.spilled) {
-        logfatal("Operand1 spilled");
         | cmp qword [rsp + operand1], Rq(operand2)
     } else if (operand2_alloc.spilled) {
         | cmp Rq(operand1), qword [rsp + operand2]
@@ -944,7 +952,12 @@ void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
         | add Rq(TMPREG2), 4
         | mov cpu_state->next_pc, Rq(TMPREG2)
     } else if (value->reg_alloc.spilled) {
-        logfatal("Mov to PC from spilled");
+        int loc = check_reg(value->reg_alloc, true);
+        unimplemented(!value->reg_alloc.spilled, "wtf, not actually spilled?");
+        | mov Rq(TMPREG2), qword [rsp + loc]
+        | mov cpu_state->pc, Rq(TMPREG2)
+        | add Rq(TMPREG2), 4
+        | mov cpu_state->next_pc, Rq(TMPREG2)
     } else {
         int reg = check_reg(value->reg_alloc, false);
         | mov Rq(TMPREG2), Rq(reg)
@@ -1173,19 +1186,34 @@ void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_allo
 
 void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
     int dst = check_fgr(dst_reg, false);
-    int src = check_gpr(src_reg, false);
+    int src = check_gpr(src_reg, true);
 
-    switch (size) {
-        CASE_SIZE_8:
-            logfatal("Invalid 8 bit mov fgr, gpr");
-        CASE_SIZE_16:
-            logfatal("Invalid 16 bit mov fgr, gpr");
-        CASE_SIZE_32:
-            | movd xmm(dst), Rd(src)
-            break;
-        CASE_SIZE_64:
-            | movd xmm(dst), Rq(src)
-            break;
+    if (src_reg.spilled) {
+        switch (size) {
+            CASE_SIZE_8:
+                logfatal("Invalid 8 bit mov fgr, gpr");
+            CASE_SIZE_16:
+                logfatal("Invalid 16 bit mov fgr, gpr");
+            CASE_SIZE_32:
+                | movd xmm(dst), dword [rsp + src]
+                break;
+            CASE_SIZE_64:
+                | movd xmm(dst), qword [rsp + src]
+                break;
+        }
+    } else {
+        switch (size) {
+            CASE_SIZE_8:
+                logfatal("Invalid 8 bit mov fgr, gpr");
+            CASE_SIZE_16:
+                logfatal("Invalid 16 bit mov fgr, gpr");
+            CASE_SIZE_32:
+                | movd xmm(dst), Rd(src)
+                break;
+            CASE_SIZE_64:
+                | movd xmm(dst), Rq(src)
+                break;
+        }
     }
 }
 

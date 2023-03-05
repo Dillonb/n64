@@ -473,24 +473,25 @@ ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t typ
     if (IR_IS_GPR(guest_fgr)) {
         logfatal("Loading GPR with ir_emit_load_guest_fgr(), use ir_emit_load_guest_gpr()");
     } else if (IR_IS_FGR(guest_fgr)) {
-        if (ir_context.guest_reg_to_value[guest_fgr] != NULL && ir_context.guest_reg_to_reg_type[guest_fgr] != float_val_to_reg_type(type)) {
-            logfatal("Reg type differs. FLUSH and reload.");
-        }
+        ir_instruction_t* prev = ir_context.guest_reg_to_value[guest_fgr];
         bool should_reload =
                 // No cached value -> should reload
-                ir_context.guest_reg_to_value[guest_fgr] == NULL
+                prev == NULL
                 // Reg type differs from what we need -> should reload
                 || ir_context.guest_reg_to_reg_type[guest_fgr] != float_val_to_reg_type(type);
 
         if (!should_reload) {
             return ir_context.guest_reg_to_value[guest_fgr];
+        } else {
+            if (prev != NULL) {
+                ir_emit_flush_guest_reg(prev, prev, guest_fgr);
+            }
+            ir_instruction_t instruction;
+            instruction.type = IR_LOAD_GUEST_REG;
+            instruction.load_guest_reg.guest_reg = guest_fgr;
+            instruction.load_guest_reg.guest_reg_type = float_val_to_reg_type(type);
+            return append_ir_instruction(instruction, IR_FGR(guest_fgr));
         }
-
-        ir_instruction_t instruction;
-        instruction.type = IR_LOAD_GUEST_REG;
-        instruction.load_guest_reg.guest_reg = guest_fgr;
-        instruction.load_guest_reg.guest_reg_type = float_val_to_reg_type(type);
-        return append_ir_instruction(instruction, IR_FGR(guest_fgr));
     } else {
         logfatal("Loading unknown (or out of range) guest register %d", guest_fgr);
     }
