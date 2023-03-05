@@ -73,6 +73,7 @@ INLINE bool file_exists(const char* path) {
 #endif
 }
 
-
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #endif

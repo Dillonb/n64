@@ -43,8 +43,6 @@ struct fifo* host_sample_buffer;
 
 SRC_STATE* resampler;
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 void audio_callback(void* userdata, Uint8* stream, int length) {
     int avail = fifo_read_available(host_sample_buffer);
     set_metric(METRIC_AUDIOSTREAM_AVAILABLE, avail);

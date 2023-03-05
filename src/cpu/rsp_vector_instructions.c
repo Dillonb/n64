@@ -19,8 +19,6 @@
 #define defvd vu_reg_t* vd = &N64RSP.vu_regs[instruction.cp2_vec.vd]
 #define defvte vu_reg_t vte = get_vte(&N64RSP.vu_regs[instruction.cp2_vec.vt], instruction.cp2_vec.e)
 
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-
 INLINE s16 clamp_signed(s64 value) {
     if (value < -32768) return -32768;
     if (value > 32767) return 32767;
