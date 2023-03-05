@@ -110,6 +110,12 @@ const char* float_cond_to_str(ir_float_condition_t condition) {
             return "<";
         case CONDITION_FLOAT_LE:
             return "<=";
+        case CONDITION_FLOAT_EQ:
+            return "==";
+        case CONDITION_FLOAT_NGE:
+            return "!>=";
+        case CONDITION_FLOAT_NGT:
+            return "!>";
     }
     logfatal("Did not match any cases");
 }

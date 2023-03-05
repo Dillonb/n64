@@ -31,7 +31,10 @@ typedef enum ir_condition {
 
 typedef enum ir_float_condition {
     CONDITION_FLOAT_LE,
-    CONDITION_FLOAT_LT
+    CONDITION_FLOAT_LT,
+    CONDITION_FLOAT_EQ,
+    CONDITION_FLOAT_NGE,
+    CONDITION_FLOAT_NGT,
 } ir_float_condition_t;
 
 typedef enum ir_value_type {
