@@ -1400,7 +1400,24 @@ void host_emit_float_trunc_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
             }
             break;
         case FLOAT_VALUE_TYPE_DOUBLE:
-            logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE");
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    | cvttsd2si Rd(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
             break;
     }
 }
