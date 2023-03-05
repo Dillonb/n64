@@ -463,7 +463,7 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
 
 void compile_ir_multiply(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->mult_div.operand1) && is_constant(instr->mult_div.operand2)) {
-        logfatal("const mult");
+        host_emit_mult_imm_imm(Dst, instr->mult_div.operand2->set_constant, instr->mult_div.operand1->set_constant, instr->mult_div.mult_div_type);
     } else if (instr_valid_immediate(instr->mult_div.operand1)) {
         host_emit_mult_reg_imm(Dst, instr->mult_div.operand2->reg_alloc, instr->mult_div.operand1->set_constant, instr->mult_div.mult_div_type);
     } else if (instr_valid_immediate(instr->mult_div.operand2)) {
