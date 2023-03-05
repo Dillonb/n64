@@ -51,6 +51,7 @@ if (BASS_FOUND)
         set(output_bin dynarec_v2_tests/${name}.bin)
 
         add_custom_command(OUTPUT ${output_bin}
+                COMMAND mkdir -p dynarec_v2_tests
                 COMMAND bass ${asmfile} -o ${output_bin}
                 DEPENDS ${asmfile})
 
