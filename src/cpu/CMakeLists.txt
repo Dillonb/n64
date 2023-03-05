@@ -59,7 +59,7 @@ add_library(r4300i
         dynarec/v2/register_allocator.c dynarec/v2/register_allocator.h
         dynarec/v2/dispatcher.nasm dynarec/v2/dispatcher.h)
 
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
     target_sources(r4300i PRIVATE dynarec/v2/x86_64_target_platform.c)
 else()
     message(FATAL_ERROR "Unsupported target CPU architecture ${CMAKE_SYSTEM_PROCESSOR}")
