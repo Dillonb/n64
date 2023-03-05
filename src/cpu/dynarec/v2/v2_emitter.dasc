@@ -4,13 +4,12 @@
 #include <cpu/dynarec/v2/target_platform.h>
 #include <cpu/dynarec/dynarec_memory_management.h>
 #include <cpu/r4300i.h>
+#include <cpu/dynarec/v2/x86_64_registers.h>
+#include <r4300i_register_access.h>
 
 #include <dynasm/dasm_proto.h>
 #ifndef N64_WIN
 #include <sys/mman.h>
-#include <cpu/dynarec/v2/x86_64_registers.h>
-#include <r4300i_register_access.h>
-
 #endif
 
 #define TMPREG1 get_scratch_registers()[0]
