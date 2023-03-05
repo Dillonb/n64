@@ -129,7 +129,6 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 
     switch (instr->type) {
         case IR_NOP:
-            snprintf(buf, buf_size, "");
             break;
         case IR_SET_CONSTANT:
             switch (instr->set_constant.type) {

@@ -277,7 +277,7 @@ INLINE int interpreter_system_step(const int cycles) {
         uint64_t newcount = (N64CP0.count + (taken * CYCLES_PER_INSTR)) >> 1;
         if (unlikely(oldcount < N64CP0.compare && newcount >= N64CP0.compare)) {
             N64CP0.cause.ip7 = true;
-            logalways("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, N64CP0.compare);
+            loginfo("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, N64CP0.compare);
             r4300i_interrupt_update();
         }
         N64CP0.count += taken;
