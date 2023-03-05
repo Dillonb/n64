@@ -1515,6 +1515,9 @@ void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_fl
         case CONDITION_FLOAT_LE:
             | setbe Rb(TMPREG2)
             break;
+        case CONDITION_FLOAT_LT:
+            | setb Rb(TMPREG2)
+            break;
     }
     | movzx Rd(TMPREG2), Rb(TMPREG2)
     | sal Rd(TMPREG2), FCR31_COMPARE_SHIFT

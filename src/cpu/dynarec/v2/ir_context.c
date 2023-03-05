@@ -106,6 +106,8 @@ const char* cond_to_str(ir_condition_t condition) {
 
 const char* float_cond_to_str(ir_float_condition_t condition) {
     switch (condition) {
+        case CONDITION_FLOAT_LT:
+            return "<";
         case CONDITION_FLOAT_LE:
             return "<=";
     }

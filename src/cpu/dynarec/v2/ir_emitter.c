@@ -331,6 +331,13 @@ IR_EMITTER(blez) {
     ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
 }
 
+IR_EMITTER(blezl) {
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_OR_EQUAL_TO_SIGNED, rs, rt, NO_GUEST_REG);
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
+}
+
 IR_EMITTER(bne) {
     ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.i.rt);
@@ -906,7 +913,7 @@ IR_EMITTER(instruction) {
         case OPC_BGTZ: CALL_IR_EMITTER(bgtz);
         case OPC_BGTZL: CALL_IR_EMITTER(bgtzl);
         case OPC_BLEZ: CALL_IR_EMITTER(blez);
-        case OPC_BLEZL: IR_UNIMPLEMENTED(OPC_BLEZL);
+        case OPC_BLEZL: CALL_IR_EMITTER(blezl);
         case OPC_BNE: CALL_IR_EMITTER(bne);
         case OPC_BNEL: CALL_IR_EMITTER(bnel);
         case OPC_CACHE: return; // treat CACHE as a NOP for now

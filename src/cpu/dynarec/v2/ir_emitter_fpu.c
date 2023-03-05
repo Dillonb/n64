@@ -75,12 +75,37 @@ IR_EMITTER(ctc1) {
     }
 }
 
-IR_EMITTER(bc1tl) {
-    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
+ir_instruction_t* get_cp1_compare() {
     ir_instruction_t* compare_mask = ir_emit_set_constant_u32(FCR31_COMPARE_MASK, NO_GUEST_REG);
     ir_instruction_t* fcr31 = ir_emit_get_ptr(VALUE_TYPE_U32, &N64CPU.fcr31.raw, NO_GUEST_REG);
-    ir_instruction_t* masked = ir_emit_and(fcr31, compare_mask, NO_GUEST_REG);
-    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, zero, masked, NO_GUEST_REG);
+    return ir_emit_and(fcr31, compare_mask, NO_GUEST_REG);
+}
+
+IR_EMITTER(bc1t) {
+    ir_instruction_t* compare = get_cp1_compare();
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, zero, compare, NO_GUEST_REG);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+}
+
+IR_EMITTER(bc1f) {
+    ir_instruction_t* compare = get_cp1_compare();
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, zero, compare, NO_GUEST_REG);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, virtual_address);
+}
+
+IR_EMITTER(bc1tl) {
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
+    ir_instruction_t* compare = get_cp1_compare();
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_NOT_EQUAL, zero, compare, NO_GUEST_REG);
+    ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
+}
+
+IR_EMITTER(bc1fl) {
+    ir_instruction_t* zero = ir_emit_load_guest_gpr(0);
+    ir_instruction_t* compare = get_cp1_compare();
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, zero, compare, NO_GUEST_REG);
     ir_emit_conditional_branch_likely(cond, instruction.i.immediate, virtual_address, index);
 }
 
@@ -511,7 +536,12 @@ IR_EMITTER(cp1_c_lt) {
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_c_lt_d");
+            ir_emit_float_check_condition(
+                    CONDITION_FLOAT_LT,
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
+                    FLOAT_VALUE_TYPE_DOUBLE);
+            break;
         case FP_FMT_SINGLE:
             logfatal("mips_cp_c_lt_s");
         default:
@@ -537,7 +567,12 @@ IR_EMITTER(cp1_c_le) {
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_c_le_d");
+            ir_emit_float_check_condition(
+                    CONDITION_FLOAT_LE,
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
+                    FLOAT_VALUE_TYPE_DOUBLE);
+            break;
         case FP_FMT_SINGLE:
             ir_emit_float_check_condition(
                     CONDITION_FLOAT_LE,
@@ -610,10 +645,10 @@ IR_EMITTER(cp1_instruction) {
             case COP_CT: CALL_IR_EMITTER(ctc1);
             case COP_BC:
                 switch (instruction.r.rt) {
-                    case COP_BC_BCT: IR_UNIMPLEMENTED(COP_BC_BCT);
-                    case COP_BC_BCF: IR_UNIMPLEMENTED(COP_BC_BCF);
+                    case COP_BC_BCT: CALL_IR_EMITTER(bc1t);
+                    case COP_BC_BCF: CALL_IR_EMITTER(bc1f);
                     case COP_BC_BCTL: CALL_IR_EMITTER(bc1tl);
-                    case COP_BC_BCFL: IR_UNIMPLEMENTED(COP_BC_BCFL);
+                    case COP_BC_BCFL: CALL_IR_EMITTER(bc1fl);
                     default: {
                         char buf[50];
                         disassemble(0, instruction.raw, buf, 50);
