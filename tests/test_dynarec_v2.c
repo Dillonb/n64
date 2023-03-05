@@ -8,7 +8,8 @@ void load_code(const char* path) {
     memset(n64sys.mem.rdram, 0, N64_RDRAM_SIZE);
     FILE* f = fopen(path, "rb");
     if (!f) {
-        logfatal("Could not open code file at %s\n", path);
+        char cwd[PATH_MAX];
+        logfatal("Could not open code file at %s (cwd: %s)\n", path, getcwd(cwd, PATH_MAX));
     }
 
     fseek(f, 0, SEEK_END);
