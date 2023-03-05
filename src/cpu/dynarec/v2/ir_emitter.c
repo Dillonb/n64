@@ -501,6 +501,19 @@ IR_EMITTER(addu) {
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
+IR_EMITTER(dadd) {
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* addend2 = ir_emit_load_guest_gpr(instruction.r.rt);
+    // TODO: check for signed overflow
+    ir_emit_add(addend1, addend2, instruction.r.rd);
+}
+
+IR_EMITTER(daddu) {
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* addend2 = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_emit_add(addend1, addend2, instruction.r.rd);
+}
+
 IR_EMITTER(and) {
     ir_instruction_t* operand1 = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* operand2 = ir_emit_load_guest_gpr(instruction.r.rt);
@@ -525,6 +538,20 @@ IR_EMITTER(sub) {
     ir_instruction_t* minuend    = ir_emit_mask_and_cast(ir_emit_load_guest_gpr(instruction.r.rs), VALUE_TYPE_S32, NO_GUEST_REG);
     ir_instruction_t* subtrahend = ir_emit_mask_and_cast(ir_emit_load_guest_gpr(instruction.r.rt), VALUE_TYPE_S32, NO_GUEST_REG);
     ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U32, NO_GUEST_REG);
+    ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
+}
+
+IR_EMITTER(dsubu) {
+    ir_instruction_t* minuend    = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* subtrahend = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U64, NO_GUEST_REG);
+    ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
+}
+
+IR_EMITTER(dsub) {
+    ir_instruction_t* minuend    = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* subtrahend = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_S64, NO_GUEST_REG);
     ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
@@ -835,10 +862,10 @@ IR_EMITTER(special_instruction) {
         case FUNCT_XOR: CALL_IR_EMITTER(xor);
         case FUNCT_SLT: CALL_IR_EMITTER(slt);
         case FUNCT_SLTU: CALL_IR_EMITTER(sltu);
-        case FUNCT_DADD: IR_UNIMPLEMENTED(FUNCT_DADD);
-        case FUNCT_DADDU: IR_UNIMPLEMENTED(FUNCT_DADDU);
-        case FUNCT_DSUB: IR_UNIMPLEMENTED(FUNCT_DSUB);
-        case FUNCT_DSUBU: IR_UNIMPLEMENTED(FUNCT_DSUBU);
+        case FUNCT_DADD: CALL_IR_EMITTER(dadd);
+        case FUNCT_DADDU: CALL_IR_EMITTER(daddu);
+        case FUNCT_DSUB: CALL_IR_EMITTER(dsub);
+        case FUNCT_DSUBU: CALL_IR_EMITTER(dsubu);
         case FUNCT_TEQ: IR_UNIMPLEMENTED(FUNCT_TEQ);
         case FUNCT_DSLL: CALL_IR_EMITTER(dsll);
         case FUNCT_DSRL: IR_UNIMPLEMENTED(FUNCT_DSRL);

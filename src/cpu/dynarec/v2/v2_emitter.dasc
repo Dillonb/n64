@@ -315,9 +315,19 @@ void host_emit_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
 }
 
 void host_emit_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_register_allocation_t subtrahend_alloc) {
-    int minuend = check_reg(minuend_alloc, false);
-    int subtrahend = check_reg(subtrahend_alloc, false);
-    | sub Rq(minuend), Rq(subtrahend)
+    int minuend = check_reg(minuend_alloc, true);
+    int subtrahend = check_reg(subtrahend_alloc, true);
+
+    if (minuend_alloc.spilled && subtrahend_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + subtrahend]
+        | sub qword [rsp + minuend], Rq(TMPREG1)
+    } else if (minuend_alloc.spilled) {
+        | sub qword [rsp + minuend], Rq(subtrahend)
+    } else if (subtrahend_alloc.spilled) {
+        | sub Rq(minuend), qword [rsp + subtrahend]
+    } else {
+        | sub Rq(minuend), Rq(subtrahend)
+    }
 }
 
 void host_emit_sub_reg_imm(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_set_constant_t subtrahend) {
@@ -349,7 +359,10 @@ void host_emit_sub_reg_imm(dasm_State** Dst, ir_register_allocation_t minuend_al
 }
 
 void host_emit_shift_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
-    int reg = check_reg(reg_alloc, false);
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        reg = TMPREG1;
+    }
     switch (type) {
         case VALUE_TYPE_S8:
         case VALUE_TYPE_U8:
@@ -403,6 +416,10 @@ void host_emit_shift_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_allo
                     break;
             }
             break;
+    }
+
+    if (reg_alloc.spilled) {
+        | mov qword [rsp + reg_alloc.spill_location], Rq(reg)
     }
 }
 
