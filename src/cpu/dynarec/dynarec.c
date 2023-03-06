@@ -3,7 +3,6 @@
 #include <mem/n64bus.h>
 #include <dynasm/dasm_proto.h>
 #include <metrics.h>
-#include <dynarec/v2/dispatcher.h>
 #include "dynarec_memory_management.h"
 #include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
@@ -31,7 +30,7 @@ int missing_block_handler() {
         //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
     }
 
-    return run_block((u64)block->run);
+    return N64DYNAREC->run_block((u64)block->run);
 }
 
 int n64_dynarec_step() {
@@ -69,7 +68,7 @@ int n64_dynarec_step() {
     logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
 #endif
     N64CPU.exception = false;
-    int taken = run_block((u64)block->run);
+    int taken = N64DYNAREC->run_block((u64)block->run);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, N64CPU.pc);
     for (int i = 0; i < 32; i++) {
@@ -101,7 +100,7 @@ n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
     dynarec->codecache = codecache;
 
     v1_compiler_init();
-    v2_compiler_init();
+    v2_compiler_init(dynarec);
 
     return dynarec;
 }

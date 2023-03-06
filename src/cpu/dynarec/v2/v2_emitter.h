@@ -6,6 +6,7 @@
 #include <cpu/dynarec/dynarec.h>
 
 dasm_State* v2_block_header();
+dasm_State* v2_emit_dispatcher();
 
 enum args_reversed {
     ARGS_NORMAL_ORDER = 0,
@@ -65,6 +66,7 @@ void host_emit_call(dasm_State** Dst, uintptr_t function);
 
 void host_emit_eret(dasm_State** Dst);
 
-void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block, int guest_len);
+size_t v2_link(dasm_State** d);
+void v2_encode(dasm_State** d, u8* buf);
 
 #endif // N64_V2_EMITTER_H

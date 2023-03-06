@@ -160,6 +160,7 @@ INLINE dynarec_instruction_category_t cp1_instruction_category(mips_instruction_
                 }
         }
     }
+    logfatal("Did not match any instructions.");
 }
 
 dynarec_instruction_category_t instr_category(mips_instruction_t instr) {

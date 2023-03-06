@@ -28,11 +28,6 @@ add_custom_command(OUTPUT v2_emitter.c
         MAIN_DEPENDENCY dynarec/v2/v2_emitter.dasc
         DEPENDS minilua)
 
-enable_language(ASM_NASM)
-if(NOT CMAKE_ASM_NASM_COMPILER_LOADED)
-    message(FATAL_ERROR "Unable to find NASM")
-endif()
-
 add_library(r4300i
         r4300i.c r4300i.h r4300i_register_access.h
         mips_instructions.c mips_instructions.h
@@ -56,8 +51,7 @@ add_library(r4300i
         dynarec/v2/ir_emitter_fpu.c dynarec/v2/ir_emitter_fpu.h
         dynarec/v2/ir_optimizer.c dynarec/v2/ir_optimizer.h
         dynarec/v2/target_platform.h
-        dynarec/v2/register_allocator.c dynarec/v2/register_allocator.h
-        dynarec/v2/dispatcher.nasm dynarec/v2/dispatcher.h)
+        dynarec/v2/register_allocator.c dynarec/v2/register_allocator.h)
 
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
     target_sources(r4300i PRIVATE dynarec/v2/x86_64_target_platform.c)

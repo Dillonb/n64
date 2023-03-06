@@ -5,6 +5,7 @@
 #include <dynarec/dynarec_memory_management.h>
 #include <r4300i_register_access.h>
 #include "v2_emitter.h"
+#include <system/mprotect_utils.h>
 
 #include "instruction_category.h"
 #include "ir_emitter.h"
@@ -14,6 +15,9 @@
 #include "register_allocator.h"
 
 #define N64_LOG_COMPILATIONS
+
+#define DISPATCHER_CODE_SIZE 4096
+static u8 dispatcher_codecache[DISPATCHER_CODE_SIZE] __attribute((aligned(4096)));
 
 typedef struct source_instruction {
     mips_instruction_t instr;
@@ -724,7 +728,20 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
         logfatal("TODO: emit end of block PC");
     }
     v2_end_block(Dst, temp_code_len);
-    v2_link_and_encode(&d, block, temp_code_len);
+    size_t code_size = v2_link(Dst);
+#ifdef N64_LOG_COMPILATIONS
+    printf("Generated %ld bytes of code\n", code_size);
+#endif
+    u8* buf = dynarec_bumpalloc(code_size);
+    v2_encode(Dst, buf);
+
+    block->run = (int(*)(r4300i_t *)) buf;
+    block->guest_size = temp_code_len * 4;
+    block->host_size = code_size;
+
+    if (block->run == NULL) {
+        logfatal("Failed to link and encode block.");
+    }
     dasm_free(&d);
 
 }
@@ -763,6 +780,9 @@ void v2_compile_new_block(
     printf("Emitting to host code:\n");
 #endif
     v2_emit_block(block, physical_address);
+    if (block->run == NULL) {
+        logfatal("Failed to emit block");
+    }
 #ifdef N64_DEBUG_MODE
     if (should_break(physical_address)) {
         print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
@@ -776,9 +796,19 @@ void v2_compile_new_block(
 #endif
 }
 
-void v2_compiler_init() {
-    uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
-    if (n64_cpu_addr > 0x7fffffff) {
-        logwarn("N64 CPU was not statically allocated in the low 2GiB of the address space, the recompiler will not be able to use absolute addressing. It was allocated at: %016lX", n64_cpu_addr);
+void v2_compiler_init(n64_dynarec_t* dynarec) {
+    mprotect_rwx((u8*)&dispatcher_codecache, DISPATCHER_CODE_SIZE, "dispatcher");
+
+    dasm_State* d = v2_emit_dispatcher();
+    size_t dispatcher_code_size = v2_link(&d);
+    if (dispatcher_code_size >= DISPATCHER_CODE_SIZE) {
+        logfatal("Compiled dispatcher too large!");
     }
+
+    v2_encode(&d, (u8*)&dispatcher_codecache);
+    dasm_free(&d);
+
+    print_multi_host((uintptr_t)&dispatcher_codecache, (u8*)&dispatcher_codecache, dispatcher_code_size);
+
+    dynarec->run_block = (int(*)(u64)) &dispatcher_codecache;
 }

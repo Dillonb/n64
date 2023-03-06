@@ -38,6 +38,8 @@ add_library(core
         system/n64system.c system/n64system.h
         system/scheduler.c system/scheduler.h
 
+        system/mprotect_utils.c system/mprotect_utils.h
+
         mem/mem_util.h
         mem/addresses.h
         mem/n64rom.c mem/n64rom.h

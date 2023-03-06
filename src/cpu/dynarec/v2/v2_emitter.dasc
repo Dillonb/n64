@@ -60,8 +60,8 @@
 |.type cpu_state, r4300i_t, cpuState
 |.type rsp_state, rsp_t, cpuState
 
-dasm_State* v2_block_header() {
-    dasm_State* d;
+dasm_State* v2_common_header() {
+    static dasm_State* d;
     unsigned npc = 8; // number of dynamic labels
 
     |.section code
@@ -79,7 +79,44 @@ dasm_State* v2_block_header() {
     dasm_State** Dst = &d;
     |.code
     |->compiled_block:
+    return d;
+}
+
+dasm_State* v2_block_header() {
+    static dasm_State* d;
+    d = v2_common_header();
+    dasm_State** Dst = &d;
     | prologue
+    return d;
+}
+
+dasm_State* v2_emit_dispatcher() {
+    uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
+    static dasm_State* d;
+    d = v2_common_header();
+    dasm_State** Dst = &d;
+    // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
+    // Stack is misaligned by 8 at first
+    | push rbx
+    // Stack is now aligned - push regs in pairs.
+    | push rsp
+    | push rbp
+    | push r12
+    | push r13
+    | push r14
+    | push r15
+    // r12 always holds a pointer to the CPU struct
+    | mov64 r12, n64_cpu_addr
+    | call rdi
+    | pop r15
+    | pop r14
+    | pop r13
+    | pop r12
+    | pop rbp
+    | pop rsp
+    | pop rbx
+    | ret
+
     return d;
 }
 
@@ -1678,24 +1715,12 @@ void v2_end_block(dasm_State** Dst, int block_length) {
     | epilogue // return block_length
 }
 
-void* v2_link_and_encode(dasm_State** d, n64_dynarec_block_t* block, int guest_len) {
+size_t v2_link(dasm_State** d) {
     size_t code_size;
     dasm_link(d, &code_size);
-    u8* buf = dynarec_bumpalloc(code_size);
+    return code_size;
+}
+
+void v2_encode(dasm_State** d, u8* buf) {
     dasm_encode(d, buf);
-
-#ifdef N64_LOG_COMPILATIONS
-    printf("Generated %ld bytes of code\n", code_size);
-/*
-    FILE* f = fopen("compiled.bin", "wb");
-    fwrite(buf, 1, code_size, f);
-    fclose(f);
-    */
-#endif
-
-    block->run = (int(*)(r4300i_t *)) buf;
-    block->guest_size = guest_len * 4;
-    block->host_size = code_size;
-
-    return buf;
 }
