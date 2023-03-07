@@ -71,7 +71,7 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
     n64sys.video_type = video_type;
 
     mprotect_codecache();
-    n64sys.dynarec = n64_dynarec_init(codecache, CODECACHE_SIZE);
+    n64_dynarec_init(codecache, CODECACHE_SIZE);
     N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
 
     if (enable_frontend) {
@@ -145,7 +145,7 @@ void reset_n64system() {
     n64sys.vi.num_fields = 1;
     n64sys.vi.cycles_per_halfline = 1000;
 
-    invalidate_dynarec_all_pages(n64sys.dynarec);
+    invalidate_dynarec_all_pages();
 
     scheduler_reset();
 }
@@ -436,10 +436,6 @@ void n64_system_loop() {
 }
 
 void n64_system_cleanup() {
-    if (n64sys.dynarec != NULL) {
-        free(n64sys.dynarec);
-        n64sys.dynarec = NULL;
-    }
 #ifndef N64_WIN
     debugger_cleanup();
 #endif

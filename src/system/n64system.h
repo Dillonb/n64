@@ -37,8 +37,6 @@ typedef enum n64_video_type {
 } n64_video_type_t;
 
 
-typedef struct n64_dynarec n64_dynarec_t;
-
 typedef enum n64_interrupt {
     INTERRUPT_VI,
     INTERRUPT_SI,
@@ -197,7 +195,6 @@ typedef struct n64_system {
 #ifndef N64_WIN
     n64_debugger_state_t debugger_state;
 #endif
-    n64_dynarec_t *dynarec;
     softrdp_state_t softrdp_state;
     bool use_interpreter;
     char rom_path[PATH_MAX];
@@ -221,7 +218,6 @@ void on_interrupt_change();
 void check_vsync();
 void n64_queue_action(n64_action_t action);
 extern n64_system_t n64sys;
-#define N64DYNAREC n64sys.dynarec
 #define PIF_ROM_PATH (n64sys.mem.rom.pal ? "pif.pal.rom" : "pif.rom")
 bool file_exists(const char* path);
 #ifdef __cplusplus

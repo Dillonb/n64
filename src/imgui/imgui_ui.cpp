@@ -154,7 +154,7 @@ void render_metrics_window() {
     rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
-    codecache_bytes_used.add_point(n64sys.dynarec->codecache_used);
+    codecache_bytes_used.add_point(n64dynarec.codecache_used);
     audiostream_bytes_available.add_point(get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
 
     si_interrupts.add_point(get_metric(METRIC_SI_INTERRUPT));
@@ -192,7 +192,7 @@ void render_metrics_window() {
         ImPlot::EndPlot();
     }
 
-    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, n64sys.dynarec->codecache_size, ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, n64dynarec.codecache_size, ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Codecache bytes used")) {
         ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, flags, codecache_bytes_used.offset);
@@ -250,8 +250,8 @@ void render_dynarec_block_browser() {
         mips_block.clear();
         host_block.clear();
         for (int outer_index = 0; outer_index < BLOCKCACHE_OUTER_SIZE; outer_index++) {
-            if (N64DYNAREC->blockcache[outer_index]) {
-                n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
+            if (n64dynarec.blockcache[outer_index]) {
+                n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
                 for (int inner_index = 0; inner_index < BLOCKCACHE_INNER_SIZE; inner_index++) {
                     if ((uintptr_t)block_list[inner_index].run != (uintptr_t)missing_block_handler) {
                         u32 addr = INDICES_TO_ADDRESS(outer_index, inner_index);
@@ -301,7 +301,7 @@ void render_dynarec_block_browser() {
     ImGui::SameLine();
 
     if (host_block.count(selected_block.address) == 0 || mips_block.count(selected_block.address) == 0) {
-        n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[selected_block.outer_index];
+        n64_dynarec_block_t* block_list = n64dynarec.blockcache[selected_block.outer_index];
         if (block_list && block_list[selected_block.inner_index].host_size > 0) {
             n64_dynarec_block_t* b = &block_list[selected_block.inner_index];
             host_block[selected_block.address] = disassemble_multi(DisassemblyArch::HOST,  (uintptr_t)b->run, (u8*)b->run, b->host_size);

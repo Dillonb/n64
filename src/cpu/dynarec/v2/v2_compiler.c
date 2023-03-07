@@ -17,7 +17,7 @@
 #define N64_LOG_COMPILATIONS
 
 #define DISPATCHER_CODE_SIZE 4096
-static u8 dispatcher_codecache[DISPATCHER_CODE_SIZE] __attribute((aligned(4096)));
+static u8 run_block_codecache[DISPATCHER_CODE_SIZE] __attribute((aligned(4096)));
 
 typedef struct source_instruction {
     mips_instruction_t instr;
@@ -792,22 +792,23 @@ void v2_compile_new_block(
 #endif
 }
 
-void v2_compiler_init(n64_dynarec_t* dynarec) {
-    uintptr_t dispatcher_code_ptr = (uintptr_t)dispatcher_codecache;
-    if ((dispatcher_code_ptr & (4096 - 1)) != 0) {
+void v2_compiler_init() {
+    uintptr_t run_block_code_ptr = (uintptr_t)run_block_codecache;
+    if ((run_block_code_ptr & (4096 - 1)) != 0) {
         logfatal("Misaligned!");
     }
-    mprotect_rwx((u8*)&dispatcher_codecache, DISPATCHER_CODE_SIZE, "dispatcher");
+    n64dynarec.run_block = (int (*)(u64)) run_block_code_ptr;
+    mprotect_rwx((u8*)&run_block_codecache, DISPATCHER_CODE_SIZE, "run block");
 
-    dasm_State** Dst = v2_emit_run_block();
-    size_t dispatcher_code_size = v2_link(Dst);
+    {
+        dasm_State **Dst = v2_emit_run_block();
+        size_t dispatcher_code_size = v2_link(Dst);
 
-    if (dispatcher_code_size >= DISPATCHER_CODE_SIZE) {
-        logfatal("Compiled dispatcher too large!");
+        if (dispatcher_code_size >= DISPATCHER_CODE_SIZE) {
+            logfatal("Compiled dispatcher too large!");
+        }
+
+        v2_encode(Dst, (u8 *) &run_block_codecache);
+        v2_dasm_free();
     }
-
-    v2_encode(Dst, (u8*)&dispatcher_codecache);
-    v2_dasm_free();
-
-    dynarec->run_block = (int (*)(u64)) dispatcher_code_ptr;
 }

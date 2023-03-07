@@ -51,12 +51,14 @@ typedef struct n64_dynarec {
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
+extern n64_dynarec_t n64dynarec;
+
 INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
-    N64DYNAREC->blockcache[outer_index] = NULL;
+    n64dynarec.blockcache[outer_index] = NULL;
 }
 
 INLINE bool is_code(u32 physical_address) {
-    bool* code_mask = N64DYNAREC->code_mask[physical_address >> BLOCKCACHE_OUTER_SHIFT];
+    bool* code_mask = n64dynarec.code_mask[physical_address >> BLOCKCACHE_OUTER_SHIFT];
     return code_mask != NULL && code_mask[BLOCKCACHE_INNER_INDEX(physical_address)];
 }
 
@@ -67,9 +69,9 @@ INLINE void invalidate_dynarec_page(u32 physical_address) {
 }
 
 int n64_dynarec_step();
-n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size);
+void n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);
-void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec);
+void invalidate_dynarec_all_pages();
 int missing_block_handler();
 
 #ifdef __cplusplus

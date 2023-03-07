@@ -7,17 +7,19 @@
 #include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
 
+n64_dynarec_t n64dynarec;
+
 int missing_block_handler() {
     u32 physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
     u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
-    n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
+    n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
     u32 inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
 
     n64_dynarec_block_t* block = &block_list[inner_index];
     block->run = NULL;
     block->host_size = 0;
     block->guest_size = 0;
-    bool* code_mask = N64DYNAREC->code_mask[outer_index];
+    bool* code_mask = n64dynarec.code_mask[outer_index];
 
 #ifdef N64_LOG_COMPILATIONS
     printf("Compilin' new block at 0x%08X / 0x%08X\n", N64CPU.pc, physical);
@@ -30,7 +32,7 @@ int missing_block_handler() {
         //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
     }
 
-    return N64DYNAREC->run_block((u64)block->run);
+    return n64dynarec.run_block((u64)block->run);
 }
 
 int n64_dynarec_step() {
@@ -44,8 +46,7 @@ int n64_dynarec_step() {
     }
 
     u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
-    n64_dynarec_block_t* block_list = N64DYNAREC->blockcache[outer_index];
-    u32 inner_index = BLOCKCACHE_INNER_INDEX(physical);
+    n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
 
     if (unlikely(block_list == NULL)) {
 #ifdef N64_LOG_COMPILATIONS
@@ -57,10 +58,11 @@ int n64_dynarec_step() {
             block_list[i].host_size = 0;
             block_list[i].guest_size = 0;
         }
-        N64DYNAREC->blockcache[outer_index] = block_list;
-        N64DYNAREC->code_mask[outer_index] = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(bool));
+        n64dynarec.blockcache[outer_index] = block_list;
+        n64dynarec.code_mask[outer_index] = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(bool));
     }
 
+    u32 inner_index = BLOCKCACHE_INNER_INDEX(physical);
     n64_dynarec_block_t* block = &block_list[inner_index];
 
 #ifdef LOG_ENABLED
@@ -68,7 +70,7 @@ int n64_dynarec_step() {
     logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
 #endif
     N64CPU.exception = false;
-    int taken = N64DYNAREC->run_block((u64)block->run);
+    int taken = n64dynarec.run_block((u64)block->run);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, N64CPU.pc);
     for (int i = 0; i < 32; i++) {
@@ -84,28 +86,27 @@ int n64_dynarec_step() {
     return taken * CYCLES_PER_INSTR;
 }
 
-n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
+void n64_dynarec_init(u8* codecache, size_t codecache_size) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Trying to malloc %ld bytes\n", sizeof(n64_dynarec_t));
 #endif
-    n64_dynarec_t* dynarec = calloc(1, sizeof(n64_dynarec_t));
+    memset(&n64dynarec, 0, sizeof(n64_dynarec_t));
 
-    dynarec->codecache_size = codecache_size;
-    dynarec->codecache_used = 0;
+    n64dynarec.codecache_size = codecache_size;
+    n64dynarec.codecache_used = 0;
 
     for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
-        dynarec->blockcache[i] = NULL;
+        n64dynarec.blockcache[i] = NULL;
     }
 
-    dynarec->codecache = codecache;
+    n64dynarec.codecache = codecache;
 
     v1_compiler_init();
-    v2_compiler_init(dynarec);
-    return dynarec;
+    v2_compiler_init();
 }
 
-void invalidate_dynarec_all_pages(n64_dynarec_t* dynarec) {
+void invalidate_dynarec_all_pages() {
     for (int i = 0; i < BLOCKCACHE_OUTER_SIZE; i++) {
-        dynarec->blockcache[i] = NULL;
+        n64dynarec.blockcache[i] = NULL;
     }
 }

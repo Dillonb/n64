@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
     printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
     printf("MIPS code:\n");
     u32 physical = resolve_virtual_address_or_die(start_pc, BUS_LOAD);
-    n64_dynarec_block_t* block = &n64sys.dynarec->blockcache[BLOCKCACHE_OUTER_INDEX(physical)][BLOCKCACHE_INNER_INDEX(physical)];
+    n64_dynarec_block_t* block = &n64dynarec.blockcache[BLOCKCACHE_OUTER_INDEX(physical)][BLOCKCACHE_INNER_INDEX(physical)];
     if (physical >= N64_RDRAM_SIZE) {
         printf("outside of RDAM, can't disassemble (TODO)\n");
     } else {
