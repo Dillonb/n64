@@ -792,7 +792,7 @@ void v2_compile_new_block(
 #endif
 }
 
-uintptr_t v2_compiler_init() {
+void v2_compiler_init(n64_dynarec_t* dynarec) {
     uintptr_t dispatcher_code_ptr = (uintptr_t)dispatcher_codecache;
     if ((dispatcher_code_ptr & (4096 - 1)) != 0) {
         logfatal("Misaligned!");
@@ -810,5 +810,5 @@ uintptr_t v2_compiler_init() {
 
     print_multi_host((uintptr_t)&dispatcher_codecache, (u8*)&dispatcher_codecache, dispatcher_code_size);
 
-    return dispatcher_code_ptr;
+    dynarec->run_block = (int (*)(u64)) dispatcher_code_ptr;
 }
