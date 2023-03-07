@@ -601,7 +601,7 @@ ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, 
     instruction.type = IR_LOAD;
     instruction.load.type = type;
     instruction.load.address = address;
-    if (IR_IS_GPR(guest_reg)) {
+    if (IR_IS_GPR(guest_reg) || guest_reg == NO_GUEST_REG) {
         instruction.load.reg_type = REGISTER_TYPE_GPR;
     } else if (IR_IS_FGR(guest_reg)) {
         switch (type) {

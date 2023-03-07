@@ -60,41 +60,46 @@
 |.type cpu_state, r4300i_t, cpuState
 |.type rsp_state, rsp_t, cpuState
 
-dasm_State* v2_common_header() {
-    static dasm_State* d;
+dasm_State* v2_emitter_dasm_state = NULL;
+dasm_State** v2_common_header() {
+    dasm_State** Dst = &v2_emitter_dasm_state;
+    if (v2_emitter_dasm_state != NULL) {
+        logfatal("dynasm state already initialized!");
+    }
+
     unsigned npc = 8; // number of dynamic labels
 
     |.section code
-    dasm_init(&d, DASM_MAXSECTION);
+    dasm_init(Dst, DASM_MAXSECTION);
 
     |.globals lbl_
 
     void* labels[lbl__MAX];
-    dasm_setupglobal(&d, labels, lbl__MAX);
+    dasm_setupglobal(Dst, labels, lbl__MAX);
 
     |.actionlist actions
-    dasm_setup(&d, actions);
-    dasm_growpc(&d, npc);
+    dasm_setup(Dst, actions);
+    dasm_growpc(Dst, npc);
 
-    dasm_State** Dst = &d;
     |.code
     |->compiled_block:
-    return d;
+    return Dst;
 }
 
-dasm_State* v2_block_header() {
-    static dasm_State* d;
-    d = v2_common_header();
-    dasm_State** Dst = &d;
+void v2_dasm_free() {
+    dasm_free(&v2_emitter_dasm_state);
+    v2_emitter_dasm_state = NULL;
+}
+
+dasm_State** v2_block_header() {
+    dasm_State** Dst = v2_common_header();
     | prologue
-    return d;
+    return Dst;
 }
 
-dasm_State* v2_emit_dispatcher() {
+dasm_State** v2_emit_run_block() {
     uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
-    static dasm_State* d;
-    d = v2_common_header();
-    dasm_State** Dst = &d;
+    dasm_State** Dst = v2_common_header();
     // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
     // Stack is misaligned by 8 at first
     | push rbx
@@ -116,8 +121,7 @@ dasm_State* v2_emit_dispatcher() {
     | pop rsp
     | pop rbx
     | ret
-
-    return d;
+    return Dst;
 }
 
 int check_reg(ir_register_allocation_t reg, bool spill_ok) {
@@ -152,12 +156,34 @@ int check_gpr(ir_register_allocation_t reg, bool spill_ok) {
 
 void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm_value) {
     int reg = check_reg(reg_alloc, false);
-    u64 value = set_const_to_u64(imm_value);
-    if (imm_value.type == VALUE_TYPE_U64) {
-        | mov64 Rq(reg), value
-    } else {
-        // DynASM will automatically detect sign extension here, and use the smallest possible immediate
-        | mov Rq(reg), value
+    switch (imm_value.type) {
+        case VALUE_TYPE_U8:
+            | mov Rq(reg), imm_value.value_u8
+            break;
+        case VALUE_TYPE_S8:
+            | mov Rb(reg), imm_value.value_s8
+            | movsx Rq(reg), Rb(reg)
+            break;
+        case VALUE_TYPE_S16:
+            | mov Rw(reg), imm_value.value_s16
+            | movsx Rq(reg), Rw(reg)
+            break;
+        case VALUE_TYPE_U16:
+            | mov Rq(reg), imm_value.value_u16
+            break;
+        case VALUE_TYPE_S32:
+            | mov Rd(reg), dword imm_value.value_s32
+            | movsxd Rq(reg), Rd(reg)
+            break;
+        case VALUE_TYPE_U32:
+            | mov Rd(reg), dword imm_value.value_u32
+            break;
+        case VALUE_TYPE_U64:
+            | mov64 Rq(reg), imm_value.value_u64
+            break;
+        case VALUE_TYPE_S64:
+            | mov64 Rq(reg), imm_value.value_s64
+            break;
     }
 }
 

@@ -611,118 +611,120 @@ void compile_ir_float_check_condition(dasm_State** Dst, ir_instruction_t* instr)
     host_emit_float_cmp(Dst, instr->float_check_condition.condition, instr->float_check_condition.format, instr->float_check_condition.operand1->reg_alloc, instr->float_check_condition.operand2->reg_alloc);
 }
 
+void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
+    switch (instr->type) {
+        case IR_NOP: break;
+        case IR_SET_CONSTANT:
+            // Only load into a host register if it was determined by the allocator that we need to
+            // Otherwise, it can be used as an immediate when needed
+            if (instr->reg_alloc.allocated) {
+                compile_ir_set_constant(Dst, instr);
+            }
+            break;
+        case IR_OR:
+            compile_ir_or(Dst, instr);
+            break;
+        case IR_XOR:
+            compile_ir_xor(Dst, instr);
+            break;
+        case IR_AND:
+            compile_ir_and(Dst, instr);
+            break;
+        case IR_NOT:
+            compile_ir_not(Dst, instr);
+            break;
+        case IR_ADD:
+            compile_ir_add(Dst, instr);
+            break;
+        case IR_SUB:
+            compile_ir_sub(Dst, instr);
+            break;
+        case IR_STORE:
+            compile_ir_store(Dst, instr);
+            break;
+        case IR_LOAD:
+            compile_ir_load(Dst, instr);
+            break;
+        case IR_GET_PTR:
+            compile_ir_get_ptr(Dst, instr);
+            break;
+        case IR_SET_PTR:
+            compile_ir_set_ptr(Dst, instr);
+            break;
+        case IR_MASK_AND_CAST:
+            compile_ir_mask_and_cast(Dst, instr);
+            break;
+        case IR_CHECK_CONDITION:
+            compile_ir_check_condition(Dst, instr);
+            break;
+        case IR_SET_BLOCK_EXIT_PC:
+            compile_ir_set_block_exit_pc(Dst, instr);
+            break;
+        case IR_SET_COND_BLOCK_EXIT_PC:
+            compile_ir_set_cond_block_exit_pc(Dst, instr);
+            break;
+        case IR_TLB_LOOKUP:
+            compile_ir_tlb_lookup(Dst, instr);
+            break;
+        case IR_LOAD_GUEST_REG:
+            compile_ir_load_guest_reg(Dst, instr);
+            break;
+        case IR_FLUSH_GUEST_REG:
+            compile_ir_flush_guest_reg(Dst, instr);
+            break;
+        case IR_SHIFT:
+            compile_ir_shift(Dst, instr);
+            break;
+        case IR_COND_BLOCK_EXIT:
+            compile_ir_cond_block_exit(Dst, instr);
+            break;
+        case IR_MULTIPLY:
+            compile_ir_multiply(Dst, instr);
+            break;
+        case IR_DIVIDE:
+            compile_ir_divide(Dst, instr);
+            break;
+        case IR_ERET:
+            compile_ir_eret(Dst);
+            break;
+        case IR_MOV_REG_TYPE:
+            compile_ir_mov_reg_type(Dst, instr);
+            break;
+        case IR_SET_FLOAT_CONSTANT:
+            compile_ir_set_float_constant(Dst, instr);
+            break;
+        case IR_FLOAT_CONVERT:
+            compile_ir_float_convert(Dst, instr);
+            break;
+        case IR_FLOAT_DIVIDE:
+            compile_ir_float_divide(Dst, instr);
+            break;
+        case IR_FLOAT_MULTIPLY:
+            compile_ir_float_multiply(Dst, instr);
+            break;
+        case IR_FLOAT_ADD:
+            compile_ir_float_add(Dst, instr);
+            break;
+        case IR_FLOAT_SUB:
+            compile_ir_float_sub(Dst, instr);
+            break;
+        case IR_FLOAT_CHECK_CONDITION:
+            compile_ir_float_check_condition(Dst, instr);
+            break;
+    }
+}
+
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
-    static dasm_State* d;
-    d = v2_block_header();
-    dasm_State** Dst = &d;
+    dasm_State** Dst = v2_block_header();;
+
     if (should_break(physical_address)) {
         host_emit_debugbreak(Dst);
     }
     ir_instruction_t* instr = ir_context.ir_cache_head;
     while (instr) {
-        switch (instr->type) {
-            case IR_NOP: break;
-            case IR_SET_CONSTANT:
-                // Only load into a host register if it was determined by the allocator that we need to
-                // Otherwise, it can be used as an immediate when needed
-                if (instr->reg_alloc.allocated) {
-                    compile_ir_set_constant(Dst, instr);
-                }
-                break;
-            case IR_OR:
-                compile_ir_or(Dst, instr);
-                break;
-            case IR_XOR:
-                compile_ir_xor(Dst, instr);
-                break;
-            case IR_AND:
-                compile_ir_and(Dst, instr);
-                break;
-            case IR_NOT:
-                compile_ir_not(Dst, instr);
-                break;
-            case IR_ADD:
-                compile_ir_add(Dst, instr);
-                break;
-            case IR_SUB:
-                compile_ir_sub(Dst, instr);
-                break;
-            case IR_STORE:
-                compile_ir_store(Dst, instr);
-                break;
-            case IR_LOAD:
-                compile_ir_load(Dst, instr);
-                break;
-            case IR_GET_PTR:
-                compile_ir_get_ptr(Dst, instr);
-                break;
-            case IR_SET_PTR:
-                compile_ir_set_ptr(Dst, instr);
-                break;
-            case IR_MASK_AND_CAST:
-                compile_ir_mask_and_cast(Dst, instr);
-                break;
-            case IR_CHECK_CONDITION:
-                compile_ir_check_condition(Dst, instr);
-                break;
-            case IR_SET_BLOCK_EXIT_PC:
-                compile_ir_set_block_exit_pc(Dst, instr);
-                break;
-            case IR_SET_COND_BLOCK_EXIT_PC:
-                compile_ir_set_cond_block_exit_pc(Dst, instr);
-                break;
-            case IR_TLB_LOOKUP:
-                compile_ir_tlb_lookup(Dst, instr);
-                break;
-            case IR_LOAD_GUEST_REG:
-                compile_ir_load_guest_reg(Dst, instr);
-                break;
-            case IR_FLUSH_GUEST_REG:
-                compile_ir_flush_guest_reg(Dst, instr);
-                break;
-            case IR_SHIFT:
-                compile_ir_shift(Dst, instr);
-                break;
-            case IR_COND_BLOCK_EXIT:
-                compile_ir_cond_block_exit(Dst, instr);
-                break;
-            case IR_MULTIPLY:
-                compile_ir_multiply(Dst, instr);
-                break;
-            case IR_DIVIDE:
-                compile_ir_divide(Dst, instr);
-                break;
-            case IR_ERET:
-                compile_ir_eret(Dst);
-                break;
-            case IR_MOV_REG_TYPE:
-                compile_ir_mov_reg_type(Dst, instr);
-                break;
-            case IR_SET_FLOAT_CONSTANT:
-                compile_ir_set_float_constant(Dst, instr);
-                break;
-            case IR_FLOAT_CONVERT:
-                compile_ir_float_convert(Dst, instr);
-                break;
-            case IR_FLOAT_DIVIDE:
-                compile_ir_float_divide(Dst, instr);
-                break;
-            case IR_FLOAT_MULTIPLY:
-                compile_ir_float_multiply(Dst, instr);
-                break;
-            case IR_FLOAT_ADD:
-                compile_ir_float_add(Dst, instr);
-                break;
-            case IR_FLOAT_SUB:
-                compile_ir_float_sub(Dst, instr);
-                break;
-            case IR_FLOAT_CHECK_CONDITION:
-                compile_ir_float_check_condition(Dst, instr);
-                break;
-        }
+        v2_emit_instr(Dst, instr);
         instr = instr->next;
     }
-    DONE_COMPILING:
     // TODO: emit end block PC
     if (!ir_context.block_end_pc_compiled) {
         logfatal("TODO: emit end of block PC");
@@ -732,18 +734,12 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
 #ifdef N64_LOG_COMPILATIONS
     printf("Generated %ld bytes of code\n", code_size);
 #endif
-    u8* buf = dynarec_bumpalloc(code_size);
-    v2_encode(Dst, buf);
-
-    block->run = (int(*)(r4300i_t *)) buf;
     block->guest_size = temp_code_len * 4;
     block->host_size = code_size;
+    block->run = (int(*)(r4300i_t *))dynarec_bumpalloc(code_size);;
 
-    if (block->run == NULL) {
-        logfatal("Failed to link and encode block.");
-    }
-    dasm_free(&d);
-
+    v2_encode(Dst, (u8*)block->run);
+    v2_dasm_free();
 }
 
 void v2_compile_new_block(
@@ -796,19 +792,23 @@ void v2_compile_new_block(
 #endif
 }
 
-void v2_compiler_init(n64_dynarec_t* dynarec) {
+uintptr_t v2_compiler_init() {
+    uintptr_t dispatcher_code_ptr = (uintptr_t)dispatcher_codecache;
+    if ((dispatcher_code_ptr & (4096 - 1)) != 0) {
+        logfatal("Misaligned!");
+    }
     mprotect_rwx((u8*)&dispatcher_codecache, DISPATCHER_CODE_SIZE, "dispatcher");
 
-    dasm_State* d = v2_emit_dispatcher();
-    size_t dispatcher_code_size = v2_link(&d);
+    dasm_State** Dst = v2_emit_run_block();
+    size_t dispatcher_code_size = v2_link(Dst);
     if (dispatcher_code_size >= DISPATCHER_CODE_SIZE) {
         logfatal("Compiled dispatcher too large!");
     }
 
-    v2_encode(&d, (u8*)&dispatcher_codecache);
-    dasm_free(&d);
+    v2_encode(Dst, (u8*)&dispatcher_codecache);
+    v2_dasm_free();
 
     print_multi_host((uintptr_t)&dispatcher_codecache, (u8*)&dispatcher_codecache, dispatcher_code_size);
 
-    dynarec->run_block = (int(*)(u64)) &dispatcher_codecache;
+    return dispatcher_code_ptr;
 }

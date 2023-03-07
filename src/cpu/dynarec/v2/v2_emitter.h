@@ -5,8 +5,9 @@
 #include "ir_context.h"
 #include <cpu/dynarec/dynarec.h>
 
-dasm_State* v2_block_header();
-dasm_State* v2_emit_dispatcher();
+dasm_State** v2_block_header();
+dasm_State** v2_emit_run_block();
+void v2_dasm_free();
 
 enum args_reversed {
     ARGS_NORMAL_ORDER = 0,

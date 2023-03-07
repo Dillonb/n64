@@ -100,8 +100,7 @@ n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) {
     dynarec->codecache = codecache;
 
     v1_compiler_init();
-    v2_compiler_init(dynarec);
-
+    dynarec->run_block = (int(*)(u64))v2_compiler_init();
     return dynarec;
 }
 
