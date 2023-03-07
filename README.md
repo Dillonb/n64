@@ -45,7 +45,7 @@ You'll need a fast CPU and a modern GPU that supports Vulkan 1.1.
 # Building
 For Linux:
 
-1. Install dependencies: SDL2, Vulkan, dbus, nasm, and optionally Capstone
+1. Install dependencies: SDL2, Vulkan, dbus, and optionally Capstone
 2. Run the following commands:
 ```bash
 mkdir build && cd build
@@ -55,8 +55,7 @@ make
 For Windows:
 
 1. Install dependencies: Visual Studio 2019 with the clang workload, vcpkg, CMake.
-2. Install nasm
-3. Run the following commands, replacing the vcpkg path with where you installed it:
+2. Run the following commands, replacing the vcpkg path with where you installed it:
 ```bash
 vcpkg install sdl2[vulkan]:x64-windows
 mkdir build
