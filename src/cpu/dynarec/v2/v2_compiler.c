@@ -801,14 +801,13 @@ void v2_compiler_init(n64_dynarec_t* dynarec) {
 
     dasm_State** Dst = v2_emit_run_block();
     size_t dispatcher_code_size = v2_link(Dst);
+
     if (dispatcher_code_size >= DISPATCHER_CODE_SIZE) {
         logfatal("Compiled dispatcher too large!");
     }
 
     v2_encode(Dst, (u8*)&dispatcher_codecache);
     v2_dasm_free();
-
-    print_multi_host((uintptr_t)&dispatcher_codecache, (u8*)&dispatcher_codecache, dispatcher_code_size);
 
     dynarec->run_block = (int (*)(u64)) dispatcher_code_ptr;
 }
