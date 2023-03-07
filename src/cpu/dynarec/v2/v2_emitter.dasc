@@ -48,12 +48,34 @@
   |.endmacro
   |.define postcall, .nop
     // Called before our block
-    |.macro prologue
+    |.macro block_prologue
       | sub rsp, (SPILL_SPACE_SIZE_BYTES + 8)
     |.endmacro
+    |.macro func_prologue
+      // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
+      // Stack is misaligned by 8 at first
+      | push rbx
+      // Stack is now aligned - push regs in pairs.
+      | push rsp
+      | push rbp
+      | push r12
+      | push r13
+      | push r14
+      | push r15
+    |.endmacro
     // Called at the end of our block
-    |.macro epilogue
+    |.macro block_epilogue
       | add rsp, (SPILL_SPACE_SIZE_BYTES + 8)
+      | ret
+    |.endmacro
+    |.macro func_epilogue
+      | pop r15
+      | pop r14
+      | pop r13
+      | pop r12
+      | pop rbp
+      | pop rsp
+      | pop rbx
       | ret
     |.endmacro
 |.endif // TODO ARM version?
@@ -93,34 +115,18 @@ void v2_dasm_free() {
 
 dasm_State** v2_block_header() {
     dasm_State** Dst = v2_common_header();
-    | prologue
+    | block_prologue
     return Dst;
 }
 
 dasm_State** v2_emit_run_block() {
     uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
     dasm_State** Dst = v2_common_header();
-    // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
-    // Stack is misaligned by 8 at first
-    | push rbx
-    // Stack is now aligned - push regs in pairs.
-    | push rsp
-    | push rbp
-    | push r12
-    | push r13
-    | push r14
-    | push r15
+    | func_prologue
     // r12 always holds a pointer to the CPU struct
     | mov64 r12, n64_cpu_addr
     | call rdi
-    | pop r15
-    | pop r14
-    | pop r13
-    | pop r12
-    | pop rbp
-    | pop rsp
-    | pop rbx
-    | ret
+    | func_epilogue
     return Dst;
 }
 
@@ -1332,7 +1338,7 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
         flush_iter = flush_iter->next;
     }
     | mov eax, block_length
-    | epilogue
+    | block_epilogue
 }
 
 void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length) {
@@ -1738,7 +1744,7 @@ void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_fl
 
 void v2_end_block(dasm_State** Dst, int block_length) {
     | mov eax, block_length
-    | epilogue // return block_length
+    | block_epilogue // return block_length
 }
 
 size_t v2_link(dasm_State** d) {
