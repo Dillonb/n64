@@ -51,31 +51,31 @@
     |.macro block_prologue
       | sub rsp, (SPILL_SPACE_SIZE_BYTES + 8)
     |.endmacro
-    |.macro func_prologue
-      // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
-      // Stack is misaligned by 8 at first
-      | push rbx
-      // Stack is now aligned - push regs in pairs.
-      | push rsp
-      | push rbp
-      | push r12
-      | push r13
-      | push r14
-      | push r15
-    |.endmacro
     // Called at the end of our block
     |.macro block_epilogue
       | add rsp, (SPILL_SPACE_SIZE_BYTES + 8)
       | ret
     |.endmacro
+    |.macro func_prologue
+      // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
+      // Stack is misaligned by 8 at first
+      | push rbp
+      // Stack is now aligned - push regs in pairs.
+      | push rbx
+      | push r12
+      | push r13
+      | push r14
+      | push r15
+      | sub rsp, 8
+    |.endmacro
     |.macro func_epilogue
+      | add rsp, 8
       | pop r15
       | pop r14
       | pop r13
       | pop r12
-      | pop rbp
-      | pop rsp
       | pop rbx
+      | pop rbp
       | ret
     |.endmacro
 |.endif // TODO ARM version?
@@ -96,7 +96,7 @@ dasm_State** v2_common_header() {
 
     |.globals lbl_
 
-    void* labels[lbl__MAX];
+    static void* labels[lbl__MAX];
     dasm_setupglobal(Dst, labels, lbl__MAX);
 
     |.actionlist actions
