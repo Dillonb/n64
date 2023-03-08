@@ -795,7 +795,7 @@ void v2_compile_new_block(
 void v2_compiler_init() {
     uintptr_t run_block_code_ptr = (uintptr_t)run_block_codecache;
     if ((run_block_code_ptr & (4096 - 1)) != 0) {
-        logfatal("Misaligned!");
+        logfatal("Run block code pointer not page aligned!");
     }
     n64dynarec.run_block = (int (*)(u64)) run_block_code_ptr;
     mprotect_rwx((u8*)&run_block_codecache, DISPATCHER_CODE_SIZE, "run block");
