@@ -568,15 +568,13 @@ IR_EMITTER(sub) {
 IR_EMITTER(dsubu) {
     ir_instruction_t* minuend    = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* subtrahend = ir_emit_load_guest_gpr(instruction.r.rt);
-    ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U64, NO_GUEST_REG);
-    ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
+    ir_emit_sub(minuend, subtrahend, VALUE_TYPE_U64, instruction.r.rd);
 }
 
 IR_EMITTER(dsub) {
     ir_instruction_t* minuend    = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* subtrahend = ir_emit_load_guest_gpr(instruction.r.rt);
-    ir_instruction_t* result     = ir_emit_sub(minuend, subtrahend, VALUE_TYPE_S64, NO_GUEST_REG);
-    ir_emit_mask_and_cast(result, VALUE_TYPE_S32, instruction.r.rd);
+   ir_emit_sub(minuend, subtrahend, VALUE_TYPE_S64, instruction.r.rd);
 }
 
 IR_EMITTER(or) {
