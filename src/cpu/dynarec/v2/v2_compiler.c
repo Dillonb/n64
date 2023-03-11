@@ -14,7 +14,7 @@
 #include "target_platform.h"
 #include "register_allocator.h"
 
-#define N64_LOG_COMPILATIONS
+//#define N64_LOG_COMPILATIONS
 
 #define DISPATCHER_CODE_SIZE 4096
 static u8 run_block_codecache[DISPATCHER_CODE_SIZE] __attribute((aligned(4096)));

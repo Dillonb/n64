@@ -168,9 +168,6 @@ void run_compare_parent() {
     u64 start_pc = 0;
     int steps = 0;
     do {
-        if (N64CPU.pc != start_pc) {
-            printf("Running compare at 0x%08X\n", (u32)N64CPU.pc);
-        }
         start_pc = N64CPU.pc;
         // Step jit
         steps = n64_system_step(true, -1);
