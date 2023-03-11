@@ -63,6 +63,12 @@ void mprotect_codecache() {
 }
 
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
+    if (n64cpu_ptr) {
+        logwarn("n64cpu already initialized");
+    } else {
+        n64cpu_ptr = malloc(sizeof(r4300i_t));
+    }
+
     memset(&n64sys, 0x00, sizeof(n64_system_t));
     memset(&N64CPU, 0x00, sizeof(N64CPU));
     memset(&N64RSP, 0x00, sizeof(N64RSP));

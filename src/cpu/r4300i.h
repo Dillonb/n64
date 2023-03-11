@@ -601,8 +601,8 @@ typedef struct r4300i {
     bool exception;
 } r4300i_t;
 
-extern r4300i_t n64cpu;
-#define N64CPU n64cpu
+extern r4300i_t* n64cpu_ptr;
+#define N64CPU (*n64cpu_ptr)
 #define N64CP0 N64CPU.cp0
 
 typedef void(*mipsinstr_handler_t)(mips_instruction_t);

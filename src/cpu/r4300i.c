@@ -53,7 +53,7 @@ const char* cp1_register_names[] = {
         "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25", "f26", "f27", "f28", "f29", "f30", "f31"
 };
 
-r4300i_t n64cpu;
+r4300i_t* n64cpu_ptr = NULL;
 
 INLINE bool is_xtlb(u64 address) {
     u8 region = (address >> 62) & 3;
