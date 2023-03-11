@@ -170,7 +170,7 @@ INLINE int jit_system_step() {
         if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
             N64CPU.prev_branch = N64CPU.branch;
             r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, 0);
-            return CYCLES_PER_INSTR;
+            return 0;
         }
     }
     static int cpu_steps = 0;
@@ -229,7 +229,7 @@ INLINE int interpreter_system_step(const int cycles) {
         if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
             N64CPU.prev_branch = N64CPU.branch;
             r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, 0);
-            return CYCLES_PER_INSTR;
+            return 0;
         }
     }
 

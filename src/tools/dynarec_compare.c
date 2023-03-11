@@ -175,7 +175,11 @@ void run_compare_parent() {
         // Step interpreter
         send_cycles(mq_jit_to_interp_id, steps);
         // Wait for interpreter to be done
-        recv_cycles(mq_interp_to_jit_id);
+        int interpreter_steps = recv_cycles(mq_interp_to_jit_id);
+        if (interpreter_steps != steps) {
+            logalways("Interpreter ran for a different amount of time than the JIT! interpreter: %d JIT: %d\n", interpreter_steps, steps);
+            n64_request_quit();
+        }
     } while (compare() && !n64_should_quit());
     send_cycles(mq_jit_to_interp_id, -1); // End the child process
     if (n64_should_quit()) {
