@@ -300,23 +300,29 @@ int n64_system_step(bool dynarec, int steps) {
     // VI timing
     n64sys.vi.halfline_cycles += taken;
 
+    bool check_vi_intr = false;
     if (n64sys.vi.halfline_cycles > n64sys.vi.cycles_per_halfline) {
         n64sys.vi.halfline_cycles = 0;
         n64sys.vi.halfline++;
+        check_vi_intr = true;
     }
 
     if (n64sys.vi.halfline > n64sys.vi.num_halflines) {
         n64sys.vi.halfline = 0;
         n64sys.vi.field++;
+        check_vi_intr = true;
         rdp_update_screen();
     }
 
     if (n64sys.vi.field > n64sys.vi.num_fields) {
         n64sys.vi.field = 0;
+        check_vi_intr = true;
     }
 
     n64sys.vi.v_current = (n64sys.vi.halfline << 1) + n64sys.vi.field;
-    check_vi_interrupt();
+    if (check_vi_intr) {
+        check_vi_interrupt();
+    }
 
     ai_step(taken);
     return taken;

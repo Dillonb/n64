@@ -13,6 +13,7 @@
 #include <dynarec/v2/v2_compiler.h>
 #include <sys/shm.h>
 #include <sys/msg.h>
+#include <settings.h>
 
 r4300i_t* n64cpu_interpreter_ptr;
 int mq_jit_to_interp_id = -1;
@@ -125,7 +126,12 @@ void run_compare_parent() {
         send_cycles(mq_jit_to_interp_id, steps);
         // Wait for interpreter to be done
         recv_cycles(mq_interp_to_jit_id);
-    } while (compare());
+    } while (compare() && !n64_should_quit());
+    send_cycles(mq_jit_to_interp_id, -1); // End the child process
+    if (n64_should_quit()) {
+        logalways("User requested quit, not doing a final compare");
+        exit(0);
+    }
     printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
     printf("MIPS code:\n");
     u32 physical = resolve_virtual_address_or_die(start_pc, BUS_LOAD);
@@ -133,15 +139,13 @@ void run_compare_parent() {
     if (physical >= N64_RDRAM_SIZE) {
         printf("outside of RDAM, can't disassemble (TODO)\n");
     } else {
-        //print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
+        print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
     }
     printf("IR\n");
     print_ir_block();
     printf("Host code:\n");
     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
     print_state();
-
-    send_cycles(mq_jit_to_interp_id, -1); // End the child process
 }
 
 void run_compare_child() {
@@ -156,6 +160,7 @@ void run_compare_child() {
 }
 
 int main(int argc, char** argv) {
+    n64_settings_init();
     log_set_verbosity(LOG_VERBOSITY_WARN);
 #ifndef INSTANT_DMA
     logfatal("The emulator must be built with INSTANT_DMA for this tool to be effective! (TODO: and probably other DMAs, too)");
