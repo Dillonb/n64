@@ -72,7 +72,7 @@ INLINE bool is_xtlb(u64 address) {
 // pc = pc of the instruction where execution was when the exception was thrown
 void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error) {
     bool old_exl = N64CP0.status.exl; // used for TLB exceptions since exl is overwritten later
-    loginfo("Exception thrown! Code: %d Coprocessor: %d bd: %d old_exl: %d", code, coprocessor_error, N64CPU.prev_branch, old_exl);
+    loginfo("Exception thrown! PC: %016lX Code: %d Coprocessor: %d bd: %d old_exl: %d", pc, code, coprocessor_error, N64CPU.prev_branch, old_exl);
 
     // If we're not already handling another exception....
     if (!N64CP0.status.exl) {
