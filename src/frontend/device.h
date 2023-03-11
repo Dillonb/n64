@@ -106,6 +106,9 @@ void device_id_for_pif(int pif_channel, u8* res);
 bool device_read_buttons_for_pif(int pif_channel, u8* res);
 n64_controller_accessory_type_t get_controller_accessory_type(int pif_channel);
 
+// For testing
+void override_joybus_devices_ptr(n64_joybus_device_t* override);
+
 // Exposed for testing
 
 // Trim and apply deadzone

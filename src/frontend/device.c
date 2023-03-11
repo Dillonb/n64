@@ -6,7 +6,13 @@
 #include <system/n64system.h>
 #include <settings.h>
 
-static n64_joybus_device_t joybus_devices[6];
+static n64_joybus_device_t joybus_devices_static[6];
+n64_joybus_device_t* joybus_devices_ptr = NULL;
+#define joybus_devices (joybus_devices_ptr ? joybus_devices_ptr : joybus_devices_static)
+
+void override_joybus_devices_ptr(n64_joybus_device_t* override) {
+    joybus_devices_ptr = override;
+}
 
 void update_button(int controller, n64_button_t button, bool held) {
     switch(button) {

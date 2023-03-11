@@ -228,15 +228,21 @@ int main(int argc, char** argv) {
     }
     const char* rom_path = argv[1];
 
-    key_t shmem_key = ftok(argv[0], 1);
+    key_t cpu_shmem_key = ftok(argv[0], 1);
+    key_t joybus_shmem_key = ftok(argv[0], 4);
 
     key_t mq_jit_to_interp_key = ftok(argv[0], 2);
     mq_jit_to_interp_id = create_and_configure_mq(mq_jit_to_interp_key);
     key_t mq_interp_to_jit_key = ftok(argv[0], 3);
     mq_interp_to_jit_id = create_and_configure_mq(mq_interp_to_jit_key);
 
-    int memory_id = shmget(shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
-    n64cpu_interpreter_ptr = shmat(memory_id, NULL, 0);
+    int cpu_shmem_id = shmget(cpu_shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
+    n64cpu_interpreter_ptr = shmat(cpu_shmem_id, NULL, 0);
+
+    int joybus_shmem_id = shmget(joybus_shmem_key, sizeof(n64_joybus_device_t) * 6, IPC_CREAT | 0777);
+    n64_joybus_device_t* joybus_override = shmat(joybus_shmem_id, NULL, 0);
+    memset(joybus_override, 0, sizeof(n64_joybus_device_t) * 6);
+    override_joybus_devices_ptr(joybus_override);
 
     pid_t pid = fork();
     bool is_child = pid == 0;
