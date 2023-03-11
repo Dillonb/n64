@@ -68,6 +68,12 @@ IR_EMITTER(dsll) {
     ir_emit_shift(operand, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
 }
 
+IR_EMITTER(dsrl) {
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
+    ir_emit_shift(operand, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, instruction.r.rd);
+}
+
 IR_EMITTER(dsll32) {
     ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa + 32, NO_GUEST_REG);
@@ -904,7 +910,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DSUBU: CALL_IR_EMITTER(dsubu);
         case FUNCT_TEQ: IR_UNIMPLEMENTED(FUNCT_TEQ);
         case FUNCT_DSLL: CALL_IR_EMITTER(dsll);
-        case FUNCT_DSRL: IR_UNIMPLEMENTED(FUNCT_DSRL);
+        case FUNCT_DSRL: CALL_IR_EMITTER(dsrl);
         case FUNCT_DSRA: CALL_IR_EMITTER(dsra);
         case FUNCT_DSLL32: CALL_IR_EMITTER(dsll32);
         case FUNCT_DSRL32: IR_UNIMPLEMENTED(FUNCT_DSRL32);
