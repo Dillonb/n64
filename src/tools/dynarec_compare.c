@@ -72,16 +72,41 @@ int create_and_configure_mq(key_t key) {
 bool compare() {
     bool good = true;
     good &= n64cpu_interpreter_ptr->pc == N64CPU.pc;
-    for (int i = 0; i < 32; i++) {
-        good &= n64cpu_interpreter_ptr->gpr[i] == N64CPU.gpr[i];
-        good &= n64cpu_interpreter_ptr->f[i].raw == N64CPU.f[i].raw;
-    }
+    good &= memcmp(n64cpu_interpreter_ptr->gpr, n64cpu_ptr->gpr, sizeof(u64) * 32) == 0;
+    good &= memcmp(n64cpu_interpreter_ptr->f, n64cpu_ptr->f, sizeof(fgr_t) * 32) == 0;
     //good &= memcmp(n64sys_interpreter.mem.rdram, n64sys_dynarec.mem.rdram, N64_RDRAM_SIZE) == 0;
+
+    good &= n64cpu_interpreter_ptr->cp0.index == n64cpu_ptr->cp0.index;
+    good &= n64cpu_interpreter_ptr->cp0.random == n64cpu_ptr->cp0.random;
+    good &= n64cpu_interpreter_ptr->cp0.entry_lo0.raw == n64cpu_ptr->cp0.entry_lo0.raw;
+    good &= n64cpu_interpreter_ptr->cp0.entry_lo1.raw == n64cpu_ptr->cp0.entry_lo1.raw;
+    good &= n64cpu_interpreter_ptr->cp0.context.raw == n64cpu_ptr->cp0.context.raw;
+    good &= n64cpu_interpreter_ptr->cp0.page_mask.raw == n64cpu_ptr->cp0.page_mask.raw;
+    good &= n64cpu_interpreter_ptr->cp0.wired == n64cpu_ptr->cp0.wired;
+    good &= n64cpu_interpreter_ptr->cp0.bad_vaddr == n64cpu_ptr->cp0.bad_vaddr;
+    good &= n64cpu_interpreter_ptr->cp0.count == n64cpu_ptr->cp0.count;
+    good &= n64cpu_interpreter_ptr->cp0.entry_hi.raw == n64cpu_ptr->cp0.entry_hi.raw;
+    good &= n64cpu_interpreter_ptr->cp0.compare == n64cpu_ptr->cp0.compare;
+    good &= n64cpu_interpreter_ptr->cp0.status.raw == n64cpu_ptr->cp0.status.raw;
+    good &= n64cpu_interpreter_ptr->cp0.cause.raw == n64cpu_ptr->cp0.cause.raw;
+    good &= n64cpu_interpreter_ptr->cp0.EPC == n64cpu_ptr->cp0.EPC;
+    good &= n64cpu_interpreter_ptr->cp0.PRId == n64cpu_ptr->cp0.PRId;
+    good &= n64cpu_interpreter_ptr->cp0.config == n64cpu_ptr->cp0.config;
+    good &= n64cpu_interpreter_ptr->cp0.lladdr == n64cpu_ptr->cp0.lladdr;
+    good &= n64cpu_interpreter_ptr->cp0.watch_lo.raw == n64cpu_ptr->cp0.watch_lo.raw;
+    good &= n64cpu_interpreter_ptr->cp0.watch_hi == n64cpu_ptr->cp0.watch_hi;
+    good &= n64cpu_interpreter_ptr->cp0.x_context.raw == n64cpu_ptr->cp0.x_context.raw;
+    good &= n64cpu_interpreter_ptr->cp0.parity_error == n64cpu_ptr->cp0.parity_error;
+    good &= n64cpu_interpreter_ptr->cp0.cache_error == n64cpu_ptr->cp0.cache_error;
+    good &= n64cpu_interpreter_ptr->cp0.tag_lo == n64cpu_ptr->cp0.tag_lo;
+    good &= n64cpu_interpreter_ptr->cp0.tag_hi == n64cpu_ptr->cp0.tag_hi;
+    good &= n64cpu_interpreter_ptr->cp0.error_epc == n64cpu_ptr->cp0.error_epc;
+
     return good;
 }
 
 void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
-    printf("%4s 0x%016lX 0x", name, expected);
+    printf("%16s 0x%016lX 0x", name, expected);
     for (int offset = 56; offset >= 0; offset -= 8) {
         u64 good_byte = (expected >> offset) & 0xFF;
         u64 bad_byte = (actual >> offset) & 0xFF;
@@ -101,6 +126,34 @@ void print_state() {
     for (int i = 0; i < 32; i++) {
         print_colorcoded_u64(cp1_register_names[i], n64cpu_interpreter_ptr->f[i].raw, N64CPU.f[i].raw);
     }
+
+    printf("\n");
+
+    print_colorcoded_u64("cp0 index", n64cpu_interpreter_ptr->cp0.index, N64CPU.cp0.index);
+    print_colorcoded_u64("cp0 random", n64cpu_interpreter_ptr->cp0.random, N64CPU.cp0.random);
+    print_colorcoded_u64("cp0 entry_lo0", n64cpu_interpreter_ptr->cp0.entry_lo0.raw, N64CPU.cp0.entry_lo0.raw);
+    print_colorcoded_u64("cp0 entry_lo1", n64cpu_interpreter_ptr->cp0.entry_lo1.raw, N64CPU.cp0.entry_lo1.raw);
+    print_colorcoded_u64("cp0 context", n64cpu_interpreter_ptr->cp0.context.raw, N64CPU.cp0.context.raw);
+    print_colorcoded_u64("cp0 page_mask", n64cpu_interpreter_ptr->cp0.page_mask.raw, N64CPU.cp0.page_mask.raw);
+    print_colorcoded_u64("cp0 wired", n64cpu_interpreter_ptr->cp0.wired, N64CPU.cp0.wired);
+    print_colorcoded_u64("cp0 bad_vaddr", n64cpu_interpreter_ptr->cp0.bad_vaddr, N64CPU.cp0.bad_vaddr);
+    print_colorcoded_u64("cp0 count", n64cpu_interpreter_ptr->cp0.count, N64CPU.cp0.count);
+    print_colorcoded_u64("cp0 entry_hi", n64cpu_interpreter_ptr->cp0.entry_hi.raw, N64CPU.cp0.entry_hi.raw);
+    print_colorcoded_u64("cp0 compare", n64cpu_interpreter_ptr->cp0.compare, N64CPU.cp0.compare);
+    print_colorcoded_u64("cp0 status", n64cpu_interpreter_ptr->cp0.status.raw, N64CPU.cp0.status.raw);
+    print_colorcoded_u64("cp0 cause", n64cpu_interpreter_ptr->cp0.cause.raw, N64CPU.cp0.cause.raw);
+    print_colorcoded_u64("cp0 EPC", n64cpu_interpreter_ptr->cp0.EPC, N64CPU.cp0.EPC);
+    print_colorcoded_u64("cp0 PRId", n64cpu_interpreter_ptr->cp0.PRId, N64CPU.cp0.PRId);
+    print_colorcoded_u64("cp0 config", n64cpu_interpreter_ptr->cp0.config, N64CPU.cp0.config);
+    print_colorcoded_u64("cp0 lladdr", n64cpu_interpreter_ptr->cp0.lladdr, N64CPU.cp0.lladdr);
+    print_colorcoded_u64("cp0 watch_lo", n64cpu_interpreter_ptr->cp0.watch_lo.raw, N64CPU.cp0.watch_lo.raw);
+    print_colorcoded_u64("cp0 watch_hi", n64cpu_interpreter_ptr->cp0.watch_hi, N64CPU.cp0.watch_hi);
+    print_colorcoded_u64("cp0 x_context", n64cpu_interpreter_ptr->cp0.x_context.raw, N64CPU.cp0.x_context.raw);
+    print_colorcoded_u64("cp0 parity_error", n64cpu_interpreter_ptr->cp0.parity_error, N64CPU.cp0.parity_error);
+    print_colorcoded_u64("cp0 cache_error", n64cpu_interpreter_ptr->cp0.cache_error, N64CPU.cp0.cache_error);
+    print_colorcoded_u64("cp0 tag_lo", n64cpu_interpreter_ptr->cp0.tag_lo, N64CPU.cp0.tag_lo);
+    print_colorcoded_u64("cp0 tag_hi", n64cpu_interpreter_ptr->cp0.tag_hi, N64CPU.cp0.tag_hi);
+    print_colorcoded_u64("cp0 error_epc", n64cpu_interpreter_ptr->cp0.error_epc, N64CPU.cp0.error_epc);
 
     /*
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
