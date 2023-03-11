@@ -507,11 +507,11 @@ INLINE void branch_offset(s16 offset) {
 }
 
 INLINE void conditional_branch_likely(u32 offset, bool condition) {
-    N64CPU.branch = true;
     if (condition) {
         branch_offset(offset);
         logtrace("Likely branch taken. pc: 0x%016lX, next_pc: 0x%016lX", N64CPU.pc, N64CPU.next_pc);
         N64CPU.branch_likely_taken = true; // For dynarec
+        N64CPU.branch = true;
     } else {
         N64CPU.branch_likely_taken = false; // For dynarec
         // Skip instruction in delay slot
