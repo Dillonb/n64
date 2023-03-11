@@ -24,17 +24,17 @@ struct num_cycles_msg {
 };
 
 void send_cycles(int id, int cycles) {
-    static struct num_cycles_msg m;
+    struct num_cycles_msg m;
     m.mtype = 1;
     m.cycles = cycles;
-    if (msgsnd(id, &m, sizeof(int), 0) == -1) {
+    if (msgsnd(id, &m, sizeof(m.cycles), 0) == -1) {
         perror("msgsnd");
         exit(1);
     }
 }
 
 int recv_cycles(int id) {
-    static struct num_cycles_msg m;
+    struct num_cycles_msg m;
     if (msgrcv(id, &m, sizeof(m.cycles), 0, 0) == -1) {
         perror("msgrcv");
         exit(1);
@@ -43,7 +43,6 @@ int recv_cycles(int id) {
 }
 
 int create_and_configure_mq(key_t key) {
-    printf("Creating an mq with key %08X\n", key);
     int mq_id = msgget(key, IPC_CREAT | 0777);
     if (mq_id == -1) {
         perror("msgget");
@@ -59,6 +58,12 @@ int create_and_configure_mq(key_t key) {
         perror("msgctl set");
         exit(1);
     }
+
+    struct num_cycles_msg m;
+    while (msgrcv(mq_id, &m, sizeof(m.cycles), 0, IPC_NOWAIT) != -1) {
+        printf("Draining queue\n");
+    }
+
     return mq_id;
 }
 
@@ -105,20 +110,6 @@ void print_state() {
     */
 }
 
-void copy_to(n64_system_t* sys, r4300i_t* cpu, rsp_t* rsp, scheduler_t* scheduler) {
-    memcpy(sys, &n64sys, sizeof(n64_system_t));
-    memcpy(cpu, n64cpu_ptr, sizeof(r4300i_t));
-    memcpy(rsp, &N64RSP, sizeof(rsp_t));
-    memcpy(scheduler, &n64scheduler, sizeof(scheduler_t));
-}
-
-void restore_from(n64_system_t* sys, r4300i_t* cpu, rsp_t* rsp, scheduler_t* scheduler) {
-    memcpy(&n64sys, sys, sizeof(n64_system_t));
-    memcpy(n64cpu_ptr, cpu, sizeof(r4300i_t));
-    memcpy(&N64RSP, rsp, sizeof(rsp_t));
-    memcpy(&n64scheduler, scheduler, sizeof(scheduler_t));
-}
-
 void run_compare_parent() {
     u64 start_pc = 0;
     int steps = 0;
@@ -133,10 +124,7 @@ void run_compare_parent() {
         // Step interpreter
         send_cycles(mq_jit_to_interp_id, steps);
         // Wait for interpreter to be done
-        int ran = recv_cycles(mq_interp_to_jit_id);
-        if (ran != steps) {
-            logfatal("interpreter ran for a different amount of time");
-        }
+        recv_cycles(mq_interp_to_jit_id);
     } while (compare());
     printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
     printf("MIPS code:\n");
@@ -152,6 +140,8 @@ void run_compare_parent() {
     printf("Host code:\n");
     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
     print_state();
+
+    send_cycles(mq_jit_to_interp_id, -1); // End the child process
 }
 
 void run_compare_child() {
@@ -182,26 +172,22 @@ int main(int argc, char** argv) {
     key_t mq_interp_to_jit_key = ftok(argv[0], 3);
     mq_interp_to_jit_id = create_and_configure_mq(mq_interp_to_jit_key);
 
-    printf("Created and configured two queus: %08X and %08X\n", mq_jit_to_interp_id, mq_interp_to_jit_id);
-
     int memory_id = shmget(shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
-    r4300i_t *guest_interpreter_ptr = shmat(memory_id, NULL, 0);
+    n64cpu_interpreter_ptr = shmat(memory_id, NULL, 0);
 
     pid_t pid = fork();
     bool is_child = pid == 0;
 
     if (is_child) {
-        n64cpu_ptr = guest_interpreter_ptr;
+        n64cpu_ptr = n64cpu_interpreter_ptr;
     }
 
-    // TODO: enable the UI
-    init_n64system(rom_path, true, false, SOFTWARE_VIDEO_TYPE, false);
+    init_n64system(rom_path, true, false, VULKAN_VIDEO_TYPE, false);
+    //init_n64system(rom_path, true, false, SOFTWARE_VIDEO_TYPE, false);
     softrdp_init(&n64sys.softrdp_state, (u8 *) &n64sys.mem.rdram);
-    /*
     prdp_init_internal_swapchain();
     load_imgui_ui();
     register_imgui_event_handler(imgui_handle_event);
-    */
     n64_load_rom(rom_path);
     pif_rom_execute();
 

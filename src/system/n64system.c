@@ -308,6 +308,7 @@ int n64_system_step(bool dynarec, int steps) {
     if (n64sys.vi.halfline > n64sys.vi.num_halflines) {
         n64sys.vi.halfline = 0;
         n64sys.vi.field++;
+        rdp_update_screen();
     }
 
     if (n64sys.vi.field > n64sys.vi.num_fields) {
@@ -317,7 +318,7 @@ int n64_system_step(bool dynarec, int steps) {
     n64sys.vi.v_current = (n64sys.vi.halfline << 1) + n64sys.vi.field;
     check_vi_interrupt();
 
-
+    ai_step(taken);
     return taken;
 }
 
