@@ -749,6 +749,13 @@ void r4300i_step() {
     N64CPU.branch = false;
 
     u64 pc = N64CPU.pc;
+
+    if (unlikely(check_address_error(0b11, pc))) {
+        on_tlb_exception(pc);
+        r4300i_handle_exception(pc, EXCEPTION_ADDRESS_ERROR_LOAD, 0);
+        return;
+    }
+
     u32 physical_pc;
     if (!resolve_virtual_address(pc, BUS_LOAD, &physical_pc)) {
         // tlb exception
