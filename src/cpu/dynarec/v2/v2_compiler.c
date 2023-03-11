@@ -29,6 +29,11 @@ typedef struct source_instruction {
 #define MAX_BLOCK_LENGTH BLOCKCACHE_INNER_SIZE
 int temp_code_len = 0;
 source_instruction_t temp_code[TEMP_CODE_SIZE];
+u64 temp_code_vaddr = 0;
+
+u64 v2_get_last_compiled_block() {
+    return temp_code_vaddr;
+}
 
 INLINE bool should_break(u32 address) {
 #ifdef N64_DEBUG_MODE
@@ -50,6 +55,7 @@ INLINE bool should_break(u32 address) {
 
 // Determine what instructions should be compiled into the block and load them into temp_code
 void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) {
+    temp_code_vaddr = virtual_address;
     int instructions_left_in_block = -1;
 
     temp_code_len = 0;

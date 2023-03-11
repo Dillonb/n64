@@ -192,7 +192,11 @@ void run_compare_parent() {
         print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
     }
     printf("IR\n");
-    print_ir_block();
+    if (v2_get_last_compiled_block() == start_pc) {
+        print_ir_block();
+    } else {
+        printf("Unavailable, a new block has been compiled in the meantime.\n");
+    }
     printf("Host code:\n");
     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
     print_state();
