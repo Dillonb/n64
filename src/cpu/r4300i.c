@@ -259,6 +259,24 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                 default:
                     return mips_cp1_invalid;
             }
+        case COP_FUNCT_CEIL_L:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_ceil_l_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_ceil_l_s;
+                default:
+                    return mips_cp1_invalid;
+            }
+        case COP_FUNCT_FLOOR_L:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_floor_l_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_floor_l_s;
+                default:
+                    return mips_cp1_invalid;
+            }
         case COP_FUNCT_ROUND_L:
             switch (instr.fr.fmt) {
                 case FP_FMT_DOUBLE:
@@ -274,6 +292,15 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                     return mips_cp_trunc_w_d;
                 case FP_FMT_SINGLE:
                     return mips_cp_trunc_w_s;
+                default:
+                    return mips_cp1_invalid;
+            }
+        case COP_FUNCT_CEIL_W:
+            switch (instr.fr.fmt) {
+                case FP_FMT_DOUBLE:
+                    return mips_cp_ceil_w_d;
+                case FP_FMT_SINGLE:
+                    return mips_cp_ceil_w_s;
                 default:
                     return mips_cp1_invalid;
             }
