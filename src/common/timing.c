@@ -8,7 +8,7 @@ unsigned int extra_cycles = 0;
 // Thanks m64p
 u32 timing_pi_access(u8 domain, u32 length)
 {
-#ifdef INSTANT_PI_DMA
+#ifdef INSTANT_DMA
     return 0;
 #else
     uint32_t cycles = 0;

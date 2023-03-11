@@ -51,7 +51,11 @@ void write_word_sireg(u32 address, u32 value) {
             value &= 0x1FFFFFFF;
             n64sys.mem.si_reg.pif_address = value;
             unimplemented(value != 0x1FC007C0, "SI DMA not from start of PIF RAM!");
+#ifndef INSTANT_DMA
             scheduler_enqueue_relative(SI_DMA_DELAY, SCHEDULER_SI_DMA_COMPLETE);
+#else
+            on_si_dma_complete();
+#endif
             break;
         case ADDR_SI_PIF_ADDR_WR64B_REG:
             n64sys.si.dma_to_dram = false;
@@ -59,7 +63,11 @@ void write_word_sireg(u32 address, u32 value) {
             value &= 0x1FFFFFFF;
             n64sys.mem.si_reg.pif_address = value;
             unimplemented(value != 0x1FC007C0, "SI DMA not to start of PIF RAM!");
+#ifndef INSTANT_DMA
             scheduler_enqueue_relative(SI_DMA_DELAY, SCHEDULER_SI_DMA_COMPLETE);
+#else
+            on_si_dma_complete();
+#endif
             break;
         case ADDR_SI_STATUS_REG:
             interrupt_lower(INTERRUPT_SI);

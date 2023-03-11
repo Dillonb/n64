@@ -157,8 +157,8 @@ void run_compare_child() {
 
 int main(int argc, char** argv) {
     log_set_verbosity(LOG_VERBOSITY_WARN);
-#ifndef INSTANT_PI_DMA
-    logfatal("The emulator must be built with INSTANT_PI_DMA for this tool to be effective! (TODO: and probably other DMAs, too)");
+#ifndef INSTANT_DMA
+    logfatal("The emulator must be built with INSTANT_DMA for this tool to be effective! (TODO: and probably other DMAs, too)");
 #endif
     if (argc != 2) {
         logfatal("Usage: %s <rom>", argv[0]);

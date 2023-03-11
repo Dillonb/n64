@@ -140,7 +140,7 @@ void write_word_pireg(u32 address, u32 value) {
 
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
             n64sys.pi.dma_busy = true;
-#ifdef INSTANT_PI_DMA
+#ifdef INSTANT_DMA
             on_pi_dma_complete();
 #else
             scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
@@ -188,7 +188,7 @@ void write_word_pireg(u32 address, u32 value) {
 
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
             n64sys.pi.dma_busy = true;
-#ifdef INSTANT_PI_DMA
+#ifdef INSTANT_DMA
             on_pi_dma_complete();
 #else
             scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
