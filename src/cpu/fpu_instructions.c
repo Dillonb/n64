@@ -88,11 +88,14 @@ MIPS_INSTR(mips_cfc1) {
     set_register(instruction.r.rt, (s64)value);
 }
 
-INLINE void check_fpu_exception() {
+INLINE bool fire_fpu_exception() {
     if (N64CPU.fcr31.cause & (0b100000 | N64CPU.fcr31.enable)) {
-        logfatal("FPU exception");
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_FLOATING_POINT, 0);
+        return true;
     }
 }
+
+#define check_fpu_exception() do { if (fire_fpu_exception()) { return; } } while(0)
 
 INLINE int push_round_mode() {
     int orig_round = fegetround();
