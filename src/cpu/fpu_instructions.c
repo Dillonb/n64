@@ -51,7 +51,7 @@ MIPS_INSTR(mips_dmfc1) {
 MIPS_INSTR(mips_mtc1) {
     checkcp1;
     u32 value = get_register(instruction.r.rt);
-    set_fpu_register_word(instruction.r.rd, value);
+    set_fpu_register_word(instruction.r.rd, value, true);
 }
 
 MIPS_INSTR(mips_dmtc1) {
@@ -278,7 +278,7 @@ MIPS_INSTR(mips_cp_trunc_w_d) {
     checkcp1;
     double value = get_fpu_register_double(instruction.fr.fs);
     u32 truncated = trunc(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    set_fpu_register_word(instruction.fr.fd, truncated, false);
 }
 
 MIPS_INSTR(mips_cp_round_w_d) {
@@ -287,7 +287,7 @@ MIPS_INSTR(mips_cp_round_w_d) {
     PUSHROUND;
     u32 truncated = nearbyint(value);
     POPROUND;
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    set_fpu_register_word(instruction.fr.fd, truncated, false);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_s) {
@@ -295,7 +295,7 @@ MIPS_INSTR(mips_cp_trunc_w_s) {
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     s32 truncated = truncf(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    set_fpu_register_word(instruction.fr.fd, truncated, false);
 }
 
 MIPS_INSTR(mips_cp_ceil_l_d) {
@@ -319,7 +319,7 @@ MIPS_INSTR(mips_cp_ceil_w_s) {
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     s32 truncated = ceilf(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    set_fpu_register_word(instruction.fr.fd, truncated, false);
 }
 
 MIPS_INSTR(mips_cp_floor_l_d) {
@@ -343,7 +343,7 @@ MIPS_INSTR(mips_cp_floor_w_s) {
     float value = get_fpu_register_float(instruction.fr.fs);
     checknanf(value);
     s32 truncated = floorf(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    set_fpu_register_word(instruction.fr.fd, truncated, false);
 }
 
 MIPS_INSTR(mips_cp_round_w_s) {
@@ -353,7 +353,7 @@ MIPS_INSTR(mips_cp_round_w_s) {
     PUSHROUND;
     s32 truncated = nearbyintf(value);
     POPROUND;
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    set_fpu_register_word(instruction.fr.fd, truncated, false);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_s) {
@@ -416,14 +416,14 @@ MIPS_INSTR(mips_cp_cvt_w_s) {
     checkcp1;
     float fs = get_fpu_register_float(instruction.fr.fs);
     s32 converted = fs;
-    set_fpu_register_word(instruction.fr.fd, converted);
+    set_fpu_register_word(instruction.fr.fd, converted, false);
 }
 
 MIPS_INSTR(mips_cp_cvt_w_d) {
     checkcp1;
     double fs = get_fpu_register_double(instruction.fr.fs);
     s32 converted = fs;
-    set_fpu_register_word(instruction.fr.fd, converted);
+    set_fpu_register_word(instruction.fr.fd, converted, false);
 }
 
 MIPS_INSTR(mips_cp_sqrt_s) {
@@ -743,9 +743,8 @@ MIPS_INSTR(mips_cp_c_ngt_d) {
 
 MIPS_INSTR(mips_cp_mov_s) {
     checkcp1;
-    float value = get_fpu_register_float(instruction.fr.fs);
-    checknanf(value);
-    set_fpu_register_float(instruction.fr.fd, value);
+    u64 value = get_fpu_register_dword(instruction.fr.fs);
+    set_fpu_register_dword(instruction.fr.fd, value);
 }
 
 MIPS_INSTR(mips_cp_mov_d) {
@@ -811,7 +810,7 @@ MIPS_INSTR(mips_lwc1) {
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         u32 value = n64_read_physical_word(physical);
-        set_fpu_register_word(instruction.fi.ft, value);
+        set_fpu_register_word(instruction.fi.ft, value, true);
     }
 }
 

@@ -410,14 +410,26 @@ INLINE u64 get_fpu_register_dword(u8 r) {
     return N64CPU.f[r].raw;
 }
 
-INLINE void set_fpu_register_word(u8 r, u32 value) {
+INLINE void set_fpu_register_word(u8 r, u32 value, bool preserve_upper) {
     if (N64CPU.cp0.status.fr) {
-        N64CPU.f[r].lo = value;
+        if (preserve_upper) {
+            N64CPU.f[r].lo = value;
+        } else {
+            N64CPU.f[r].raw = value;
+        }
     } else {
         if (r & 1) {
-            N64CPU.f[r & ~1].hi = value;
+            if (preserve_upper) {
+                N64CPU.f[r & ~1].hi = value;
+            } else {
+                N64CPU.f[r & ~1].hi = value;
+            }
         } else {
-            N64CPU.f[r].lo = value;
+            if (preserve_upper) {
+                N64CPU.f[r].lo = value;
+            } else {
+                N64CPU.f[r].raw = value;
+            }
         }
     }
 }
@@ -455,7 +467,7 @@ INLINE void set_fpu_register_float(u8 r, float value) {
 
     u32 rawvalue;
     memcpy(&rawvalue, &value, sizeof(float));
-    set_fpu_register_word(r, rawvalue);
+    set_fpu_register_word(r, rawvalue, false);
 }
 
 INLINE float get_fpu_register_float(u8 r) {
