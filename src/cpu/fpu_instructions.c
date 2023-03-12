@@ -8,9 +8,10 @@
 #include "float_util.h"
 
 INLINE bool fire_fpu_exception() {
-    if (N64CPU.fcr31.cause & N64CPU.fcr31.enable) {
+    // unimplemented operation is always enabled - there's not even a bit in `enable` for it.
+    u32 enable = N64CPU.fcr31.enable | (1 << 5);
+    if (N64CPU.fcr31.cause & enable) {
         r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_FLOATING_POINT, 0);
-        printf("FPU exception fired!\n");
         return true;
     }
     return false;
