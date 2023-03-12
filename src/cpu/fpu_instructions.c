@@ -171,8 +171,8 @@ MIPS_INSTR(mips_cp_bc1tl) {
 
 MIPS_INSTR(mips_cp_mul_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
     double result = fs * ft;
     set_fpu_register_double(instruction.fr.fd, result);
@@ -189,8 +189,8 @@ MIPS_INSTR(mips_cp_mul_s) {
 
 MIPS_INSTR(mips_cp_div_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
     if (ft == 0) {
         //N64CPU.fcr31.cause_division_by_zero = true;
@@ -215,8 +215,8 @@ MIPS_INSTR(mips_cp_div_s) {
 
 MIPS_INSTR(mips_cp_add_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
     double result = fs + ft;
     set_fpu_register_double(instruction.fr.fd, result);
@@ -238,8 +238,8 @@ MIPS_INSTR(mips_cp_add_s) {
 
 MIPS_INSTR(mips_cp_sub_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
     double result = fs - ft;
     set_fpu_register_double(instruction.fr.fd, result);
@@ -256,7 +256,7 @@ MIPS_INSTR(mips_cp_sub_s) {
 
 MIPS_INSTR(mips_cp_trunc_l_d) {
     checkcp1;
-    double value = get_fpu_register_double(instruction.fr.fs);
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
     checknand(value);
     u64 truncated = trunc(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
@@ -264,7 +264,7 @@ MIPS_INSTR(mips_cp_trunc_l_d) {
 
 MIPS_INSTR(mips_cp_round_l_d) {
     checkcp1;
-    double value = get_fpu_register_double(instruction.fr.fs);
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
     PUSHROUND;
     u64 truncated = nearbyint(value);
     POPROUND;
@@ -291,14 +291,14 @@ MIPS_INSTR(mips_cp_round_l_s) {
 
 MIPS_INSTR(mips_cp_trunc_w_d) {
     checkcp1;
-    double value = get_fpu_register_double(instruction.fr.fs);
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
     u32 truncated = trunc(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_round_w_d) {
     checkcp1;
-    double value = get_fpu_register_double(instruction.fr.fs);
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
     PUSHROUND;
     u32 truncated = nearbyint(value);
     POPROUND;
@@ -319,9 +319,9 @@ MIPS_INSTR(mips_cp_ceil_l_d) {
 
 MIPS_INSTR(mips_cp_ceil_l_s) {
     checkcp1;
-    double value = get_fpu_register_double(instruction.fr.fs);
+    float value = get_fpu_register_float_fs(instruction.fr.fs);
     checknand(value);
-    u64 truncated = ceil(value);
+    u64 truncated = ceilf(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
 
@@ -380,14 +380,14 @@ MIPS_INSTR(mips_cp_cvt_d_s) {
 
 MIPS_INSTR(mips_cp_cvt_d_w) {
     checkcp1;
-    s32 fs = get_fpu_register_word(instruction.fr.fs);
+    s32 fs = get_fpu_register_word_fs(instruction.fr.fs);
     double converted = fs;
     set_fpu_register_double(instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_l) {
     checkcp1;
-    s64 fs = get_fpu_register_dword(instruction.fr.fs);
+    s64 fs = get_fpu_register_dword_fr(instruction.fr.fs);
     double converted = fs;
     set_fpu_register_double(instruction.fr.fd, converted);
 }
@@ -401,28 +401,28 @@ MIPS_INSTR(mips_cp_cvt_l_s) {
 
 MIPS_INSTR(mips_cp_cvt_l_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
     s64 converted = fs;
     set_fpu_register_dword(instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
     float converted = fs;
     set_fpu_register_float(instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_w) {
     checkcp1;
-    s32 fs = get_fpu_register_word(instruction.fr.fs);
+    s32 fs = get_fpu_register_word_fs(instruction.fr.fs);
     float converted = fs;
     set_fpu_register_float(instruction.fr.fd, converted);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_l) {
     checkcp1;
-    s64 fs = get_fpu_register_dword(instruction.fr.fs);
+    s64 fs = get_fpu_register_dword_fr(instruction.fr.fs);
     float converted = fs;
     set_fpu_register_float(instruction.fr.fd, converted);
 }
@@ -436,7 +436,7 @@ MIPS_INSTR(mips_cp_cvt_w_s) {
 
 MIPS_INSTR(mips_cp_cvt_w_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
     s32 converted = fs;
     set_fpu_register_word(instruction.fr.fd, converted);
 }
@@ -450,7 +450,7 @@ MIPS_INSTR(mips_cp_sqrt_s) {
 
 MIPS_INSTR(mips_cp_sqrt_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double root = sqrt(fs);
     set_fpu_register_double(instruction.fr.fd, root);
 }
@@ -466,7 +466,7 @@ MIPS_INSTR(mips_cp_abs_s) {
 
 MIPS_INSTR(mips_cp_abs_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
     if (fs < 0) {
         fs = -fs;
     }
@@ -628,30 +628,30 @@ MIPS_INSTR(mips_cp_c_ngt_s) {
 MIPS_INSTR(mips_cp_c_f_d) {
     checkcp1;
     /*
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
      checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_f_d");
 }
 MIPS_INSTR(mips_cp_c_un_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     N64CPU.fcr31.compare = isnan(fs) || isnan(ft);
 }
 MIPS_INSTR(mips_cp_c_eq_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
 
     N64CPU.fcr31.compare = fs == ft;
 }
 MIPS_INSTR(mips_cp_c_ueq_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
 
     UNORDERED_D(fs, ft);
 
@@ -659,8 +659,8 @@ MIPS_INSTR(mips_cp_c_ueq_d) {
 }
 MIPS_INSTR(mips_cp_c_olt_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
     ORDERED_D(fs, ft);
 
@@ -668,22 +668,22 @@ MIPS_INSTR(mips_cp_c_olt_d) {
 }
 MIPS_INSTR(mips_cp_c_ult_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     UNORDERED_D(fs, ft);
     N64CPU.fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_ole_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     ORDERED_D(fs, ft);
     N64CPU.fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ule_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
 
     UNORDERED_D(fs, ft);
 
@@ -692,8 +692,8 @@ MIPS_INSTR(mips_cp_c_ule_d) {
 MIPS_INSTR(mips_cp_c_sf_d) {
     checkcp1;
     /*
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
      checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_sf_d");
@@ -701,8 +701,8 @@ MIPS_INSTR(mips_cp_c_sf_d) {
 MIPS_INSTR(mips_cp_c_ngle_d) {
     checkcp1;
     /*
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
      checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_ngle_d");
@@ -710,8 +710,8 @@ MIPS_INSTR(mips_cp_c_ngle_d) {
 MIPS_INSTR(mips_cp_c_seq_d) {
     checkcp1;
     /*
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
      checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_seq_d");
@@ -719,39 +719,39 @@ MIPS_INSTR(mips_cp_c_seq_d) {
 MIPS_INSTR(mips_cp_c_ngl_d) {
     checkcp1;
     /*
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
      checknansd(fs, ft);
      */
     logfatal("Unimplemented: mips_cp_c_ngl_d");
 }
 MIPS_INSTR(mips_cp_c_lt_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
 
     N64CPU.fcr31.compare = fs < ft;
 }
 MIPS_INSTR(mips_cp_c_nge_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
     N64CPU.fcr31.compare = !(fs >= ft);
 }
 MIPS_INSTR(mips_cp_c_le_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
 
     N64CPU.fcr31.compare = fs <= ft;
 }
 MIPS_INSTR(mips_cp_c_ngt_d) {
     checkcp1;
-    double fs = get_fpu_register_double(instruction.fr.fs);
-    double ft = get_fpu_register_double(instruction.fr.ft);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
     checknansd(fs, ft);
     N64CPU.fcr31.compare = !(fs > ft);
 }
@@ -764,7 +764,7 @@ MIPS_INSTR(mips_cp_mov_s) {
 
 MIPS_INSTR(mips_cp_mov_d) {
     checkcp1;
-    double value = get_fpu_register_double(instruction.fr.fs);
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
     set_fpu_register_double(instruction.fr.fd, value);
 }
 
@@ -777,7 +777,7 @@ MIPS_INSTR(mips_cp_neg_s) {
 
 MIPS_INSTR(mips_cp_neg_d) {
     checkcp1;
-    double value = get_fpu_register_double(instruction.fr.fs);
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
     set_fpu_register_double(instruction.fr.fd, -value);
 }
 
