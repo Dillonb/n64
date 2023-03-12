@@ -3,10 +3,6 @@
 
 #include <mem/n64bus.h>
 
-#define check_signed_overflow_add(op1, op2, res)  (((~((op1) ^ (op2)) & ((op1) ^ (res))) >> ((sizeof(res) * 8) - 1)) & 1)
-#define check_signed_overflow_sub(op1, op2, res) (((((op1) ^ (op2)) & ((op1) ^ (res))) >> ((sizeof(res) * 8) - 1)) & 1)
-#define check_address_error(mask, virtual) (((!N64CP0.is_64bit_addressing) && (s32)(virtual) != (virtual)) || (((virtual) & (mask)) != 0))
-
 // https://stackoverflow.com/questions/25095741/how-can-i-multiply-64-bit-operands-and-get-128-bit-result-portably/58381061#58381061
 /* Prevents a partial vectorization from GCC. */
 #if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)

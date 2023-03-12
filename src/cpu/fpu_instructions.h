@@ -27,6 +27,13 @@ MIPS_INSTR(mips_cp_trunc_l_s);
 MIPS_INSTR(mips_cp_trunc_w_d);
 MIPS_INSTR(mips_cp_trunc_w_s);
 
+MIPS_INSTR(mips_cp_ceil_l_d);
+MIPS_INSTR(mips_cp_ceil_l_s);
+MIPS_INSTR(mips_cp_ceil_w_d);
+MIPS_INSTR(mips_cp_ceil_w_s);
+
+MIPS_INSTR(mips_cp_floor_l_d);
+MIPS_INSTR(mips_cp_floor_l_s);
 MIPS_INSTR(mips_cp_floor_w_d);
 MIPS_INSTR(mips_cp_floor_w_s);
 

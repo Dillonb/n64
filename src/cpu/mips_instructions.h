@@ -3,6 +3,10 @@
 #include "r4300i.h"
 #include "mips_instruction_decode.h"
 
+#define check_signed_overflow_add(op1, op2, res)  (((~((op1) ^ (op2)) & ((op1) ^ (res))) >> ((sizeof(res) * 8) - 1)) & 1)
+#define check_signed_overflow_sub(op1, op2, res) (((((op1) ^ (op2)) & ((op1) ^ (res))) >> ((sizeof(res) * 8) - 1)) & 1)
+#define check_address_error(mask, virtual) (((!N64CP0.is_64bit_addressing) && (s32)(virtual) != (virtual)) || (((virtual) & (mask)) != 0))
+
 #define MIPS_INSTR(NAME) void NAME(mips_instruction_t instruction)
 
 MIPS_INSTR(mips_nop);

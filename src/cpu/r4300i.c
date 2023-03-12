@@ -226,6 +226,24 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                     default:
                         return mips_cp1_invalid;
                 }
+            case COP_FUNCT_CEIL_L:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_ceil_l_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_ceil_l_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_FLOOR_L:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_floor_l_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_floor_l_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
             case COP_FUNCT_ROUND_L:
                 switch (instr.fr.fmt) {
                     case FP_FMT_DOUBLE:
@@ -241,6 +259,15 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
                         return mips_cp_trunc_w_d;
                     case FP_FMT_SINGLE:
                         return mips_cp_trunc_w_s;
+                    default:
+                        return mips_cp1_invalid;
+                }
+            case COP_FUNCT_CEIL_W:
+                switch (instr.fr.fmt) {
+                    case FP_FMT_DOUBLE:
+                        return mips_cp_ceil_w_d;
+                    case FP_FMT_SINGLE:
+                        return mips_cp_ceil_w_s;
                     default:
                         return mips_cp1_invalid;
                 }
@@ -737,6 +764,13 @@ void r4300i_step() {
     N64CPU.branch = false;
 
     u64 pc = N64CPU.pc;
+
+    if (unlikely(check_address_error(0b11, pc))) {
+        on_tlb_exception(pc);
+        r4300i_handle_exception(pc, EXCEPTION_ADDRESS_ERROR_LOAD, 0);
+        return;
+    }
+
     u32 physical_pc;
     if (!resolve_virtual_address(pc, BUS_LOAD, &physical_pc)) {
         // tlb exception
