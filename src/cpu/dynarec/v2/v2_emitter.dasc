@@ -842,12 +842,10 @@ void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_al
     }
     unimplemented(dst_reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR dest reg");
 
-    unimplemented(dst_reg_alloc.spilled && src_reg_alloc.spilled, "both regs spilled");
-
     int dst = check_reg(dst_reg_alloc, true);
     int src = check_reg(src_reg_alloc, true);
 
-    if (dst_reg_alloc.spilled) {
+    if (dst_reg_alloc.spilled && src_reg_alloc.spilled) {
         switch (source_value_type) {
             case VALUE_TYPE_S8:
                 | movsx Rq(TMPREG1), Rb(src)
@@ -872,6 +870,64 @@ void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_al
             case VALUE_TYPE_S64:
                 | mov Rq(TMPREG1), Rq(src)
                 break;
+        }
+        return;
+    }
+
+    if (dst_reg_alloc.spilled) {
+        // both spilled?
+        if (src_reg_alloc.spilled) {
+            switch (source_value_type) {
+                case VALUE_TYPE_S8:
+                    | movsx Rq(TMPREG1), byte [rsp + src]
+                    break;
+                case VALUE_TYPE_U8:
+                    | movzx Rq(TMPREG1), byte [rsp + src]
+                    break;
+                case VALUE_TYPE_S16:
+                    | movsx Rq(TMPREG1), word [rsp + src]
+                    break;
+                case VALUE_TYPE_U16:
+                    | movzx Rq(TMPREG1), word [rsp + src]
+                    break;
+                case VALUE_TYPE_S32:
+                    | movsxd Rq(TMPREG1), dword [rsp + src]
+                    break;
+                case VALUE_TYPE_U32:
+                    // Writing to a 32 bit reg zero extends to the 64 bit reg
+                    | mov Rd(TMPREG1), dword [rsp + src]
+                    break;
+                case VALUE_TYPE_U64:
+                case VALUE_TYPE_S64:
+                    | mov Rq(TMPREG1), qword [rsp + src]
+                    break;
+            }
+        } else {
+            switch (source_value_type) {
+                case VALUE_TYPE_S8:
+                    | movsx Rq(TMPREG1), Rb(src)
+                    break;
+                case VALUE_TYPE_U8:
+                    | movzx Rq(TMPREG1), Rb(src)
+                    break;
+                case VALUE_TYPE_S16:
+                    | movsx Rq(TMPREG1), Rw(src)
+                    break;
+                case VALUE_TYPE_U16:
+                    | movzx Rq(TMPREG1), Rw(src)
+                    break;
+                case VALUE_TYPE_S32:
+                    | movsxd Rq(TMPREG1), Rd(src)
+                    break;
+                case VALUE_TYPE_U32:
+                    // Writing to a 32 bit reg zero extends to the 64 bit reg
+                    | mov Rd(TMPREG1), Rd(src)
+                    break;
+                case VALUE_TYPE_U64:
+                case VALUE_TYPE_S64:
+                    | mov Rq(TMPREG1), Rq(src)
+                    break;
+            }
         }
         | mov qword [rsp + dst], Rq(TMPREG1)
     } else if (src_reg_alloc.spilled) {
