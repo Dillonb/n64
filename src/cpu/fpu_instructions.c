@@ -3,6 +3,7 @@
 #include <util.h>
 #include <mem/n64bus.h>
 #include <math.h>
+#include <float.h>
 
 #include "r4300i_register_access.h"
 #include "float_util.h"
@@ -53,9 +54,15 @@ INLINE void set_cause_fpu_arg_s(float f) {
     int classification = fpclassify(f);
     switch (classification) {
         case FP_NAN:
-            logfatal("FP_NAN");
+            if (is_qnan_f(f)) {
+                set_cause_invalid_operation();
+            } else {
+                set_cause_unimplemented_operation();
+            }
+            break;
         case FP_SUBNORMAL:
-            logfatal("FP_SUBNORMAL");
+            set_cause_unimplemented_operation();
+            break;
 
         case FP_INFINITE:
         case FP_ZERO:
@@ -71,11 +78,37 @@ INLINE void set_cause_fpu_result_s(float* f) {
     int classification = fpclassify(*f);
     switch (classification) {
         case FP_NAN:
-            *((u32*)f) = 0x7fbfffff; // Set the result to the specific kind of NaN that is expected (???)
+            F_TO_U32(*f) = 0x7fbfffff; // set result to sNAN
             break;
         case FP_SUBNORMAL:
-            logfatal("FP_SUBNORMAL");
-
+            if (!N64CPU.fcr31.flush_subnormals || N64CPU.fcr31.enable_underflow || N64CPU.fcr31.enable_inexact_operation) {
+                set_cause_unimplemented_operation();
+            } else {
+                // Since the if statement checks for the corresponding enable bits, it's safe to turn these cause bits on here.
+                set_cause_underflow();
+                set_cause_inexact_operation();
+                switch (N64CPU.fcr31.rounding_mode) {
+                    case R4300I_CP1_ROUND_NEAREST:
+                    case R4300I_CP1_ROUND_ZERO:
+                        *f = copysign(0, *f);
+                        break;
+                    case R4300I_CP1_ROUND_POSINF:
+                        if (signbit(*f)) {
+                            *f = -(float)0;
+                        } else {
+                            *f = FLT_MIN;
+                        }
+                        break;
+                    case R4300I_CP1_ROUND_NEGINF:
+                        if (signbit(*f)) {
+                            *f = -FLT_MIN;
+                        } else {
+                            *f = 0;
+                        }
+                        break;
+                }
+            }
+            break;
         case FP_INFINITE:
         case FP_ZERO:
         case FP_NORMAL:

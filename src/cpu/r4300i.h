@@ -546,7 +546,7 @@ typedef union fcr31 {
         unsigned cause_unimplemented_operation:1;
         unsigned:5;
         unsigned compare:1;
-        unsigned fs:1;
+        unsigned flush_subnormals:1;
         unsigned:7;
     } PACKED;
 
