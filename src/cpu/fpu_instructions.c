@@ -1,11 +1,22 @@
 #include "fpu_instructions.h"
 
 #include <util.h>
-#include <fenv.h>
 #include <mem/n64bus.h>
 #include <math.h>
 
 #include "r4300i_register_access.h"
+#include "float_util.h"
+
+INLINE bool fire_fpu_exception() {
+    if (N64CPU.fcr31.cause & N64CPU.fcr31.enable) {
+        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_FLOATING_POINT, 0);
+        printf("FPU exception fired!\n");
+        return true;
+    }
+    return false;
+}
+
+#define check_fpu_exception() do { if (fire_fpu_exception()) { return; } } while(0)
 
 #ifdef N64_WIN
 #define ORDERED_S(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
@@ -21,6 +32,9 @@
 
 #define isnanf isnan
 
+#define check_fpu_arg_s(f) logfatal("unimplemented on Windows");
+#define check_fpu_result_s(f) logfatal("unimplemented on Windows");
+
 #else
 
 #define ORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
@@ -33,6 +47,44 @@
 #define checknansd(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
 #define checknanf(value) if (isnanf(value)) { logfatal("value == NaN!"); }
 #define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
+
+INLINE void set_cause_fpu_arg_s(float f) {
+    int classification = fpclassify(f);
+    switch (classification) {
+        case FP_NAN:
+            logfatal("FP_NAN");
+        case FP_SUBNORMAL:
+            logfatal("FP_SUBNORMAL");
+
+        case FP_INFINITE:
+        case FP_ZERO:
+        case FP_NORMAL:
+            break; // No-op, these are fine.
+        default:
+            logfatal("Unknown FP classification: %d", classification);
+    }
+}
+#define check_fpu_arg_s(f) do { set_cause_fpu_arg_s(f); check_fpu_exception(); } while(0)
+
+INLINE void set_cause_fpu_result_s(float* f) {
+    int classification = fpclassify(*f);
+    switch (classification) {
+        case FP_NAN:
+            *((u32*)f) = 0x7fbfffff; // Set the result to the specific kind of NaN that is expected (???)
+            break;
+        case FP_SUBNORMAL:
+            logfatal("FP_SUBNORMAL");
+
+        case FP_INFINITE:
+        case FP_ZERO:
+        case FP_NORMAL:
+            break; // No-op, these are fine.
+        default:
+            logfatal("Unknown FP classification: %d", classification);
+    }
+}
+
+#define check_fpu_result_s(f) do { set_cause_fpu_result_s(&(f)); check_fpu_exception(); } while(0)
 #endif
 
 
@@ -61,7 +113,7 @@ MIPS_INSTR(mips_dmtc1) {
 }
 
 MIPS_INSTR(mips_cfc1) {
-    checkcp1;
+    checkcp1_preservecause;
     u8 fs = instruction.r.rd;
     s32 value;
     switch (fs) {
@@ -71,15 +123,6 @@ MIPS_INSTR(mips_cfc1) {
             break;
         case 31:
             value = N64CPU.fcr31.raw;
-            if (N64CPU.fcr31.enable_inexact_operation) {
-                logwarn("FPU exception inexact operation enabled!");
-            }
-            if (N64CPU.fcr31.enable_overflow) {
-                logwarn("FPU exception overflow enabled!");
-            }
-            if (N64CPU.fcr31.enable_underflow) {
-                logwarn("FPU exception underflow enabled!");
-            }
             break;
         default:
             logfatal("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
@@ -88,41 +131,8 @@ MIPS_INSTR(mips_cfc1) {
     set_register(instruction.r.rt, (s64)value);
 }
 
-INLINE bool fire_fpu_exception() {
-    if (N64CPU.fcr31.cause & (0b100000 | N64CPU.fcr31.enable)) {
-        r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_FLOATING_POINT, 0);
-        return true;
-    }
-}
-
-#define check_fpu_exception() do { if (fire_fpu_exception()) { return; } } while(0)
-
-INLINE int push_round_mode() {
-    int orig_round = fegetround();
-    switch (N64CPU.fcr31.rounding_mode) {
-        case R4300I_CP1_ROUND_NEAREST:
-            fesetround(FE_TONEAREST);
-            break;
-        case R4300I_CP1_ROUND_ZERO:
-            fesetround(FE_TOWARDZERO);
-            break;
-        case R4300I_CP1_ROUND_POSINF:
-            fesetround(FE_UPWARD);
-            break;
-        case R4300I_CP1_ROUND_NEGINF:
-            fesetround(FE_DOWNWARD);
-            break;
-        default:
-            logfatal("Unknown rounding mode %d", N64CPU.fcr31.rounding_mode);
-    }
-    return orig_round;
-}
-
-#define PUSHROUND int orig_round = push_round_mode()
-#define POPROUND fesetround(orig_round)
-
 MIPS_INSTR(mips_ctc1) {
-    checkcp1;
+    checkcp1_preservecause;
     u8 fs = instruction.r.rd;
     u32 value = get_register(instruction.r.rt);
     switch (fs) {
@@ -183,7 +193,7 @@ MIPS_INSTR(mips_cp_div_d) {
     double ft = get_fpu_register_double(instruction.fr.ft);
     checknansd(fs, ft);
     if (ft == 0) {
-        N64CPU.fcr31.cause_division_by_zero = true;
+        //N64CPU.fcr31.cause_division_by_zero = true;
         check_fpu_exception();
     }
     double result = fs / ft;
@@ -196,7 +206,7 @@ MIPS_INSTR(mips_cp_div_s) {
     float ft = get_fpu_register_float(instruction.fr.ft);
     checknansf(fs, ft);
     if (ft == 0) {
-        N64CPU.fcr31.cause_division_by_zero = true;
+        //N64CPU.fcr31.cause_division_by_zero = true;
         check_fpu_exception();
     }
     float result = fs / ft;
@@ -216,8 +226,13 @@ MIPS_INSTR(mips_cp_add_s) {
     checkcp1;
     float fs = get_fpu_register_float(instruction.fr.fs);
     float ft = get_fpu_register_float(instruction.fr.ft);
-    checknansf(fs, ft);
-    float result = fs + ft;
+    check_fpu_arg_s(fs);
+    check_fpu_arg_s(ft);
+    float result;
+    fpu_op_check_except({
+        result = fs + ft;
+    });
+    check_fpu_result_s(result);
     set_fpu_register_float(instruction.fr.fd, result);
 }
 
@@ -565,8 +580,8 @@ MIPS_INSTR(mips_cp_c_lt_s) {
     N64CPU.fcr31.compare = fs < ft;
 
     if (isnan(fs) || isnan(ft)) {
-        N64CPU.fcr31.cause_invalid_operation = true;
-        N64CPU.fcr31.flag_invalid_operation = true;
+        //N64CPU.fcr31.cause_invalid_operation = true;
+        //N64CPU.fcr31.flag_invalid_operation = true;
         check_fpu_exception();
     }
 }
@@ -578,8 +593,8 @@ MIPS_INSTR(mips_cp_c_nge_s) {
     N64CPU.fcr31.compare = !(fs >= ft);
 
     if (isnan(fs) || isnan(ft)) {
-        N64CPU.fcr31.cause_invalid_operation = true;
-        N64CPU.fcr31.flag_invalid_operation = true;
+        //N64CPU.fcr31.cause_invalid_operation = true;
+        //N64CPU.fcr31.flag_invalid_operation = true;
         check_fpu_exception();
     }
 }
@@ -591,8 +606,8 @@ MIPS_INSTR(mips_cp_c_le_s) {
     N64CPU.fcr31.compare = fs <= ft;
 
     if (isnan(fs) || isnan(ft)) {
-        N64CPU.fcr31.cause_invalid_operation = true;
-        N64CPU.fcr31.flag_invalid_operation = true;
+        //N64CPU.fcr31.cause_invalid_operation = true;
+        //N64CPU.fcr31.flag_invalid_operation = true;
         check_fpu_exception();
     }
 }
@@ -604,8 +619,8 @@ MIPS_INSTR(mips_cp_c_ngt_s) {
     N64CPU.fcr31.compare = !(fs > ft);
 
     if (isnan(fs) || isnan(ft)) {
-        N64CPU.fcr31.cause_invalid_operation = true;
-        N64CPU.fcr31.flag_invalid_operation = true;
+        //N64CPU.fcr31.cause_invalid_operation = true;
+        //N64CPU.fcr31.flag_invalid_operation = true;
         check_fpu_exception();
     }
 }
@@ -767,7 +782,7 @@ MIPS_INSTR(mips_cp_neg_d) {
 }
 
 MIPS_INSTR(mips_ldc1) {
-    checkcp1;
+    checkcp1_preservecause;
     s16 offset  = instruction.i.immediate;
     u64 address = get_register(instruction.i.rs) + offset;
     if (address & 0b111) {
@@ -785,7 +800,7 @@ MIPS_INSTR(mips_ldc1) {
 }
 
 MIPS_INSTR(mips_sdc1) {
-    checkcp1;
+    checkcp1_preservecause;
     s16 offset  = instruction.fi.offset;
     u64 address = get_register(instruction.fi.base) + offset;
     u64 value   = get_fpu_register_dword(instruction.fi.ft);
@@ -800,7 +815,7 @@ MIPS_INSTR(mips_sdc1) {
 }
 
 MIPS_INSTR(mips_lwc1) {
-    checkcp1;
+    checkcp1_preservecause;
     s16 offset  = instruction.fi.offset;
     u64 address = get_register(instruction.fi.base) + offset;
 
@@ -815,7 +830,7 @@ MIPS_INSTR(mips_lwc1) {
 }
 
 MIPS_INSTR(mips_swc1) {
-    checkcp1;
+    checkcp1_preservecause;
     s16 offset  = instruction.fi.offset;
     u64 address = get_register(instruction.fi.base) + offset;
     u32 value    = get_fpu_register_word(instruction.fi.ft);
