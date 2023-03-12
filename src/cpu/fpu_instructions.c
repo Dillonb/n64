@@ -314,7 +314,11 @@ MIPS_INSTR(mips_cp_trunc_w_s) {
 }
 
 MIPS_INSTR(mips_cp_ceil_l_d) {
-    logfatal("mips_cp_ceil_l_d");
+    checkcp1;
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
+    checknand(value);
+    u64 truncated = ceil(value);
+    set_fpu_register_dword(instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_ceil_l_s) {
@@ -326,7 +330,11 @@ MIPS_INSTR(mips_cp_ceil_l_s) {
 }
 
 MIPS_INSTR(mips_cp_ceil_w_d) {
-    logfatal("mips_cp_ceil_w_d");
+    checkcp1;
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
+    checknanf(value);
+    s32 truncated = ceil(value);
+    set_fpu_register_word(instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_ceil_w_s) {
@@ -338,7 +346,11 @@ MIPS_INSTR(mips_cp_ceil_w_s) {
 }
 
 MIPS_INSTR(mips_cp_floor_l_d) {
-    logfatal("mips_cp_floor_l_d");
+    checkcp1;
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
+    checknand(value);
+    u64 truncated = floor(value);
+    set_fpu_register_dword(instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_floor_l_s) {
@@ -350,7 +362,11 @@ MIPS_INSTR(mips_cp_floor_l_s) {
 }
 
 MIPS_INSTR(mips_cp_floor_w_d) {
-    logfatal("mips_cp_floor_w_d");
+    checkcp1;
+    double value = get_fpu_register_double_fs(instruction.fr.fs);
+    checknanf(value);
+    s32 truncated = floor(value);
+    set_fpu_register_word(instruction.fr.fd, truncated);
 }
 
 MIPS_INSTR(mips_cp_floor_w_s) {
