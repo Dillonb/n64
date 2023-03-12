@@ -72,13 +72,38 @@ INLINE void set_cause_fpu_arg_s(float f) {
             logfatal("Unknown FP classification: %d", classification);
     }
 }
+
+INLINE void set_cause_fpu_arg_d(double d) {
+    int classification = fpclassify(d);
+    switch (classification) {
+        case FP_NAN:
+            if (is_qnan_d(d)) {
+                set_cause_invalid_operation();
+            } else {
+                set_cause_unimplemented_operation();
+            }
+            break;
+        case FP_SUBNORMAL:
+            set_cause_unimplemented_operation();
+            break;
+
+        case FP_INFINITE:
+        case FP_ZERO:
+        case FP_NORMAL:
+            break; // No-op, these are fine.
+        default:
+            logfatal("Unknown FP classification: %d", classification);
+    }
+}
+
 #define check_fpu_arg_s(f) do { set_cause_fpu_arg_s(f); check_fpu_exception(); } while(0)
+#define check_fpu_arg_d(d) do { set_cause_fpu_arg_d(d); check_fpu_exception(); } while(0)
 
 INLINE void set_cause_fpu_result_s(float* f) {
     int classification = fpclassify(*f);
     switch (classification) {
         case FP_NAN:
-            F_TO_U32(*f) = 0x7fbfffff; // set result to sNAN
+            F_TO_U32(*f) = 0x7FBFFFFF; // set result to sNAN
             break;
         case FP_SUBNORMAL:
             if (!N64CPU.fcr31.flush_subnormals || N64CPU.fcr31.enable_underflow || N64CPU.fcr31.enable_inexact_operation) {
@@ -90,7 +115,7 @@ INLINE void set_cause_fpu_result_s(float* f) {
                 switch (N64CPU.fcr31.rounding_mode) {
                     case R4300I_CP1_ROUND_NEAREST:
                     case R4300I_CP1_ROUND_ZERO:
-                        *f = copysign(0, *f);
+                        *f = copysignf(0, *f);
                         break;
                     case R4300I_CP1_ROUND_POSINF:
                         if (signbit(*f)) {
@@ -118,7 +143,52 @@ INLINE void set_cause_fpu_result_s(float* f) {
     }
 }
 
+INLINE void set_cause_fpu_result_d(double* d) {
+    int classification = fpclassify(*d);
+    switch (classification) {
+        case FP_NAN:
+            D_TO_U64(*d) = 0x7FF7FFFFFFFFFFFF; // set result to sNAN
+            break;
+        case FP_SUBNORMAL:
+            if (!N64CPU.fcr31.flush_subnormals || N64CPU.fcr31.enable_underflow || N64CPU.fcr31.enable_inexact_operation) {
+                set_cause_unimplemented_operation();
+            } else {
+                // Since the if statement checks for the corresponding enable bits, it's safe to turn these cause bits on here.
+                set_cause_underflow();
+                set_cause_inexact_operation();
+                switch (N64CPU.fcr31.rounding_mode) {
+                    case R4300I_CP1_ROUND_NEAREST:
+                    case R4300I_CP1_ROUND_ZERO:
+                        *d = copysign(0, *d);
+                        break;
+                    case R4300I_CP1_ROUND_POSINF:
+                        if (signbit(*d)) {
+                            *d = -(double)0;
+                        } else {
+                            *d = DBL_MIN;
+                        }
+                        break;
+                    case R4300I_CP1_ROUND_NEGINF:
+                        if (signbit(*d)) {
+                            *d = -DBL_MIN;
+                        } else {
+                            *d = 0;
+                        }
+                        break;
+                }
+            }
+            break;
+        case FP_INFINITE:
+        case FP_ZERO:
+        case FP_NORMAL:
+            break; // No-op, these are fine.
+        default:
+            logfatal("Unknown FP classification: %d", classification);
+    }
+}
+
 #define check_fpu_result_s(f) do { set_cause_fpu_result_s(&(f)); check_fpu_exception(); } while(0)
+#define check_fpu_result_d(f) do { set_cause_fpu_result_d(&(f)); check_fpu_exception(); } while(0)
 #endif
 
 
@@ -251,8 +321,13 @@ MIPS_INSTR(mips_cp_add_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-    double result = fs + ft;
+    check_fpu_arg_d(fs);
+    check_fpu_arg_d(ft);
+    double result;
+    fpu_op_check_except({
+        result = fs + ft;
+    });
+    check_fpu_result_d(result);
     set_fpu_register_double(instruction.fr.fd, result);
 }
 

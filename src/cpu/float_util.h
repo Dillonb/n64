@@ -11,6 +11,11 @@ INLINE bool is_qnan_f(float f) {
     return (v & 0x7FC00000) == 0x7FC00000;
 }
 
+INLINE bool is_qnan_d(double d) {
+    u64 v = D_TO_U64(d);
+    return (v & 0x7FF8000000000000) == 0x7FF8000000000000;
+}
+
 INLINE int push_round_mode() {
     int orig_round = fegetround();
     switch (N64CPU.fcr31.rounding_mode) {
