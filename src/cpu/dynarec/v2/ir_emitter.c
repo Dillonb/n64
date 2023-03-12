@@ -4,6 +4,7 @@
 #include <util.h>
 #include <dynarec/dynarec.h>
 #include <disassemble.h>
+#include <tlb_instructions.h>
 #include "ir_emitter_fpu.h"
 
 ir_instruction_t* ir_get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
@@ -763,6 +764,12 @@ IR_EMITTER(eret) {
     ir_emit_eret();
 }
 
+ir_instruction_t* ir_cp0_get_index(u8 guest_reg) {
+    return ir_emit_and(
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64CP0.index, NO_GUEST_REG),
+            ir_emit_set_constant_u32(0x8000003F, NO_GUEST_REG), guest_reg);
+}
+
 IR_EMITTER(mfc0) {
     const ir_value_type_t value_type = VALUE_TYPE_S32; // all MFC0 results are S32
     switch (instruction.r.rd) {
@@ -814,9 +821,7 @@ IR_EMITTER(mfc0) {
 
         // Special case
         case R4300I_CP0_REG_INDEX:
-            ir_emit_and(
-                    ir_emit_get_ptr(value_type, &N64CP0.index, NO_GUEST_REG),
-                    ir_emit_set_constant_u32(0x8000003F, NO_GUEST_REG), instruction.r.rt);
+            ir_cp0_get_index(instruction.r.rt);
             break;
         case R4300I_CP0_REG_RANDOM: logfatal("emit MFC0 R4300I_CP0_REG_RANDOM");
         case R4300I_CP0_REG_COUNT: {
@@ -829,20 +834,25 @@ IR_EMITTER(mfc0) {
     }
 }
 
+IR_EMITTER(tlbwi) {
+    ir_emit_call_1((uintptr_t)do_tlbwi, ir_cp0_get_index(NO_GUEST_REG));
+}
+
+IR_EMITTER(tlbp) {
+    ir_emit_call_0((uintptr_t)do_tlbp);
+}
+
+IR_EMITTER(tlbr) {
+    logwarn("tlbr");
+}
+
 IR_EMITTER(cp0_instruction) {
     if (instruction.is_coprocessor_funct) {
         switch (instruction.fr.funct) {
-            case COP_FUNCT_TLBWI_MULT: {
-                logwarn("Ignoring tlbwi");
-                break;
-            }
+            case COP_FUNCT_TLBWI_MULT: CALL_IR_EMITTER(tlbwi);
             case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
-            case COP_FUNCT_TLBP:
-                logwarn("Ignoring TLBP\n");
-                break;
-            case COP_FUNCT_TLBR_SUB:
-                logwarn("Ignoring TLBR\n");
-                break;
+            case COP_FUNCT_TLBP: CALL_IR_EMITTER(tlbp);
+            case COP_FUNCT_TLBR_SUB: CALL_IR_EMITTER(tlbr);
             case COP_FUNCT_ERET: CALL_IR_EMITTER(eret);
             case COP_FUNCT_WAIT: IR_UNIMPLEMENTED(COP_FUNCT_WAIT);
             default: {

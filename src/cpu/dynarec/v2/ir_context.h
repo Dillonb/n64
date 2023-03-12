@@ -215,6 +215,7 @@ typedef struct ir_instruction {
         IR_MULTIPLY,
         IR_DIVIDE,
         IR_ERET,
+        IR_CALL,
         IR_MOV_REG_TYPE,
         IR_FLOAT_CONVERT,
         IR_FLOAT_MULTIPLY,
@@ -301,6 +302,11 @@ typedef struct ir_instruction {
             struct ir_instruction* operand2;
             ir_value_type_t mult_div_type;
         } mult_div;
+        struct {
+            uintptr_t function;
+            int num_args;
+            struct ir_instruction* arguments[2];
+        } call;
         struct {
             struct ir_instruction* value;
             ir_register_type_t new_type;
@@ -408,6 +414,12 @@ ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instructi
 ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type);
 // Run the MIPS ERET instruction
 ir_instruction_t* ir_emit_eret();
+// Call a function with no arguments. Result ignored.
+void ir_emit_call_0(uintptr_t function);
+// Call a function with one argument. Result ignored.
+void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg);
+// Call a function with two arguments. Result ignored.
+void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2);
 // Move a value to a different register type
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
 // convert a float value to a different float value type

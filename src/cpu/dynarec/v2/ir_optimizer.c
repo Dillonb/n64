@@ -60,6 +60,13 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return instr->float_convert.value == value;
         case IR_FLOAT_CHECK_CONDITION:
             return instr->float_check_condition.operand1 == value || instr->float_check_condition.operand2 == value;
+        case IR_CALL:
+            for (int i = 0; i < instr->call.num_args; i++) {
+                if (instr->call.arguments[i] == value) {
+                    return true;
+                }
+            }
+            return false;
 
         // Float bin ops
         case IR_FLOAT_DIVIDE:
@@ -154,6 +161,7 @@ void ir_optimize_constant_propagation() {
             // TODO
             case IR_MULTIPLY:
             case IR_DIVIDE:
+            case IR_CALL:
                 break;
 
             case IR_MOV_REG_TYPE:
@@ -538,6 +546,12 @@ void ir_optimize_eliminate_dead_code() {
                 instr->dead_code = false;
                 instr->float_check_condition.operand1->dead_code = false;
                 instr->float_check_condition.operand2->dead_code = false;
+                break;
+            case IR_CALL:
+                instr->dead_code = false;
+                for (int i = 0; i < instr->call.num_args; i++) {
+                    instr->call.arguments[i]->dead_code = false;
+                }
                 break;
 
             // Unary ops

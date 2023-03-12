@@ -257,6 +257,18 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_ERET:
             snprintf(buf, buf_size, "eret()");
             break;
+        case IR_CALL: {
+            int written = snprintf(buf, buf_size, "call_func(func = %lx, args = { ", instr->call.function);
+            buf += written;
+            buf_size -= written;
+            for (int i = 0; i < instr->call.num_args; i++) {
+                written = snprintf(buf, buf_size, "v%d ", instr->call.arguments[i]->index);
+                buf += written;
+                buf_size -= written;
+            }
+            snprintf(buf, buf_size, "}");
+            break;
+        }
         case IR_MOV_REG_TYPE:
             snprintf(buf, buf_size, "to_type(v%d, reg_type = %s, size = %s)", instr->mov_reg_type.value->index, reg_type_to_str(instr->mov_reg_type.new_type), val_type_to_str(instr->mov_reg_type.size));
             break;
@@ -312,6 +324,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 case IR_MULTIPLY:
                 case IR_DIVIDE:
                 case IR_ERET:
+                case IR_CALL:
                     logfatal("Unsupported IR instruction assigned to FPU reg");
 
                 case IR_LOAD_GUEST_REG:
@@ -735,6 +748,33 @@ ir_instruction_t* ir_emit_eret() {
     ir_instruction_t instruction;
     instruction.type = IR_ERET;
     return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+void ir_emit_call_0(uintptr_t function) {
+    ir_instruction_t instruction;
+    instruction.type = IR_CALL;
+    instruction.call.function = function;
+    instruction.call.num_args = 0;
+    append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_CALL;
+    instruction.call.function = function;
+    instruction.call.num_args = 1;
+    instruction.call.arguments[0] = arg;
+    append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2) {
+    ir_instruction_t instruction;
+    instruction.type = IR_CALL;
+    instruction.call.function = function;
+    instruction.call.num_args = 2;
+    instruction.call.arguments[0] = arg1;
+    instruction.call.arguments[1] = arg2;
+    append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg) {

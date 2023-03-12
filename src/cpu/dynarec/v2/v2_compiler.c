@@ -500,6 +500,13 @@ void compile_ir_eret(dasm_State** Dst) {
     host_emit_eret(Dst);
 }
 
+void compile_ir_call(dasm_State** Dst, ir_instruction_t* instr) {
+    for (int i = 0; i < instr->call.num_args; i++) {
+        val_to_func_arg(Dst, instr->call.arguments[i], i);
+    }
+    host_emit_call(Dst, instr->call.function);
+}
+
 void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
     ir_register_type_t dest_type = instr->mov_reg_type.new_type;
 
@@ -692,6 +699,9 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
             break;
         case IR_ERET:
             compile_ir_eret(Dst);
+            break;
+        case IR_CALL:
+            compile_ir_call(Dst, instr);
             break;
         case IR_MOV_REG_TYPE:
             compile_ir_mov_reg_type(Dst, instr);
