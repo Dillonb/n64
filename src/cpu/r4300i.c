@@ -207,7 +207,7 @@ INLINE mipsinstr_handler_t r4300i_cp1_decode(u64 pc, mips_instruction_t instr) {
             }
         case COP_DCF:
         case COP_DCT:
-            return mips_cp1_unimplemented;
+            return mips_cp1_invalid;
         case 0x9 ... 0xF:
             return mips_invalid;
     }
