@@ -459,22 +459,35 @@ MIPS_INSTR(mips_cp_round_w_s) {
 MIPS_INSTR(mips_cp_cvt_d_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    double converted = fs;
-    set_fpu_register_double(instruction.fr.fd, converted);
+    check_fpu_arg_s(fs);
+    double result;
+    fpu_op_check_except({ result = (double)fs; });
+    check_fpu_result_d(result);
+    set_fpu_register_double(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_w) {
     checkcp1;
     s32 fs = get_fpu_register_word_fs(instruction.fr.fs);
-    double converted = fs;
-    set_fpu_register_double(instruction.fr.fd, converted);
+    double result;
+    fpu_op_check_except({ result = (double)fs; });
+    check_fpu_result_d(result);
+    set_fpu_register_double(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_l) {
     checkcp1;
     s64 fs = get_fpu_register_dword_fr(instruction.fr.fs);
-    double converted = fs;
-    set_fpu_register_double(instruction.fr.fd, converted);
+
+    if (fs >= (s64)0x0080000000000000 || fs < (s64)0xff80000000000000) {
+        set_cause_unimplemented_operation();
+        check_fpu_exception();
+    }
+
+    double result;
+    fpu_op_check_except({ result = (double)fs; });
+    check_fpu_result_d(result);
+    set_fpu_register_double(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_l_s) {
@@ -494,22 +507,35 @@ MIPS_INSTR(mips_cp_cvt_l_d) {
 MIPS_INSTR(mips_cp_cvt_s_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    float converted = fs;
-    set_fpu_register_float(instruction.fr.fd, converted);
+    check_fpu_arg_d(fs);
+    float result;
+    fpu_op_check_except({ result = (float)fs; });
+    check_fpu_result_s(result);
+    set_fpu_register_float(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_w) {
     checkcp1;
     s32 fs = get_fpu_register_word_fs(instruction.fr.fs);
-    float converted = fs;
-    set_fpu_register_float(instruction.fr.fd, converted);
+    float result;
+    fpu_op_check_except({ result = (float)fs; });
+    check_fpu_result_s(result);
+    set_fpu_register_float(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_l) {
     checkcp1;
     s64 fs = get_fpu_register_dword_fr(instruction.fr.fs);
-    float converted = fs;
-    set_fpu_register_float(instruction.fr.fd, converted);
+
+    if (fs >= (s64)0x0080000000000000 || fs < (s64)0xff80000000000000) {
+        set_cause_unimplemented_operation();
+        check_fpu_exception();
+    }
+
+    float result;
+    fpu_op_check_except({ result = (float)fs; });
+    check_fpu_result_s(result);
+    set_fpu_register_float(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_w_s) {
