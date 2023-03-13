@@ -191,7 +191,7 @@ INLINE void set_cause_fpu_result_d(double* d) {
 #define check_fpu_result_s(f) do { set_cause_fpu_result_s(&(f)); check_fpu_exception(); } while(0)
 #define check_fpu_result_d(d) do { set_cause_fpu_result_d(&(d)); check_fpu_exception(); } while(0)
 
-void set_cause_cvt_w_s(float f) {
+INLINE void set_cause_cvt_w_s(float f) {
     switch (fpclassify(f)) {
         case FP_NAN:
         case FP_INFINITE:
@@ -210,7 +210,7 @@ void set_cause_cvt_w_s(float f) {
     }
 }
 
-void set_cause_cvt_w_d(double d) {
+INLINE void set_cause_cvt_w_d(double d) {
     switch (fpclassify(d)) {
         case FP_NAN:
         case FP_INFINITE:
@@ -229,6 +229,46 @@ void set_cause_cvt_w_d(double d) {
     }
 }
 
+void set_cause_cvt_l_s(float f) {
+    switch (fpclassify(f)) {
+        case FP_NAN:
+        case FP_INFINITE:
+        case FP_SUBNORMAL:
+            set_cause_unimplemented_operation();
+            break;
+
+        case FP_NORMAL:
+            if (f >= 0x1p+53f || f < -0x1p+53f) {
+                set_cause_unimplemented_operation();
+            }
+            break;
+
+        case FP_ZERO:
+            break; // Fine
+    }
+}
+
+void set_cause_cvt_l_d(float d) {
+    switch (fpclassify(d)) {
+        case FP_NAN:
+        case FP_INFINITE:
+        case FP_SUBNORMAL:
+            set_cause_unimplemented_operation();
+            break;
+
+        case FP_NORMAL:
+            if (d >= 0x1p+53 || d < -0x1p+53) {
+                set_cause_unimplemented_operation();
+            }
+            break;
+
+        case FP_ZERO:
+            break; // Fine
+    }
+}
+
+#define check_cvt_arg_l_s(f) do { assert_is_float(f); set_cause_cvt_l_s(f); check_fpu_exception(); } while(0)
+#define check_cvt_arg_l_d(d) do { assert_is_double(d); set_cause_cvt_l_d(d); check_fpu_exception(); } while(0)
 #define check_cvt_arg_w_s(f) do { assert_is_float(f); set_cause_cvt_w_s(f); check_fpu_exception(); } while(0)
 #define check_cvt_arg_w_d(d) do { assert_is_double(d); set_cause_cvt_w_d(d); check_fpu_exception(); } while(0)
 #endif
@@ -374,34 +414,42 @@ MIPS_INSTR(mips_cp_sub_s) {
 
 MIPS_INSTR(mips_cp_trunc_l_d) {
     checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    u64 truncated = trunc(value);
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    check_cvt_arg_l_d(fs);
+    s64 result;
+    fpu_convert_check_except({ result = trunc(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_round_l_d) {
     checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    PUSHROUND;
-    u64 truncated = nearbyint(value);
-    POPROUND;
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    check_cvt_arg_l_d(fs);
+    s64 result;
+    fpu_convert_check_except({ result = nearbyint(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_trunc_l_s) {
     checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    u64 truncated = truncf(value);
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    check_cvt_arg_l_s(fs);
+    s64 result;
+    fpu_convert_check_except({ result = truncf(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_round_l_s) {
     checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    PUSHROUND;
-    u64 truncated = nearbyintf(value);
-    POPROUND;
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    check_cvt_arg_l_s(fs);
+    s64 result;
+    fpu_convert_check_except({ result = nearbyintf(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_d) {
@@ -439,16 +487,22 @@ MIPS_INSTR(mips_cp_trunc_w_s) {
 
 MIPS_INSTR(mips_cp_ceil_l_d) {
     checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    u64 truncated = ceil(value);
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    check_cvt_arg_l_d(fs);
+    s64 result;
+    fpu_convert_check_except({ result = ceil(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_ceil_l_s) {
     checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    u64 truncated = ceilf(value);
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    check_cvt_arg_l_s(fs);
+    s64 result;
+    fpu_convert_check_except({ result = ceilf(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_ceil_w_d) {
@@ -473,16 +527,22 @@ MIPS_INSTR(mips_cp_ceil_w_s) {
 
 MIPS_INSTR(mips_cp_floor_l_d) {
     checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    u64 truncated = floor(value);
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    check_cvt_arg_l_d(fs);
+    s64 result;
+    fpu_convert_check_except({ result = floor(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_floor_l_s) {
     checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    u64 truncated = floorf(value);
-    set_fpu_register_dword(instruction.fr.fd, truncated);
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    check_cvt_arg_l_s(fs);
+    s64 result;
+    fpu_convert_check_except({ result = floorf(fs); });
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_floor_w_d) {
@@ -552,15 +612,25 @@ MIPS_INSTR(mips_cp_cvt_d_l) {
 MIPS_INSTR(mips_cp_cvt_l_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    s64 converted = fs;
-    set_fpu_register_dword(instruction.fr.fd, converted);
+    check_cvt_arg_l_s(fs);
+    s64 result;
+    PUSHROUND;
+    fpu_convert_check_except({ result = rintf(fs); });
+    POPROUND;
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_l_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    s64 converted = fs;
-    set_fpu_register_dword(instruction.fr.fd, converted);
+    check_cvt_arg_l_d(fs);
+    s64 result;
+    PUSHROUND;
+    fpu_convert_check_except({ result = rint(fs); });
+    POPROUND;
+    check_round(result, fs);
+    set_fpu_register_dword(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_s_d) {
