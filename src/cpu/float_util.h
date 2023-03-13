@@ -5,6 +5,7 @@
 
 #define F_TO_U32(f) (*((u32*)(&(f))))
 #define D_TO_U64(d) (*((u64*)(&(d))))
+#define U64_TO_D(d) (*((double*)(&(d))))
 
 INLINE bool is_qnan_f(float f) {
     u32 v = F_TO_U32(f);
@@ -80,18 +81,32 @@ INLINE void set_cause_unimplemented_operation() {
 }
 
 void set_cause_fpu_raised(int raised) {
+    if (raised == 0) {
+        return;
+    }
+
+    if (raised & FE_UNDERFLOW) {
+        if (!N64CPU.fcr31.flush_subnormals || N64CPU.fcr31.enable_underflow || N64CPU.fcr31.enable_inexact_operation) {
+            // idk either
+            set_cause_unimplemented_operation();
+            return;
+        } else {
+            set_cause_underflow();
+        }
+    }
+
     if (raised & FE_INEXACT) {
         set_cause_inexact_operation();
     }
+
     if (raised & FE_DIVBYZERO) {
         set_cause_division_by_zero();
     }
-    if (raised & FE_UNDERFLOW) {
-        set_cause_underflow();
-    }
+
     if (raised & FE_OVERFLOW) {
         set_cause_overflow();
     }
+
     if (raised & FE_INVALID) {
         set_cause_invalid_operation();
     }
