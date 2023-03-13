@@ -90,7 +90,7 @@ INLINE void set_cause_unimplemented_operation() {
     N64CPU.fcr31.cause_unimplemented_operation = true;
 }
 
-void set_cause_fpu_raised(int raised) {
+INLINE void set_cause_fpu_raised(int raised) {
     if (raised == 0) {
         return;
     }
@@ -122,6 +122,15 @@ void set_cause_fpu_raised(int raised) {
     }
 }
 
+INLINE void set_cause_fpu_convert_raised(int raised) {
+    if (raised & FE_INVALID) {
+        set_cause_unimplemented_operation();
+        return;
+    }
+    set_cause_fpu_raised(raised);
+}
+
 #define fpu_op_check_except(op) do { PUSHROUND; feclearexcept(FE_ALL_EXCEPT); op; set_cause_fpu_raised(fetestexcept(FE_ALL_EXCEPT)); POPROUND; } while(0)
+#define fpu_convert_check_except(op) do { feclearexcept(FE_ALL_EXCEPT); op; set_cause_fpu_convert_raised(fetestexcept(FE_ALL_EXCEPT)); check_fpu_exception(); } while(0)
 
 #endif //N64_FLOAT_UTIL_H
