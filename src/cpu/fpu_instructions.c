@@ -211,25 +211,25 @@ INLINE void set_cause_fpu_result_d(double* d) {
 } while(0)
 
 MIPS_INSTR(mips_mfc1) {
-    checkcp1;
+    checkcp1_preservecause;
     s32 value = get_fpu_register_word_fr(instruction.fr.fs);
     set_register(instruction.r.rt, (s64)value);
 }
 
 MIPS_INSTR(mips_dmfc1) {
-    checkcp1;
+    checkcp1_preservecause;
     u64 value = get_fpu_register_dword_fr(instruction.fr.fs);
     set_register(instruction.r.rt, value);
 }
 
 MIPS_INSTR(mips_mtc1) {
-    checkcp1;
+    checkcp1_preservecause;
     u32 value = get_register(instruction.r.rt);
     set_fpu_register_word_fr(instruction.r.rd, value);
 }
 
 MIPS_INSTR(mips_dmtc1) {
-    checkcp1;
+    checkcp1_preservecause;
     u64 value = get_register(instruction.r.rt);
     set_fpu_register_dword_fr(instruction.r.rd, value);
 }
