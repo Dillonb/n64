@@ -106,4 +106,5 @@ MIPS_INSTR(mips_mtc1);
 MIPS_INSTR(mips_dmtc1);
 
 MIPS_INSTR(mips_cp1_invalid);
+MIPS_INSTR(mips_cp1_unimplemented);
 #endif //N64_FPU_INSTRUCTIONS_H

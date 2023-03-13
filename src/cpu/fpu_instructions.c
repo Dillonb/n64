@@ -889,3 +889,9 @@ MIPS_INSTR(mips_cp1_invalid) {
     checkcp1;
     r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_FLOATING_POINT, 0);
 }
+
+MIPS_INSTR(mips_cp1_unimplemented) {
+    checkcp1;
+    set_cause_unimplemented_operation();
+    fire_fpu_exception();
+}
