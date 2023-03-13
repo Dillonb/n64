@@ -404,25 +404,29 @@ MIPS_INSTR(mips_cp_round_l_s) {
 
 MIPS_INSTR(mips_cp_trunc_w_d) {
     checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    u32 truncated = trunc(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    check_cvt_arg_w_d(fs);
+    s32 result;
+    fpu_op_check_except({ result = trunc(fs); });
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_round_w_d) {
     checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    PUSHROUND;
-    u32 truncated = nearbyint(value);
-    POPROUND;
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    check_cvt_arg_w_d(fs);
+    s32 result;
+    fpu_op_check_except({ result = round(fs); });
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_trunc_w_s) {
     checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    s32 truncated = truncf(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    check_cvt_arg_w_s(fs);
+    s32 result;
+    fpu_op_check_except({ result = truncf(fs); });
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_ceil_l_d) {
@@ -441,16 +445,20 @@ MIPS_INSTR(mips_cp_ceil_l_s) {
 
 MIPS_INSTR(mips_cp_ceil_w_d) {
     checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    s32 truncated = ceil(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    check_cvt_arg_w_d(fs);
+    s32 result;
+    fpu_op_check_except({ result = ceil(fs); });
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_ceil_w_s) {
     checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    s32 truncated = ceilf(value);
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    check_cvt_arg_w_s(fs);
+    s32 result;
+    fpu_op_check_except({ result = ceilf(fs); });
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_floor_l_d) {
@@ -483,11 +491,12 @@ MIPS_INSTR(mips_cp_floor_w_s) {
 
 MIPS_INSTR(mips_cp_round_w_s) {
     checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    PUSHROUND;
-    s32 truncated = nearbyintf(value);
-    POPROUND;
-    set_fpu_register_word(instruction.fr.fd, truncated);
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    check_cvt_arg_w_s(fs);
+    s32 result;
+    fpu_op_check_except({ result = roundf(fs); });
+    check_fpu_exception();
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_d_s) {
@@ -578,6 +587,7 @@ MIPS_INSTR(mips_cp_cvt_w_s) {
     check_cvt_arg_w_s(fs);
     s32 result;
     fpu_op_check_except({ result = rintf(fs); });
+    check_fpu_exception();
     set_fpu_register_word(instruction.fr.fd, result);
 }
 
@@ -587,6 +597,7 @@ MIPS_INSTR(mips_cp_cvt_w_d) {
     check_cvt_arg_w_d(fs);
     s32 result;
     fpu_op_check_except({ result = rint(fs); });
+    check_fpu_exception();
     set_fpu_register_word(instruction.fr.fd, result);
 }
 
