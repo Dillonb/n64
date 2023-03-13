@@ -39,14 +39,9 @@ INLINE bool fire_fpu_exception() {
 
 #else
 
-#define ORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
-#define ORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
+#define unordered_s(a, b) (isnanf(a) || isnanf(b))
+#define unordered_d(a, b) (isnan(a) || isnan(b))
 
-#define UNORDERED_S(fs, ft) do { if (isnanf(fs) || isnanf(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
-#define UNORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
-
-#define checknansf(fs, ft) if (isnanf(fs) || isnanf(ft)) { logfatal("fs || ft == NaN!"); }
-#define checknansd(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
 #define checknanf(value) if (isnanf(value)) { logfatal("value == NaN!"); }
 #define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
 
@@ -547,44 +542,93 @@ MIPS_INSTR(mips_cp_abs_d) {
     FPU_OP_D(fabs(fs));
 }
 
+
+#define assert_is_float(f) do { static_assert(sizeof(f) == sizeof(float), #f " is not a float!");} while(0)
+#define assert_is_double(d) do { static_assert(sizeof(d) == sizeof(double), #d " is not a double!");} while(0)
+
+#define check_qnans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_qnan_f(fs) || is_qnan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+#define check_qnans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_qnan_d(fs) || is_qnan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+
+#define check_nans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_nan_f(fs) || is_nan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+#define check_nans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_nan_d(fs) || is_nan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+
 MIPS_INSTR(mips_cp_c_f_s) {
     checkcp1;
-    /*
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
     float ft = get_fpu_register_float_ft(instruction.fr.ft);
-     checknansf(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_f_s");
+    check_qnans_f(fs, ft);
+    N64CPU.fcr31.compare = false;
 }
+
+MIPS_INSTR(mips_cp_c_f_d) {
+    checkcp1;
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
+    check_qnans_d(fs, ft);
+    N64CPU.fcr31.compare = false;
+}
+
 MIPS_INSTR(mips_cp_c_un_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
     float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    N64CPU.fcr31.compare = isnanf(fs) || isnanf(ft);
+    check_qnans_f(fs, ft);
+    N64CPU.fcr31.compare = unordered_s(fs, ft);
 }
+
+MIPS_INSTR(mips_cp_c_un_d) {
+    checkcp1;
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
+    check_qnans_d(fs, ft);
+    N64CPU.fcr31.compare = unordered_d(fs, ft);
+}
+
 MIPS_INSTR(mips_cp_c_eq_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
     float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    checknansf(fs, ft);
-
+    check_qnans_f(fs, ft);
     N64CPU.fcr31.compare = fs == ft;
 }
+
+MIPS_INSTR(mips_cp_c_eq_d) {
+    checkcp1;
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
+    check_qnans_d(fs, ft);
+    N64CPU.fcr31.compare = fs == ft;
+}
+
 MIPS_INSTR(mips_cp_c_ueq_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
     float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    UNORDERED_S(fs, ft);
+    check_qnans_f(fs, ft);
+    N64CPU.fcr31.compare = fs == ft || unordered_s(fs, ft);
+}
 
-    N64CPU.fcr31.compare = fs == ft;
+MIPS_INSTR(mips_cp_c_ueq_d) {
+    checkcp1;
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
+    check_qnans_d(fs, ft);
+    N64CPU.fcr31.compare = fs == ft || unordered_d(fs, ft);
 }
 
 MIPS_INSTR(mips_cp_c_olt_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
     float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    ORDERED_S(fs, ft);
+    check_qnans_f(fs, ft);
+    N64CPU.fcr31.compare = fs < ft;
+}
 
+MIPS_INSTR(mips_cp_c_olt_d) {
+    checkcp1;
+    double fs = get_fpu_register_double_fs(instruction.fr.fs);
+    double ft = get_fpu_register_double_ft(instruction.fr.ft);
+    check_qnans_d(fs, ft);
     N64CPU.fcr31.compare = fs < ft;
 }
 
@@ -592,242 +636,176 @@ MIPS_INSTR(mips_cp_c_ult_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
     float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    UNORDERED_S(fs, ft);
-    N64CPU.fcr31.compare = fs < ft;
-}
-MIPS_INSTR(mips_cp_c_ole_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    ORDERED_S(fs, ft);
-
-    N64CPU.fcr31.compare = fs <= ft;
-}
-MIPS_INSTR(mips_cp_c_ule_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    UNORDERED_S(fs, ft);
-    N64CPU.fcr31.compare = fs <= ft;
-}
-MIPS_INSTR(mips_cp_c_sf_s) {
-    checkcp1;
-    /*
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-     checknansf(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_sf_s");
-}
-MIPS_INSTR(mips_cp_c_ngle_s) {
-    checkcp1;
-    /*
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-     checknansf(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_ngle_s");
-}
-MIPS_INSTR(mips_cp_c_seq_s) {
-    checkcp1;
-    /*
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-     checknansf(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_seq_s");
-}
-MIPS_INSTR(mips_cp_c_ngl_s) {
-    checkcp1;
-    /*
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-     checknansf(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_ngl_s");
-}
-MIPS_INSTR(mips_cp_c_lt_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-
-    N64CPU.fcr31.compare = fs < ft;
-
-    if (isnan(fs) || isnan(ft)) {
-        //N64CPU.fcr31.cause_invalid_operation = true;
-        //N64CPU.fcr31.flag_invalid_operation = true;
-        check_fpu_exception();
-    }
-}
-MIPS_INSTR(mips_cp_c_nge_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-
-    N64CPU.fcr31.compare = !(fs >= ft);
-
-    if (isnan(fs) || isnan(ft)) {
-        //N64CPU.fcr31.cause_invalid_operation = true;
-        //N64CPU.fcr31.flag_invalid_operation = true;
-        check_fpu_exception();
-    }
-}
-MIPS_INSTR(mips_cp_c_le_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-
-    N64CPU.fcr31.compare = fs <= ft;
-
-    if (isnan(fs) || isnan(ft)) {
-        //N64CPU.fcr31.cause_invalid_operation = true;
-        //N64CPU.fcr31.flag_invalid_operation = true;
-        check_fpu_exception();
-    }
-}
-MIPS_INSTR(mips_cp_c_ngt_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-
-    N64CPU.fcr31.compare = !(fs > ft);
-
-    if (isnan(fs) || isnan(ft)) {
-        //N64CPU.fcr31.cause_invalid_operation = true;
-        //N64CPU.fcr31.flag_invalid_operation = true;
-        check_fpu_exception();
-    }
+    check_qnans_f(fs, ft);
+    N64CPU.fcr31.compare = fs < ft || unordered_s(fs, ft);
 }
 
-MIPS_INSTR(mips_cp_c_f_d) {
-    checkcp1;
-    /*
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_f_d");
-}
-MIPS_INSTR(mips_cp_c_un_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    N64CPU.fcr31.compare = isnan(fs) || isnan(ft);
-}
-MIPS_INSTR(mips_cp_c_eq_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-
-    N64CPU.fcr31.compare = fs == ft;
-}
-MIPS_INSTR(mips_cp_c_ueq_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-
-    UNORDERED_D(fs, ft);
-
-    N64CPU.fcr31.compare = fs == ft;
-}
-MIPS_INSTR(mips_cp_c_olt_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-    ORDERED_D(fs, ft);
-
-    N64CPU.fcr31.compare = fs < ft;
-}
 MIPS_INSTR(mips_cp_c_ult_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    UNORDERED_D(fs, ft);
-    N64CPU.fcr31.compare = fs < ft;
+    check_qnans_d(fs, ft);
+    N64CPU.fcr31.compare = fs < ft || unordered_d(fs, ft);
 }
+
+MIPS_INSTR(mips_cp_c_ole_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_qnans_f(fs, ft);
+    N64CPU.fcr31.compare = fs <= ft;
+}
+
 MIPS_INSTR(mips_cp_c_ole_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    ORDERED_D(fs, ft);
+    check_qnans_d(fs, ft);
     N64CPU.fcr31.compare = fs <= ft;
 }
+
+MIPS_INSTR(mips_cp_c_ule_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_qnans_f(fs, ft);
+    N64CPU.fcr31.compare = fs <= ft || unordered_s(fs, ft);
+}
+
 MIPS_INSTR(mips_cp_c_ule_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-
-    UNORDERED_D(fs, ft);
-
-    N64CPU.fcr31.compare = fs <= ft;
+    check_qnans_d(fs, ft);
+    N64CPU.fcr31.compare = fs <= ft || unordered_d(fs, ft);
 }
+
+MIPS_INSTR(mips_cp_c_sf_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = false;
+}
+
 MIPS_INSTR(mips_cp_c_sf_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_sf_d");
+    check_nans_d(fs, ft);
+    N64CPU.fcr31.compare = false;
 }
+
+MIPS_INSTR(mips_cp_c_ngle_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = unordered_s(fs, ft);
+}
+
 MIPS_INSTR(mips_cp_c_ngle_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_ngle_d");
+    check_nans_d(fs, ft);
+    N64CPU.fcr31.compare = unordered_d(fs, ft);
 }
+
+MIPS_INSTR(mips_cp_c_seq_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = fs == ft;
+}
+
 MIPS_INSTR(mips_cp_c_seq_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_seq_d");
+    check_nans_d(fs, ft);
+    N64CPU.fcr31.compare = fs == ft;
 }
+
+MIPS_INSTR(mips_cp_c_ngl_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = fs == ft || unordered_s(fs, ft);
+}
+
 MIPS_INSTR(mips_cp_c_ngl_d) {
     checkcp1;
-    /*
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-     checknansd(fs, ft);
-     */
-    logfatal("Unimplemented: mips_cp_c_ngl_d");
+    check_nans_d(fs, ft);
+    N64CPU.fcr31.compare = fs == ft || unordered_d(fs, ft);
 }
+
+MIPS_INSTR(mips_cp_c_lt_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = fs < ft;
+}
+
 MIPS_INSTR(mips_cp_c_lt_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-
+    check_nans_d(fs, ft);
     N64CPU.fcr31.compare = fs < ft;
 }
+
+MIPS_INSTR(mips_cp_c_nge_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = fs < ft || unordered_s(fs, ft);
+}
+
 MIPS_INSTR(mips_cp_c_nge_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-    N64CPU.fcr31.compare = !(fs >= ft);
+    check_nans_d(fs, ft);
+    N64CPU.fcr31.compare = fs < ft || unordered_s(fs, ft);
 }
+
+MIPS_INSTR(mips_cp_c_le_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = fs <= ft;
+}
+
 MIPS_INSTR(mips_cp_c_le_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-
+    check_nans_d(fs, ft);
     N64CPU.fcr31.compare = fs <= ft;
 }
+
+MIPS_INSTR(mips_cp_c_ngt_s) {
+    checkcp1;
+    float fs = get_fpu_register_float_fs(instruction.fr.fs);
+    float ft = get_fpu_register_float_ft(instruction.fr.ft);
+    check_nans_f(fs, ft);
+    N64CPU.fcr31.compare = fs <= ft || unordered_s(fs, ft);
+}
+
 MIPS_INSTR(mips_cp_c_ngt_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-    N64CPU.fcr31.compare = !(fs > ft);
+    check_nans_d(fs, ft);
+    N64CPU.fcr31.compare = fs <= ft || unordered_s(fs, ft);
 }
 
 MIPS_INSTR(mips_cp_mov_s) {

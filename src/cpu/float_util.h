@@ -7,6 +7,16 @@
 #define D_TO_U64(d) (*((u64*)(&(d))))
 #define U64_TO_D(d) (*((double*)(&(d))))
 
+INLINE bool is_nan_f(float f) {
+    u32 v = F_TO_U32(f);
+    return ((v & 0x7F800000) == 0x7F800000) && ((v & 0x7FFFFF) != 0);
+}
+
+INLINE bool is_nan_d(double d) {
+    u64 v = D_TO_U64(d);
+    return ((v & 0x7FF0000000000000) == 0x7FF0000000000000) && ((v & 0xFFFFFFFFFFFFF) != 0);
+}
+
 INLINE bool is_qnan_f(float f) {
     u32 v = F_TO_U32(f);
     return (v & 0x7FC00000) == 0x7FC00000;
