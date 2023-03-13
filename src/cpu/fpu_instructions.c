@@ -188,9 +188,32 @@ INLINE void set_cause_fpu_result_d(double* d) {
 }
 
 #define check_fpu_result_s(f) do { set_cause_fpu_result_s(&(f)); check_fpu_exception(); } while(0)
-#define check_fpu_result_d(f) do { set_cause_fpu_result_d(&(f)); check_fpu_exception(); } while(0)
+#define check_fpu_result_d(d) do { set_cause_fpu_result_d(&(d)); check_fpu_exception(); } while(0)
 #endif
 
+#define FPU_OP_S(op) do {                                    \
+    checkcp1;                                                \
+    float fs = get_fpu_register_float_fs(instruction.fr.fs); \
+    float ft = get_fpu_register_float_ft(instruction.fr.ft); \
+    check_fpu_arg_s(fs);                                     \
+    check_fpu_arg_s(ft);                                     \
+    float result;                                            \
+    fpu_op_check_except({ result = (op); });                 \
+    check_fpu_result_s(result);                              \
+    set_fpu_register_float(instruction.fr.fd, result);       \
+} while(0)
+
+#define FPU_OP_D(op) do {                                      \
+    checkcp1;                                                  \
+    double fs = get_fpu_register_double_fs(instruction.fr.fs); \
+    double ft = get_fpu_register_double_ft(instruction.fr.ft); \
+    check_fpu_arg_d(fs);                                       \
+    check_fpu_arg_d(ft);                                       \
+    double result;                                             \
+    fpu_op_check_except({ result = (op); });                   \
+    check_fpu_result_d(result);                                \
+    set_fpu_register_double(instruction.fr.fd, result);        \
+} while(0)
 
 MIPS_INSTR(mips_mfc1) {
     checkcp1;
@@ -318,49 +341,19 @@ MIPS_INSTR(mips_cp_div_s) {
 }
 
 MIPS_INSTR(mips_cp_add_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    check_fpu_arg_d(fs);
-    check_fpu_arg_d(ft);
-    double result;
-    fpu_op_check_except({
-        result = fs + ft;
-    });
-    check_fpu_result_d(result);
-    set_fpu_register_double(instruction.fr.fd, result);
+    FPU_OP_D(fs + ft);
 }
 
 MIPS_INSTR(mips_cp_add_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    check_fpu_arg_s(fs);
-    check_fpu_arg_s(ft);
-    float result;
-    fpu_op_check_except({
-        result = fs + ft;
-    });
-    check_fpu_result_s(result);
-    set_fpu_register_float(instruction.fr.fd, result);
+    FPU_OP_S(fs + ft);
 }
 
 MIPS_INSTR(mips_cp_sub_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-    double result = fs - ft;
-    set_fpu_register_double(instruction.fr.fd, result);
+    FPU_OP_D(fs - ft);
 }
 
 MIPS_INSTR(mips_cp_sub_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    checknansf(fs, ft);
-    float result = fs - ft;
-    set_fpu_register_float(instruction.fr.fd, result);
+    FPU_OP_S(fs - ft);
 }
 
 MIPS_INSTR(mips_cp_trunc_l_d) {
