@@ -297,47 +297,19 @@ MIPS_INSTR(mips_cp_bc1tl) {
 }
 
 MIPS_INSTR(mips_cp_mul_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-    double result = fs * ft;
-    set_fpu_register_double(instruction.fr.fd, result);
+    FPU_OP_D(fs * ft);
 }
 
 MIPS_INSTR(mips_cp_mul_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    checknansf(fs, ft);
-    float result = fs * ft;
-    set_fpu_register_float(instruction.fr.fd, result);
+    FPU_OP_S(fs * ft);
 }
 
 MIPS_INSTR(mips_cp_div_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double ft = get_fpu_register_double_ft(instruction.fr.ft);
-    checknansd(fs, ft);
-    if (ft == 0) {
-        //N64CPU.fcr31.cause_division_by_zero = true;
-        check_fpu_exception();
-    }
-    double result = fs / ft;
-    set_fpu_register_double(instruction.fr.fd, result);
+    FPU_OP_D(fs / ft);
 }
 
 MIPS_INSTR(mips_cp_div_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float ft = get_fpu_register_float_ft(instruction.fr.ft);
-    checknansf(fs, ft);
-    if (ft == 0) {
-        //N64CPU.fcr31.cause_division_by_zero = true;
-        check_fpu_exception();
-    }
-    float result = fs / ft;
-    set_fpu_register_float(instruction.fr.fd, result);
+    FPU_OP_S(fs / ft);
 }
 
 MIPS_INSTR(mips_cp_add_d) {
@@ -560,35 +532,19 @@ MIPS_INSTR(mips_cp_cvt_w_d) {
 }
 
 MIPS_INSTR(mips_cp_sqrt_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    float root = sqrt(fs);
-    set_fpu_register_float(instruction.fr.fd, root);
+    FPU_OP_S(sqrtf(fs));
 }
 
 MIPS_INSTR(mips_cp_sqrt_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    double root = sqrt(fs);
-    set_fpu_register_double(instruction.fr.fd, root);
+    FPU_OP_D(sqrt(fs));
 }
 
 MIPS_INSTR(mips_cp_abs_s) {
-    checkcp1;
-    float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    if (fs < 0) {
-        fs = -fs;
-    }
-    set_fpu_register_float(instruction.fr.fd, fs);
+    FPU_OP_S(fabsf(fs));
 }
 
 MIPS_INSTR(mips_cp_abs_d) {
-    checkcp1;
-    double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    if (fs < 0) {
-        fs = -fs;
-    }
-    set_fpu_register_double(instruction.fr.fd, fs);
+    FPU_OP_D(fabs(fs));
 }
 
 MIPS_INSTR(mips_cp_c_f_s) {
@@ -875,28 +831,23 @@ MIPS_INSTR(mips_cp_c_ngt_d) {
 }
 
 MIPS_INSTR(mips_cp_mov_s) {
-    checkcp1;
+    checkcp1_preservecause;
     u64 value = get_fpu_register_dword_fr(instruction.fr.fs);
     set_fpu_register_dword(instruction.fr.fd, value);
 }
 
 MIPS_INSTR(mips_cp_mov_d) {
-    checkcp1;
+    checkcp1_preservecause;
     double value = get_fpu_register_double_fs(instruction.fr.fs);
     set_fpu_register_double(instruction.fr.fd, value);
 }
 
 MIPS_INSTR(mips_cp_neg_s) {
-    checkcp1;
-    float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknanf(value);
-    set_fpu_register_float(instruction.fr.fd, -value);
+    FPU_OP_S(-fs);
 }
 
 MIPS_INSTR(mips_cp_neg_d) {
-    checkcp1;
-    double value = get_fpu_register_double_fs(instruction.fr.fs);
-    set_fpu_register_double(instruction.fr.fd, -value);
+    FPU_OP_D(-fs);
 }
 
 MIPS_INSTR(mips_ldc1) {
