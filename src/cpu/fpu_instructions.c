@@ -42,8 +42,14 @@ INLINE bool fire_fpu_exception() {
 #define unordered_s(a, b) (isnanf(a) || isnanf(b))
 #define unordered_d(a, b) (isnan(a) || isnan(b))
 
-#define checknanf(value) if (isnanf(value)) { logfatal("value == NaN!"); }
-#define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
+#define assert_is_float(f) do { static_assert(sizeof(f) == sizeof(float), #f " is not a float!");} while(0)
+#define assert_is_double(d) do { static_assert(sizeof(d) == sizeof(double), #d " is not a double!");} while(0)
+
+#define check_qnans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_qnan_f(fs) || is_qnan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+#define check_qnans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_qnan_d(fs) || is_qnan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+
+#define check_nans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_nan_f(fs) || is_nan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+#define check_nans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_nan_d(fs) || is_nan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
 
 INLINE void set_cause_fpu_arg_s(float f) {
     int classification = fpclassify(f);
@@ -184,6 +190,47 @@ INLINE void set_cause_fpu_result_d(double* d) {
 
 #define check_fpu_result_s(f) do { set_cause_fpu_result_s(&(f)); check_fpu_exception(); } while(0)
 #define check_fpu_result_d(d) do { set_cause_fpu_result_d(&(d)); check_fpu_exception(); } while(0)
+
+void set_cause_cvt_w_s(float f) {
+    switch (fpclassify(f)) {
+        case FP_NAN:
+        case FP_INFINITE:
+        case FP_SUBNORMAL:
+            set_cause_unimplemented_operation();
+            break;
+
+        case FP_NORMAL:
+            if (f >= 0x1p+31f || f < -0x1p+31f) {
+                set_cause_unimplemented_operation();
+            }
+            break;
+
+        case FP_ZERO:
+            break; // Fine
+    }
+}
+
+void set_cause_cvt_w_d(double d) {
+    switch (fpclassify(d)) {
+        case FP_NAN:
+        case FP_INFINITE:
+        case FP_SUBNORMAL:
+            set_cause_unimplemented_operation();
+            break;
+
+        case FP_NORMAL:
+            if (d >= 0x1p+31 || d < -0x1p+31) {
+                set_cause_unimplemented_operation();
+            }
+            break;
+
+        case FP_ZERO:
+            break; // Fine
+    }
+}
+
+#define check_cvt_arg_w_s(f) do { assert_is_float(f); set_cause_cvt_w_s(f); check_fpu_exception(); } while(0)
+#define check_cvt_arg_w_d(d) do { assert_is_double(d); set_cause_cvt_w_d(d); check_fpu_exception(); } while(0)
 #endif
 
 #define FPU_OP_S(op) do {                                    \
@@ -326,7 +373,6 @@ MIPS_INSTR(mips_cp_sub_s) {
 MIPS_INSTR(mips_cp_trunc_l_d) {
     checkcp1;
     double value = get_fpu_register_double_fs(instruction.fr.fs);
-    checknand(value);
     u64 truncated = trunc(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -343,7 +389,6 @@ MIPS_INSTR(mips_cp_round_l_d) {
 MIPS_INSTR(mips_cp_trunc_l_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknanf(value);
     u64 truncated = truncf(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -351,7 +396,6 @@ MIPS_INSTR(mips_cp_trunc_l_s) {
 MIPS_INSTR(mips_cp_round_l_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknanf(value);
     PUSHROUND;
     u64 truncated = nearbyintf(value);
     POPROUND;
@@ -377,7 +421,6 @@ MIPS_INSTR(mips_cp_round_w_d) {
 MIPS_INSTR(mips_cp_trunc_w_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknanf(value);
     s32 truncated = truncf(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -385,7 +428,6 @@ MIPS_INSTR(mips_cp_trunc_w_s) {
 MIPS_INSTR(mips_cp_ceil_l_d) {
     checkcp1;
     double value = get_fpu_register_double_fs(instruction.fr.fs);
-    checknand(value);
     u64 truncated = ceil(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -393,7 +435,6 @@ MIPS_INSTR(mips_cp_ceil_l_d) {
 MIPS_INSTR(mips_cp_ceil_l_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknand(value);
     u64 truncated = ceilf(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -401,7 +442,6 @@ MIPS_INSTR(mips_cp_ceil_l_s) {
 MIPS_INSTR(mips_cp_ceil_w_d) {
     checkcp1;
     double value = get_fpu_register_double_fs(instruction.fr.fs);
-    checknanf(value);
     s32 truncated = ceil(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -409,7 +449,6 @@ MIPS_INSTR(mips_cp_ceil_w_d) {
 MIPS_INSTR(mips_cp_ceil_w_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknanf(value);
     s32 truncated = ceilf(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -417,7 +456,6 @@ MIPS_INSTR(mips_cp_ceil_w_s) {
 MIPS_INSTR(mips_cp_floor_l_d) {
     checkcp1;
     double value = get_fpu_register_double_fs(instruction.fr.fs);
-    checknand(value);
     u64 truncated = floor(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -425,7 +463,6 @@ MIPS_INSTR(mips_cp_floor_l_d) {
 MIPS_INSTR(mips_cp_floor_l_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknand(value);
     u64 truncated = floorf(value);
     set_fpu_register_dword(instruction.fr.fd, truncated);
 }
@@ -433,7 +470,6 @@ MIPS_INSTR(mips_cp_floor_l_s) {
 MIPS_INSTR(mips_cp_floor_w_d) {
     checkcp1;
     double value = get_fpu_register_double_fs(instruction.fr.fs);
-    checknanf(value);
     s32 truncated = floor(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -441,7 +477,6 @@ MIPS_INSTR(mips_cp_floor_w_d) {
 MIPS_INSTR(mips_cp_floor_w_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknanf(value);
     s32 truncated = floorf(value);
     set_fpu_register_word(instruction.fr.fd, truncated);
 }
@@ -449,7 +484,6 @@ MIPS_INSTR(mips_cp_floor_w_s) {
 MIPS_INSTR(mips_cp_round_w_s) {
     checkcp1;
     float value = get_fpu_register_float_fs(instruction.fr.fs);
-    checknanf(value);
     PUSHROUND;
     s32 truncated = nearbyintf(value);
     POPROUND;
@@ -541,15 +575,19 @@ MIPS_INSTR(mips_cp_cvt_s_l) {
 MIPS_INSTR(mips_cp_cvt_w_s) {
     checkcp1;
     float fs = get_fpu_register_float_fs(instruction.fr.fs);
-    s32 converted = fs;
-    set_fpu_register_word(instruction.fr.fd, converted);
+    check_cvt_arg_w_s(fs);
+    s32 result;
+    fpu_op_check_except({ result = rintf(fs); });
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_cvt_w_d) {
     checkcp1;
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
-    s32 converted = fs;
-    set_fpu_register_word(instruction.fr.fd, converted);
+    check_cvt_arg_w_d(fs);
+    s32 result;
+    fpu_op_check_except({ result = rint(fs); });
+    set_fpu_register_word(instruction.fr.fd, result);
 }
 
 MIPS_INSTR(mips_cp_sqrt_s) {
@@ -567,16 +605,6 @@ MIPS_INSTR(mips_cp_abs_s) {
 MIPS_INSTR(mips_cp_abs_d) {
     FPU_OP_D(fabs(fs));
 }
-
-
-#define assert_is_float(f) do { static_assert(sizeof(f) == sizeof(float), #f " is not a float!");} while(0)
-#define assert_is_double(d) do { static_assert(sizeof(d) == sizeof(double), #d " is not a double!");} while(0)
-
-#define check_qnans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_qnan_f(fs) || is_qnan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
-#define check_qnans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_qnan_d(fs) || is_qnan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
-
-#define check_nans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_nan_f(fs) || is_nan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
-#define check_nans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_nan_d(fs) || is_nan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
 
 MIPS_INSTR(mips_cp_c_f_s) {
     checkcp1;
