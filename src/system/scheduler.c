@@ -6,6 +6,9 @@ scheduler_t n64scheduler;
 
 // pops a pointer off of the free event nodes stack
 scheduler_event_node_t* alloc_event_node() {
+    if (n64scheduler.free_event_nodes_stack_ptr == 0) {
+        logfatal("Ran out of free scheduler event nodes!");
+    }
     return n64scheduler.free_event_nodes[--n64scheduler.free_event_nodes_stack_ptr];
 }
 
