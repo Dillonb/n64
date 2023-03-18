@@ -20,37 +20,6 @@ INLINE bool fire_fpu_exception() {
 
 #define check_fpu_exception() do { if (fire_fpu_exception()) { return; } } while(0)
 
-#ifdef N64_WIN
-#define ORDERED_S(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
-#define ORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
-
-#define UNORDERED_S(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
-#define UNORDERED_D(fs, ft) do { if (isnan(fs) || isnan(ft)) { logfatal("we got some nans, time to panic"); } } while (0)
-
-#define checknansf(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
-#define checknansd(fs, ft) if (isnan(fs) || isnan(ft)) { logfatal("fs || ft == NaN!"); }
-#define checknanf(value) if (isnan(value)) { logfatal("value == NaN!"); }
-#define checknand(value) if (isnan(value)) { logfatal("value == NaN!"); }
-
-#define isnanf isnan
-
-#define check_fpu_arg_s(f) logfatal("unimplemented on Windows");
-#define check_fpu_result_s(f) logfatal("unimplemented on Windows");
-
-#else
-
-#define unordered_s(a, b) (isnanf(a) || isnanf(b))
-#define unordered_d(a, b) (isnan(a) || isnan(b))
-
-#define assert_is_float(f) do { static_assert(sizeof(f) == sizeof(float), #f " is not a float!");} while(0)
-#define assert_is_double(d) do { static_assert(sizeof(d) == sizeof(double), #d " is not a double!");} while(0)
-
-#define check_qnans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_qnan_f(fs) || is_qnan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
-#define check_qnans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_qnan_d(fs) || is_qnan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
-
-#define check_nans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_nan_f(fs) || is_nan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
-#define check_nans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_nan_d(fs) || is_nan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
-
 INLINE void set_cause_fpu_arg_s(float f) {
     int classification = fpclassify(f);
     switch (classification) {
@@ -275,6 +244,22 @@ void set_cause_cvt_l_d(double d) {
 #define check_cvt_arg_l_d(d) do { assert_is_double(d); set_cause_cvt_l_d(d); check_fpu_exception(); } while(0)
 #define check_cvt_arg_w_s(f) do { assert_is_float(f); set_cause_cvt_w_s(f); check_fpu_exception(); } while(0)
 #define check_cvt_arg_w_d(d) do { assert_is_double(d); set_cause_cvt_w_d(d); check_fpu_exception(); } while(0)
+
+#define assert_is_float(f) do { static_assert(sizeof(f) == sizeof(float), #f " is not a float!");} while(0)
+#define assert_is_double(d) do { static_assert(sizeof(d) == sizeof(double), #d " is not a double!");} while(0)
+
+#define check_qnans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_qnan_f(fs) || is_qnan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+#define check_qnans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_qnan_d(fs) || is_qnan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+
+#define check_nans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_nan_f(fs) || is_nan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+#define check_nans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_nan_d(fs) || is_nan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
+
+#ifdef N64_WIN
+#define unordered_s(a, b) (isnan(a) || isnan(b))
+#define unordered_d(a, b) (isnan(a) || isnan(b))
+#else
+#define unordered_s(a, b) (isnanf(a) || isnanf(b))
+#define unordered_d(a, b) (isnan(a) || isnan(b))
 #endif
 
 #define check_round(a, b) do { if ((a) != (b)) { set_cause_inexact_operation(); } check_fpu_exception(); } while(0);
