@@ -546,7 +546,7 @@ typedef union fcr31 {
         unsigned cause_unimplemented_operation:1;
         unsigned:5;
         unsigned compare:1;
-        unsigned fs:1;
+        unsigned flush_subnormals:1;
         unsigned:7;
     } PACKED;
 
@@ -556,7 +556,7 @@ typedef union fcr31 {
         unsigned cause:6;
         unsigned:14;
     } PACKED;
-} fcr31_t;
+} PACKED fcr31_t;
 
 ASSERTWORD(fcr31_t);
 
@@ -642,7 +642,8 @@ INLINE void cp0_status_updated() {
                || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
 }
 
-#define checkcp1 do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
+#define checkcp1_preservecause do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
+#define checkcp1 do { checkcp1_preservecause; N64CPU.fcr31.cause = 0; } while(0)
 #define checkcp2 do { if (!N64CPU.cp0.status.cu2) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 2); return; } } while(0)
 
 #endif //N64_R4300I_H
