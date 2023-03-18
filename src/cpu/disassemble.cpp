@@ -81,7 +81,14 @@ std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code,
         if (arch == DisassemblyArch::HOST) {
             res = snprintf(tmp, 100, "%016lX\t%s %s\n", insn[i].address, insn[i].mnemonic, insn[i].op_str);
         } else {
-            res = snprintf(tmp, 100, "%08lX\t%s %s\n", insn[i].address, insn[i].mnemonic, insn[i].op_str);
+            unimplemented(insn->size != 4, "MIPS instruction was not 4 bytes");
+            res = snprintf(tmp, 100, "%08lX\t %02X%02X%02X%02X %s %s\n",
+                           insn[i].address,
+                           insn[i].bytes[3],
+                           insn[i].bytes[2],
+                           insn[i].bytes[1],
+                           insn[i].bytes[0],
+                           insn[i].mnemonic, insn[i].op_str);
         }
         output += std::string(tmp);
         if (res < 0) {
