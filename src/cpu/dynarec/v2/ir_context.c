@@ -287,6 +287,15 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_FLOAT_SUB:
             snprintf(buf, buf_size, "(%s)v%d - (%s)v%d", float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand1->index, float_type_to_str(instr->float_bin_op.format), instr->float_bin_op.operand2->index);
             break;
+        case IR_FLOAT_NEG:
+            snprintf(buf, buf_size, "-v%d", instr->float_unary_op.operand->index);
+            break;
+        case IR_FLOAT_SQRT:
+            snprintf(buf, buf_size, "sqrt(v%d)", instr->float_unary_op.operand->index);
+            break;
+        case IR_FLOAT_ABS:
+            snprintf(buf, buf_size, "abs(v%d)", instr->float_unary_op.operand->index);
+            break;
     }
 }
 
@@ -352,6 +361,14 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 case IR_FLOAT_SUB:
                     new_type = float_val_to_reg_type(value->float_bin_op.format);
                     break;
+
+                // Float unary ops
+                case IR_FLOAT_ABS:
+                case IR_FLOAT_NEG:
+                case IR_FLOAT_SQRT:
+                    new_type = float_val_to_reg_type(value->float_unary_op.format);
+                    break;
+
                 case IR_SET_FLOAT_CONSTANT:
                     new_type = float_val_to_reg_type(value->set_float_constant.format);
                     break;
@@ -858,6 +875,39 @@ ir_instruction_t* ir_emit_float_sub(ir_instruction_t* operand1, ir_instruction_t
     instruction.float_bin_op.operand1 = operand1;
     instruction.float_bin_op.operand2 = operand2;
     instruction.float_bin_op.format = add_type;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_sqrt(ir_instruction_t* operand, ir_float_value_type_t sqrt_type, u8 guest_reg) {
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float sqrt must target an FGR");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_SQRT;
+    instruction.float_unary_op.operand = operand;
+    instruction.float_unary_op.format = sqrt_type;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_abs(ir_instruction_t* operand, ir_float_value_type_t abs_type, u8 guest_reg) {
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float abs must target an FGR");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_ABS;
+    instruction.float_unary_op.operand = operand;
+    instruction.float_unary_op.format = abs_type;
+    return append_ir_instruction(instruction, guest_reg);
+}
+
+ir_instruction_t* ir_emit_float_neg(ir_instruction_t* operand, ir_float_value_type_t neg_type, u8 guest_reg) {
+    if (!IR_IS_FGR(guest_reg)) {
+        logfatal("float neg must target an FGR");
+    }
+    ir_instruction_t instruction;
+    instruction.type = IR_FLOAT_NEG;
+    instruction.float_unary_op.operand = operand;
+    instruction.float_unary_op.format = neg_type;
     return append_ir_instruction(instruction, guest_reg);
 }
 

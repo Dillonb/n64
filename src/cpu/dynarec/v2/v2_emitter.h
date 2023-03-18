@@ -60,6 +60,10 @@ void host_emit_float_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t oper
 void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format);
 void host_emit_float_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format);
 
+void host_emit_float_sqrt_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format);
+void host_emit_float_abs_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format);
+void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format);
+
 void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2);
 
 void host_emit_debugbreak(dasm_State** Dst);

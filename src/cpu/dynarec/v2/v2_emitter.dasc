@@ -1769,6 +1769,61 @@ void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_fl
     | mov cpu_state->fcr31.raw, Rd(TMPREG1)
 }
 
+void host_emit_float_sqrt_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
+    int src = check_fgr(operand_alloc, false);
+    int dst = check_fgr(dst_alloc, false);
+
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("sqrt FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("sqrt FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("sqrt FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | sqrtss xmm(dst), xmm(src)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | sqrtsd xmm(dst), xmm(src)
+            break;
+    }
+}
+
+void host_emit_float_abs_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
+    logfatal("host_emit_float_abs_reg_reg");
+}
+
+void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
+    int src = check_fgr(operand_alloc, false);
+    int dst = check_fgr(dst_alloc, false);
+
+    host_emit_mov_fgr_fgr(Dst, dst_alloc, operand_alloc, format);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("neg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("neg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("neg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | movss xmm(dst), xmm(src)
+            | pxor xmm(dst), cpu_state->s_neg
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | movsd xmm(dst), xmm(src)
+            | pxor xmm(dst), cpu_state->d_neg // Check that this is XORING by the whole 64 bit value
+            logfatal("neg FLOAT_VALUE_TYPE_DOUBLE");
+            | int3
+            break;
+    }
+}
+
 void v2_end_block(dasm_State** Dst, int block_length) {
     | mov eax, block_length
     | block_epilogue // return block_length

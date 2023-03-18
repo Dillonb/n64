@@ -75,6 +75,12 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_FLOAT_SUB:
             return instr->float_bin_op.operand1 == value || instr->float_bin_op.operand2 == value;
 
+        // Float unary ops
+        case IR_FLOAT_SQRT:
+        case IR_FLOAT_ABS:
+        case IR_FLOAT_NEG:
+            return instr->float_unary_op.operand == value;
+
         // No dependencies
         case IR_ERET:
         case IR_GET_PTR:
@@ -485,6 +491,22 @@ void ir_optimize_constant_propagation() {
                     logfatal("Constant propagation for IR_FLOAT_CHECK_CONDITION");
                 }
                 break;
+
+            case IR_FLOAT_ABS:
+                if (float_is_constant(instr->float_unary_op.operand)) {
+                    logfatal("Constant propagation for IR_FLOAT_ABS");
+                }
+                break;
+            case IR_FLOAT_SQRT:
+                if (float_is_constant(instr->float_unary_op.operand)) {
+                    logfatal("Constant propagation for IR_FLOAT_SQRT");
+                }
+                break;
+            case IR_FLOAT_NEG:
+                if (float_is_constant(instr->float_unary_op.operand)) {
+                    logfatal("Constant propagation for IR_FLOAT_NEG");
+                }
+                break;
         }
 
         instr = instr->next;
@@ -581,6 +603,15 @@ void ir_optimize_eliminate_dead_code() {
                 if (!instr->dead_code) {
                     instr->float_bin_op.operand1->dead_code = false;
                     instr->float_bin_op.operand2->dead_code = false;
+                }
+                break;
+
+            // Float unary ops
+            case IR_FLOAT_SQRT:
+            case IR_FLOAT_ABS:
+            case IR_FLOAT_NEG:
+                if (!instr->dead_code) {
+                    instr->float_unary_op.operand->dead_code = false;
                 }
                 break;
 

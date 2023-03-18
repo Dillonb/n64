@@ -620,6 +620,18 @@ void compile_ir_float_sub(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_float_sub_reg_reg(Dst, instr->reg_alloc, instr->float_bin_op.operand2->reg_alloc, instr->float_bin_op.format);
 }
 
+void compile_ir_float_sqrt(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_float_sqrt_reg_reg(Dst, instr->reg_alloc, instr->float_unary_op.operand->reg_alloc, instr->float_unary_op.format);
+}
+
+void compile_ir_float_neg(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_float_neg_reg_reg(Dst, instr->reg_alloc, instr->float_unary_op.operand->reg_alloc, instr->float_unary_op.format);
+}
+
+void compile_ir_float_abs(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_float_abs_reg_reg(Dst, instr->reg_alloc, instr->float_unary_op.operand->reg_alloc, instr->float_unary_op.format);
+}
+
 void compile_ir_float_check_condition(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_float_cmp(Dst, instr->float_check_condition.condition, instr->float_check_condition.format, instr->float_check_condition.operand1->reg_alloc, instr->float_check_condition.operand2->reg_alloc);
 }
@@ -724,6 +736,15 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
         case IR_FLOAT_SUB:
             compile_ir_float_sub(Dst, instr);
             break;
+        case IR_FLOAT_SQRT:
+            compile_ir_float_sqrt(Dst, instr);
+            break;
+        case IR_FLOAT_NEG:
+            compile_ir_float_neg(Dst, instr);
+            break;
+        case IR_FLOAT_ABS:
+            compile_ir_float_abs(Dst, instr);
+            break;
         case IR_FLOAT_CHECK_CONDITION:
             compile_ir_float_check_condition(Dst, instr);
             break;
@@ -815,6 +836,9 @@ void v2_compiler_init() {
     }
     n64dynarec.run_block = (int (*)(u64)) run_block_code_ptr;
     mprotect_rwx((u8*)&run_block_codecache, DISPATCHER_CODE_SIZE, "run block");
+
+    N64CPU.s_neg[0] = (u32)1 << 31;
+    N64CPU.d_neg[0] = (u64)1 << 63;
 
     {
         dasm_State **Dst = v2_emit_run_block();

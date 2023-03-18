@@ -85,6 +85,12 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         case IR_SET_FLOAT_CONSTANT:
             return float_val_to_reg_type(instr->set_float_constant.format);
 
+        // Float unary ops
+        case IR_FLOAT_SQRT:
+        case IR_FLOAT_ABS:
+        case IR_FLOAT_NEG:
+            return float_val_to_reg_type(instr->float_unary_op.format);
+
         // Float bin ops
         case IR_FLOAT_DIVIDE:
         case IR_FLOAT_MULTIPLY:

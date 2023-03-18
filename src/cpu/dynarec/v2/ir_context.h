@@ -222,6 +222,9 @@ typedef struct ir_instruction {
         IR_FLOAT_DIVIDE,
         IR_FLOAT_ADD,
         IR_FLOAT_SUB,
+        IR_FLOAT_SQRT,
+        IR_FLOAT_ABS,
+        IR_FLOAT_NEG,
         IR_FLOAT_CHECK_CONDITION
     } type;
     union {
@@ -318,6 +321,10 @@ typedef struct ir_instruction {
             ir_float_value_type_t to_type;
             ir_float_convert_mode_t mode;
         } float_convert;
+        struct {
+            struct ir_instruction* operand;
+            ir_float_value_type_t format;
+        } float_unary_op;
         struct {
             struct ir_instruction* operand1;
             struct ir_instruction* operand2;
@@ -432,6 +439,12 @@ ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t
 ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg);
 // Subtract two float values of type sub_type.
 ir_instruction_t* ir_emit_float_sub(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t sub_type, u8 guest_reg);
+// Get the square root of a value of type sqrt_type.
+ir_instruction_t* ir_emit_float_sqrt(ir_instruction_t* operand, ir_float_value_type_t sqrt_type, u8 guest_reg);
+// Get the absolute value of a value of type abs_type.
+ir_instruction_t* ir_emit_float_abs(ir_instruction_t* operand, ir_float_value_type_t abs_type, u8 guest_reg);
+// Get the negative value of a value of type neg_type.
+ir_instruction_t* ir_emit_float_neg(ir_instruction_t* operand, ir_float_value_type_t neg_type, u8 guest_reg);
 // Compare two floating point values, set the result to FCR31.compare
 ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type);
 

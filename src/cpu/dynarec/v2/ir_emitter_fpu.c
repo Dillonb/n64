@@ -324,9 +324,11 @@ IR_EMITTER(cp1_sqrt) {
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_sqrt_d");
+            ir_emit_float_sqrt(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
+            break;
         case FP_FMT_SINGLE:
-            logfatal("mips_cp_sqrt_s");
+            ir_emit_float_sqrt(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
+            break;
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -338,9 +340,11 @@ IR_EMITTER(cp1_abs) {
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_abs_d");
+            ir_emit_float_abs(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
+            break;
         case FP_FMT_SINGLE:
-            logfatal("mips_cp_abs_s");
+            ir_emit_float_abs(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
+            break;
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -367,9 +371,11 @@ IR_EMITTER(cp1_neg) {
     logwarn("TODO: check cp1 enabled");
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_neg_d");
+            ir_emit_float_neg(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
+            break;
         case FP_FMT_SINGLE:
-            logfatal("mips_cp_neg_s");
+            ir_emit_float_neg(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
+            break;
         default:
             logfatal("mips_cp1_invalid");
     }

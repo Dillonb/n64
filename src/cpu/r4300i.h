@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h>
+#include <stdalign.h>
 
 #include <util.h>
 #include <log.h>
@@ -602,6 +603,11 @@ typedef struct r4300i {
 
     // Did an exception just happen?
     bool exception;
+
+    // Consts for the JIT
+    alignas(16) u32 s_neg[4];
+    alignas(16) u64 d_neg[2];
+
 } r4300i_t;
 
 extern r4300i_t* n64cpu_ptr;
