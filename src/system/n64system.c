@@ -252,6 +252,20 @@ INLINE int interpreter_system_step(const int cycles) {
     }
     cpu_steps += taken;
 
+#ifdef INSTANT_DMA
+    if (!N64RSP.status.halt) {
+        // 2 RSP steps per 3 CPU steps
+        while (cpu_steps > 2) {
+            N64RSP.steps += 2;
+            cpu_steps -= 3;
+        }
+
+        rsp_dynarec_run();
+    } else {
+        N64RSP.steps = 0;
+        cpu_steps = 0;
+    }
+#else
     if (N64RSP.status.halt) {
         cpu_steps = 0;
         N64RSP.steps = 0;
@@ -263,6 +277,7 @@ INLINE int interpreter_system_step(const int cycles) {
         }
         rsp_run();
     }
+#endif
 
     return taken;
 }
