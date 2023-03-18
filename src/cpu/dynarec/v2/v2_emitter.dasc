@@ -811,7 +811,7 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             | div Rq(TMPREG2)
 
             | jmp >2
-              |1:
+            |1:
             // Divide by zero
             // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
             | mov rdx, rax
@@ -822,7 +822,39 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_S64:
-            logfatal("s64 divide");
+            if (operand1_alloc.spilled) {
+                | mov rax, qword [rsp + operand1]
+            } else {
+                | mov rax, Rq(operand1)
+            }
+            | cqo
+
+            if (operand2_alloc.spilled) {
+                | mov Rq(TMPREG2), qword [rsp + operand2]
+            } else {
+                | mov Rq(TMPREG2), Rq(operand2)
+            }
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1
+            | idiv Rq(TMPREG2)
+
+            | jmp >2
+            |1:
+            // Divide by zero
+            // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
+            | mov rdx, rax
+            // If divisor is negative
+            | test rax, rax
+            | js >3
+            | mov rax, -1
+            | jmp >2
+            |3:
+            | mov rax, 1
+            |2:
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
     }
 }
 
