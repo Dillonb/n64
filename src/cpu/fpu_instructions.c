@@ -248,7 +248,7 @@ void set_cause_cvt_l_s(float f) {
     }
 }
 
-void set_cause_cvt_l_d(float d) {
+void set_cause_cvt_l_d(double d) {
     switch (fpclassify(d)) {
         case FP_NAN:
         case FP_INFINITE:
