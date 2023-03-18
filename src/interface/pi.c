@@ -193,7 +193,6 @@ void write_word_pireg(u32 address, u32 value) {
 #else
             scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
 #endif
-            on_pi_dma_complete();
 
             logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = dram_addr + length;
