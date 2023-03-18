@@ -1456,6 +1456,7 @@ void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
             logfatal("Invalid 16 bit mov gpr, fgr");
         CASE_SIZE_32:
             | movd Rd(dst), xmm(src)
+            | movsxd Rq(dst), Rd(dst)
             break;
         CASE_SIZE_64:
             | movd Rq(dst), xmm(src)
