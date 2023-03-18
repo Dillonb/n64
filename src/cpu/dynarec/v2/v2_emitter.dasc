@@ -1410,8 +1410,12 @@ void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
 }
 
 void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
-    int dst = check_gpr(dst_reg, false);
+    int dst = check_gpr(dst_reg, true);
     int src = check_fgr(src_reg, false);
+
+    if (dst_reg.spilled) {
+        dst = TMPREG1;
+    }
 
     switch (size) {
         CASE_SIZE_8:
@@ -1424,6 +1428,10 @@ void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
         CASE_SIZE_64:
             | movd Rq(dst), xmm(src)
             break;
+    }
+
+    if (dst_reg.spilled) {
+        | mov qword [rsp + dst_reg.spill_location], Rq(TMPREG1)
     }
 }
 
