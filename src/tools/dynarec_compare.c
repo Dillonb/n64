@@ -19,6 +19,43 @@ r4300i_t* n64cpu_interpreter_ptr;
 int mq_jit_to_interp_id = -1;
 int mq_interp_to_jit_id = -1;
 
+int joybus_shmem_id = -1;
+int cpu_shmem_id = -1;
+
+int cleanup_mq(int mq_id) {
+    if (mq_id == -1) {
+        return 0;
+    }
+
+    return msgctl(mq_id, IPC_RMID, 0);
+}
+
+int cleanup_shmem(int shmem_id) {
+    if (shmem_id == -1) {
+        return 0;
+    }
+    return shmctl(shmem_id, IPC_RMID, 0);
+}
+
+void cleanup_resources() {
+    logalways("parent atexit: cleaning up IPC resources");
+    if (cleanup_mq(mq_jit_to_interp_id) == -1) {
+        perror("remove mq_jit_to_interp_id");
+    }
+
+    if (cleanup_mq(mq_interp_to_jit_id) == -1) {
+        perror("remove mq_interp_to_jit_id");
+    }
+
+    if (cleanup_shmem(joybus_shmem_id) == -1) {
+        perror("remove joybus_shmem_id");
+    }
+
+    if (cleanup_shmem(cpu_shmem_id) == -1) {
+        perror("remove cpu_shmem_id");
+    }
+}
+
 struct num_cycles_msg {
     long mtype;
     int cycles;
@@ -236,10 +273,10 @@ int main(int argc, char** argv) {
     key_t mq_interp_to_jit_key = ftok(argv[0], 3);
     mq_interp_to_jit_id = create_and_configure_mq(mq_interp_to_jit_key);
 
-    int cpu_shmem_id = shmget(cpu_shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
+    cpu_shmem_id = shmget(cpu_shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
     n64cpu_interpreter_ptr = shmat(cpu_shmem_id, NULL, 0);
 
-    int joybus_shmem_id = shmget(joybus_shmem_key, sizeof(n64_joybus_device_t) * 6, IPC_CREAT | 0777);
+    joybus_shmem_id = shmget(joybus_shmem_key, sizeof(n64_joybus_device_t) * 6, IPC_CREAT | 0777);
     n64_joybus_device_t* joybus_override = shmat(joybus_shmem_id, NULL, 0);
     memset(joybus_override, 0, sizeof(n64_joybus_device_t) * 6);
     override_joybus_devices_ptr(joybus_override);
@@ -249,6 +286,11 @@ int main(int argc, char** argv) {
 
     if (is_child) {
         n64cpu_ptr = n64cpu_interpreter_ptr;
+    } else {
+        int res = atexit(cleanup_resources);
+        if (res) {
+            perror("atexit");
+        }
     }
 
     init_n64system(rom_path, true, false, VULKAN_VIDEO_TYPE, false);
