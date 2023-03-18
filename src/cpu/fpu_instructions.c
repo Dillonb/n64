@@ -200,7 +200,8 @@ INLINE void set_cause_cvt_w_s(float f) {
             break;
 
         case FP_NORMAL:
-            if (f >= 0x1p+31f || f < -0x1p+31f) {
+            // Check overflow
+            if (f >= 2147483648.0 || f < -2147483648.0) {
                 set_cause_unimplemented_operation();
             }
             break;
@@ -219,7 +220,8 @@ INLINE void set_cause_cvt_w_d(double d) {
             break;
 
         case FP_NORMAL:
-            if (d >= 0x1p+31 || d < -0x1p+31) {
+            // Check overflow
+            if (d >= 2147483648.0 || d < -2147483648.0) {
                 set_cause_unimplemented_operation();
             }
             break;
@@ -238,7 +240,8 @@ void set_cause_cvt_l_s(float f) {
             break;
 
         case FP_NORMAL:
-            if (f >= 0x1p+53f || f < -0x1p+53f) {
+            // Check overflow
+            if (f >= 9007199254740992.000000 || f <= -9007199254740992.000000) {
                 set_cause_unimplemented_operation();
             }
             break;
@@ -257,7 +260,8 @@ void set_cause_cvt_l_d(double d) {
             break;
 
         case FP_NORMAL:
-            if (d >= 0x1p+53 || d < -0x1p+53) {
+            // Check overflow
+            if (d >= 9007199254740992.000000 || d <= -9007199254740992.000000) {
                 set_cause_unimplemented_operation();
             }
             break;
@@ -273,7 +277,7 @@ void set_cause_cvt_l_d(double d) {
 #define check_cvt_arg_w_d(d) do { assert_is_double(d); set_cause_cvt_w_d(d); check_fpu_exception(); } while(0)
 #endif
 
-#define check_round(a, b) do { if (a != b) { set_cause_inexact_operation(); } check_fpu_exception(); } while(0);
+#define check_round(a, b) do { if ((a) != (b)) { set_cause_inexact_operation(); } check_fpu_exception(); } while(0);
 
 #define FPU_OP_S(op) do {                                    \
     checkcp1;                                                \
