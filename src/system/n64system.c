@@ -333,7 +333,9 @@ int n64_system_step(bool dynarec, int steps) {
         n64sys.vi.halfline = 0;
         n64sys.vi.field++;
         check_vi_intr = true;
-        rdp_update_screen();
+        if (n64sys.video_type != UNKNOWN_VIDEO_TYPE) {
+            rdp_update_screen();
+        }
     }
 
     if (n64sys.vi.field > n64sys.vi.num_fields) {

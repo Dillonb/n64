@@ -106,6 +106,7 @@ void run_testcase(const char *filename, mipsinstr_handler_t instr) {
 }
 
 int main(int argc, char** argv) {
+    n64cpu_ptr = malloc(sizeof(r4300i_t));
     run_testcase("addi.testcase",   &mips_addi);
     run_testcase("bgezal.testcase", &mips_ri_bgezal);
     run_testcase("bltz.testcase",   &mips_ri_bltz);
@@ -146,6 +147,9 @@ int main(int argc, char** argv) {
     run_testcase("multu.testcase",  &mips_spc_multu);
     run_testcase("slt.testcase",    &mips_spc_slt);
     run_testcase("xor.testcase",    &mips_spc_xor);
+
+    free(n64cpu_ptr);
+    n64cpu_ptr = NULL;
 
     if (tests_failed) {
         logdie("Tests failed: %d", tests_failed);
