@@ -139,6 +139,8 @@ bool compare() {
     good &= n64cpu_interpreter_ptr->cp0.tag_hi == n64cpu_ptr->cp0.tag_hi;
     good &= n64cpu_interpreter_ptr->cp0.error_epc == n64cpu_ptr->cp0.error_epc;
 
+    good &= n64cpu_interpreter_ptr->fcr31.raw == n64cpu_ptr->fcr31.raw;
+
     return good;
 }
 
@@ -191,6 +193,8 @@ void print_state() {
     print_colorcoded_u64("cp0 tag_lo", n64cpu_interpreter_ptr->cp0.tag_lo, N64CPU.cp0.tag_lo);
     print_colorcoded_u64("cp0 tag_hi", n64cpu_interpreter_ptr->cp0.tag_hi, N64CPU.cp0.tag_hi);
     print_colorcoded_u64("cp0 error_epc", n64cpu_interpreter_ptr->cp0.error_epc, N64CPU.cp0.error_epc);
+    printf("\n");
+    print_colorcoded_u64("cp1 fcr31", n64cpu_interpreter_ptr->fcr31.raw, N64CPU.fcr31.raw);
 
     /*
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
