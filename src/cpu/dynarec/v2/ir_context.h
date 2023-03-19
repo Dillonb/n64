@@ -180,6 +180,12 @@ INLINE bool reg_alloc_equal(ir_register_allocation_t a, ir_register_allocation_t
     return false;
 }
 
+typedef struct dynarec_exception {
+    u8 code;
+    u64 virtual_address;
+    int coprocessor_error;
+} dynarec_exception_t;
+
 typedef struct ir_instruction {
     // Metadata
     struct ir_instruction* next;
@@ -299,6 +305,8 @@ typedef struct ir_instruction {
             ir_instruction_flush_t* regs_to_flush;
             struct ir_instruction* condition;
             int block_length;
+            bool has_exception;
+            dynarec_exception_t exception;
         } cond_block_exit;
         struct {
             struct ir_instruction* operand1;
@@ -308,7 +316,7 @@ typedef struct ir_instruction {
         struct {
             uintptr_t function;
             int num_args;
-            struct ir_instruction* arguments[2];
+            struct ir_instruction* arguments[3];
         } call;
         struct {
             struct ir_instruction* value;
@@ -358,6 +366,8 @@ typedef struct ir_context {
 
     bool block_end_pc_ir_emitted;
     bool block_end_pc_compiled;
+
+    bool cp1_checked;
 } ir_context_t;
 
 extern ir_context_t ir_context;
@@ -409,6 +419,8 @@ ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instructi
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
 // exit the block early if the condition is true
 ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index);
+// exit the block early with an exception if the condition is true
+ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* condition, int index, dynarec_exception_t exception);
 // set the block exit pc
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 // fall back to the interpreter for the next num_instructions instructions
@@ -427,6 +439,8 @@ void ir_emit_call_0(uintptr_t function);
 void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg);
 // Call a function with two arguments. Result ignored.
 void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2);
+// Call a function with three arguments. Result ignored.
+void ir_emit_call_3(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2, ir_instruction_t* arg3);
 // Move a value to a different register type
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
 // convert a float value to a different float value type

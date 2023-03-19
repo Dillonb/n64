@@ -11,38 +11,56 @@ void emit_ir_cvt(mips_instruction_t instruction, ir_float_value_type_t from, ir_
 
 #define CVT(from, to, mode) case FP_FMT_##from: emit_ir_cvt(instruction, FLOAT_VALUE_TYPE_##from, FLOAT_VALUE_TYPE_##to, FLOAT_CONVERT_MODE_##mode); break
 
+IR_EMITTER(check_cp1) {
+    // Only emit this check once per block.
+    if (!ir_context.cp1_checked) {
+        ir_instruction_t* mask = ir_emit_set_constant_u32(STATUS_CU1_MASK, NO_GUEST_REG);
+        ir_instruction_t* zero = ir_emit_set_constant_u32(0, NO_GUEST_REG);
+
+        ir_instruction_t* status = ir_emit_get_ptr(VALUE_TYPE_U32, &N64CP0.status.raw, NO_GUEST_REG);
+        ir_instruction_t* status_masked = ir_emit_and(status, mask, NO_GUEST_REG);
+
+        ir_instruction_t* cond_cp1_disabled = ir_emit_check_condition(CONDITION_EQUAL, status_masked, zero, NO_GUEST_REG);
+        dynarec_exception_t cop1_unusable;
+        cop1_unusable.virtual_address = virtual_address;
+        cop1_unusable.code = EXCEPTION_COPROCESSOR_UNUSABLE;
+        cop1_unusable.coprocessor_error = 1;
+        ir_emit_conditional_block_exit_exception(cond_cp1_disabled, index, cop1_unusable);
+
+        ir_context.cp1_checked = true;
+    }
+}
+
+#define ir_check_cp1 CALL_IR_EMITTER_NOBREAK(check_cp1)
+
 IR_EMITTER(ldc1) {
-    //checkcp1; // TODO: check cp1 is enabled
-    logwarn("LDC1: TODO: Check CP1 is enabled");
+    ir_check_cp1;
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_emit_load(VALUE_TYPE_U64, address, IR_FGR(instruction.fi.ft));
 }
 
 IR_EMITTER(sdc1) {
-    //checkcp1; // TODO: check cp1 is enabled
-    logwarn("SDC1: TODO: Check CP1 is enabled");
+    ir_check_cp1;
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fi.ft), FLOAT_VALUE_TYPE_LONG);
     ir_emit_store(VALUE_TYPE_U64, address, value);
 }
 
 IR_EMITTER(lwc1) {
-    //checkcp1; // TODO: check cp1 is enabled
-    logwarn("LWC1: TODO: Check CP1 is enabled");
+    ir_check_cp1;
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
     ir_emit_load(VALUE_TYPE_U32, address, IR_FGR(instruction.fi.ft));
 }
 
 IR_EMITTER(swc1) {
-    logwarn("SWC1: TODO: Check CP1 is enabled");
+    ir_check_cp1;
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fi.ft), FLOAT_VALUE_TYPE_WORD);
     ir_emit_store(VALUE_TYPE_U32, address, value);
 }
 
 IR_EMITTER(cfc1) {
-    //checkcp1; // TODO: check cp1 is enabled
-    logwarn("CFC1: TODO: Check CP1 is enabled");
+    ir_check_cp1;
     u8 fs = instruction.r.rd;
     switch (fs) {
         case 0:
@@ -57,8 +75,7 @@ IR_EMITTER(cfc1) {
 }
 
 IR_EMITTER(ctc1) {
-    logwarn("CTC1: TODO: Check CP1 is enabled");
-    //checkcp1; // TODO: check cp1 is enabled
+    ir_check_cp1;
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
     u8 fs = instruction.r.rd;
     switch (fs) {
@@ -111,7 +128,7 @@ IR_EMITTER(bc1fl) {
 }
 
 IR_EMITTER(mfc1) {
-    logwarn("TODO: MFC1: check CP1 is enabled");
+    ir_check_cp1;
     u32* reg_ptr = get_fpu_register_ptr_word_fr(instruction.fr.fs);
     ir_instruction_t* existing_value = ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)];
     if (ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)]) {
@@ -122,7 +139,7 @@ IR_EMITTER(mfc1) {
 }
 
 IR_EMITTER(dmfc1) {
-    logwarn("TODO: DMFC1: check CP1 is enabled");
+    ir_check_cp1;
     u64* reg_ptr = get_fpu_register_ptr_dword_fr(instruction.fr.fs);
     ir_instruction_t* existing_value = ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)];
     if (existing_value != NULL) {
@@ -133,8 +150,7 @@ IR_EMITTER(dmfc1) {
 }
 
 IR_EMITTER(mtc1) {
-    logwarn("TODO: check CP1 is enabled");
-    //checkcp1;
+    ir_check_cp1;
     ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
     u32* reg_ptr = get_fpu_register_ptr_word_fr(instruction.r.rd);
     ir_emit_set_ptr(VALUE_TYPE_U32, reg_ptr, value);
@@ -142,8 +158,7 @@ IR_EMITTER(mtc1) {
 }
 
 IR_EMITTER(dmtc1) {
-    logwarn("TODO: check CP1 is enabled");
-    //checkcp1;
+    ir_check_cp1;
     ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
     u64* reg_ptr = get_fpu_register_ptr_dword_fr(instruction.r.rd);
     ir_emit_set_ptr(VALUE_TYPE_U64, reg_ptr, value);
@@ -151,8 +166,7 @@ IR_EMITTER(dmtc1) {
 }
 
 IR_EMITTER(cp1_add) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_add(
@@ -174,8 +188,7 @@ IR_EMITTER(cp1_add) {
 }
 
 IR_EMITTER(cp1_sub) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_sub(
@@ -197,8 +210,7 @@ IR_EMITTER(cp1_sub) {
 }
 
 IR_EMITTER(cp1_mult) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_mult(
@@ -220,8 +232,7 @@ IR_EMITTER(cp1_mult) {
 }
 
 IR_EMITTER(cp1_div) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_div(
@@ -243,8 +254,7 @@ IR_EMITTER(cp1_div) {
 }
 
 IR_EMITTER(cp1_trunc_l) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_trunc_l_d");
@@ -256,8 +266,7 @@ IR_EMITTER(cp1_trunc_l) {
 }
 
 IR_EMITTER(cp1_round_l) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_round_l_d");
@@ -269,8 +278,7 @@ IR_EMITTER(cp1_round_l) {
 }
 
 IR_EMITTER(cp1_trunc_w) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         CVT(DOUBLE, WORD, TRUNC);
         CVT(SINGLE, WORD, TRUNC);
@@ -280,8 +288,7 @@ IR_EMITTER(cp1_trunc_w) {
 }
 
 IR_EMITTER(cp1_floor_w) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         CVT(DOUBLE, WORD, FLOOR);
         CVT(SINGLE, WORD, FLOOR);
@@ -291,8 +298,7 @@ IR_EMITTER(cp1_floor_w) {
 }
 
 IR_EMITTER(cp1_round_w) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         CVT(DOUBLE, WORD, ROUND);
         CVT(SINGLE, WORD, ROUND);
@@ -302,8 +308,7 @@ IR_EMITTER(cp1_round_w) {
 }
 
 IR_EMITTER(cp1_cvt_d) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         CVT(SINGLE, DOUBLE, CONVERT);
         CVT(WORD,   DOUBLE, CONVERT);
@@ -314,8 +319,7 @@ IR_EMITTER(cp1_cvt_d) {
 }
 
 IR_EMITTER(cp1_cvt_l) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         CVT(DOUBLE, LONG, CONVERT);
         CVT(SINGLE, LONG, CONVERT);
@@ -325,8 +329,7 @@ IR_EMITTER(cp1_cvt_l) {
 }
 
 IR_EMITTER(cp1_cvt_s) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         CVT(DOUBLE, SINGLE, CONVERT);
         CVT(WORD,   SINGLE, CONVERT);
@@ -337,8 +340,7 @@ IR_EMITTER(cp1_cvt_s) {
 }
 
 IR_EMITTER(cp1_cvt_w) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         CVT(DOUBLE, WORD, CONVERT);
         CVT(SINGLE, WORD, CONVERT);
@@ -348,8 +350,7 @@ IR_EMITTER(cp1_cvt_w) {
 }
 
 IR_EMITTER(cp1_sqrt) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_sqrt(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
@@ -364,8 +365,7 @@ IR_EMITTER(cp1_sqrt) {
 }
 
 IR_EMITTER(cp1_abs) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_abs(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
@@ -380,8 +380,7 @@ IR_EMITTER(cp1_abs) {
 }
 
 IR_EMITTER(cp1_mov) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
         case FP_FMT_SINGLE:
@@ -393,8 +392,7 @@ IR_EMITTER(cp1_mov) {
 }
 
 IR_EMITTER(cp1_neg) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_neg(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
@@ -408,8 +406,7 @@ IR_EMITTER(cp1_neg) {
 }
 
 IR_EMITTER(cp1_c_f) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_f_d");
@@ -421,8 +418,7 @@ IR_EMITTER(cp1_c_f) {
 }
 
 IR_EMITTER(cp1_c_un) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_un_d");
@@ -434,8 +430,7 @@ IR_EMITTER(cp1_c_un) {
 }
 
 IR_EMITTER(cp1_c_eq) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_check_condition(
@@ -457,8 +452,7 @@ IR_EMITTER(cp1_c_eq) {
 }
 
 IR_EMITTER(cp1_c_ueq) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_ueq_d");
@@ -470,8 +464,7 @@ IR_EMITTER(cp1_c_ueq) {
 }
 
 IR_EMITTER(cp1_c_olt) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_olt_d");
@@ -483,8 +476,7 @@ IR_EMITTER(cp1_c_olt) {
 }
 
 IR_EMITTER(cp1_c_ult) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_ult_d");
@@ -496,8 +488,7 @@ IR_EMITTER(cp1_c_ult) {
 }
 
 IR_EMITTER(cp1_c_ole) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_ole_d");
@@ -509,8 +500,7 @@ IR_EMITTER(cp1_c_ole) {
 }
 
 IR_EMITTER(cp1_c_ule) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_ule_d");
@@ -522,8 +512,7 @@ IR_EMITTER(cp1_c_ule) {
 }
 
 IR_EMITTER(cp1_c_sf) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_sf_d");
@@ -535,8 +524,7 @@ IR_EMITTER(cp1_c_sf) {
 }
 
 IR_EMITTER(cp1_c_ngle) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_ngle_d");
@@ -548,8 +536,7 @@ IR_EMITTER(cp1_c_ngle) {
 }
 
 IR_EMITTER(cp1_c_seq) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_seq_d");
@@ -561,8 +548,7 @@ IR_EMITTER(cp1_c_seq) {
 }
 
 IR_EMITTER(cp1_c_ngl) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             logfatal("mips_cp_c_ngl_d");
@@ -574,8 +560,7 @@ IR_EMITTER(cp1_c_ngl) {
 }
 
 IR_EMITTER(cp1_c_lt) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_check_condition(
@@ -597,8 +582,7 @@ IR_EMITTER(cp1_c_lt) {
 }
 
 IR_EMITTER(cp1_c_nge) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_check_condition(
@@ -620,8 +604,7 @@ IR_EMITTER(cp1_c_nge) {
 }
 
 IR_EMITTER(cp1_c_le) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_check_condition(
@@ -643,8 +626,7 @@ IR_EMITTER(cp1_c_le) {
 }
 
 IR_EMITTER(cp1_c_ngt) {
-    //checkcp1;
-    logwarn("TODO: check cp1 enabled");
+    ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_check_condition(

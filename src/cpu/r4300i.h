@@ -273,6 +273,7 @@ typedef enum bus_access {
 
 #define STATUS_EXL_MASK (1 << 1)
 #define STATUS_ERL_MASK (1 << 2)
+#define STATUS_CU1_MASK (1 << 29)
 typedef union cp0_status {
     u32 raw;
     struct {

@@ -1420,10 +1420,37 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
     | block_epilogue
 }
 
-void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length) {
+void imm_to_func_arg(dasm_State** Dst, ir_set_constant_t val, int arg_index) {
+    host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[arg_index]), val);
+}
+
+
+void host_emit_exception_to_args(dasm_State** Dst, dynarec_exception_t exception) {
+    ir_set_constant_t pc;
+    pc.type = VALUE_TYPE_S64;
+    pc.value_s64 = exception.virtual_address;
+
+    ir_set_constant_t code;
+    code.type = VALUE_TYPE_U8;
+    code.value_u8 = exception.code;
+
+    ir_set_constant_t cop_err;
+    cop_err.type = VALUE_TYPE_S8;
+    cop_err.value_s8 = exception.coprocessor_error;
+
+    imm_to_func_arg(Dst, pc, 0);
+    imm_to_func_arg(Dst, code, 1);
+    imm_to_func_arg(Dst, cop_err, 2);
+}
+
+void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length, bool has_exception, dynarec_exception_t exception) {
     int cond_reg = check_reg(cond_reg_alloc, false);
     | test Rq(cond_reg), Rq(cond_reg)
     | jz >1
+    if (has_exception) {
+        host_emit_exception_to_args(Dst, exception);
+        host_emit_call(Dst, (uintptr_t)r4300i_handle_exception);
+    }
     host_emit_ret(Dst, flush_iter, block_length);
     |1:
 }

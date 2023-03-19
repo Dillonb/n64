@@ -48,7 +48,8 @@ void host_emit_mov_reg_cp0(dasm_State** Dst, ir_register_allocation_t reg_alloc,
 void host_emit_mov_cp0_imm(dasm_State** Dst, int cp0_reg, ir_set_constant_t value);
 void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, ir_register_allocation_t reg_alloc);
 void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int block_length);
-void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length);
+void host_emit_exception_to_args(dasm_State** Dst, dynarec_exception_t exception);
+void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length, bool has_exception, dynarec_exception_t exception);
 
 void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size);
 void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size);

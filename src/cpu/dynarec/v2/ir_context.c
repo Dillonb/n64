@@ -32,6 +32,8 @@ void ir_context_reset() {
 
     ir_context.block_end_pc_compiled = false;
     ir_context.block_end_pc_ir_emitted = false;
+
+    ir_context.cp1_checked = false;
 }
 
 const char* val_type_to_str(ir_value_type_t type) {
@@ -695,13 +697,15 @@ ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condit
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index) {
+ir_instruction_t* ir_emit_conditional_block_exit_internal(ir_instruction_t* condition, int index, bool has_exception, dynarec_exception_t exception) {
     ir_instruction_t instruction;
     instruction.type = IR_COND_BLOCK_EXIT;
     instruction.cond_block_exit.condition = condition;
     instruction.cond_block_exit.block_length = index + 1;
     instruction.cond_block_exit.regs_to_flush = NULL;
-    unimplemented(!ir_context.block_end_pc_ir_emitted, "Conditionally exiting block without knowing what PC should be");
+    instruction.cond_block_exit.has_exception = has_exception;
+    instruction.cond_block_exit.exception = exception;
+    unimplemented(!ir_context.block_end_pc_ir_emitted && !has_exception, "Conditionally exiting block without knowing what PC should be");
 
     for (int i = 1; i < 64; i++) {
         ir_instruction_t* gpr_value = ir_context.guest_reg_to_value[i];
@@ -720,6 +724,15 @@ ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, in
     }
 
     return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index) {
+    dynarec_exception_t no_exception = {0};
+    return ir_emit_conditional_block_exit_internal(condition, index, false, no_exception);
+}
+
+ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* condition, int index, dynarec_exception_t exception) {
+    return ir_emit_conditional_block_exit_internal(condition, index, true, exception);
 }
 
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {
@@ -791,6 +804,17 @@ void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t
     instruction.call.num_args = 2;
     instruction.call.arguments[0] = arg1;
     instruction.call.arguments[1] = arg2;
+    append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+void ir_emit_call_3(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2, ir_instruction_t* arg3) {
+    ir_instruction_t instruction;
+    instruction.type = IR_CALL;
+    instruction.call.function = function;
+    instruction.call.num_args = 3;
+    instruction.call.arguments[0] = arg1;
+    instruction.call.arguments[1] = arg2;
+    instruction.call.arguments[2] = arg2;
     append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
