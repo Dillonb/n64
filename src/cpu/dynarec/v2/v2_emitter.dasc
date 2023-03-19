@@ -161,7 +161,10 @@ int check_gpr(ir_register_allocation_t reg, bool spill_ok) {
 }
 
 void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm_value) {
-    int reg = check_reg(reg_alloc, false);
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        reg = TMPREG1;
+    }
     switch (imm_value.type) {
         case VALUE_TYPE_U8:
             | mov Rq(reg), imm_value.value_u8
@@ -190,6 +193,9 @@ void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc,
         case VALUE_TYPE_S64:
             | mov64 Rq(reg), imm_value.value_s64
             break;
+    }
+    if (reg_alloc.spilled) {
+        | mov qword [rsp + reg_alloc.spill_location], Rq(TMPREG1)
     }
 }
 
@@ -585,7 +591,12 @@ void host_emit_bitwise_not(dasm_State** Dst, ir_register_allocation_t reg_alloc)
 }
 
 void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t multiplicand_type) {
-    int reg = check_reg(reg_alloc, false);
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        reg = TMPREG2;
+        host_emit_mov_reg_reg(Dst, TMPREG2_ALLOC, reg_alloc, VALUE_TYPE_U64);
+    }
+
     u64 imm_value = set_const_to_u64(imm);
     switch (multiplicand_type) {
         case VALUE_TYPE_U8:
