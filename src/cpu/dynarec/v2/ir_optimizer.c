@@ -115,7 +115,35 @@ u64 set_const_to_u64(ir_set_constant_t constant) {
 }
 
 u64 const_to_u64(ir_instruction_t* constant) {
+    unimplemented(constant->type != IR_SET_CONSTANT, "const_to_u64 on non-IR_SET_CONSTANT instruction");
     return set_const_to_u64(constant->set_constant);
+}
+
+u64 set_float_const_to_u64(ir_set_float_constant_t constant) {
+    u64 result = 0;
+    switch (constant.format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("set_float_const_to_u64 FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("set_float_const_to_u64 FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            result = constant.value_long;
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            logfatal("set_float_const_to_u64 FLOAT_VALUE_TYPE_SINGLE");
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            logfatal("set_float_const_to_u64 FLOAT_VALUE_TYPE_DOUBLE");
+            break;
+    }
+    return result;
+}
+
+u64 float_const_to_u64(ir_instruction_t* constant) {
+    unimplemented(constant->type != IR_SET_FLOAT_CONSTANT, "float_const_to_u64 on non-IR_SET_FLOAT_CONSTANT instruction");
+    return set_float_const_to_u64(constant->set_float_constant);
 }
 
 ir_instruction_t* last_value_usage(ir_instruction_t* value) {
@@ -178,7 +206,7 @@ void ir_optimize_constant_propagation() {
                             logfatal("new_type cannot be REGISTER_TYPE_NONE");
                             break;
                         case REGISTER_TYPE_GPR:
-                            logfatal("new_type cannot be mov_reg_type from GPR to GPR?");
+                            logfatal("mov_reg_type from GPR to GPR?");
                             break;
                         case REGISTER_TYPE_FGR_32:
                             instr->type = IR_SET_FLOAT_CONSTANT;
@@ -192,7 +220,23 @@ void ir_optimize_constant_propagation() {
                             break;
                     }
                 } else if (float_is_constant(instr->mov_reg_type.value)) {
-                    logfatal("Constant propagation for IR_MOV_REG_TYPE: existing type == FGR");
+                    u64 bin_const_val = float_const_to_u64(instr->mov_reg_type.value);
+                    switch (instr->mov_reg_type.new_type) {
+                        case REGISTER_TYPE_NONE:
+                            logfatal("new_type cannot be REGISTER_TYPE_NONE");
+                            break;
+                        case REGISTER_TYPE_GPR:
+                            instr->type = IR_SET_CONSTANT;
+                            instr->set_constant.type = VALUE_TYPE_U64;
+                            instr->set_constant.value_u64 = bin_const_val;
+                            break;
+                        case REGISTER_TYPE_FGR_32:
+                            logfatal("Constant propagation for mov_reg_type from FGR to FGR_32");
+                            break;
+                        case REGISTER_TYPE_FGR_64:
+                            logfatal("Constant propagation for mov_reg_type from FGR to FGR_32");
+                            break;
+                    }
                 }
                 break;
 
@@ -463,7 +507,7 @@ void ir_optimize_constant_propagation() {
                 break;
             case IR_FLOAT_CONVERT:
                 if (float_is_constant(instr->float_convert.value)) {
-                    logfatal("Constant propagation for IR_FLOAT_CONVERT");
+                    logwarn("Constant propagation for IR_FLOAT_CONVERT");
                 }
                 break;
             case IR_FLOAT_MULTIPLY:

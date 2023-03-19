@@ -41,6 +41,9 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value);
 u64 set_const_to_u64(ir_set_constant_t constant);
 u64 const_to_u64(ir_instruction_t* constant);
 
+u64 set_float_const_to_u64(ir_set_float_constant_t constant);
+u64 float_const_to_u64(ir_instruction_t* constant);
+
 void ir_optimize_flush_guest_regs();
 void ir_optimize_constant_propagation();
 void ir_optimize_eliminate_dead_code();
