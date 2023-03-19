@@ -1399,11 +1399,11 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
                 type = VALUE_TYPE_U64;
                 break;
             case REGISTER_TYPE_FGR_32:
-                dest = get_fpu_register_ptr_word_fr(guest_reg - IR_FGR_BASE);
+                dest = (uintptr_t)get_fpu_register_ptr_word_fr(guest_reg - IR_FGR_BASE);
                 type = VALUE_TYPE_U32;
                 break;
             case REGISTER_TYPE_FGR_64:
-                dest = get_fpu_register_ptr_dword_fr(guest_reg - IR_FGR_BASE);
+                dest = (uintptr_t)get_fpu_register_ptr_dword_fr(guest_reg - IR_FGR_BASE);
                 type = VALUE_TYPE_U64;
                 break;
         }

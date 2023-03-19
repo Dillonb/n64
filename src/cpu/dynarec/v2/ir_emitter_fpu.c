@@ -1,5 +1,6 @@
 #include <r4300i.h>
 #include <disassemble.h>
+#include <r4300i_register_access.h>
 #include "ir_emitter_fpu.h"
 #include "ir_context.h"
 
@@ -111,28 +112,42 @@ IR_EMITTER(bc1fl) {
 
 IR_EMITTER(mfc1) {
     logwarn("TODO: MFC1: check CP1 is enabled");
-    ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_WORD);
-    ir_emit_mov_reg_type(value, REGISTER_TYPE_GPR, VALUE_TYPE_S32, IR_GPR(instruction.r.rt));
+    u32* reg_ptr = get_fpu_register_ptr_word_fr(instruction.fr.fs);
+    ir_instruction_t* existing_value = ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)];
+    if (ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)]) {
+        ir_emit_flush_guest_reg(existing_value, existing_value, IR_FGR(instruction.fr.fs));
+        ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)] = NULL;
+    }
+    ir_emit_get_ptr(VALUE_TYPE_S32, reg_ptr, IR_GPR(instruction.r.rt));
 }
 
 IR_EMITTER(dmfc1) {
     logwarn("TODO: DMFC1: check CP1 is enabled");
-    ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_LONG);
-    ir_emit_mov_reg_type(value, REGISTER_TYPE_GPR, VALUE_TYPE_U64, IR_GPR(instruction.r.rt));
+    u64* reg_ptr = get_fpu_register_ptr_dword_fr(instruction.fr.fs);
+    ir_instruction_t* existing_value = ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)];
+    if (existing_value != NULL) {
+        ir_emit_flush_guest_reg(existing_value, existing_value, IR_FGR(instruction.fr.fs));
+        ir_context.guest_reg_to_value[IR_FGR(instruction.fr.fs)] = NULL;
+    }
+    ir_emit_get_ptr(VALUE_TYPE_U64, reg_ptr, IR_GPR(instruction.r.rt));
 }
 
 IR_EMITTER(mtc1) {
     logwarn("TODO: check CP1 is enabled");
     //checkcp1;
     ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
-    ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR_32, VALUE_TYPE_U32, IR_FGR(instruction.r.rd));
+    u32* reg_ptr = get_fpu_register_ptr_word_fr(instruction.r.rd);
+    ir_emit_set_ptr(VALUE_TYPE_U32, reg_ptr, value);
+    ir_context.guest_reg_to_value[IR_FGR(instruction.r.rd)] = NULL; // Force a reload
 }
 
 IR_EMITTER(dmtc1) {
     logwarn("TODO: check CP1 is enabled");
     //checkcp1;
     ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
-    ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR_64, VALUE_TYPE_U64, IR_FGR(instruction.r.rd));
+    u64* reg_ptr = get_fpu_register_ptr_dword_fr(instruction.r.rd);
+    ir_emit_set_ptr(VALUE_TYPE_U64, reg_ptr, value);
+    ir_context.guest_reg_to_value[IR_FGR(instruction.r.rd)] = NULL; // Force a reload
 }
 
 IR_EMITTER(cp1_add) {

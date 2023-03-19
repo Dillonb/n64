@@ -392,23 +392,23 @@ INLINE u64 get_cp0_register_dword(u8 r) {
     }
 }
 
-INLINE uintptr_t get_fpu_register_ptr_dword_fr(u8 r) {
+INLINE u64* get_fpu_register_ptr_dword_fr(u8 r) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
     }
 
-    return (uintptr_t)&N64CPU.f[r].raw;
+    return &N64CPU.f[r].raw;
 }
 
-INLINE uintptr_t get_fpu_register_ptr_word_fr(u8 r) {
+INLINE u32* get_fpu_register_ptr_word_fr(u8 r) {
     if (N64CPU.cp0.status.fr) {
-        return (uintptr_t)&N64CPU.f[r].lo;
+        return &N64CPU.f[r].lo;
     } else {
         if (r & 1) {
-            return (uintptr_t)&N64CPU.f[r & ~1].hi;
+            return &N64CPU.f[r & ~1].hi;
         } else {
-            return (uintptr_t)&N64CPU.f[r].lo;
+            return &N64CPU.f[r].lo;
         }
     }
 }

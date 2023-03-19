@@ -569,7 +569,7 @@ typedef union fgr {
     struct {
         u32 lo;
         u32 hi;
-    } PACKED;
+    };
 } fgr_t;
 
 ASSERTDWORD(fgr_t);
