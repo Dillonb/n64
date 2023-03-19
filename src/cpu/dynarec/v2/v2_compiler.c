@@ -401,10 +401,10 @@ void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
         } else {
             ir_register_type_t reg_type = instr->flush_guest_reg.value->reg_alloc.type;
             if (reg_type == REGISTER_TYPE_FGR_64) {
-                uintptr_t dest = get_fpu_register_ptr_dword(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
+                uintptr_t dest = get_fpu_register_ptr_dword_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
                 host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
             } else if (reg_type == REGISTER_TYPE_FGR_32) {
-                uintptr_t dest = get_fpu_register_ptr_word(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
+                uintptr_t dest = get_fpu_register_ptr_word_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
                 host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U32);
             } else {
                 logfatal("Flushing non const FPU reg with unexpected reg_type %d", reg_type);
@@ -450,11 +450,11 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
             break;
         case REGISTER_TYPE_FGR_32:
             unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_32, but register is not an FGR!");
-            host_emit_mov_reg_mem(Dst, instr->reg_alloc, get_fpu_register_ptr_word(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U32);
+            host_emit_mov_reg_mem(Dst, instr->reg_alloc, get_fpu_register_ptr_word_fr(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U32);
             break;
         case REGISTER_TYPE_FGR_64:
             unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_64, but register is not an FGR!");
-            host_emit_mov_reg_mem(Dst, instr->reg_alloc, get_fpu_register_ptr_dword(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U64);
+            host_emit_mov_reg_mem(Dst, instr->reg_alloc, get_fpu_register_ptr_dword_fr(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U64);
             break;
     }
 }

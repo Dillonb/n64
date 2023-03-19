@@ -392,7 +392,7 @@ INLINE u64 get_cp0_register_dword(u8 r) {
     }
 }
 
-INLINE uintptr_t get_fpu_register_ptr_dword(u8 r) {
+INLINE uintptr_t get_fpu_register_ptr_dword_fr(u8 r) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
@@ -401,7 +401,7 @@ INLINE uintptr_t get_fpu_register_ptr_dword(u8 r) {
     return (uintptr_t)&N64CPU.f[r].raw;
 }
 
-INLINE uintptr_t get_fpu_register_ptr_word(u8 r) {
+INLINE uintptr_t get_fpu_register_ptr_word_fr(u8 r) {
     if (N64CPU.cp0.status.fr) {
         return (uintptr_t)&N64CPU.f[r].lo;
     } else {
@@ -413,7 +413,7 @@ INLINE uintptr_t get_fpu_register_ptr_word(u8 r) {
     }
 }
 
-INLINE void set_fpu_register_dword(u8 r, u64 value) {
+INLINE void set_fpu_register_dword_fr(u8 r, u64 value) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
@@ -422,7 +422,11 @@ INLINE void set_fpu_register_dword(u8 r, u64 value) {
     N64CPU.f[r].raw = value;
 }
 
-INLINE u64 get_fpu_register_dword(u8 r) {
+INLINE void set_fpu_register_dword(u8 r, u64 value) {
+    N64CPU.f[r].raw = value;
+}
+
+INLINE u64 get_fpu_register_dword_fr(u8 r) {
     if (!N64CPU.cp0.status.fr) {
         // When this bit is not set, accessing odd registers is not allowed.
         r &= ~1;
@@ -431,31 +435,27 @@ INLINE u64 get_fpu_register_dword(u8 r) {
     return N64CPU.f[r].raw;
 }
 
-INLINE void set_fpu_register_word(u8 r, u32 value, bool preserve_upper) {
+INLINE u64 get_fpu_register_dword(u8 r) {
+    return N64CPU.f[r].raw;
+}
+
+INLINE void set_fpu_register_word_fr(u8 r, u32 value) {
     if (N64CPU.cp0.status.fr) {
-        if (preserve_upper) {
-            N64CPU.f[r].lo = value;
-        } else {
-            N64CPU.f[r].raw = value;
-        }
+        N64CPU.f[r].lo = value;
     } else {
         if (r & 1) {
-            if (preserve_upper) {
-                N64CPU.f[r & ~1].hi = value;
-            } else {
-                N64CPU.f[r & ~1].hi = value;
-            }
+            N64CPU.f[r & ~1].hi = value;
         } else {
-            if (preserve_upper) {
-                N64CPU.f[r].lo = value;
-            } else {
-                N64CPU.f[r].raw = value;
-            }
+            N64CPU.f[r].lo = value;
         }
     }
 }
 
-INLINE u32 get_fpu_register_word(u8 r) {
+INLINE void set_fpu_register_word(u8 r, u32 value) {
+    N64CPU.f[r].raw = value;
+}
+
+INLINE u32 get_fpu_register_word_fr(u8 r) {
     if (N64CPU.cp0.status.fr) {
         return N64CPU.f[r].lo;
     } else {
@@ -467,6 +467,17 @@ INLINE u32 get_fpu_register_word(u8 r) {
     }
 }
 
+INLINE u32 get_fpu_register_word_fs(u8 fs) {
+    if (!N64CP0.status.fr) {
+        fs &= ~1;
+    }
+    return N64CPU.f[fs].lo;
+}
+
+INLINE u32 get_fpu_register_word(u8 r) {
+    return N64CPU.f[r].lo;
+}
+
 INLINE void set_fpu_register_double(u8 r, double value) {
     _Static_assert(sizeof(double) == sizeof(u64), "double and dword need to both be 64 bits for this to work.");
 
@@ -475,7 +486,7 @@ INLINE void set_fpu_register_double(u8 r, double value) {
     set_fpu_register_dword(r, rawvalue);
 }
 
-INLINE double get_fpu_register_double(u8 r) {
+INLINE double get_fpu_register_double_raw(u8 r) {
     _Static_assert(sizeof(double) == sizeof(u64), "double and dword need to both be 64 bits for this to work.");
     double doublevalue;
     u64 rawvalue = get_fpu_register_dword(r);
@@ -483,20 +494,42 @@ INLINE double get_fpu_register_double(u8 r) {
     return doublevalue;
 }
 
+INLINE double get_fpu_register_double_ft(u8 ft) {
+    return get_fpu_register_double_raw(ft);
+}
+
+INLINE double get_fpu_register_double_fs(u8 fs) {
+    if (!N64CP0.status.fr) {
+        fs &= ~1;
+    }
+    return get_fpu_register_double_raw(fs);
+}
+
 INLINE void set_fpu_register_float(u8 r, float value) {
     _Static_assert(sizeof(float) == sizeof(u32), "float and word need to both be 32 bits for this to work.");
 
     u32 rawvalue;
     memcpy(&rawvalue, &value, sizeof(float));
-    set_fpu_register_word(r, rawvalue, false);
+    set_fpu_register_word(r, rawvalue);
 }
 
-INLINE float get_fpu_register_float(u8 r) {
+INLINE float get_fpu_register_float_raw(u8 fs) {
     _Static_assert(sizeof(float) == sizeof(u32), "float and word need to both be 32 bits for this to work.");
-    u32 rawvalue = get_fpu_register_word(r);
+    u32 rawvalue = get_fpu_register_word(fs);
     float floatvalue;
     memcpy(&floatvalue, &rawvalue, sizeof(float));
     return floatvalue;
+}
+
+INLINE float get_fpu_register_float_ft(u8 ft) {
+    return get_fpu_register_float_raw(ft);
+}
+
+INLINE float get_fpu_register_float_fs(u8 fs) {
+    if (!N64CP0.status.fr) {
+        fs &= ~1;
+    }
+    return get_fpu_register_float_raw(fs);
 }
 
 INLINE void link_r4300i(int reg) {
