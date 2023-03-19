@@ -130,14 +130,8 @@ dasm_State** v2_emit_run_block() {
     return Dst;
 }
 
-int check_reg(ir_register_allocation_t reg, bool spill_ok) {
-    if (!reg.allocated) {
-        logfatal("Register was not allocated!");
-    }
+int check_reg_(ir_register_allocation_t reg) {
     if (reg.spilled) {
-        if (!spill_ok) {
-            logfatal("Register is spilled and caller does not handle this!");
-        }
         unimplemented((reg.spill_location) < 0 || (reg.spill_location) > SPILL_SPACE_SIZE_BYTES, "Invalid spill location value: %d", reg.spill_location);
         return reg.spill_location;
     } else {
@@ -145,6 +139,12 @@ int check_reg(ir_register_allocation_t reg, bool spill_ok) {
         return reg.host_reg;
     }
 }
+
+#define check_reg(reg, spill_ok) ({                                                                           \
+if (!(reg).allocated) { logfatal("Register was not allocated."); }                                            \
+else if ((reg).spilled && !(spill_ok)) { logfatal("Register was spilled and caller does not handle this!"); } \
+check_reg_(reg);                                                                                              \
+})
 
 int check_fgr(ir_register_allocation_t reg, bool spill_ok) {
     if (reg.type != REGISTER_TYPE_FGR_32 && reg.type != REGISTER_TYPE_FGR_64) {
