@@ -608,6 +608,8 @@ typedef struct r4300i {
     // Consts for the JIT
     alignas(16) u32 s_neg[4];
     alignas(16) u64 d_neg[2];
+    alignas(16) u32 s_abs[4];
+    alignas(16) u64 d_abs[2];
 
 } r4300i_t;
 

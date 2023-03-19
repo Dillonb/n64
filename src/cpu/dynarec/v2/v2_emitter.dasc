@@ -1834,7 +1834,28 @@ void host_emit_float_sqrt_reg_reg(dasm_State** Dst, ir_register_allocation_t dst
 }
 
 void host_emit_float_abs_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
-    logfatal("host_emit_float_abs_reg_reg");
+    int op = check_fgr(operand_alloc, false);
+    int dst = check_fgr(dst_alloc, false);
+
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_abs_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_abs_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_abs_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | movss xmm(dst), xmm(op)
+            | pand xmm(dst), cpu_state->s_abs
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | movsd xmm(dst), xmm(op)
+            | pand xmm(dst), cpu_state->d_abs
+            break;
+    }
 }
 
 void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {

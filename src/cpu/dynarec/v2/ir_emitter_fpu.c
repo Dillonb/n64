@@ -115,11 +115,24 @@ IR_EMITTER(mfc1) {
     ir_emit_mov_reg_type(value, REGISTER_TYPE_GPR, VALUE_TYPE_S32, IR_GPR(instruction.r.rt));
 }
 
+IR_EMITTER(dmfc1) {
+    logwarn("TODO: DMFC1: check CP1 is enabled");
+    ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_LONG);
+    ir_emit_mov_reg_type(value, REGISTER_TYPE_GPR, VALUE_TYPE_U64, IR_GPR(instruction.r.rt));
+}
+
 IR_EMITTER(mtc1) {
     logwarn("TODO: check CP1 is enabled");
     //checkcp1;
     ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
     ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR_32, VALUE_TYPE_U32, IR_FGR(instruction.r.rd));
+}
+
+IR_EMITTER(dmtc1) {
+    logwarn("TODO: check CP1 is enabled");
+    //checkcp1;
+    ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
+    ir_emit_mov_reg_type(value, REGISTER_TYPE_FGR_64, VALUE_TYPE_U64, IR_FGR(instruction.r.rd));
 }
 
 IR_EMITTER(cp1_add) {
@@ -678,9 +691,9 @@ IR_EMITTER(cp1_instruction) {
         switch (instruction.r.rs) {
             case COP_CF: CALL_IR_EMITTER(cfc1);
             case COP_MF: CALL_IR_EMITTER(mfc1);
-            case COP_DMF: IR_UNIMPLEMENTED(COP_DMF);
+            case COP_DMF: CALL_IR_EMITTER(dmfc1);
             case COP_MT: CALL_IR_EMITTER(mtc1);
-            case COP_DMT: IR_UNIMPLEMENTED(COP_DMT);
+            case COP_DMT: CALL_IR_EMITTER(dmtc1);
             case COP_CT: CALL_IR_EMITTER(ctc1);
             case COP_BC:
                 switch (instruction.r.rt) {

@@ -549,7 +549,20 @@ void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
                 }
                 break;
             case REGISTER_TYPE_FGR_64:
-                logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_64");
+                switch (dest_type) {
+                    case REGISTER_TYPE_NONE:
+                        logfatal("mov_reg_type REGISTER_TYPE_FGR_64 -> REGISTER_TYPE_NONE");
+                        break;
+                    case REGISTER_TYPE_GPR:
+                        host_emit_mov_gpr_fgr(Dst, instr->reg_alloc, instr->mov_reg_type.value->reg_alloc, instr->mov_reg_type.size);
+                        break;
+                    case REGISTER_TYPE_FGR_32:
+                        logfatal("mov_reg_type REGISTER_TYPE_FGR_64 -> REGISTER_TYPE_FGR_32");
+                        break;
+                    case REGISTER_TYPE_FGR_64:
+                        logfatal("mov_reg_type REGISTER_TYPE_FGR_64 -> REGISTER_TYPE_FGR_64");
+                        break;
+                }
                 break;
         }
     }
@@ -839,6 +852,9 @@ void v2_compiler_init() {
 
     N64CPU.s_neg[0] = (u32)1 << 31;
     N64CPU.d_neg[0] = (u64)1 << 63;
+
+    N64CPU.s_abs[0] = (u32) ~N64CPU.s_neg[0];
+    N64CPU.d_abs[0] = (u64) ~N64CPU.d_neg[0];
 
     {
         dasm_State **Dst = v2_emit_run_block();
