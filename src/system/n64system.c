@@ -304,6 +304,13 @@ int n64_system_step(bool dynarec, int steps) {
         taken = jit_system_step();
     } else {
         taken = interpreter_system_step(steps);
+#ifdef INSTANT_DMA
+        if (N64CPU.fcr31.flag || N64CPU.fcr31.cause) {
+            logwarn("Clearing interpreter fcr31 flag and cause");
+            N64CPU.fcr31.flag = 0;
+            N64CPU.fcr31.cause = 0;
+        }
+#endif
     }
     taken += pop_stalled_cycles();
 

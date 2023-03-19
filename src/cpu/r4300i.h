@@ -554,7 +554,8 @@ typedef union fcr31 {
     } PACKED;
 
     struct {
-        unsigned:7;
+        unsigned:2;
+        unsigned flag:5;
         unsigned enable:5;
         unsigned cause:6;
         unsigned:14;
