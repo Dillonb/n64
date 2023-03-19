@@ -56,7 +56,8 @@ struct RingBuffer {
 };
 
 RingBuffer<double> frame_times;
-RingBuffer<ImU64> block_complilations;
+RingBuffer<ImU64> block_compilations;
+RingBuffer<ImU64> block_sysconfig_misses;
 RingBuffer<ImU64> rsp_steps;
 RingBuffer<ImU64> codecache_bytes_used;
 RingBuffer<ImU64> audiostream_bytes_available;
@@ -150,7 +151,8 @@ void render_menubar() {
 }
 
 void render_metrics_window() {
-    block_complilations.add_point(get_metric(METRIC_BLOCK_COMPILATION));
+    block_compilations.add_point(get_metric(METRIC_BLOCK_COMPILATION));
+    block_sysconfig_misses.add_point(get_metric(METRIC_BLOCK_SYSCONFIG_MISS));
     rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
@@ -185,10 +187,18 @@ void render_metrics_window() {
     }
 
     ImGui::Text("Block compilations this frame: %ld", get_metric(METRIC_BLOCK_COMPILATION));
-    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_complilations.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_compilations.max(), ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Block Compilations Per Frame")) {
-        ImPlot::PlotBars("Block compilations", block_complilations.data, METRICS_HISTORY_ITEMS, 1, 0, flags, block_complilations.offset);
+        ImPlot::PlotBars("Block compilations", block_compilations.data, METRICS_HISTORY_ITEMS, 1, 0, flags, block_compilations.offset);
+        ImPlot::EndPlot();
+    }
+
+    ImGui::Text("Block sysconfig misses this frame: %ld", get_metric(METRIC_BLOCK_SYSCONFIG_MISS));
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_sysconfig_misses.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Block Sysconfig Misses Per Frame")) {
+        ImPlot::PlotBars("Block sysconfig misses", block_sysconfig_misses.data, METRICS_HISTORY_ITEMS, 1, 0, flags, block_sysconfig_misses.offset);
         ImPlot::EndPlot();
     }
 
@@ -253,7 +263,7 @@ void render_dynarec_block_browser() {
             if (n64dynarec.blockcache[outer_index]) {
                 n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
                 for (int inner_index = 0; inner_index < BLOCKCACHE_INNER_SIZE; inner_index++) {
-                    if ((uintptr_t)block_list[inner_index].run != (uintptr_t)missing_block_handler) {
+                    if (block_list[inner_index].run != nullptr) {
                         u32 addr = INDICES_TO_ADDRESS(outer_index, inner_index);
                         if (addr == old_selected_block.address) {
                             old_selected_block_still_valid = true;

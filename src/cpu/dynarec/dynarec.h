@@ -35,10 +35,26 @@ INLINE bool is_branch(dynarec_instruction_category_t category) {
     return category == BRANCH || category == BRANCH_LIKELY;
 }
 
+typedef union n64_block_sysconfig {
+    struct {
+        u64 fr:1;
+    };
+    u64 raw;
+} n64_block_sysconfig_t;
+ASSERTDWORD(n64_block_sysconfig_t);
+
+INLINE n64_block_sysconfig_t get_current_sysconfig() {
+    n64_block_sysconfig_t sysconfig = { .raw = 0 };
+    sysconfig.fr = N64CP0.status.fr;
+    return sysconfig;
+}
+
 typedef struct n64_dynarec_block {
     int (*run)(r4300i_t* cpu);
     size_t guest_size;
     size_t host_size;
+    n64_block_sysconfig_t sysconfig;
+    struct n64_dynarec_block* next; // for other sysconfigs
 } n64_dynarec_block_t;
 
 typedef struct n64_dynarec {
@@ -72,7 +88,6 @@ int n64_dynarec_step();
 void n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);
 void invalidate_dynarec_all_pages();
-int missing_block_handler();
 
 #ifdef __cplusplus
 }

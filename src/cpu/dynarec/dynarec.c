@@ -9,16 +9,15 @@
 
 n64_dynarec_t n64dynarec;
 
-int missing_block_handler() {
-    u32 physical = resolve_virtual_address_or_die(N64CPU.pc, BUS_LOAD);
-    u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
-    n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
-    u32 inner_index = (physical & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2;
+int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_block_sysconfig_t current_sysconfig) {
+    u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
 
-    n64_dynarec_block_t* block = &block_list[inner_index];
     block->run = NULL;
     block->host_size = 0;
     block->guest_size = 0;
+    block->next = NULL;
+    block->sysconfig = current_sysconfig;
+
     bool* code_mask = n64dynarec.code_mask[outer_index];
 
 #ifdef N64_LOG_COMPILATIONS
@@ -26,13 +25,32 @@ int missing_block_handler() {
 #endif
 
     mark_metric(METRIC_BLOCK_COMPILATION);
-    v2_compile_new_block(block, code_mask, N64CPU.pc, physical);
+    v2_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
     if (block->run == NULL) {
         logfatal("Failed to compile block!");
         //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
     }
 
     return n64dynarec.run_block((u64)block->run);
+}
+
+INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64_block_sysconfig_t current_sysconfig) {
+    n64_dynarec_block_t* block_iter = blocks;
+    while (block_iter->run != NULL) {
+        // make sure it matches the sysconfig. If not, keep looking.
+        if (block_iter->sysconfig.raw == current_sysconfig.raw) {
+            return block_iter;
+        } else {
+            mark_metric(METRIC_BLOCK_SYSCONFIG_MISS); // block was valid, but did not match the current sysconfig.
+        }
+        // Add a block to the end of the list
+        if (block_iter->next == NULL) {
+            block_iter->next = dynarec_bumpalloc_zero(sizeof(n64_dynarec_block_t));
+            return block_iter->next;
+        }
+        block_iter = block_iter->next;
+    }
+    return block_iter;
 }
 
 int n64_dynarec_step() {
@@ -54,9 +72,11 @@ int n64_dynarec_step() {
 #endif
         block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
-            block_list[i].run = missing_block_handler;
+            block_list[i].run = NULL;
+            block_list[i].next = NULL;
             block_list[i].host_size = 0;
             block_list[i].guest_size = 0;
+            block_list[i].sysconfig.raw = 0;
         }
         n64dynarec.blockcache[outer_index] = block_list;
         n64dynarec.code_mask[outer_index] = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(bool));
@@ -65,12 +85,24 @@ int n64_dynarec_step() {
     u32 inner_index = BLOCKCACHE_INNER_INDEX(physical);
     n64_dynarec_block_t* block = &block_list[inner_index];
 
+
 #ifdef LOG_ENABLED
     static long total_blocks_run;
     logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
 #endif
     N64CPU.exception = false;
-    int taken = n64dynarec.run_block((u64)block->run);
+    int taken;
+
+    // Find the first block that's both non-null and matches the current sysconfig
+    n64_block_sysconfig_t current_sysconfig = get_current_sysconfig();
+    {
+        n64_dynarec_block_t* matching_block = find_matching_block(block, current_sysconfig);
+        if (matching_block && matching_block->run) {
+            taken = n64dynarec.run_block((u64)matching_block->run);
+        } else {
+            return missing_block_handler(physical, matching_block, current_sysconfig);
+        }
+    }
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, N64CPU.pc);
     for (int i = 0; i < 32; i++) {
