@@ -70,7 +70,7 @@ u8 pi_get_domain(u32 address) {
             return backup_read_byte(address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             u32 index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
-            if (index > n64sys.mem.rom.size) {
+            if (index >= n64sys.mem.rom.size) {
                 logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
                 return 0xFF;
             }
