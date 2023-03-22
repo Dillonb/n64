@@ -1,18 +1,18 @@
 #include "rsp_vector_instructions.h"
 
 #ifdef N64_USE_SIMD
+#ifdef __aarch64__
+#include <sse2neon.h>
+#else
 #include <emmintrin.h>
+#include <immintrin.h>
+#endif
 #endif
 
 #include <log.h>
-#ifdef N64_USE_SIMD
-#include <immintrin.h>
 #include <n64_rsp_bus.h>
-
-#endif
 #include "rsp.h"
 #include "rsp_rom.h"
-#include "n64_rsp_bus.h"
 
 #define defvs vu_reg_t* vs = &N64RSP.vu_regs[instruction.cp2_vec.vs]
 #define defvt vu_reg_t* vt = &N64RSP.vu_regs[instruction.cp2_vec.vt]
