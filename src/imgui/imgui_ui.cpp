@@ -150,7 +150,9 @@ void render_metrics_window() {
     rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
+    #ifdef ENABLE_DYNAREC
     codecache_bytes_used.add_point(n64sys.dynarec->codecache_used);
+    #endif
     audiostream_bytes_available.add_point(get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
 
     si_interrupts.add_point(get_metric(METRIC_SI_INTERRUPT));
@@ -180,6 +182,7 @@ void render_metrics_window() {
         ImPlot::EndPlot();
     }
 
+#ifdef ENABLE_DYNAREC
     ImGui::Text("Block compilations this frame: %ld", get_metric(METRIC_BLOCK_COMPILATION));
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_complilations.max(), ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
@@ -194,6 +197,7 @@ void render_metrics_window() {
         ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, flags, codecache_bytes_used.offset);
         ImPlot::EndPlot();
     }
+#endif
 
     ImGui::Text("Audio stream bytes available: %ld", get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, audiostream_bytes_available.max(), ImGuiCond_Always);

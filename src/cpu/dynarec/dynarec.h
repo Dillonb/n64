@@ -64,7 +64,9 @@ INLINE u32 dynarec_outer_index(u32 physical_address) {
 }
 
 INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
+#ifdef ENABLE_DYNAREC
     N64DYNAREC->blockcache[outer_index] = NULL;
+#endif
 }
 
 INLINE bool is_code(u32 physical_address) {
@@ -73,14 +75,25 @@ INLINE bool is_code(u32 physical_address) {
 }
 
 INLINE void invalidate_dynarec_page(u32 physical_address) {
+    #ifdef ENABLE_DYNAREC
     if (unlikely(is_code(physical_address))) {
         invalidate_dynarec_page_by_index(dynarec_outer_index(physical_address));
     }
+    #endif
 }
 
+#ifdef ENABLE_DYNAREC
 int n64_dynarec_step();
 n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);
 void invalidate_dynarec_all_pages();
+#else
+INLINE void no_dynarec_err() { 
+    logfatal("Dynarec is disabled at compile time");
+}
+INLINE int n64_dynarec_step() { no_dynarec_err(); }
+INLINE n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size) { no_dynarec_err(); }
+INLINE void invalidate_dynarec_all_pages() { }
+#endif
 
 #endif //N64_DYNAREC_H

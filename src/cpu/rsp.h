@@ -126,11 +126,13 @@ extern rsp_t n64rsp;
 #define N64RSPDYNAREC n64rsp.dynarec
 
 INLINE void quick_invalidate_rsp_icache(u32 address) {
+#ifdef ENABLE_DYNAREC
     int index = address / 4;
 
     N64RSP.icache[index].handler = cache_rsp_instruction;
     N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
     N64RSPDYNAREC->blockcache[index].run = rsp_missing_block_handler;
+#endif
 }
 
 INLINE void invalidate_rsp_icache(u32 address) {

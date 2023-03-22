@@ -254,7 +254,7 @@ void set_cause_cvt_l_d(double d) {
 #define check_nans_f(fs, ft) do { assert_is_float(fs); assert_is_float(ft); if (is_nan_f(fs) || is_nan_f(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
 #define check_nans_d(fs, ft) do { assert_is_double(fs); assert_is_double(ft); if (is_nan_d(fs) || is_nan_d(ft)) { set_cause_invalid_operation(); check_fpu_exception(); } } while (0)
 
-#ifdef N64_WIN
+#if defined(N64_WIN) || defined(N64_MACOS)
 #define unordered_s(a, b) (isnan(a) || isnan(b))
 #define unordered_d(a, b) (isnan(a) || isnan(b))
 #else

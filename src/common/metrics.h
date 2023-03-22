@@ -20,6 +20,7 @@ typedef enum metric {
 
 extern uint64_t n64_metric_data[NUM_METRICS];
 
+#ifndef N64_MACOS
 INLINE void mark_metric(metric_t metric) {
     n64_metric_data[metric]++;
 }
@@ -41,6 +42,17 @@ INLINE void reset_all_metrics() {
         n64_metric_data[i] = 0;
     }
 }
+#else
+INLINE void mark_metric(metric_t metric) { }
+
+INLINE void mark_metric_multiple(metric_t metric, int times) { }
+
+INLINE uint64_t get_metric(metric_t metric) { }
+
+INLINE void set_metric(metric_t metric, uint64_t value) { }
+
+INLINE void reset_all_metrics() { }
+#endif
 
 #ifdef __cplusplus
 }
