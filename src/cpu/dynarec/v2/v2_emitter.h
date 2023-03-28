@@ -73,6 +73,8 @@ void host_emit_call(dasm_State** Dst, uintptr_t function);
 
 void host_emit_eret(dasm_State** Dst);
 
+void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_cycles);
+
 size_t v2_link(dasm_State** d);
 void v2_encode(dasm_State** d, u8* buf);
 

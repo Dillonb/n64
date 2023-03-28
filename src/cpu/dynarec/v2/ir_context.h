@@ -231,7 +231,8 @@ typedef struct ir_instruction {
         IR_FLOAT_SQRT,
         IR_FLOAT_ABS,
         IR_FLOAT_NEG,
-        IR_FLOAT_CHECK_CONDITION
+        IR_FLOAT_CHECK_CONDITION,
+        IR_INTERPRETER_FALLBACK
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -345,6 +346,13 @@ typedef struct ir_instruction {
         ir_float_condition_t condition;
         ir_float_value_type_t format;
     } float_check_condition;
+    struct {
+        enum {
+            INTERPRETER_FALLBACK_FOR_INSTRUCTIONS,
+            INTERPRETER_FALLBACK_UNTIL_NO_BRANCH
+        } type;
+        int for_instructions;
+    } interpreter_fallback;
 } ir_instruction_t;
 
 typedef struct ir_context {
@@ -366,6 +374,8 @@ typedef struct ir_context {
 
     bool block_end_pc_ir_emitted;
     bool block_end_pc_compiled;
+
+    bool block_ended;
 
     bool cp1_checked;
 } ir_context_t;
@@ -424,7 +434,9 @@ ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* con
 // set the block exit pc
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 // fall back to the interpreter for the next num_instructions instructions
-ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions);
+ir_instruction_t* ir_emit_interpreter_fallback_for_instructions(int num_instructions);
+// fall back to the interpreter until all branches have been resolved
+ir_instruction_t* ir_emit_interpreter_fallback_until_no_delay_slot();
 // lookup a memory address in the TLB
 ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access);
 // Multiply two values of type mult_div_type to get a double-sized result. Result must be accessed with ir_emit_get_ptr()

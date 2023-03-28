@@ -88,6 +88,7 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_SET_CONSTANT:
         case IR_SET_FLOAT_CONSTANT:
         case IR_LOAD_GUEST_REG:
+        case IR_INTERPRETER_FALLBACK:
             return false;
     }
     logfatal("Did not match any cases");
@@ -191,6 +192,7 @@ void ir_optimize_constant_propagation() {
             case IR_SET_BLOCK_EXIT_PC:
             case IR_LOAD_GUEST_REG:
             case IR_FLUSH_GUEST_REG:
+            case IR_INTERPRETER_FALLBACK:
             case IR_COND_BLOCK_EXIT: // Const condition checked in compiler
             // TODO
             case IR_MULTIPLY:
@@ -618,6 +620,9 @@ void ir_optimize_eliminate_dead_code() {
                 for (int i = 0; i < instr->call.num_args; i++) {
                     instr->call.arguments[i]->dead_code = false;
                 }
+                break;
+            case IR_INTERPRETER_FALLBACK:
+                instr->dead_code = false;
                 break;
 
             // Unary ops

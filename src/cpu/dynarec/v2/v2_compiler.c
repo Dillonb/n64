@@ -111,8 +111,7 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
         // NOTE: this could cause problems. TODO: handle it somehow
         if (instructions_left_in_block == 1) {
             if (page_boundary_ends_block) {
-                logwarn("including an instruction in a delay slot from the next page in a block associated with the previous page!");
-                page_boundary_ends_block = false;
+                logwarn("including an instruction in a delay slot from the next page in a block associated with the previous page! Fall back to interpreter.");
             }
         }
 
@@ -653,6 +652,17 @@ void compile_ir_float_check_condition(dasm_State** Dst, ir_instruction_t* instr)
     host_emit_float_cmp(Dst, instr->float_check_condition.condition, instr->float_check_condition.format, instr->float_check_condition.operand1->reg_alloc, instr->float_check_condition.operand2->reg_alloc);
 }
 
+void compile_ir_interpreter_fallback(dasm_State** Dst, ir_instruction_t* instr, int extra_cycles) {
+    switch (instr->interpreter_fallback.type) {
+        case INTERPRETER_FALLBACK_FOR_INSTRUCTIONS:
+            logfatal("Interpreter fallback for instructions");
+            break;
+        case INTERPRETER_FALLBACK_UNTIL_NO_BRANCH:
+            host_emit_interpreter_fallback_until_no_branch(Dst, extra_cycles);
+            break;
+    }
+}
+
 void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
     switch (instr->type) {
         case IR_NOP: break;
@@ -765,6 +775,9 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
         case IR_FLOAT_CHECK_CONDITION:
             compile_ir_float_check_condition(Dst, instr);
             break;
+        case IR_INTERPRETER_FALLBACK:
+            compile_ir_interpreter_fallback(Dst, instr, temp_code_len);
+            break;
     }
 }
 
@@ -779,8 +792,8 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
         v2_emit_instr(Dst, instr);
         instr = instr->next;
     }
-    // TODO: emit end block PC
-    if (!ir_context.block_end_pc_compiled) {
+
+    if (!ir_context.block_end_pc_compiled && temp_code_len > 0) {
         logfatal("TODO: emit end of block PC");
     }
     v2_end_block(Dst, temp_code_len);
@@ -807,16 +820,31 @@ void v2_compile_new_block(
 #ifdef N64_LOG_COMPILATIONS
     printf("Translating to IR:\n");
 #endif
+
+    dynarec_instruction_category_t last_instr_category = temp_code[temp_code_len - 1].category;
+    bool block_ends_with_branch = last_instr_category == BRANCH || last_instr_category == BRANCH_LIKELY;
+
+    // If the block ends with a branch, don't include it in the block, and instead fall back to the interpreter.
+    if (block_ends_with_branch) {
+        temp_code_len--;
+    }
+
     for (int i = 0; i < temp_code_len; i++) {
         u64 instr_virtual_address = virtual_address + (i << 2);
         u32 instr_physical_address = physical_address + (i << 2);
         emit_instruction_ir(temp_code[i].instr, i, instr_virtual_address, instr_physical_address);
     }
-    if (!ir_context.block_end_pc_ir_emitted) {
+
+    if (!ir_context.block_end_pc_ir_emitted && temp_code_len > 0) {
         ir_instruction_t* end_pc = ir_emit_set_constant_64(virtual_address + (temp_code_len << 2), NO_GUEST_REG);
         ir_emit_set_block_exit_pc(end_pc);
     }
+
     ir_optimize_flush_guest_regs();
+
+    if (block_ends_with_branch) {
+        ir_emit_interpreter_fallback_until_no_delay_slot();
+    }
 #ifdef N64_LOG_COMPILATIONS
     print_ir_block();
     printf("Optimizing:\n");

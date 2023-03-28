@@ -59,7 +59,6 @@ int n64_dynarec_step() {
         u64 fault_pc = N64CPU.pc;
         on_tlb_exception(N64CPU.pc);
         r4300i_handle_exception(N64CPU.pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
-        logfatal("TLB miss PC: %016lX, PC is now: %016lX\n", fault_pc, N64CPU.pc);
         return 1; // TODO does exception handling have a cost by itself? does it matter?
     }
 

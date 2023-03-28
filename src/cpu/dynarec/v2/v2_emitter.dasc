@@ -1988,8 +1988,32 @@ void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_
     }
 }
 
+int interpreter_fallback_until_no_branch() {
+    int taken = 0;
+    do {
+        r4300i_step();
+        taken++;
+    } while(N64CPU.branch); // Loop until not in a delay slot
+    return taken;
+}
+
+void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_cycles) {
+    ir_context.block_ended = true;
+
+    | mov64 Rq(TMPREG1), (uintptr_t)&interpreter_fallback_until_no_branch
+    | call Rq(TMPREG1)
+    | add Rd(TMPREG1), extra_cycles
+    | block_epilogue
+
+}
+
 void v2_end_block(dasm_State** Dst, int block_length) {
-    | mov eax, block_length
+    if (ir_context.block_ended) {
+        return;
+    }
+    ir_context.block_ended = true;
+
+    | mov Rd(get_return_value_reg()), block_length
     | block_epilogue // return block_length
 }
 

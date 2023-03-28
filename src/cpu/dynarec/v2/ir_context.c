@@ -30,6 +30,8 @@ void ir_context_reset() {
     ir_context.ir_cache_head = &ir_context.ir_cache[0];
     ir_context.ir_cache_tail = &ir_context.ir_cache[0];
 
+    ir_context.block_ended = false;
+
     ir_context.block_end_pc_compiled = false;
     ir_context.block_end_pc_ir_emitted = false;
 
@@ -298,6 +300,16 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_FLOAT_ABS:
             snprintf(buf, buf_size, "abs(v%d)", instr->float_unary_op.operand->index);
             break;
+        case IR_INTERPRETER_FALLBACK:
+            switch (instr->interpreter_fallback.type) {
+                case INTERPRETER_FALLBACK_FOR_INSTRUCTIONS:
+                    snprintf(buf, buf_size, "interpreter_fallback(instructions = %d", instr->interpreter_fallback.for_instructions);
+                    break;
+                case INTERPRETER_FALLBACK_UNTIL_NO_BRANCH:
+                    snprintf(buf, buf_size, "interpreter_fallback(all_branches_resolved)");
+                    break;
+            }
+            break;
     }
 }
 
@@ -336,6 +348,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 case IR_DIVIDE:
                 case IR_ERET:
                 case IR_CALL:
+                case IR_INTERPRETER_FALLBACK:
                     logfatal("Unsupported IR instruction assigned to FPU reg");
 
                 case IR_LOAD_GUEST_REG:
@@ -743,8 +756,15 @@ ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_interpreter_fallback(int num_instructions) {
+ir_instruction_t* ir_emit_interpreter_fallback_for_instructions(int num_instructions) {
     logfatal("Unimplemented: Fall back to interpreter for %d instructions", num_instructions);
+}
+
+ir_instruction_t* ir_emit_interpreter_fallback_until_no_delay_slot() {
+    ir_instruction_t instruction;
+    instruction.type = IR_INTERPRETER_FALLBACK;
+    instruction.interpreter_fallback.type = INTERPRETER_FALLBACK_UNTIL_NO_BRANCH;
+    return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access) {
