@@ -713,8 +713,23 @@ void host_emit_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
-        case VALUE_TYPE_S64:
-            logfatal("s64 multiply");
+        case VALUE_TYPE_S64: // Same as above but with `imul` instead of `mul`
+            if (operand1_alloc.spilled) {
+                | mov rax, qword [rsp + operand1]
+            } else {
+                | mov rax, Rq(operand1)
+            }
+
+            if (operand2_alloc.spilled) {
+                | imul qword [rsp + operand2]
+            } else {
+                | imul Rq(operand2)
+            }
+
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
     }
 }
 
