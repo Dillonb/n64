@@ -1873,6 +1873,19 @@ void host_emit_float_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t ope
     }
 }
 
+bool is_unordered(ir_float_condition_t condition) {
+    switch (condition) {
+        case CONDITION_FLOAT_LE:
+        case CONDITION_FLOAT_LT:
+        case CONDITION_FLOAT_EQ:
+        case CONDITION_FLOAT_NGE:
+        case CONDITION_FLOAT_NGT:
+            return false;
+        case CONDITION_FLOAT_UN:
+            return true;
+    }
+}
+
 void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2) {
     int op1 = check_fgr(operand1, false);
     int op2 = check_fgr(operand2, false);
@@ -1885,10 +1898,18 @@ void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_fl
             logfatal("Invalid format for host_emit_float_cmp");
             break;
         case FLOAT_VALUE_TYPE_SINGLE:
-            | comiss xmm(op1), xmm(op2)
+            if (is_unordered(condition)) {
+                | ucomiss xmm(op1), xmm(op2)
+            } else {
+                | comiss xmm(op1), xmm(op2)
+            }
             break;
         case FLOAT_VALUE_TYPE_DOUBLE:
-            | comisd xmm(op1), xmm(op2)
+            if (is_unordered(condition)) {
+                | ucomisd xmm(op1), xmm(op2)
+            } else {
+                | comisd xmm(op1), xmm(op2)
+            }
             break;
     }
     switch (condition) {
@@ -1905,6 +1926,9 @@ void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_fl
             logfatal("CONDITION_FLOAT_NGE");
         case CONDITION_FLOAT_NGT:
             logfatal("CONDITION_FLOAT_NGT");
+        case CONDITION_FLOAT_UN:
+            | setp Rb(TMPREG2)
+            break;
     }
     | movzx Rd(TMPREG2), Rb(TMPREG2)
     | sal Rd(TMPREG2), FCR31_COMPARE_SHIFT

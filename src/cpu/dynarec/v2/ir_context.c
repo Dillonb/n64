@@ -120,6 +120,8 @@ const char* float_cond_to_str(ir_float_condition_t condition) {
             return "!>=";
         case CONDITION_FLOAT_NGT:
             return "!>";
+        case CONDITION_FLOAT_UN:
+            return "UN";
     }
     logfatal("Did not match any cases");
 }
@@ -791,6 +793,10 @@ ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* d
     instruction.mult_div.operand2 = divisor;
     instruction.mult_div.mult_div_type = divide_type;
     return append_ir_instruction(instruction, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_conditional_exception(ir_instruction_t* instr, u32 code, int coprocessor_error) {
+    logwarn("Emit conditional exception");
 }
 
 ir_instruction_t* ir_emit_eret() {

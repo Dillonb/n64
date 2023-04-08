@@ -136,6 +136,13 @@ IR_EMITTER(dsllv) {
     ir_emit_shift(value, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_LEFT, instruction.r.rd);
 }
 
+IR_EMITTER(dsrlv) {
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_load_guest_gpr(instruction.r.rs);
+    shift_amount = ir_emit_and(shift_amount, ir_emit_set_constant_u16(0b111111, NO_GUEST_REG), NO_GUEST_REG);
+    ir_emit_shift(value, shift_amount, VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, instruction.r.rd);
+}
+
 IR_EMITTER(srlv) {
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* shift_amount = ir_emit_load_guest_gpr(instruction.r.rs);
@@ -697,6 +704,13 @@ IR_EMITTER(sltiu) {
     ir_emit_check_condition(CONDITION_LESS_THAN_UNSIGNED, op1, op2, instruction.i.rt);
 }
 
+IR_EMITTER(teq) {
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
+    ir_emit_conditional_exception(cond, EXCEPTION_TRAP, 0);
+}
+
 IR_EMITTER(mtc0) {
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.r.rt);
     switch (instruction.r.rd) {
@@ -1154,7 +1168,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_MFLO: CALL_IR_EMITTER(mflo);
         case FUNCT_MTLO: CALL_IR_EMITTER(mtlo);
         case FUNCT_DSLLV: CALL_IR_EMITTER(dsllv);
-        case FUNCT_DSRLV: IR_UNIMPLEMENTED(FUNCT_DSRLV);
+        case FUNCT_DSRLV: CALL_IR_EMITTER(dsrlv);
         case FUNCT_DSRAV: IR_UNIMPLEMENTED(FUNCT_DSRAV);
         case FUNCT_MULT: CALL_IR_EMITTER(mult);
         case FUNCT_MULTU: CALL_IR_EMITTER(multu);
@@ -1178,7 +1192,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DADDU: CALL_IR_EMITTER(daddu);
         case FUNCT_DSUB: CALL_IR_EMITTER(dsub);
         case FUNCT_DSUBU: CALL_IR_EMITTER(dsubu);
-        case FUNCT_TEQ: IR_UNIMPLEMENTED(FUNCT_TEQ);
+        case FUNCT_TEQ: CALL_IR_EMITTER(teq);
         case FUNCT_DSLL: CALL_IR_EMITTER(dsll);
         case FUNCT_DSRL: CALL_IR_EMITTER(dsrl);
         case FUNCT_DSRA: CALL_IR_EMITTER(dsra);

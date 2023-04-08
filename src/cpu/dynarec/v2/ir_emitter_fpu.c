@@ -421,9 +421,19 @@ IR_EMITTER(cp1_c_un) {
     ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            logfatal("mips_cp_c_un_d");
+            ir_emit_float_check_condition(
+                    CONDITION_FLOAT_UN,
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
+                    FLOAT_VALUE_TYPE_DOUBLE);
+            break;
         case FP_FMT_SINGLE:
-            logfatal("mips_cp_c_un_s");
+            ir_emit_float_check_condition(
+                    CONDITION_FLOAT_UN,
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE),
+                    ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_SINGLE),
+                    FLOAT_VALUE_TYPE_SINGLE);
+            break;
         default:
             logfatal("mips_cp1_invalid");
     }
