@@ -383,30 +383,59 @@ void host_emit_xor_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
 }
 
 void host_emit_add_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
-    int operand1 = check_reg(operand1_alloc, false);
-    switch (operand2.type) {
-        case VALUE_TYPE_S8:
-            | add Rq(operand1), operand2.value_s8
-            break;
-        case VALUE_TYPE_U8:
-            | add Rq(operand1), operand2.value_s8
-            break;
-        case VALUE_TYPE_S16:
-            | add Rq(operand1), operand2.value_s16
-            break;
-        case VALUE_TYPE_U16:
-            | add Rq(operand1), operand2.value_u16
-            break;
-        case VALUE_TYPE_S32:
-            | add Rq(operand1), operand2.value_s32
-            break;
-        case VALUE_TYPE_U32:
-            | add Rq(operand1), operand2.value_u32
-            break;
-        case VALUE_TYPE_U64:
-        case VALUE_TYPE_S64:
-            IMM64_INVALID();
-            break;
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        host_emit_mov_reg_reg(Dst, TMPREG1_ALLOC, operand1_alloc, VALUE_TYPE_U64);
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | add Rq(TMPREG1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | add Rq(TMPREG1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | add Rq(TMPREG1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | add Rq(TMPREG1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | add Rq(TMPREG1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | add Rq(TMPREG1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+        host_emit_mov_reg_reg(Dst, operand1_alloc, TMPREG1_ALLOC, VALUE_TYPE_U64);
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | add Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | add Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | add Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | add Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | add Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | add Rq(operand1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
     }
 }
 
@@ -595,8 +624,12 @@ void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_allo
 }
 
 void host_emit_bitwise_not(dasm_State** Dst, ir_register_allocation_t reg_alloc) {
-    int reg = check_reg(reg_alloc, false);
-    | not Rq(reg)
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        | not qword [rsp + reg]
+    } else {
+        | not Rq(reg)
+    }
 }
 
 void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t multiplicand_type) {
