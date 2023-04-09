@@ -187,6 +187,17 @@ typedef struct dynarec_exception {
     int coprocessor_error;
 } dynarec_exception_t;
 
+typedef enum cond_block_exit_type {
+    COND_BLOCK_EXIT_TYPE_NONE,
+    COND_BLOCK_EXIT_TYPE_EXCEPTION,
+    COND_BLOCK_EXIT_TYPE_ADDRESS
+} cond_block_exit_type_t;
+
+typedef union cond_block_exit_info {
+    dynarec_exception_t exception;
+    struct ir_instruction* exit_pc;
+} cond_block_exit_info_t;
+
 typedef struct ir_instruction {
     // Metadata
     struct ir_instruction* next;
@@ -307,8 +318,8 @@ typedef struct ir_instruction {
             ir_instruction_flush_t* regs_to_flush;
             struct ir_instruction* condition;
             int block_length;
-            bool has_exception;
-            dynarec_exception_t exception;
+            cond_block_exit_type_t type;
+            cond_block_exit_info_t info;
         } cond_block_exit;
         struct {
             struct ir_instruction* operand1;
@@ -364,6 +375,9 @@ typedef struct ir_context {
      */
     ir_instruction_t* guest_reg_to_value[64];
     ir_register_type_t guest_reg_to_reg_type[64];
+
+    u64 block_start_virtual;
+    u32 block_start_physical;
 
     ir_instruction_t ir_cache[IR_CACHE_SIZE];
     ir_instruction_t* ir_cache_head;
@@ -432,6 +446,8 @@ ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condit
 ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index);
 // exit the block early with an exception if the condition is true
 ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* condition, int index, dynarec_exception_t exception);
+// exit the block early with an address if the condition is true
+ir_instruction_t* ir_emit_conditional_block_exit_address(ir_instruction_t* condition, int index, ir_instruction_t* address);
 // set the block exit pc
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 // fall back to the interpreter for the next num_instructions instructions

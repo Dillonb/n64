@@ -40,6 +40,16 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             if (instr->cond_block_exit.condition == value) {
                 return true;
             }
+            switch (instr->cond_block_exit.type) {
+                case COND_BLOCK_EXIT_TYPE_NONE:
+                case COND_BLOCK_EXIT_TYPE_EXCEPTION:
+                    break;
+                case COND_BLOCK_EXIT_TYPE_ADDRESS:
+                    if (instr->cond_block_exit.info.exit_pc == value) {
+                        return true;
+                    }
+                    break;
+            }
             ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
             while (flush_iter != NULL) {
                 if (flush_iter->item == value) {

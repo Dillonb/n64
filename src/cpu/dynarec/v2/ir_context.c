@@ -30,6 +30,9 @@ void ir_context_reset() {
     ir_context.ir_cache_head = &ir_context.ir_cache[0];
     ir_context.ir_cache_tail = &ir_context.ir_cache[0];
 
+    ir_context.block_start_virtual = 0;
+    ir_context.block_start_physical = 0;
+
     ir_context.block_ended = false;
 
     ir_context.block_end_pc_compiled = false;
@@ -712,15 +715,16 @@ ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condit
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_conditional_block_exit_internal(ir_instruction_t* condition, int index, bool has_exception, dynarec_exception_t exception) {
+ir_instruction_t* ir_emit_conditional_block_exit_internal(ir_instruction_t* condition, int index, cond_block_exit_type_t type, cond_block_exit_info_t info) {
     ir_instruction_t instruction;
     instruction.type = IR_COND_BLOCK_EXIT;
     instruction.cond_block_exit.condition = condition;
     instruction.cond_block_exit.block_length = index + 1;
     instruction.cond_block_exit.regs_to_flush = NULL;
-    instruction.cond_block_exit.has_exception = has_exception;
-    instruction.cond_block_exit.exception = exception;
-    unimplemented(!ir_context.block_end_pc_ir_emitted && !has_exception, "Conditionally exiting block without knowing what PC should be");
+    instruction.cond_block_exit.type = type;
+    instruction.cond_block_exit.info = info;
+
+    unimplemented(!ir_context.block_end_pc_ir_emitted && type == COND_BLOCK_EXIT_TYPE_NONE, "COND_BLOCK_EXIT_TYPE_NONE used when PC is unknown!");
 
     for (int i = 1; i < 64; i++) {
         ir_instruction_t* gpr_value = ir_context.guest_reg_to_value[i];
@@ -742,12 +746,20 @@ ir_instruction_t* ir_emit_conditional_block_exit_internal(ir_instruction_t* cond
 }
 
 ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index) {
-    dynarec_exception_t no_exception = {0};
-    return ir_emit_conditional_block_exit_internal(condition, index, false, no_exception);
+    cond_block_exit_info_t no_info = {0};
+    return ir_emit_conditional_block_exit_internal(condition, index, COND_BLOCK_EXIT_TYPE_NONE, no_info);
 }
 
 ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* condition, int index, dynarec_exception_t exception) {
-    return ir_emit_conditional_block_exit_internal(condition, index, true, exception);
+    cond_block_exit_info_t info;
+    info.exception = exception;
+    return ir_emit_conditional_block_exit_internal(condition, index, COND_BLOCK_EXIT_TYPE_EXCEPTION, info);
+}
+
+ir_instruction_t* ir_emit_conditional_block_exit_address(ir_instruction_t* condition, int index, ir_instruction_t* address) {
+    cond_block_exit_info_t info;
+    info.exit_pc = address;
+    return ir_emit_conditional_block_exit_internal(condition, index, COND_BLOCK_EXIT_TYPE_ADDRESS, info);
 }
 
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {

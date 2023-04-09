@@ -463,14 +463,21 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->cond_block_exit.condition)) {
         bool cond = const_to_u64(instr->cond_block_exit.condition) != 0;
         if (cond) {
-            if (instr->cond_block_exit.has_exception) {
-                host_emit_exception_to_args(Dst, instr->cond_block_exit.exception);
-                host_emit_call(Dst, (uintptr_t)r4300i_handle_exception);
+            switch (instr->cond_block_exit.type) {
+                case COND_BLOCK_EXIT_TYPE_NONE:
+                    break;
+                case COND_BLOCK_EXIT_TYPE_EXCEPTION:
+                    host_emit_exception_to_args(Dst, instr->cond_block_exit.info.exception);
+                    host_emit_call(Dst, (uintptr_t)r4300i_handle_exception);
+                    break;
+                case COND_BLOCK_EXIT_TYPE_ADDRESS:
+                    host_emit_mov_pc(Dst, instr->cond_block_exit.info.exit_pc);
+                    break;
             }
             host_emit_ret(Dst, flush_iter, instr->cond_block_exit.block_length);
         }
     } else {
-        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, flush_iter, instr->cond_block_exit.block_length, instr->cond_block_exit.has_exception, instr->cond_block_exit.exception);
+        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, flush_iter, instr->cond_block_exit.block_length, instr->cond_block_exit.type, instr->cond_block_exit.info);
     }
 }
 
@@ -817,6 +824,8 @@ void v2_compile_new_block(
 
     fill_temp_code(virtual_address, physical_address, code_mask);
     ir_context_reset();
+    ir_context.block_start_virtual = virtual_address;
+    ir_context.block_start_physical = physical_address;
 #ifdef N64_LOG_COMPILATIONS
     printf("Translating to IR:\n");
 #endif

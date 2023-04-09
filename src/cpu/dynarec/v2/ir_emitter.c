@@ -7,10 +7,14 @@
 #include <tlb_instructions.h>
 #include "ir_emitter_fpu.h"
 
-ir_instruction_t* ir_get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
+ir_instruction_t* ir_get_memory_access_virtual_address(mips_instruction_t instruction) {
     ir_instruction_t* base = ir_emit_load_guest_gpr(instruction.i.rs);
     ir_instruction_t* i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
-    ir_instruction_t* virtual = ir_emit_add(base, i_offset, NO_GUEST_REG);
+    return ir_emit_add(base, i_offset, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
+    ir_instruction_t* virtual = ir_get_memory_access_virtual_address(instruction);
     return ir_emit_tlb_lookup(virtual, NO_GUEST_REG, bus_access);
 }
 
@@ -169,6 +173,25 @@ IR_EMITTER(sw) {
     ir_emit_store(VALUE_TYPE_U32, address, value);
 }
 
+IR_EMITTER(sc) {
+    ir_instruction_t* virtual = ir_get_memory_access_virtual_address(instruction);
+    ir_instruction_t* llbit = ir_emit_get_ptr(VALUE_TYPE_U8, &N64CPU.llbit, NO_GUEST_REG);
+
+    // IMPORTANT: order is critical for the next 2 lines: need to load the existing value before resetting rt
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
+    ir_instruction_t* llbit_set = ir_emit_check_condition(CONDITION_NOT_EQUAL, llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG), IR_GPR(instruction.i.rt));
+
+    ir_instruction_t* llbit_not_set = ir_emit_boolean_not(llbit_set, NO_GUEST_REG);
+
+    ir_instruction_t* block_end_pc = ir_emit_set_constant_64(ir_context.block_start_virtual + (index << 2) + 4, NO_GUEST_REG);
+    ir_emit_conditional_block_exit_address(llbit_not_set, index, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
+
+    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG));
+
+    ir_instruction_t* physical = ir_emit_tlb_lookup(virtual, NO_GUEST_REG, BUS_STORE);
+    ir_emit_store(VALUE_TYPE_U32, physical, value);
+}
+
 IR_EMITTER(sd) {
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
@@ -177,6 +200,24 @@ IR_EMITTER(sd) {
 
 IR_EMITTER(lw) {
     ir_emit_load(VALUE_TYPE_S32, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+}
+
+IR_EMITTER(ll) {
+    // Same as lw, but set lladdr and llbit
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_emit_load(VALUE_TYPE_S32, physical, instruction.i.rt);
+
+    ir_instruction_t* lladdr = ir_emit_shift(
+            physical,
+            ir_emit_set_constant_u16(4, NO_GUEST_REG),
+            VALUE_TYPE_U32,
+            SHIFT_DIRECTION_RIGHT,
+            NO_GUEST_REG);
+
+    ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.lladdr, lladdr);
+
+    static_assert(sizeof(N64CPU.llbit) == 1, "llbit should be one byte");
+    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(true, NO_GUEST_REG));
 }
 
 IR_EMITTER(lwu) {
@@ -1295,9 +1336,9 @@ IR_EMITTER(instruction) {
         case OPC_SDL: CALL_IR_EMITTER(sdl);
         case OPC_SDR: CALL_IR_EMITTER(sdr);
 
-        case OPC_LL: logwarn("Treating LL as identical to LW"); CALL_IR_EMITTER(lw);
+        case OPC_LL: CALL_IR_EMITTER(ll);
         case OPC_LLD: IR_UNIMPLEMENTED(OPC_LLD);
-        case OPC_SC: logwarn("Treating SC as identical to SW"); CALL_IR_EMITTER(sw);
+        case OPC_SC: CALL_IR_EMITTER(sc);
         case OPC_SCD: IR_UNIMPLEMENTED(OPC_SCD);
         case OPC_RDHWR: IR_UNIMPLEMENTED(OPC_RDHWR); // Invalid instruction used by Linux
         default: {

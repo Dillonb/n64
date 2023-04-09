@@ -229,13 +229,20 @@ void run_compare_parent() {
     }
     printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
     printf("MIPS code:\n");
-    u32 physical = resolve_virtual_address_or_die(start_pc, BUS_LOAD);
-    n64_dynarec_block_t* block = &n64dynarec.blockcache[BLOCKCACHE_OUTER_INDEX(physical)][BLOCKCACHE_INNER_INDEX(physical)];
-    if (physical >= N64_RDRAM_SIZE) {
-        printf("outside of RDAM, can't disassemble (TODO)\n");
+    u32 physical = 0;
+    n64_dynarec_block_t* block = NULL;
+    bool resolved = resolve_virtual_address(start_pc, BUS_LOAD, &physical);
+    if (resolved) {
+         block = &n64dynarec.blockcache[BLOCKCACHE_OUTER_INDEX(physical)][BLOCKCACHE_INNER_INDEX(physical)];
+        if (physical >= N64_RDRAM_SIZE) {
+            printf("outside of RDAM, can't disassemble (TODO)\n");
+        } else {
+            print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
+        }
     } else {
-        print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
+        printf("TLB miss PC, guest code unavailable\n");
     }
+
     printf("IR\n");
     if (v2_get_last_compiled_block() == start_pc) {
         print_ir_block();
@@ -243,7 +250,11 @@ void run_compare_parent() {
         printf("Unavailable, a new block has been compiled in the meantime.\n");
     }
     printf("Host code:\n");
-    print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
+    if (resolved) {
+        print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
+    } else {
+        printf("TLB miss PC, host code unavailable\n");
+    }
     print_state();
 }
 
@@ -318,6 +329,8 @@ int main(int argc, char** argv) {
     if (is_child) {
         run_compare_child();
     } else {
+        N64CPU.prev_branch = false;
+        N64CPU.branch = false;
         run_compare_parent();
     }
 }

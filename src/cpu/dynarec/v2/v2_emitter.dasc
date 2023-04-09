@@ -1458,13 +1458,20 @@ void host_emit_exception_to_args(dasm_State** Dst, dynarec_exception_t exception
     imm_to_func_arg(Dst, cop_err, 2);
 }
 
-void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length, bool has_exception, dynarec_exception_t exception) {
+void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_instruction_flush_t* flush_iter, int block_length, cond_block_exit_type_t type, cond_block_exit_info_t info) {
     int cond_reg = check_reg(cond_reg_alloc, false);
     | test Rq(cond_reg), Rq(cond_reg)
     | jz >1
-    if (has_exception) {
-        host_emit_exception_to_args(Dst, exception);
-        host_emit_call(Dst, (uintptr_t)r4300i_handle_exception);
+    switch (type) {
+        case COND_BLOCK_EXIT_TYPE_NONE:
+            break;
+        case COND_BLOCK_EXIT_TYPE_EXCEPTION:
+            host_emit_exception_to_args(Dst, info.exception);
+            host_emit_call(Dst, (uintptr_t)r4300i_handle_exception);
+            break;
+        case COND_BLOCK_EXIT_TYPE_ADDRESS:
+            host_emit_mov_pc(Dst, info.exit_pc);
+            break;
     }
     host_emit_ret(Dst, flush_iter, block_length);
     |1:

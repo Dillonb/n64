@@ -57,8 +57,8 @@ int n64_dynarec_step() {
     u32 physical;
     if (!resolve_virtual_address(N64CPU.pc, BUS_LOAD, &physical)) {
         u64 fault_pc = N64CPU.pc;
-        on_tlb_exception(N64CPU.pc);
-        r4300i_handle_exception(N64CPU.pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
+        on_tlb_exception(fault_pc);
+        r4300i_handle_exception(fault_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
         return 1; // TODO does exception handling have a cost by itself? does it matter?
     }
 
