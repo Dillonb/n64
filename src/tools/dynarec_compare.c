@@ -113,6 +113,9 @@ bool compare() {
     good &= memcmp(n64cpu_interpreter_ptr->f, n64cpu_ptr->f, sizeof(fgr_t) * 32) == 0;
     //good &= memcmp(n64sys_interpreter.mem.rdram, n64sys_dynarec.mem.rdram, N64_RDRAM_SIZE) == 0;
 
+    good &= n64cpu_interpreter_ptr->mult_lo == n64cpu_ptr->mult_lo;
+    good &= n64cpu_interpreter_ptr->mult_hi == n64cpu_ptr->mult_hi;
+
     good &= n64cpu_interpreter_ptr->cp0.index == n64cpu_ptr->cp0.index;
     good &= n64cpu_interpreter_ptr->cp0.random == n64cpu_ptr->cp0.random;
     good &= n64cpu_interpreter_ptr->cp0.entry_lo0.raw == n64cpu_ptr->cp0.entry_lo0.raw;
@@ -161,7 +164,14 @@ void print_state() {
     for (int i = 0; i < 32; i++) {
         print_colorcoded_u64(register_names[i], n64cpu_interpreter_ptr->gpr[i], N64CPU.gpr[i]);
     }
+
     printf("\n");
+
+    print_colorcoded_u64("lo ", n64cpu_interpreter_ptr->mult_lo, N64CPU.mult_lo);
+    print_colorcoded_u64("hi ", n64cpu_interpreter_ptr->mult_hi, N64CPU.mult_hi);
+
+    printf("\n");
+
     for (int i = 0; i < 32; i++) {
         print_colorcoded_u64(cp1_register_names[i], n64cpu_interpreter_ptr->f[i].raw, N64CPU.f[i].raw);
     }
