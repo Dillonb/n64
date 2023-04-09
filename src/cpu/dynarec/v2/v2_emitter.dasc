@@ -877,7 +877,7 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             |1:
             // Divide by zero
             // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
-            | mov rdx, rax
+            | movsxd rdx, eax
             | mov rax, -1
             |2:
             // Save results to mem
@@ -913,6 +913,7 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_S64:
+            // Load args
             if (operand1_alloc.spilled) {
                 | mov rax, qword [rsp + operand1]
             } else {
@@ -925,11 +926,26 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             } else {
                 | mov Rq(TMPREG2), Rq(operand2)
             }
-            | test Rq(TMPREG2), Rq(TMPREG2)
-            | jz >1
-            | idiv Rq(TMPREG2)
 
+            // Check args for divide by zero
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1 // jump to divide by zero code
+
+            // Check args for INT64_MIN / -1
+            | cmp Rq(TMPREG2), -1
+            | jne >4 // If divisor is not -1, short circuit and go right to division
+            | cmp rax, cpu_state->int64_min
+            | jne >4 // If divisor is -1 but dividend is not int64_min, it's a valid case, do division
+
+            // We hit the invalid case. Set rax = dividend and rdx = 0, but rax already holds the dividend.
+            | mov rdx, 0
+            | jmp >2 // Write results, done
+
+            // normal div block
+            |4:
+            | idiv Rq(TMPREG2)
             | jmp >2
+
             |1:
             // Divide by zero
             // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
@@ -939,10 +955,12 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             | js >3
             | mov rax, -1
             | jmp >2
+
             |3:
             | mov rax, 1
-            |2:
+
             // Save results to mem
+            |2:
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;

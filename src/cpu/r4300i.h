@@ -614,6 +614,8 @@ typedef struct r4300i {
     alignas(16) u32 s_abs[4];
     alignas(16) u64 d_abs[2];
 
+    s64 int64_min;
+
 } r4300i_t;
 
 extern r4300i_t* n64cpu_ptr;

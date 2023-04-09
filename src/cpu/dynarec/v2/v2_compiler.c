@@ -900,6 +900,8 @@ void v2_compiler_init() {
     N64CPU.s_abs[0] = (u32) ~N64CPU.s_neg[0];
     N64CPU.d_abs[0] = (u64) ~N64CPU.d_neg[0];
 
+    N64CPU.int64_min = INT64_MIN;
+
     {
         dasm_State **Dst = v2_emit_run_block();
         size_t dispatcher_code_size = v2_link(Dst);
