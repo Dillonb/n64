@@ -1019,8 +1019,12 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_STATUS:
             ir_emit_get_ptr(value_type, &N64CP0.status.raw, instruction.r.rt);
             break;
-        case R4300I_CP0_REG_TAGLO: logfatal("emit MFC0 R4300I_CP0_REG_TAGLO");
-        case R4300I_CP0_REG_TAGHI: logfatal("emit MFC0 R4300I_CP0_REG_TAGHI");
+        case R4300I_CP0_REG_TAGLO:
+            logfatal("emit MFC0 R4300I_CP0_REG_TAGLO");
+            break;
+        case R4300I_CP0_REG_TAGHI:
+            logfatal("emit MFC0 R4300I_CP0_REG_TAGHI");
+            break;
         case R4300I_CP0_REG_CAUSE:
             ir_emit_get_ptr(value_type, &N64CP0.cause.raw, instruction.r.rt);
             break;
@@ -1039,24 +1043,60 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_EPC:
             ir_emit_get_ptr(value_type, &N64CP0.EPC, instruction.r.rt);
             break;
-        case R4300I_CP0_REG_CONFIG: logfatal("emit MFC0 R4300I_CP0_REG_CONFIG");
-        case R4300I_CP0_REG_WATCHLO: logfatal("emit MFC0 R4300I_CP0_REG_WATCHLO");
-        case R4300I_CP0_REG_WATCHHI: logfatal("emit MFC0 R4300I_CP0_REG_WATCHHI");
-        case R4300I_CP0_REG_WIRED: logfatal("emit MFC0 R4300I_CP0_REG_WIRED");
-        case R4300I_CP0_REG_CONTEXT: logfatal("emit MFC0 R4300I_CP0_REG_CONTEXT");
-        case R4300I_CP0_REG_XCONTEXT: logfatal("emit MFC0 R4300I_CP0_REG_XCONTEXT");
-        case R4300I_CP0_REG_LLADDR: logfatal("emit MFC0 R4300I_CP0_REG_LLADDR");
-        case R4300I_CP0_REG_ERR_EPC: logfatal("emit MFC0 R4300I_CP0_REG_ERR_EPC");
-        case R4300I_CP0_REG_PRID: logfatal("emit MFC0 R4300I_CP0_REG_PRID");
-        case R4300I_CP0_REG_PARITYER: logfatal("emit MFC0 R4300I_CP0_REG_PARITYER");
-        case R4300I_CP0_REG_CACHEER: logfatal("emit MFC0 R4300I_CP0_REG_CACHEER");
-        case R4300I_CP0_REG_7: logfatal("emit MFC0 R4300I_CP0_REG_7");
-        case R4300I_CP0_REG_21: logfatal("emit MFC0 R4300I_CP0_REG_21");
-        case R4300I_CP0_REG_22: logfatal("emit MFC0 R4300I_CP0_REG_22");
-        case R4300I_CP0_REG_23: logfatal("emit MFC0 R4300I_CP0_REG_23");
-        case R4300I_CP0_REG_24: logfatal("emit MFC0 R4300I_CP0_REG_24");
-        case R4300I_CP0_REG_25: logfatal("emit MFC0 R4300I_CP0_REG_25");
-        case R4300I_CP0_REG_31: logfatal("emit MFC0 R4300I_CP0_REG_31");
+        case R4300I_CP0_REG_CONFIG:
+            ir_emit_get_ptr(value_type, &N64CP0.config, instruction.r.rt);
+            break;
+        case R4300I_CP0_REG_WATCHLO:
+            logfatal("emit MFC0 R4300I_CP0_REG_WATCHLO");
+            break;
+        case R4300I_CP0_REG_WATCHHI:
+            logfatal("emit MFC0 R4300I_CP0_REG_WATCHHI");
+            break;
+        case R4300I_CP0_REG_WIRED:
+            ir_emit_get_ptr(value_type, &N64CP0.wired, instruction.r.rt);
+            break;
+        case R4300I_CP0_REG_CONTEXT:
+            logfatal("emit MFC0 R4300I_CP0_REG_CONTEXT");
+            break;
+        case R4300I_CP0_REG_XCONTEXT:
+            logfatal("emit MFC0 R4300I_CP0_REG_XCONTEXT");
+            break;
+        case R4300I_CP0_REG_LLADDR:
+            logfatal("emit MFC0 R4300I_CP0_REG_LLADDR");
+            break;
+        case R4300I_CP0_REG_ERR_EPC:
+            logfatal("emit MFC0 R4300I_CP0_REG_ERR_EPC");
+            break;
+        case R4300I_CP0_REG_PRID:
+            logfatal("emit MFC0 R4300I_CP0_REG_PRID");
+            break;
+        case R4300I_CP0_REG_PARITYER:
+            logfatal("emit MFC0 R4300I_CP0_REG_PARITYER");
+            break;
+        case R4300I_CP0_REG_CACHEER:
+            logfatal("emit MFC0 R4300I_CP0_REG_CACHEER");
+            break;
+        case R4300I_CP0_REG_7:
+            logfatal("emit MFC0 R4300I_CP0_REG_7");
+            break;
+        case R4300I_CP0_REG_21:
+            logfatal("emit MFC0 R4300I_CP0_REG_21");
+            break;
+        case R4300I_CP0_REG_22:
+            logfatal("emit MFC0 R4300I_CP0_REG_22");
+            break;
+        case R4300I_CP0_REG_23:
+            logfatal("emit MFC0 R4300I_CP0_REG_23");
+            break;
+        case R4300I_CP0_REG_24:
+            logfatal("emit MFC0 R4300I_CP0_REG_24");
+            break;
+        case R4300I_CP0_REG_25:
+            logfatal("emit MFC0 R4300I_CP0_REG_25");
+            break;
+        case R4300I_CP0_REG_31:
+            logfatal("emit MFC0 R4300I_CP0_REG_31");
+            break;
 
         // Special case
         case R4300I_CP0_REG_INDEX:
@@ -1112,7 +1152,7 @@ IR_EMITTER(dmfc0) {
             logfatal("dmfc0 R4300I_CP0_REG_COMPARE");
             break;
         case R4300I_CP0_REG_STATUS:
-            logfatal("dmfc0 R4300I_CP0_REG_STATUS");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64CP0.status.raw, instruction.r.rt);
             break;
         case R4300I_CP0_REG_CAUSE:
             logfatal("dmfc0 R4300I_CP0_REG_CAUSE");
