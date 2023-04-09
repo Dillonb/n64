@@ -1225,7 +1225,8 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, ir_register_allocation_t dest_reg_a
                 | cmp qword [rsp + operand1], operand2.value_s32
                 break;
             case VALUE_TYPE_U32:
-                | cmp qword [rsp + operand1], operand2.value_u32
+                | mov Rd(TMPREG1), operand2.value_u32 // If this value is compared directly, it will be treated as signed
+                | cmp qword [rsp + operand1], Rq(TMPREG1)
                 break;
             case VALUE_TYPE_U64:
             case VALUE_TYPE_S64:
@@ -1250,7 +1251,8 @@ void host_emit_cmp_reg_imm(dasm_State** Dst, ir_register_allocation_t dest_reg_a
                 | cmp Rq(operand1), operand2.value_s32
                 break;
             case VALUE_TYPE_U32:
-                | cmp Rq(operand1), operand2.value_u32
+                | mov Rd(TMPREG1), operand2.value_u32 // If this value is compared directly, it will be treated as signed
+                | cmp Rq(operand1), Rq(TMPREG1)
                 break;
             case VALUE_TYPE_U64:
             case VALUE_TYPE_S64:
