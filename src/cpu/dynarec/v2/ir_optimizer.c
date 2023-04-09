@@ -511,9 +511,10 @@ void ir_optimize_constant_propagation() {
                     u64 vaddr = const_to_u64(instr->tlb_lookup.virtual_address);
                     if (!is_tlb(vaddr)) {
                         // If the address is direct mapped, we can translate it at compile time
+                        bus_access_t bus_access = instr->tlb_lookup.bus_access;
                         instr->type = IR_SET_CONSTANT;
                         instr->set_constant.type = VALUE_TYPE_U32;
-                        instr->set_constant.value_u32 = resolve_virtual_address_or_die(vaddr, -1);
+                        instr->set_constant.value_u32 = resolve_virtual_address_or_die(vaddr, bus_access);
                     }
                 }
                 break;
