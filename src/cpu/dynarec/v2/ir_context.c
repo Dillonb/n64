@@ -394,14 +394,6 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                     break;
             }
 
-            // If there was a mapping before, check if the new mapping is smaller
-            if (old_value != NULL) {
-                if (new_type == REGISTER_TYPE_FGR_32 && old_type == REGISTER_TYPE_FGR_64) {
-                    logwarn("Register size is going down, flushing the old value");
-                    ir_emit_flush_guest_reg(old_value, old_value, guest_reg);
-                }
-            }
-
             ir_context.guest_reg_to_value[guest_reg] = value;
             ir_context.guest_reg_to_reg_type[guest_reg] = new_type;
         }

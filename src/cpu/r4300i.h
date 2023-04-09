@@ -607,6 +607,8 @@ typedef struct r4300i {
     bool exception;
 
     // Consts for the JIT
+    alignas(16) u32 s_mask[4];
+    alignas(16) u64 d_mask[2];
     alignas(16) u32 s_neg[4];
     alignas(16) u64 d_neg[2];
     alignas(16) u32 s_abs[4];

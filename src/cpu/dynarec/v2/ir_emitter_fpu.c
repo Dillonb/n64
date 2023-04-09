@@ -9,6 +9,14 @@ void emit_ir_cvt(mips_instruction_t instruction, ir_float_value_type_t from, ir_
     ir_emit_float_convert(source, from, to, IR_FGR(instruction.fr.fd), mode);
 }
 
+void flush_if_reg_set(u8 reg) {
+    ir_instruction_t* existing_value = ir_context.guest_reg_to_value[reg];
+    if (existing_value) {
+        ir_emit_flush_guest_reg(existing_value, existing_value, reg);
+    }
+}
+
+
 #define CVT(from, to, mode) case FP_FMT_##from: emit_ir_cvt(instruction, FLOAT_VALUE_TYPE_##from, FLOAT_VALUE_TYPE_##to, FLOAT_CONVERT_MODE_##mode); break
 
 IR_EMITTER(check_cp1) {
@@ -48,8 +56,12 @@ IR_EMITTER(sdc1) {
 
 IR_EMITTER(lwc1) {
     ir_check_cp1;
+    flush_if_reg_set(IR_FGR(instruction.fi.ft));
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
-    ir_emit_load(VALUE_TYPE_U32, address, IR_FGR(instruction.fi.ft));
+    ir_instruction_t* value = ir_emit_load(VALUE_TYPE_U32, address, NO_GUEST_REG);
+    u32* reg_ptr = get_fpu_register_ptr_word_fr(instruction.fi.ft);
+    ir_emit_set_ptr(VALUE_TYPE_U32, reg_ptr, value);
+    ir_context.guest_reg_to_value[IR_FGR(instruction.fi.ft)] = NULL; // Force a reload
 }
 
 IR_EMITTER(swc1) {
@@ -151,6 +163,7 @@ IR_EMITTER(dmfc1) {
 
 IR_EMITTER(mtc1) {
     ir_check_cp1;
+    flush_if_reg_set(IR_FGR(instruction.r.rd));
     ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
     u32* reg_ptr = get_fpu_register_ptr_word_fr(instruction.r.rd);
     ir_emit_set_ptr(VALUE_TYPE_U32, reg_ptr, value);
@@ -159,6 +172,7 @@ IR_EMITTER(mtc1) {
 
 IR_EMITTER(dmtc1) {
     ir_check_cp1;
+    flush_if_reg_set(IR_FGR(instruction.r.rd));
     ir_instruction_t* value = ir_emit_load_guest_gpr(IR_GPR(instruction.r.rt));
     u64* reg_ptr = get_fpu_register_ptr_dword_fr(instruction.r.rd);
     ir_emit_set_ptr(VALUE_TYPE_U64, reg_ptr, value);

@@ -403,8 +403,8 @@ void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
                 uintptr_t dest = (uintptr_t)get_fpu_register_ptr_dword_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
                 host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
             } else if (reg_type == REGISTER_TYPE_FGR_32) {
-                uintptr_t dest = (uintptr_t)get_fpu_register_ptr_word_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
-                host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U32);
+                uintptr_t dest = (uintptr_t)get_fpu_register_ptr_dword_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
+                host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
             } else {
                 logfatal("Flushing non const FPU reg with unexpected reg_type %d", reg_type);
             }
@@ -890,6 +890,9 @@ void v2_compiler_init() {
     }
     n64dynarec.run_block = (int (*)(u64)) run_block_code_ptr;
     mprotect_rwx((u8*)&run_block_codecache, DISPATCHER_CODE_SIZE, "run block");
+
+    N64CPU.s_mask[0] = 0xFFFFFFFF;
+    N64CPU.d_mask[0] = 0xFFFFFFFFFFFFFFFF;
 
     N64CPU.s_neg[0] = (u32)1 << 31;
     N64CPU.d_neg[0] = (u64)1 << 63;
