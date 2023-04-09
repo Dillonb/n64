@@ -31,6 +31,9 @@ int temp_code_len = 0;
 source_instruction_t temp_code[TEMP_CODE_SIZE];
 u64 temp_code_vaddr = 0;
 
+#define LAST_INSTR_CATEGORY (temp_code[temp_code_len - 1].category)
+#define LAST_INSTR_IS_BRANCH ((LAST_INSTR_CATEGORY == BRANCH) || (LAST_INSTR_CATEGORY == BRANCH_LIKELY))
+
 u64 v2_get_last_compiled_block() {
     return temp_code_vaddr;
 }
@@ -95,10 +98,13 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
             case BRANCH:
             case BRANCH_LIKELY:
                 if (is_branch(prev_instr_category)) {
-                    logfatal("Branch in a branch delay slot");
+                    logwarn("Branch in a branch delay slot!");
+                    instr_ends_block = true; // Compiler will detect the block-ends-in-branch case and handle it appropriately
+                    break;
+                } else {
+                    instr_ends_block = false;
+                    instructions_left_in_block = 1; // emit delay slot
                 }
-                instr_ends_block = false;
-                instructions_left_in_block = 1; // emit delay slot
                 break;
 
             // End block immediately
@@ -830,11 +836,11 @@ void v2_compile_new_block(
     printf("Translating to IR:\n");
 #endif
 
-    dynarec_instruction_category_t last_instr_category = temp_code[temp_code_len - 1].category;
-    bool block_ends_with_branch = last_instr_category == BRANCH || last_instr_category == BRANCH_LIKELY;
-
     // If the block ends with a branch, don't include it in the block, and instead fall back to the interpreter.
-    if (block_ends_with_branch) {
+    bool block_ends_with_branch = LAST_INSTR_IS_BRANCH;
+
+    // Trim all branches off the end of the block (they will be replaced by the interpreter fallback)
+    while (LAST_INSTR_IS_BRANCH) {
         temp_code_len--;
     }
 
