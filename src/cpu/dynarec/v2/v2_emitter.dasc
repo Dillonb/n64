@@ -564,7 +564,7 @@ void host_emit_shift_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_allo
 }
 
 void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, ir_register_allocation_t amount_reg_alloc, ir_shift_direction_t direction) {
-    int reg = check_reg(reg_alloc, false);
+    int reg = check_reg(reg_alloc, true);
     int amount_reg = check_reg(amount_reg_alloc, false);
     | mov cl, Rb(amount_reg)
     switch (type) {
@@ -580,9 +580,14 @@ void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_allo
         case VALUE_TYPE_S32:
             switch (direction) {
                 case SHIFT_DIRECTION_LEFT:
-                    | sal Rd(reg), cl
+                    if (reg_alloc.spilled) {
+                        | sal dword [rsp + reg], cl
+                    } else {
+                        | sal Rd(reg), cl
+                    }
                     break;
                 case SHIFT_DIRECTION_RIGHT:
+                    unimplemented(reg_alloc.spilled, "spilled!");
                     | sar Rd(reg), cl
                     break;
             }
@@ -591,9 +596,11 @@ void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_allo
         case VALUE_TYPE_U32:
             switch (direction) {
                 case SHIFT_DIRECTION_LEFT:
+                    unimplemented(reg_alloc.spilled, "spilled!");
                     | shl Rd(reg), cl
                     break;
                 case SHIFT_DIRECTION_RIGHT:
+                    unimplemented(reg_alloc.spilled, "spilled!");
                     | shr Rd(reg), cl
                     break;
             }
@@ -602,10 +609,18 @@ void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_allo
         case VALUE_TYPE_U64:
             switch (direction) {
                 case SHIFT_DIRECTION_LEFT:
-                    | shl Rq(reg), cl
+                    if (reg_alloc.spilled) {
+                        | shl qword [rsp + reg], cl
+                    } else {
+                        | shl Rq(reg), cl
+                    }
                     break;
                 case SHIFT_DIRECTION_RIGHT:
-                    | shr Rq(reg), cl
+                    if (reg_alloc.spilled) {
+                        | shr qword [rsp + reg], cl
+                    } else {
+                        | shr Rq(reg), cl
+                    }
                     break;
             }
             break;
@@ -613,10 +628,18 @@ void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_allo
         case VALUE_TYPE_S64:
             switch (direction) {
                 case SHIFT_DIRECTION_LEFT:
-                    | sal Rq(reg), cl
+                    if (reg_alloc.spilled) {
+                        | sal qword [rsp + reg], cl
+                    } else {
+                        | sal Rq(reg), cl
+                    }
                     break;
                 case SHIFT_DIRECTION_RIGHT:
-                    | sar Rq(reg), cl
+                    if (reg_alloc.spilled) {
+                        | sar qword [rsp + reg], cl
+                    } else {
+                        | sar Rq(reg), cl
+                    }
                     break;
             }
             break;
