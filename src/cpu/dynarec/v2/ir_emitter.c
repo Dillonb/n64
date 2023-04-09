@@ -220,6 +220,24 @@ IR_EMITTER(ll) {
     ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(true, NO_GUEST_REG));
 }
 
+IR_EMITTER(lld) {
+    // Same as ld, but set lladdr and llbit
+    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_emit_load(VALUE_TYPE_U64, physical, instruction.i.rt);
+
+    ir_instruction_t* lladdr = ir_emit_shift(
+            physical,
+            ir_emit_set_constant_u16(4, NO_GUEST_REG),
+            VALUE_TYPE_U32,
+            SHIFT_DIRECTION_RIGHT,
+            NO_GUEST_REG);
+
+    ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.lladdr, lladdr);
+
+    static_assert(sizeof(N64CPU.llbit) == 1, "llbit should be one byte");
+    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(true, NO_GUEST_REG));
+}
+
 IR_EMITTER(lwu) {
     ir_emit_load(VALUE_TYPE_U32, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
 }
@@ -1337,7 +1355,7 @@ IR_EMITTER(instruction) {
         case OPC_SDR: CALL_IR_EMITTER(sdr);
 
         case OPC_LL: CALL_IR_EMITTER(ll);
-        case OPC_LLD: IR_UNIMPLEMENTED(OPC_LLD);
+        case OPC_LLD: CALL_IR_EMITTER(lld);
         case OPC_SC: CALL_IR_EMITTER(sc);
         case OPC_SCD: IR_UNIMPLEMENTED(OPC_SCD);
         case OPC_RDHWR: IR_UNIMPLEMENTED(OPC_RDHWR); // Invalid instruction used by Linux
