@@ -1818,7 +1818,8 @@ void host_emit_float_trunc_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
                     | movd xmm(dst), Rq(TMPREG1)
                     break;
                 case FLOAT_VALUE_TYPE_LONG:
-                    logfatal("trunc FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_LONG");
+                    | cvttss2si Rq(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
                     break;
                 case FLOAT_VALUE_TYPE_SINGLE:
                     logfatal("trunc FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
@@ -1871,10 +1872,18 @@ void host_emit_float_round_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
                     logfatal("ROUND FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_INVALID");
                     break;
                 case FLOAT_VALUE_TYPE_WORD:
-                    logfatal("ROUND FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_WORD");
+                    // Round
+                    | roundss xmm(dst), xmm(src), 4
+                    // Convert to int by truncating
+                    | cvttss2si Rd(TMPREG1), xmm(dst)
+                    | movd xmm(dst), Rq(TMPREG1)
                     break;
                 case FLOAT_VALUE_TYPE_LONG:
-                    logfatal("ROUND FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_LONG");
+                    // Round
+                    | roundss xmm(dst), xmm(src), 4
+                    // Convert to int by truncating
+                    | cvttss2si Rq(TMPREG1), xmm(dst)
+                    | movd xmm(dst), Rq(TMPREG1)
                     break;
                 case FLOAT_VALUE_TYPE_SINGLE:
                     logfatal("ROUND FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
@@ -1900,6 +1909,64 @@ void host_emit_float_round_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
                     break;
                 case FLOAT_VALUE_TYPE_DOUBLE:
                     logfatal("ROUND FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+    }
+}
+
+void host_emit_float_floor_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
+    int src = check_fgr(src_reg, false);
+    int dst = check_reg(dst_reg, false);
+    switch (src_type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("FLOOR FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("FLOOR FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("FLOOR FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    // Round
+                    | roundss xmm(dst), xmm(src), 1
+                    // Convert to int by truncating
+                    | cvttss2si Rd(TMPREG1), xmm(dst)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
                     break;
             }
             break;

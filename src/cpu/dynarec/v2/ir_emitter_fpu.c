@@ -270,10 +270,8 @@ IR_EMITTER(cp1_div) {
 IR_EMITTER(cp1_trunc_l) {
     ir_check_cp1;
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_trunc_l_d");
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_trunc_l_s");
+        CVT(DOUBLE, LONG, TRUNC);
+        CVT(SINGLE, LONG, TRUNC);
         default:
             logfatal("mips_cp1_invalid");
     }
@@ -282,10 +280,8 @@ IR_EMITTER(cp1_trunc_l) {
 IR_EMITTER(cp1_round_l) {
     ir_check_cp1;
     switch (instruction.fr.fmt) {
-        case FP_FMT_DOUBLE:
-            logfatal("mips_cp_round_l_d");
-        case FP_FMT_SINGLE:
-            logfatal("mips_cp_round_l_s");
+        CVT(DOUBLE, LONG, ROUND);
+        CVT(SINGLE, LONG, ROUND);
         default:
             logfatal("mips_cp1_invalid");
     }

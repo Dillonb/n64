@@ -620,7 +620,7 @@ void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_float_round_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
             break;
         case FLOAT_CONVERT_MODE_FLOOR:
-            logfatal("compile_ir_float_convert FLOAT_CONVERT_MODE_FLOOR");
+            host_emit_float_floor_reg_reg(Dst, instr->float_convert.from_type, instr->float_convert.value->reg_alloc, instr->float_convert.to_type, instr->reg_alloc);
             break;
     }
 }
