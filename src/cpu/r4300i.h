@@ -694,14 +694,8 @@ INLINE void cp0_status_updated() {
                || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
 }
 
-#ifdef INSTANT_DMA // TODO: remove this case when cp1 exceptions implemented in new jit
-#define checkcp1_preservecause do { } while(0)
-#define checkcp1 do { checkcp1_preservecause; N64CPU.fcr31.cause = 0; } while(0)
-#else
-#define checkcp1 do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
 #define checkcp1_preservecause do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
 #define checkcp1 do { checkcp1_preservecause; N64CPU.fcr31.cause = 0; } while(0)
-#endif
 #define checkcp2 do { if (!N64CPU.cp0.status.cu2) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 2); return; } } while(0)
 
 #endif //N64_R4300I_H
