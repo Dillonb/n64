@@ -157,8 +157,13 @@ INLINE void set_cause_fpu_result_d(double* d) {
     }
 }
 
+#ifdef INSTANT_DMA
+#define check_fpu_result_s(f) do { } while(0)
+#define check_fpu_result_d(d) do { } while(0)
+#else
 #define check_fpu_result_s(f) do { set_cause_fpu_result_s(&(f)); check_fpu_exception(); } while(0)
 #define check_fpu_result_d(d) do { set_cause_fpu_result_d(&(d)); check_fpu_exception(); } while(0)
+#endif
 
 INLINE void set_cause_cvt_w_s(float f) {
     switch (fpclassify(f)) {
@@ -239,11 +244,17 @@ void set_cause_cvt_l_d(double d) {
             break; // Fine
     }
 }
-
+#ifdef INSTANT_DMA
+#define check_cvt_arg_l_s(f) do { } while(0)
+#define check_cvt_arg_l_d(d) do { } while(0)
+#define check_cvt_arg_w_s(f) do { } while(0)
+#define check_cvt_arg_w_d(d) do { } while(0)
+#else
 #define check_cvt_arg_l_s(f) do { assert_is_float(f); set_cause_cvt_l_s(f); check_fpu_exception(); } while(0)
 #define check_cvt_arg_l_d(d) do { assert_is_double(d); set_cause_cvt_l_d(d); check_fpu_exception(); } while(0)
 #define check_cvt_arg_w_s(f) do { assert_is_float(f); set_cause_cvt_w_s(f); check_fpu_exception(); } while(0)
 #define check_cvt_arg_w_d(d) do { assert_is_double(d); set_cause_cvt_w_d(d); check_fpu_exception(); } while(0)
+#endif
 
 #define assert_is_float(f) do { static_assert(sizeof(f) == sizeof(float), #f " is not a float!");} while(0)
 #define assert_is_double(d) do { static_assert(sizeof(d) == sizeof(double), #d " is not a double!");} while(0)
@@ -264,6 +275,25 @@ void set_cause_cvt_l_d(double d) {
 
 #define check_round(a, b) do { if ((a) != (b)) { set_cause_inexact_operation(); } check_fpu_exception(); } while(0);
 
+#ifdef INSTANT_DMA // TODO: remove when JIT is more accurate
+#define FPU_OP_S(op) do {                                    \
+    checkcp1;                                                \
+    float fs = get_fpu_register_float_fs(instruction.fr.fs); \
+    float ft = get_fpu_register_float_ft(instruction.fr.ft); \
+    float result;                                            \
+    result = (op);                                           \
+    set_fpu_register_float(instruction.fr.fd, result);       \
+} while(0)
+
+#define FPU_OP_D(op) do {                                      \
+    checkcp1;                                                  \
+    double fs = get_fpu_register_double_fs(instruction.fr.fs); \
+    double ft = get_fpu_register_double_ft(instruction.fr.ft); \
+    double result;                                             \
+    result = (op);                                           \
+    set_fpu_register_double(instruction.fr.fd, result);        \
+} while(0)
+#else
 #define FPU_OP_S(op) do {                                    \
     checkcp1;                                                \
     float fs = get_fpu_register_float_fs(instruction.fr.fs); \
@@ -287,6 +317,7 @@ void set_cause_cvt_l_d(double d) {
     check_fpu_result_d(result);                                \
     set_fpu_register_double(instruction.fr.fd, result);        \
 } while(0)
+#endif
 
 MIPS_INSTR(mips_mfc1) {
     checkcp1_preservecause;

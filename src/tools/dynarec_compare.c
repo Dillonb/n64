@@ -14,6 +14,8 @@
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include <settings.h>
+#include <cflags.h>
+#include <frontend/tas_movie.h>
 
 r4300i_t* n64cpu_interpreter_ptr;
 int mq_jit_to_interp_id = -1;
@@ -279,16 +281,33 @@ void run_compare_child() {
     }
 }
 
+void usage(cflags_t* flags) {
+    cflags_print_usage(flags,
+                       "[OPTION]... [ROM FILE]",
+                       "dynarec-compare, compare the jit to the interpreter using IPC",
+                       "");
+}
+
 int main(int argc, char** argv) {
     n64_settings_init();
     log_set_verbosity(LOG_VERBOSITY_WARN);
 #ifndef INSTANT_DMA
     logfatal("The emulator must be built with INSTANT_DMA for this tool to be effective! (TODO: and probably other DMAs, too)");
 #endif
-    if (argc != 2) {
+
+    cflags_t* flags = cflags_init();
+
+    const char* tas_movie_path = NULL;
+    cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
+
+    cflags_parse(flags, argc, argv);
+
+    logalways("flags->argc: %d", flags->argc);
+    if (flags->argc != 1) {
+        usage(flags);
         logfatal("Usage: %s <rom>", argv[0]);
     }
-    const char* rom_path = argv[1];
+    const char* rom_path = flags->argv[0];
 
     key_t cpu_shmem_key = ftok(argv[0], 1);
     key_t joybus_shmem_key = ftok(argv[0], 4);
@@ -322,6 +341,11 @@ int main(int argc, char** argv) {
     //init_n64system(rom_path, true, false, SOFTWARE_VIDEO_TYPE, false);
     softrdp_init(&n64sys.softrdp_state, (u8 *) &n64sys.mem.rdram);
     prdp_init_internal_swapchain();
+
+    if (tas_movie_path != NULL) {
+        load_tas_movie(tas_movie_path);
+    }
+
     load_imgui_ui();
     register_imgui_event_handler(imgui_handle_event);
     n64_load_rom(rom_path);

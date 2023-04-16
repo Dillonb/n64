@@ -130,7 +130,12 @@ INLINE void set_cause_fpu_convert_raised(int raised) {
     set_cause_fpu_raised(raised);
 }
 
+#ifdef INSTANT_DMA
+#define fpu_op_check_except(op) do { op; } while(0)
+#define fpu_convert_check_except(op) do { op; } while(0)
+#else
 #define fpu_op_check_except(op) do { PUSHROUND; feclearexcept(FE_ALL_EXCEPT); op; set_cause_fpu_raised(fetestexcept(FE_ALL_EXCEPT)); POPROUND; } while(0)
 #define fpu_convert_check_except(op) do { feclearexcept(FE_ALL_EXCEPT); op; set_cause_fpu_convert_raised(fetestexcept(FE_ALL_EXCEPT)); check_fpu_exception(); } while(0)
+#endif
 
 #endif //N64_FLOAT_UTIL_H
