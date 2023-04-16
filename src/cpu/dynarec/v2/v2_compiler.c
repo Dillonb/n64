@@ -47,7 +47,6 @@ INLINE bool should_break(u32 address) {
         //case 0x8F56C:
         //case 0x8F588:
         //case 0x3934:
-        case 0x3179D0:
             return true;
         default:
             return false;
