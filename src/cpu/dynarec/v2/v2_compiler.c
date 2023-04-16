@@ -47,6 +47,7 @@ INLINE bool should_break(u32 address) {
         //case 0x8F56C:
         //case 0x8F588:
         //case 0x3934:
+        case 0x3179D0:
             return true;
         default:
             return false;
@@ -503,7 +504,7 @@ void compile_ir_divide(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->mult_div.operand1) && is_constant(instr->mult_div.operand2)) {
         logfatal("const div");
     } else if (instr_valid_immediate(instr->mult_div.operand1)) {
-        host_emit_div_reg_imm(Dst, instr->mult_div.operand2->reg_alloc, instr->mult_div.operand1->set_constant, instr->mult_div.mult_div_type);
+        host_emit_div_imm_reg(Dst, instr->mult_div.operand1->set_constant, instr->mult_div.operand2->reg_alloc, instr->mult_div.mult_div_type);
     } else if (instr_valid_immediate(instr->mult_div.operand2)) {
         host_emit_div_reg_imm(Dst, instr->mult_div.operand1->reg_alloc, instr->mult_div.operand2->set_constant, instr->mult_div.mult_div_type);
     } else {

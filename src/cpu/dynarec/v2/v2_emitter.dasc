@@ -804,6 +804,11 @@ void host_emit_div_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc,
     host_emit_div_reg_reg(Dst, reg_alloc, TMPREG2_ALLOC, divide_type);
 }
 
+void host_emit_div_imm_reg(dasm_State** Dst, ir_set_constant_t imm, ir_register_allocation_t reg_alloc, ir_value_type_t divide_type) {
+    host_emit_mov_reg_imm(Dst, TMPREG2_ALLOC, imm);
+    host_emit_div_reg_reg(Dst, TMPREG2_ALLOC, reg_alloc, divide_type);
+}
+
 void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_value_type_t divide_type) {
     int operand1 = check_reg(operand1_alloc, true);
     int operand2 = check_reg(operand2_alloc, true);

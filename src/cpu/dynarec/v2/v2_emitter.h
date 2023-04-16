@@ -34,6 +34,7 @@ void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc
 void host_emit_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_value_type_t multiplicand_type);
 void host_emit_mult_imm_imm(dasm_State** Dst, ir_set_constant_t operand1, ir_set_constant_t operand2, ir_value_type_t multiplicand_type);
 void host_emit_div_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t divide_type);
+void host_emit_div_imm_reg(dasm_State** Dst, ir_set_constant_t imm, ir_register_allocation_t reg_alloc, ir_value_type_t divide_type);
 void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_value_type_t divide_type);
 
 void v2_end_block(dasm_State** Dst, int block_length);
