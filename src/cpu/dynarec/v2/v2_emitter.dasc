@@ -340,30 +340,57 @@ void host_emit_or_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_al
 }
 
 void host_emit_xor_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
-    int operand1 = check_reg(operand1_alloc, false);
-    switch (operand2.type) {
-        case VALUE_TYPE_S8:
-            | xor Rq(operand1), operand2.value_s8
-            break;
-        case VALUE_TYPE_U8:
-            | xor Rq(operand1), operand2.value_s8
-            break;
-        case VALUE_TYPE_S16:
-            | xor Rq(operand1), operand2.value_s16
-            break;
-        case VALUE_TYPE_U16:
-            | xor Rq(operand1), operand2.value_u16
-            break;
-        case VALUE_TYPE_S32:
-            | xor Rq(operand1), operand2.value_s32
-            break;
-        case VALUE_TYPE_U32:
-            | xor Rq(operand1), operand2.value_u32
-            break;
-        case VALUE_TYPE_U64:
-        case VALUE_TYPE_S64:
-            IMM64_INVALID();
-            break;
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | xor qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | xor qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | xor qword [rsp + operand1], operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | xor qword [rsp + operand1], operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | xor qword [rsp + operand1], operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | xor qword [rsp + operand1], operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | xor Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | xor Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | xor Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | xor Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | xor Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | xor Rq(operand1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
     }
 }
 
