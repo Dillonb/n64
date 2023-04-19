@@ -57,6 +57,13 @@ typedef struct n64_dynarec_block {
     struct n64_dynarec_block* next; // for other sysconfigs
 } n64_dynarec_block_t;
 
+INLINE void copy_dynarec_block(n64_dynarec_block_t* dest, n64_dynarec_block_t* src) {
+    dest->run = src->run;
+    dest->guest_size = src->guest_size;
+    dest->host_size = src->host_size;
+    dest->sysconfig = src->sysconfig;
+}
+
 typedef struct n64_dynarec {
     int (*run_block)(u64 block_addr);
     u8* codecache;

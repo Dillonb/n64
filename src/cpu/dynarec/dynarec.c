@@ -39,6 +39,12 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
     while (block_iter->run != NULL) {
         // make sure it matches the sysconfig. If not, keep looking.
         if (block_iter->sysconfig.raw == current_sysconfig.raw) {
+            if (block_iter != blocks) {
+                n64_dynarec_block_t temp = *blocks;
+                copy_dynarec_block(blocks, block_iter);
+                copy_dynarec_block(block_iter, &temp);
+                return blocks;
+            }
             return block_iter;
         } else {
             mark_metric(METRIC_BLOCK_SYSCONFIG_MISS); // block was valid, but did not match the current sysconfig.
