@@ -25,7 +25,8 @@ MIPS_INSTR(mips_tlbp) {
     do_tlbp();
 }
 
-MIPS_INSTR(mips_tlbr) {
+
+void do_tlbr() {
     unimplemented(N64CP0.is_64bit_addressing, "TLBR in 64 bit mode!");
     int index = N64CP0.index & 0b111111;
     if (index >= 32) {
@@ -41,6 +42,10 @@ MIPS_INSTR(mips_tlbr) {
     N64CP0.entry_lo0.g = entry.global;
     N64CP0.entry_lo1.g = entry.global;
     N64CP0.page_mask.raw = entry.page_mask.raw;
+}
+
+MIPS_INSTR(mips_tlbr) {
+    do_tlbr();
 }
 
 MIPS_INSTR(mips_tlbwr) {

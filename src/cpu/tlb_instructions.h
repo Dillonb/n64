@@ -37,9 +37,10 @@ INLINE void do_tlbwi(int index) {
 
 }
 
-void do_tlbp();
 MIPS_INSTR(mips_tlbwi);
+void do_tlbp();
 MIPS_INSTR(mips_tlbp);
+void do_tlbr();
 MIPS_INSTR(mips_tlbr);
 MIPS_INSTR(mips_tlbwr);
 

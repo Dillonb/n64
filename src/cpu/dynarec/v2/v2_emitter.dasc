@@ -1450,7 +1450,9 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
                 }
                 break;
             case REGISTER_TYPE_FGR_64:
-                unimplemented(type != VALUE_TYPE_U64 && type != VALUE_TYPE_S64, "non-64 bit FGR_64 flush");
+                if(type != VALUE_TYPE_U64 && type != VALUE_TYPE_S64) {
+                    logwarn("non-64 bit FGR_64 flush");
+                }
                 | movq qword [cpu_state + offset], xmm(reg)
                 break;
         }

@@ -5,6 +5,7 @@
 #include <dynarec/dynarec.h>
 #include <disassemble.h>
 #include <tlb_instructions.h>
+#include <r4300i_register_access.h>
 #include "ir_emitter_fpu.h"
 
 ir_instruction_t* ir_get_memory_access_virtual_address(mips_instruction_t instruction) {
@@ -864,8 +865,26 @@ IR_EMITTER(mtc0) {
         case R4300I_CP0_REG_CONFIG: logfatal("emit MTC0 R4300I_CP0_REG_CONFIG");
         case R4300I_CP0_REG_WATCHLO: logfatal("emit MTC0 R4300I_CP0_REG_WATCHLO");
         case R4300I_CP0_REG_WATCHHI: logfatal("emit MTC0 R4300I_CP0_REG_WATCHHI");
-        case R4300I_CP0_REG_WIRED: logfatal("emit MTC0 R4300I_CP0_REG_WIRED");
-        case R4300I_CP0_REG_CONTEXT: logfatal("emit MTC0 R4300I_CP0_REG_CONTEXT");
+        case R4300I_CP0_REG_WIRED: {
+            ir_instruction_t* mask = ir_emit_set_constant_u16(63, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value, mask, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.wired, masked);
+            break;
+        }
+        case R4300I_CP0_REG_CONTEXT: {
+            ir_instruction_t* new_extended = ir_emit_mask_and_cast(value, VALUE_TYPE_S32, NO_GUEST_REG);
+            ir_instruction_t* new_mask = ir_emit_set_constant_64(0xFFFFFFFFFF800000, NO_GUEST_REG);
+            ir_instruction_t* new_masked = ir_emit_and(new_extended, new_mask, NO_GUEST_REG);
+
+            ir_instruction_t* old = ir_emit_get_ptr(VALUE_TYPE_U64, &N64CP0.context.raw, NO_GUEST_REG);
+            ir_instruction_t* old_mask = ir_emit_set_constant_u32(0x7FFFFF, NO_GUEST_REG);
+            ir_instruction_t* old_masked = ir_emit_and(old, old_mask, NO_GUEST_REG);
+
+            ir_instruction_t* new_value = ir_emit_or(new_masked, old_masked, NO_GUEST_REG);
+
+            ir_emit_set_ptr(VALUE_TYPE_U64, &N64CP0.context.raw, new_value);
+            break;
+        }
         case R4300I_CP0_REG_XCONTEXT: logfatal("emit MTC0 R4300I_CP0_REG_XCONTEXT");
         case R4300I_CP0_REG_LLADDR: logfatal("emit MTC0 R4300I_CP0_REG_LLADDR");
         case R4300I_CP0_REG_ERR_EPC: logfatal("emit MTC0 R4300I_CP0_REG_ERR_EPC");
@@ -1056,7 +1075,10 @@ IR_EMITTER(mfc0) {
             ir_emit_get_ptr(value_type, &N64CP0.wired, instruction.r.rt);
             break;
         case R4300I_CP0_REG_CONTEXT:
-            logfatal("emit MFC0 R4300I_CP0_REG_CONTEXT");
+            ir_emit_get_ptr(value_type, &N64CP0.context.raw, instruction.r.rt);
+            break;
+        case R4300I_CP0_REG_BADVADDR:
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64CP0.bad_vaddr, instruction.r.rt);
             break;
         case R4300I_CP0_REG_XCONTEXT:
             logfatal("emit MFC0 R4300I_CP0_REG_XCONTEXT");
@@ -1109,7 +1131,8 @@ IR_EMITTER(mfc0) {
             ir_emit_mask_and_cast(shifted, VALUE_TYPE_S32, instruction.r.rt);
             break;
         }
-
+        default:
+            logfatal("Unknown CP0 register: %d", instruction.r.rd);
     }
 }
 
@@ -1218,19 +1241,27 @@ IR_EMITTER(tlbwi) {
     ir_emit_call_1((uintptr_t)do_tlbwi, ir_cp0_get_index(NO_GUEST_REG));
 }
 
+void do_tlbwr() {
+    do_tlbwi(get_cp0_random());
+}
+
+IR_EMITTER(tlbwr) {
+    ir_emit_call_0((uintptr_t)do_tlbwr);
+}
+
 IR_EMITTER(tlbp) {
     ir_emit_call_0((uintptr_t)do_tlbp);
 }
 
 IR_EMITTER(tlbr) {
-    logwarn("tlbr");
+    ir_emit_call_0((uintptr_t)do_tlbr);
 }
 
 IR_EMITTER(cp0_instruction) {
     if (instruction.is_coprocessor_funct) {
         switch (instruction.fr.funct) {
             case COP_FUNCT_TLBWI_MULT: CALL_IR_EMITTER(tlbwi);
-            case COP_FUNCT_TLBWR_MOV: IR_UNIMPLEMENTED(COP_FUNCT_TLBWR_MOV);
+            case COP_FUNCT_TLBWR_MOV: CALL_IR_EMITTER(tlbwr);
             case COP_FUNCT_TLBP: CALL_IR_EMITTER(tlbp);
             case COP_FUNCT_TLBR_SUB: CALL_IR_EMITTER(tlbr);
             case COP_FUNCT_ERET: CALL_IR_EMITTER(eret);

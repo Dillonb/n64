@@ -536,7 +536,9 @@ ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t typ
             ir_instruction_t instruction;
             instruction.type = IR_LOAD_GUEST_REG;
             instruction.load_guest_reg.guest_reg = guest_fgr;
-            instruction.load_guest_reg.guest_reg_type = float_val_to_reg_type(type);
+            ir_register_type_t new_type = float_val_to_reg_type(type);
+            instruction.load_guest_reg.guest_reg_type = new_type;
+            ir_context.guest_reg_to_reg_type[guest_fgr] = new_type;
             return append_ir_instruction(instruction, IR_FGR(guest_fgr));
         }
     } else {

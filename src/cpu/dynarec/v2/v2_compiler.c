@@ -795,7 +795,7 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
-    dasm_State** Dst = v2_block_header();;
+    dasm_State** Dst = v2_block_header();
 
     if (should_break(physical_address)) {
         host_emit_debugbreak(Dst);
