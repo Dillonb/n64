@@ -1538,7 +1538,17 @@ void host_emit_ret(dasm_State** Dst, ir_instruction_flush_t* flush_iter, int blo
         int guest_reg = flush_iter->guest_reg;
         uintptr_t dest;
         ir_value_type_t type;
-        switch (ir_context.guest_reg_to_reg_type[guest_reg]) {
+        ir_register_type_t register_type;
+
+        if (is_constant(flush_iter->item)) {
+            register_type = REGISTER_TYPE_GPR;
+        } else if (float_is_constant(flush_iter->item)){
+            register_type = float_val_to_reg_type(flush_iter->item->set_float_constant.format);
+        } else {
+            register_type = flush_iter->item->reg_alloc.type;
+        }
+
+        switch (register_type) {
             case REGISTER_TYPE_NONE:
                 logfatal("Flushing REGISTER_TYPE_NONE");
                 break;
