@@ -69,7 +69,7 @@ u32 read_word_aireg(u32 address) {
     }
 }
 
-void sample() {
+INLINE void sample() {
     if (n64sys.ai.dma_count == 0) {
         audio_push_sample(0, 0);
         return;

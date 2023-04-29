@@ -57,7 +57,7 @@ void N64EmulatorThread::start() {
 
 void N64EmulatorThread::reset() {
     if (running) {
-        n64_queue_action(N64_ACTION_RESET);
+        n64_queue_reset();
     }
 }
 

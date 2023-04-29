@@ -7,7 +7,9 @@
 typedef enum scheduler_event_type {
     SCHEDULER_SI_DMA_COMPLETE,
     SCHEDULER_PI_DMA_COMPLETE,
-    SCHEDULER_PI_BUS_WRITE_COMPLETE
+    SCHEDULER_PI_BUS_WRITE_COMPLETE,
+    SCHEDULER_VI_HALFLINE,
+    SCHEDULER_RESET_SYSTEM
 } scheduler_event_type_t;
 
 typedef struct scheduler_event {
