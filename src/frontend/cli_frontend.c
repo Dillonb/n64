@@ -60,11 +60,18 @@ int main(int argc, char** argv) {
     const char* tas_movie_path = NULL;
     cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
 
+    bool record_tas_movie = false;
+    cflags_add_bool(flags, 'r', "record", &record_tas_movie, "Record movie instead of playing. -m must also be specified when this option is used!");
+
     const char* pif_rom_path = NULL;
     cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
 
     cflags_parse(flags, argc, argv);
 
+    if (record_tas_movie && tas_movie_path == NULL) {
+        usage(flags);
+        logdie("Must specify tas movie path (with -m) when recording a tas movie.");
+    }
     if (help) {
         usage(flags);
         return 0;
@@ -100,7 +107,11 @@ int main(int argc, char** argv) {
         register_imgui_event_handler(imgui_handle_event);
     }
     if (tas_movie_path != NULL) {
-        load_tas_movie(tas_movie_path);
+        if (record_tas_movie) {
+            start_tas_recording(tas_movie_path);
+        } else {
+            load_tas_movie(tas_movie_path);
+        }
     }
     if (pif_rom_path) {
         load_pif_rom(pif_rom_path);
