@@ -16,7 +16,10 @@ typedef struct n64_header {
     u32 unknown2;
     u32 manufacturer_id;
     u16 cartridge_id;
-    char country_code[2];
+    union {
+        char country_code[2];
+        uint16_t country_code_int;
+    };
     u8 boot_code[4032];
 } n64_header_t;
 

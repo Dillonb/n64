@@ -272,6 +272,10 @@ bool device_read_buttons_for_pif(int pif_channel, u8* res) {
                 res[1] = joybus_devices[pif_channel].controller.byte2;
                 res[2] = joybus_devices[pif_channel].controller.joy_x;
                 res[3] = joybus_devices[pif_channel].controller.joy_y;
+
+                if (tas_movie_recording()) {
+                    tas_record_inputs(&joybus_devices[pif_channel].controller);
+                }
             }
             break;
         case JOYBUS_DANCEPAD:
