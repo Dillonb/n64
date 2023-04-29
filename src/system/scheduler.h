@@ -7,7 +7,9 @@
 typedef enum scheduler_event_type {
     SCHEDULER_SI_DMA_COMPLETE,
     SCHEDULER_PI_DMA_COMPLETE,
-    SCHEDULER_PI_BUS_WRITE_COMPLETE
+    SCHEDULER_PI_BUS_WRITE_COMPLETE,
+    SCHEDULER_VI_HALFLINE,
+    SCHEDULER_RESET_SYSTEM
 } scheduler_event_type_t;
 
 typedef struct scheduler_event {
@@ -21,5 +23,6 @@ bool scheduler_tick(u64 cycles, scheduler_event_t* event);
 u64 scheduler_remove_event(scheduler_event_type_t event_type);
 void scheduler_enqueue_absolute(u64 at_cycles, scheduler_event_type_t event_type);
 void scheduler_enqueue_relative(u64 in_cycles, scheduler_event_type_t event_type);
+u64 scheduler_current_ticks();
 
 #endif //N64_SCHEDULER_H

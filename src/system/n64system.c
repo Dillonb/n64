@@ -186,6 +186,7 @@ void reset_n64system() {
     invalidate_dynarec_all_pages(n64sys.dynarec);
 
     scheduler_reset();
+    scheduler_enqueue_relative((u64)n64sys.vi.cycles_per_halfline, SCHEDULER_VI_HALFLINE);
 }
 
 INLINE int jit_system_step() {
@@ -205,7 +206,6 @@ INLINE int jit_system_step() {
             return CYCLES_PER_INSTR;
         }
     }
-    static int cpu_steps = 0;
     int taken = n64_dynarec_step();
     {
         uint64_t oldcount = N64CP0.count >> 1;
@@ -217,20 +217,6 @@ INLINE int jit_system_step() {
         }
         N64CP0.count += taken;
         N64CP0.count &= 0x1FFFFFFFF;
-    }
-    cpu_steps += taken;
-
-    if (!N64RSP.status.halt) {
-        // 2 RSP steps per 3 CPU steps
-        while (cpu_steps > 2) {
-            N64RSP.steps += 2;
-            cpu_steps -= 3;
-        }
-
-        rsp_dynarec_run();
-    } else {
-        N64RSP.steps = 0;
-        cpu_steps = 0;
     }
 
     return taken;
@@ -268,6 +254,42 @@ INLINE int interpreter_system_step() {
     return taken;
 }
 
+void on_vi_halfline_complete(u64 time) {
+    // VI timing
+    s64 taken = time - n64sys.vi.last_halfline_at;
+    n64sys.vi.last_halfline_at = time;
+
+    u64 overshot;
+
+    do {
+        overshot = taken - n64sys.vi.cycles_per_halfline;
+
+        n64sys.vi.halfline++;
+
+        if (n64sys.vi.halfline > n64sys.vi.num_halflines) {
+            n64sys.vi.halfline = 0;
+            n64sys.vi.field++;
+            if (n64sys.video_type != UNKNOWN_VIDEO_TYPE) {
+                persist_backup();
+                reset_all_metrics();
+                ai_step(n64sys.vi.missing_cycles);
+                rdp_update_screen();
+            }
+        }
+
+        if (n64sys.vi.field > n64sys.vi.num_fields) {
+            n64sys.vi.field = 0;
+        }
+
+        n64sys.vi.v_current = (n64sys.vi.halfline << 1) + n64sys.vi.field;
+        check_vi_interrupt();
+        taken -= n64sys.vi.cycles_per_halfline;
+    } while (taken > n64sys.vi.cycles_per_halfline);
+
+    u64 next_event = n64sys.vi.cycles_per_halfline - overshot;
+    scheduler_enqueue_relative(next_event, SCHEDULER_VI_HALFLINE);
+}
+
 void handle_scheduler_event(scheduler_event_t* event) {
     switch (event->type) {
         case SCHEDULER_SI_DMA_COMPLETE:
@@ -279,8 +301,16 @@ void handle_scheduler_event(scheduler_event_t* event) {
         case SCHEDULER_PI_BUS_WRITE_COMPLETE:
             on_pi_write_complete();
             break;
+        case SCHEDULER_VI_HALFLINE:
+            on_vi_halfline_complete(scheduler_current_ticks());
+            break;
+        case SCHEDULER_RESET_SYSTEM:
+            reset_n64system();
+            n64_load_rom(n64sys.rom_path);
+            pif_rom_execute();
+            break;
         default:
-            logfatal("");
+            logfatal("Unknown scheduler event type");
     }
 }
 
@@ -310,110 +340,47 @@ void check_vsync() {
     }
 }
 
+void n64_queue_reset() {
+    scheduler_enqueue_relative(0, SCHEDULER_RESET_SYSTEM);
+}
+
 void jit_system_loop() {
-    int cycles = 0;
     while (!should_quit) {
-        switch (n64sys.action_queued) {
-            case N64_ACTION_NONE:
+        static int cpu_steps = 0;
+        while (true) {
+            int taken = jit_system_step();
+            cpu_steps += taken;
+            static scheduler_event_t event;
+            if (scheduler_tick(taken, &event)) {
+                handle_scheduler_event(&event);
                 break;
-
-            case N64_ACTION_RESET:
-                reset_n64system();
-                n64_load_rom(n64sys.rom_path);
-                pif_rom_execute();
-                break;
-        }
-        n64sys.action_queued = N64_ACTION_NONE;
-
-        for (int field = 0; field < n64sys.vi.num_fields; field++) {
-            int this_frame_cycles = 0;
-            for (int line = 0; line < n64sys.vi.num_halflines; line++) {
-                n64sys.vi.v_current = (line << 1) + field;
-                check_vi_interrupt();
-
-                while (cycles <= n64sys.vi.cycles_per_halfline) {
-                    int taken = jit_system_step();
-                    ai_step(taken);
-                    static scheduler_event_t event;
-                    if (scheduler_tick(taken, &event)) {
-                        handle_scheduler_event(&event);
-                    }
-                    cycles += taken;
-                    this_frame_cycles += taken;
-#ifndef N64_WIN
-                    n64sys.debugger_state.steps = 0;
-#endif
-                }
-                cycles -= n64sys.vi.cycles_per_halfline;
             }
-            check_vi_interrupt();
-            rdp_update_screen();
+        }
 
-            // Catch up audio if we didn't run the CPU long enough this frame
-            int missed_cycles = CPU_CYCLES_PER_FRAME - this_frame_cycles;
-            ai_step(missed_cycles);
+        ai_step(cpu_steps);
+        if (!N64RSP.status.halt) {
+            // 2 RSP steps per 3 CPU steps
+            N64RSP.steps = (cpu_steps / 3) * 2;
+            cpu_steps %= 3;
+
+            rsp_dynarec_run();
+        } else {
+            N64RSP.steps = 0;
+            cpu_steps = 0;
         }
-#ifdef N64_DEBUG_MODE
-#ifndef N64_WIN
-        if (n64sys.debugger_state.enabled) {
-            debugger_tick();
-        }
-#endif
-#endif
-#ifdef LOG_ENABLED
-        update_delayed_log_verbosity();
-#endif
-        persist_backup();
-        reset_all_metrics();
     }
     force_persist_backup();
 }
 
 void interpreter_system_loop() {
-    int cycles = 0;
     while (!should_quit) {
-        for (int field = 0; field < n64sys.vi.num_fields; field++) {
-            int this_frame_cycles = 0;
-            for (int line = 0; line < n64sys.vi.num_halflines; line++) {
-                n64sys.vi.v_current = (line << 1) + field;
-                check_vi_interrupt();
-
-                while (cycles <= n64sys.vi.cycles_per_halfline) {
-                    int taken = interpreter_system_step();
-                    ai_step(taken);
-                    static scheduler_event_t event;
-                    if (scheduler_tick(taken, &event)) {
-                        handle_scheduler_event(&event);
-                    }
-                    cycles += taken;
-                    this_frame_cycles += taken;
-#ifndef N64_WIN
-                    n64sys.debugger_state.steps = 0;
-#endif
-                }
-                cycles -= n64sys.vi.cycles_per_halfline;
-            }
-            check_vi_interrupt();
-            rdp_update_screen();
-
-            // Catch up audio if we didn't run the CPU long enough this frame
-            int missed_cycles = CPU_CYCLES_PER_FRAME - this_frame_cycles;
-            ai_step(missed_cycles);
+        int taken = interpreter_system_step();
+        ai_step(taken);
+        static scheduler_event_t event;
+        if (scheduler_tick(taken, &event)) {
+            handle_scheduler_event(&event);
         }
-#ifdef N64_DEBUG_MODE
-#ifndef N64_WIN
-        if (n64sys.debugger_state.enabled) {
-            debugger_tick();
-        }
-#endif
-#endif
-#ifdef LOG_ENABLED
-        update_delayed_log_verbosity();
-#endif
-        persist_backup();
-        reset_all_metrics();
     }
-    force_persist_backup();
 }
 
 void n64_system_loop() {
@@ -520,8 +487,4 @@ void interrupt_lower(n64_interrupt_t interrupt) {
     }
 
     on_interrupt_change();
-}
-
-void n64_queue_action(n64_action_t action) {
-    n64sys.action_queued = action;
 }

@@ -95,3 +95,7 @@ u64 scheduler_remove_event(scheduler_event_type_t event_type) {
     }
     return 0;
 }
+
+u64 scheduler_current_ticks() {
+    return scheduler_ticks;
+}
