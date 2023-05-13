@@ -9,6 +9,98 @@
 
 #define MIPS_INSTR(NAME) void NAME(mips_instruction_t instruction)
 
+// https://stackoverflow.com/questions/25095741/how-can-i-multiply-64-bit-operands-and-get-128-bit-result-portably/58381061#58381061
+/* Prevents a partial vectorization from GCC. */
+#if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
+__attribute__((__target__("no-sse")))
+#endif
+INLINE u64 multu_64_to_128(u64 lhs, u64 rhs, u64 *high) {
+    /*
+     * GCC and Clang usually provide __uint128_t on 64-bit targets,
+     * although Clang also defines it on WASM despite having to use
+     * builtins for most purposes - including multiplication.
+     */
+#if defined(__SIZEOF_INT128__) && !defined(__wasm__)
+    __uint128_t product = (__uint128_t)lhs * (__uint128_t)rhs;
+    *high = (u64)(product >> 64);
+    return (u64)(product & 0xFFFFFFFFFFFFFFFF);
+
+    /* Use the _umul128 intrinsic on MSVC x64 to hint for mulq. */
+#elif defined(_MSC_VER) && defined(_M_IX64)
+    #   pragma intrinsic(_umul128)
+    /* This intentionally has the same signature. */
+    return _umul128(lhs, rhs, high);
+
+#else
+    /*
+     * Fast yet simple grade school multiply that avoids
+     * 64-bit carries with the properties of multiplying by 11
+     * and takes advantage of UMAAL on ARMv6 to only need 4
+     * calculations.
+     */
+
+    /* First calculate all of the cross products. */
+    uint64_t lo_lo = (lhs & 0xFFFFFFFF) * (rhs & 0xFFFFFFFF);
+    uint64_t hi_lo = (lhs >> 32)        * (rhs & 0xFFFFFFFF);
+    uint64_t lo_hi = (lhs & 0xFFFFFFFF) * (rhs >> 32);
+    uint64_t hi_hi = (lhs >> 32)        * (rhs >> 32);
+
+    /* Now add the products together. These will never overflow. */
+    uint64_t cross = (lo_lo >> 32) + (hi_lo & 0xFFFFFFFF) + lo_hi;
+    uint64_t upper = (hi_lo >> 32) + (cross >> 32)        + hi_hi;
+
+    *high = upper;
+    return (cross << 32) | (lo_lo & 0xFFFFFFFF);
+#endif /* portable */
+}
+
+/* Prevents a partial vectorization from GCC. */
+#if defined(__GNUC__) && !defined(__clang__) && defined(__i386__)
+__attribute__((__target__("no-sse")))
+#endif
+INLINE u64 mult_64_to_128(s64 lhs, s64 rhs, u64 *high) {
+    /*
+     * GCC and Clang usually provide __uint128_t on 64-bit targets,
+     * although Clang also defines it on WASM despite having to use
+     * builtins for most purposes - including multiplication.
+     */
+#if defined(__SIZEOF_INT128__) && !defined(__wasm__)
+    __int128_t product = (__int128_t)lhs * (__int128_t)rhs;
+    *high = (s64)(product >> 64);
+    return (s64)(product & 0xFFFFFFFFFFFFFFFF);
+
+    /* Use the _mul128 intrinsic on MSVC x64 to hint for mulq. */
+#elif defined(_MSC_VER) && defined(_M_IX64)
+    #   pragma intrinsic(_mul128)
+    /* This intentionally has the same signature. */
+    return _mul128(lhs, rhs, high);
+
+#else
+    /*
+     * Fast yet simple grade school multiply that avoids
+     * 64-bit carries with the properties of multiplying by 11
+     * and takes advantage of UMAAL on ARMv6 to only need 4
+     * calculations.
+     */
+
+    logfatal("This code will be broken for signed multiplies!");
+
+    /* First calculate all of the cross products. */
+    uint64_t lo_lo = (lhs & 0xFFFFFFFF) * (rhs & 0xFFFFFFFF);
+    uint64_t hi_lo = (lhs >> 32)        * (rhs & 0xFFFFFFFF);
+    uint64_t lo_hi = (lhs & 0xFFFFFFFF) * (rhs >> 32);
+    uint64_t hi_hi = (lhs >> 32)        * (rhs >> 32);
+
+    /* Now add the products together. These will never overflow. */
+    uint64_t cross = (lo_lo >> 32) + (hi_lo & 0xFFFFFFFF) + lo_hi;
+    uint64_t upper = (hi_lo >> 32) + (cross >> 32)        + hi_hi;
+
+    *high = upper;
+    return (cross << 32) | (lo_lo & 0xFFFFFFFF);
+#endif /* portable */
+}
+
+
 MIPS_INSTR(mips_nop);
 
 MIPS_INSTR(mips_addi);

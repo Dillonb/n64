@@ -816,16 +816,6 @@ void host_emit_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_
     }
 }
 
-void host_emit_mult_imm_imm(dasm_State** Dst, ir_set_constant_t operand1, ir_set_constant_t operand2, ir_value_type_t multiplicand_type) {
-    ir_register_allocation_t operand1_alloc = alloc_gpr(REG_RAX);
-    ir_register_allocation_t operand2_alloc = alloc_gpr(REG_RDX);
-
-    host_emit_mov_reg_imm(Dst, operand1_alloc, operand1);
-    host_emit_mov_reg_imm(Dst, operand2_alloc, operand2);
-
-    host_emit_mult_reg_reg(Dst, operand1_alloc, operand2_alloc, multiplicand_type);
-}
-
 void host_emit_div_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t divide_type) {
     host_emit_mov_reg_imm(Dst, TMPREG2_ALLOC, imm);
     host_emit_div_reg_reg(Dst, reg_alloc, TMPREG2_ALLOC, divide_type);

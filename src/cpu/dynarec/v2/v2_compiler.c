@@ -6,6 +6,7 @@
 #include <r4300i_register_access.h>
 #include "v2_emitter.h"
 #include <system/mprotect_utils.h>
+#include <mips_instructions.h>
 
 #include "instruction_category.h"
 #include "ir_emitter.h"
@@ -487,9 +488,168 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void evaluate_const_multiply(dasm_State** Dst, ir_set_constant_t operand1, ir_set_constant_t operand2, ir_value_type_t type) {
+    ir_set_constant_t result_lo;
+    ir_set_constant_t result_hi;
+
+    result_lo.type = VALUE_TYPE_S64;
+    result_hi.type = VALUE_TYPE_S64;
+
+    switch (type) {
+        case VALUE_TYPE_U8:
+            logfatal("const VALUE_TYPE_U8 multiply");
+            break;
+        case VALUE_TYPE_S8:
+            logfatal("const VALUE_TYPE_S8 multiply");
+            break;
+        case VALUE_TYPE_S16:
+            logfatal("const VALUE_TYPE_S16 multiply");
+            break;
+        case VALUE_TYPE_U16:
+            logfatal("const VALUE_TYPE_U16 multiply");
+            break;
+        case VALUE_TYPE_S32: {
+            s64 multiplicand_1 = set_const_to_s32(operand1);
+            s64 multiplicand_2 = set_const_to_s32(operand2);
+
+            s64 result = multiplicand_1 * multiplicand_2;
+
+            s32 result_lower = result & 0xFFFFFFFF;
+            s32 result_upper = (result >> 32) & 0xFFFFFFFF;
+
+            result_lo.value_s64 = (s64)result_lower;
+            result_hi.value_s64 = (s64)result_upper;
+            break;
+        }
+        case VALUE_TYPE_U32: {
+            u64 multiplicand_1 = set_const_to_u32(operand1);
+            u64 multiplicand_2 = set_const_to_u32(operand2);
+
+            u64 result = multiplicand_1 * multiplicand_2;
+
+            s32 result_lower = result & 0xFFFFFFFF;
+            s32 result_upper = (result >> 32) & 0xFFFFFFFF;
+
+            result_lo.value_s64 = (s64)result_lower;
+            result_hi.value_s64 = (s64)result_upper;
+            break;
+        }
+        case VALUE_TYPE_U64:
+            result_lo.value_s64 = multu_64_to_128(set_const_to_u64(operand1), set_const_to_u64(operand2), (u64*)&result_hi.value_s64);
+            break;
+        case VALUE_TYPE_S64: {
+            result_lo.value_s64 = mult_64_to_128(set_const_to_s64(operand1), set_const_to_s64(operand2), (u64*)&result_hi.value_s64);
+            break;
+        }
+    }
+
+    host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.mult_lo, result_lo, VALUE_TYPE_S64);
+    host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.mult_hi, result_hi, VALUE_TYPE_S64);
+}
+
+void evaluate_const_divide(dasm_State** Dst, ir_set_constant_t operand_dividend, ir_set_constant_t operand_divisor, ir_value_type_t type) {
+    ir_set_constant_t result_quotient;
+    ir_set_constant_t result_remainder;
+
+    result_quotient.type = VALUE_TYPE_S64;
+    result_remainder.type = VALUE_TYPE_S64;
+
+    switch (type) {
+        case VALUE_TYPE_U8:
+            logfatal("const VALUE_TYPE_U8 divide");
+            break;
+        case VALUE_TYPE_S8:
+            logfatal("const VALUE_TYPE_S8 divide");
+            break;
+        case VALUE_TYPE_S16:
+            logfatal("const VALUE_TYPE_S16 divide");
+            break;
+        case VALUE_TYPE_U16:
+            logfatal("const VALUE_TYPE_U16 divide");
+            break;
+        case VALUE_TYPE_S32: {
+            s64 dividend = set_const_to_s32(operand_dividend);
+            s64 divisor = set_const_to_s32(operand_divisor);
+
+            if (divisor == 0) {
+                logwarn("Divide by zero");
+                result_remainder.value_s64 = dividend;
+                if (dividend >= 0) {
+                    result_quotient.value_s64 = -1;
+                } else {
+                    result_quotient.value_s64 = 1;
+                }
+            } else {
+                s32 quotient = dividend / divisor;
+                s32 remainder = dividend % divisor;
+
+                result_quotient.value_s64 = quotient;
+                result_remainder.value_s64 = remainder;
+            }
+            break;
+        }
+        case VALUE_TYPE_U32: {
+            u32 dividend = set_const_to_u32(operand_dividend);
+            u32 divisor  = set_const_to_u32(operand_divisor);
+
+            if (divisor == 0) {
+                result_quotient.value_s64 = 0xFFFFFFFFFFFFFFFF;
+                result_remainder.value_s64 = (s32)dividend;
+            } else {
+                s32 quotient  = dividend / divisor;
+                s32 remainder = dividend % divisor;
+
+                result_quotient.value_s64 = quotient;
+                result_remainder.value_s64 = remainder;
+            }
+            break;
+        }
+        case VALUE_TYPE_U64: {
+            u64 dividend = set_const_to_u64(operand_dividend);
+            u64 divisor  = set_const_to_u64(operand_divisor);
+
+            if (divisor == 0) {
+                result_quotient.value_s64 = 0xFFFFFFFFFFFFFFFF;
+                result_remainder.value_s64 = dividend;
+            } else {
+                u64 quotient  = dividend / divisor;
+                u64 remainder = dividend % divisor;
+
+                result_quotient.value_s64 = quotient;
+                result_remainder.value_s64 = remainder;
+            }
+            break;
+        }
+        case VALUE_TYPE_S64: {
+            s64 dividend = set_const_to_s64(operand_dividend);
+            s64 divisor  = set_const_to_s64(operand_divisor);
+
+            if (unlikely(divisor == 0)) {
+                logwarn("Divide by zero");
+                result_remainder.value_s64 = dividend;
+                if (dividend >= 0) {
+                    result_quotient.value_s64 = (s64)-1;
+                } else {
+                    result_quotient.value_s64 = (s64)1;
+                }
+            } else if (unlikely(divisor == -1 && dividend == INT64_MIN)) {
+                result_quotient.value_s64 = dividend;
+                result_remainder.value_s64 = 0;
+            } else {
+                result_quotient.value_s64 = (s64)(dividend / divisor);;
+                result_remainder.value_s64 = (s64)(dividend % divisor);
+            }
+            break;
+        }
+    }
+
+    host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.mult_lo, result_quotient, VALUE_TYPE_S64);
+    host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.mult_hi, result_remainder, VALUE_TYPE_S64);
+}
+
 void compile_ir_multiply(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->mult_div.operand1) && is_constant(instr->mult_div.operand2)) {
-        host_emit_mult_imm_imm(Dst, instr->mult_div.operand2->set_constant, instr->mult_div.operand1->set_constant, instr->mult_div.mult_div_type);
+        evaluate_const_multiply(Dst, instr->mult_div.operand1->set_constant, instr->mult_div.operand2->set_constant, instr->mult_div.mult_div_type);
     } else if (instr_valid_immediate(instr->mult_div.operand1)) {
         host_emit_mult_reg_imm(Dst, instr->mult_div.operand2->reg_alloc, instr->mult_div.operand1->set_constant, instr->mult_div.mult_div_type);
     } else if (instr_valid_immediate(instr->mult_div.operand2)) {
@@ -501,7 +661,7 @@ void compile_ir_multiply(dasm_State** Dst, ir_instruction_t* instr) {
 
 void compile_ir_divide(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->mult_div.operand1) && is_constant(instr->mult_div.operand2)) {
-        logfatal("const div");
+        evaluate_const_divide(Dst, instr->mult_div.operand1->set_constant, instr->mult_div.operand2->set_constant, instr->mult_div.mult_div_type);
     } else if (instr_valid_immediate(instr->mult_div.operand1)) {
         host_emit_div_imm_reg(Dst, instr->mult_div.operand1->set_constant, instr->mult_div.operand2->reg_alloc, instr->mult_div.mult_div_type);
     } else if (instr_valid_immediate(instr->mult_div.operand2)) {

@@ -104,6 +104,14 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
     logfatal("Did not match any cases");
 }
 
+u32 set_const_to_u32(ir_set_constant_t constant) {
+    return (u32)(set_const_to_u64(constant) & 0xFFFFFFFF);
+}
+
+s32 set_const_to_s32(ir_set_constant_t constant) {
+    return (s32)(set_const_to_u64(constant) & 0xFFFFFFFF);
+}
+
 u64 set_const_to_u64(ir_set_constant_t constant) {
     switch (constant.type) {
         case VALUE_TYPE_S8:
@@ -123,6 +131,10 @@ u64 set_const_to_u64(ir_set_constant_t constant) {
         case VALUE_TYPE_S64:
             return constant.value_s64;
     }
+}
+
+s64 set_const_to_s64(ir_set_constant_t constant) {
+    return (s64)set_const_to_u64(constant);
 }
 
 u64 const_to_u64(ir_instruction_t* constant) {

@@ -38,7 +38,11 @@ INLINE bool binop_valid_immediate(ir_instruction_t* instr) {
 
 bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value);
 
+u32 set_const_to_u32(ir_set_constant_t constant);
+s32 set_const_to_s32(ir_set_constant_t constant);
 u64 set_const_to_u64(ir_set_constant_t constant);
+s64 set_const_to_s64(ir_set_constant_t constant);
+
 u64 const_to_u64(ir_instruction_t* constant);
 
 u64 set_float_const_to_u64(ir_set_float_constant_t constant);
