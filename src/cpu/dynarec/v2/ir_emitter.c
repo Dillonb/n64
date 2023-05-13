@@ -6,6 +6,8 @@
 #include <disassemble.h>
 #include <tlb_instructions.h>
 #include <r4300i_register_access.h>
+#include <system/scheduler.h>
+#include <system/scheduler_utils.h>
 #include "ir_emitter_fpu.h"
 
 ir_instruction_t* ir_get_memory_access_virtual_address(mips_instruction_t instruction) {
@@ -799,6 +801,7 @@ IR_EMITTER(mtc0) {
             ir_instruction_t* shift_amount = ir_emit_set_constant_u16(1, NO_GUEST_REG);
             ir_instruction_t* value_shifted = ir_emit_shift(value_u32, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
             ir_emit_set_ptr(VALUE_TYPE_U64, &N64CP0.count, value_shifted);
+            ir_emit_call_1((uintptr_t)&reschedule_compare_interrupt, ir_emit_set_constant_u32(index, NO_GUEST_REG));
             break;
         }
         case R4300I_CP0_REG_CAUSE: {
@@ -821,6 +824,7 @@ IR_EMITTER(mtc0) {
                                     ir_emit_set_constant_s32(~(1 << 15), NO_GUEST_REG),
                                     NO_GUEST_REG));
             ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.compare, value);
+            ir_emit_call_1((uintptr_t)&reschedule_compare_interrupt, ir_emit_set_constant_u32(index, NO_GUEST_REG));
             break;
         }
         case R4300I_CP0_REG_STATUS: {
@@ -939,6 +943,7 @@ IR_EMITTER(dmtc0) {
             break;
         case R4300I_CP0_REG_COUNT:
             logfatal("dmtc0 R4300I_CP0_REG_COUNT");
+            ir_emit_call_1((uintptr_t)&reschedule_compare_interrupt, ir_emit_set_constant_u32(index, NO_GUEST_REG));
             break;
         case R4300I_CP0_REG_ENTRYHI: {
             ir_instruction_t* mask = ir_emit_set_constant_64(CP0_ENTRY_HI_WRITE_MASK, NO_GUEST_REG);
@@ -948,6 +953,7 @@ IR_EMITTER(dmtc0) {
         }
         case R4300I_CP0_REG_COMPARE:
             logfatal("dmtc0 R4300I_CP0_REG_COMPARE");
+            ir_emit_call_1((uintptr_t)&reschedule_compare_interrupt, ir_emit_set_constant_u32(index, NO_GUEST_REG));
             break;
         case R4300I_CP0_REG_STATUS:
             logfatal("dmtc0 R4300I_CP0_REG_STATUS");
@@ -1127,7 +1133,8 @@ IR_EMITTER(mfc0) {
         case R4300I_CP0_REG_RANDOM: logfatal("emit MFC0 R4300I_CP0_REG_RANDOM");
         case R4300I_CP0_REG_COUNT: {
             ir_instruction_t* count = ir_emit_get_ptr(VALUE_TYPE_U64, &N64CP0.count, NO_GUEST_REG);
-            ir_instruction_t* shifted = ir_emit_shift(count, ir_emit_set_constant_u16(1, NO_GUEST_REG), VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+            ir_instruction_t* adjusted = ir_emit_add(count, ir_emit_set_constant_u32(index, NO_GUEST_REG), NO_GUEST_REG);
+            ir_instruction_t* shifted = ir_emit_shift(adjusted, ir_emit_set_constant_u16(1, NO_GUEST_REG), VALUE_TYPE_U64, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
             ir_emit_mask_and_cast(shifted, VALUE_TYPE_S32, instruction.r.rt);
             break;
         }

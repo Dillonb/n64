@@ -50,6 +50,10 @@ void scheduler_enqueue_absolute(u64 at_ticks, scheduler_event_type_t event_type)
     // special case when list is empty
     if (n64scheduler.scheduler_list == NULL) {
         n64scheduler.scheduler_list = ins;
+    } else if (at_ticks < n64scheduler.scheduler_list->event.time) {
+        // Special case - inserting at the head of the list
+        ins->next = n64scheduler.scheduler_list;
+        n64scheduler.scheduler_list = ins;
     } else {
         // Find the first node with a rank smaller than the node we're inserting
         // that either has a null next node OR a next node with a larger rank than the one we're inserting.
@@ -75,9 +79,8 @@ u64 scheduler_remove_event(scheduler_event_type_t event_type) {
     while (node != NULL) {
         if (node->event.type == event_type) {
             u64 in_cycles = node->event.time - n64scheduler.scheduler_ticks;
-            free_event_node(node);
-
             *prev_next = node->next;
+            free_event_node(node);
             return in_cycles;
         }
 

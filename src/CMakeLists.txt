@@ -37,6 +37,7 @@ endif()
 add_library(core
         system/n64system.c system/n64system.h
         system/scheduler.c system/scheduler.h
+        system/scheduler_utils.c system/scheduler_utils.h
 
         system/mprotect_utils.c system/mprotect_utils.h
 

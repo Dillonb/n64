@@ -1,6 +1,7 @@
 #include "n64system.h"
 #include "scheduler.h"
 #include "mprotect_utils.h"
+#include "scheduler_utils.h"
 
 #include <string.h>
 
@@ -158,35 +159,9 @@ void reset_n64system() {
 }
 
 INLINE int jit_system_step() {
-    /* Commented out for now since the game never actually reads cp0.random
-     * TODO: when a game does, consider generating a random number rather than updating this every instruction
-    if (N64CP0.random <= N64CP0.wired) {
-        N64CP0.random = 31;
-    } else {
-        N64CP0.random--;
-    }
-     */
-
-    if (unlikely(N64CPU.interrupts > 0)) {
-        if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
-            N64CPU.prev_branch = N64CPU.branch;
-            r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, 0);
-            return 0;
-        }
-    }
     int taken = n64_dynarec_step();
-    {
-        uint64_t oldcount = N64CP0.count >> 1;
-        uint64_t newcount = (N64CP0.count + (taken * CYCLES_PER_INSTR)) >> 1;
-        if (unlikely(oldcount < N64CP0.compare && newcount >= N64CP0.compare)) {
-            N64CP0.cause.ip7 = true;
-            loginfo("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, N64CP0.compare);
-            r4300i_interrupt_update();
-        }
-        N64CP0.count += taken;
-        N64CP0.count &= 0x1FFFFFFFF;
-    }
-
+    N64CP0.count += taken;
+    N64CP0.count &= 0x1FFFFFFFF;
     return taken;
 }
 
@@ -203,22 +178,6 @@ INLINE int interpreter_system_step(const int cycles) {
 #endif
 #endif
 
-    /* Commented out for now since the game never actually reads cp0.random
-    if (N64CPU.cp0.random <= N64CPU.cp0.wired) {
-        N64CPU.cp0.random = 31;
-    } else {
-        N64CPU.cp0.random--;
-    }
-     */
-
-    if (unlikely(N64CPU.interrupts > 0)) {
-        if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
-            N64CPU.prev_branch = N64CPU.branch;
-            r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, 0);
-            return 0;
-        }
-    }
-
     for (int i = 0; i < cycles; i++) {
         r4300i_step();
 #ifdef INSTANT_DMA
@@ -229,17 +188,8 @@ INLINE int interpreter_system_step(const int cycles) {
     const int taken = cycles;
 
     static int cpu_steps = 0;
-    {
-        uint64_t oldcount = N64CP0.count >> 1;
-        uint64_t newcount = (N64CP0.count + (taken * CYCLES_PER_INSTR)) >> 1;
-        if (unlikely(oldcount < N64CP0.compare && newcount >= N64CP0.compare)) {
-            N64CP0.cause.ip7 = true;
-            loginfo("Compare interrupt! oldcount: 0x%08lX newcount: 0x%08lX compare 0x%08X", oldcount, newcount, N64CP0.compare);
-            r4300i_interrupt_update();
-        }
-        N64CP0.count += taken;
-        N64CP0.count &= 0x1FFFFFFFF;
-    }
+    N64CP0.count += taken;
+    N64CP0.count &= 0x1FFFFFFFF;
     cpu_steps += taken;
 
 #ifdef INSTANT_DMA
@@ -261,10 +211,9 @@ INLINE int interpreter_system_step(const int cycles) {
         N64RSP.steps = 0;
     } else {
         // 2 RSP steps per 3 CPU steps
-        while (cpu_steps > 2) {
-            N64RSP.steps += 2;
-            cpu_steps -= 3;
-        }
+        N64RSP.steps += (cpu_steps / 3) * 2;
+        cpu_steps %= 3;
+
         rsp_run();
     }
 #endif
@@ -326,6 +275,17 @@ void handle_scheduler_event(scheduler_event_t* event) {
             reset_n64system();
             n64_load_rom(n64sys.rom_path);
             pif_rom_execute();
+            break;
+        case SCHEDULER_COMPARE_INTERRUPT:
+            N64CP0.cause.ip7 = true;
+            r4300i_interrupt_update();
+            reschedule_compare_interrupt(0);
+            break;
+        case SCHEDULER_HANDLE_INTERRUPT:
+            if(N64CP0.status.ie && !N64CP0.status.exl && !N64CP0.status.erl) {
+                N64CPU.prev_branch = N64CPU.branch;
+                r4300i_handle_exception(N64CPU.pc, EXCEPTION_INTERRUPT, 0);
+            }
             break;
         default:
             logfatal("Unknown scheduler event type");
@@ -405,7 +365,7 @@ void jit_system_loop() {
         ai_step(cpu_steps);
         if (!N64RSP.status.halt) {
             // 2 RSP steps per 3 CPU steps
-            N64RSP.steps = (cpu_steps / 3) * 2;
+            N64RSP.steps += (cpu_steps / 3) * 2;
             cpu_steps %= 3;
 
             rsp_dynarec_run();

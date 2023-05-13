@@ -2,6 +2,7 @@
 #include <log.h>
 #include <system/n64system.h>
 #include <mem/n64bus.h>
+#include <system/scheduler.h>
 #include "disassemble.h"
 #include "mips_instructions.h"
 #include "fpu_instructions.h"
@@ -791,6 +792,9 @@ void r4300i_step() {
 
 void r4300i_interrupt_update() {
     N64CPU.interrupts = N64CPU.cp0.cause.interrupt_pending & N64CPU.cp0.status.im;
+    if (N64CPU.interrupts != 0) {
+        scheduler_enqueue_relative(0, SCHEDULER_HANDLE_INTERRUPT);
+    }
 }
 
 bool instruction_stable(mips_instruction_t instr) {

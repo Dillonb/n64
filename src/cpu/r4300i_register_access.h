@@ -2,6 +2,7 @@
 #define N64_R4300I_REGISTER_ACCESS_H
 
 #include "r4300i.h"
+#include <system/scheduler_utils.h>
 
 INLINE void set_register(u8 r, u64 value) {
     logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
@@ -44,6 +45,7 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             break;
         case R4300I_CP0_REG_COUNT:
             N64CPU.cp0.count = (u64)value << 1;
+            reschedule_compare_interrupt(0);
             break;
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
@@ -62,6 +64,7 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             loginfo("$Compare written with 0x%08X (count is now 0x%08lX)", value, N64CPU.cp0.count);
             N64CPU.cp0.cause.ip7 = false;
             N64CPU.cp0.compare = value;
+            reschedule_compare_interrupt(0);
             break;
         case R4300I_CP0_REG_STATUS: {
             N64CPU.cp0.status.raw &= ~CP0_STATUS_WRITE_MASK;
@@ -261,14 +264,17 @@ INLINE void set_cp0_register_dword(u8 r, u64 value) {
         case R4300I_CP0_REG_BADVADDR: // read only
             break;
         case R4300I_CP0_REG_COUNT:
+            reschedule_compare_interrupt(0);
             logfatal("Writing CP0 register R4300I_CP0_REG_COUNT as dword!");
         case R4300I_CP0_REG_ENTRYHI:
             N64CPU.cp0.entry_hi.raw = value & CP0_ENTRY_HI_WRITE_MASK;
             break;
         case R4300I_CP0_REG_COMPARE:
+            reschedule_compare_interrupt(0);
             logfatal("Writing CP0 register R4300I_CP0_REG_COMPARE as dword!");
         case R4300I_CP0_REG_STATUS:
-            N64CP0.status.raw = value;
+            // TODO: handle write mask + updating interrupts
+            logfatal("Writing CP0 register R4300I_CP0_REG_STATUS as dword!");
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
             newcause.raw = value;
