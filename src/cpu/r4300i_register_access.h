@@ -269,6 +269,7 @@ INLINE void set_cp0_register_dword(u8 r, u64 value) {
             logfatal("Writing CP0 register R4300I_CP0_REG_COMPARE as dword!");
         case R4300I_CP0_REG_STATUS:
             N64CP0.status.raw = value;
+            break;
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
             newcause.raw = value;
