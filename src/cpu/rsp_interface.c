@@ -120,6 +120,7 @@ void write_word_spreg(u32 address, u32 value) {
             logfatal("Write to unsupported SP reg: ADDR_SP_DMA_BUSY_REG");
         case ADDR_SP_SEMAPHORE_REG:
             rsp_release_semaphore();
+            break;
         case ADDR_SP_PC_REG:
             set_rsp_pc(value);
             break;

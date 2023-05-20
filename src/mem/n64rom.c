@@ -198,6 +198,8 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     switch (checksum) {
         case 0xEC8B1325: // 7102
             rom->cic_type = CIC_NUS_7102;
+            break;
+
         case 0x1DEB51A9: // 6101
             rom->cic_type = CIC_NUS_6101;
             break;

@@ -112,9 +112,9 @@ u32 read_word_vireg(u32 address) {
         case ADDR_VI_LEAP_REG:
             logfatal("Reading of ADDR_VI_LEAP_REG is unsupported");
         case ADDR_VI_H_START_REG:
-            logfatal("Reading of ADDR_VI_H_START_REG is unsupported");
+            return n64sys.vi.hstart.raw;
         case ADDR_VI_V_START_REG:
-            logfatal("Reading of ADDR_VI_V_START_REG is unsupported");
+            return n64sys.vi.vstart.raw;
         case ADDR_VI_V_BURST_REG:
             logfatal("Reading of ADDR_VI_V_BURST_REG is unsupported");
         case ADDR_VI_X_SCALE_REG:
