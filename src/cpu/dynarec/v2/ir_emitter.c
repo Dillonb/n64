@@ -881,9 +881,15 @@ IR_EMITTER(mtc0) {
         case R4300I_CP0_REG_EPC:
             ir_emit_set_ptr(VALUE_TYPE_S64, &N64CP0.EPC, value);
             break;
-        case R4300I_CP0_REG_CONFIG: logfatal("emit MTC0 R4300I_CP0_REG_CONFIG");
-        case R4300I_CP0_REG_WATCHLO: logfatal("emit MTC0 R4300I_CP0_REG_WATCHLO");
-        case R4300I_CP0_REG_WATCHHI: logfatal("emit MTC0 R4300I_CP0_REG_WATCHHI");
+        case R4300I_CP0_REG_CONFIG:
+            logfatal("emit MTC0 R4300I_CP0_REG_CONFIG");
+            break;
+        case R4300I_CP0_REG_WATCHLO:
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.watch_lo.raw, value);
+            break;
+        case R4300I_CP0_REG_WATCHHI:
+            logfatal("emit MTC0 R4300I_CP0_REG_WATCHHI");
+            break;
         case R4300I_CP0_REG_WIRED: {
             ir_instruction_t* mask = ir_emit_set_constant_u16(63, NO_GUEST_REG);
             ir_instruction_t* masked = ir_emit_and(value, mask, NO_GUEST_REG);
