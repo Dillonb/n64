@@ -365,6 +365,11 @@ typedef struct ir_instruction {
         } type;
         int for_instructions;
     } interpreter_fallback;
+    struct {
+        struct ir_instruction* condition;
+        u32 code;
+        int coprocessor_error;
+    } cond_exception;
 } ir_instruction_t;
 
 typedef struct ir_context {
@@ -446,6 +451,8 @@ ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condit
 ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index);
 // exit the block early with an exception if the condition is true
 ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* condition, int index, dynarec_exception_t exception);
+// throw an exception (implemented as conditional_exception with a constant true condition)
+ir_instruction_t* ir_emit_exception(int index, dynarec_exception_t exception);
 // exit the block early with an address if the condition is true
 ir_instruction_t* ir_emit_conditional_block_exit_address(ir_instruction_t* condition, int index, ir_instruction_t* address);
 // set the block exit pc
@@ -460,8 +467,6 @@ ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type);
 // Divide a value of type divide_type by a value of the same type. Result must be accessed with ir_emit_get_ptr()
 ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type);
-// conditionally throw an exception
-ir_instruction_t* ir_emit_conditional_exception(ir_instruction_t* instr, u32 code, int coprocessor_error);
 // Run the MIPS ERET instruction
 ir_instruction_t* ir_emit_eret();
 // Call a function with no arguments. Result ignored.

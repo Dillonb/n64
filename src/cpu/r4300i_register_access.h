@@ -75,8 +75,6 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
 
             cp0_status_updated();
             log_status(N64CPU.cp0.status);
-
-            r4300i_interrupt_update();
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:

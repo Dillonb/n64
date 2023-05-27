@@ -570,6 +570,15 @@ IR_EMITTER(jalr) {
     ir_emit_link(instruction.r.rd, virtual_address);
 }
 
+IR_EMITTER(syscall) {
+    dynarec_exception_t exception;
+    exception.code = EXCEPTION_SYSCALL;
+    exception.coprocessor_error = 0;
+    exception.virtual_address = virtual_address;
+
+    ir_emit_exception(index, exception);
+}
+
 IR_EMITTER(mult) {
     ir_instruction_t* multiplicand1 = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* multiplicand2 = ir_emit_load_guest_gpr(instruction.r.rt);
@@ -777,7 +786,13 @@ IR_EMITTER(teq) {
     ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.r.rt);
     ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
-    ir_emit_conditional_exception(cond, EXCEPTION_TRAP, 0);
+
+    dynarec_exception_t exception;
+    exception.code = EXCEPTION_TRAP;
+    exception.coprocessor_error = 0;
+    exception.virtual_address = virtual_address;
+
+    ir_emit_conditional_block_exit_exception(cond, index, exception);
 }
 
 IR_EMITTER(mtc0) {
@@ -835,7 +850,7 @@ IR_EMITTER(mtc0) {
             ir_instruction_t* value_masked = ir_emit_and(value, status_mask, NO_GUEST_REG);
             ir_instruction_t* new_status = ir_emit_or(value_masked, old_status_masked, NO_GUEST_REG);
             ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.status.raw, new_status);
-            logwarn("CP0 status written without side effects!");
+            ir_emit_call_0((uintptr_t)cp0_status_updated);
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0: {
@@ -957,6 +972,7 @@ IR_EMITTER(dmtc0) {
             break;
         case R4300I_CP0_REG_STATUS:
             logfatal("dmtc0 R4300I_CP0_REG_STATUS");
+            ir_emit_call_0((uintptr_t)cp0_status_updated);
             break;
         case R4300I_CP0_REG_CAUSE:
             logfatal("dmtc0 R4300I_CP0_REG_CAUSE");
@@ -1026,6 +1042,7 @@ IR_EMITTER(dmtc0) {
 
 IR_EMITTER(eret) {
     ir_emit_eret();
+    ir_emit_call_0((uintptr_t)cp0_status_updated);
 }
 
 ir_instruction_t* ir_cp0_get_index(u8 guest_reg) {
@@ -1306,7 +1323,7 @@ IR_EMITTER(special_instruction) {
         case FUNCT_SRLV: CALL_IR_EMITTER(srlv);
         case FUNCT_JR: CALL_IR_EMITTER(jr);
         case FUNCT_JALR: CALL_IR_EMITTER(jalr);
-        case FUNCT_SYSCALL: IR_UNIMPLEMENTED(FUNCT_SYSCALL);
+        case FUNCT_SYSCALL: CALL_IR_EMITTER(syscall);
         case FUNCT_MFHI: CALL_IR_EMITTER(mfhi);
         case FUNCT_MTHI: CALL_IR_EMITTER(mthi);
         case FUNCT_MFLO: CALL_IR_EMITTER(mflo);

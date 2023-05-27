@@ -165,7 +165,21 @@ INLINE int jit_system_step() {
     return taken;
 }
 
-INLINE int interpreter_system_step(const int cycles) {
+INLINE int interpreter_system_step_matchjit(const int cycles) {
+    for (int i = 0; i < cycles; i++) {
+        r4300i_step();
+#ifdef INSTANT_DMA
+        N64CPU.fcr31.flag = 0;
+        N64CPU.fcr31.cause = 0;
+#endif
+    }
+
+    N64CP0.count += cycles;
+    N64CP0.count &= 0x1FFFFFFFF;
+    return cycles;
+}
+
+INLINE void interpreter_system_step() {
 #ifdef N64_DEBUG_MODE
 #ifndef N64_WIN
     if (n64sys.debugger_state.enabled && check_breakpoint(&n64sys.debugger_state, N64CPU.pc)) {
@@ -178,34 +192,13 @@ INLINE int interpreter_system_step(const int cycles) {
 #endif
 #endif
 
-    for (int i = 0; i < cycles; i++) {
-        r4300i_step();
-#ifdef INSTANT_DMA
-        N64CPU.fcr31.flag = 0;
-        N64CPU.fcr31.cause = 0;
-#endif
-    }
-    const int taken = cycles;
+    r4300i_step();
 
     static int cpu_steps = 0;
-    N64CP0.count += taken;
+    N64CP0.count++;
     N64CP0.count &= 0x1FFFFFFFF;
-    cpu_steps += taken;
+    cpu_steps++;
 
-#ifdef INSTANT_DMA
-    if (!N64RSP.status.halt) {
-        // 2 RSP steps per 3 CPU steps
-        while (cpu_steps > 2) {
-            N64RSP.steps += 2;
-            cpu_steps -= 3;
-        }
-
-        rsp_dynarec_run();
-    } else {
-        N64RSP.steps = 0;
-        cpu_steps = 0;
-    }
-#else
     if (N64RSP.status.halt) {
         cpu_steps = 0;
         N64RSP.steps = 0;
@@ -216,9 +209,6 @@ INLINE int interpreter_system_step(const int cycles) {
 
         rsp_run();
     }
-#endif
-
-    return taken;
 }
 
 void on_vi_halfline_complete(u64 time) {
@@ -293,46 +283,33 @@ void handle_scheduler_event(scheduler_event_t* event) {
 }
 
 int n64_system_step(bool dynarec, int steps) {
+    static int cpu_steps = 0;
+
     int taken;
     if (dynarec) {
         taken = jit_system_step();
     } else {
-        taken = interpreter_system_step(steps);
+        taken = interpreter_system_step_matchjit(steps);
     }
     taken += pop_stalled_cycles();
+
+    cpu_steps += taken;
 
     scheduler_event_t event;
     if (scheduler_tick(taken, &event)) {
         handle_scheduler_event(&event);
-    }
 
-    // VI timing
-    n64sys.vi.halfline_cycles += taken;
+        ai_step(cpu_steps);
+        if (!N64RSP.status.halt) {
+            // 2 RSP steps per 3 CPU steps
+            N64RSP.steps += (cpu_steps / 3) * 2;
+            cpu_steps %= 3;
 
-    bool check_vi_intr = false;
-    if (n64sys.vi.halfline_cycles > n64sys.vi.cycles_per_halfline) {
-        n64sys.vi.halfline_cycles = 0;
-        n64sys.vi.halfline++;
-        check_vi_intr = true;
-    }
-
-    if (n64sys.vi.halfline > n64sys.vi.num_halflines) {
-        n64sys.vi.halfline = 0;
-        n64sys.vi.field++;
-        check_vi_intr = true;
-        if (n64sys.video_type != UNKNOWN_VIDEO_TYPE) {
-            rdp_update_screen();
+            rsp_dynarec_run();
+        } else {
+            N64RSP.steps = 0;
+            cpu_steps = 0;
         }
-    }
-
-    if (n64sys.vi.field > n64sys.vi.num_fields) {
-        n64sys.vi.field = 0;
-        check_vi_intr = true;
-    }
-
-    n64sys.vi.v_current = (n64sys.vi.halfline << 1) + n64sys.vi.field;
-    if (check_vi_intr) {
-        check_vi_interrupt();
     }
 
     ai_step(taken);
@@ -379,10 +356,10 @@ void jit_system_loop() {
 
 void interpreter_system_loop() {
     while (!should_quit) {
-        int taken = interpreter_system_step(1);
-        ai_step(taken);
+        interpreter_system_step();
+        ai_step(1);
         static scheduler_event_t event;
-        if (scheduler_tick(taken, &event)) {
+        if (scheduler_tick(1, &event)) {
             handle_scheduler_event(&event);
         }
     }

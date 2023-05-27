@@ -692,6 +692,7 @@ INLINE void cp0_status_updated() {
             (N64CPU.cp0.kernel_mode && N64CPU.cp0.status.kx)
             || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
                || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
+    r4300i_interrupt_update();
 }
 
 #define checkcp1_preservecause do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)

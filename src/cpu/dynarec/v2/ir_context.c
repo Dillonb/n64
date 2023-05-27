@@ -750,6 +750,11 @@ ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* con
     return ir_emit_conditional_block_exit_internal(condition, index, COND_BLOCK_EXIT_TYPE_EXCEPTION, info);
 }
 
+ir_instruction_t* ir_emit_exception(int index, dynarec_exception_t exception) {
+    ir_instruction_t* const_true = ir_emit_set_constant_u16(1, NO_GUEST_REG);
+    return ir_emit_conditional_block_exit_exception(const_true, index, exception);
+}
+
 ir_instruction_t* ir_emit_conditional_block_exit_address(ir_instruction_t* condition, int index, ir_instruction_t* address) {
     cond_block_exit_info_t info;
     info.exit_pc = address;
@@ -799,10 +804,6 @@ ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* d
     instruction.mult_div.operand2 = divisor;
     instruction.mult_div.mult_div_type = divide_type;
     return append_ir_instruction(instruction, NO_GUEST_REG);
-}
-
-ir_instruction_t* ir_emit_conditional_exception(ir_instruction_t* instr, u32 code, int coprocessor_error) {
-    logwarn("Emit conditional exception");
 }
 
 ir_instruction_t* ir_emit_eret() {

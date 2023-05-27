@@ -1140,8 +1140,6 @@ void host_emit_eret(dasm_State** Dst) {
         | mov cpu_state->next_pc, Rq(TMPREG1)
         | and dword cpu_state->cp0.status.raw, (~STATUS_EXL_MASK)
     |2:
-    logwarn("Emitting ERET without running cp0_status_updated()");
-    //cp0_status_updated();
     static_assert(sizeof(bool) == 1, "bool should be a byte");
     | mov byte cpu_state->llbit, 0
 }
@@ -2228,8 +2226,6 @@ void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_
         case FLOAT_VALUE_TYPE_DOUBLE:
             | movsd xmm(dst), xmm(src)
             | pxor xmm(dst), cpu_state->d_neg // Check that this is XORING by the whole 64 bit value
-            logfatal("neg FLOAT_VALUE_TYPE_DOUBLE");
-            | int3
             break;
     }
 }
