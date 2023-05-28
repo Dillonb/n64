@@ -1426,11 +1426,12 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
                         break;
                     case VALUE_TYPE_S32:
                     case VALUE_TYPE_U32:
-                        | movd dword [cpu_state + offset], xmm(reg)
+                        | pand xmm(reg), cpu_state->s_mask
+                        | movq qword [cpu_state + offset], xmm(reg)
                         break;
                     case VALUE_TYPE_U64:
                         | pand xmm(reg), cpu_state->s_mask
-                        | movd qword [cpu_state + offset], xmm(reg)
+                        | movq qword [cpu_state + offset], xmm(reg)
                         break;
                     case VALUE_TYPE_S64:
                         logfatal("S64 FGR_32 flush");
