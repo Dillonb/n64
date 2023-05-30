@@ -1119,7 +1119,7 @@ IR_EMITTER(mfc0) {
             logfatal("emit MFC0 R4300I_CP0_REG_ERR_EPC");
             break;
         case R4300I_CP0_REG_PRID:
-            logfatal("emit MFC0 R4300I_CP0_REG_PRID");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64CP0.PRId, instruction.r.rt);
             break;
         case R4300I_CP0_REG_PARITYER:
             logfatal("emit MFC0 R4300I_CP0_REG_PARITYER");
