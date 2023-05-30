@@ -721,9 +721,20 @@ void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc
             host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
         case VALUE_TYPE_U64:
-            logfatal("u64 multiply");
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
+            // mul writes the low 64 bits to eax, and the high 64 to edx.
+            | mul Rq(reg)
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
         case VALUE_TYPE_S64:
-            logfatal("s64 multiply");
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
+            // mul writes the low 64 bits to eax, and the high 64 to edx.
+            | imul Rq(reg)
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
             break;
     }
 }
