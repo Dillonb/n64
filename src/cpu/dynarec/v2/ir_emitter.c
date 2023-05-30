@@ -202,6 +202,25 @@ IR_EMITTER(sc) {
     ir_emit_store(VALUE_TYPE_U32, physical, value);
 }
 
+IR_EMITTER(scd) {
+    ir_instruction_t* virtual = ir_get_memory_access_virtual_address(instruction);
+    ir_instruction_t* llbit = ir_emit_get_ptr(VALUE_TYPE_U8, &N64CPU.llbit, NO_GUEST_REG);
+
+    // IMPORTANT: order is critical for the next 2 lines: need to load the existing value before resetting rt
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
+    ir_instruction_t* llbit_set = ir_emit_check_condition(CONDITION_NOT_EQUAL, llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG), IR_GPR(instruction.i.rt));
+
+    ir_instruction_t* llbit_not_set = ir_emit_boolean_not(llbit_set, NO_GUEST_REG);
+
+    ir_instruction_t* block_end_pc = ir_emit_set_constant_64(ir_context.block_start_virtual + (index << 2) + 4, NO_GUEST_REG);
+    ir_emit_conditional_block_exit_address(llbit_not_set, index, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
+
+    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG));
+
+    ir_instruction_t* physical = ir_emit_tlb_lookup(virtual, NO_GUEST_REG, BUS_STORE);
+    ir_emit_store(VALUE_TYPE_U64, physical, value);
+}
+
 IR_EMITTER(sd) {
     ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
@@ -782,10 +801,10 @@ IR_EMITTER(sltiu) {
     ir_emit_check_condition(CONDITION_LESS_THAN_UNSIGNED, op1, op2, instruction.i.rt);
 }
 
-IR_EMITTER(teq) {
+void emit_trap(mips_instruction_t instruction, u64 virtual_address, int index, ir_condition_t condition) {
     ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.r.rs);
     ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.r.rt);
-    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
+    ir_instruction_t* cond = ir_emit_check_condition(condition, rs, rt, NO_GUEST_REG);
 
     dynarec_exception_t exception;
     exception.code = EXCEPTION_TRAP;
@@ -793,6 +812,30 @@ IR_EMITTER(teq) {
     exception.virtual_address = virtual_address;
 
     ir_emit_conditional_block_exit_exception(cond, index, exception);
+}
+
+IR_EMITTER(teq) {
+    emit_trap(instruction, virtual_address, index, CONDITION_EQUAL);
+}
+
+IR_EMITTER(tge) {
+    emit_trap(instruction, virtual_address, index, CONDITION_GREATER_OR_EQUAL_TO_SIGNED);
+}
+
+IR_EMITTER(tgeu) {
+    emit_trap(instruction, virtual_address, index, CONDITION_GREATER_OR_EQUAL_TO_UNSIGNED);
+}
+
+IR_EMITTER(tlt) {
+    emit_trap(instruction, virtual_address, index, CONDITION_LESS_THAN_SIGNED);
+}
+
+IR_EMITTER(tltu) {
+    emit_trap(instruction, virtual_address, index, CONDITION_LESS_THAN_UNSIGNED);
+}
+
+IR_EMITTER(tne) {
+    emit_trap(instruction, virtual_address, index, CONDITION_NOT_EQUAL);
 }
 
 IR_EMITTER(mtc0) {
@@ -1368,11 +1411,11 @@ IR_EMITTER(special_instruction) {
         case FUNCT_DSRA32: CALL_IR_EMITTER(dsra32);
         case FUNCT_BREAK: IR_UNIMPLEMENTED(FUNCT_BREAK);
         case FUNCT_SYNC: break; // nop
-        case FUNCT_TGE: IR_UNIMPLEMENTED(FUNCT_TGE);
-        case FUNCT_TGEU: IR_UNIMPLEMENTED(FUNCT_TGEU);
-        case FUNCT_TLT: IR_UNIMPLEMENTED(FUNCT_TLT);
-        case FUNCT_TLTU: IR_UNIMPLEMENTED(FUNCT_TLTU);
-        case FUNCT_TNE: IR_UNIMPLEMENTED(FUNCT_TNE);
+        case FUNCT_TGE: CALL_IR_EMITTER(tge);
+        case FUNCT_TGEU: CALL_IR_EMITTER(tge);
+        case FUNCT_TLT: CALL_IR_EMITTER(tlt);
+        case FUNCT_TLTU: CALL_IR_EMITTER(tlt);
+        case FUNCT_TNE: CALL_IR_EMITTER(tne);
         default: {
             char buf[50];
             disassemble(0, instruction.raw, buf, 50);
@@ -1465,7 +1508,7 @@ IR_EMITTER(instruction) {
         case OPC_LL: CALL_IR_EMITTER(ll);
         case OPC_LLD: CALL_IR_EMITTER(lld);
         case OPC_SC: CALL_IR_EMITTER(sc);
-        case OPC_SCD: IR_UNIMPLEMENTED(OPC_SCD);
+        case OPC_SCD: CALL_IR_EMITTER(scd);
         case OPC_RDHWR: IR_UNIMPLEMENTED(OPC_RDHWR); // Invalid instruction used by Linux
         default: {
             char buf[50];
