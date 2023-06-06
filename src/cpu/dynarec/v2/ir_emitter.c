@@ -924,9 +924,16 @@ IR_EMITTER(mtc0) {
         case R4300I_CP0_REG_EPC:
             ir_emit_set_ptr(VALUE_TYPE_S64, &N64CP0.EPC, value);
             break;
-        case R4300I_CP0_REG_CONFIG:
-            logfatal("emit MTC0 R4300I_CP0_REG_CONFIG");
+        case R4300I_CP0_REG_CONFIG: {
+            ir_instruction_t* config_mask = ir_emit_set_constant_u32(CP0_CONFIG_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* inverse_config_mask = ir_emit_not(config_mask, NO_GUEST_REG);
+            ir_instruction_t* old_config = ir_emit_get_ptr(VALUE_TYPE_U32, &N64CP0.config, NO_GUEST_REG);
+            ir_instruction_t* old_config_masked = ir_emit_and(old_config, inverse_config_mask, NO_GUEST_REG);
+            ir_instruction_t* value_masked = ir_emit_and(value, config_mask, NO_GUEST_REG);
+            ir_instruction_t* new_config = ir_emit_or(value_masked, old_config_masked, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.config, new_config);
             break;
+        }
         case R4300I_CP0_REG_WATCHLO:
             ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.watch_lo.raw, value);
             break;
@@ -979,12 +986,18 @@ IR_EMITTER(dmtc0) {
         case R4300I_CP0_REG_RANDOM:
             logfatal("dmtc0 R4300I_CP0_REG_RANDOM");
             break;
-        case R4300I_CP0_REG_ENTRYLO0:
-            logfatal("dmtc0 R4300I_CP0_REG_ENTRYLO0");
+        case R4300I_CP0_REG_ENTRYLO0: {
+            ir_instruction_t* mask = ir_emit_set_constant_u32(CP0_ENTRY_LO_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value, mask, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.entry_lo0.raw, masked);
             break;
-        case R4300I_CP0_REG_ENTRYLO1:
-            logfatal("dmtc0 R4300I_CP0_REG_ENTRYLO1");
+        }
+        case R4300I_CP0_REG_ENTRYLO1: {
+            ir_instruction_t* mask = ir_emit_set_constant_u32(CP0_ENTRY_LO_WRITE_MASK, NO_GUEST_REG);
+            ir_instruction_t* masked = ir_emit_and(value, mask, NO_GUEST_REG);
+            ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.entry_lo1.raw, masked);
             break;
+        }
         case R4300I_CP0_REG_CONTEXT: {
             ir_instruction_t* old_value = ir_emit_get_ptr(VALUE_TYPE_U64, &N64CPU.cp0.context.raw, NO_GUEST_REG);
             ir_instruction_t* masked_old = ir_emit_and(old_value, ir_emit_set_constant_u32(0x7FFFFF, NO_GUEST_REG), NO_GUEST_REG);
