@@ -89,7 +89,7 @@ void update_button(int controller, n64_button_t button, bool held) {
 
 s8 trim_gamepad_axis(s16 raw) {
     // INT16_MIN through INT16_MAX to -1 through +1
-    return (s16)raw / 32767.0;
+    return (s16)raw / 32767.0; //types or math needs to be reworked here as 32767 is not usable
 }
 
 double d_sign(double x) {
@@ -136,8 +136,8 @@ void clamp_gamepad(n64_controller_t* controller) {
 
     double len = sqrt(ax*ax+ay*ay);
     if(len <= nameForOuterDeadzoneRadius) {
-        auto lenAbsoluteX = d_abs(ax);
-        auto lenAbsoluteY = d_abs(ay);
+        double lenAbsoluteX = d_abs(ax);
+        double lenAbsoluteY = d_abs(ay);
         if(lenAbsoluteX <= nameForInnerAxialDeadzone) {
             lenAbsoluteX = 0.0;
         } else {
