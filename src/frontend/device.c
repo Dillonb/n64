@@ -88,8 +88,8 @@ void update_button(int controller, n64_button_t button, bool held) {
 }
 
 s8 trim_gamepad_axis(s16 raw) {
-    // INT16_MIN through INT16_MAX to -84 through +84
-    return (s16)raw / 390;
+    // INT16_MIN through INT16_MAX to -1 through +1
+    return (s16)raw / 32767.0;
 }
 
 double d_sign(double x) {
@@ -127,33 +127,54 @@ double copysign(double to, double from) {
 }
 
 void clamp_gamepad(n64_controller_t* controller) {
-    double ax = trim_gamepad_axis(controller->raw_x);
-    double ay = -trim_gamepad_axis(controller->raw_y);
-
-    // Thanks merrymage
+    double nameForCardinalAxisValue   = 85.0;
+    double nameForDiagonalValue       = 69.0;
+    double nameForInnerAxialDeadzone  =  7.0;
+    double nameForOuterDeadzoneRadius = 2.0 / sqrt(2.0) * (nameForDiagonalValue / nameForCardinalAxisValue * (nameForCardinalAxisValue - nameForInnerAxialDeadzone) + nameForInnerAxialDeadzone);
+    double ax = trim_gamepad_axis(controller->raw_x) * nameForOuterDeadzoneRadius;
+    double ay = -trim_gamepad_axis(controller->raw_y) * nameForOuterDeadzoneRadius;
 
     double len = sqrt(ax*ax+ay*ay);
-    if (len < 16.0f) {
-        len = 0;
-    } else if (len > 85.0f) {
-        len = 85.0f / len;
+    if(len <= nameForOuterDeadzoneRadius) {
+        auto lenAbsoluteX = d_abs(ax);
+        auto lenAbsoluteY = d_abs(ay);
+        if(lenAbsoluteX <= nameForInnerAxialDeadzone) {
+            lenAbsoluteX = 0.0;
+        } else {
+            lenAbsoluteX = (lenAbsoluteX - nameForInnerAxialDeadzone) * nameForCardinalAxisValue / (nameForCardinalAxisValue - nameForInnerAxialDeadzone) / lenAbsoluteX;
+        }
+        ax *= lenAbsoluteX;
+        if(lenAbsoluteY <= nameForInnerAxialDeadzone) {
+            lenAbsoluteY = 0.0;
+        } else {
+            lenAbsoluteY = (lenAbsoluteY - nameForInnerAxialDeadzone) * nameForCardinalAxisValue / (nameForCardinalAxisValue - nameForInnerAxialDeadzone) / lenAbsoluteY;
+        }
+        ay *= lenAbsoluteY;
     } else {
-        len = (len - 16.0f) * 85.0f / (85.0f - 16.0f) / len;
+        len = nameForOuterDeadzoneRadius / len;
+        ax *= len;
+        ay *= len;
     }
-    ax *= len;
-    ay *= len;
-
-    //bound diagonals to an octagonal range {-68 ... +68}
+    
+    //bound diagonals to an octagonal range {-69 ... +69} - Thanks merrymage
     if(ax != 0.0f && ay != 0.0f) {
         double slope = ay / ax;
         double edgex = copysign(85.0f / (d_abs(slope) + 16.0f / 69.0f), ax);
         double edgey = copysign(d_min(d_abs(edgex * slope), 85.0f / (1.0f / d_abs(slope) + 16.0f / 69.0f)), ay);
         edgex = edgey / slope;
 
-        double scale = sqrt(edgex*edgex+edgey*edgey) / 85.0f;
+        double scale = sqrt(edgex*edgex+edgey*edgey) / nameForOuterDeadzoneRadius;
         ax *= scale;
         ay *= scale;
     }
+    
+    //clamp excess between nameForCardinalAxisValue and nameForOuterDeadzoneRadius
+    if(d_abs(ax) > nameForCardinalAxisValue) ax = copysign(nameForCardinalAxisValue, ax);
+    if(d_abs(ay) > nameForCardinalAxisValue) ay = copysign(nameForCardinalAxisValue, ay);
+
+    //add epsilon to counteract floating point precision error
+    ax = copysign(d_abs(ax) + 1e-03, ax);
+    ay = copysign(d_abs(ay) + 1e-03, ay);
 
     controller->joy_x = ax;
     controller->joy_y = ay;
