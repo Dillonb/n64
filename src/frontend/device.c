@@ -127,31 +127,31 @@ double copysign(double to, double from) {
 }
 
 void clamp_gamepad(n64_controller_t* controller) {
-    double nameForCardinalAxisValue   = 85.0;
-    double nameForDiagonalValue       = 69.0;
-    double nameForInnerAxialDeadzone  =  7.0;
-    double nameForOuterDeadzoneRadius = 2.0 / sqrt(2.0) * (nameForDiagonalValue / nameForCardinalAxisValue * (nameForCardinalAxisValue - nameForInnerAxialDeadzone) + nameForInnerAxialDeadzone);
-    double ax = trim_gamepad_axis(controller->raw_x) * nameForOuterDeadzoneRadius;
-    double ay = -trim_gamepad_axis(controller->raw_y) * nameForOuterDeadzoneRadius;
+    double max_cardinal   = 85.0;
+    double max_diagonal   = 69.0;
+    double inner_deadzone =  7.0;
+    double outer_deadzone_radius = 2.0 / sqrt(2.0) * (max_diagonal / max_cardinal * (max_cardinal - inner_deadzone) + inner_deadzone);
+    double ax =  trim_gamepad_axis(controller->raw_x) * outer_deadzone_radius;
+    double ay = -trim_gamepad_axis(controller->raw_y) * outer_deadzone_radius;
 
     double len = sqrt(ax*ax+ay*ay);
-    if(len <= nameForOuterDeadzoneRadius) {
-        double lenAbsoluteX = d_abs(ax);
-        double lenAbsoluteY = d_abs(ay);
-        if(lenAbsoluteX <= nameForInnerAxialDeadzone) {
-            lenAbsoluteX = 0.0;
+    if(len <= outer_deadzone_radius) {
+        double len_absolute_x = d_abs(ax);
+        double len_absolute_y = d_abs(ay);
+        if(len_absolute_x <= inner_deadzone) {
+            len_absolute_x = 0.0;
         } else {
-            lenAbsoluteX = (lenAbsoluteX - nameForInnerAxialDeadzone) * nameForCardinalAxisValue / (nameForCardinalAxisValue - nameForInnerAxialDeadzone) / lenAbsoluteX;
+            len_absolute_x = (len_absolute_x - inner_deadzone) * max_cardinal / (max_cardinal - inner_deadzone) / len_absolute_x;
         }
-        ax *= lenAbsoluteX;
-        if(lenAbsoluteY <= nameForInnerAxialDeadzone) {
-            lenAbsoluteY = 0.0;
+        ax *= len_absolute_x;
+        if(len_absolute_y <= inner_deadzone) {
+            len_absolute_y = 0.0;
         } else {
-            lenAbsoluteY = (lenAbsoluteY - nameForInnerAxialDeadzone) * nameForCardinalAxisValue / (nameForCardinalAxisValue - nameForInnerAxialDeadzone) / lenAbsoluteY;
+            len_absolute_y = (len_absolute_y - inner_deadzone) * max_cardinal / (max_cardinal - inner_deadzone) / len_absolute_y;
         }
-        ay *= lenAbsoluteY;
+        ay *= len_absolute_y;
     } else {
-        len = nameForOuterDeadzoneRadius / len;
+        len = outer_deadzone_radius / len;
         ax *= len;
         ay *= len;
     }
@@ -163,14 +163,14 @@ void clamp_gamepad(n64_controller_t* controller) {
         double edgey = copysign(d_min(d_abs(edgex * slope), 85.0f / (1.0f / d_abs(slope) + 16.0f / 69.0f)), ay);
         edgex = edgey / slope;
 
-        double scale = sqrt(edgex*edgex+edgey*edgey) / nameForOuterDeadzoneRadius;
+        double scale = sqrt(edgex*edgex+edgey*edgey) / outer_deadzone_radius;
         ax *= scale;
         ay *= scale;
     }
     
     //clamp excess between nameForCardinalAxisValue and nameForOuterDeadzoneRadius
-    if(d_abs(ax) > nameForCardinalAxisValue) ax = copysign(nameForCardinalAxisValue, ax);
-    if(d_abs(ay) > nameForCardinalAxisValue) ay = copysign(nameForCardinalAxisValue, ay);
+    if(d_abs(ax) > max_cardinal) ax = copysign(max_cardinal, ax);
+    if(d_abs(ay) > max_cardinal) ay = copysign(max_cardinal, ay);
 
     //add epsilon to counteract floating point precision error
     ax = copysign(d_abs(ax) + 1e-03, ax);
