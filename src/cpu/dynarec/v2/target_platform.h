@@ -13,6 +13,13 @@ const int* get_preserved_gprs();
 // Get the number of registers preserved under the target platform's calling convention
 int get_num_preserved_gprs();
 
+const int* get_available_fgrs();
+int get_num_available_fgrs();
+
+INLINE int get_num_temp_fgrs() {
+    return get_num_fgrs() - get_num_available_fgrs();
+}
+
 // Get a list of the registers NOT preserved under the target platform's calling convention
 const int* get_scratch_registers();
 // Get the number of registers NOT preserved under the target platform's calling convention

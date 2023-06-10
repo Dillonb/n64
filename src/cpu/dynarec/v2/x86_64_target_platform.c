@@ -29,6 +29,30 @@ int get_num_preserved_gprs() {
     return 5; // 7 if we include the stack pointer and r12, but we can't.
 }
 
+const int* get_available_fgrs() {
+    const static int available_regs[] = {
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+    };
+
+    return available_regs;
+}
+
+int get_num_available_fgrs() {
+    return 16 - 3; // Reserve the first 3
+}
+
 const int* get_scratch_registers() {
     const static int scratch_regs[] = {
             REG_RAX, REG_RDI, REG_RSI, REG_RDX, REG_RCX, REG_R8, REG_R9, REG_R10, REG_R11

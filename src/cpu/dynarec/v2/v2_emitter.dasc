@@ -146,11 +146,45 @@ else if ((reg).spilled && !(spill_ok)) { logfatal("Register was spilled and call
 check_reg_(reg);                                                                                              \
 })
 
-int check_fgr(ir_register_allocation_t reg, bool spill_ok) {
+int temp_fgrs_allocated = 0;
+int temp_fgr_to_spill_location[16];
+
+int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
+    // See if this temp fgr has already been allocated
+    for (int i = 0; i < temp_fgrs_allocated; i++) {
+        if (temp_fgr_to_spill_location[i] == spill_location) {
+            return i;
+        }
+    }
+
+    int result = temp_fgrs_allocated++;
+
+    if (result >= (get_num_temp_fgrs())) {
+        logfatal("Tried to allocate too many temp fgrs! Did you forget to call reset_temp_fgr()?");
+    }
+
+    temp_fgr_to_spill_location[result] = spill_location;
+    | movq xmm(result), qword [rsp + spill_location]
+
+    return result;
+}
+
+void reset_temp_fgr(dasm_State** Dst) {
+    for (int i = 0; i < temp_fgrs_allocated; i++) {
+        | movq qword [rsp + temp_fgr_to_spill_location[i]], xmm(i)
+    }
+    temp_fgrs_allocated = 0;
+}
+
+int check_fgr(dasm_State** Dst, ir_register_allocation_t reg, bool spill_ok) {
     if (reg.type != REGISTER_TYPE_FGR_32 && reg.type != REGISTER_TYPE_FGR_64) {
         logfatal("FGR expected, but register was not allocated as an FGR!");
     }
-    return check_reg(reg, spill_ok);
+    int result = check_reg(reg, spill_ok);
+    if (reg.spilled) {
+        return allocate_temp_fgr(Dst, result);
+    }
+    return result;
 }
 
 int check_gpr(ir_register_allocation_t reg, bool spill_ok) {
@@ -1394,7 +1428,6 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
     int offset = get_n64cpu_offset(mem);
 
     if (reg_alloc.spilled) {
-        unimplemented(reg_alloc.type != REGISTER_TYPE_GPR, "spilled non-gpr to mem");
         | mov Rq(TMPREG2), qword [rsp + reg]
         reg = TMPREG2;
     }
@@ -1437,10 +1470,12 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
                         break;
                     case VALUE_TYPE_S32:
                     case VALUE_TYPE_U32:
+                        unimplemented(reg_alloc.spilled, "spilled fgr32 u32/s32");
                         | pand xmm(reg), cpu_state->s_mask
                         | movq qword [cpu_state + offset], xmm(reg)
                         break;
                     case VALUE_TYPE_U64:
+                        unimplemented(reg_alloc.spilled, "spilled fgr32 u64/s64");
                         | pand xmm(reg), cpu_state->s_mask
                         | movq qword [cpu_state + offset], xmm(reg)
                         break;
@@ -1453,7 +1488,11 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
                 if(type != VALUE_TYPE_U64 && type != VALUE_TYPE_S64) {
                     logwarn("non-64 bit FGR_64 flush");
                 }
-                | movq qword [cpu_state + offset], xmm(reg)
+                if (reg_alloc.spilled) { // If the reg is spilled, it was already moved into a temp reg above
+                    | mov qword [cpu_state + offset], Rq(reg)
+                } else {
+                    | movq qword [cpu_state + offset], xmm(reg)
+                }
                 break;
         }
     } else {
@@ -1621,7 +1660,7 @@ void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_allo
 }
 
 void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
-    int dst = check_fgr(dst_reg, false);
+    int dst = check_fgr(Dst, dst_reg, true);
     int src = check_gpr(src_reg, true);
 
     if (src_reg.spilled) {
@@ -1651,11 +1690,13 @@ void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
                 break;
         }
     }
+
+    reset_temp_fgr(Dst);
 }
 
 void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
     int dst = check_gpr(dst_reg, true);
-    int src = check_fgr(src_reg, false);
+    int src = check_fgr(Dst, src_reg, false);
 
     if (dst_reg.spilled) {
         dst = TMPREG1;
@@ -1681,8 +1722,8 @@ void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
 }
 
 void host_emit_mov_fgr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_float_value_type_t format) {
-    int dst = check_fgr(dst_reg, false);
-    int src = check_fgr(src_reg, false);
+    int dst = check_fgr(Dst, dst_reg, false);
+    int src = check_fgr(Dst, src_reg, false);
     if (dst == src) {
         logwarn("mov_fgr_fgr xmm(%d), xmm(%d) is a no-op, not emitting!", dst, src);
         return;
@@ -1709,7 +1750,7 @@ void host_emit_mov_fgr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, i
 
 void host_emit_float_convert_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
     int src = check_reg(src_reg, false);
-    int dst = check_fgr(dst_reg, false);
+    int dst = check_fgr(Dst, dst_reg, false);
 
     switch (src_type) {
         case FLOAT_VALUE_TYPE_INVALID:
@@ -1839,7 +1880,7 @@ void host_emit_float_convert_reg_reg(dasm_State** Dst, ir_float_value_type_t src
 }
 
 void host_emit_float_trunc_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
-    int src = check_fgr(src_reg, false);
+    int src = check_fgr(Dst, src_reg, false);
     int dst = check_reg(dst_reg, false);
 
     switch (src_type) {
@@ -1897,7 +1938,7 @@ void host_emit_float_trunc_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
 }
 
 void host_emit_float_round_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
-    int src = check_fgr(src_reg, false);
+    int src = check_fgr(Dst, src_reg, false);
     int dst = check_reg(dst_reg, false);
 
     switch (src_type) {
@@ -1960,7 +2001,7 @@ void host_emit_float_round_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
 }
 
 void host_emit_float_floor_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
-    int src = check_fgr(src_reg, false);
+    int src = check_fgr(Dst, src_reg, false);
     int dst = check_reg(dst_reg, false);
     switch (src_type) {
         case FLOAT_VALUE_TYPE_INVALID:
@@ -2018,8 +2059,8 @@ void host_emit_float_floor_reg_reg(dasm_State** Dst, ir_float_value_type_t src_t
 }
 
 void host_emit_float_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
-    int operand1 = check_fgr(operand1_alloc, false);
-    int operand2 = check_fgr(operand2_alloc, false);
+    int operand1 = check_fgr(Dst, operand1_alloc, false);
+    int operand2 = check_fgr(Dst, operand2_alloc, false);
     switch (format) {
         case FLOAT_VALUE_TYPE_INVALID:
             logfatal("host_emit_float_add_reg_reg FLOAT_VALUE_TYPE_INVALID");
@@ -2040,8 +2081,8 @@ void host_emit_float_add_reg_reg(dasm_State** Dst, ir_register_allocation_t oper
 }
 
 void host_emit_float_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
-    int operand1 = check_fgr(operand1_alloc, false);
-    int operand2 = check_fgr(operand2_alloc, false);
+    int operand1 = check_fgr(Dst, operand1_alloc, false);
+    int operand2 = check_fgr(Dst, operand2_alloc, false);
     switch (format) {
         case FLOAT_VALUE_TYPE_INVALID:
             logfatal("host_emit_float_sub_reg_reg FLOAT_VALUE_TYPE_INVALID");
@@ -2062,8 +2103,8 @@ void host_emit_float_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t oper
 }
 
 void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
-    int dividend = check_fgr(operand1_alloc, false);
-    int divisor = check_fgr(operand2_alloc, false);
+    int dividend = check_fgr(Dst, operand1_alloc, false);
+    int divisor = check_fgr(Dst, operand2_alloc, false);
     switch (format) {
         case FLOAT_VALUE_TYPE_INVALID:
             logfatal("host_emit_float_div_reg_reg FLOAT_VALUE_TYPE_INVALID");
@@ -2084,8 +2125,8 @@ void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t oper
 }
 
 void host_emit_float_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
-    int multiplicand1 = check_fgr(operand1_alloc, false);
-    int multiplicand2 = check_fgr(operand2_alloc, false);
+    int multiplicand1 = check_fgr(Dst, operand1_alloc, false);
+    int multiplicand2 = check_fgr(Dst, operand2_alloc, false);
     switch (format) {
         case FLOAT_VALUE_TYPE_INVALID:
             logfatal("host_emit_float_mult_reg_reg FLOAT_VALUE_TYPE_INVALID");
@@ -2119,8 +2160,8 @@ bool is_unordered(ir_float_condition_t condition) {
 }
 
 void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2) {
-    int op1 = check_fgr(operand1, false);
-    int op2 = check_fgr(operand2, false);
+    int op1 = check_fgr(Dst, operand1, false);
+    int op2 = check_fgr(Dst, operand2, false);
     | mov Rd(TMPREG1), cpu_state->fcr31.raw
     | and Rd(TMPREG1), ~(FCR31_COMPARE_MASK)
     switch (format) {
@@ -2169,8 +2210,8 @@ void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_fl
 }
 
 void host_emit_float_sqrt_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
-    int src = check_fgr(operand_alloc, false);
-    int dst = check_fgr(dst_alloc, false);
+    int src = check_fgr(Dst, operand_alloc, false);
+    int dst = check_fgr(Dst, dst_alloc, false);
 
     switch (format) {
         case FLOAT_VALUE_TYPE_INVALID:
@@ -2192,8 +2233,8 @@ void host_emit_float_sqrt_reg_reg(dasm_State** Dst, ir_register_allocation_t dst
 }
 
 void host_emit_float_abs_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
-    int op = check_fgr(operand_alloc, false);
-    int dst = check_fgr(dst_alloc, false);
+    int op = check_fgr(Dst, operand_alloc, false);
+    int dst = check_fgr(Dst, dst_alloc, false);
 
     switch (format) {
         case FLOAT_VALUE_TYPE_INVALID:
@@ -2217,8 +2258,8 @@ void host_emit_float_abs_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_
 }
 
 void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
-    int src = check_fgr(operand_alloc, false);
-    int dst = check_fgr(dst_alloc, false);
+    int src = check_fgr(Dst, operand_alloc, false);
+    int dst = check_fgr(Dst, dst_alloc, false);
 
     host_emit_mov_fgr_fgr(Dst, dst_alloc, operand_alloc, format);
     switch (format) {

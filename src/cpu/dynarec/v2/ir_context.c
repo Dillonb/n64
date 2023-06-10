@@ -1,6 +1,8 @@
 #include <log.h>
 #include <r4300i.h>
+#include <mem/n64bus.h>
 #include "ir_context.h"
+#include "ir_optimizer.h"
 
 ir_context_t ir_context;
 
@@ -356,7 +358,16 @@ bool instr_exception_possible(ir_instruction_t* instr) {
             return false;
 
         case IR_COND_BLOCK_EXIT:
+            return true;
         case IR_TLB_LOOKUP:
+            if (is_constant(instr->tlb_lookup.virtual_address)) {
+                u64 vaddr = const_to_u64(instr->tlb_lookup.virtual_address);
+                if (is_tlb(vaddr)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
             return true;
     }
 }
@@ -493,6 +504,10 @@ ir_instruction_t* insert_ir_instruction(ir_instruction_t* after, ir_instruction_
         // Inserting at the end
         return append_ir_instruction(instruction, NO_GUEST_REG);
     } else {
+        if (instr_exception_possible(&instruction)) {
+            logfatal("Cannot insert an instruction that can cause an exception!");
+        }
+        instruction.flush_info.num_regs = 0;
         ir_instruction_t* allocation = allocate_ir_instruction(instruction);
 
         after->next = allocation;

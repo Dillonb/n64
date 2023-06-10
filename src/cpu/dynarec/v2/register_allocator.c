@@ -259,9 +259,9 @@ void ir_allocate_registers() {
     register_allocation_state_t fgr_state;
     memset(&fgr_state, 0, sizeof(fgr_state));
     fgr_state.num_total_regs = get_num_fgrs();
-    fgr_state.num_regs = get_num_fgrs(); // all are available
-    for (int i = 0; i < fgr_state.num_total_regs; i++) {
-        fgr_state.reg_available[i] = true;
+    fgr_state.num_regs = get_num_available_fgrs();
+    for (int i = 0; i < get_num_available_fgrs(); i++) {
+        fgr_state.reg_available[get_available_fgrs()[i]] = true;
     }
 
     // TODO: replace last_use calculations with a single backwards pass instead of the worst-case O(n^2) algorithm of calling value_lifetime()
