@@ -466,7 +466,6 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
-    ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
     if (is_constant(instr->cond_block_exit.condition)) {
         bool cond = const_to_u64(instr->cond_block_exit.condition) != 0;
         if (cond) {
@@ -481,10 +480,10 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
                     host_emit_mov_pc(Dst, instr->cond_block_exit.info.exit_pc);
                     break;
             }
-            host_emit_ret(Dst, flush_iter, instr->cond_block_exit.block_length);
+            host_emit_ret(Dst, &instr->flush_info, instr->cond_block_exit.block_length);
         }
     } else {
-        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, flush_iter, instr->cond_block_exit.block_length, instr->cond_block_exit.type, instr->cond_block_exit.info);
+        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, &instr->flush_info, instr->cond_block_exit.block_length, instr->cond_block_exit.type, instr->cond_block_exit.info);
     }
 }
 

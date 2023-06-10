@@ -6,8 +6,6 @@
 
 // Number of IR instructions that can be cached per block. 4x the max number of instructions per block - should be safe.
 #define IR_CACHE_SIZE 4096
-// Number of values that can be flushed conditionally per block when the block is exited early.
-#define IR_FLUSH_CACHE_SIZE 100
 
 #define IR_GPR_BASE 0
 #define IR_FGR_BASE 32
@@ -101,7 +99,6 @@ typedef struct ir_set_float_constant {
 typedef struct ir_instruction_flush {
     u8 guest_reg;
     struct ir_instruction* item;
-    struct ir_instruction_flush* next;
 } ir_instruction_flush_t;
 
 typedef enum ir_register_type {
@@ -189,6 +186,11 @@ typedef union cond_block_exit_info {
     struct ir_instruction* exit_pc;
 } cond_block_exit_info_t;
 
+typedef struct ir_flush_info {
+    int num_regs;
+    ir_instruction_flush_t regs[64];
+} ir_flush_info_t;
+
 typedef struct ir_instruction {
     // Metadata
     struct ir_instruction* next;
@@ -197,6 +199,9 @@ typedef struct ir_instruction {
     bool dead_code;
     ir_register_allocation_t reg_alloc;
     int last_use;
+
+    // Regs to flush if this instruction causes the block to exit
+    ir_flush_info_t flush_info;
 
     enum {
         IR_NOP,
@@ -306,7 +311,6 @@ typedef struct ir_instruction {
             struct ir_instruction* value;
         } set_cp0;
         struct {
-            ir_instruction_flush_t* regs_to_flush;
             struct ir_instruction* condition;
             int block_length;
             cond_block_exit_type_t type;
@@ -380,9 +384,6 @@ typedef struct ir_context {
     ir_instruction_t* ir_cache_tail;
     int ir_cache_index;
 
-    ir_instruction_flush_t ir_flush_cache[IR_FLUSH_CACHE_SIZE];
-    int ir_flush_cache_index;
-
     bool block_end_pc_ir_emitted;
     bool block_end_pc_compiled;
 
@@ -398,6 +399,8 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size);
 
 #define NO_GUEST_REG 0xFF
 
+// Can this instruction cause an exception? Mostly used internally.
+bool instr_exception_possible(ir_instruction_t* instr);
 // Update a guest reg to point at a new value. Mostly used internally.
 void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value);
 // Emit a constant to the IR, optionally associating it with a guest register.

@@ -17,7 +17,6 @@ void ir_context_reset() {
     }
 
     memset(ir_context.ir_cache, 0, sizeof(ir_instruction_t) * IR_CACHE_SIZE);
-    memset(ir_context.ir_flush_cache, 0, sizeof(ir_instruction_flush_t) * IR_FLUSH_CACHE_SIZE);
 
     ir_context.ir_cache[0].type = IR_SET_CONSTANT;
     ir_context.ir_cache[0].set_constant.type = VALUE_TYPE_U64;
@@ -25,7 +24,6 @@ void ir_context_reset() {
     ir_context.guest_reg_to_value[0] = &ir_context.ir_cache[0];
 
     ir_context.ir_cache_index = 1;
-    ir_context.ir_flush_cache_index = 0;
 
     ir_context.ir_cache_head = &ir_context.ir_cache[0];
     ir_context.ir_cache_tail = &ir_context.ir_cache[0];
@@ -318,6 +316,52 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
     }
 }
 
+bool instr_exception_possible(ir_instruction_t* instr) {
+    switch (instr->type) {
+        case IR_NOP:
+        case IR_SET_CONSTANT:
+        case IR_SET_FLOAT_CONSTANT:
+        case IR_OR:
+        case IR_XOR:
+        case IR_AND:
+        case IR_SUB:
+        case IR_NOT:
+        case IR_ADD:
+        case IR_SHIFT:
+        case IR_STORE:
+        case IR_LOAD:
+        case IR_GET_PTR:
+        case IR_SET_PTR:
+        case IR_MASK_AND_CAST:
+        case IR_CHECK_CONDITION:
+        case IR_SET_COND_BLOCK_EXIT_PC:
+        case IR_SET_BLOCK_EXIT_PC:
+        case IR_LOAD_GUEST_REG:
+        case IR_FLUSH_GUEST_REG:
+        case IR_MULTIPLY:
+        case IR_DIVIDE:
+        case IR_ERET:
+        case IR_CALL:
+        case IR_MOV_REG_TYPE:
+        case IR_FLOAT_CONVERT:
+        case IR_FLOAT_MULTIPLY:
+        case IR_FLOAT_DIVIDE:
+        case IR_FLOAT_ADD:
+        case IR_FLOAT_SUB:
+        case IR_FLOAT_SQRT:
+        case IR_FLOAT_ABS:
+        case IR_FLOAT_NEG:
+        case IR_FLOAT_CHECK_CONDITION:
+        case IR_INTERPRETER_FALLBACK:
+            return false;
+
+        case IR_COND_BLOCK_EXIT:
+        case IR_TLB_LOOKUP:
+            return true;
+    }
+}
+
+
 void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
     if (guest_reg > 0) {
         if (IR_IS_GPR(guest_reg)) {
@@ -412,13 +456,22 @@ ir_instruction_t* allocate_ir_instruction(ir_instruction_t instruction) {
     return &ir_context.ir_cache[index];
 }
 
-ir_instruction_flush_t* allocate_ir_flush(ir_instruction_flush_t flush) {
-    int index = ir_context.ir_flush_cache_index++;
-    ir_context.ir_flush_cache[index] = flush;
-    return &ir_context.ir_flush_cache[index];
-}
-
 ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, u8 guest_reg) {
+    instruction.flush_info.num_regs = 0;
+    if (instr_exception_possible(&instruction)) {
+        for (int i = 1; i < 64; i++) {
+            ir_instruction_t* gpr_value = ir_context.guest_reg_to_value[i];
+            if (gpr_value) {
+                // If it's just a load, no need to flush it back as it has not been modified
+                if (gpr_value->type != IR_LOAD_GUEST_REG || gpr_value->load_guest_reg.guest_reg != i) {
+                    ir_instruction_flush_t* flush = &instruction.flush_info.regs[instruction.flush_info.num_regs++];
+                    flush->guest_reg = i;
+                    flush->item = gpr_value;
+                }
+            }
+        }
+    }
+
     ir_instruction_t* allocation = allocate_ir_instruction(instruction);
 
     allocation->next = NULL;
@@ -714,27 +767,10 @@ ir_instruction_t* ir_emit_conditional_block_exit_internal(ir_instruction_t* cond
     instruction.type = IR_COND_BLOCK_EXIT;
     instruction.cond_block_exit.condition = condition;
     instruction.cond_block_exit.block_length = index + 1;
-    instruction.cond_block_exit.regs_to_flush = NULL;
     instruction.cond_block_exit.type = type;
     instruction.cond_block_exit.info = info;
 
     unimplemented(!ir_context.block_end_pc_ir_emitted && type == COND_BLOCK_EXIT_TYPE_NONE, "COND_BLOCK_EXIT_TYPE_NONE used when PC is unknown!");
-
-    for (int i = 1; i < 64; i++) {
-        ir_instruction_t* gpr_value = ir_context.guest_reg_to_value[i];
-        if (gpr_value) {
-            // If it's just a load, no need to flush it back as it has not been modified
-            if (gpr_value->type != IR_LOAD_GUEST_REG || gpr_value->load_guest_reg.guest_reg != i) {
-                ir_instruction_flush_t* old_head = instruction.cond_block_exit.regs_to_flush;
-
-                ir_instruction_flush_t flush;
-                flush.next = old_head;
-                flush.guest_reg = i;
-                flush.item = gpr_value;
-                instruction.cond_block_exit.regs_to_flush = allocate_ir_flush(flush);
-            }
-        }
-    }
 
     return append_ir_instruction(instruction, NO_GUEST_REG);
 }

@@ -5,6 +5,12 @@
 #include "target_platform.h"
 
 bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
+    for (int i = 0; i < instr->flush_info.num_regs; i++) {
+        if (instr->flush_info.regs[i].item == value) {
+            return true;
+        }
+    }
+
     switch (instr->type) {
         // Unary ops
         case IR_SET_BLOCK_EXIT_PC:
@@ -49,13 +55,6 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
                         return true;
                     }
                     break;
-            }
-            ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
-            while (flush_iter != NULL) {
-                if (flush_iter->item == value) {
-                    return true;
-                }
-                flush_iter = flush_iter->next;
             }
             return false;
         }
@@ -586,6 +585,11 @@ void ir_optimize_eliminate_dead_code() {
     ir_instruction_t* instr = ir_context.ir_cache_tail;
     // Loop through instructions backwards
     while (instr != NULL) {
+        // Reg values preserved for flushing upon early exit
+        for (int i = 0; i < instr->flush_info.num_regs; i++) {
+            instr->flush_info.regs[i].item->dead_code = false;
+        }
+
         switch (instr->type) {
             // Never eliminated
             case IR_STORE:
@@ -614,11 +618,6 @@ void ir_optimize_eliminate_dead_code() {
             case IR_COND_BLOCK_EXIT:
                 instr->dead_code = false;
                 instr->cond_block_exit.condition->dead_code = false;
-                ir_instruction_flush_t* flush_iter = instr->cond_block_exit.regs_to_flush;
-                while (flush_iter != NULL) {
-                    flush_iter->item->dead_code = false;
-                    flush_iter = flush_iter->next;
-                }
                 break;
             case IR_MULTIPLY:
             case IR_DIVIDE:
