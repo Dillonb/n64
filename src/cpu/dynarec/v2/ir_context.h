@@ -155,15 +155,6 @@ INLINE ir_register_allocation_t alloc_fgr_64(int reg) {
     return alloc_reg(reg, REGISTER_TYPE_FGR_64);
 }
 
-INLINE ir_register_allocation_t alloc_reg_spilled(int spill_location, ir_register_type_t type) {
-    ir_register_allocation_t alloc;
-    alloc.allocated = true;
-    alloc.type = type;
-    alloc.spilled = true;
-    alloc.spill_location = spill_location;
-    return alloc;
-}
-
 INLINE bool reg_alloc_equal(ir_register_allocation_t a, ir_register_allocation_t b) {
     if (a.allocated != b.allocated) {
         return false;

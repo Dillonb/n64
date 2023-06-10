@@ -158,10 +158,45 @@ void expire_old_intervals(register_allocation_state_t* state, ir_instruction_t* 
     }
 }
 
+typedef struct spill_data {
+    int index;
+    ir_instruction_t* spilled_values[SPILL_SPACE_NUM_ENTRIES];
+} spill_data_t;
+
+int find_spill_index(spill_data_t* spill_data, ir_instruction_t* for_value) {
+    // Try to find an already allocated space that has expired
+
+    for (int i = 0; i < spill_data->index; i++) {
+        if (i >= SPILL_SPACE_NUM_ENTRIES) {
+            logfatal("Out of spill space entries when trying to allocate v%d!", for_value->index);
+        }
+        if (spill_data->spilled_values[i]->last_use < for_value->index) {
+            spill_data->spilled_values[i] = for_value;
+            return i * SPILL_ENTRY_SIZE;
+        }
+    }
+
+    // If not, allocate a new space.
+    if (spill_data->index >= SPILL_SPACE_NUM_ENTRIES || spill_data->index < 0) {
+        logfatal("Invalid spill data index %d\n", spill_data->index);
+    }
+    spill_data->spilled_values[spill_data->index] = for_value;
+    return (spill_data->index++) * SPILL_ENTRY_SIZE;
+}
+
+ir_register_allocation_t alloc_reg_spilled(int spill_location, ir_register_type_t type) {
+    ir_register_allocation_t alloc;
+    alloc.allocated = true;
+    alloc.type = type;
+    alloc.spilled = true;
+    alloc.spill_location = spill_location;
+    return alloc;
+}
+
 void allocate_register(
         ir_instruction_t* value,
         ir_register_type_t type,
-        int* spill_index,
+        spill_data_t* spill_data,
         register_allocation_state_t* state) {
     ir_instruction_t* last_use = NULL;
     value_lifetime(value, &last_use);
@@ -181,15 +216,13 @@ void allocate_register(
 
             // Allocate a new space on the stack for the spilled value
             spill->reg_alloc.spilled = true;
-            spill->reg_alloc.spill_location = *spill_index;
-            *spill_index += SPILL_ENTRY_SIZE;
+            spill->reg_alloc.spill_location = find_spill_index(spill_data, spill);
 
             // Replace spilled value in active list with the new value
             state->active[active_index] = value;
         } else {
             // Allocate a new space on the stack for the new value
-            value->reg_alloc = alloc_reg_spilled(*spill_index, type);
-            *spill_index += SPILL_ENTRY_SIZE;
+            value->reg_alloc = alloc_reg_spilled(find_spill_index(spill_data, value), type);
         }
     } else {
         int reg = first_available_register(state);
@@ -205,12 +238,14 @@ void allocate_register(
 
 }
 
+spill_data_t spill_data = { 0 };
+
 // https://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
 void ir_allocate_registers() {
     // Recalculate indices before register allocation. Needed because previous steps can insert values into the middle of the list without updating the index values.
     ir_recalculate_indices();
 
-    int spill_index = 0;
+    memset(&spill_data, 0, sizeof(spill_data_t));
 
     register_allocation_state_t gpr_state;
     memset(&gpr_state, 0, sizeof(gpr_state));
@@ -243,9 +278,9 @@ void ir_allocate_registers() {
         ir_register_type_t allocation_type = get_required_register_type(value);
         if (allocation_type != REGISTER_TYPE_NONE) {
             if (allocation_type == REGISTER_TYPE_GPR) {
-                allocate_register(value, allocation_type, &spill_index, &gpr_state);
+                allocate_register(value, allocation_type, &spill_data, &gpr_state);
             } else if (allocation_type == REGISTER_TYPE_FGR_32 || allocation_type == REGISTER_TYPE_FGR_64) {
-                allocate_register(value, allocation_type, &spill_index, &fgr_state);
+                allocate_register(value, allocation_type, &spill_data, &fgr_state);
             } else {
                 logfatal("Unknown register allocation type!");
             }
