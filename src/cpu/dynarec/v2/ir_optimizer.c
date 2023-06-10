@@ -736,19 +736,21 @@ void ir_optimize_eliminate_dead_code() {
 
     while (instr != NULL) {
         if (instr->dead_code) {
-            ir_instruction_t* prev = instr->prev;
-            ir_instruction_t* next = instr->next;
 
-            if (!prev) {
-                logfatal("Eliminating head");
+            if (instr == ir_context.ir_cache_head) {
+                ir_context.ir_cache_head = instr->next;
+                if (ir_context.ir_cache_head != NULL) {
+                    ir_context.ir_cache_head->prev = NULL;
+                }
+            } else if (instr == ir_context.ir_cache_tail) {
+                ir_context.ir_cache_tail = instr->prev;
+                if (ir_context.ir_cache_tail) {
+                    ir_context.ir_cache_tail->next = NULL;
+                }
+            } else {
+                instr->prev->next = instr->next;
+                instr->next->prev = instr->prev;
             }
-
-            if (!next) {
-                logfatal("Eliminating tail");
-            }
-
-            next->prev = prev;
-            prev->next = next;
         }
         instr = instr->next;
     }

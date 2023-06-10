@@ -33,7 +33,7 @@ source_instruction_t temp_code[TEMP_CODE_SIZE];
 u64 temp_code_vaddr = 0;
 
 #define LAST_INSTR_CATEGORY (temp_code[temp_code_len - 1].category)
-#define LAST_INSTR_IS_BRANCH ((LAST_INSTR_CATEGORY == BRANCH) || (LAST_INSTR_CATEGORY == BRANCH_LIKELY))
+#define LAST_INSTR_IS_BRANCH ((temp_code_len > 0) && ((LAST_INSTR_CATEGORY == BRANCH) || (LAST_INSTR_CATEGORY == BRANCH_LIKELY)))
 
 u64 v2_get_last_compiled_block() {
     return temp_code_vaddr;
