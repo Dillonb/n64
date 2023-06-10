@@ -891,7 +891,7 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             } else {
                 | mov eax, Rd(operand1)
             }
-            | cqo
+            | xor edx, edx
 
             if (operand2_alloc.spilled) {
                 | mov Rd(TMPREG2), dword [rsp + operand2]
@@ -923,7 +923,7 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
             } else {
                 | mov rax, Rq(operand1)
             }
-            | cqo
+            | xor edx, edx
 
             if (operand2_alloc.spilled) {
                 | mov Rq(TMPREG2), qword [rsp + operand2]
