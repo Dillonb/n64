@@ -108,9 +108,9 @@ n64_controller_accessory_type_t get_controller_accessory_type(int pif_channel);
 
 // Exposed for testing
 
-// Trim and apply deadzone
-s8 trim_gamepad_axis(s16 raw);
-// do all requisite clamping for a controller
+// Trim input
+double trim_gamepad_axis(s16 raw);
+// Do all requisite clamping for a controller
 void clamp_gamepad(n64_controller_t* controller);
 
 #ifdef __cplusplus
