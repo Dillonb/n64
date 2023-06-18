@@ -87,73 +87,65 @@ void update_button(int controller, n64_button_t button, bool held) {
     }
 }
 
-s8 trim_gamepad_axis(s16 raw) {
-    // INT16_MIN through INT16_MAX to -84 through +84
-    return (s16)raw / 390;
-}
-
-double d_sign(double x) {
-    if (x > 0) {
-        return 1;
-    } else if (x < 0) {
-        return -1;
-    } else {
-        return 0;
-    }
-}
-
-double d_min(double x, double y) {
-    if (x < y) {
-        return x;
-    } else {
-        return y;
-    }
-}
-
-double d_abs(double x) {
-    if (x < 0) {
-        return -x;
-    } else {
-        return x;
-    }
-}
-
-double copysign(double to, double from) {
-    if (d_sign(from) == d_sign(to)) {
-        return to;
-    } else {
-        return -to;
-    }
+double trim_gamepad_axis(s16 raw) {
+    // INT16_MIN through INT16_MAX to -1 through +1
+    if(raw < -32767.0) raw = -32767.0;
+    return (s16)raw / 32767.0;
 }
 
 void clamp_gamepad(n64_controller_t* controller) {
+    double max_cardinal   = 85.0;
+    double max_diagonal   = 69.0;
+    double inner_deadzone =  7.0;
+    double max_outer_deadzone_radius = 2.0 / sqrt(2.0) * (max_diagonal / max_cardinal * (max_cardinal - inner_deadzone) + inner_deadzone);
+
     double ax = trim_gamepad_axis(controller->raw_x);
     double ay = -trim_gamepad_axis(controller->raw_y);
 
-    // Thanks merrymage
+    ax *= max_outer_deadzone_radius;
+    ay *= max_outer_deadzone_radius;
 
     double len = sqrt(ax*ax+ay*ay);
-    if (len < 16.0f) {
-        len = 0;
-    } else if (len > 85.0f) {
-        len = 85.0f / len;
+    if(len <= max_outer_deadzone_radius) {
+        double len_absolute_x = fabs(ax);
+        double len_absolute_y = fabs(ay);
+        if(len_absolute_x <= inner_deadzone) {
+            len_absolute_x = 0.0;
+        } else {
+            len_absolute_x = (len_absolute_x - inner_deadzone) * max_cardinal / (max_cardinal - inner_deadzone) / len_absolute_x;
+        }
+        ax *= len_absolute_x;
+        if(len_absolute_y <= inner_deadzone) {
+            len_absolute_y = 0.0;
+        } else {
+            len_absolute_y = (len_absolute_y - inner_deadzone) * max_cardinal / (max_cardinal - inner_deadzone) / len_absolute_y;
+        }
+        ay *= len_absolute_y;
     } else {
-        len = (len - 16.0f) * 85.0f / (85.0f - 16.0f) / len;
+        len = max_outer_deadzone_radius / len;
+        ax *= len;
+        ay *= len;
     }
-    ax *= len;
-    ay *= len;
 
-    //bound diagonals to an octagonal range {-68 ... +68}
+    //bound diagonals to an octagonal range {-max_diagonal ... +max_diagonal} - Thanks merrymage
     if(ax != 0.0f && ay != 0.0f) {
         double slope = ay / ax;
-        double edgex = copysign(85.0f / (d_abs(slope) + 16.0f / 69.0f), ax);
-        double edgey = copysign(d_min(d_abs(edgex * slope), 85.0f / (1.0f / d_abs(slope) + 16.0f / 69.0f)), ay);
+        double edgex = copysign(max_cardinal / (fabs(slope) + (max_cardinal - max_diagonal) / max_diagonal), ax);
+        double edgey = copysign(fmin(fabs(edgex * slope), max_cardinal / (1.0f / fabs(slope) + (max_cardinal - max_diagonal) / max_diagonal)), ay);
         edgex = edgey / slope;
 
-        double scale = sqrt(edgex*edgex+edgey*edgey) / 85.0f;
+        double scale = sqrt(edgex*edgex+edgey*edgey) / max_outer_deadzone_radius;
         ax *= scale;
         ay *= scale;
     }
+    
+    //clamp excess between max_cardinal and max_outer_deadzone_radius
+    if(fabs(ax) > max_cardinal) ax = copysign(max_cardinal, ax);
+    if(fabs(ay) > max_cardinal) ay = copysign(max_cardinal, ay);
+
+    //add epsilon to counteract floating point precision error
+    ax = copysign(fabs(ax) + 1e-09, ax);
+    ay = copysign(fabs(ay) + 1e-09, ay);
 
     controller->joy_x = ax;
     controller->joy_y = ay;
