@@ -125,7 +125,7 @@ dasm_State** v2_emit_run_block() {
     | func_prologue
     // r12 always holds a pointer to the CPU struct
     | mov64 r12, n64_cpu_addr
-    | call rdi
+    | call Rq(get_func_arg_registers()[0])
     | func_epilogue
     return Dst;
 }
