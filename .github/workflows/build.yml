@@ -35,8 +35,9 @@ jobs:
         run: |
           mkdir upload
           move build\Release\n64.exe upload
+          move build\Release\n64-qt.exe upload
           move build\Release\SDL2.dll upload
-          windeployqt --dir upload build\Release\n64-qt.exe
+          windeployqt --dir upload upload\n64-qt.exe
 
       - name: Upload files
         uses: actions/upload-artifact@master
