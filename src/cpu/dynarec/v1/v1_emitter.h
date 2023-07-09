@@ -161,7 +161,7 @@ COMPILER(mips_cp_c_lt_s);
 COMPILER(mips_cp_c_le_d);
 COMPILER(mips_cp_c_le_s);
 
-dasm_State* v1_block_header();
+dasm_State** v1_block_header();
 void clear_branch_flag(dasm_State** Dst);
 void advance_pc(dasm_State** Dst);
 void advance_rsp_pc(dasm_State** Dst);
@@ -184,4 +184,5 @@ void flush_rsp_next_pc(dasm_State** Dst, u16 next_pc);
 void fill_valid_host_regs(int* valid_host_regs, int* num_valid_host_regs);
 void load_host_register_from_gpr(dasm_State** Dst, u8 host_reg, int guest_reg);
 void flush_host_register_to_gpr(dasm_State** Dst, int host_reg, int guest_reg);
+void v1_dasm_free();
 #endif //N64_ASM_EMITTER_H
