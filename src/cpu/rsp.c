@@ -353,6 +353,7 @@ void rsp_run() {
 }
 
 void rsp_dynarec_run() {
+#ifdef ENABLE_DYNAREC
     int run_for = 0;
     // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
     while (N64RSP.steps > 0) {
@@ -361,4 +362,7 @@ void rsp_dynarec_run() {
         run_for += taken;
     }
     mark_metric_multiple(METRIC_RSP_STEPS, run_for);
+#else
+    no_dynarec_err();
+#endif
 }

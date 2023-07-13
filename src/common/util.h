@@ -39,11 +39,15 @@ typedef int64_t s64;
 #define ASSERTDWORD(type) _Static_assert(sizeof(type) == 8, #type " must be 64 bits")
 #endif
 
-#ifndef N64_WIN
+#ifdef N64_WIN
+#define PATH_MAX 0x1000
+#else
+#include <unistd.h>
+#ifdef N64_MACOS
+#else
 #include <unistd.h>
 #include <linux/limits.h>
-#else
-#define PATH_MAX 0x1000
+#endif
 #endif
 
 

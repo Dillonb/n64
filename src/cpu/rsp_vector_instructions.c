@@ -1,18 +1,18 @@
 #include "rsp_vector_instructions.h"
 
 #ifdef N64_USE_SIMD
+#ifdef __aarch64__
+#include <sse2neon.h>
+#else
 #include <emmintrin.h>
+#include <immintrin.h>
+#endif
 #endif
 
 #include <log.h>
-#ifdef N64_USE_SIMD
-#include <immintrin.h>
 #include <n64_rsp_bus.h>
-
-#endif
 #include "rsp.h"
 #include "rsp_rom.h"
-#include "n64_rsp_bus.h"
 
 #define defvs vu_reg_t* vs = &N64RSP.vu_regs[instruction.cp2_vec.vs]
 #define defvt vu_reg_t* vt = &N64RSP.vu_regs[instruction.cp2_vec.vt]
@@ -808,10 +808,19 @@ RSP_VECTOR_INSTR(rsp_vec_vcl) {
         }
     }
 
+#ifdef N64_USE_SIMD
     N64RSP.vco.l.single = N64RSP.zero;
     N64RSP.vco.h.single = N64RSP.zero;
     N64RSP.vce.single   = N64RSP.zero;
     vd->single          = N64RSP.acc.l.single;
+#else
+    for (int i = 0; i < 4; i++) {
+    N64RSP.vco.l.words[i] = 0;
+    N64RSP.vco.h.words[i] = 0;
+    N64RSP.vce.words[i]   = 0;
+    vd->words[i]          = N64RSP.acc.l.words[i];
+    }
+#endif
 }
 
 RSP_VECTOR_INSTR(rsp_vec_vcr) {
@@ -989,7 +998,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
         s16 multiplicand1 = vte.elements[e];
         s16 multiplicand2 = vs->elements[e];
         s32 prod = multiplicand1 * multiplicand2;
-        word uprod = prod;
+        u32 uprod = prod;
 
         u64 acc_delta = (u64)uprod << 16;
         s64 acc = get_rsp_accumulator(e) + acc_delta;
@@ -1684,6 +1693,11 @@ RSP_VECTOR_INSTR(rsp_vec_vzero) {
     defvd;
     for (int i = 0; i < 8; i++) {
         N64RSP.acc.l.elements[i] = vte.elements[i] + vs->elements[i];
+        #ifndef N64_USE_SIMD
+        vd->elements[i] = 0;
+        #endif
     }
+    #ifdef N64_USE_SIMD
     vd->single = N64RSP.zero;
+    #endif
 }

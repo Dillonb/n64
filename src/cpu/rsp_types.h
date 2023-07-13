@@ -4,7 +4,11 @@
 #include <stdbool.h>
 #include <assert.h>
 #ifdef N64_USE_SIMD
+#ifdef __aarch64__
+#include <sse2neon.h>
+#else
 #include <emmintrin.h>
+#endif
 #endif
 #include <util.h>
 #include <cpu/dynarec/rsp_dynarec.h>

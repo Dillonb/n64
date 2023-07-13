@@ -108,9 +108,11 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
 
     n64sys.video_type = video_type;
 
-    mprotect_codecache();
-    n64sys.dynarec = n64_dynarec_init(codecache, CODECACHE_SIZE);
-    N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
+    if (!use_interpreter) {
+        mprotect_codecache();
+        n64sys.dynarec = n64_dynarec_init(codecache, CODECACHE_SIZE);
+        N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
+    }
 
     if (enable_frontend) {
         render_init(video_type);

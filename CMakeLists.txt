@@ -5,7 +5,12 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
-ADD_COMPILE_OPTIONS(-mssse3 -msse4.1)
+if (NOT MACOSX)
+    ADD_COMPILE_OPTIONS(-mssse3 -msse4.1)
+    ADD_COMPILE_DEFINITIONS(ENABLE_DYNAREC)
+    set(ENABLE_DYNAREC TRUE)
+endif()
+ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
 #ADD_COMPILE_OPTIONS(-DVULKAN_DEBUG)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DN64_DEBUG_MODE -g")
@@ -35,7 +40,6 @@ endif()
 #add_compile_options(-fsanitize=thread)
 #add_link_options(-fsanitize=thread)
 
-ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
 
 project (N64)
 set(CMAKE_CXX_STANDARD 17)
