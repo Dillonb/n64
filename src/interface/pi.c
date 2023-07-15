@@ -257,7 +257,7 @@ INLINE bool pi_read_latch() {
 void write_byte_pibus(u32 address, u32 value) {
     // If the write is misaligned, cache 16 bits instead of 8
     int latch_shift = 24 - (address & 1) * 8;
-    if (!pi_write_latch(value << latch_shift)) {
+    if (!pi_write_latch(value << latch_shift) && address != 0x05000020) {
         return; // Couldn't latch, ignore the write.
     }
     switch (address) {
