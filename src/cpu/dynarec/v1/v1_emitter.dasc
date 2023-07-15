@@ -1455,27 +1455,36 @@ dynarec_ir_t* rsp_instruction_ir(mips_instruction_t instr, u32 address) {
     }
 }
 
-dasm_State* v1_block_header() {
-    dasm_State* d;
+dasm_State* v1_emitter_dasm_state = NULL;
+dasm_State** v1_block_header() {
+    dasm_State** Dst = &v1_emitter_dasm_state;
+    if (v1_emitter_dasm_state != NULL) {
+        logfatal("dynasm state already initialized!");
+    }
+
     unsigned npc = 8; // number of dynamic labels
 
     |.section code
-    dasm_init(&d, DASM_MAXSECTION);
+    dasm_init(Dst, DASM_MAXSECTION);
 
     |.globals lbl_
 
     void* labels[lbl__MAX];
-    dasm_setupglobal(&d, labels, lbl__MAX);
+    dasm_setupglobal(Dst, labels, lbl__MAX);
 
     |.actionlist actions
-    dasm_setup(&d, actions);
-    dasm_growpc(&d, npc);
+    dasm_setup(Dst, actions);
+    dasm_growpc(Dst, npc);
 
-    dasm_State** Dst = &d;
     |.code
     |->compiled_block:
     | prologue
-    return d;
+    return Dst;
+}
+
+void v1_dasm_free() {
+    dasm_free(&v1_emitter_dasm_state);
+    v1_emitter_dasm_state = NULL;
 }
 
 void advance_pc(dasm_State** Dst) {

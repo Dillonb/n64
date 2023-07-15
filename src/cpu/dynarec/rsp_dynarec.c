@@ -19,11 +19,7 @@ void* rsp_link_and_encode(dasm_State** d) {
 #define NEXT(address) ((address + 4) & 0xFFF)
 
 void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
-    static dasm_State* d;
-    static dasm_State** Dst;
-
-    d = v1_block_header();
-    Dst = &d;
+    dasm_State** Dst = v1_block_header();
 
     int block_length = 0;
     int block_extra_cycles = 0;
@@ -100,7 +96,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
 
     end_rsp_block(Dst, block_length + block_extra_cycles);
     void* compiled = rsp_link_and_encode(Dst);
-    dasm_free(Dst);
+    v1_dasm_free();
 
     block->run = compiled;
 }

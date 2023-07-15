@@ -146,9 +146,7 @@ bool branch_is_loop(mips_instruction_t instr, u32 block_length) {
 }
 
 void v1_compile_new_block(n64_dynarec_block_t* block, bool* code_mask, u64 virtual_address, u32 physical_address) {
-    static dasm_State* d;
-    d = v1_block_header();
-    dasm_State** Dst = &d;
+    dasm_State** Dst = v1_block_header();
 
     memset(guest_reg_loaded, 0, sizeof(guest_reg_loaded));
     memset(host_reg_used, 0, sizeof(host_reg_used));
@@ -325,8 +323,8 @@ void v1_compile_new_block(n64_dynarec_block_t* block, bool* code_mask, u64 virtu
     flush_all(Dst);
     end_block(Dst, block_length + block_extra_cycles);
     size_t code_size;
-    void* compiled = v1_link_and_encode(&d, &code_size);
-    dasm_free(&d);
+    void* compiled = v1_link_and_encode(Dst, &code_size);
+    v1_dasm_free();
 
     block->run = compiled;
     block->host_size = code_size;
