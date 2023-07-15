@@ -467,7 +467,7 @@ ir_instruction_t* allocate_ir_instruction(ir_instruction_t instruction) {
     return &ir_context.ir_cache[index];
 }
 
-ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, u8 guest_reg) {
+ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, int index, u8 guest_reg) {
     instruction.flush_info.num_regs = 0;
     if (instr_exception_possible(&instruction)) {
         for (int i = 1; i < 64; i++) {
@@ -484,6 +484,8 @@ ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, u8 guest_r
     }
 
     ir_instruction_t* allocation = allocate_ir_instruction(instruction);
+
+    allocation->block_length = index;
 
     allocation->next = NULL;
     allocation->prev = ir_context.ir_cache_tail;
@@ -502,7 +504,7 @@ ir_instruction_t* insert_ir_instruction(ir_instruction_t* after, ir_instruction_
     ir_instruction_t* old_next = after->next;
     if (old_next == NULL) {
         // Inserting at the end
-        return append_ir_instruction(instruction, NO_GUEST_REG);
+        return append_ir_instruction(instruction, -1, NO_GUEST_REG);
     } else {
         if (instr_exception_possible(&instruction)) {
             logfatal("Cannot insert an instruction that can cause an exception!");
@@ -562,7 +564,7 @@ ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg) {
     instruction.type = IR_SET_CONSTANT;
     instruction.set_constant = value;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_load_guest_gpr(u8 guest_reg) {
@@ -576,7 +578,7 @@ ir_instruction_t* ir_emit_load_guest_gpr(u8 guest_reg) {
         instruction.load_guest_reg.guest_reg = guest_reg;
         instruction.load_guest_reg.guest_reg_type = REGISTER_TYPE_GPR;
 
-        return append_ir_instruction(instruction, guest_reg);
+        return append_ir_instruction(instruction, -1, guest_reg);
     } else if (IR_IS_FGR(guest_reg)) {
         logfatal("Loading FGR with ir_emit_load_guest_gpr(), use ir_emit_load_guest_fgr()");
     } else {
@@ -607,7 +609,7 @@ ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t typ
             ir_register_type_t new_type = float_val_to_reg_type(type);
             instruction.load_guest_reg.guest_reg_type = new_type;
             ir_context.guest_reg_to_reg_type[guest_fgr] = new_type;
-            return append_ir_instruction(instruction, IR_FGR(guest_fgr));
+            return append_ir_instruction(instruction, -1, IR_FGR(guest_fgr));
         }
     } else {
         logfatal("Loading unknown (or out of range) guest register %d", guest_fgr);
@@ -636,7 +638,7 @@ ir_instruction_t* ir_emit_or(ir_instruction_t* operand, ir_instruction_t* operan
     instruction.bin_op.operand1 = operand;
     instruction.bin_op.operand2 = operand2;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_xor(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {
@@ -645,7 +647,7 @@ ir_instruction_t* ir_emit_xor(ir_instruction_t* operand, ir_instruction_t* opera
     instruction.bin_op.operand1 = operand;
     instruction.bin_op.operand2 = operand2;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_not(ir_instruction_t* operand, u8 guest_reg) {
@@ -653,7 +655,7 @@ ir_instruction_t* ir_emit_not(ir_instruction_t* operand, u8 guest_reg) {
     instruction.type = IR_NOT;
     instruction.unary_op.operand = operand;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_boolean_not(ir_instruction_t* operand, u8 guest_reg) {
@@ -668,7 +670,7 @@ ir_instruction_t* ir_emit_and(ir_instruction_t* operand, ir_instruction_t* opera
     instruction.bin_op.operand1 = operand;
     instruction.bin_op.operand2 = operand2;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_sub(ir_instruction_t* minuend, ir_instruction_t* subtrahend, ir_value_type_t type, u8 guest_reg) {
@@ -676,7 +678,7 @@ ir_instruction_t* ir_emit_sub(ir_instruction_t* minuend, ir_instruction_t* subtr
     instruction.type = IR_SUB;
     instruction.bin_op.operand1 = minuend;
     instruction.bin_op.operand2 = subtrahend;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* operand2, u8 guest_reg) {
@@ -685,7 +687,7 @@ ir_instruction_t* ir_emit_add(ir_instruction_t* operand, ir_instruction_t* opera
     instruction.bin_op.operand1 = operand;
     instruction.bin_op.operand2 = operand2;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_shift(ir_instruction_t* operand, ir_instruction_t* amount, ir_value_type_t value_type, ir_shift_direction_t direction, u8 guest_reg) {
@@ -696,7 +698,7 @@ ir_instruction_t* ir_emit_shift(ir_instruction_t* operand, ir_instruction_t* amo
     instruction.shift.type = value_type;
     instruction.shift.direction = direction;
 
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_store(ir_value_type_t type, ir_instruction_t* address, ir_instruction_t* value) {
@@ -705,7 +707,7 @@ ir_instruction_t* ir_emit_store(ir_value_type_t type, ir_instruction_t* address,
     instruction.store.type = type;
     instruction.store.address = address;
     instruction.store.value = value;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, u8 guest_reg) {
@@ -730,7 +732,7 @@ ir_instruction_t* ir_emit_load(ir_value_type_t type, ir_instruction_t* address, 
     } else {
         logfatal("Unknown guest reg type");
     }
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, void* ptr, u8 guest_reg) {
@@ -738,7 +740,7 @@ ir_instruction_t* ir_emit_get_ptr(ir_value_type_t type, void* ptr, u8 guest_reg)
     instruction.type = IR_GET_PTR;
     instruction.get_ptr.type = type;
     instruction.get_ptr.ptr = (uintptr_t)ptr;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, void* ptr, ir_instruction_t* value) {
@@ -747,7 +749,7 @@ ir_instruction_t* ir_emit_set_ptr(ir_value_type_t type, void* ptr, ir_instructio
     instruction.set_ptr.type = type;
     instruction.set_ptr.ptr = (uintptr_t)ptr;
     instruction.set_ptr.value = value;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type_t type, u8 guest_reg) {
@@ -755,7 +757,7 @@ ir_instruction_t* ir_emit_mask_and_cast(ir_instruction_t* operand, ir_value_type
     instruction.type = IR_MASK_AND_CAST;
     instruction.mask_and_cast.type = type;
     instruction.mask_and_cast.operand = operand;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instruction_t* operand1, ir_instruction_t* operand2, u8 guest_reg) {
@@ -764,7 +766,7 @@ ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instructi
     instruction.check_condition.condition = condition;
     instruction.check_condition.operand1 = operand1;
     instruction.check_condition.operand2 = operand2;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
 
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false) {
@@ -774,42 +776,41 @@ ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condit
     instruction.set_cond_exit_pc.condition = condition;
     instruction.set_cond_exit_pc.pc_if_true = pc_if_true;
     instruction.set_cond_exit_pc.pc_if_false = pc_if_false;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_conditional_block_exit_internal(ir_instruction_t* condition, int index, cond_block_exit_type_t type, cond_block_exit_info_t info) {
+ir_instruction_t* ir_emit_conditional_block_exit_internal(int index, ir_instruction_t* condition, cond_block_exit_type_t type, cond_block_exit_info_t info) {
     ir_instruction_t instruction;
     instruction.type = IR_COND_BLOCK_EXIT;
     instruction.cond_block_exit.condition = condition;
-    instruction.cond_block_exit.block_length = index + 1;
     instruction.cond_block_exit.type = type;
     instruction.cond_block_exit.info = info;
 
     unimplemented(!ir_context.block_end_pc_ir_emitted && type == COND_BLOCK_EXIT_TYPE_NONE, "COND_BLOCK_EXIT_TYPE_NONE used when PC is unknown!");
 
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, index, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index) {
+ir_instruction_t* ir_emit_conditional_block_exit(int index, ir_instruction_t* condition) {
     cond_block_exit_info_t no_info = {0};
-    return ir_emit_conditional_block_exit_internal(condition, index, COND_BLOCK_EXIT_TYPE_NONE, no_info);
+    return ir_emit_conditional_block_exit_internal(index, condition, COND_BLOCK_EXIT_TYPE_NONE, no_info);
 }
 
-ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* condition, int index, dynarec_exception_t exception) {
+ir_instruction_t* ir_emit_conditional_block_exit_exception(int index, ir_instruction_t* condition, dynarec_exception_t exception) {
     cond_block_exit_info_t info;
     info.exception = exception;
-    return ir_emit_conditional_block_exit_internal(condition, index, COND_BLOCK_EXIT_TYPE_EXCEPTION, info);
+    return ir_emit_conditional_block_exit_internal(index, condition, COND_BLOCK_EXIT_TYPE_EXCEPTION, info);
 }
 
 ir_instruction_t* ir_emit_exception(int index, dynarec_exception_t exception) {
     ir_instruction_t* const_true = ir_emit_set_constant_u16(1, NO_GUEST_REG);
-    return ir_emit_conditional_block_exit_exception(const_true, index, exception);
+    return ir_emit_conditional_block_exit_exception(index, const_true, exception);
 }
 
-ir_instruction_t* ir_emit_conditional_block_exit_address(ir_instruction_t* condition, int index, ir_instruction_t* address) {
+ir_instruction_t* ir_emit_conditional_block_exit_address(int index, ir_instruction_t* condition, ir_instruction_t* address) {
     cond_block_exit_info_t info;
     info.exit_pc = address;
-    return ir_emit_conditional_block_exit_internal(condition, index, COND_BLOCK_EXIT_TYPE_ADDRESS, info);
+    return ir_emit_conditional_block_exit_internal(index, condition, COND_BLOCK_EXIT_TYPE_ADDRESS, info);
 }
 
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {
@@ -817,7 +818,7 @@ ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address) {
     ir_instruction_t instruction;
     instruction.type = IR_SET_BLOCK_EXIT_PC;
     instruction.unary_op.operand = address;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_interpreter_fallback_for_instructions(int num_instructions) {
@@ -828,15 +829,15 @@ ir_instruction_t* ir_emit_interpreter_fallback_until_no_delay_slot() {
     ir_instruction_t instruction;
     instruction.type = IR_INTERPRETER_FALLBACK;
     instruction.interpreter_fallback.type = INTERPRETER_FALLBACK_UNTIL_NO_BRANCH;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access) {
+ir_instruction_t* ir_emit_tlb_lookup(int index, ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access) {
     ir_instruction_t instruction;
     instruction.type = IR_TLB_LOOKUP;
     instruction.tlb_lookup.virtual_address = virtual_address;
     instruction.tlb_lookup.bus_access = bus_access;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type) {
@@ -845,7 +846,7 @@ ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instructi
     instruction.mult_div.operand1 = multiplicand1;
     instruction.mult_div.operand2 = multiplicand2;
     instruction.mult_div.mult_div_type = multiplicand_type;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type) {
@@ -854,14 +855,14 @@ ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* d
     instruction.mult_div.operand1 = dividend;
     instruction.mult_div.operand2 = divisor;
     instruction.mult_div.mult_div_type = divide_type;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_eret() {
     ir_context.block_end_pc_ir_emitted = true;
     ir_instruction_t instruction;
     instruction.type = IR_ERET;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 void ir_emit_call_0(uintptr_t function) {
@@ -869,7 +870,7 @@ void ir_emit_call_0(uintptr_t function) {
     instruction.type = IR_CALL;
     instruction.call.function = function;
     instruction.call.num_args = 0;
-    append_ir_instruction(instruction, NO_GUEST_REG);
+    append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg) {
@@ -878,7 +879,7 @@ void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg) {
     instruction.call.function = function;
     instruction.call.num_args = 1;
     instruction.call.arguments[0] = arg;
-    append_ir_instruction(instruction, NO_GUEST_REG);
+    append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2) {
@@ -888,7 +889,7 @@ void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t
     instruction.call.num_args = 2;
     instruction.call.arguments[0] = arg1;
     instruction.call.arguments[1] = arg2;
-    append_ir_instruction(instruction, NO_GUEST_REG);
+    append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 void ir_emit_call_3(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2, ir_instruction_t* arg3) {
@@ -899,7 +900,7 @@ void ir_emit_call_3(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t
     instruction.call.arguments[0] = arg1;
     instruction.call.arguments[1] = arg2;
     instruction.call.arguments[2] = arg2;
-    append_ir_instruction(instruction, NO_GUEST_REG);
+    append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg) {
@@ -913,10 +914,10 @@ ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type
     instruction.mov_reg_type.value = value;
     instruction.mov_reg_type.new_type = new_type;
     instruction.mov_reg_type.size = size;
-    return append_ir_instruction(instruction, new_reg);
+    return append_ir_instruction(instruction, -1, new_reg);
 }
 
-ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg, ir_float_convert_mode_t convert_mode) {
+ir_instruction_t* ir_emit_float_convert(int index, ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg, ir_float_convert_mode_t convert_mode) {
     if (from_type == FLOAT_VALUE_TYPE_INVALID) {
         logfatal("Cannot convert from FLOAT_VALUE_TYPE_INVALID");
     }
@@ -935,10 +936,10 @@ ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_
     instruction.float_convert.from_type = from_type;
     instruction.float_convert.to_type = to_type;
     instruction.float_convert.mode = convert_mode;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
-ir_instruction_t* ir_emit_float_mult(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_float_value_type_t mult_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_mult(int index, ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_float_value_type_t mult_type, u8 guest_reg) {
     if (!IR_IS_FGR(guest_reg)) {
         logfatal("float multiply must target an FGR");
     }
@@ -947,10 +948,10 @@ ir_instruction_t* ir_emit_float_mult(ir_instruction_t* multiplicand1, ir_instruc
     instruction.float_bin_op.operand1 = multiplicand1;
     instruction.float_bin_op.operand2 = multiplicand2;
     instruction.float_bin_op.format = mult_type;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
-ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_div(int index, ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg) {
     if (!IR_IS_FGR(guest_reg)) {
         logfatal("float divide must target an FGR");
     }
@@ -959,10 +960,10 @@ ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t
     instruction.float_bin_op.operand1 = dividend;
     instruction.float_bin_op.operand2 = divisor;
     instruction.float_bin_op.format = divide_type;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
-ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_add(int index, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg) {
     if (!IR_IS_FGR(guest_reg)) {
         logfatal("float add must target an FGR");
     }
@@ -971,10 +972,10 @@ ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t
     instruction.float_bin_op.operand1 = operand1;
     instruction.float_bin_op.operand2 = operand2;
     instruction.float_bin_op.format = add_type;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
-ir_instruction_t* ir_emit_float_sub(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_sub(int index, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg) {
     if (!IR_IS_FGR(guest_reg)) {
         logfatal("float add must target an FGR");
     }
@@ -983,10 +984,10 @@ ir_instruction_t* ir_emit_float_sub(ir_instruction_t* operand1, ir_instruction_t
     instruction.float_bin_op.operand1 = operand1;
     instruction.float_bin_op.operand2 = operand2;
     instruction.float_bin_op.format = add_type;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
-ir_instruction_t* ir_emit_float_sqrt(ir_instruction_t* operand, ir_float_value_type_t sqrt_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_sqrt(int index, ir_instruction_t* operand, ir_float_value_type_t sqrt_type, u8 guest_reg) {
     if (!IR_IS_FGR(guest_reg)) {
         logfatal("float sqrt must target an FGR");
     }
@@ -994,10 +995,10 @@ ir_instruction_t* ir_emit_float_sqrt(ir_instruction_t* operand, ir_float_value_t
     instruction.type = IR_FLOAT_SQRT;
     instruction.float_unary_op.operand = operand;
     instruction.float_unary_op.format = sqrt_type;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
-ir_instruction_t* ir_emit_float_abs(ir_instruction_t* operand, ir_float_value_type_t abs_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_abs(int index, ir_instruction_t* operand, ir_float_value_type_t abs_type, u8 guest_reg) {
     if (!IR_IS_FGR(guest_reg)) {
         logfatal("float abs must target an FGR");
     }
@@ -1005,10 +1006,10 @@ ir_instruction_t* ir_emit_float_abs(ir_instruction_t* operand, ir_float_value_ty
     instruction.type = IR_FLOAT_ABS;
     instruction.float_unary_op.operand = operand;
     instruction.float_unary_op.format = abs_type;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
-ir_instruction_t* ir_emit_float_neg(ir_instruction_t* operand, ir_float_value_type_t neg_type, u8 guest_reg) {
+ir_instruction_t* ir_emit_float_neg(int index, ir_instruction_t* operand, ir_float_value_type_t neg_type, u8 guest_reg) {
     if (!IR_IS_FGR(guest_reg)) {
         logfatal("float neg must target an FGR");
     }
@@ -1016,7 +1017,7 @@ ir_instruction_t* ir_emit_float_neg(ir_instruction_t* operand, ir_float_value_ty
     instruction.type = IR_FLOAT_NEG;
     instruction.float_unary_op.operand = operand;
     instruction.float_unary_op.format = neg_type;
-    return append_ir_instruction(instruction, guest_reg);
+    return append_ir_instruction(instruction, index, guest_reg);
 }
 
 ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type) {
@@ -1026,5 +1027,5 @@ ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_in
     instruction.float_check_condition.operand2 = operand2;
     instruction.float_check_condition.condition = cond;
     instruction.float_check_condition.format = operand_type;
-    return append_ir_instruction(instruction, NO_GUEST_REG);
+    return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }

@@ -4,9 +4,9 @@
 #include "ir_emitter_fpu.h"
 #include "ir_context.h"
 
-void emit_ir_cvt(mips_instruction_t instruction, ir_float_value_type_t from, ir_float_value_type_t to, ir_float_convert_mode_t mode) {
+void emit_ir_cvt(int index, mips_instruction_t instruction, ir_float_value_type_t from, ir_float_value_type_t to, ir_float_convert_mode_t mode) {
     ir_instruction_t* source = ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), from);
-    ir_emit_float_convert(source, from, to, IR_FGR(instruction.fr.fd), mode);
+    ir_emit_float_convert(index, source, from, to, IR_FGR(instruction.fr.fd), mode);
 }
 
 void flush_if_reg_set(u8 reg) {
@@ -17,7 +17,7 @@ void flush_if_reg_set(u8 reg) {
 }
 
 
-#define CVT(from, to, mode) case FP_FMT_##from: emit_ir_cvt(instruction, FLOAT_VALUE_TYPE_##from, FLOAT_VALUE_TYPE_##to, FLOAT_CONVERT_MODE_##mode); break
+#define CVT(from, to, mode) case FP_FMT_##from: emit_ir_cvt(index, instruction, FLOAT_VALUE_TYPE_##from, FLOAT_VALUE_TYPE_##to, FLOAT_CONVERT_MODE_##mode); break
 
 IR_EMITTER(check_cp1) {
     // Only emit this check once per block.
@@ -33,7 +33,7 @@ IR_EMITTER(check_cp1) {
         cop1_unusable.virtual_address = virtual_address;
         cop1_unusable.code = EXCEPTION_COPROCESSOR_UNUSABLE;
         cop1_unusable.coprocessor_error = 1;
-        ir_emit_conditional_block_exit_exception(cond_cp1_disabled, index, cop1_unusable);
+        ir_emit_conditional_block_exit_exception(index, cond_cp1_disabled, cop1_unusable);
 
         ir_context.cp1_checked = true;
     }
@@ -43,13 +43,13 @@ IR_EMITTER(check_cp1) {
 
 IR_EMITTER(ldc1) {
     ir_check_cp1;
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_emit_load(VALUE_TYPE_U64, address, IR_FGR(instruction.fi.ft));
 }
 
 IR_EMITTER(sdc1) {
     ir_check_cp1;
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fi.ft), FLOAT_VALUE_TYPE_LONG);
     ir_emit_store(VALUE_TYPE_U64, address, value);
 }
@@ -57,7 +57,7 @@ IR_EMITTER(sdc1) {
 IR_EMITTER(lwc1) {
     ir_check_cp1;
     flush_if_reg_set(IR_FGR(instruction.fi.ft));
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_instruction_t* value = ir_emit_load(VALUE_TYPE_U32, address, NO_GUEST_REG);
     u32* reg_ptr = get_fpu_register_ptr_word_fr(instruction.fi.ft);
     ir_emit_set_ptr(VALUE_TYPE_U32, reg_ptr, value);
@@ -66,7 +66,7 @@ IR_EMITTER(lwc1) {
 
 IR_EMITTER(swc1) {
     ir_check_cp1;
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_fgr(IR_FGR(instruction.fi.ft), FLOAT_VALUE_TYPE_WORD);
     ir_emit_store(VALUE_TYPE_U32, address, value);
 }
@@ -184,6 +184,7 @@ IR_EMITTER(cp1_add) {
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_add(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
                     FLOAT_VALUE_TYPE_DOUBLE,
@@ -191,6 +192,7 @@ IR_EMITTER(cp1_add) {
             break;
         case FP_FMT_SINGLE:
             ir_emit_float_add(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_SINGLE),
                     FLOAT_VALUE_TYPE_SINGLE,
@@ -206,6 +208,7 @@ IR_EMITTER(cp1_sub) {
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_sub(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
                     FLOAT_VALUE_TYPE_DOUBLE,
@@ -213,6 +216,7 @@ IR_EMITTER(cp1_sub) {
             break;
         case FP_FMT_SINGLE:
             ir_emit_float_sub(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_SINGLE),
                     FLOAT_VALUE_TYPE_SINGLE,
@@ -228,6 +232,7 @@ IR_EMITTER(cp1_mult) {
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_mult(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
                     FLOAT_VALUE_TYPE_DOUBLE,
@@ -235,6 +240,7 @@ IR_EMITTER(cp1_mult) {
             break;
         case FP_FMT_SINGLE:
             ir_emit_float_mult(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_SINGLE),
                     FLOAT_VALUE_TYPE_SINGLE,
@@ -250,6 +256,7 @@ IR_EMITTER(cp1_div) {
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
             ir_emit_float_div(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_DOUBLE),
                     FLOAT_VALUE_TYPE_DOUBLE,
@@ -257,6 +264,7 @@ IR_EMITTER(cp1_div) {
             break;
         case FP_FMT_SINGLE:
             ir_emit_float_div(
+                    index,
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE),
                     ir_emit_load_guest_fgr(IR_FGR(instruction.fr.ft), FLOAT_VALUE_TYPE_SINGLE),
                     FLOAT_VALUE_TYPE_SINGLE,
@@ -363,10 +371,10 @@ IR_EMITTER(cp1_sqrt) {
     ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            ir_emit_float_sqrt(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
+            ir_emit_float_sqrt(index, ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
             break;
         case FP_FMT_SINGLE:
-            ir_emit_float_sqrt(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
+            ir_emit_float_sqrt(index, ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
             break;
         default:
             logfatal("mips_cp1_invalid");
@@ -378,10 +386,10 @@ IR_EMITTER(cp1_abs) {
     ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            ir_emit_float_abs(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
+            ir_emit_float_abs(index, ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
             break;
         case FP_FMT_SINGLE:
-            ir_emit_float_abs(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
+            ir_emit_float_abs(index, ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
             break;
         default:
             logfatal("mips_cp1_invalid");
@@ -405,10 +413,10 @@ IR_EMITTER(cp1_neg) {
     ir_check_cp1;
     switch (instruction.fr.fmt) {
         case FP_FMT_DOUBLE:
-            ir_emit_float_neg(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
+            ir_emit_float_neg(index, ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_DOUBLE), FLOAT_VALUE_TYPE_DOUBLE, IR_FGR(instruction.fr.fd));
             break;
         case FP_FMT_SINGLE:
-            ir_emit_float_neg(ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
+            ir_emit_float_neg(index, ir_emit_load_guest_fgr(IR_FGR(instruction.fr.fs), FLOAT_VALUE_TYPE_SINGLE), FLOAT_VALUE_TYPE_SINGLE, IR_FGR(instruction.fr.fd));
             break;
         default:
             logfatal("mips_cp1_invalid");

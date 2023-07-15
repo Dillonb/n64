@@ -16,9 +16,9 @@ ir_instruction_t* ir_get_memory_access_virtual_address(mips_instruction_t instru
     return ir_emit_add(base, i_offset, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_get_memory_access_address(mips_instruction_t instruction, bus_access_t bus_access) {
+ir_instruction_t* ir_get_memory_access_address(int index, mips_instruction_t instruction, bus_access_t bus_access) {
     ir_instruction_t* virtual = ir_get_memory_access_virtual_address(instruction);
-    return ir_emit_tlb_lookup(virtual, NO_GUEST_REG, bus_access);
+    return ir_emit_tlb_lookup(index, virtual, NO_GUEST_REG, bus_access);
 }
 
 void ir_emit_conditional_branch(ir_instruction_t* condition, s16 offset, u64 virtual_address) {
@@ -31,7 +31,7 @@ void ir_emit_conditional_branch_likely(ir_instruction_t* condition, s16 offset, 
     // Identical - ir_emit_conditional_branch already skips the delay slot when calculating the exit PC.
     ir_emit_conditional_branch(condition, offset, virtual_address);
     // The only difference is likely branches conditionally exit the block early when not taken.
-    ir_emit_conditional_block_exit(ir_emit_boolean_not(condition, NO_GUEST_REG), index);
+    ir_emit_conditional_block_exit(index, ir_emit_boolean_not(condition, NO_GUEST_REG));
 }
 
 void ir_emit_abs_branch(ir_instruction_t* address) {
@@ -166,19 +166,19 @@ IR_EMITTER(srlv) {
 }
 
 IR_EMITTER(sb) {
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U8, address, value);
 }
 
 IR_EMITTER(sh) {
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U16, address, value);
 }
 
 IR_EMITTER(sw) {
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U32, address, value);
 }
@@ -194,11 +194,11 @@ IR_EMITTER(sc) {
     ir_instruction_t* llbit_not_set = ir_emit_boolean_not(llbit_set, NO_GUEST_REG);
 
     ir_instruction_t* block_end_pc = ir_emit_set_constant_64(ir_context.block_start_virtual + (index << 2) + 4, NO_GUEST_REG);
-    ir_emit_conditional_block_exit_address(llbit_not_set, index, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
+    ir_emit_conditional_block_exit_address(index, llbit_not_set, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
 
     ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG));
 
-    ir_instruction_t* physical = ir_emit_tlb_lookup(virtual, NO_GUEST_REG, BUS_STORE);
+    ir_instruction_t* physical = ir_emit_tlb_lookup(index, virtual, NO_GUEST_REG, BUS_STORE);
     ir_emit_store(VALUE_TYPE_U32, physical, value);
 }
 
@@ -213,27 +213,27 @@ IR_EMITTER(scd) {
     ir_instruction_t* llbit_not_set = ir_emit_boolean_not(llbit_set, NO_GUEST_REG);
 
     ir_instruction_t* block_end_pc = ir_emit_set_constant_64(ir_context.block_start_virtual + (index << 2) + 4, NO_GUEST_REG);
-    ir_emit_conditional_block_exit_address(llbit_not_set, index, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
+    ir_emit_conditional_block_exit_address(index, llbit_not_set, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
 
     ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG));
 
-    ir_instruction_t* physical = ir_emit_tlb_lookup(virtual, NO_GUEST_REG, BUS_STORE);
+    ir_instruction_t* physical = ir_emit_tlb_lookup(index, virtual, NO_GUEST_REG, BUS_STORE);
     ir_emit_store(VALUE_TYPE_U64, physical, value);
 }
 
 IR_EMITTER(sd) {
-    ir_instruction_t* address = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* address = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
     ir_emit_store(VALUE_TYPE_U64, address, value);
 }
 
 IR_EMITTER(lw) {
-    ir_emit_load(VALUE_TYPE_S32, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S32, ir_get_memory_access_address(index, instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(ll) {
     // Same as lw, but set lladdr and llbit
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_emit_load(VALUE_TYPE_S32, physical, instruction.i.rt);
 
     ir_instruction_t* lladdr = ir_emit_shift(
@@ -251,7 +251,7 @@ IR_EMITTER(ll) {
 
 IR_EMITTER(lld) {
     // Same as ld, but set lladdr and llbit
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_emit_load(VALUE_TYPE_U64, physical, instruction.i.rt);
 
     ir_instruction_t* lladdr = ir_emit_shift(
@@ -268,31 +268,31 @@ IR_EMITTER(lld) {
 }
 
 IR_EMITTER(lwu) {
-    ir_emit_load(VALUE_TYPE_U32, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U32, ir_get_memory_access_address(index, instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lbu) {
-    ir_emit_load(VALUE_TYPE_U8, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U8, ir_get_memory_access_address(index, instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lb) {
-    ir_emit_load(VALUE_TYPE_S8, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S8, ir_get_memory_access_address(index, instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lhu) {
-    ir_emit_load(VALUE_TYPE_U16, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U16, ir_get_memory_access_address(index, instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lh) {
-    ir_emit_load(VALUE_TYPE_S16, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S16, ir_get_memory_access_address(index, instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(ld) {
-    ir_emit_load(VALUE_TYPE_U64, ir_get_memory_access_address(instruction, BUS_LOAD), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_U64, ir_get_memory_access_address(index, instruction, BUS_LOAD), instruction.i.rt);
 }
 
 IR_EMITTER(lwl) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = (physical & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(ir_emit_and(physical, three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -314,7 +314,7 @@ IR_EMITTER(lwl) {
 }
 
 IR_EMITTER(lwr) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = ((address ^ 3) & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(
@@ -339,7 +339,7 @@ IR_EMITTER(lwr) {
 }
 
 IR_EMITTER(swl) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = (physical & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(ir_emit_and(physical, three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -361,7 +361,7 @@ IR_EMITTER(swl) {
 }
 
 IR_EMITTER(swr) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_STORE);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     //u32 shift = ((address ^ 3) & 3) << 3;
     ir_instruction_t* shift = ir_emit_shift(ir_emit_and(ir_emit_xor(physical, three, NO_GUEST_REG), three, NO_GUEST_REG), three, VALUE_TYPE_U32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
@@ -381,7 +381,7 @@ IR_EMITTER(swr) {
 }
 
 IR_EMITTER(ldl) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
     //u32 shift = ((address ^ 0) & 7) << 3;
@@ -403,7 +403,7 @@ IR_EMITTER(ldl) {
 }
 
 IR_EMITTER(ldr) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_LOAD);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_LOAD);
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
     //u32 shift = ((address ^ 7) & 7) << 3;
@@ -425,7 +425,7 @@ IR_EMITTER(ldr) {
 }
 
 IR_EMITTER(sdl) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_STORE);
 
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
@@ -448,7 +448,7 @@ IR_EMITTER(sdl) {
 }
 
 IR_EMITTER(sdr) {
-    ir_instruction_t* physical = ir_get_memory_access_address(instruction, BUS_STORE);
+    ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_STORE);
 
     ir_instruction_t* three = ir_emit_set_constant_u16(3, NO_GUEST_REG);
     ir_instruction_t* seven = ir_emit_set_constant_u16(7, NO_GUEST_REG);
@@ -811,7 +811,7 @@ void emit_trap(mips_instruction_t instruction, u64 virtual_address, int index, i
     exception.coprocessor_error = 0;
     exception.virtual_address = virtual_address;
 
-    ir_emit_conditional_block_exit_exception(cond, index, exception);
+    ir_emit_conditional_block_exit_exception(index, cond, exception);
 }
 
 IR_EMITTER(teq) {

@@ -177,6 +177,18 @@ INLINE bool resolve_virtual_address(u64 virtual, bus_access_t bus_access, u32* p
     }
 }
 
+// bits 0-31: result bit 32: 1 if failed, 0 if succeeded (NOTE: OPPOSITE FROM OTHER RESOLVE FUNCTIONS)
+INLINE u64 resolve_virtual_address_for_jit(u64 virtual, bus_access_t bus_access) {
+    u32 physical = 0;
+
+    if (resolve_virtual_address(virtual, bus_access, &physical)) {
+        return physical;
+    } else {
+        on_tlb_exception(virtual);
+        return 1ull << 32;
+    }
+}
+
 INLINE u32 resolve_virtual_address_or_die(u64 virtual, bus_access_t bus_access) {
     u32 physical;
     if (!resolve_virtual_address(virtual, bus_access, &physical)) {

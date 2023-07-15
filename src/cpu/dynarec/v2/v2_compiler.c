@@ -1,8 +1,10 @@
 #include "v2_compiler.h"
 
+#include <log.h>
 #include <mem/n64bus.h>
 #include <disassemble.h>
 #include <dynarec/dynarec_memory_management.h>
+#include <r4300i.h>
 #include <r4300i_register_access.h>
 #include "v2_emitter.h"
 #include <system/mprotect_utils.h>
@@ -387,8 +389,8 @@ void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_pc(Dst, instr->unary_op.operand);
 }
 
-
 void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
+    ir_register_allocation_t return_value_reg = alloc_gpr(get_return_value_reg());
     val_to_func_arg(Dst, instr->tlb_lookup.virtual_address, 0);
 
     ir_set_constant_t bus_access;
@@ -396,8 +398,17 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     bus_access.value_u16 = instr->tlb_lookup.bus_access;
     host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[1]), bus_access);
 
-    host_emit_call(Dst, (uintptr_t)resolve_virtual_address_or_die);
-    host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_gpr(get_return_value_reg()), VALUE_TYPE_U64);
+    host_emit_call(Dst, (uintptr_t)resolve_virtual_address_for_jit);
+    // Move the 32 bit value into the destination reg. Bit 32 will be masked out by this move.
+    host_emit_mov_reg_reg(Dst, instr->reg_alloc, return_value_reg, VALUE_TYPE_U32);
+    // Shift the success bit into bit 1
+    host_emit_shift_reg_imm(Dst, return_value_reg, VALUE_TYPE_U64, 32, SHIFT_DIRECTION_RIGHT);
+
+    cond_block_exit_info_t exception_info;
+    exception_info.exception.code = instr->tlb_lookup.bus_access == BUS_LOAD ? EXCEPTION_TLB_MISS_LOAD : EXCEPTION_TLB_MISS_STORE;
+    exception_info.exception.coprocessor_error = 0;
+    exception_info.exception.virtual_address = temp_code_vaddr + (instr->block_length * 4u);
+    host_emit_cond_ret(Dst, return_value_reg, &instr->flush_info, instr->block_length, COND_BLOCK_EXIT_TYPE_EXCEPTION, exception_info);
 }
 
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
@@ -480,10 +491,10 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
                     host_emit_mov_pc(Dst, instr->cond_block_exit.info.exit_pc);
                     break;
             }
-            host_emit_ret(Dst, &instr->flush_info, instr->cond_block_exit.block_length);
+            host_emit_ret(Dst, &instr->flush_info, instr->block_length + 1);
         }
     } else {
-        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, &instr->flush_info, instr->cond_block_exit.block_length, instr->cond_block_exit.type, instr->cond_block_exit.info);
+        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, &instr->flush_info, instr->block_length, instr->cond_block_exit.type, instr->cond_block_exit.info);
     }
 }
 

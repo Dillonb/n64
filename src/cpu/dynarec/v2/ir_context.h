@@ -196,6 +196,7 @@ typedef struct ir_instruction {
     struct ir_instruction* next;
     struct ir_instruction* prev;
     int index;
+    int block_length; // MIPS block length if ended on this instruction
     bool dead_code;
     ir_register_allocation_t reg_alloc;
     int last_use;
@@ -312,7 +313,6 @@ typedef struct ir_instruction {
         } set_cp0;
         struct {
             struct ir_instruction* condition;
-            int block_length;
             cond_block_exit_type_t type;
             cond_block_exit_info_t info;
         } cond_block_exit;
@@ -442,13 +442,13 @@ ir_instruction_t* ir_emit_check_condition(ir_condition_t condition, ir_instructi
 // set the block exit pc to one of two values based on a condition
 ir_instruction_t* ir_emit_conditional_set_block_exit_pc(ir_instruction_t* condition, ir_instruction_t* pc_if_true, ir_instruction_t* pc_if_false);
 // exit the block early if the condition is true
-ir_instruction_t* ir_emit_conditional_block_exit(ir_instruction_t* condition, int index);
+ir_instruction_t* ir_emit_conditional_block_exit(int index, ir_instruction_t* condition);
 // exit the block early with an exception if the condition is true
-ir_instruction_t* ir_emit_conditional_block_exit_exception(ir_instruction_t* condition, int index, dynarec_exception_t exception);
+ir_instruction_t* ir_emit_conditional_block_exit_exception(int index, ir_instruction_t* condition, dynarec_exception_t exception);
 // throw an exception (implemented as conditional_exception with a constant true condition)
 ir_instruction_t* ir_emit_exception(int index, dynarec_exception_t exception);
 // exit the block early with an address if the condition is true
-ir_instruction_t* ir_emit_conditional_block_exit_address(ir_instruction_t* condition, int index, ir_instruction_t* address);
+ir_instruction_t* ir_emit_conditional_block_exit_address(int index, ir_instruction_t* condition, ir_instruction_t* address);
 // set the block exit pc
 ir_instruction_t* ir_emit_set_block_exit_pc(ir_instruction_t* address);
 // fall back to the interpreter for the next num_instructions instructions
@@ -456,7 +456,7 @@ ir_instruction_t* ir_emit_interpreter_fallback_for_instructions(int num_instruct
 // fall back to the interpreter until all branches have been resolved
 ir_instruction_t* ir_emit_interpreter_fallback_until_no_delay_slot();
 // lookup a memory address in the TLB
-ir_instruction_t* ir_emit_tlb_lookup(ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access);
+ir_instruction_t* ir_emit_tlb_lookup(int index, ir_instruction_t* virtual_address, u8 guest_reg, bus_access_t bus_access);
 // Multiply two values of type mult_div_type to get a double-sized result. Result must be accessed with ir_emit_get_ptr()
 ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_value_type_t multiplicand_type);
 // Divide a value of type divide_type by a value of the same type. Result must be accessed with ir_emit_get_ptr()
@@ -474,21 +474,21 @@ void ir_emit_call_3(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t
 // Move a value to a different register type
 ir_instruction_t* ir_emit_mov_reg_type(ir_instruction_t* value, ir_register_type_t new_type, ir_value_type_t size, u8 new_reg);
 // convert a float value to a different float value type
-ir_instruction_t* ir_emit_float_convert(ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg, ir_float_convert_mode_t mode);
+ir_instruction_t* ir_emit_float_convert(int index, ir_instruction_t* value, ir_float_value_type_t from_type, ir_float_value_type_t to_type, u8 guest_reg, ir_float_convert_mode_t mode);
 // Multiply two float values of type mult_type.
-ir_instruction_t* ir_emit_float_mult(ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_float_value_type_t mult_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_mult(int index, ir_instruction_t* multiplicand1, ir_instruction_t* multiplicand2, ir_float_value_type_t mult_type, u8 guest_reg);
 // Divide two float values of type divide_type.
-ir_instruction_t* ir_emit_float_div(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_div(int index, ir_instruction_t* dividend, ir_instruction_t* divisor, ir_float_value_type_t divide_type, u8 guest_reg);
 // Add two float values of type add_type.
-ir_instruction_t* ir_emit_float_add(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_add(int index, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t add_type, u8 guest_reg);
 // Subtract two float values of type sub_type.
-ir_instruction_t* ir_emit_float_sub(ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t sub_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_sub(int index, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t sub_type, u8 guest_reg);
 // Get the square root of a value of type sqrt_type.
-ir_instruction_t* ir_emit_float_sqrt(ir_instruction_t* operand, ir_float_value_type_t sqrt_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_sqrt(int index, ir_instruction_t* operand, ir_float_value_type_t sqrt_type, u8 guest_reg);
 // Get the absolute value of a value of type abs_type.
-ir_instruction_t* ir_emit_float_abs(ir_instruction_t* operand, ir_float_value_type_t abs_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_abs(int index, ir_instruction_t* operand, ir_float_value_type_t abs_type, u8 guest_reg);
 // Get the negative value of a value of type neg_type.
-ir_instruction_t* ir_emit_float_neg(ir_instruction_t* operand, ir_float_value_type_t neg_type, u8 guest_reg);
+ir_instruction_t* ir_emit_float_neg(int index, ir_instruction_t* operand, ir_float_value_type_t neg_type, u8 guest_reg);
 // Compare two floating point values, set the result to FCR31.compare
 ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type);
 
