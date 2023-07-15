@@ -793,7 +793,7 @@ void r4300i_step() {
 void r4300i_interrupt_update() {
     N64CPU.interrupts = N64CPU.cp0.cause.interrupt_pending & N64CPU.cp0.status.im;
     if (N64CPU.interrupts != 0) {
-        scheduler_enqueue_relative(0, SCHEDULER_HANDLE_INTERRUPT);
+        scheduler_enqueue_relative(1, SCHEDULER_HANDLE_INTERRUPT);
     }
 }
 
