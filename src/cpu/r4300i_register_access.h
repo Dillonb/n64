@@ -52,6 +52,7 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             newcause.raw = value;
             N64CPU.cp0.cause.ip0 = newcause.ip0;
             N64CPU.cp0.cause.ip1 = newcause.ip1;
+            r4300i_interrupt_update();
             break;
         }
         case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
@@ -278,6 +279,7 @@ INLINE void set_cp0_register_dword(u8 r, u64 value) {
             newcause.raw = value;
             N64CPU.cp0.cause.ip0 = newcause.ip0;
             N64CPU.cp0.cause.ip1 = newcause.ip1;
+            r4300i_interrupt_update();
             break;
         }
         case R4300I_CP0_REG_EPC:
