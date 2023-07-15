@@ -9,6 +9,7 @@
 #include <interface/ai.h>
 #include <cpu/rsp.h>
 #include <cpu/dynarec/dynarec.h>
+#include <util.h>
 #ifndef N64_WIN
 #include <sys/mman.h>
 #include <errno.h>
@@ -100,7 +101,16 @@ void mprotect_codecache() {
 #endif
 }
 
+#ifdef LOG_CPU_STATE
+FILE* log_file = NULL;
+#endif
+
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
+#ifdef LOG_CPU_STATE
+    log_file = fopen("cpu_log.bin", "wb");
+    logalways("Opened log for writing");
+#endif
+
     memset(&n64sys, 0x00, sizeof(n64_system_t));
     memset(&N64CPU, 0x00, sizeof(N64CPU));
     memset(&N64RSP, 0x00, sizeof(N64RSP));
@@ -236,6 +246,17 @@ INLINE int jit_system_step() {
     return taken;
 }
 
+#ifdef LOG_CPU_STATE
+void log_cpu_state() {
+    fwrite(&N64CPU.pc, sizeof(u64), 1, log_file);
+    fwrite(&N64CPU.gpr, sizeof(u64), 32, log_file);
+    fwrite(&N64CP0.cause.raw, sizeof(u32), 1, log_file);
+    //fwrite(&N64CP0.status.raw, sizeof(u32), 1, log_file);
+    fwrite(&n64sys.mi.intr.raw, sizeof(u32), 1, log_file);
+    //fwrite(&n64sys.mi.intr_mask.raw, sizeof(u32), 1, log_file);
+}
+#endif
+
 INLINE int interpreter_system_step() {
 #ifdef N64_DEBUG_MODE
 #ifndef N64_WIN
@@ -249,6 +270,9 @@ INLINE int interpreter_system_step() {
 #endif
 #endif
     int taken = CYCLES_PER_INSTR;
+#ifdef LOG_CPU_STATE
+    log_cpu_state();
+#endif
     r4300i_step();
     static int cpu_steps = 0;
     cpu_steps += taken;
