@@ -1343,6 +1343,14 @@ IR_EMITTER(tlbr) {
     ir_emit_call_0((uintptr_t)do_tlbr);
 }
 
+IR_EMITTER(invalid) {
+    dynarec_exception_t exception;
+    exception.code = EXCEPTION_RESERVED_INSTR;
+    exception.coprocessor_error = 0;
+    exception.virtual_address = virtual_address;
+    ir_emit_exception(index, exception);
+}
+
 IR_EMITTER(cp0_instruction) {
     if (instruction.is_coprocessor_funct) {
         switch (instruction.fr.funct) {
@@ -1522,7 +1530,7 @@ IR_EMITTER(instruction) {
         case OPC_LLD: CALL_IR_EMITTER(lld);
         case OPC_SC: CALL_IR_EMITTER(sc);
         case OPC_SCD: CALL_IR_EMITTER(scd);
-        case OPC_RDHWR: IR_UNIMPLEMENTED(OPC_RDHWR); // Invalid instruction used by Linux
+        case OPC_RDHWR: CALL_IR_EMITTER(invalid);
         default: {
             char buf[50];
             disassemble(0, instruction.raw, buf, 50);
