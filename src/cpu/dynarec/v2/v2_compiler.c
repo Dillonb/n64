@@ -517,7 +517,7 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_ret(Dst, &instr->flush_info, instr->block_length + 1);
         }
     } else {
-        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, &instr->flush_info, instr->block_length, instr->cond_block_exit.type, instr->cond_block_exit.info);
+        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, &instr->flush_info, instr->block_length + 1, instr->cond_block_exit.type, instr->cond_block_exit.info);
     }
 }
 
