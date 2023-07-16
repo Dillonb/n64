@@ -240,6 +240,9 @@ void run_compare_parent() {
         exit(0);
     }
     printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
+    if (steps == 0) {
+        logwarn("!!! WARNING: RAN FOR 0 STEPS !!!");
+    }
     printf("MIPS code:\n");
     u32 physical = 0;
     n64_dynarec_block_t* block = NULL;
