@@ -389,26 +389,49 @@ void compile_ir_set_block_exit_pc(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_pc(Dst, instr->unary_op.operand);
 }
 
+/**
+ * @brief Resolves a virtual address in a way that's useful for the JIT.
+ * 
+ * @param virtual virtual address to resolve
+ * @param except_pc pc of the mips instruction doing the resolve
+ * @param bus_access is the resolve for a load or a store?
+ * @return bits 0-31: resulting physical address, will be 0 if failure. bit 32: 1 if failed, 0 if succeeded
+ */
+u64 resolve_virtual_address_for_jit(u64 virtual, u64 except_pc, bus_access_t bus_access) {
+    u32 physical = 0;
+
+    if (resolve_virtual_address(virtual, bus_access, &physical)) {
+        return physical;
+    } else {
+        on_tlb_exception(virtual);
+        u32 code = get_tlb_exception_code(N64CP0.tlb_error, bus_access);
+        r4300i_handle_exception(except_pc, code, 0);
+        return 1ull << 32;
+    }
+}
+
 void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     ir_register_allocation_t return_value_reg = alloc_gpr(get_return_value_reg());
     val_to_func_arg(Dst, instr->tlb_lookup.virtual_address, 0);
 
+    // faulting pc for if an exception occurs
+    ir_set_constant_t except_pc;
+    except_pc.type = VALUE_TYPE_U64;
+    except_pc.value_u64 = temp_code_vaddr + (instr->block_length * 4u);
+    host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[1]), except_pc);
+
     ir_set_constant_t bus_access;
     bus_access.type = VALUE_TYPE_U16;
     bus_access.value_u16 = instr->tlb_lookup.bus_access;
-    host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[1]), bus_access);
+    host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[2]), bus_access);
 
     host_emit_call(Dst, (uintptr_t)resolve_virtual_address_for_jit);
     // Move the 32 bit value into the destination reg. Bit 32 will be masked out by this move.
     host_emit_mov_reg_reg(Dst, instr->reg_alloc, return_value_reg, VALUE_TYPE_U32);
-    // Shift the success bit into bit 1
+    // Shift the success bit into bit 0
     host_emit_shift_reg_imm(Dst, return_value_reg, VALUE_TYPE_U64, 32, SHIFT_DIRECTION_RIGHT);
 
-    cond_block_exit_info_t exception_info;
-    exception_info.exception.code = instr->tlb_lookup.bus_access == BUS_LOAD ? EXCEPTION_TLB_MISS_LOAD : EXCEPTION_TLB_MISS_STORE;
-    exception_info.exception.coprocessor_error = 0;
-    exception_info.exception.virtual_address = temp_code_vaddr + (instr->block_length * 4u);
-    host_emit_cond_ret(Dst, return_value_reg, &instr->flush_info, instr->block_length, COND_BLOCK_EXIT_TYPE_EXCEPTION, exception_info);
+    host_emit_cond_ret(Dst, return_value_reg, &instr->flush_info, instr->block_length, COND_BLOCK_EXIT_TYPE_NONE, (cond_block_exit_info_t){});
 }
 
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
