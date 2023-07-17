@@ -1,6 +1,7 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 

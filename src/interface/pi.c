@@ -71,7 +71,7 @@ u8 pi_get_domain(u32 address) {
         case REGION_CART_1_2: {
             u32 index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
             if (index >= n64sys.mem.rom.size) {
-                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%zu/0x%zX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
                 return 0xFF;
             }
             return n64sys.mem.rom.rom[index];
@@ -129,7 +129,7 @@ void write_word_pireg(u32 address, u32 value) {
             }
 
 
-            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", N64CPU.pc, dram_addr, cart_addr, length);
+            logdebug("DMA requested at PC 0x%016" PRIX64 " from 0x%08X to 0x%08X (DRAM to CART), with a length of %d", N64CPU.pc, dram_addr, cart_addr, length);
 
             // TODO: takes 9 cycles per byte to run in reality
             for (int i = 0; i < length; i++) {
@@ -165,7 +165,7 @@ void write_word_pireg(u32 address, u32 value) {
                 logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
             }
 
-            logdebug("DMA requested at PC 0x%016lX from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", N64CPU.pc, cart_addr, dram_addr, length);
+            logdebug("DMA requested at PC 0x%016" PRIX64 " from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", N64CPU.pc, cart_addr, dram_addr, length);
 
             if (is_flash(n64sys.mem.save_type) && cart_addr >= 0x08000000 && cart_addr < 0x08010000) {
                 // Special case for Flash DMAs
@@ -300,7 +300,7 @@ u8 read_byte_pibus(u32 address) {
             address = (address + 2) & ~2;
             u32 index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
             if (index > n64sys.mem.rom.size) {
-                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%ld/0x%lX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
+                logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%zd/0x%zX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
                 return 0xFF;
             }
             return n64sys.mem.rom.rom[index];
@@ -448,13 +448,13 @@ void write_dword_pibus(u32 address, u64 value) {
     }
     switch (address) {
         case REGION_CART_2_1:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_CART_2_1", value, address);
         case REGION_CART_1_1:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_CART_1_1", value, address);
         case REGION_CART_2_2:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_CART_2_2", value, address);
         case REGION_CART_1_2:
-            logwarn("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
+            logwarn("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_CART_1_2", value, address);
             break;
         default:
             logfatal("write_dword_pibus(): Access to non-PI address %08X", address);

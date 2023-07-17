@@ -5,7 +5,7 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
-set(DEFAULT_C_COMP_OPTIONS -mssse3 -msse4.1 -Werror=switch)
+set(DEFAULT_C_COMP_OPTIONS -mssse3 -msse4.1 -Werror=switch -Werror=format)
 set(DEFAULT_C_LINK_OPTIONS "")
 
 # Asan

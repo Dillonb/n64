@@ -133,7 +133,7 @@ void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error) {
     }
     cp0_status_updated();
     N64CPU.exception = true; // For dynarec
-    loginfo("Exception handled, PC is now %016lX", N64CPU.pc);
+    loginfo("Exception handled, PC is now %016" PRIX64, N64CPU.pc);
 }
 
 INLINE mipsinstr_handler_t r4300i_cp0_decode(u64 pc, mips_instruction_t instr) {
@@ -670,7 +670,7 @@ mipsinstr_handler_t r4300i_instruction_decode(u64 pc, mips_instruction_t instr) 
     char buf[50];
     if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
         disassemble(pc, instr.raw, buf, 50);
-        logdebug("[0x%016lX]=0x%08X %s", pc, instr.raw, buf);
+        logdebug("[0x%016" PRIX64 "]=0x%08X %s", pc, instr.raw, buf);
     }
 #endif
     if (unlikely(instr.raw == 0)) {

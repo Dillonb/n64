@@ -1055,7 +1055,7 @@ DEF_RDP_COMMAND(fill_rectangle) {
 
 DEF_RDP_COMMAND(set_fill_color) {
     rdp->fill_color = get_bits(buffer[0], 31, 0);
-    logalways("Fill color cmd word: %016lX", buffer[0]);
+    logalways("Fill color cmd word: %016" PRIX64, buffer[0]);
     logalways("Fill color: 0x%08X", rdp->fill_color);
 }
 
@@ -1081,7 +1081,7 @@ DEF_RDP_COMMAND(set_env_color) {
 }
 
 DEF_RDP_COMMAND(set_combine) {
-    logalways("Set combine: %016lX", buffer[0]);
+    logalways("Set combine: %016" PRIX64, buffer[0]);
     rdp->combine.sub_a_R_0 = get_bits(buffer[0], 55, 52);
     rdp->combine.mul_R_0   = get_bits(buffer[0], 51, 47);
     rdp->combine.sub_a_A_0 = get_bits(buffer[0], 46, 44);
@@ -1120,7 +1120,7 @@ DEF_RDP_COMMAND(set_mask_image) {
 }
 
 DEF_RDP_COMMAND(set_color_image) {
-    logalways("Set color image %016lX:", buffer[0]);
+    logalways("Set color image %016" PRIX64 ":", buffer[0]);
     rdp->color_image.format    = get_bits(buffer[0], 55, 53);
     rdp->color_image.size      = get_bits(buffer[0], 52, 51);
     rdp->color_image.width     = get_bits(buffer[0], 41, 32) + 1;

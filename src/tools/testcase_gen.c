@@ -62,12 +62,12 @@ void gen_imm_rsrti(char* name, mipsinstr_handler_t handler) {
     printf("align(8)\n");
     printf("RegArgs:\n");
     for (int i = 0; i < num_cases; i++) {
-        printf("\tdd $%016lX\n", regargs[i]);
+        printf("\tdd $%016" PRIX64 "\n", regargs[i]);
     }
     printf("align(8)\n");
     printf("Expected:\n");
     for (int i = 0; i < num_cases; i++) {
-        printf("\tdd $%016lX\n", expected_result[i]);
+        printf("\tdd $%016" PRIX64 "\n", expected_result[i]);
     }
     printf("align(2)\n");
     printf("\nImmArgs:\n");
@@ -120,12 +120,12 @@ void gen_shift(char* name, mipsinstr_handler_t handler) {
     printf("align(8)\n");
     printf("RegArgs:\n");
     for (int i = 0; i < num_cases; i++) {
-        printf("\tdd $%016lX\n", regargs[i]);
+        printf("\tdd $%016" PRIX64 "\n", regargs[i]);
     }
     printf("align(8)\n");
     printf("Expected:\n");
     for (int i = 0; i < num_results; i++) {
-        printf("\tdd $%016lX\n", expected_result[i]);
+        printf("\tdd $%016" PRIX64 "\n", expected_result[i]);
     }
 }
 
@@ -177,12 +177,12 @@ void gen_rs_rt_rd(char* name, mipsinstr_handler_t handler) {
     printf("align(8)\n");
     printf("RegArgs:\n");
     for (int i = 0; i < num_cases; i++) {
-        printf("\tdd $%016lX\n", regargs[i]);
+        printf("\tdd $%016" PRIX64 "\n", regargs[i]);
     }
     printf("align(8)\n");
     printf("Expected:\n");
     for (int i = 0; i < (num_cases * num_cases); i++) {
-        printf("\tdd $%016lX\n", expected_result[i]);
+        printf("\tdd $%016" PRIX64 "\n", expected_result[i]);
     }
 }
 

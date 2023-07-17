@@ -181,20 +181,20 @@ ssize_t n64_debug_get_memory(void* user_data, char* buffer, size_t length, u32 a
 ssize_t n64_debug_get_register_value(void* user_data, char * buffer, size_t buffer_length, int reg) {
     switch (reg) {
         case 0 ... 31:
-            return snprintf(buffer, buffer_length, "%016lx", N64CPU.gpr[reg]);
+            return snprintf(buffer, buffer_length, "%016" PRIX64, N64CPU.gpr[reg]);
         case 32:
             return snprintf(buffer, buffer_length, "%08x", N64CP0.status.raw);
         case 33:
-            return snprintf(buffer, buffer_length, "%016lx", N64CPU.mult_lo);
+            return snprintf(buffer, buffer_length, "%016" PRIX64, N64CPU.mult_lo);
         case 34:
-            return snprintf(buffer, buffer_length, "%016lx", N64CPU.mult_hi);
+            return snprintf(buffer, buffer_length, "%016" PRIX64, N64CPU.mult_hi);
         case 35:
-            return snprintf(buffer, buffer_length, "%016lx", N64CP0.bad_vaddr);
+            return snprintf(buffer, buffer_length, "%016" PRIX64, N64CP0.bad_vaddr);
         case 36:
             return snprintf(buffer, buffer_length, "%08x", N64CP0.cause.raw);
         case 37:
-            printf("Sending PC: 0x%016lX\n", N64CPU.pc);
-            return snprintf(buffer, buffer_length, "%016lx", N64CPU.pc);
+            printf("Sending PC: 0x%016" PRIX64 "\n", N64CPU.pc);
+            return snprintf(buffer, buffer_length, "%016" PRIX64, N64CPU.pc);
         case 38 ... 71: // TODO FPU stuff
             return snprintf(buffer, buffer_length, "%08x", 0);
         default:
@@ -211,7 +211,7 @@ ssize_t n64_debug_get_general_registers(void* user_data, char * buffer, size_t b
             logfatal("Too big!");
         }
         u64 reg = N64CPU.gpr[i];
-        printed += snprintf(buffer + ofs, buffer_length - ofs, "%016lx", reg);
+        printed += snprintf(buffer + ofs, buffer_length - ofs, "%016" PRIX64, reg);
     }
     return printed;
 }
