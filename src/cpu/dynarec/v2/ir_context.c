@@ -166,10 +166,10 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                     snprintf(buf, buf_size, "0x%08X ;%u", instr->set_constant.value_u32, instr->set_constant.value_u32);
                     break;
                 case VALUE_TYPE_U64:
-                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%lu", instr->set_constant.value_u64, instr->set_constant.value_u64);
+                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%" PRIu64, instr->set_constant.value_u64, instr->set_constant.value_u64);
                     break;
                 case VALUE_TYPE_S64:
-                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%ld", instr->set_constant.value_s64, instr->set_constant.value_s64);
+                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%" PRId64, instr->set_constant.value_s64, instr->set_constant.value_s64);
                     break;
             }
             break;
@@ -198,10 +198,10 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             snprintf(buf, buf_size, "LOAD(type = %s, address = v%d)", val_type_to_str(instr->load.type), instr->load.address->index);
             break;
         case IR_GET_PTR:
-            snprintf(buf, buf_size, "GETPTR(type = %s, ptr = %lx)", val_type_to_str(instr->set_ptr.type), instr->set_ptr.ptr);
+            snprintf(buf, buf_size, "GETPTR(type = %s, ptr = %" PRIx64 ")", val_type_to_str(instr->set_ptr.type), instr->set_ptr.ptr);
             break;
         case IR_SET_PTR:
-            snprintf(buf, buf_size, "SETPTR(type = %s, ptr = %lx, value = v%d)", val_type_to_str(instr->set_ptr.type), instr->set_ptr.ptr, instr->set_ptr.value->index);
+            snprintf(buf, buf_size, "SETPTR(type = %s, ptr = %" PRIx64 ", value = v%d)", val_type_to_str(instr->set_ptr.type), instr->set_ptr.ptr, instr->set_ptr.value->index);
             break;
         case IR_MASK_AND_CAST:
             snprintf(buf, buf_size, "mask_cast(%s, v%d)", val_type_to_str(instr->mask_and_cast.type), instr->mask_and_cast.operand->index);
@@ -267,7 +267,7 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             snprintf(buf, buf_size, "eret()");
             break;
         case IR_CALL: {
-            int written = snprintf(buf, buf_size, "call_func(func = %lx, args = { ", instr->call.function);
+            int written = snprintf(buf, buf_size, "call_func(func = %" PRIx64 ", args = { ", instr->call.function);
             buf += written;
             buf_size -= written;
             for (int i = 0; i < instr->call.num_args; i++) {

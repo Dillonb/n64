@@ -194,7 +194,7 @@ void render_metrics_window() {
         ImPlot::EndPlot();
     }
 
-    ImGui::Text("Block sysconfig misses this frame: %ld", get_metric(METRIC_BLOCK_SYSCONFIG_MISS));
+    ImGui::Text("Block sysconfig misses this frame: %" PRId64, get_metric(METRIC_BLOCK_SYSCONFIG_MISS));
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_sysconfig_misses.max(), ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Block Sysconfig Misses Per Frame")) {

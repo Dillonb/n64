@@ -79,7 +79,7 @@ std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code,
             res = snprintf(tmp, 100, "%016" PRIX64 "\t%s %s\n", insn[i].address, insn[i].mnemonic, insn[i].op_str);
         } else {
             unimplemented(insn->size != 4, "MIPS instruction was not 4 bytes");
-            res = snprintf(tmp, 100, "%08lX\t %02X%02X%02X%02X %s %s\n",
+            res = snprintf(tmp, 100, "%08" PRIX64 "\t %02X%02X%02X%02X %s %s\n",
                            insn[i].address,
                            insn[i].bytes[3],
                            insn[i].bytes[2],

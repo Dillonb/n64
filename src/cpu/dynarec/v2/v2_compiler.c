@@ -470,7 +470,7 @@ void compile_ir_shift(dasm_State** Dst, ir_instruction_t* instr) {
         u64 shift_amount_64 = const_to_u64(instr->shift.amount);
         u8 shift_amount = shift_amount_64;
         if (shift_amount_64 != shift_amount) {
-            logfatal("Const shift amount > 0xFF: %lu", shift_amount_64);
+            logfatal("Const shift amount > 0xFF: %" PRIu64, shift_amount_64);
         }
 
         host_emit_shift_reg_imm(Dst, instr->reg_alloc, instr->shift.type, shift_amount, instr->shift.direction);

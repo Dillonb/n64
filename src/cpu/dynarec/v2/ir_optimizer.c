@@ -371,7 +371,7 @@ void ir_optimize_constant_propagation() {
                     u64 operand = const_to_u64(instr->shift.operand);
                     u64 amount_64 = const_to_u64(instr->shift.amount);
                     if (amount_64 > 63) {
-                        logfatal("const shift amount (%lu) much too large - something is wrong", amount_64);
+                        logfatal("const shift amount (%" PRIu64 ") much too large - something is wrong", amount_64);
                     }
                     u8 amount = amount_64 & 0xFF;
 
