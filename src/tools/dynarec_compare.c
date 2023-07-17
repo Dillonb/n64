@@ -150,7 +150,7 @@ bool compare() {
 }
 
 void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
-    printf("%16s 0x%016lX 0x", name, expected);
+    printf("%16s 0x%016" PRIX64 " 0x", name, expected);
     for (int offset = 56; offset >= 0; offset -= 8) {
         u64 good_byte = (expected >> offset) & 0xFF;
         u64 bad_byte = (actual >> offset) & 0xFF;
@@ -239,7 +239,7 @@ void run_compare_parent() {
         logalways("User requested quit, not doing a final compare");
         exit(0);
     }
-    printf("Found a difference at pc: %016lX, ran for %d steps\n", start_pc, steps);
+    printf("Found a difference at pc: %016" PRIX64 ", ran for %d steps\n", start_pc, steps);
     if (steps == 0) {
         logwarn("!!! WARNING: RAN FOR 0 STEPS !!!");
     }
@@ -361,7 +361,7 @@ int main(int argc, char** argv) {
         n64_system_step(false, 1);
     }
 
-    logalways("ROM booted to %016lX, beginning comparison", start_comparing_at);
+    logalways("ROM booted to %016" PRIX64 ", beginning comparison", start_comparing_at);
 
     if (is_child) {
         run_compare_child();

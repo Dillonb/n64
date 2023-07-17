@@ -38,7 +38,7 @@ INLINE bool is_tlb(u64 vaddr) {
         case REGION_CKSEG1:
             return false;
         default:
-            logfatal("Should never get here! Address %016lX did not match any region.", vaddr);
+            logfatal("Should never get here! Address %016" PRIX64 " did not match any region.", vaddr);
     }
 }
 

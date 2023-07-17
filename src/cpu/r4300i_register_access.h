@@ -560,14 +560,14 @@ INLINE void branch_offset(s16 offset) {
 INLINE void conditional_branch_likely(u32 offset, bool condition) {
     if (condition) {
         branch_offset(offset);
-        logtrace("Likely branch taken. pc: 0x%016lX, next_pc: 0x%016lX", N64CPU.pc, N64CPU.next_pc);
+        logtrace("Likely branch taken. pc: 0x%016" PRIX64 ", next_pc: 0x%016" PRIX64, N64CPU.pc, N64CPU.next_pc);
         N64CPU.branch_likely_taken = true; // For dynarec
         N64CPU.branch = true;
     } else {
         N64CPU.branch_likely_taken = false; // For dynarec
         // Skip instruction in delay slot
         set_pc_dword_r4300i(N64CPU.pc + 4);
-        logtrace("Likely branch NOT taken. pc: 0x%016lX, next_pc: 0x%016lX", N64CPU.pc, N64CPU.next_pc);
+        logtrace("Likely branch NOT taken. pc: 0x%016" PRIX64 ", next_pc: 0x%016" PRIX64, N64CPU.pc, N64CPU.next_pc);
     }
 }
 

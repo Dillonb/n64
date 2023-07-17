@@ -166,10 +166,10 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                     snprintf(buf, buf_size, "0x%08X ;%u", instr->set_constant.value_u32, instr->set_constant.value_u32);
                     break;
                 case VALUE_TYPE_U64:
-                    snprintf(buf, buf_size, "0x%016lX ;%lu", instr->set_constant.value_u64, instr->set_constant.value_u64);
+                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%lu", instr->set_constant.value_u64, instr->set_constant.value_u64);
                     break;
                 case VALUE_TYPE_S64:
-                    snprintf(buf, buf_size, "0x%016lX ;%ld", instr->set_constant.value_s64, instr->set_constant.value_s64);
+                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%ld", instr->set_constant.value_s64, instr->set_constant.value_s64);
                     break;
             }
             break;

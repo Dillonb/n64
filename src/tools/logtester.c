@@ -34,12 +34,12 @@ void check_cpu_log(FILE* fp) {
         fread(&expected_mi_intr.raw, sizeof(u32), 1, fp);
         bool bad = false;
         if (expected_pc != N64CPU.pc) {
-          logalways("PC is wrong: expected %016lX but was %016lX", expected_pc, N64CPU.pc);
+          logalways("PC is wrong: expected %016" PRIX64 " but was %016" PRIX64, expected_pc, N64CPU.pc);
           bad = true;
         }
         for (int i = 0; i < 32; i++) {
             if (expected_gpr[i] != N64CPU.gpr[i]) {
-              logalways("r%d is wrong: expected %016lX but was %016lX", i, expected_gpr[i], N64CPU.gpr[i]);
+              logalways("r%d is wrong: expected %016" PRIX64 " but was %016" PRIX64, i, expected_gpr[i], N64CPU.gpr[i]);
               bad = true;
             }
         }

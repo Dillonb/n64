@@ -1,7 +1,7 @@
 #include <system/n64system.h>
 #include <mem/mem_util.h>
 
-#define assert_eq_u64(name, expected, actual) do { if ((actual) != (expected)) { logfatal("Expected %s == %016lX, but was %016lX!", name, expected, actual); } } while(0)
+#define assert_eq_u64(name, expected, actual) do { if ((actual) != (expected)) { logfatal("Expected %s == %016" PRIX64 ", but was %016" PRIX64 "!", name, expected, actual); } } while(0)
 #define assert_reg_value(expected, reg) do { u64 actual = N64CPU.gpr[reg]; assert_eq_u64(register_names[reg], expected, actual); } while(0)
 
 void load_code(const char* path) {
