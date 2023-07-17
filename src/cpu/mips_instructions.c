@@ -169,7 +169,7 @@ MIPS_INSTR(mips_bne) {
 MIPS_INSTR(mips_bnel) {
     u64 rs = get_register(instruction.i.rs);
     u64 rt = get_register(instruction.i.rt);
-    logtrace("Branch if: 0x%08lX != 0x%08lX", rs, rt);
+    logtrace("Branch if: 0x%08" PRIX64 " != 0x%08" PRIX64, rs, rt);
     conditional_branch_likely(instruction.i.immediate, rs != rt);
 }
 
@@ -198,7 +198,7 @@ MIPS_INSTR(mips_jal) {
 
 MIPS_INSTR(mips_slti) {
     s16 immediate = instruction.i.immediate;
-    logtrace("Set if %ld < %d", get_register(instruction.i.rs), immediate);
+    logtrace("Set if %" PRId64 " < %d", get_register(instruction.i.rs), immediate);
     s64 reg = get_register(instruction.i.rs);
     if (reg < immediate) {
         set_register(instruction.i.rt, 1);
@@ -209,7 +209,7 @@ MIPS_INSTR(mips_slti) {
 
 MIPS_INSTR(mips_sltiu) {
     s16 immediate = instruction.i.immediate;
-    logtrace("Set if %ld < %d", get_register(instruction.i.rs), immediate);
+    logtrace("Set if %" PRId64 " < %d", get_register(instruction.i.rs), immediate);
     if (get_register(instruction.i.rs) < immediate) {
         set_register(instruction.i.rt, 1);
     } else {
@@ -284,7 +284,7 @@ MIPS_INSTR(mips_lhu) {
     logtrace("LHU offset: %d", offset);
     u64 address = get_register(instruction.i.rs) + offset;
     if ((address & 0b1) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
     }
 
     u32 physical;
@@ -301,7 +301,7 @@ MIPS_INSTR(mips_lh) {
     s16 offset = instruction.i.immediate;
     u64 address = get_register(instruction.i.rs) + offset;
     if ((address & 0b1) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
     }
 
     u32 physical;
@@ -337,7 +337,7 @@ MIPS_INSTR(mips_lwu) {
     s16 offset  = instruction.i.immediate;
     u64 address = get_register(instruction.i.rs) + offset;
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
     }
 
     u32 physical;
@@ -602,7 +602,7 @@ MIPS_INSTR(mips_ll) {
 
 
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
     }
 
     set_register(instruction.i.rt, (s64)result);
@@ -630,7 +630,7 @@ MIPS_INSTR(mips_lld) {
     } else {
         u64 result = n64_read_physical_dword(physical);
         if ((address & 0b111) > 0) {
-            logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016lX", address);
+            logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
         }
         set_register(instruction.i.rt, result);
 
@@ -647,7 +647,7 @@ MIPS_INSTR(mips_sc) {
 
     // Exception takes precedence over the instruction failing
     if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016lX", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016" PRIX64, address);
     }
 
     if (N64CPU.llbit) {
@@ -679,7 +679,7 @@ MIPS_INSTR(mips_scd) {
 
     // Exception takes precedence over the instruction failing
     if ((address & 0b111) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016lX", address);
+        logfatal("TODO: throw an 'address error' exception! Tried to store to unaligned address 0x%016" PRIX64, address);
     }
 
     if (N64CPU.llbit) {
@@ -969,7 +969,7 @@ MIPS_INSTR(mips_spc_sltu) {
     u64 op1 = get_register(instruction.r.rs);
     u64 op2 = get_register(instruction.r.rt);
 
-    logtrace("Set if %lu < %lu", op1, op2);
+    logtrace("Set if %" PRIu64 " < %" PRIu64, op1, op2);
     if (op1 < op2) {
         set_register(instruction.r.rd, 1);
     } else {

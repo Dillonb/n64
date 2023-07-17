@@ -355,7 +355,7 @@ int n64_dynarec_step() {
     if (!resolve_virtual_address(N64CPU.pc, BUS_LOAD, &physical)) {
         on_tlb_exception(N64CPU.pc);
         r4300i_handle_exception(N64CPU.pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
-        printf("TLB miss PC, now at %016lX\n", N64CPU.pc);
+        printf("TLB miss PC, now at %016" PRIX64 "\n", N64CPU.pc);
         return 1; // TODO does exception handling have a cost by itself? does it matter?
     }
 
@@ -379,21 +379,21 @@ int n64_dynarec_step() {
 
 #ifdef LOG_ENABLED
     static long total_blocks_run;
-    logdebug("Running block at 0x%016lX - block run #%ld - block FP: 0x%016lX", N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
+    logdebug("Running block at 0x%016" PRIX64 " - block run #%ld - block FP: 0x%016" PRIX64, N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
 #endif
     N64CPU.exception = false;
     int taken = block->run(&N64CPU);
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, N64CPU.pc);
     for (int i = 0; i < 32; i++) {
-        printf("%016lX", N64CPU.gpr[i]);
+        printf("%016" PRIX64, N64CPU.gpr[i]);
         if (i != 31) {
             printf(" ");
         }
     }
     printf("\n");
 #endif
-    logdebug("Done running block - took %d cycles - pc is now 0x%016lX", taken, N64CPU.pc);
+    logdebug("Done running block - took %d cycles - pc is now 0x%016" PRIX64, taken, N64CPU.pc);
 
     return taken * CYCLES_PER_INSTR;
 }

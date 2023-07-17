@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
 
     set_pc_word_r4300i(n64sys.mem.rom.header.program_counter);
 
-    loginfo("Initial PC: 0x%016lX\n", N64CPU.pc);
+    loginfo("Initial PC: 0x%016" PRIX64 "\n", N64CPU.pc);
 
     int steps = 0;
     bool use_dynarec = recomp(argv[2]);

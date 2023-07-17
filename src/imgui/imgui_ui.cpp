@@ -180,7 +180,7 @@ void render_metrics_window() {
         ImPlot::EndPlot();
     }
 
-    ImGui::Text("Block compilations this frame: %ld", get_metric(METRIC_BLOCK_COMPILATION));
+    ImGui::Text("Block compilations this frame: %" PRId64, get_metric(METRIC_BLOCK_COMPILATION));
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_complilations.max(), ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Block Compilations Per Frame")) {
@@ -195,7 +195,7 @@ void render_metrics_window() {
         ImPlot::EndPlot();
     }
 
-    ImGui::Text("Audio stream bytes available: %ld", get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
+    ImGui::Text("Audio stream bytes available: %" PRId64, get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, audiostream_bytes_available.max(), ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Audio Stream Bytes Available")) {

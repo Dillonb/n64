@@ -28,7 +28,7 @@ u64 get_vpn(u64 address, u32 page_mask_raw) {
 
 /* Keeping this in case I need it again
 void dump_tlb(u64 vaddr) {
-    printf("TLB error at address %016lX and PC %016lX, dumping TLB state:\n\n", vaddr, N64CPU.pc);
+    printf("TLB error at address %016" PRIX64 " and PC %016" PRIX64 ", dumping TLB state:\n\n", vaddr, N64CPU.pc);
     printf("   entry VPN  vaddr VPN  page size  lo0 valid  lo1 valid\n");
     for (int i = 0; i < 32; i++) {
         tlb_entry_t entry = N64CP0.tlb[i];
@@ -286,14 +286,14 @@ void n64_write_physical_dword(u32 address, u64 value) {
     if (address & 0b111) {
         logfatal("Tried to write to unaligned DWORD");
     }
-    logdebug("Writing 0x%016lX to [0x%08X]", value, address);
+    logdebug("Writing 0x%016" PRIX64 " to [0x%08X]", value, address);
     invalidate_dynarec_page(address);
     switch (address) {
         case REGION_RDRAM:
             dword_to_byte_array((u8*) &n64sys.mem.rdram, DWORD_ADDRESS(address) - SREGION_RDRAM, value);
             break;
         case REGION_RDRAM_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value, address);
             break;
         case REGION_RDRAM_UNUSED:
             return;
@@ -308,51 +308,51 @@ void n64_write_physical_dword(u32 address, u64 value) {
             break;
         }
         case REGION_SP_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SP_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_SP_REGS", value, address);
             break;
         case REGION_DP_COMMAND_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", value, address);
         case REGION_DP_SPAN_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", value, address);
         case REGION_MI_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_MI_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_MI_REGS", value, address);
             break;
         case REGION_VI_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_VI_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_VI_REGS", value, address);
             break;
         case REGION_AI_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_AI_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_AI_REGS", value, address);
             break;
         case REGION_PI_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PI_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_PI_REGS", value, address);
             break;
         case REGION_RI_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_RI_REGS", value, address);
             break;
         case REGION_SI_REGS:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_SI_REGS", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_SI_REGS", value, address);
             break;
         case REGION_UNUSED:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_UNUSED", value, address);
         case REGION_CART:
             write_dword_pibus(address, value);
             break;
         case REGION_PIF_BOOT:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_PIF_BOOT", value, address);
         case REGION_PIF_RAM:
             dword_to_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM, htobe64(value));
             process_pif_command();
-            logfatal("Writing dword 0x%016lX to address 0x%08X in region: REGION_PIF_RAM", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in region: REGION_PIF_RAM", value, address);
             break;
         case REGION_RESERVED:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_RESERVED", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_RESERVED", value, address);
         case REGION_CART_1_3:
-            logfatal("Writing dword 0x%016lX to address 0x%08X in unsupported region: REGION_CART_1_3", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to address 0x%08X in unsupported region: REGION_CART_1_3", value, address);
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
             break;
         default:
-            logfatal("Writing dword 0x%016lX to unknown address: 0x%08X", value, address);
+            logfatal("Writing dword 0x%016" PRIX64 " to unknown address: 0x%08X", value, address);
     }
 }
 

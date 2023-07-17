@@ -115,9 +115,9 @@ void test_instr_branch(case_branch_instr test_case, mipsinstr_handler_t instr, c
     bool taken = N64CPU.next_pc == 4;
 
     if (taken != test_case.taken) {
-        failed("%s: (r%d)0x%016lX, (r%d)0x%016lX | Expected: %s but got %s", instr_name, r1, test_case.r1, r2, test_case.r2, taken_macro(test_case.taken), taken_macro(taken))
+        failed("%s: (r%d)0x%016" PRIX64 ", (r%d)0x%016" PRIX64 " | Expected: %s but got %s", instr_name, r1, test_case.r1, r2, test_case.r2, taken_macro(test_case.taken), taken_macro(taken))
     } else if (SHOULD_LOG_PASSED_TESTS) {
-        passed("%s: (r%d)0x%016lX, (r%d)0x%016lX | Expected: %s and got %s", instr_name, r1, test_case.r1, r2, test_case.r2, taken_macro(test_case.taken), taken_macro(taken))
+        passed("%s: (r%d)0x%016" PRIX64 ", (r%d)0x%016" PRIX64 " | Expected: %s and got %s", instr_name, r1, test_case.r1, r2, test_case.r2, taken_macro(test_case.taken), taken_macro(taken))
     }
 }
 
@@ -139,9 +139,9 @@ void test_instr_sa(case_sa_instr test_case, mipsinstr_handler_t instr, const cha
     u64 expected = test_case.output;
 
     if (expected != actual) {
-        failed("%s: (r%d)0x%016lX, 0x%02X | Expected: 0x%016lX but got 0x%016lX", instr_name, rinput, test_case.input, test_case.sa, expected, actual)
+        failed("%s: (r%d)0x%016" PRIX64 ", 0x%02X | Expected: 0x%016" PRIX64 " but got 0x%016" PRIX64, instr_name, rinput, test_case.input, test_case.sa, expected, actual)
     } else if (SHOULD_LOG_PASSED_TESTS) {
-        passed("%s: (r%d)0x%016lX, 0x%02X | Expected: 0x%016lX and got 0x%016lX", instr_name, rinput, test_case.input, test_case.sa, expected, actual)
+        passed("%s: (r%d)0x%016" PRIX64 ", 0x%02X | Expected: 0x%016" PRIX64 " and got 0x%016" PRIX64, instr_name, rinput, test_case.input, test_case.sa, expected, actual)
     }
 }
 
@@ -166,12 +166,12 @@ void test_instr_lohi(case_lohi_instr test_case, mipsinstr_handler_t instr, const
     u64 actual_hi = N64CPU.mult_hi;
 
     if (expected_lo != actual_lo) {
-        failed("%s: (r%d)0x%016lX, (r%d)0x%016lX | LO Expected: 0x%016lX but got 0x%016lX", instr_name, r1, test_case.r1, r2, test_case.r2, expected_lo, actual_lo)
+        failed("%s: (r%d)0x%016" PRIX64 ", (r%d)0x%016" PRIX64 " | LO Expected: 0x%016" PRIX64 " but got 0x%016" PRIX64, instr_name, r1, test_case.r1, r2, test_case.r2, expected_lo, actual_lo)
     } else if (expected_hi != actual_hi) {
-        failed("%s: (r%d)0x%016lX, (r%d)0x%016lX | HI Expected: 0x%016lX but got 0x%016lX", instr_name, r1, test_case.r1, r2, test_case.r2, expected_hi, actual_hi)
+        failed("%s: (r%d)0x%016" PRIX64 ", (r%d)0x%016" PRIX64 " | HI Expected: 0x%016" PRIX64 " but got 0x%016" PRIX64, instr_name, r1, test_case.r1, r2, test_case.r2, expected_hi, actual_hi)
     } else if (SHOULD_LOG_PASSED_TESTS) {
-        passed("%s: (r%d)0x%016lX, (r%d)0x%016lX | LO Expected: 0x%016lX and got 0x%016lX", instr_name, r1, test_case.r1, r2, test_case.r2, expected_lo, actual_lo)
-        passed("%s: (r%d)0x%016lX, (r%d)0x%016lX | HI Expected: 0x%016lX and got 0x%016lX", instr_name, r1, test_case.r1, r2, test_case.r2, expected_hi, actual_hi)
+        passed("%s: (r%d)0x%016" PRIX64 ", (r%d)0x%016" PRIX64 " | LO Expected: 0x%016" PRIX64 " and got 0x%016" PRIX64, instr_name, r1, test_case.r1, r2, test_case.r2, expected_lo, actual_lo)
+        passed("%s: (r%d)0x%016" PRIX64 ", (r%d)0x%016" PRIX64 " | HI Expected: 0x%016" PRIX64 " and got 0x%016" PRIX64, instr_name, r1, test_case.r1, r2, test_case.r2, expected_hi, actual_hi)
     }
 }
 

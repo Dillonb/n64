@@ -289,8 +289,8 @@ void check_cpu_log(FILE* fp) {
             u64 actual = N64CPU.gpr[r] & 0xFFFFFFFF;
             if (expected != actual) {
                 logwarn("Failed running line: %s", lastinstr);
-                logwarn("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual);
-                logfatal("Line %ld: $%s (r%d) expected: 0x%08lX actual: 0x%08lX", line + 1, register_names[r], r, expected, actual);
+                logwarn("Line %ld: $%s (r%d) expected: 0x%08" PRIX64 " actual: 0x%08" PRIX64, line + 1, register_names[r], r, expected, actual);
+                logfatal("Line %ld: $%s (r%d) expected: 0x%08" PRIX64 " actual: 0x%08" PRIX64, line + 1, register_names[r], r, expected, actual);
             }
         }
 
@@ -305,7 +305,7 @@ void check_cpu_log(FILE* fp) {
         tok = strtok(instrline, " ");
         u64 pc = strtol(tok, NULL, 16);
         if (pc != N64CPU.pc) {
-            logfatal("Line %ld: PC expected: 0x%08lX actual: 0x%08lX", line + 1, pc, N64CPU.pc);
+            logfatal("Line %ld: PC expected: 0x%08" PRIX64 " actual: 0x%08" PRIX64, line + 1, pc, N64CPU.pc);
         }
         n64_system_step(false);
     }
@@ -367,10 +367,10 @@ int run_system_and_check(long taken, char* line, long linenum) {
     cpu_steps += taken;
 
     if (expected_pc != cpu->pc) {
-        logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08lX\n", linenum, taken, expected_pc, cpu->pc);
+        logfatal("RIP! on line %ld, after a block of size %ld, PC expected 0x%08X actual 0x%08" PRIX64 "\n", linenum, taken, expected_pc, cpu->pc);
     }
 
-    logalways("Synchronized at PC=0x%016lX, checking registers", cpu->pc);
+    logalways("Synchronized at PC=0x%016" PRIX64 ", checking registers", cpu->pc);
 
     for (int r = 0; r < 32; r++) {
         tok = strtok(NULL, " ");
@@ -378,7 +378,7 @@ int run_system_and_check(long taken, char* line, long linenum) {
         u64 actual = N64CPU.gpr[r];
         bool anybad = false;
         if (expected != actual) {
-            logalways("RIP! on line %ld, after a block of size %ld, r%d (%s) expected 0x%016lX actual 0x%016lX\n", linenum, taken, r, register_names[r], expected, actual);
+            logalways("RIP! on line %ld, after a block of size %ld, r%d (%s) expected 0x%016" PRIX64 " actual 0x%016" PRIX64 "\n", linenum, taken, r, register_names[r], expected, actual);
             anybad = true;
         }
         if (anybad) {

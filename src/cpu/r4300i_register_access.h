@@ -4,14 +4,14 @@
 #include "r4300i.h"
 
 INLINE void set_register(u8 r, u64 value) {
-    logtrace("Setting $%s (r%d) to [0x%016lX]", register_names[r], r, value);
+    logtrace("Setting $%s (r%d) to [0x%016" PRIX64 "]", register_names[r], r, value);
     N64CPU.gpr[r] = value;
     N64CPU.gpr[0] = 0;
 }
 
 INLINE u64 get_register(u8 r) {
     u64 value = N64CPU.gpr[r];
-    logtrace("Reading $%s (r%d): 0x%016lX", register_names[r], r, value);
+    logtrace("Reading $%s (r%d): 0x%016" PRIX64, register_names[r], r, value);
     return value;
 }
 
@@ -59,7 +59,7 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             N64CPU.cp0.tag_hi = value;
             break;
         case R4300I_CP0_REG_COMPARE:
-            loginfo("$Compare written with 0x%08X (count is now 0x%08lX)", value, N64CPU.cp0.count);
+            loginfo("$Compare written with 0x%08X (count is now 0x%08" PRIX64 ")", value, N64CPU.cp0.count);
             N64CPU.cp0.cause.ip7 = false;
             N64CPU.cp0.compare = value;
             break;

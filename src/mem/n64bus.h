@@ -71,11 +71,11 @@ INLINE bool resolve_virtual_address_64bit(u64 address, bus_access_t bus_access, 
             return tlb_probe(address, bus_access, physical, NULL);
         case REGION_XKPHYS: {
             if (!N64CP0.kernel_mode) {
-                logfatal("Access to XKPHYS address 0x%016lX when outside kernel mode!", address);
+                logfatal("Access to XKPHYS address 0x%016" PRIX64 " when outside kernel mode!", address);
             }
             u8 high_two_bits = (address >> 62) & 0b11;
             if (high_two_bits != 0b10) {
-                logfatal("Access to XKPHYS address 0x%016lX with high two bits != 0b10!", address);
+                logfatal("Access to XKPHYS address 0x%016" PRIX64 " with high two bits != 0b10!", address);
             }
             u8 subsegment = (address >> 59) & 0b11;
             bool cached = subsegment != 2;
@@ -97,16 +97,16 @@ INLINE bool resolve_virtual_address_64bit(u64 address, bus_access_t bus_access, 
             // Identical to kseg0 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             *physical = address - SVREGION_KSEG0; // Implies cutting off the high 32 bits
-            logtrace("CKSEG0: Translated 0x%016lX to 0x%08X", address, *physical);
+            logtrace("CKSEG0: Translated 0x%016" PRIX64 " to 0x%08X", address, *physical);
             break;
         case REGION_CKSEG1:
             // Identical to kseg1 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             *physical = address - SVREGION_KSEG1; // Implies cutting off the high 32 bits
-            logtrace("KSEG1: Translated 0x%016lX to 0x%08X", address, *physical);
+            logtrace("KSEG1: Translated 0x%016" PRIX64 " to 0x%08X", address, *physical);
             break;
         case REGION_CKSSEG:
-            logfatal("Resolving virtual address 0x%016lX (REGION_CKSSEG) in 64 bit mode", address);
+            logfatal("Resolving virtual address 0x%016" PRIX64 " (REGION_CKSSEG) in 64 bit mode", address);
         case REGION_CKSEG3:
             return tlb_probe(address, bus_access, physical, NULL);
         case REGION_XBAD1:
@@ -115,7 +115,7 @@ INLINE bool resolve_virtual_address_64bit(u64 address, bus_access_t bus_access, 
             N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
             return false;
         default:
-            logfatal("Resolving virtual address 0x%016lX in 64 bit mode", address);
+            logfatal("Resolving virtual address 0x%016" PRIX64 " in 64 bit mode", address);
     }
 
     return true;
@@ -158,7 +158,7 @@ INLINE bool resolve_virtual_address(u64 virtual, bus_access_t bus_access, u32* p
 INLINE u32 resolve_virtual_address_or_die(u64 virtual, bus_access_t bus_access) {
     u32 physical;
     if (!resolve_virtual_address(virtual, bus_access, &physical)) {
-        logfatal("Unhandled TLB exception at 0x%016lX! Stop calling resolve_virtual_address_or_die() here!", virtual);
+        logfatal("Unhandled TLB exception at 0x%016" PRIX64 "! Stop calling resolve_virtual_address_or_die() here!", virtual);
     }
     return physical;
 }
