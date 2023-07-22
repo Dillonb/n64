@@ -303,6 +303,9 @@ int main(int argc, char** argv) {
     const char* tas_movie_path = NULL;
     cflags_add_string(flags, 'm', "movie", &tas_movie_path, "Load movie (Mupen64Plus .m64 format)");
 
+    bool software_mode = false;
+    cflags_add_bool(flags, 's', "software", &software_mode, "Use the soft RDP");
+
     cflags_parse(flags, argc, argv);
 
     logalways("flags->argc: %d", flags->argc);
@@ -340,17 +343,20 @@ int main(int argc, char** argv) {
         }
     }
 
-    init_n64system(rom_path, true, false, VULKAN_VIDEO_TYPE, false);
-    //init_n64system(rom_path, true, false, SOFTWARE_VIDEO_TYPE, false);
-    softrdp_init(&n64sys.softrdp_state, (u8 *) &n64sys.mem.rdram);
-    prdp_init_internal_swapchain();
+    if (software_mode) {
+        init_n64system(rom_path, true, false, SOFTWARE_VIDEO_TYPE, false);
+        softrdp_init(&n64sys.softrdp_state, (u8 *) &n64sys.mem.rdram);
+    } else {
+        init_n64system(rom_path, true, false, VULKAN_VIDEO_TYPE, false);
+        prdp_init_internal_swapchain();
+        load_imgui_ui();
+        register_imgui_event_handler(imgui_handle_event);
+    }
 
     if (tas_movie_path != NULL) {
         load_tas_movie(tas_movie_path);
     }
 
-    load_imgui_ui();
-    register_imgui_event_handler(imgui_handle_event);
     n64_load_rom(rom_path);
     pif_rom_execute();
 
