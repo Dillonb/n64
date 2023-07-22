@@ -172,10 +172,10 @@ INLINE int interpreter_system_step_matchjit(const int cycles) {
         N64CPU.fcr31.flag = 0;
         N64CPU.fcr31.cause = 0;
 #endif
+    N64CP0.count++;
+    N64CP0.count &= 0x1FFFFFFFF;
     }
 
-    N64CP0.count += cycles;
-    N64CP0.count &= 0x1FFFFFFFF;
     return cycles;
 }
 
