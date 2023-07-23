@@ -252,7 +252,7 @@ void run_compare_parent() {
         if (physical >= N64_RDRAM_SIZE) {
             printf("outside of RDAM, can't disassemble (TODO)\n");
         } else {
-            print_multi_guest(physical, &n64sys.mem.rdram[physical], block->guest_size);
+            print_multi_guest(start_pc, &n64sys.mem.rdram[physical], block->guest_size);
         }
     } else {
         printf("TLB miss PC, guest code unavailable\n");
