@@ -17,6 +17,7 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
     block->guest_size = 0;
     block->next = NULL;
     block->sysconfig = current_sysconfig;
+    block->virtual_address = N64CPU.pc;
 
     bool* code_mask = n64dynarec.code_mask[outer_index];
 
@@ -34,11 +35,11 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
     return n64dynarec.run_block((u64)block->run);
 }
 
-INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64_block_sysconfig_t current_sysconfig) {
+INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64_block_sysconfig_t current_sysconfig, u64 virtual_address) {
     n64_dynarec_block_t* block_iter = blocks;
     while (block_iter->run != NULL) {
-        // make sure it matches the sysconfig. If not, keep looking.
-        if (block_iter->sysconfig.raw == current_sysconfig.raw) {
+        // make sure it matches the sysconfig and virtual address. If not, keep looking.
+        if (block_iter->sysconfig.raw == current_sysconfig.raw && block_iter->virtual_address == virtual_address) {
             if (block_iter != blocks) {
                 n64_dynarec_block_t temp = *blocks;
                 copy_dynarec_block(blocks, block_iter);
@@ -103,7 +104,7 @@ int n64_dynarec_step() {
     // Find the first block that's both non-null and matches the current sysconfig
     n64_block_sysconfig_t current_sysconfig = get_current_sysconfig();
     {
-        n64_dynarec_block_t* matching_block = find_matching_block(block, current_sysconfig);
+        n64_dynarec_block_t* matching_block = find_matching_block(block, current_sysconfig, N64CPU.pc);
         if (matching_block && matching_block->run) {
             taken = n64dynarec.run_block((u64)matching_block->run);
         } else {

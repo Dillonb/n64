@@ -54,6 +54,7 @@ typedef struct n64_dynarec_block {
     size_t guest_size;
     size_t host_size;
     n64_block_sysconfig_t sysconfig;
+    u64 virtual_address;
     struct n64_dynarec_block* next; // for other sysconfigs
 } n64_dynarec_block_t;
 
@@ -62,6 +63,7 @@ INLINE void copy_dynarec_block(n64_dynarec_block_t* dest, n64_dynarec_block_t* s
     dest->guest_size = src->guest_size;
     dest->host_size = src->host_size;
     dest->sysconfig = src->sysconfig;
+    dest->virtual_address = src->virtual_address;
 }
 
 typedef struct n64_dynarec {
