@@ -1104,7 +1104,9 @@ void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_al
                     break;
                 case VALUE_TYPE_U64:
                 case VALUE_TYPE_S64:
-                    | mov Rq(TMPREG1), Rq(src)
+                    if (TMPREG1 != src) {
+                        | mov Rq(TMPREG1), Rq(src)
+                    }
                     break;
             }
         }

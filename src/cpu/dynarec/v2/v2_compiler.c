@@ -435,11 +435,10 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[2]), bus_access);
 
     host_emit_call(Dst, (uintptr_t)resolve_virtual_address_for_jit);
-    // Move the 32 bit value into the destination reg. Bit 32 will be masked out by this move.
-    host_emit_mov_reg_reg(Dst, instr->reg_alloc, return_value_reg, VALUE_TYPE_U32);
+    // Move the full value into the destination reg. Don't need to worry about the success bit, because if that bit is set, the return value is junk anyway.
+    host_emit_mov_reg_reg(Dst, instr->reg_alloc, return_value_reg, VALUE_TYPE_U64);
     // Shift the success bit into bit 0
     host_emit_shift_reg_imm(Dst, return_value_reg, VALUE_TYPE_U64, 32, SHIFT_DIRECTION_RIGHT);
-
     host_emit_cond_ret(Dst, return_value_reg, &instr->flush_info, instr->block_length, COND_BLOCK_EXIT_TYPE_NONE, (cond_block_exit_info_t){});
 }
 
