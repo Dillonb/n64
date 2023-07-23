@@ -21,7 +21,7 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
     bool* code_mask = n64dynarec.code_mask[outer_index];
 
 #ifdef N64_LOG_COMPILATIONS
-    printf("Compilin' new block at 0x%08X / 0x%08X\n", N64CPU.pc, physical);
+    printf("Compilin' new block at 0x%08" PRIX64 " / 0x%08" PRIX32 "\n", N64CPU.pc, physical_address);
 #endif
 
     mark_metric(METRIC_BLOCK_COMPILATION);
