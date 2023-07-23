@@ -331,6 +331,7 @@ int main(int argc, char** argv) {
     memset(joybus_override, 0, sizeof(n64_joybus_device_t) * 6);
     override_joybus_devices_ptr(joybus_override);
 
+    srand(0); // Deterministic random, before forking
     pid_t pid = fork();
     bool is_child = pid == 0;
 
