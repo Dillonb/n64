@@ -411,13 +411,22 @@ u64 resolve_virtual_address_for_jit(u64 virtual, u64 except_pc, bus_access_t bus
 }
 
 void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
+    if (instr->block_length <= 0) {
+        logfatal("TLB lookup compiled with a block length of %d", instr->block_length);
+    }
+    bool prev_branch = instr->block_length > 1 && (temp_code[instr->block_length - 2].category == BRANCH || temp_code[instr->block_length - 2].category == BRANCH_LIKELY);
+    static_assert(sizeof(N64CPU.prev_branch) == 1, "prev_branch should be one byte");
+
+    ir_set_constant_t prev_branch_const = { .type = VALUE_TYPE_U8, .value_u8 = prev_branch };
+    host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.prev_branch, prev_branch_const, VALUE_TYPE_U8);
+
     ir_register_allocation_t return_value_reg = alloc_gpr(get_return_value_reg());
     val_to_func_arg(Dst, instr->tlb_lookup.virtual_address, 0);
 
     // faulting pc for if an exception occurs
     ir_set_constant_t except_pc;
     except_pc.type = VALUE_TYPE_U64;
-    except_pc.value_u64 = temp_code_vaddr + (instr->block_length * 4u);
+    except_pc.value_u64 = temp_code_vaddr + ((instr->block_length - 1) * 4u);
     host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[1]), except_pc);
 
     ir_set_constant_t bus_access;
@@ -514,10 +523,10 @@ void compile_ir_cond_block_exit(dasm_State** Dst, ir_instruction_t* instr) {
                     host_emit_mov_pc(Dst, instr->cond_block_exit.info.exit_pc);
                     break;
             }
-            host_emit_ret(Dst, &instr->flush_info, instr->block_length + 1);
+            host_emit_ret(Dst, &instr->flush_info, instr->block_length);
         }
     } else {
-        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, &instr->flush_info, instr->block_length + 1, instr->cond_block_exit.type, instr->cond_block_exit.info);
+        host_emit_cond_ret(Dst, instr->cond_block_exit.condition->reg_alloc, &instr->flush_info, instr->block_length, instr->cond_block_exit.type, instr->cond_block_exit.info);
     }
 }
 

@@ -485,7 +485,7 @@ ir_instruction_t* append_ir_instruction(ir_instruction_t instruction, int index,
 
     ir_instruction_t* allocation = allocate_ir_instruction(instruction);
 
-    allocation->block_length = index;
+    allocation->block_length = index + 1;
 
     allocation->next = NULL;
     allocation->prev = ir_context.ir_cache_tail;
