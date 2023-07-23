@@ -148,28 +148,28 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_SET_CONSTANT:
             switch (instr->set_constant.type) {
                 case VALUE_TYPE_U8:
-                    snprintf(buf, buf_size, "0x%04X ;%u", (u16)instr->set_constant.value_u8, instr->set_constant.value_u8);
+                    snprintf(buf, buf_size, "0x%04X ;%u (u8)", (u16)instr->set_constant.value_u8, instr->set_constant.value_u8);
                     break;
                 case VALUE_TYPE_S8:
-                    snprintf(buf, buf_size, "0x%04X ;%d", (u16)instr->set_constant.value_s8, instr->set_constant.value_s8);
+                    snprintf(buf, buf_size, "0x%04X ;%d (s8)", (u16)instr->set_constant.value_s8, instr->set_constant.value_s8);
                     break;
                 case VALUE_TYPE_S16:
-                    snprintf(buf, buf_size, "0x%04X ;%d", (u16)instr->set_constant.value_s16, instr->set_constant.value_s16);
+                    snprintf(buf, buf_size, "0x%04X ;%d (s16)", (u16)instr->set_constant.value_s16, instr->set_constant.value_s16);
                     break;
                 case VALUE_TYPE_U16:
-                    snprintf(buf, buf_size, "0x%04X ;%u", instr->set_constant.value_u16, instr->set_constant.value_u16);
+                    snprintf(buf, buf_size, "0x%04X ;%u (u16)", instr->set_constant.value_u16, instr->set_constant.value_u16);
                     break;
                 case VALUE_TYPE_S32:
-                    snprintf(buf, buf_size, "0x%08X ;%d", (u32)instr->set_constant.value_s32, instr->set_constant.value_s32);
+                    snprintf(buf, buf_size, "0x%08X ;%d (s32)", (u32)instr->set_constant.value_s32, instr->set_constant.value_s32);
                     break;
                 case VALUE_TYPE_U32:
-                    snprintf(buf, buf_size, "0x%08X ;%u", instr->set_constant.value_u32, instr->set_constant.value_u32);
+                    snprintf(buf, buf_size, "0x%08X ;%u (u32)", instr->set_constant.value_u32, instr->set_constant.value_u32);
                     break;
                 case VALUE_TYPE_U64:
-                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%" PRIu64, instr->set_constant.value_u64, instr->set_constant.value_u64);
+                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%" PRIu64 " (u64)", instr->set_constant.value_u64, instr->set_constant.value_u64);
                     break;
                 case VALUE_TYPE_S64:
-                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%" PRId64, instr->set_constant.value_s64, instr->set_constant.value_s64);
+                    snprintf(buf, buf_size, "0x%016" PRIX64 " ;%" PRId64 " (u64)", instr->set_constant.value_s64, instr->set_constant.value_s64);
                     break;
             }
             break;
