@@ -591,25 +591,21 @@ MIPS_INSTR(mips_ll) {
     u64 address = get_register(instruction.i.rs) + offset;
 
     u32 physical;
-    s32 result;
     if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        result = n64_read_physical_word(physical);
+        s32 result = n64_read_physical_word(physical);
+        if ((address & 0b11) > 0) {
+            logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
+        }
+
+        set_register(instruction.i.rt, (s64)result);
+
+        // Unique to ll
+        N64CPU.cp0.lladdr = physical >> 4;
+        N64CPU.llbit = true;
     }
-
-
-
-    if ((address & 0b11) > 0) {
-        logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
-    }
-
-    set_register(instruction.i.rt, (s64)result);
-
-    // Unique to ll
-    N64CPU.cp0.lladdr = physical >> 4;
-    N64CPU.llbit = true;
 }
 
 MIPS_INSTR(mips_lld) {
