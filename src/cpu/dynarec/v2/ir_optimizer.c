@@ -767,7 +767,7 @@ void ir_optimize_shrink_constants() {
             } else if (val == (s64)(s16)val) { // S16
                 instr->set_constant.type = VALUE_TYPE_S16;
                 instr->set_constant.value_s16 = val & 0xFFFF;
-            } else if (val == (s64)(u32)val) { // U32
+            } else if (val == (s64)(u32)val && (val & 0x80000000) == 0) { // U32
                 instr->set_constant.type = VALUE_TYPE_U32;
                 instr->set_constant.value_u32 = val & 0xFFFFFFFF;
             } else if (val == (s64)(s32)val) { // S32
