@@ -186,6 +186,9 @@ IR_EMITTER(sw) {
 IR_EMITTER(sc) {
     ir_instruction_t* virtual = ir_get_memory_access_virtual_address(instruction);
     ir_instruction_t* llbit = ir_emit_get_ptr(VALUE_TYPE_U8, &N64CPU.llbit, NO_GUEST_REG);
+    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG)); // sc always turns off llbit
+
+    ir_instruction_t* physical = ir_emit_tlb_lookup(index, virtual, NO_GUEST_REG, BUS_STORE);
 
     // IMPORTANT: order is critical for the next 2 lines: need to load the existing value before resetting rt
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
@@ -196,15 +199,15 @@ IR_EMITTER(sc) {
     ir_instruction_t* block_end_pc = ir_emit_set_constant_64(ir_context.block_start_virtual + (index << 2) + 4, NO_GUEST_REG);
     ir_emit_conditional_block_exit_address(index, llbit_not_set, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
 
-    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG));
-
-    ir_instruction_t* physical = ir_emit_tlb_lookup(index, virtual, NO_GUEST_REG, BUS_STORE);
     ir_emit_store(VALUE_TYPE_U32, physical, value);
 }
 
 IR_EMITTER(scd) {
     ir_instruction_t* virtual = ir_get_memory_access_virtual_address(instruction);
     ir_instruction_t* llbit = ir_emit_get_ptr(VALUE_TYPE_U8, &N64CPU.llbit, NO_GUEST_REG);
+    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG)); // scd always turns off llbit
+
+    ir_instruction_t* physical = ir_emit_tlb_lookup(index, virtual, NO_GUEST_REG, BUS_STORE);
 
     // IMPORTANT: order is critical for the next 2 lines: need to load the existing value before resetting rt
     ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
@@ -215,9 +218,6 @@ IR_EMITTER(scd) {
     ir_instruction_t* block_end_pc = ir_emit_set_constant_64(ir_context.block_start_virtual + (index << 2) + 4, NO_GUEST_REG);
     ir_emit_conditional_block_exit_address(index, llbit_not_set, block_end_pc); // if llbit is not set: rt should be set to 0 and no other operations should take place
 
-    ir_emit_set_ptr(VALUE_TYPE_U8, &N64CPU.llbit, ir_emit_set_constant_u16(0, NO_GUEST_REG));
-
-    ir_instruction_t* physical = ir_emit_tlb_lookup(index, virtual, NO_GUEST_REG, BUS_STORE);
     ir_emit_store(VALUE_TYPE_U64, physical, value);
 }
 
