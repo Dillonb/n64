@@ -144,6 +144,8 @@ bool compare() {
     good &= n64cpu_interpreter_ptr->cp0.tag_hi == n64cpu_ptr->cp0.tag_hi;
     good &= n64cpu_interpreter_ptr->cp0.error_epc == n64cpu_ptr->cp0.error_epc;
 
+    good &= n64cpu_interpreter_ptr->llbit == n64cpu_ptr->llbit;
+
     good &= n64cpu_interpreter_ptr->fcr31.raw == n64cpu_ptr->fcr31.raw;
 
     return good;
@@ -178,6 +180,9 @@ void print_state() {
         print_colorcoded_u64(cp1_register_names[i], n64cpu_interpreter_ptr->f[i].raw, N64CPU.f[i].raw);
     }
 
+    printf("\n");
+
+    print_colorcoded_u64("cpu llbit", n64cpu_interpreter_ptr->llbit, N64CPU.llbit);
     printf("\n");
 
     print_colorcoded_u64("cp0 index", n64cpu_interpreter_ptr->cp0.index, N64CPU.cp0.index);
