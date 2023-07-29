@@ -14,11 +14,11 @@
 #include "mem_util.h"
 #include "backup.h"
 
-u64 get_vpn(u64 address, u32 page_mask_raw) {
+INLINE u64 get_vpn(u64 address, u32 page_mask_raw) {
     u64 tmp = page_mask_raw | 0x1FFF;
     // bits 40 and 41: bits 62 and 63 of the address, the "region"
     // bits 0 - 39: the low 40 bits of the address, the actual location being accessed.
-    u64 vpn = address & 0xFFFFFFFFFF | ((address >> 22) & 0x30000000000);
+    u64 vpn = (address & 0xFFFFFFFFFF) | ((address >> 22) & 0x30000000000);
 
     // This function is also called for entry_hi, the low 8 bits of which are the ASID
     // this is fine, this mask will take care of that.
