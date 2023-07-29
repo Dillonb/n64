@@ -378,8 +378,6 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
         if (IR_IS_GPR(guest_reg)) {
             ir_context.guest_reg_to_value[guest_reg] = value;
         } else if (IR_IS_FGR(guest_reg)) {
-            ir_instruction_t* old_value = ir_context.guest_reg_to_value[guest_reg];
-            ir_register_type_t old_type = ir_context.guest_reg_to_reg_type[guest_reg];
             ir_register_type_t new_type = REGISTER_TYPE_NONE;
 
 
