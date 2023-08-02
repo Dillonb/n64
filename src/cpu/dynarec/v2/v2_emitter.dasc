@@ -723,7 +723,6 @@ void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc
         host_emit_mov_reg_reg(Dst, TMPREG2_ALLOC, reg_alloc, VALUE_TYPE_U64);
     }
 
-    u64 imm_value = set_const_to_u64(imm);
     switch (multiplicand_type) {
         case VALUE_TYPE_U8:
         case VALUE_TYPE_S8:
