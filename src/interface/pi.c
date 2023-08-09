@@ -1,4 +1,5 @@
 #include <mem/addresses.h>
+#include <stdio.h>
 #include <system/n64system.h>
 #include <mem/mem_util.h>
 #include <system/scheduler.h>
@@ -263,7 +264,7 @@ void write_byte_pibus(u32 address, u32 value) {
     switch (address) {
         case REGION_CART_2_1:
             if (address == 0x05000020) {
-                printf("%c", value);
+                fprintf(stderr, "%c", value);
             } else {
                 logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD! [%08X]=0x%02X", address, value);
             }
