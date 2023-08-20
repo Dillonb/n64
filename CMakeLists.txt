@@ -5,7 +5,7 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
-ADD_COMPILE_OPTIONS(-mssse3 -msse4.1 -Werror=format)
+ADD_COMPILE_OPTIONS(-Werror=format)
 #ADD_COMPILE_OPTIONS(-DVULKAN_DEBUG)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DN64_DEBUG_MODE")
@@ -17,12 +17,13 @@ if (MACOSX)
 elseif(WIN32)
     message("Building on Windows")
     ADD_COMPILE_DEFINITIONS(N64_WIN NOMINMAX _CRT_SECURE_NO_WARNINGS)
-
     ADD_COMPILE_OPTIONS(/EHa)
-
 else()
     message("Building on Linux")
 endif()
+
+INCLUDE(CheckCCompilerFlag)
+
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
 
@@ -35,14 +36,20 @@ endif()
 #add_compile_options(-fsanitize=thread)
 #add_link_options(-fsanitize=thread)
 
-ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
-
 project (N64)
 set(CMAKE_CXX_STANDARD 17)
 set(N64_TARGET n64)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 include(CTest)
 message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+
+check_c_compiler_flag("-mssse3" HAS_SSSE3)
+check_c_compiler_flag("-msse4.1" HAS_SSE4_1)
+
+if (HAS_SSSE3 AND HAS_SSE4_1)
+    add_compile_options(-mssse3 -msse4.1)
+    ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
+endif()
 
 if (CMAKE_C_COMPILER_ID MATCHES "Clang")
     #add_compile_options(-fsanitize=memory -fsanitize-recover=memory)
