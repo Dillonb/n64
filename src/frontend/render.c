@@ -59,7 +59,13 @@ void video_init_software() {
                               N64_SCREEN_X * SCREEN_SCALE,
                               N64_SCREEN_Y * SCREEN_SCALE,
                               SDL_WINDOW_SHOWN);
+    if (!window) {
+        logfatal("Failed to create SDL window: %s", SDL_GetError());
+    }
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!renderer) {
+        logfatal("Failed to create SDL renderer: %s", SDL_GetError());
+    }
 }
 
 void render_init(n64_video_type_t video_type) {
