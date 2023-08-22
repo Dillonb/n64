@@ -4,9 +4,14 @@
 #include "v1/v1_emitter.h"
 #include "dynarec_memory_management.h"
 
-void* rsp_link_and_encode(dasm_State** Dst) {
+size_t rsp_link(dasm_State** d) {
     size_t code_size;
-    dasm_link(Dst, &code_size);
+    dasm_link(d, &code_size);
+    return code_size;
+}
+
+void* rsp_link_and_encode(dasm_State** Dst) {
+    size_t code_size = rsp_link(Dst);
 #ifdef N64_LOG_COMPILATIONS
     printf("Generated %ld bytes of RSP code\n", code_size);
 #endif
