@@ -5,8 +5,20 @@ if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
-ADD_COMPILE_OPTIONS(-Werror=format)
-#ADD_COMPILE_OPTIONS(-DVULKAN_DEBUG)
+set(DEFAULT_C_COMP_OPTIONS -Werror=switch -Werror=format)
+set(DEFAULT_C_LINK_OPTIONS "")
+
+# Asan
+#set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -fsanitize=address)
+#set(DEFAULT_C_LINK_OPTIONS ${DEFAULT_C_LINK_OPTIONS} -fsanitize=address)
+
+# Ubsan
+#set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -fsanitize=undefined)
+#set(DEFAULT_C_LINK_OPTIONS ${DEFAULT_C_LINK_OPTIONS} -fsanitize=undefined)
+
+# Thread sanitizer
+#set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -fsanitize=thread)
+#set(DEFAULT_C_LINK_OPTIONS ${DEFAULT_C_LINK_OPTIONS} -fsanitize=thread)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DN64_DEBUG_MODE")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DN64_DEBUG_MODE")
@@ -27,15 +39,6 @@ INCLUDE(CheckCCompilerFlag)
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
 
-#add_compile_options(-fsanitize=undefined)
-#add_link_options(-fsanitize=undefined)
-
-#add_compile_options(-fsanitize=address)
-#add_link_options(-fsanitize=address)
-
-#add_compile_options(-fsanitize=thread)
-#add_link_options(-fsanitize=thread)
-
 project (N64)
 set(CMAKE_CXX_STANDARD 17)
 set(N64_TARGET n64)
@@ -47,17 +50,14 @@ check_c_compiler_flag("-mssse3" HAS_SSSE3)
 check_c_compiler_flag("-msse4.1" HAS_SSE4_1)
 
 if (HAS_SSSE3 AND HAS_SSE4_1)
-    add_compile_options(-mssse3 -msse4.1)
+    set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -mssse3 -msse4.1)
     ADD_COMPILE_DEFINITIONS(N64_USE_SIMD)
 endif()
 
-if (CMAKE_C_COMPILER_ID MATCHES "Clang")
-    #add_compile_options(-fsanitize=memory -fsanitize-recover=memory)
-    #add_link_options(-fsanitize=memory)
-endif()
+add_compile_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_COMP_OPTIONS}>")
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_COMP_OPTIONS}>")
+add_link_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_LINK_OPTIONS}>")
+add_link_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_LINK_OPTIONS}>")
 
-if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    ADD_LINK_OPTIONS(-export-dynamic) # Allows the angrylion shared library to be loaded
-endif()
 add_subdirectory(src)
 add_subdirectory(tests)

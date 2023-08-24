@@ -1,4 +1,5 @@
 #include <mem/addresses.h>
+#include <stdio.h>
 #include <system/n64system.h>
 #include <mem/mem_util.h>
 #include <system/scheduler.h>
@@ -70,7 +71,7 @@ u8 pi_get_domain(u32 address) {
             return backup_read_byte(address - SREGION_CART_2_2);
         case REGION_CART_1_2: {
             u32 index = BYTE_ADDRESS(address) - SREGION_CART_1_2;
-            if (index > n64sys.mem.rom.size) {
+            if (index >= n64sys.mem.rom.size) {
                 logwarn("Address 0x%08X accessed an index %d/0x%X outside the bounds of the ROM! (%zu/0x%zX)", address, index, index, n64sys.mem.rom.size, n64sys.mem.rom.size);
                 return 0xFF;
             }
@@ -139,8 +140,12 @@ void write_word_pireg(u32 address, u32 value) {
             }
 
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
-            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
             n64sys.pi.dma_busy = true;
+#ifdef INSTANT_DMA
+            on_pi_dma_complete();
+#else
+            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
+#endif
 
             logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = dram_addr + length;
@@ -175,16 +180,20 @@ void write_word_pireg(u32 address, u32 value) {
                 invalidate_dynarec_page(BYTE_ADDRESS(dram_addr + i));
             }
 
-            u32 begin_index = dynarec_outer_index(dram_addr);
-            u32 end_index = dynarec_outer_index(dram_addr + length);
+            u32 begin_index = BLOCKCACHE_OUTER_INDEX(dram_addr);
+            u32 end_index = BLOCKCACHE_OUTER_INDEX(dram_addr + length);
 
             for (u32 i = begin_index; i <= end_index; i++) {
                 invalidate_dynarec_page_by_index(i);
             }
 
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
-            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
             n64sys.pi.dma_busy = true;
+#ifdef INSTANT_DMA
+            on_pi_dma_complete();
+#else
+            scheduler_enqueue_relative(complete_in, SCHEDULER_PI_DMA_COMPLETE);
+#endif
 
             logdebug("DMA completed. Scheduled interrupt for %d cycles out.", complete_in);
             n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] = dram_addr + length;
@@ -255,7 +264,7 @@ void write_byte_pibus(u32 address, u32 value) {
     switch (address) {
         case REGION_CART_2_1:
             if (address == 0x05000020) {
-                printf("%c", value);
+                fprintf(stderr, "%c", value);
             } else {
                 logwarn("Ignoring byte write in REGION_CART_2_1, this is the N64DD! [%08X]=0x%02X", address, value);
             }

@@ -20,6 +20,28 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
 #define REGION_CKSSEG 0xFFFFFFFFC0000000 ... 0xFFFFFFFFDFFFFFFF
 #define REGION_CKSEG3 0xFFFFFFFFE0000000 ... 0xFFFFFFFFFFFFFFFF
 
+INLINE bool is_tlb(u64 vaddr) {
+    switch (vaddr) {
+        case REGION_XKUSEG:
+        case REGION_XKSSEG:
+        case REGION_XKSEG:
+        case REGION_CKSEG3:
+        case REGION_CKSSEG:
+
+        case REGION_XBAD1:
+        case REGION_XBAD2:
+        case REGION_XBAD3:
+            return true;
+
+        case REGION_XKPHYS:
+        case REGION_CKSEG0:
+        case REGION_CKSEG1:
+            return false;
+        default:
+            logfatal("Should never get here! Address %016" PRIX64 " did not match any region.", vaddr);
+    }
+}
+
 INLINE bool resolve_virtual_address_32bit(u32 address, bus_access_t bus_access, u32* physical) {
     switch (address >> 29) {
         // KSEG0

@@ -436,10 +436,7 @@ int handler(void* user, const char* section, const char* name, const char* value
 }
 
 int n64_settings_load(const char* path) {
-    int result = ini_parse(path, handler, NULL);
-    if (result != 0) {
-        return result;
-    }
+    return ini_parse(path, handler, NULL);
 }
 
 void n64_settings_init() {

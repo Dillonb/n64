@@ -1,6 +1,10 @@
 #ifndef N64_DYNAREC_H
 #define N64_DYNAREC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
 #include <common/util.h>
@@ -12,9 +16,14 @@
 // word aligned instructions
 #define BLOCKCACHE_INNER_SIZE (BLOCKCACHE_PAGE_SIZE >> 2)
 #define BLOCKCACHE_INNER_INDEX(physical) (((physical) & (BLOCKCACHE_PAGE_SIZE - 1)) >> 2)
+#define BLOCKCACHE_OUTER_INDEX(physical) ((physical) >> BLOCKCACHE_OUTER_SHIFT)
+#define IS_PAGE_BOUNDARY(address) (((address) & (BLOCKCACHE_PAGE_SIZE - 1)) == 0)
+#define INDICES_TO_ADDRESS(outer, inner) (((outer) << BLOCKCACHE_OUTER_SHIFT) | ((inner) << 2))
+
 
 typedef enum dynarec_instruction_category {
     NORMAL,
+    CACHE,
     STORE,
     BRANCH,
     BRANCH_LIKELY,
@@ -26,61 +35,69 @@ INLINE bool is_branch(dynarec_instruction_category_t category) {
     return category == BRANCH || category == BRANCH_LIKELY;
 }
 
-typedef enum instruction_format {
-    CALL_INTERPRETER,
-    FORMAT_NOP,
-    SHIFT_CONST,
-    I_TYPE,
-    R_TYPE,
-    J_TYPE,
-    MF_MULTREG,
-    MT_MULTREG
-} instruction_format_t;
+typedef union n64_block_sysconfig {
+    struct {
+        u64 fr:1;
+    };
+    u64 raw;
+} n64_block_sysconfig_t;
+ASSERTDWORD(n64_block_sysconfig_t);
 
-typedef void(*mipsinstr_compiler_t)(dasm_State**, mips_instruction_t, u32, int*, int, u32*);
-
-typedef struct dynarec_ir {
-    dynarec_instruction_category_t category;
-    instruction_format_t format;
-    bool exception_possible;
-    mipsinstr_compiler_t compiler;
-} dynarec_ir_t;
+void update_sysconfig();
 
 typedef struct n64_dynarec_block {
     int (*run)(r4300i_t* cpu);
+    size_t guest_size;
+    size_t host_size;
+    n64_block_sysconfig_t sysconfig;
+    u64 virtual_address;
+    struct n64_dynarec_block* next; // for other sysconfigs
 } n64_dynarec_block_t;
 
+INLINE void copy_dynarec_block(n64_dynarec_block_t* dest, n64_dynarec_block_t* src) {
+    dest->run = src->run;
+    dest->guest_size = src->guest_size;
+    dest->host_size = src->host_size;
+    dest->sysconfig = src->sysconfig;
+    dest->virtual_address = src->virtual_address;
+}
+
 typedef struct n64_dynarec {
+    int (*run_block)(u64 block_addr);
     u8* codecache;
     u64 codecache_size;
     u64 codecache_used;
+
+    n64_block_sysconfig_t sysconfig;
 
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
-INLINE u32 dynarec_outer_index(u32 physical_address) {
-    return physical_address >> BLOCKCACHE_OUTER_SHIFT;
-}
+extern n64_dynarec_t n64dynarec;
 
 INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
-    N64DYNAREC->blockcache[outer_index] = NULL;
+    n64dynarec.blockcache[outer_index] = NULL;
 }
 
 INLINE bool is_code(u32 physical_address) {
-    bool* code_mask = N64DYNAREC->code_mask[physical_address >> BLOCKCACHE_OUTER_SHIFT];
+    bool* code_mask = n64dynarec.code_mask[physical_address >> BLOCKCACHE_OUTER_SHIFT];
     return code_mask != NULL && code_mask[BLOCKCACHE_INNER_INDEX(physical_address)];
 }
 
 INLINE void invalidate_dynarec_page(u32 physical_address) {
     if (unlikely(is_code(physical_address))) {
-        invalidate_dynarec_page_by_index(dynarec_outer_index(physical_address));
+        invalidate_dynarec_page_by_index(BLOCKCACHE_OUTER_INDEX(physical_address));
     }
 }
 
 int n64_dynarec_step();
-n64_dynarec_t* n64_dynarec_init(u8* codecache, size_t codecache_size);
+void n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);
 void invalidate_dynarec_all_pages();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //N64_DYNAREC_H

@@ -2,6 +2,7 @@
 #define N64_R4300I_REGISTER_ACCESS_H
 
 #include "r4300i.h"
+#include <system/scheduler_utils.h>
 
 INLINE void set_register(u8 r, u64 value) {
     logtrace("Setting $%s (r%d) to [0x%016" PRIX64 "]", register_names[r], r, value);
@@ -44,12 +45,14 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             break;
         case R4300I_CP0_REG_COUNT:
             N64CPU.cp0.count = (u64)value << 1;
+            reschedule_compare_interrupt(0);
             break;
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
             newcause.raw = value;
             N64CPU.cp0.cause.ip0 = newcause.ip0;
             N64CPU.cp0.cause.ip1 = newcause.ip1;
+            r4300i_interrupt_update();
             break;
         }
         case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
@@ -62,6 +65,7 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             loginfo("$Compare written with 0x%08X (count is now 0x%08" PRIX64 ")", value, N64CPU.cp0.count);
             N64CPU.cp0.cause.ip7 = false;
             N64CPU.cp0.compare = value;
+            reschedule_compare_interrupt(0);
             break;
         case R4300I_CP0_REG_STATUS: {
             N64CPU.cp0.status.raw &= ~CP0_STATUS_WRITE_MASK;
@@ -72,8 +76,6 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
 
             cp0_status_updated();
             log_status(N64CPU.cp0.status);
-
-            r4300i_interrupt_update();
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0:
@@ -261,20 +263,23 @@ INLINE void set_cp0_register_dword(u8 r, u64 value) {
         case R4300I_CP0_REG_BADVADDR: // read only
             break;
         case R4300I_CP0_REG_COUNT:
+            reschedule_compare_interrupt(0);
             logfatal("Writing CP0 register R4300I_CP0_REG_COUNT as dword!");
         case R4300I_CP0_REG_ENTRYHI:
             N64CPU.cp0.entry_hi.raw = value & CP0_ENTRY_HI_WRITE_MASK;
             break;
         case R4300I_CP0_REG_COMPARE:
+            reschedule_compare_interrupt(0);
             logfatal("Writing CP0 register R4300I_CP0_REG_COMPARE as dword!");
         case R4300I_CP0_REG_STATUS:
-            N64CP0.status.raw = value;
-            break;
+            // TODO: handle write mask + updating interrupts
+            logfatal("Writing CP0 register R4300I_CP0_REG_STATUS as dword!");
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
             newcause.raw = value;
             N64CPU.cp0.cause.ip0 = newcause.ip0;
             N64CPU.cp0.cause.ip1 = newcause.ip1;
+            r4300i_interrupt_update();
             break;
         }
         case R4300I_CP0_REG_EPC:
@@ -390,6 +395,27 @@ INLINE u64 get_cp0_register_dword(u8 r) {
             logfatal("Reading CP0 register R4300I_CP0_REG_31 as dword!");
         default:
             logfatal("Unsupported CP0 $%s (%d) read", cp0_register_names[r], r);
+    }
+}
+
+INLINE u64* get_fpu_register_ptr_dword_fr(u8 r) {
+    if (!N64CPU.cp0.status.fr) {
+        // When this bit is not set, accessing odd registers is not allowed.
+        r &= ~1;
+    }
+
+    return &N64CPU.f[r].raw;
+}
+
+INLINE u32* get_fpu_register_ptr_word_fr(u8 r) {
+    if (N64CPU.cp0.status.fr) {
+        return &N64CPU.f[r].lo;
+    } else {
+        if (r & 1) {
+            return &N64CPU.f[r & ~1].hi;
+        } else {
+            return &N64CPU.f[r].lo;
+        }
     }
 }
 
@@ -534,12 +560,14 @@ INLINE void branch_offset(s16 offset) {
 INLINE void conditional_branch_likely(u32 offset, bool condition) {
     if (condition) {
         branch_offset(offset);
+        logtrace("Likely branch taken. pc: 0x%016" PRIX64 ", next_pc: 0x%016" PRIX64, N64CPU.pc, N64CPU.next_pc);
         N64CPU.branch_likely_taken = true; // For dynarec
         N64CPU.branch = true;
     } else {
         N64CPU.branch_likely_taken = false; // For dynarec
         // Skip instruction in delay slot
         set_pc_dword_r4300i(N64CPU.pc + 4);
+        logtrace("Likely branch NOT taken. pc: 0x%016" PRIX64 ", next_pc: 0x%016" PRIX64, N64CPU.pc, N64CPU.next_pc);
     }
 }
 

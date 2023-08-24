@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h>
+#include <stdalign.h>
 
 #include <util.h>
 #include <log.h>
@@ -31,8 +32,6 @@
 #define R4300I_CP1_ROUND_ZERO 1
 #define R4300I_CP1_ROUND_POSINF 2
 #define R4300I_CP1_ROUND_NEGINF 3
-
-#define R4300I_REG_LR 31
 
 #define R4300I_CP0_REG_INDEX    0
 #define R4300I_CP0_REG_RANDOM   1
@@ -193,8 +192,8 @@
 // Floating point
 #define FP_FMT_SINGLE 16
 #define FP_FMT_DOUBLE 17
-#define FP_FMT_W      20
-#define FP_FMT_L      21
+#define FP_FMT_WORD   20
+#define FP_FMT_LONG   21
 
 // Special
 #define FUNCT_SLL     0b000000
@@ -272,7 +271,9 @@ typedef enum bus_access {
     BUS_STORE
 } bus_access_t;
 
-
+#define STATUS_EXL_MASK (1 << 1)
+#define STATUS_ERL_MASK (1 << 2)
+#define STATUS_CU1_MASK (1 << 29)
 typedef union cp0_status {
     u32 raw;
     struct {
@@ -523,6 +524,9 @@ typedef union fcr0 {
     u32 raw;
 } fcr0_t;
 
+#define FCR31_COMPARE_SHIFT 23
+#define FCR31_COMPARE_MASK (1 << (FCR31_COMPARE_SHIFT))
+
 typedef union fcr31 {
     u32 raw;
 
@@ -551,7 +555,8 @@ typedef union fcr31 {
     } PACKED;
 
     struct {
-        unsigned:7;
+        unsigned:2;
+        unsigned flag:5;
         unsigned enable:5;
         unsigned cause:6;
         unsigned:14;
@@ -563,15 +568,16 @@ ASSERTWORD(fcr31_t);
 typedef union fgr {
     u64 raw;
     struct {
-        u32 lo:32;
-        u32 hi:32;
-    } PACKED;
+        u32 lo;
+        u32 hi;
+    };
 } fgr_t;
 
 ASSERTDWORD(fgr_t);
 
 typedef struct r4300i {
     u64 gpr[32];
+    fgr_t f[32];
 
     u64 pc;
     u64 next_pc;
@@ -585,7 +591,6 @@ typedef struct r4300i {
     fcr0_t  fcr0;
     fcr31_t fcr31;
 
-    fgr_t f[32];
 
     cp0_t cp0;
     u64 cp2_latch;
@@ -600,10 +605,21 @@ typedef struct r4300i {
 
     // Did an exception just happen?
     bool exception;
+
+    // Consts for the JIT
+    alignas(16) u32 s_mask[4];
+    alignas(16) u64 d_mask[2];
+    alignas(16) u32 s_neg[4];
+    alignas(16) u64 d_neg[2];
+    alignas(16) u32 s_abs[4];
+    alignas(16) u64 d_abs[2];
+
+    s64 int64_min;
+
 } r4300i_t;
 
-extern r4300i_t n64cpu;
-#define N64CPU n64cpu
+extern r4300i_t* n64cpu_ptr;
+#define N64CPU (*n64cpu_ptr)
 #define N64CP0 N64CPU.cp0
 
 typedef void(*mipsinstr_handler_t)(mips_instruction_t);
@@ -614,9 +630,46 @@ void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(u64 pc, mips_instruction_t instr);
 void r4300i_interrupt_update();
 bool instruction_stable(mips_instruction_t instr);
+void cp0_status_updated();
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
+extern const char* cp1_register_names[];
+
+typedef enum {
+        MIPS_REG_ZERO = 0,
+        MIPS_REG_AT   = 1,
+        MIPS_REG_V0   = 2,
+        MIPS_REG_V1   = 3,
+        MIPS_REG_A0   = 4,
+        MIPS_REG_A1   = 5,
+        MIPS_REG_A2   = 6,
+        MIPS_REG_A3   = 7,
+        MIPS_REG_T0   = 8,
+        MIPS_REG_T1   = 9,
+        MIPS_REG_T2   = 10,
+        MIPS_REG_T3   = 11,
+        MIPS_REG_T4   = 12,
+        MIPS_REG_T5   = 13,
+        MIPS_REG_T6   = 14,
+        MIPS_REG_T7   = 15,
+        MIPS_REG_S0   = 16,
+        MIPS_REG_S1   = 17,
+        MIPS_REG_S2   = 18,
+        MIPS_REG_S3   = 19,
+        MIPS_REG_S4   = 20,
+        MIPS_REG_S5   = 21,
+        MIPS_REG_S6   = 22,
+        MIPS_REG_S7   = 23,
+        MIPS_REG_T8   = 24,
+        MIPS_REG_T9   = 25,
+        MIPS_REG_K0   = 26,
+        MIPS_REG_K1   = 27,
+        MIPS_REG_GP   = 28,
+        MIPS_REG_SP   = 29,
+        MIPS_REG_FP   = 30,
+        MIPS_REG_RA   = 31
+} mips_register_t;
 
 INLINE void set_pc_word_r4300i(u32 new_pc) {
     N64CPU.prev_pc = N64CPU.pc;
@@ -628,18 +681,6 @@ INLINE void set_pc_dword_r4300i(u64 new_pc) {
     N64CPU.prev_pc = N64CPU.pc;
     N64CPU.pc = new_pc;
     N64CPU.next_pc = N64CPU.pc + 4;
-}
-
-INLINE void cp0_status_updated() {
-    bool exception = N64CPU.cp0.status.exl || N64CPU.cp0.status.erl;
-
-    N64CPU.cp0.kernel_mode     =  exception || N64CPU.cp0.status.ksu == CPU_MODE_KERNEL;
-    N64CPU.cp0.supervisor_mode = !exception && N64CPU.cp0.status.ksu == CPU_MODE_SUPERVISOR;
-    N64CPU.cp0.user_mode       = !exception && N64CPU.cp0.status.ksu == CPU_MODE_USER;
-    N64CPU.cp0.is_64bit_addressing =
-            (N64CPU.cp0.kernel_mode && N64CPU.cp0.status.kx)
-            || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
-               || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
 }
 
 #define checkcp1_preservecause do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)

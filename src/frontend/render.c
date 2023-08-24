@@ -1,7 +1,9 @@
 #include "render.h"
+#include "SDL_error.h"
 #include "audio.h"
 #include "gamepad.h"
 #include "frontend.h"
+#include "log.h"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -41,6 +43,9 @@ void video_init_vulkan() {
                               N64_SCREEN_X * SCREEN_SCALE,
                               N64_SCREEN_Y * SCREEN_SCALE,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    if (!window) {
+        logfatal("Failed to initialize SDL window: %s", SDL_GetError());
+    }
     if (volkInitialize() != VK_SUCCESS) {
         logfatal("Failed to load Volk");
     }

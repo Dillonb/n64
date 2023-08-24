@@ -37,8 +37,6 @@ typedef enum n64_video_type {
 } n64_video_type_t;
 
 
-typedef struct n64_dynarec n64_dynarec_t;
-
 typedef enum n64_interrupt {
     INTERRUPT_VI,
     INTERRUPT_SI,
@@ -129,11 +127,6 @@ typedef union axis_start {
     };
 } axis_start_t;
 
-typedef enum n64_action {
-    N64_ACTION_NONE = 0,
-    N64_ACTION_RESET
-} n64_action_t;
-
 typedef struct n64_system {
     n64_mem_t mem;
     n64_video_type_t video_type;
@@ -143,6 +136,12 @@ typedef struct n64_system {
         mi_intr_t intr;
     } mi;
     struct {
+        // Timing
+        u64 last_halfline_at; // Last halfline hit
+        int field; // what field we're on
+        int halfline; // what halfline we're on
+        int halfline_cycles; // how many cycles into the halfline we are
+
         vi_status_t status;
         u32 vi_origin;
         u32 vi_width;
@@ -152,6 +151,7 @@ typedef struct n64_system {
         int num_halflines;
         int num_fields;
         int cycles_per_halfline;
+        int missing_cycles;
         u32 hsync;
         u32 leap;
         axis_start_t hstart;
@@ -192,11 +192,9 @@ typedef struct n64_system {
 #ifndef N64_WIN
     n64_debugger_state_t debugger_state;
 #endif
-    n64_dynarec_t *dynarec;
     softrdp_state_t softrdp_state;
     bool use_interpreter;
     char rom_path[PATH_MAX];
-    n64_action_t action_queued;
     unsigned target_fps;
 } n64_system_t;
 
@@ -205,7 +203,8 @@ void reset_n64system();
 bool n64_should_quit();
 void n64_load_rom(const char* rom_path);
 
-void n64_system_step(bool dynarec);
+// For debugging tools. Run the system for a specified number of steps with the interpreter, or for a single block with the dynarec
+int n64_system_step(bool dynarec, int steps);
 void n64_system_loop();
 void n64_system_cleanup();
 void n64_request_quit();
@@ -213,9 +212,8 @@ void interrupt_raise(n64_interrupt_t interrupt);
 void interrupt_lower(n64_interrupt_t interrupt);
 void on_interrupt_change();
 void check_vsync();
-void n64_queue_action(n64_action_t action);
+void n64_queue_reset();
 extern n64_system_t n64sys;
-#define N64DYNAREC n64sys.dynarec
 #define PIF_ROM_PATH (n64sys.mem.rom.pal ? "pif.pal.rom" : "pif.rom")
 bool file_exists(const char* path);
 #ifdef __cplusplus

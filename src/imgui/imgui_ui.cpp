@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <nfd.hpp>
+#include <map>
 
 #include <frontend/render_internal.h>
 #include <metrics.h>
@@ -16,10 +17,12 @@
 #include <cpu/dynarec/dynarec.h>
 #include <frontend/audio.h>
 #include <frontend/render.h>
+#include <disassemble.h>
 
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
 static bool show_settings_window = false;
+static bool show_dynarec_block_browser = false;
 
 static bool is_fullscreen = false;
 
@@ -53,7 +56,8 @@ struct RingBuffer {
 };
 
 RingBuffer<double> frame_times;
-RingBuffer<ImU64> block_complilations;
+RingBuffer<ImU64> block_compilations;
+RingBuffer<ImU64> block_sysconfig_misses;
 RingBuffer<ImU64> rsp_steps;
 RingBuffer<ImU64> codecache_bytes_used;
 RingBuffer<ImU64> audiostream_bytes_available;
@@ -118,6 +122,7 @@ void render_menubar() {
         {
             if (ImGui::MenuItem("Metrics", nullptr, show_metrics_window)) { show_metrics_window = !show_metrics_window; }
             if (ImGui::MenuItem("Settings", nullptr, show_settings_window)) { show_settings_window = !show_settings_window; }
+            if (ImGui::MenuItem("Dynarec Block Browser", nullptr, show_dynarec_block_browser)) { show_dynarec_block_browser = !show_dynarec_block_browser; }
             if (ImGui::MenuItem("ImGui Demo Window", nullptr, show_imgui_demo_window)) { show_imgui_demo_window = !show_imgui_demo_window; }
             ImGui::EndMenu();
         }
@@ -146,11 +151,12 @@ void render_menubar() {
 }
 
 void render_metrics_window() {
-    block_complilations.add_point(get_metric(METRIC_BLOCK_COMPILATION));
+    block_compilations.add_point(get_metric(METRIC_BLOCK_COMPILATION));
+    block_sysconfig_misses.add_point(get_metric(METRIC_BLOCK_SYSCONFIG_MISS));
     rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
-    codecache_bytes_used.add_point(n64sys.dynarec->codecache_used);
+    codecache_bytes_used.add_point(n64dynarec.codecache_used);
     audiostream_bytes_available.add_point(get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
 
     si_interrupts.add_point(get_metric(METRIC_SI_INTERRUPT));
@@ -181,14 +187,22 @@ void render_metrics_window() {
     }
 
     ImGui::Text("Block compilations this frame: %" PRId64, get_metric(METRIC_BLOCK_COMPILATION));
-    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_complilations.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_compilations.max(), ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Block Compilations Per Frame")) {
-        ImPlot::PlotBars("Block compilations", block_complilations.data, METRICS_HISTORY_ITEMS, 1, 0, flags, block_complilations.offset);
+        ImPlot::PlotBars("Block compilations", block_compilations.data, METRICS_HISTORY_ITEMS, 1, 0, flags, block_compilations.offset);
         ImPlot::EndPlot();
     }
 
-    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, n64sys.dynarec->codecache_size, ImGuiCond_Always);
+    ImGui::Text("Block sysconfig misses this frame: %" PRId64, get_metric(METRIC_BLOCK_SYSCONFIG_MISS));
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, block_sysconfig_misses.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Block Sysconfig Misses Per Frame")) {
+        ImPlot::PlotBars("Block sysconfig misses", block_sysconfig_misses.data, METRICS_HISTORY_ITEMS, 1, 0, flags, block_sysconfig_misses.offset);
+        ImPlot::EndPlot();
+    }
+
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, n64dynarec.codecache_size, ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Codecache bytes used")) {
         ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, flags, codecache_bytes_used.offset);
@@ -224,6 +238,140 @@ void render_settings_window() {
     ImGui::Begin("Settings", &show_settings_window);
     ImGui::End();
 }
+struct block {
+    block(u32 address, int outer_index, int inner_index) : address(address), outer_index(outer_index), inner_index(inner_index) {}
+    block() : block(0, 0, 0) {}
+    block(u32 address) : block(address, BLOCKCACHE_OUTER_INDEX(address), BLOCKCACHE_INNER_INDEX(address)) {}
+    u32 address;
+    int outer_index;
+    int inner_index;
+};
+std::vector<block> blocks;
+std::map<u32, std::string> mips_block;
+std::map<u32, std::string> host_block;
+block selected_block;
+char block_filter[9] = { 0 };
+void render_dynarec_block_browser() {
+    ImGui::Begin("Block Browser", &show_dynarec_block_browser);
+    if (ImGui::Button("Refresh")) {
+        block old_selected_block = selected_block;
+        bool old_selected_block_still_valid = false;
+        blocks.clear();
+        mips_block.clear();
+        host_block.clear();
+        for (int outer_index = 0; outer_index < BLOCKCACHE_OUTER_SIZE; outer_index++) {
+            if (n64dynarec.blockcache[outer_index]) {
+                n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
+                for (int inner_index = 0; inner_index < BLOCKCACHE_INNER_SIZE; inner_index++) {
+                    if (block_list[inner_index].run != nullptr) {
+                        u32 addr = INDICES_TO_ADDRESS(outer_index, inner_index);
+                        if (addr == old_selected_block.address) {
+                            old_selected_block_still_valid = true;
+                        }
+                        blocks.emplace_back(addr, outer_index, inner_index);
+                    }
+                }
+            }
+        }
+
+        if (old_selected_block_still_valid) {
+            selected_block = old_selected_block;
+        } else if (blocks.empty()) {
+            selected_block = block(0);
+        } else {
+            selected_block = blocks[0].address;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::PushItemWidth(100);
+    ImGui::InputText("Filter blocks", block_filter, 8);
+    ImGui::PopItemWidth();
+    for (int i = 0; i < 9 && block_filter[i] != 0; i++) {
+        block_filter[i] = toupper(block_filter[i]);
+    }
+
+    ImGui::BeginGroup();
+    ImGui::Text("Blocks");
+    if (ImGui::BeginListBox("##Blocks", ImVec2(150, -1))) {
+        if (blocks.empty()) {
+            ImGui::Selectable("No blocks loaded", false);
+        }
+        for (const block b : blocks) {
+            char str_block_addr[9];
+            snprintf(str_block_addr, 9, "%08X", b.address);
+            if (strlen(block_filter) == 0 || strstr(str_block_addr, block_filter) != nullptr) {
+                if (ImGui::Selectable((std::string(str_block_addr)).c_str(), selected_block.address == b.address)) {
+                    selected_block = b.address;
+                }
+            }
+        }
+        ImGui::EndListBox();
+    }
+    ImGui::EndGroup();
+    ImGui::SameLine();
+
+    if (host_block.count(selected_block.address) == 0 || mips_block.count(selected_block.address) == 0) {
+        n64_dynarec_block_t* block_list = n64dynarec.blockcache[selected_block.outer_index];
+        if (block_list && block_list[selected_block.inner_index].host_size > 0) {
+            n64_dynarec_block_t* b = &block_list[selected_block.inner_index];
+            host_block[selected_block.address] = disassemble_multi(DisassemblyArch::HOST,  (uintptr_t)b->run, (u8*)b->run, b->host_size);
+            bool valid_guest_addr = false;
+            u8* guest_block_address;
+
+            switch (selected_block.address) {
+                case REGION_RDRAM:
+                    guest_block_address = &n64sys.mem.rdram[selected_block.address];
+                    valid_guest_addr = true;
+                    break;
+                case REGION_SP_MEM:
+                    /*
+                    if (selected_block.address & 0x1000) {
+                        guest_block_address = &N64RSP.sp_imem[selected_block.address & 0xFFF];
+                        valid_guest_addr = true;
+                    } else {
+                        guest_block_address = &N64RSP.sp_dmem[selected_block.address & 0xFFF];
+                        valid_guest_addr = true;
+                    }
+                    break;
+                     */
+                default:
+                    valid_guest_addr = false;
+            }
+
+            if (valid_guest_addr) {
+                mips_block[selected_block.address] = disassemble_multi(DisassemblyArch::GUEST, selected_block.address, (u8*)guest_block_address, b->guest_size);
+            } else {
+                mips_block[selected_block.address] = "Guest block not in valid region, not disassembling";
+            }
+        } else {
+            host_block[selected_block.address] = "Invalid";
+            mips_block[selected_block.address] = "Invalid";
+        }
+    }
+
+    ImGui::BeginGroup();
+    std::string& mips_disasm = mips_block[selected_block.address];
+    ImGui::Text("Mips Disassembly");
+    ImGui::InputTextMultiline(
+            "##MipsDisAsm",
+            mips_disasm.data(),
+            mips_disasm.size(),
+            ImVec2(400, -1),
+            ImGuiInputTextFlags_ReadOnly);
+    ImGui::EndGroup();
+    ImGui::SameLine();
+    ImGui::BeginGroup();
+    std::string& host_disasm = host_block[selected_block.address];
+    ImGui::Text("Host Disassembly");
+    ImGui::InputTextMultiline(
+            "##HostDisAsm",
+            host_disasm.data(),
+            host_disasm.size(),
+            ImVec2(-1, -1),
+            ImGuiInputTextFlags_ReadOnly);
+    ImGui::EndGroup();
+    ImGui::End();
+}
 
 void render_ui() {
     if (SDL_GetMouseFocus() || n64sys.mem.rom.rom == nullptr) {
@@ -232,6 +380,7 @@ void render_ui() {
     if (show_metrics_window) { render_metrics_window(); }
     if (show_imgui_demo_window) { ImGui::ShowDemoWindow(&show_imgui_demo_window); }
     if (show_settings_window) { render_settings_window(); }
+    if (show_dynarec_block_browser) { render_dynarec_block_browser(); }
 }
 
 static VkAllocationCallbacks*   g_Allocator = NULL;

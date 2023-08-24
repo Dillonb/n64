@@ -15,6 +15,7 @@ typedef enum metric {
     METRIC_AI_INTERRUPT,
     METRIC_DP_INTERRUPT,
     METRIC_SP_INTERRUPT,
+    METRIC_BLOCK_SYSCONFIG_MISS,
     NUM_METRICS
 } metric_t;
 

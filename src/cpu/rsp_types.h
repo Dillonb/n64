@@ -121,8 +121,6 @@ typedef struct rsp {
     u16 prev_pc;
     u16 pc;
     u16 next_pc;
-    //dword mult_hi;
-    //dword mult_lo;
 
     int steps;
 

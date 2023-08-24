@@ -1,17 +1,22 @@
 #include <log.h>
 #include <rsp.h>
 #include "rsp_dynarec.h"
-#include "asm_emitter.h"
+#include "v1/v1_emitter.h"
 #include "dynarec_memory_management.h"
 
-void* rsp_link_and_encode(dasm_State** d) {
+size_t rsp_link(dasm_State** d) {
     size_t code_size;
     dasm_link(d, &code_size);
+    return code_size;
+}
+
+void* rsp_link_and_encode(dasm_State** Dst) {
+    size_t code_size = rsp_link(Dst);
 #ifdef N64_LOG_COMPILATIONS
     printf("Generated %ld bytes of RSP code\n", code_size);
 #endif
     void* buf = rsp_dynarec_bumpalloc(code_size);
-    dasm_encode(d, buf);
+    dasm_encode(Dst, buf);
 
     return buf;
 }
@@ -19,11 +24,7 @@ void* rsp_link_and_encode(dasm_State** d) {
 #define NEXT(address) ((address + 4) & 0xFFF)
 
 void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
-    static dasm_State* d;
-    static dasm_State** Dst;
-
-    d = block_header();
-    Dst = &d;
+    dasm_State** Dst = v1_block_header();
 
     int block_length = 0;
     int block_extra_cycles = 0;
@@ -100,7 +101,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
 
     end_rsp_block(Dst, block_length + block_extra_cycles);
     void* compiled = rsp_link_and_encode(Dst);
-    dasm_free(Dst);
+    v1_dasm_free();
 
     block->run = compiled;
 }

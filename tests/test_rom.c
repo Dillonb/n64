@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     int steps = 0;
     bool use_dynarec = recomp(argv[2]);
     for (; steps < MAX_STEPS && !test_complete(); steps++) {
-        n64_system_step(use_dynarec);
+        n64_system_step(use_dynarec, 1);
     }
 
     if (!test_complete()) {

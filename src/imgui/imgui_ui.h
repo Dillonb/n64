@@ -6,6 +6,8 @@
 #include <imgui.h>
 ImDrawData* imgui_frame();
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 #include <SDL_events.h>

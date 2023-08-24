@@ -3,6 +3,24 @@
 
 #include <util.h>
 
-int disassemble(u32 address, u32 raw, char* buf, int buflen);
+#ifdef __cplusplus
+#include <string>
+enum class DisassemblyArch {
+    HOST,
+    GUEST
+};
+std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code, size_t code_size);
+extern "C" {
+#endif  // __cplusplus
+
+#include <util.h>
+
+int disassemble(u32 address, u32 raw, char *buf, int buflen);
+void print_multi_host(uintptr_t address, u8 *code, size_t code_size);
+void print_multi_guest(uintptr_t address, u8 *code, size_t code_size);
+
+#ifdef __cplusplus
+}
+#endif  // __cplusplus
 
 #endif //N64_DISASSEMBLE_H

@@ -63,7 +63,7 @@ bool prdp_is_framerate_unlocked() {
 
 void prdp_set_framerate_unlocked(bool unlocked) {
     if (unlocked) {
-        wsi->set_present_mode(PresentMode::UnlockedForceTearing);
+        wsi->set_present_mode(PresentMode::UnlockedNoTearing);
     } else {
         wsi->set_present_mode(PresentMode::SyncToVBlank);
     }

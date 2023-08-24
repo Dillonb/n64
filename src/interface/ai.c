@@ -3,11 +3,6 @@
 #include <frontend/audio.h>
 #include <mem/mem_util.h>
 
-INLINE int MAX(int x, int y) {
-    if (x > y) return x;
-    return y;
-}
-
 void write_word_aireg(u32 address, u32 value) {
     switch (address) {
         case ADDR_AI_DRAM_ADDR_REG:
@@ -74,7 +69,7 @@ u32 read_word_aireg(u32 address) {
     }
 }
 
-void sample() {
+INLINE void sample() {
     if (n64sys.ai.dma_count == 0) {
         audio_push_sample(0, 0);
         return;

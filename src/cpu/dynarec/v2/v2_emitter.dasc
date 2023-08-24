@@ -1,0 +1,2324 @@
+#include <cpu/dynarec/v2/v2_emitter.h>
+#include <cpu/dynarec/v2/v2_compiler.h>
+#include <cpu/dynarec/v2/ir_optimizer.h>
+#include <cpu/dynarec/v2/target_platform.h>
+#include <cpu/dynarec/dynarec_memory_management.h>
+#include <cpu/r4300i.h>
+#include <cpu/dynarec/v2/x86_64_registers.h>
+#include <r4300i_register_access.h>
+
+#include <dynasm/dasm_proto.h>
+#ifndef N64_WIN
+#include <sys/mman.h>
+#endif
+
+#define TMPREG1 get_scratch_registers()[0]
+#define TMPREG2 get_scratch_registers()[1]
+
+#define TMPREG1_ALLOC alloc_gpr(get_scratch_registers()[0])
+#define TMPREG2_ALLOC alloc_gpr(get_scratch_registers()[1])
+
+#define IMM64_INVALID() logfatal("Should never end up here, x86_64 has no 64 bit immediates")
+
+||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)
+#error "Wrong DynASM flags used: pass `-D X64` and/or `-D WIN` to dynasm.lua as appropriate"
+#endif
+
+|.if X64
+|.arch x64
+|.else
+|#error "Only x64 is supported"
+|.endif
+
+|.if X64
+  |.define cpuState, r12
+  |.if WIN
+    |.define rArg1, rcx
+    |.define rArg2, rdx
+  |.else
+    |.define rArg1, rdi
+    |.define rArg2, rsi
+  |.endif
+  |.macro prepcall1, arg1
+    | mov rArg1, arg1
+  |.endmacro
+  |.macro prepcall2, arg1, arg2
+    | mov rArg1, arg1
+    | mov rArg2, arg2
+  |.endmacro
+  |.define postcall, .nop
+    // Called before our block
+    |.macro block_prologue
+      | sub rsp, (SPILL_SPACE_SIZE_BYTES + 8)
+    |.endmacro
+    // Called at the end of our block
+    |.macro block_epilogue
+      | add rsp, (SPILL_SPACE_SIZE_BYTES + 8)
+      | ret
+    |.endmacro
+    |.macro func_prologue
+      // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
+      // Stack is misaligned by 8 at first
+      | push rbp
+      // Stack is now aligned - push regs in pairs.
+      | push rbx
+      | push r12
+      | push r13
+      | push r14
+      | push r15
+      | sub rsp, 8
+    |.endmacro
+    |.macro func_epilogue
+      | add rsp, 8
+      | pop r15
+      | pop r14
+      | pop r13
+      | pop r12
+      | pop rbx
+      | pop rbp
+      | ret
+    |.endmacro
+|.endif // TODO ARM version?
+|.type cpu_state, r4300i_t, cpuState
+|.type rsp_state, rsp_t, cpuState
+
+dasm_State* v2_emitter_dasm_state = NULL;
+dasm_State** v2_common_header() {
+    dasm_State** Dst = &v2_emitter_dasm_state;
+    if (v2_emitter_dasm_state != NULL) {
+        logfatal("dynasm state already initialized!");
+    }
+
+    unsigned npc = 8; // number of dynamic labels
+
+    |.section code
+    dasm_init(Dst, DASM_MAXSECTION);
+
+    |.globals lbl_
+
+    static void* labels[lbl__MAX];
+    dasm_setupglobal(Dst, labels, lbl__MAX);
+
+    |.actionlist actions
+    dasm_setup(Dst, actions);
+    dasm_growpc(Dst, npc);
+
+    |.code
+    |->compiled_block:
+    return Dst;
+}
+
+void v2_dasm_free() {
+    dasm_free(&v2_emitter_dasm_state);
+    v2_emitter_dasm_state = NULL;
+}
+
+dasm_State** v2_block_header() {
+    dasm_State** Dst = v2_common_header();
+    | block_prologue
+    return Dst;
+}
+
+dasm_State** v2_emit_run_block() {
+    uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
+    dasm_State** Dst = v2_common_header();
+    | func_prologue
+    // r12 always holds a pointer to the CPU struct
+    | mov64 r12, n64_cpu_addr
+    | call Rq(get_func_arg_registers()[0])
+    | func_epilogue
+    return Dst;
+}
+
+int check_reg_(ir_register_allocation_t reg) {
+    if (reg.spilled) {
+        unimplemented((reg.spill_location) < 0 || (reg.spill_location) > SPILL_SPACE_SIZE_BYTES, "Invalid spill location value: %d", reg.spill_location);
+        return reg.spill_location;
+    } else {
+        unimplemented((reg.host_reg) < 0 || (reg.host_reg) > get_num_gprs(), "Invalid host register value: %d", reg.host_reg);
+        return reg.host_reg;
+    }
+}
+
+#define check_reg(reg, spill_ok) ({                                                                           \
+if (!(reg).allocated) { logfatal("Register was not allocated."); }                                            \
+else if ((reg).spilled && !(spill_ok)) { logfatal("Register was spilled and caller does not handle this!"); } \
+check_reg_(reg);                                                                                              \
+})
+
+int temp_fgrs_allocated = 0;
+int temp_fgr_to_spill_location[16];
+
+int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
+    // See if this temp fgr has already been allocated
+    for (int i = 0; i < temp_fgrs_allocated; i++) {
+        if (temp_fgr_to_spill_location[i] == spill_location) {
+            return i;
+        }
+    }
+
+    int result = temp_fgrs_allocated++;
+
+    if (result >= (get_num_temp_fgrs())) {
+        logfatal("Tried to allocate too many temp fgrs! Did you forget to call reset_temp_fgr()?");
+    }
+
+    temp_fgr_to_spill_location[result] = spill_location;
+    | movq xmm(result), qword [rsp + spill_location]
+
+    return result;
+}
+
+void reset_temp_fgr(dasm_State** Dst) {
+    for (int i = 0; i < temp_fgrs_allocated; i++) {
+        | movq qword [rsp + temp_fgr_to_spill_location[i]], xmm(i)
+    }
+    temp_fgrs_allocated = 0;
+}
+
+int check_fgr(dasm_State** Dst, ir_register_allocation_t reg, bool spill_ok) {
+    if (reg.type != REGISTER_TYPE_FGR_32 && reg.type != REGISTER_TYPE_FGR_64) {
+        logfatal("FGR expected, but register was not allocated as an FGR!");
+    }
+    int result = check_reg(reg, spill_ok);
+    if (reg.spilled) {
+        return allocate_temp_fgr(Dst, result);
+    }
+    return result;
+}
+
+int check_gpr(ir_register_allocation_t reg, bool spill_ok) {
+    if (reg.type != REGISTER_TYPE_GPR) {
+        logfatal("FGR expected, but register was not allocated as an FGR!");
+    }
+    return check_reg(reg, spill_ok);
+}
+
+void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm_value) {
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        reg = TMPREG1;
+    }
+    switch (imm_value.type) {
+        case VALUE_TYPE_U8:
+            | mov Rq(reg), imm_value.value_u8
+            break;
+        case VALUE_TYPE_S8:
+            | mov Rb(reg), imm_value.value_s8
+            | movsx Rq(reg), Rb(reg)
+            break;
+        case VALUE_TYPE_S16:
+            | mov Rw(reg), imm_value.value_s16
+            | movsx Rq(reg), Rw(reg)
+            break;
+        case VALUE_TYPE_U16:
+            | mov Rq(reg), imm_value.value_u16
+            break;
+        case VALUE_TYPE_S32:
+            | mov Rd(reg), dword imm_value.value_s32
+            | movsxd Rq(reg), Rd(reg)
+            break;
+        case VALUE_TYPE_U32:
+            | mov Rd(reg), dword imm_value.value_u32
+            break;
+        case VALUE_TYPE_U64:
+            | mov64 Rq(reg), imm_value.value_u64
+            break;
+        case VALUE_TYPE_S64:
+            | mov64 Rq(reg), imm_value.value_s64
+            break;
+    }
+    if (reg_alloc.spilled) {
+        | mov qword [rsp + reg_alloc.spill_location], Rq(TMPREG1)
+    }
+}
+
+void host_emit_and_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | and qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | and qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | and qword [rsp + operand1], operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | and qword [rsp + operand1], operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | and qword [rsp + operand1], operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | and qword [rsp + operand1], operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | and Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | and Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | and Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | and Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | and Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | and Rq(operand1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    }
+}
+
+void host_emit_and_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + operand2]
+        | and qword [rsp + operand1], Rq(TMPREG1)
+    } else if (operand1_alloc.spilled) {
+        | and qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | and Rq(operand1), qword [rsp + operand2]
+    } else {
+        | and Rq(operand1), Rq(operand2)
+    }
+}
+
+void host_emit_or_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | or qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | or qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | or qword [rsp + operand1], operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | or qword [rsp + operand1], operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | or qword [rsp + operand1], operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | or qword [rsp + operand1], operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | or Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | or Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | or Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | or Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | or Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | or Rq(operand1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    }
+}
+
+void host_emit_or_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), [rsp + operand2]
+        | or qword [rsp + operand1], Rq(TMPREG1)
+    } else if (operand1_alloc.spilled) {
+        | or qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | or Rq(operand1), qword [rsp + operand2]
+    } else {
+        | or Rq(operand1), Rq(operand2)
+    }
+}
+
+void host_emit_xor_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | xor qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | xor qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | xor qword [rsp + operand1], operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | xor qword [rsp + operand1], operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | xor qword [rsp + operand1], operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | xor qword [rsp + operand1], operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | xor Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | xor Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | xor Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | xor Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | xor Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | xor Rq(operand1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    }
+}
+
+void host_emit_xor_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), [rsp + operand2]
+        | xor qword [rsp + operand1], Rq(TMPREG1)
+    } else if (operand1_alloc.spilled) {
+        | xor qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | xor Rq(operand1), qword [rsp + operand2]
+    } else {
+        | xor Rq(operand1), Rq(operand2)
+    }
+}
+
+void host_emit_add_reg_imm(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2) {
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        host_emit_mov_reg_reg(Dst, TMPREG1_ALLOC, operand1_alloc, VALUE_TYPE_U64);
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | add Rq(TMPREG1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | add Rq(TMPREG1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | add Rq(TMPREG1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | add Rq(TMPREG1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | add Rq(TMPREG1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | add Rq(TMPREG1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+        host_emit_mov_reg_reg(Dst, operand1_alloc, TMPREG1_ALLOC, VALUE_TYPE_U64);
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | add Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | add Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_S16:
+                | add Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | add Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | add Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | add Rq(operand1), operand2.value_u32
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    }
+}
+
+void host_emit_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + operand2]
+        | add qword [rsp + operand1], Rq(TMPREG1)
+    } else if (operand1_alloc.spilled) {
+        | add qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | add Rq(operand1), qword [rsp + operand2]
+    } else {
+        | add Rq(operand1), Rq(operand2)
+    }
+}
+
+void host_emit_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_register_allocation_t subtrahend_alloc) {
+    int minuend = check_reg(minuend_alloc, true);
+    int subtrahend = check_reg(subtrahend_alloc, true);
+
+    if (minuend_alloc.spilled && subtrahend_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + subtrahend]
+        | sub qword [rsp + minuend], Rq(TMPREG1)
+    } else if (minuend_alloc.spilled) {
+        | sub qword [rsp + minuend], Rq(subtrahend)
+    } else if (subtrahend_alloc.spilled) {
+        | sub Rq(minuend), qword [rsp + subtrahend]
+    } else {
+        | sub Rq(minuend), Rq(subtrahend)
+    }
+}
+
+void host_emit_sub_reg_imm(dasm_State** Dst, ir_register_allocation_t minuend_alloc, ir_set_constant_t subtrahend) {
+    int minuend = check_reg(minuend_alloc, false);
+    switch (subtrahend.type) {
+        case VALUE_TYPE_U8:
+            | sub Rq(minuend), byte subtrahend.value_u8
+            break;
+        case VALUE_TYPE_S8:
+            | sub Rq(minuend), byte subtrahend.value_s8
+            break;
+        case VALUE_TYPE_S16:
+            | sub Rq(minuend), word subtrahend.value_s16
+            break;
+        case VALUE_TYPE_U16:
+            | sub Rq(minuend), word subtrahend.value_u16
+            break;
+        case VALUE_TYPE_S32:
+            | sub Rq(minuend), dword subtrahend.value_s32
+            break;
+        case VALUE_TYPE_U32:
+            | sub Rq(minuend), dword subtrahend.value_u32
+            break;
+        case VALUE_TYPE_U64:
+        case VALUE_TYPE_S64:
+            logfatal("Sub reg imm with too large immediate");
+            break;
+    }
+}
+
+void host_emit_shift_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, u8 shift_amount, ir_shift_direction_t direction) {
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        reg = TMPREG1;
+    }
+    switch (type) {
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_U8:
+            logfatal("Shift 8 bit value");
+            break;
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Shift 16 bit value");
+            break;
+
+        case VALUE_TYPE_S32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | sal Rd(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | sar Rd(reg), shift_amount
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_U32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | shl Rd(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | shr Rd(reg), shift_amount
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_U64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | shl Rq(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | shr Rq(reg), shift_amount
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_S64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    | sal Rq(reg), shift_amount
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    | sar Rq(reg), shift_amount
+                    break;
+            }
+            break;
+    }
+
+    if (reg_alloc.spilled) {
+        | mov qword [rsp + reg_alloc.spill_location], Rq(reg)
+    }
+}
+
+void host_emit_shift_reg_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t type, ir_register_allocation_t amount_reg_alloc, ir_shift_direction_t direction) {
+    int reg = check_reg(reg_alloc, true);
+    int amount_reg = check_reg(amount_reg_alloc, false);
+    | mov cl, Rb(amount_reg)
+    switch (type) {
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_U8:
+            logfatal("Shift 8 bit value");
+            break;
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Shift 16 bit value");
+            break;
+
+        case VALUE_TYPE_S32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    if (reg_alloc.spilled) {
+                        | sal dword [rsp + reg], cl
+                    } else {
+                        | sal Rd(reg), cl
+                    }
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    unimplemented(reg_alloc.spilled, "spilled!");
+                    | sar Rd(reg), cl
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_U32:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    unimplemented(reg_alloc.spilled, "spilled!");
+                    | shl Rd(reg), cl
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    unimplemented(reg_alloc.spilled, "spilled!");
+                    | shr Rd(reg), cl
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_U64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    if (reg_alloc.spilled) {
+                        | shl qword [rsp + reg], cl
+                    } else {
+                        | shl Rq(reg), cl
+                    }
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    if (reg_alloc.spilled) {
+                        | shr qword [rsp + reg], cl
+                    } else {
+                        | shr Rq(reg), cl
+                    }
+                    break;
+            }
+            break;
+
+        case VALUE_TYPE_S64:
+            switch (direction) {
+                case SHIFT_DIRECTION_LEFT:
+                    if (reg_alloc.spilled) {
+                        | sal qword [rsp + reg], cl
+                    } else {
+                        | sal Rq(reg), cl
+                    }
+                    break;
+                case SHIFT_DIRECTION_RIGHT:
+                    if (reg_alloc.spilled) {
+                        | sar qword [rsp + reg], cl
+                    } else {
+                        | sar Rq(reg), cl
+                    }
+                    break;
+            }
+            break;
+    }
+}
+
+void host_emit_bitwise_not(dasm_State** Dst, ir_register_allocation_t reg_alloc) {
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        | not qword [rsp + reg]
+    } else {
+        | not Rq(reg)
+    }
+}
+
+void host_emit_mult_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t multiplicand_type) {
+    int reg = check_reg(reg_alloc, true);
+    if (reg_alloc.spilled) {
+        reg = TMPREG2;
+        host_emit_mov_reg_reg(Dst, TMPREG2_ALLOC, reg_alloc, VALUE_TYPE_U64);
+    }
+
+    switch (multiplicand_type) {
+        case VALUE_TYPE_U8:
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Smaller than 32 bit multiply");
+            break;
+
+        case VALUE_TYPE_S32:
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
+            // mul writes the low 32 bits to eax, and the high 32 to edx.
+            | imul Rd(reg)
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_U32:
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
+            // mul writes the low 32 bits to eax, and the high 32 to edx.
+            | mul Rd(reg)
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_U64:
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
+            // mul writes the low 64 bits to eax, and the high 64 to edx.
+            | mul Rq(reg)
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_S64:
+            host_emit_mov_reg_imm(Dst, alloc_gpr(REG_RAX), imm);
+            // mul writes the low 64 bits to eax, and the high 64 to edx.
+            | imul Rq(reg)
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+    }
+}
+
+void host_emit_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_value_type_t multiplicand_type) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+
+    switch (multiplicand_type) {
+        case VALUE_TYPE_U8:
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Smaller than 32 bit multiply");
+        case VALUE_TYPE_S32:
+            if (operand1_alloc.spilled) {
+                | mov eax, dword [rsp + operand1]
+            } else {
+                | mov eax, Rd(operand1)
+            }
+
+            if (operand2_alloc.spilled) {
+                | imul dword [rsp + operand2]
+            } else {
+                | imul Rd(operand2)
+            }
+
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+
+            break;
+        case VALUE_TYPE_U32: // Same as above but with `mul` instead of `imul`
+            if (operand1_alloc.spilled) {
+                | mov eax, dword [rsp + operand1]
+            } else {
+                | mov eax, Rd(operand1)
+            }
+
+            if (operand2_alloc.spilled) {
+                | mul dword [rsp + operand2]
+            } else {
+                | mul Rd(operand2)
+            }
+
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_U64: // Same as above but 64 bit, and skip sign extension step
+            if (operand1_alloc.spilled) {
+                | mov rax, qword [rsp + operand1]
+            } else {
+                | mov rax, Rq(operand1)
+            }
+
+            if (operand2_alloc.spilled) {
+                | mul qword [rsp + operand2]
+            } else {
+                | mul Rq(operand2)
+            }
+
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_S64: // Same as above but with `imul` instead of `mul`
+            if (operand1_alloc.spilled) {
+                | mov rax, qword [rsp + operand1]
+            } else {
+                | mov rax, Rq(operand1)
+            }
+
+            if (operand2_alloc.spilled) {
+                | imul qword [rsp + operand2]
+            } else {
+                | imul Rq(operand2)
+            }
+
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+    }
+}
+
+void host_emit_div_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm, ir_value_type_t divide_type) {
+    host_emit_mov_reg_imm(Dst, TMPREG2_ALLOC, imm);
+    host_emit_div_reg_reg(Dst, reg_alloc, TMPREG2_ALLOC, divide_type);
+}
+
+void host_emit_div_imm_reg(dasm_State** Dst, ir_set_constant_t imm, ir_register_allocation_t reg_alloc, ir_value_type_t divide_type) {
+    host_emit_mov_reg_imm(Dst, TMPREG2_ALLOC, imm);
+    host_emit_div_reg_reg(Dst, TMPREG2_ALLOC, reg_alloc, divide_type);
+}
+
+void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_value_type_t divide_type) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+
+    switch (divide_type) {
+        case VALUE_TYPE_U8:
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            logfatal("Smaller than 32 bit divide");
+        case VALUE_TYPE_S32:
+            if (operand1_alloc.spilled) {
+                | movsxd rax, dword [rsp + operand1]
+            } else {
+                | movsxd rax, Rd(operand1)
+            }
+            | cqo
+
+            if (operand2_alloc.spilled) {
+                | movsxd Rq(TMPREG2), dword [rsp + operand2]
+            } else {
+                | movsxd Rq(TMPREG2), Rd(operand2)
+            }
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1
+            | idiv Rq(TMPREG2)
+
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
+
+            | jmp >2
+            |1:
+            // Divide by zero
+            // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
+            | mov rdx, rax
+            // If divisor is negative
+            | test rax, rax
+            | js >3
+            | mov rax, -1
+            | jmp >2
+            |3:
+            | mov rax, 1
+            |2:
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_U32:
+            if (operand1_alloc.spilled) {
+                | mov eax, dword [rsp + operand1]
+            } else {
+                | mov eax, Rd(operand1)
+            }
+            | xor edx, edx
+
+            if (operand2_alloc.spilled) {
+                | mov Rd(TMPREG2), dword [rsp + operand2]
+            } else {
+                | mov Rd(TMPREG2), Rd(operand2)
+            }
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1
+            | div Rq(TMPREG2)
+
+            // Sign extend results
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RDX), alloc_gpr(REG_RDX), VALUE_TYPE_S32);
+            host_emit_mov_reg_reg(Dst, alloc_gpr(REG_RAX), alloc_gpr(REG_RAX), VALUE_TYPE_S32);
+
+            | jmp >2
+            |1:
+            // Divide by zero
+            // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
+            | movsxd rdx, eax
+            | mov rax, -1
+            |2:
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_U64:
+            if (operand1_alloc.spilled) {
+                | mov rax, qword [rsp + operand1]
+            } else {
+                | mov rax, Rq(operand1)
+            }
+            | xor edx, edx
+
+            if (operand2_alloc.spilled) {
+                | mov Rq(TMPREG2), qword [rsp + operand2]
+            } else {
+                | mov Rq(TMPREG2), Rq(operand2)
+            }
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1
+            | div Rq(TMPREG2)
+
+            | jmp >2
+            |1:
+            // Divide by zero
+            // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
+            | mov rdx, rax
+            | mov rax, -1
+            |2:
+            // Save results to mem
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+        case VALUE_TYPE_S64:
+            // Load args
+            if (operand1_alloc.spilled) {
+                | mov rax, qword [rsp + operand1]
+            } else {
+                | mov rax, Rq(operand1)
+            }
+            | cqo
+
+            if (operand2_alloc.spilled) {
+                | mov Rq(TMPREG2), qword [rsp + operand2]
+            } else {
+                | mov Rq(TMPREG2), Rq(operand2)
+            }
+
+            // Check args for divide by zero
+            | test Rq(TMPREG2), Rq(TMPREG2)
+            | jz >1 // jump to divide by zero code
+
+            // Check args for INT64_MIN / -1
+            | cmp Rq(TMPREG2), -1
+            | jne >4 // If divisor is not -1, short circuit and go right to division
+            | cmp rax, cpu_state->int64_min
+            | jne >4 // If divisor is -1 but dividend is not int64_min, it's a valid case, do division
+
+            // We hit the invalid case. Set rax = dividend and rdx = 0, but rax already holds the dividend.
+            | mov rdx, 0
+            | jmp >2 // Write results, done
+
+            // normal div block
+            |4:
+            | idiv Rq(TMPREG2)
+            | jmp >2
+
+            |1:
+            // Divide by zero
+            // Dividend into RDX, which will be moved to mult_hi below TODO just save it here
+            | mov rdx, rax
+            // If divisor is negative
+            | test rax, rax
+            | js >3
+            | mov rax, -1
+            | jmp >2
+
+            |3:
+            | mov rax, 1
+
+            // Save results to mem
+            |2:
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_hi, alloc_gpr(REG_RDX), VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.mult_lo, alloc_gpr(REG_RAX), VALUE_TYPE_U64);
+            break;
+    }
+}
+
+void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_alloc, ir_register_allocation_t src_reg_alloc, ir_value_type_t source_value_type) {
+    if (source_value_type == VALUE_TYPE_U64 && reg_alloc_equal(src_reg_alloc, dst_reg_alloc)) {
+        return;
+    }
+    if (dst_reg_alloc.type == REGISTER_TYPE_FGR_32 || dst_reg_alloc.type == REGISTER_TYPE_FGR_64) {
+        unimplemented(src_reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR source reg");
+        host_emit_mov_fgr_gpr(Dst, dst_reg_alloc, src_reg_alloc, source_value_type);
+        return;
+    }
+    if (src_reg_alloc.type == REGISTER_TYPE_FGR_32 || src_reg_alloc.type == REGISTER_TYPE_FGR_64) {
+        unimplemented(dst_reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR dest reg");
+        host_emit_mov_gpr_fgr(Dst, dst_reg_alloc, src_reg_alloc, source_value_type);
+        return;
+    }
+    unimplemented(dst_reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR dest reg");
+
+    int dst = check_reg(dst_reg_alloc, true);
+    int src = check_reg(src_reg_alloc, true);
+
+    if (dst_reg_alloc.spilled) {
+        // both spilled?
+        if (src_reg_alloc.spilled) {
+            switch (source_value_type) {
+                case VALUE_TYPE_S8:
+                    | movsx Rq(TMPREG1), byte [rsp + src]
+                    break;
+                case VALUE_TYPE_U8:
+                    | movzx Rq(TMPREG1), byte [rsp + src]
+                    break;
+                case VALUE_TYPE_S16:
+                    | movsx Rq(TMPREG1), word [rsp + src]
+                    break;
+                case VALUE_TYPE_U16:
+                    | movzx Rq(TMPREG1), word [rsp + src]
+                    break;
+                case VALUE_TYPE_S32:
+                    | movsxd Rq(TMPREG1), dword [rsp + src]
+                    break;
+                case VALUE_TYPE_U32:
+                    // Writing to a 32 bit reg zero extends to the 64 bit reg
+                    | mov Rd(TMPREG1), dword [rsp + src]
+                    break;
+                case VALUE_TYPE_U64:
+                case VALUE_TYPE_S64:
+                    | mov Rq(TMPREG1), qword [rsp + src]
+                    break;
+            }
+        } else {
+            switch (source_value_type) {
+                case VALUE_TYPE_S8:
+                    | movsx Rq(TMPREG1), Rb(src)
+                    break;
+                case VALUE_TYPE_U8:
+                    | movzx Rq(TMPREG1), Rb(src)
+                    break;
+                case VALUE_TYPE_S16:
+                    | movsx Rq(TMPREG1), Rw(src)
+                    break;
+                case VALUE_TYPE_U16:
+                    | movzx Rq(TMPREG1), Rw(src)
+                    break;
+                case VALUE_TYPE_S32:
+                    | movsxd Rq(TMPREG1), Rd(src)
+                    break;
+                case VALUE_TYPE_U32:
+                    // Writing to a 32 bit reg zero extends to the 64 bit reg
+                    | mov Rd(TMPREG1), Rd(src)
+                    break;
+                case VALUE_TYPE_U64:
+                case VALUE_TYPE_S64:
+                    if (TMPREG1 != src) {
+                        | mov Rq(TMPREG1), Rq(src)
+                    }
+                    break;
+            }
+        }
+        | mov qword [rsp + dst], Rq(TMPREG1)
+    } else if (src_reg_alloc.spilled) {
+        switch (source_value_type) {
+            case VALUE_TYPE_S8:
+                | movsx Rq(dst), byte [rsp + src]
+                break;
+            case VALUE_TYPE_U8:
+                | movzx Rq(dst), byte [rsp + src]
+                break;
+            case VALUE_TYPE_S16:
+                | movsx Rq(dst), word [rsp + src]
+                break;
+            case VALUE_TYPE_U16:
+                | movzx Rd(dst), word [rsp + src]
+                break;
+            case VALUE_TYPE_S32:
+                | movsxd Rq(dst), dword [rsp + src]
+                break;
+            case VALUE_TYPE_U32:
+                // Writing to a 32 bit reg zero extends to the 64 bit reg
+                | mov Rd(dst), dword [rsp + src]
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                | mov Rq(dst), qword [rsp + src]
+                break;
+        }
+    } else {
+        switch (source_value_type) {
+            case VALUE_TYPE_S8:
+                | movsx Rq(dst), Rb(src)
+                break;
+            case VALUE_TYPE_U8:
+                | movzx Rq(dst), Rb(src)
+                break;
+            case VALUE_TYPE_S16:
+                | movsx Rq(dst), Rw(src)
+                break;
+            case VALUE_TYPE_U16:
+                | movzx Rq(dst), Rw(src)
+                break;
+            case VALUE_TYPE_S32:
+                | movsxd Rq(dst), Rd(src)
+                break;
+            case VALUE_TYPE_U32:
+                // Writing to a 32 bit reg zero extends to the 64 bit reg
+                | mov Rd(dst), Rd(src)
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                | mov Rq(dst), Rq(src)
+                break;
+        }
+    }
+}
+
+void host_emit_call(dasm_State** Dst, uintptr_t function) {
+    | mov64 Rq(TMPREG1), function
+    | call Rq(TMPREG1)
+}
+
+void host_emit_eret(dasm_State** Dst) {
+    | test dword cpu_state->cp0.status.raw, STATUS_ERL_MASK
+    | jz >1
+        | mov Rq(TMPREG1), cpu_state->cp0.error_epc
+        | mov cpu_state->pc, Rq(TMPREG1)
+        | add Rq(TMPREG1), 4
+        | mov cpu_state->next_pc, Rq(TMPREG1)
+        | and dword cpu_state->cp0.status.raw, (~STATUS_ERL_MASK)
+    | jmp >2
+    |1:
+        | mov Rq(TMPREG1), cpu_state->cp0.EPC
+        | mov cpu_state->pc, Rq(TMPREG1)
+        | add Rq(TMPREG1), 4
+        | mov cpu_state->next_pc, Rq(TMPREG1)
+        | and dword cpu_state->cp0.status.raw, (~STATUS_EXL_MASK)
+    |2:
+    static_assert(sizeof(bool) == 1, "bool should be a byte");
+    | mov byte cpu_state->llbit, 0
+}
+
+void host_emit_debugbreak(dasm_State** Dst) {
+    | int3
+}
+
+void set_dest_cond(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, enum args_reversed args_reversed) {
+    int dest_reg = check_reg(dest_reg_alloc, true);
+    if (dest_reg_alloc.spilled) {
+        dest_reg = TMPREG1;
+    }
+    if (dest_reg >= 0) {
+        switch (cond) {
+            case CONDITION_NOT_EQUAL:
+                | setne Rb(dest_reg)
+                break;
+            case CONDITION_EQUAL:
+                | sete Rb(dest_reg)
+                break;
+            case CONDITION_LESS_THAN_SIGNED:
+                if (args_reversed) {
+                    | setg Rb(dest_reg)
+                } else {
+                    | setl Rb(dest_reg)
+                }
+                break;
+            case CONDITION_LESS_THAN_UNSIGNED:
+                if (args_reversed) {
+                    | seta Rb(dest_reg)
+                } else {
+                    | setb Rb(dest_reg)
+                }
+                break;
+            case CONDITION_GREATER_THAN_SIGNED:
+                if (args_reversed) {
+                    | setl Rb(dest_reg)
+                } else {
+                    | setg Rb(dest_reg)
+                }
+                break;
+            case CONDITION_GREATER_THAN_UNSIGNED:
+                if (args_reversed) {
+                    | setb Rb(dest_reg)
+                } else {
+                    | seta Rb(dest_reg)
+                }
+                break;
+            case CONDITION_LESS_OR_EQUAL_TO_SIGNED:
+                if (args_reversed) {
+                    | setg Rb(dest_reg)
+                } else {
+                    | setle Rb(dest_reg)
+                }
+                break;
+            case CONDITION_LESS_OR_EQUAL_TO_UNSIGNED:
+                if (args_reversed) {
+                    | seta Rb(dest_reg)
+                } else {
+                    | setbe Rb(dest_reg)
+                }
+                break;
+            case CONDITION_GREATER_OR_EQUAL_TO_SIGNED:
+                if (args_reversed) {
+                    | setl Rb(dest_reg)
+                } else {
+                    | setge Rb(dest_reg)
+                }
+                break;
+            case CONDITION_GREATER_OR_EQUAL_TO_UNSIGNED:
+                if (args_reversed) {
+                    | setb Rb(dest_reg)
+                } else {
+                    | setae Rb(dest_reg)
+                }
+                break;
+        }
+    }
+    | movzx Rq(dest_reg), Rb(dest_reg)
+    if (dest_reg_alloc.spilled) {
+        | mov qword [rsp + dest_reg_alloc.spill_location], Rq(dest_reg)
+    }
+}
+
+void host_emit_cmp_reg_imm(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2, enum args_reversed args_reversed) {
+    int operand1 = check_reg(operand1_alloc, true);
+    if (operand1_alloc.spilled) {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | cmp qword [rsp + operand1], operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | cmp qword [rsp + operand1], operand2.value_u8
+                break;
+            case VALUE_TYPE_S16:
+                | cmp qword [rsp + operand1], operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | cmp qword [rsp + operand1], operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | cmp qword [rsp + operand1], operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | mov Rd(TMPREG1), operand2.value_u32 // If this value is compared directly, it will be treated as signed
+                | cmp qword [rsp + operand1], Rq(TMPREG1)
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    } else {
+        switch (operand2.type) {
+            case VALUE_TYPE_S8:
+                | cmp Rq(operand1), operand2.value_s8
+                break;
+            case VALUE_TYPE_U8:
+                | cmp Rq(operand1), operand2.value_u8
+                break;
+            case VALUE_TYPE_S16:
+                | cmp Rq(operand1), operand2.value_s16
+                break;
+            case VALUE_TYPE_U16:
+                | cmp Rq(operand1), operand2.value_u16
+                break;
+            case VALUE_TYPE_S32:
+                | cmp Rq(operand1), operand2.value_s32
+                break;
+            case VALUE_TYPE_U32:
+                | mov Rd(TMPREG1), operand2.value_u32 // If this value is compared directly, it will be treated as signed
+                | cmp Rq(operand1), Rq(TMPREG1)
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                IMM64_INVALID();
+                break;
+        }
+    }
+    set_dest_cond(Dst, dest_reg_alloc, cond, args_reversed);
+}
+
+void host_emit_cmp_reg_reg(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, enum args_reversed args_reversed) {
+    int operand1 = check_reg(operand1_alloc, true);
+    int operand2 = check_reg(operand2_alloc, true);
+    if (operand1_alloc.spilled && operand2_alloc.spilled) {
+        | mov Rq(TMPREG1), qword [rsp + operand1]
+        | cmp Rq(TMPREG1), qword [rsp + operand2]
+    } else if (operand1_alloc.spilled) {
+        | cmp qword [rsp + operand1], Rq(operand2)
+    } else if (operand2_alloc.spilled) {
+        | cmp Rq(operand1), qword [rsp + operand2]
+    } else {
+        | cmp Rq(operand1), Rq(operand2)
+    }
+    set_dest_cond(Dst, dest_reg_alloc, cond, args_reversed);
+}
+
+void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
+    if (is_constant(value)) {
+        u64 const_value = const_to_u64(value);
+        | mov64 Rq(TMPREG2), const_value
+        | mov cpu_state->pc, Rq(TMPREG2)
+        | add Rq(TMPREG2), 4
+        | mov cpu_state->next_pc, Rq(TMPREG2)
+    } else if (value->reg_alloc.spilled) {
+        int loc = check_reg(value->reg_alloc, true);
+        unimplemented(!value->reg_alloc.spilled, "wtf, not actually spilled?");
+        | mov Rq(TMPREG2), qword [rsp + loc]
+        | mov cpu_state->pc, Rq(TMPREG2)
+        | add Rq(TMPREG2), 4
+        | mov cpu_state->next_pc, Rq(TMPREG2)
+    } else {
+        int reg = check_reg(value->reg_alloc, false);
+        | mov Rq(TMPREG2), Rq(reg)
+        | mov cpu_state->pc, Rq(TMPREG2)
+        | add Rq(TMPREG2), 4
+        | mov cpu_state->next_pc, Rq(TMPREG2)
+    }
+}
+
+void host_emit_cmov_pc_binary(dasm_State** Dst, ir_register_allocation_t cond_register_alloc, ir_instruction_t* if_true, ir_instruction_t* if_false) {
+    int cond_register = check_reg(cond_register_alloc, false);
+    | test Rb(cond_register), Rb(cond_register)
+    | jz >1
+    host_emit_mov_pc(Dst, if_true);
+    | jmp >2 // done
+    |1:
+    host_emit_mov_pc(Dst, if_false);
+    |2:
+}
+
+// Gets the offset within N64CPU for a pointer, or negative if the pointer is not within n64cpu
+int get_n64cpu_offset(uintptr_t absolute) {
+    const uintptr_t n64cpu_addr = (uintptr_t)&N64CPU;
+    const uintptr_t offset = absolute - n64cpu_addr;
+
+    // Check if the pointer is within N64CPU
+    if (absolute > n64cpu_addr && offset < sizeof(N64CPU)) {
+        return offset;
+    } else {
+        return -1;
+    }
+}
+
+void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size) {
+    int offset = get_n64cpu_offset(mem);
+    u64 imm = set_const_to_u64(value);
+    // Check if the pointer is within N64CPU
+    if (offset > 0) {
+        switch (write_size) {
+            case VALUE_TYPE_U8:
+            case VALUE_TYPE_S8:
+                | mov byte [cpu_state + offset], (u8)imm
+                break;
+            case VALUE_TYPE_S16:
+            case VALUE_TYPE_U16:
+                | mov word [cpu_state + offset], (u16)imm
+                break;
+            case VALUE_TYPE_S32:
+            case VALUE_TYPE_U32:
+                | mov dword [cpu_state + offset], (u32)imm
+                break;
+            case VALUE_TYPE_U64:
+            case VALUE_TYPE_S64:
+                host_emit_mov_reg_imm(Dst, TMPREG1_ALLOC, value);
+                | mov [cpu_state + offset], Rq(TMPREG1)
+                break;
+        }
+    } else {
+        logfatal("Not within N64CPU");
+        | mov64 Rq(TMPREG1), mem
+        host_emit_mov_reg_imm(Dst, TMPREG2_ALLOC, value);
+        | mov [Rq(TMPREG1)], Rq(TMPREG2)
+    }
+}
+
+void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc, ir_value_type_t type) {
+    int reg = check_reg(reg_alloc, true);
+    int offset = get_n64cpu_offset(mem);
+
+    if (reg_alloc.spilled) {
+        | mov Rq(TMPREG2), qword [rsp + reg]
+        reg = TMPREG2;
+    }
+
+    // Check if the pointer is within N64CPU
+    if (offset > 0) {
+        switch (reg_alloc.type) {
+            case REGISTER_TYPE_NONE:
+                logfatal("mov_mem_reg REGISTER_TYPE_NONE");
+                break;
+            case REGISTER_TYPE_GPR:
+                switch (type) {
+                    CASE_SIZE_8:
+                        | mov [cpu_state + offset], Rb(reg)
+                        break;
+                    CASE_SIZE_16:
+                        | mov [cpu_state + offset], Rw(reg)
+                        break;
+                    CASE_SIZE_32:
+                        | mov [cpu_state + offset], Rd(reg)
+                        break;
+                    CASE_SIZE_64:
+                        | mov [cpu_state + offset], Rq(reg)
+                        break;
+                }
+                break;
+            case REGISTER_TYPE_FGR_32:
+                switch (type) {
+                    case VALUE_TYPE_U8:
+                        logfatal("U8 FGR_32 flush");
+                        break;
+                    case VALUE_TYPE_S8:
+                        logfatal("S8 FGR_32 flush");
+                        break;
+                    case VALUE_TYPE_S16:
+                        logfatal("S16 FGR_32 flush");
+                        break;
+                    case VALUE_TYPE_U16:
+                        logfatal("U16 FGR_32 flush");
+                        break;
+                    case VALUE_TYPE_S32:
+                    case VALUE_TYPE_U32:
+                        unimplemented(reg_alloc.spilled, "spilled fgr32 u32/s32");
+                        | pand xmm(reg), cpu_state->s_mask
+                        | movq qword [cpu_state + offset], xmm(reg)
+                        break;
+                    case VALUE_TYPE_U64:
+                        unimplemented(reg_alloc.spilled, "spilled fgr32 u64/s64");
+                        | pand xmm(reg), cpu_state->s_mask
+                        | movq qword [cpu_state + offset], xmm(reg)
+                        break;
+                    case VALUE_TYPE_S64:
+                        logfatal("S64 FGR_32 flush");
+                        break;
+                }
+                break;
+            case REGISTER_TYPE_FGR_64:
+                if(type != VALUE_TYPE_U64 && type != VALUE_TYPE_S64) {
+                    logwarn("non-64 bit FGR_64 flush");
+                }
+                if (reg_alloc.spilled) { // If the reg is spilled, it was already moved into a temp reg above
+                    | mov qword [cpu_state + offset], Rq(reg)
+                } else {
+                    | movq qword [cpu_state + offset], xmm(reg)
+                }
+                break;
+        }
+    } else {
+        unimplemented(reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR write not within N64CPU");
+        unimplemented(type != VALUE_TYPE_U64, "non-64 bit write not within N64CPU");
+        logfatal("Not within n64cpu");
+        | mov64 Rq(TMPREG1), mem
+        | mov [Rq(TMPREG1)], Rq(reg)
+    }
+}
+
+void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type) {
+    int reg = check_reg(reg_alloc, true);
+    int offset = get_n64cpu_offset(mem);
+
+    if (reg_alloc.type == REGISTER_TYPE_GPR) {
+        if (reg_alloc.spilled) {
+            | mov Rq(TMPREG2), qword [rsp + reg]
+            reg = TMPREG2;
+        }
+
+        // Check if the pointer is within N64CPU
+        if (offset > 0) {
+            switch (type) {
+                case VALUE_TYPE_U8:
+                    | mov Rb(reg), [cpu_state + offset]
+                    | movzx Rq(reg), Rb(reg)
+                    break;
+                case VALUE_TYPE_S8:
+                    | mov Rb(reg), [cpu_state + offset]
+                    | movsx Rq(reg), Rb(reg)
+                    break;
+                case VALUE_TYPE_S16:
+                    | mov Rw(reg), [cpu_state + offset]
+                    | movsx Rq(reg), Rw(reg)
+                    break;
+                case VALUE_TYPE_U16:
+                    | mov Rw(reg), [cpu_state + offset]
+                    | movzx Rq(reg), Rw(reg)
+                    break;
+                case VALUE_TYPE_S32:
+                    | mov Rd(reg), [cpu_state + offset]
+                    | movsxd Rq(reg), Rd(reg)
+                    break;
+                case VALUE_TYPE_U32:
+                    | mov Rd(reg), [cpu_state + offset]
+                    break;
+                case VALUE_TYPE_U64:
+                case VALUE_TYPE_S64:
+                    | mov Rq(reg), [cpu_state + offset]
+                    break;
+            }
+        } else {
+            unimplemented(type != VALUE_TYPE_U64, "non-64 bit read not within N64CPU");
+            logfatal("Not within n64cpu");
+            | mov64 Rq(TMPREG1), mem
+            | mov Rq(reg), [TMPREG1]
+        }
+
+        if (reg_alloc.spilled) {
+            | mov qword [rsp + reg_alloc.spill_location], Rq(TMPREG2)
+        }
+    } else if (reg_alloc.type == REGISTER_TYPE_FGR_32) {
+        unimplemented(!(type == VALUE_TYPE_U32 || type == VALUE_TYPE_S32), "Loading FGR32 with non-32 bit type");
+        if (offset > 0) {
+            | movd xmm(reg), dword [cpu_state + offset]
+        } else {
+            logfatal("not from N64CPU mov to xmm reg");
+        }
+    } else if (reg_alloc.type == REGISTER_TYPE_FGR_64) {
+        unimplemented(!(type == VALUE_TYPE_U64 || type == VALUE_TYPE_S64), "Loading FGR64 with non-64 bit type");
+        if (offset > 0) {
+            | movd xmm(reg), qword [cpu_state + offset]
+        } else {
+            logfatal("not from N64CPU mov to xmm reg");
+        }
+    }
+}
+
+void host_emit_ret(dasm_State** Dst, ir_flush_info_t* flush_info, int block_length) {
+    for (int i = 0; i < flush_info->num_regs; i++) {
+        ir_instruction_flush_t* flush_iter = &flush_info->regs[i];
+        int guest_reg = flush_iter->guest_reg;
+        uintptr_t dest;
+        ir_value_type_t type;
+        ir_register_type_t register_type;
+
+        if (is_constant(flush_iter->item)) {
+            register_type = REGISTER_TYPE_GPR;
+        } else if (float_is_constant(flush_iter->item)){
+            register_type = float_val_to_reg_type(flush_iter->item->set_float_constant.format);
+        } else {
+            register_type = flush_iter->item->reg_alloc.type;
+        }
+
+        switch (register_type) {
+            case REGISTER_TYPE_NONE:
+                logfatal("Flushing REGISTER_TYPE_NONE");
+                break;
+            case REGISTER_TYPE_GPR:
+                dest = (uintptr_t)&N64CPU.gpr[flush_iter->guest_reg];
+                type = VALUE_TYPE_U64;
+                break;
+            case REGISTER_TYPE_FGR_32:
+                dest = (uintptr_t)get_fpu_register_ptr_word_fr(guest_reg - IR_FGR_BASE);
+                type = VALUE_TYPE_U32;
+                break;
+            case REGISTER_TYPE_FGR_64:
+                dest = (uintptr_t)get_fpu_register_ptr_dword_fr(guest_reg - IR_FGR_BASE);
+                type = VALUE_TYPE_U64;
+                break;
+        }
+
+        if (is_constant(flush_iter->item)) {
+            host_emit_mov_mem_imm(Dst, dest, flush_iter->item->set_constant, type);
+        } else {
+            host_emit_mov_mem_reg(Dst, dest, flush_iter->item->reg_alloc, type);
+        }
+
+    }
+    | mov eax, block_length
+    | block_epilogue
+}
+
+void imm_to_func_arg(dasm_State** Dst, ir_set_constant_t val, int arg_index) {
+    host_emit_mov_reg_imm(Dst, alloc_gpr(get_func_arg_registers()[arg_index]), val);
+}
+
+
+void host_emit_exception_to_args(dasm_State** Dst, dynarec_exception_t exception) {
+    ir_set_constant_t pc;
+    pc.type = VALUE_TYPE_S64;
+    pc.value_s64 = exception.virtual_address;
+
+    ir_set_constant_t code;
+    code.type = VALUE_TYPE_U8;
+    code.value_u8 = exception.code;
+
+    ir_set_constant_t cop_err;
+    cop_err.type = VALUE_TYPE_S8;
+    cop_err.value_s8 = exception.coprocessor_error;
+
+    imm_to_func_arg(Dst, pc, 0);
+    imm_to_func_arg(Dst, code, 1);
+    imm_to_func_arg(Dst, cop_err, 2);
+}
+
+void host_emit_cond_ret(dasm_State** Dst, ir_register_allocation_t cond_reg_alloc, ir_flush_info_t* flush_info, int block_length, cond_block_exit_type_t type, cond_block_exit_info_t info) {
+    int cond_reg = check_reg(cond_reg_alloc, false);
+    | test Rq(cond_reg), Rq(cond_reg)
+    | jz >1
+    switch (type) {
+        case COND_BLOCK_EXIT_TYPE_NONE:
+            break;
+        case COND_BLOCK_EXIT_TYPE_EXCEPTION:
+            host_emit_exception_to_args(Dst, info.exception);
+            host_emit_call(Dst, (uintptr_t)r4300i_handle_exception);
+            break;
+        case COND_BLOCK_EXIT_TYPE_ADDRESS:
+            host_emit_mov_pc(Dst, info.exit_pc);
+            break;
+    }
+    host_emit_ret(Dst, flush_info, block_length);
+    |1:
+}
+
+void host_emit_mov_fgr_gpr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
+    int dst = check_fgr(Dst, dst_reg, true);
+    int src = check_gpr(src_reg, true);
+
+    if (src_reg.spilled) {
+        switch (size) {
+            CASE_SIZE_8:
+                logfatal("Invalid 8 bit mov fgr, gpr");
+            CASE_SIZE_16:
+                logfatal("Invalid 16 bit mov fgr, gpr");
+            CASE_SIZE_32:
+                | movd xmm(dst), dword [rsp + src]
+                break;
+            CASE_SIZE_64:
+                | movd xmm(dst), qword [rsp + src]
+                break;
+        }
+    } else {
+        switch (size) {
+            CASE_SIZE_8:
+                logfatal("Invalid 8 bit mov fgr, gpr");
+            CASE_SIZE_16:
+                logfatal("Invalid 16 bit mov fgr, gpr");
+            CASE_SIZE_32:
+                | movd xmm(dst), Rd(src)
+                break;
+            CASE_SIZE_64:
+                | movd xmm(dst), Rq(src)
+                break;
+        }
+    }
+
+    reset_temp_fgr(Dst);
+}
+
+void host_emit_mov_gpr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_value_type_t size) {
+    int dst = check_gpr(dst_reg, true);
+    int src = check_fgr(Dst, src_reg, false);
+
+    if (dst_reg.spilled) {
+        dst = TMPREG1;
+    }
+
+    switch (size) {
+        CASE_SIZE_8:
+            logfatal("Invalid 8 bit mov gpr, fgr");
+        CASE_SIZE_16:
+            logfatal("Invalid 16 bit mov gpr, fgr");
+        CASE_SIZE_32:
+            | movd Rd(dst), xmm(src)
+            | movsxd Rq(dst), Rd(dst)
+            break;
+        CASE_SIZE_64:
+            | movd Rq(dst), xmm(src)
+            break;
+    }
+
+    if (dst_reg.spilled) {
+        | mov qword [rsp + dst_reg.spill_location], Rq(TMPREG1)
+    }
+}
+
+void host_emit_mov_fgr_fgr(dasm_State** Dst, ir_register_allocation_t dst_reg, ir_register_allocation_t src_reg, ir_float_value_type_t format) {
+    int dst = check_fgr(Dst, dst_reg, false);
+    int src = check_fgr(Dst, src_reg, false);
+    if (dst == src) {
+        logwarn("mov_fgr_fgr xmm(%d), xmm(%d) is a no-op, not emitting!", dst, src);
+        return;
+    }
+
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_mov_fgr_fgr FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_mov_fgr_fgr FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_mov_fgr_fgr FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | movss xmm(dst), xmm(src)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | movsd xmm(dst), xmm(src)
+            break;
+    }
+}
+
+void host_emit_float_convert_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
+    int src = check_reg(src_reg, false);
+    int dst = check_fgr(Dst, dst_reg, false);
+
+    switch (src_type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("Cannot convert from FLOAT_VALUE_TYPE_INVALID");
+        case FLOAT_VALUE_TYPE_WORD:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_WORD to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_WORD to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    if (src_reg.type == REGISTER_TYPE_GPR) {
+                        // cvtsi2ss gpr -> xmm
+                        logfatal("Converting to word -> single from GPR: use cvtsi2ss");
+                    } else if (src_reg.type == REGISTER_TYPE_FGR_64) {
+                        logfatal("Converting to word -> single from FGR_64 - do I need to reload the source register?");
+                    } else {
+                        | cvtdq2ps xmm(dst), xmm(src)
+                    }
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    if (src_reg.type == REGISTER_TYPE_GPR) {
+                        //cvtsi2sd gpr -> xmm
+                        logfatal("Converting to word -> double from GPR: use cvtsi2sd");
+                    } else if (src_reg.type == REGISTER_TYPE_FGR_64) {
+                        logfatal("Converting to word -> double from FGR_64 - do I need to reload the source register?");
+                    } else {
+                        | cvtdq2pd xmm(dst), xmm(src)
+                    }
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_LONG to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_LONG to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    if (src_reg.type == REGISTER_TYPE_GPR) {
+                        | cvtsi2ss xmm(dst), Rq(src)
+                    } else if (src_reg.type == REGISTER_TYPE_FGR_32) {
+                        logfatal("Converting long -> single from FGR_32 - reload the source register");
+                    } else {
+                        | movd Rq(TMPREG1), xmm(src)
+                        | cvtsi2ss xmm(dst), Rq(TMPREG1)
+                    }
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    if (src_reg.type == REGISTER_TYPE_GPR) {
+                        | cvtsi2sd xmm(dst), Rq(src)
+                    } else if (src_reg.type == REGISTER_TYPE_FGR_32) {
+                        logfatal("Converting long -> double from FGR_32 - reload the source register");
+                    } else {
+                        | movd Rq(TMPREG1), xmm(src)
+                        | cvtsi2sd xmm(dst), Rq(TMPREG1)
+                    }
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    unimplemented(src_reg.type != REGISTER_TYPE_FGR_32, "converting from SINGLE to WORD with a non-FGR32 source");
+                    unimplemented(dst_reg.type != REGISTER_TYPE_FGR_32, "converting from SINGLE to WORD with a non-FGR32 dest");
+                    | cvttss2si Rd(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    unimplemented(src_reg.type != REGISTER_TYPE_FGR_32, "converting from SINGLE to LONG with a non-FGR32 source");
+                    unimplemented(dst_reg.type != REGISTER_TYPE_FGR_64, "converting from SINGLE to LONG with a non-FGR64 dest");
+                    | cvttss2si Rq(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    unimplemented(src_reg.type != REGISTER_TYPE_FGR_32, "converting from SINGLE to DOUBLE with a non-FGR32 source");
+                    unimplemented(dst_reg.type != REGISTER_TYPE_FGR_64, "converting from SINGLE to DOUBLE with a non-FGR64 dest");
+                    | cvtss2sd xmm(dst), xmm(src)
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("Cannot convert to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    unimplemented(src_reg.type != REGISTER_TYPE_FGR_64, "converting from DOUBLE to WORD with a non-FGR64 source");
+                    unimplemented(dst_reg.type != REGISTER_TYPE_FGR_32, "converting from DOUBLE to WORD with a non-FGR32 dest");
+                    | cvttsd2si Rd(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    unimplemented(src_reg.type != REGISTER_TYPE_FGR_64, "converting from DOUBLE to LONG with a non-FGR64 source");
+                    unimplemented(dst_reg.type != REGISTER_TYPE_FGR_64, "converting from DOUBLE to LONG with a non-FGR64 dest");
+                    | cvttsd2si Rq(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    unimplemented(src_reg.type != REGISTER_TYPE_FGR_64, "converting from DOUBLE to SINGLE with a non-FGR64 source");
+                    unimplemented(dst_reg.type != REGISTER_TYPE_FGR_32, "converting from DOUBLE to SINGLE with a non-FGR32 dest");
+                    | pxor xmm(dst), xmm(dst)
+                    | cvtsd2ss xmm(dst), xmm(src)
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("Converting from FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+    }
+}
+
+void host_emit_float_trunc_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
+    int src = check_fgr(Dst, src_reg, false);
+    int dst = check_reg(dst_reg, false);
+
+    switch (src_type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("TRUNC FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("trunc FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("trunc FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("trunc FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    | cvttss2si Rd(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    | cvttss2si Rq(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("trunc FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("trunc FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    | cvttsd2si Rd(TMPREG1), xmm(src)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("trunc FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+    }
+}
+
+void host_emit_float_round_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
+    int src = check_fgr(Dst, src_reg, false);
+    int dst = check_reg(dst_reg, false);
+
+    switch (src_type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("ROUND FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("ROUND FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("ROUND FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    // Round
+                    | roundss xmm(dst), xmm(src), 4
+                    // Convert to int by truncating
+                    | cvttss2si Rd(TMPREG1), xmm(dst)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    // Round
+                    | roundss xmm(dst), xmm(src), 4
+                    // Convert to int by truncating
+                    | cvttss2si Rq(TMPREG1), xmm(dst)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("ROUND FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+    }
+}
+
+void host_emit_float_floor_reg_reg(dasm_State** Dst, ir_float_value_type_t src_type, ir_register_allocation_t src_reg, ir_float_value_type_t dst_type, ir_register_allocation_t dst_reg) {
+    int src = check_fgr(Dst, src_reg, false);
+    int dst = check_reg(dst_reg, false);
+    switch (src_type) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("FLOOR FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("FLOOR FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("FLOOR FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    // Round
+                    | roundss xmm(dst), xmm(src), 1
+                    // Convert to int by truncating
+                    | cvttss2si Rd(TMPREG1), xmm(dst)
+                    | movd xmm(dst), Rq(TMPREG1)
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_SINGLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            switch (dst_type) {
+                case FLOAT_VALUE_TYPE_INVALID:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_INVALID");
+                    break;
+                case FLOAT_VALUE_TYPE_WORD:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_WORD");
+                    break;
+                case FLOAT_VALUE_TYPE_LONG:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_LONG");
+                    break;
+                case FLOAT_VALUE_TYPE_SINGLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_SINGLE");
+                    break;
+                case FLOAT_VALUE_TYPE_DOUBLE:
+                    logfatal("FLOOR FLOAT_VALUE_TYPE_DOUBLE to FLOAT_VALUE_TYPE_DOUBLE");
+                    break;
+            }
+            break;
+    }
+}
+
+void host_emit_float_add_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    int operand1 = check_fgr(Dst, operand1_alloc, false);
+    int operand2 = check_fgr(Dst, operand2_alloc, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_add_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_add_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_add_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | addss xmm(operand1), xmm(operand2)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | addsd xmm(operand1), xmm(operand2)
+            break;
+    }
+}
+
+void host_emit_float_sub_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    int operand1 = check_fgr(Dst, operand1_alloc, false);
+    int operand2 = check_fgr(Dst, operand2_alloc, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_sub_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_sub_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_sub_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | subss xmm(operand1), xmm(operand2)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | subsd xmm(operand1), xmm(operand2)
+            break;
+    }
+}
+
+void host_emit_float_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    int dividend = check_fgr(Dst, operand1_alloc, false);
+    int divisor = check_fgr(Dst, operand2_alloc, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_div_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_div_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_div_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | divss xmm(dividend), xmm(divisor)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | divsd xmm(dividend), xmm(divisor)
+            break;
+    }
+}
+
+void host_emit_float_mult_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_float_value_type_t format) {
+    int multiplicand1 = check_fgr(Dst, operand1_alloc, false);
+    int multiplicand2 = check_fgr(Dst, operand2_alloc, false);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_mult_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_mult_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_mult_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | mulss xmm(multiplicand1), xmm(multiplicand2)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | mulsd xmm(multiplicand1), xmm(multiplicand2)
+            break;
+    }
+}
+
+bool is_unordered(ir_float_condition_t condition) {
+    switch (condition) {
+        case CONDITION_FLOAT_LE:
+        case CONDITION_FLOAT_LT:
+        case CONDITION_FLOAT_EQ:
+        case CONDITION_FLOAT_NGE:
+        case CONDITION_FLOAT_NGT:
+            return false;
+        case CONDITION_FLOAT_UN:
+            return true;
+    }
+}
+
+void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2) {
+    int op1 = check_fgr(Dst, operand1, false);
+    int op2 = check_fgr(Dst, operand2, false);
+    | mov Rd(TMPREG1), cpu_state->fcr31.raw
+    | and Rd(TMPREG1), ~(FCR31_COMPARE_MASK)
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+        case FLOAT_VALUE_TYPE_WORD:
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("Invalid format for host_emit_float_cmp");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            if (is_unordered(condition)) {
+                | ucomiss xmm(op1), xmm(op2)
+            } else {
+                | comiss xmm(op1), xmm(op2)
+            }
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            if (is_unordered(condition)) {
+                | ucomisd xmm(op1), xmm(op2)
+            } else {
+                | comisd xmm(op1), xmm(op2)
+            }
+            break;
+    }
+    switch (condition) {
+        case CONDITION_FLOAT_LE:
+            | setbe Rb(TMPREG2)
+            break;
+        case CONDITION_FLOAT_LT:
+            | setb Rb(TMPREG2)
+            break;
+        case CONDITION_FLOAT_EQ:
+            | sete Rb(TMPREG2)
+            break;
+        case CONDITION_FLOAT_NGE:
+            logfatal("CONDITION_FLOAT_NGE");
+        case CONDITION_FLOAT_NGT:
+            logfatal("CONDITION_FLOAT_NGT");
+        case CONDITION_FLOAT_UN:
+            | setp Rb(TMPREG2)
+            break;
+    }
+    | movzx Rd(TMPREG2), Rb(TMPREG2)
+    | sal Rd(TMPREG2), FCR31_COMPARE_SHIFT
+    | or Rd(TMPREG1), Rd(TMPREG2)
+    | mov cpu_state->fcr31.raw, Rd(TMPREG1)
+}
+
+void host_emit_float_sqrt_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
+    int src = check_fgr(Dst, operand_alloc, false);
+    int dst = check_fgr(Dst, dst_alloc, false);
+
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("sqrt FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("sqrt FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("sqrt FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | sqrtss xmm(dst), xmm(src)
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | sqrtsd xmm(dst), xmm(src)
+            break;
+    }
+}
+
+void host_emit_float_abs_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
+    int op = check_fgr(Dst, operand_alloc, false);
+    int dst = check_fgr(Dst, dst_alloc, false);
+
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("host_emit_float_abs_reg_reg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("host_emit_float_abs_reg_reg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("host_emit_float_abs_reg_reg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | movss xmm(dst), xmm(op)
+            | pand xmm(dst), cpu_state->s_abs
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | movsd xmm(dst), xmm(op)
+            | pand xmm(dst), cpu_state->d_abs
+            break;
+    }
+}
+
+void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_alloc, ir_register_allocation_t operand_alloc, ir_float_value_type_t format) {
+    int src = check_fgr(Dst, operand_alloc, false);
+    int dst = check_fgr(Dst, dst_alloc, false);
+
+    host_emit_mov_fgr_fgr(Dst, dst_alloc, operand_alloc, format);
+    switch (format) {
+        case FLOAT_VALUE_TYPE_INVALID:
+            logfatal("neg FLOAT_VALUE_TYPE_INVALID");
+            break;
+        case FLOAT_VALUE_TYPE_WORD:
+            logfatal("neg FLOAT_VALUE_TYPE_WORD");
+            break;
+        case FLOAT_VALUE_TYPE_LONG:
+            logfatal("neg FLOAT_VALUE_TYPE_LONG");
+            break;
+        case FLOAT_VALUE_TYPE_SINGLE:
+            | movss xmm(dst), xmm(src)
+            | pxor xmm(dst), cpu_state->s_neg
+            break;
+        case FLOAT_VALUE_TYPE_DOUBLE:
+            | movsd xmm(dst), xmm(src)
+            | pxor xmm(dst), cpu_state->d_neg // Check that this is XORING by the whole 64 bit value
+            break;
+    }
+}
+
+int interpreter_fallback_until_no_branch() {
+    int taken = 0;
+    do {
+        r4300i_step();
+        taken++;
+    } while(N64CPU.branch); // Loop until not in a delay slot
+    return taken;
+}
+
+void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_cycles) {
+    ir_context.block_ended = true;
+
+    | mov64 Rq(TMPREG1), (uintptr_t)&interpreter_fallback_until_no_branch
+    | call Rq(TMPREG1)
+    | add Rd(TMPREG1), extra_cycles
+    | block_epilogue
+
+}
+
+void v2_end_block(dasm_State** Dst, int block_length) {
+    if (ir_context.block_ended) {
+        return;
+    }
+    ir_context.block_ended = true;
+
+    | mov Rd(get_return_value_reg()), block_length
+    | block_epilogue // return block_length
+}
+
+size_t v2_link(dasm_State** d) {
+    size_t code_size;
+    dasm_link(d, &code_size);
+    return code_size;
+}
+
+void v2_encode(dasm_State** d, u8* buf) {
+    dasm_encode(d, buf);
+}

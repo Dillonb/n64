@@ -1,5 +1,6 @@
 #include "vi.h"
 #include <rdp/rdp.h>
+#include <system/scheduler.h>
 
 #define ADDR_VI_STATUS_REG    0x04400000
 #define ADDR_VI_ORIGIN_REG    0x04400004
@@ -53,6 +54,9 @@ void write_word_vireg(u32 address, u32 value) {
             n64sys.vi.vsync = value & 0x3FF;
             n64sys.vi.num_halflines = n64sys.vi.vsync >> 1;
             n64sys.vi.cycles_per_halfline = CPU_CYCLES_PER_FRAME / n64sys.vi.num_halflines;
+            n64sys.vi.missing_cycles = CPU_CYCLES_PER_FRAME % n64sys.vi.num_halflines;
+            scheduler_remove_event(SCHEDULER_VI_HALFLINE);
+            scheduler_enqueue_relative((u64)n64sys.vi.cycles_per_halfline, SCHEDULER_VI_HALFLINE);
             loginfo("VI vsync is now 0x%X / %d, wrote 0x%08X", value & 0x3FF, value & 0x3FF, value);
             break;
         case ADDR_VI_H_SYNC_REG:
