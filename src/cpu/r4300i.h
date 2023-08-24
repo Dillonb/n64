@@ -630,6 +630,7 @@ void r4300i_handle_exception(u64 pc, u32 code, int coprocessor_error);
 mipsinstr_handler_t r4300i_instruction_decode(u64 pc, mips_instruction_t instr);
 void r4300i_interrupt_update();
 bool instruction_stable(mips_instruction_t instr);
+void cp0_status_updated();
 
 extern const char* register_names[];
 extern const char* cp0_register_names[];
@@ -680,19 +681,6 @@ INLINE void set_pc_dword_r4300i(u64 new_pc) {
     N64CPU.prev_pc = N64CPU.pc;
     N64CPU.pc = new_pc;
     N64CPU.next_pc = N64CPU.pc + 4;
-}
-
-INLINE void cp0_status_updated() {
-    bool exception = N64CPU.cp0.status.exl || N64CPU.cp0.status.erl;
-
-    N64CPU.cp0.kernel_mode     =  exception || N64CPU.cp0.status.ksu == CPU_MODE_KERNEL;
-    N64CPU.cp0.supervisor_mode = !exception && N64CPU.cp0.status.ksu == CPU_MODE_SUPERVISOR;
-    N64CPU.cp0.user_mode       = !exception && N64CPU.cp0.status.ksu == CPU_MODE_USER;
-    N64CPU.cp0.is_64bit_addressing =
-            (N64CPU.cp0.kernel_mode && N64CPU.cp0.status.kx)
-            || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
-               || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
-    r4300i_interrupt_update();
 }
 
 #define checkcp1_preservecause do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)

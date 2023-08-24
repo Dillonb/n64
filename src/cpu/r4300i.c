@@ -1,4 +1,5 @@
 #include "r4300i.h"
+#include <dynarec/dynarec.h>
 #include <log.h>
 #include <system/n64system.h>
 #include <mem/n64bus.h>
@@ -846,4 +847,18 @@ bool instruction_stable(mips_instruction_t instr) {
         default:
             return false;
     }
+}
+
+void cp0_status_updated() {
+    bool exception = N64CPU.cp0.status.exl || N64CPU.cp0.status.erl;
+
+    N64CPU.cp0.kernel_mode     =  exception || N64CPU.cp0.status.ksu == CPU_MODE_KERNEL;
+    N64CPU.cp0.supervisor_mode = !exception && N64CPU.cp0.status.ksu == CPU_MODE_SUPERVISOR;
+    N64CPU.cp0.user_mode       = !exception && N64CPU.cp0.status.ksu == CPU_MODE_USER;
+    N64CPU.cp0.is_64bit_addressing =
+            (N64CPU.cp0.kernel_mode && N64CPU.cp0.status.kx)
+            || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
+               || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
+    n64dynarec.sysconfig.fr = N64CP0.status.fr;
+    r4300i_interrupt_update();
 }

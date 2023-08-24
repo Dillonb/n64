@@ -9,6 +9,11 @@
 
 n64_dynarec_t n64dynarec;
 
+void update_sysconfig() {
+    // handled by cp0_status_updated
+    //n64dynarec.sysconfig.fr = N64CP0.status.fr;
+}
+
 int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_block_sysconfig_t current_sysconfig) {
     u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
 
@@ -102,13 +107,12 @@ int n64_dynarec_step() {
     int taken;
 
     // Find the first block that's both non-null and matches the current sysconfig
-    n64_block_sysconfig_t current_sysconfig = get_current_sysconfig();
     {
-        n64_dynarec_block_t* matching_block = find_matching_block(block, current_sysconfig, N64CPU.pc);
+        n64_dynarec_block_t* matching_block = find_matching_block(block, n64dynarec.sysconfig, N64CPU.pc);
         if (matching_block && matching_block->run) {
             taken = n64dynarec.run_block((u64)matching_block->run);
         } else {
-            return missing_block_handler(physical, matching_block, current_sysconfig);
+            return missing_block_handler(physical, matching_block, n64dynarec.sysconfig);
         }
     }
 #ifdef N64_LOG_JIT_SYNC_POINTS

@@ -43,11 +43,7 @@ typedef union n64_block_sysconfig {
 } n64_block_sysconfig_t;
 ASSERTDWORD(n64_block_sysconfig_t);
 
-INLINE n64_block_sysconfig_t get_current_sysconfig() {
-    n64_block_sysconfig_t sysconfig = { .raw = 0 };
-    sysconfig.fr = N64CP0.status.fr;
-    return sysconfig;
-}
+void update_sysconfig();
 
 typedef struct n64_dynarec_block {
     int (*run)(r4300i_t* cpu);
@@ -71,6 +67,8 @@ typedef struct n64_dynarec {
     u8* codecache;
     u64 codecache_size;
     u64 codecache_used;
+
+    n64_block_sysconfig_t sysconfig;
 
     n64_dynarec_block_t* blockcache[BLOCKCACHE_OUTER_SIZE];
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];
