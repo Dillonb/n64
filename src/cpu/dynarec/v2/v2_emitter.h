@@ -14,6 +14,9 @@ enum args_reversed {
     ARGS_REVERSED = 1 // in this order so `if (args_reversed)` is valid
 };
 
+#define TMPREG1_ALLOC alloc_gpr(get_scratch_registers()[0])
+#define TMPREG2_ALLOC alloc_gpr(get_scratch_registers()[1])
+
 void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm_value);
 void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_alloc, ir_register_allocation_t src_reg_alloc, ir_value_type_t source_value_type);
 

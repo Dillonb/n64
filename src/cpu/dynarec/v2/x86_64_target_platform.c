@@ -111,15 +111,17 @@ const int* get_func_arg_registers() {
 #ifdef N64_WIN
             REG_RCX,
             REG_RDX,
-            REG_R8,
-            REG_R9
+            REG_R8
+            // Used as a temp register for spilled values.
+            // REG_R9
 #else
             REG_RDI,
             REG_RSI,
             REG_RDX,
             REG_RCX,
-            REG_R8,
-            REG_R9
+            REG_R8
+            // Used as a temp register for spilled values.
+            // REG_R9
 #endif // N64_WIN
     };
     return func_arg_regs;
@@ -127,12 +129,20 @@ const int* get_func_arg_registers() {
 
 int get_num_func_arg_registers() {
 #ifdef N64_WIN
-    return 4;
+    return 3;
 #else
-    return 6;
+    return 5;
 #endif // N64_WIN
 }
 
 int get_return_value_reg() {
     return REG_RAX;
+}
+
+// Can't be RAX or RDX (used for multiplies) and also can't overlap with get_func_arg_registers()
+const int* get_temp_registers_for_spilled() {
+    const static int temp_registers_for_spilled[] = {
+            REG_R9, REG_R10, REG_R11 // these work for both System-V and Microsoft calling conventions
+    };
+    return temp_registers_for_spilled;
 }
