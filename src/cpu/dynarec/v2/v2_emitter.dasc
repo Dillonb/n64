@@ -1181,14 +1181,12 @@ void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc,
 
         flush_checked_reg(Dst, reg, reg_alloc);
     } else if (reg_alloc.type == REGISTER_TYPE_FGR_32) {
-        unimplemented(!(type == VALUE_TYPE_U32 || type == VALUE_TYPE_S32), "Loading FGR32 with non-32 bit type");
         if (offset > 0) {
             | movd xmm(reg), dword [cpu_state + offset]
         } else {
             logfatal("not from N64CPU mov to xmm reg");
         }
     } else if (reg_alloc.type == REGISTER_TYPE_FGR_64) {
-        unimplemented(!(type == VALUE_TYPE_U64 || type == VALUE_TYPE_S64), "Loading FGR64 with non-64 bit type");
         if (offset > 0) {
             | movd xmm(reg), qword [cpu_state + offset]
         } else {

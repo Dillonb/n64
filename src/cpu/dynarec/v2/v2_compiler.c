@@ -488,6 +488,9 @@ void compile_ir_shift(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
+    if (instr->reg_alloc.type != instr->load_guest_reg.guest_reg_type) {
+        logwarn("Wrong type of register allocated! Wanted %d but got %d\n", instr->load_guest_reg.guest_reg_type, instr->reg_alloc.type);
+    }
     switch (instr->load_guest_reg.guest_reg_type) {
         case REGISTER_TYPE_NONE:
             logfatal("Loading reg of type NONE");
