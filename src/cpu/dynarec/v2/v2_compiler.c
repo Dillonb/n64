@@ -804,9 +804,8 @@ void compile_ir_set_float_constant(dasm_State** Dst, ir_instruction_t* instr) {
             break;
     }
 
-    ir_register_allocation_t tmpreg = alloc_gpr(get_scratch_registers()[0]);
-    host_emit_mov_reg_imm(Dst, tmpreg, c);
-    host_emit_mov_fgr_gpr(Dst, instr->reg_alloc, tmpreg, c.type);
+    host_emit_mov_reg_imm(Dst, TMPREG1_ALLOC, c);
+    host_emit_mov_fgr_gpr(Dst, instr->reg_alloc, TMPREG1_ALLOC, c.type);
 }
 
 void compile_ir_float_convert(dasm_State** Dst, ir_instruction_t* instr) {

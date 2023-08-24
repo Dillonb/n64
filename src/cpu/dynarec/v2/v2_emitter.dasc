@@ -12,12 +12,6 @@
 #include <sys/mman.h>
 #endif
 
-#define TMPREG1 get_scratch_registers()[0]
-#define TMPREG2 get_scratch_registers()[1]
-
-#define TMPREG1_ALLOC alloc_gpr(get_scratch_registers()[0])
-#define TMPREG2_ALLOC alloc_gpr(get_scratch_registers()[1])
-
 #define IMM64_INVALID() logfatal("Should never end up here, x86_64 has no 64 bit immediates")
 
 ||#if ((defined(_M_X64) || defined(__amd64__)) != X64) || (defined(_WIN32) != WIN)

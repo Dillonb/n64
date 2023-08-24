@@ -32,7 +32,16 @@ int get_num_func_arg_registers();
 // Gets the register used to hold a function's return value under the target platform's calling convention
 int get_return_value_reg();
 
+// Gets a list of registers we can safely use for holding temporary values that have been spilled to memory.
+// These should not overlap with the function arg registers, or be any registers needed for special purposes (like multiplication/division on x86)
+// 3 are required.
+const int* get_temp_registers_for_spilled();
+
 // Gets whether a given value type is a valid immediate on the target platform
 bool is_valid_immediate(ir_value_type_t value_type);
+
+// Shortcuts
+#define TMPREG1 get_scratch_registers()[0]
+#define TMPREG2 get_scratch_registers()[1]
 
 #endif //N64_TARGET_PLATFORM_H
