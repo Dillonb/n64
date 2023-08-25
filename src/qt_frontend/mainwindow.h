@@ -1,6 +1,9 @@
 #ifndef N64_MAIN_WINDOW
 #define N64_MAIN_WINDOW
 
+// From parallel-rdp. This must be included before any other vulkan-related headers, or parallel-rdp will complain
+#include <vulkan_headers.hpp>
+
 #include <QMainWindow>
 #include <QVulkanWindow>
 
