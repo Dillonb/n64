@@ -111,9 +111,11 @@ void override_joybus_devices_ptr(n64_joybus_device_t* override);
 
 // Exposed for testing
 
-// Trim and apply deadzone
-s8 trim_gamepad_axis(s16 raw);
-// do all requisite clamping for a controller
+// Trim input
+double trim_gamepad_axis(s16 raw);
+// Apply deadzone and scale according to response curve
+double deadzone_corrected_response(double peak_cardinal, double peak_diagonal, double axial_deadzone, double outer_radius, double length, double current_axis_input);
+// Do all requisite clamping for a controller
 void clamp_gamepad(n64_controller_t* controller);
 
 #ifdef __cplusplus
