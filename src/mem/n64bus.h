@@ -5,57 +5,40 @@
 #include <system/n64system.h>
 #include "addresses.h"
 
-tlb_entry_t* find_tlb_entry(u64 vaddr, int* entry_number);
-bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number);
-
-#define REGION_XKUSEG 0x0000000000000000 ... 0x000000FFFFFFFFFF
-#define REGION_XBAD1  0x0000010000000000 ... 0x3FFFFFFFFFFFFFFF
-#define REGION_XKSSEG 0x4000000000000000 ... 0x400000FFFFFFFFFF
-#define REGION_XBAD2  0x4000010000000000 ... 0x7FFFFFFFFFFFFFFF
-#define REGION_XKPHYS 0x8000000000000000 ... 0xBFFFFFFFFFFFFFFF
-#define REGION_XKSEG  0xC000000000000000 ... 0xC00000FF7FFFFFFF
-#define REGION_XBAD3  0xC00000FF80000000 ... 0xFFFFFFFF7FFFFFFF
-#define REGION_CKSEG0 0xFFFFFFFF80000000 ... 0xFFFFFFFF9FFFFFFF
-#define REGION_CKSEG1 0xFFFFFFFFA0000000 ... 0xFFFFFFFFBFFFFFFF
-#define REGION_CKSSEG 0xFFFFFFFFC0000000 ... 0xFFFFFFFFDFFFFFFF
-#define REGION_CKSEG3 0xFFFFFFFFE0000000 ... 0xFFFFFFFFFFFFFFFF
-
 INLINE bool is_tlb(u64 vaddr) {
     switch (vaddr) {
-        case REGION_XKUSEG:
-        case REGION_XKSSEG:
-        case REGION_XKSEG:
-        case REGION_CKSEG3:
-        case REGION_CKSSEG:
+        case VREGION_XKUSEG:
+        case VREGION_XKSSEG:
+        case VREGION_XKSEG:
+        case VREGION_CKSEG3:
+        case VREGION_CKSSEG:
 
-        case REGION_XBAD1:
-        case REGION_XBAD2:
-        case REGION_XBAD3:
+        case VREGION_XBAD1:
+        case VREGION_XBAD2:
+        case VREGION_XBAD3:
             return true;
 
-        case REGION_XKPHYS:
-        case REGION_CKSEG0:
-        case REGION_CKSEG1:
+        case VREGION_XKPHYS:
+        case VREGION_CKSEG0:
+        case VREGION_CKSEG1:
             return false;
         default:
             logfatal("Should never get here! Address %016" PRIX64 " did not match any region.", vaddr);
     }
 }
 
-INLINE bool resolve_virtual_address_32bit(u32 address, bus_access_t bus_access, u32* physical) {
-    switch (address >> 29) {
-        // KSEG0
-        case 0x4:
-            // Unmapped translation. Subtract the base address of the space to get the physical address.
-            *physical = address - SVREGION_KSEG0;
-            logtrace("KSEG0: Translated 0x%08X to 0x%08X", address, *physical);
+tlb_entry_t* find_tlb_entry(u64 vaddr, int* entry_number);
+bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number);
+
+INLINE bool resolve_virtual_address_32bit(u64 address, bus_access_t bus_access, u32* physical) {
+    switch ((address >> 29) & 0x7) {
+        case 0x4: // KSEG0
+        case 0x5: // KSEG1
+            // Direct mapping. Simply mask the virtual address to get the physical address
+            *physical = address & DIRECT_MAP_MASK;
+            logtrace("KSEG[0|1]: Translated 0x%08X to 0x%08X", (u32)address, *physical);
             break;
-        // KSEG1
-        case 0x5:
-            // Unmapped translation. Subtract the base address of the space to get the physical address.
-            *physical = address - SVREGION_KSEG1;
-            logtrace("KSEG1: Translated 0x%08X to 0x%08X", address, *physical);
-            break;
+
         // KUSEG
         case 0x0:
         case 0x1:
@@ -65,17 +48,15 @@ INLINE bool resolve_virtual_address_32bit(u32 address, bus_access_t bus_access, 
         }
         // KSSEG
         case 0x6:
-            logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", address);
+            logfatal("Unimplemented: translating virtual address 0x%08X in VREGION_KSSEG", (u32)address);
         // KSEG3
         case 0x7:
             return tlb_probe(se_32_64(address), bus_access, physical, NULL);
-        default:
-            logfatal("PANIC! should never end up here.");
     }
     return true;
 }
 
-INLINE bool resolve_virtual_address_user_32bit(u32 address, bus_access_t bus_access, u32* physical) {
+INLINE bool resolve_virtual_address_user_32bit(u64 address, bus_access_t bus_access, u32* physical) {
     switch (address) {
         case VREGION_KUSEG:
             return tlb_probe(se_32_64(address), bus_access, physical, NULL);
@@ -87,11 +68,11 @@ INLINE bool resolve_virtual_address_user_32bit(u32 address, bus_access_t bus_acc
 
 INLINE bool resolve_virtual_address_64bit(u64 address, bus_access_t bus_access, u32* physical) {
     switch (address) {
-        case REGION_XKUSEG:
+        case VREGION_XKUSEG:
             return tlb_probe(address, bus_access, physical, NULL);
-        case REGION_XKSSEG:
+        case VREGION_XKSSEG:
             return tlb_probe(address, bus_access, physical, NULL);
-        case REGION_XKPHYS: {
+        case VREGION_XKPHYS: {
             if (!N64CP0.kernel_mode) {
                 logfatal("Access to XKPHYS address 0x%016" PRIX64 " when outside kernel mode!", address);
             }
@@ -113,27 +94,27 @@ INLINE bool resolve_virtual_address_64bit(u64 address, bus_access_t bus_access, 
             *physical = address & 0xFFFFFFFF;
             break;
         }
-        case REGION_XKSEG:
+        case VREGION_XKSEG:
             return tlb_probe(address, bus_access, physical, NULL);
-        case REGION_CKSEG0:
+        case VREGION_CKSEG0:
             // Identical to kseg0 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             *physical = address - SVREGION_KSEG0; // Implies cutting off the high 32 bits
             logtrace("CKSEG0: Translated 0x%016" PRIX64 " to 0x%08X", address, *physical);
             break;
-        case REGION_CKSEG1:
+        case VREGION_CKSEG1:
             // Identical to kseg1 in 32 bit mode.
             // Unmapped translation. Subtract the base address of the space to get the physical address.
             *physical = address - SVREGION_KSEG1; // Implies cutting off the high 32 bits
             logtrace("KSEG1: Translated 0x%016" PRIX64 " to 0x%08X", address, *physical);
             break;
-        case REGION_CKSSEG:
-            logfatal("Resolving virtual address 0x%016" PRIX64 " (REGION_CKSSEG) in 64 bit mode", address);
-        case REGION_CKSEG3:
+        case VREGION_CKSSEG:
+            logfatal("Resolving virtual address 0x%016" PRIX64 " (VREGION_CKSSEG) in 64 bit mode", address);
+        case VREGION_CKSEG3:
             return tlb_probe(address, bus_access, physical, NULL);
-        case REGION_XBAD1:
-        case REGION_XBAD2:
-        case REGION_XBAD3:
+        case VREGION_XBAD1:
+        case VREGION_XBAD2:
+        case VREGION_XBAD3:
             N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
             return false;
         default:
@@ -145,7 +126,7 @@ INLINE bool resolve_virtual_address_64bit(u64 address, bus_access_t bus_access, 
 
 INLINE bool resolve_virtual_address_user_64bit(u64 address, bus_access_t bus_access, u32* physical) {
     switch (address) {
-        case REGION_XKUSEG:
+        case VREGION_XKUSEG:
             return tlb_probe(address, bus_access, physical, NULL);
         default:
             N64CP0.tlb_error = TLB_ERROR_DISALLOWED_ADDRESS;
@@ -153,12 +134,12 @@ INLINE bool resolve_virtual_address_user_64bit(u64 address, bus_access_t bus_acc
     }
 }
 
-INLINE bool resolve_virtual_address(u64 virtual, bus_access_t bus_access, u32* physical) {
+INLINE resolve_virtual_address_handler get_resolve_virtual_address_handler() {
     if (unlikely(N64CP0.is_64bit_addressing)) {
         if (likely(N64CP0.kernel_mode)) {
-            return resolve_virtual_address_64bit(virtual, bus_access, physical);
+            return resolve_virtual_address_64bit;
         } else if (N64CP0.user_mode) {
-            return resolve_virtual_address_user_64bit(virtual, bus_access, physical);
+            return resolve_virtual_address_user_64bit;
         } else if (N64CP0.supervisor_mode) {
             logfatal("Supervisor mode memory access, 64 bit mode");
         } else {
@@ -166,9 +147,9 @@ INLINE bool resolve_virtual_address(u64 virtual, bus_access_t bus_access, u32* p
         }
     } else {
         if (likely(N64CP0.kernel_mode)) {
-            return resolve_virtual_address_32bit(virtual, bus_access, physical);
+            return resolve_virtual_address_32bit;
         } else if (N64CP0.user_mode) {
-            return resolve_virtual_address_user_32bit(virtual, bus_access, physical);
+            return resolve_virtual_address_user_32bit;
         } else if (N64CP0.supervisor_mode) {
             logfatal("Supervisor mode memory access, 32 bit mode");
         } else {
@@ -176,6 +157,8 @@ INLINE bool resolve_virtual_address(u64 virtual, bus_access_t bus_access, u32* p
         }
     }
 }
+
+#define resolve_virtual_address(vaddr, bus_access, physical) N64CP0.resolve_virtual_address(vaddr, bus_access, physical)
 
 INLINE u32 resolve_virtual_address_or_die(u64 virtual, bus_access_t bus_access) {
     u32 physical;

@@ -3,6 +3,7 @@
 
 #include "r4300i.h"
 #include "mips_instruction_decode.h"
+#include <mem/n64bus.h>
 
 #ifndef MIPS_INSTR
 #define MIPS_INSTR(NAME) void NAME(mips_instruction_t instruction)

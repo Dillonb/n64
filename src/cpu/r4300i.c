@@ -860,5 +860,6 @@ void cp0_status_updated() {
             || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
                || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
     n64dynarec.sysconfig.fr = N64CP0.status.fr;
+    N64CP0.resolve_virtual_address = get_resolve_virtual_address_handler();
     r4300i_interrupt_update();
 }

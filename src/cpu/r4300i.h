@@ -482,6 +482,8 @@ static inline u32 get_tlb_exception_code(tlb_error_t error, bus_access_t bus_acc
     }
 }
 
+typedef bool (*resolve_virtual_address_handler)(u64 vaddr, bus_access_t bus_access, u32* paddr);
+
 typedef struct cp0 {
     u32 index;
     u32 random;
@@ -518,6 +520,7 @@ typedef struct cp0 {
     bool supervisor_mode;
     bool user_mode;
     bool is_64bit_addressing;
+    resolve_virtual_address_handler resolve_virtual_address;
 } cp0_t;
 
 typedef union fcr0 {
