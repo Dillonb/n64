@@ -40,5 +40,6 @@ bool scheduler_tick(u64 cycles, scheduler_event_t* event);
 u64 scheduler_remove_event(scheduler_event_type_t event_type);
 void scheduler_enqueue_absolute(u64 at_cycles, scheduler_event_type_t event_type);
 void scheduler_enqueue_relative(u64 in_cycles, scheduler_event_type_t event_type);
+u64 scheduler_ticks_until_next_event();
 
 #endif //N64_SCHEDULER_H

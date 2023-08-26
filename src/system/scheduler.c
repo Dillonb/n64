@@ -89,3 +89,17 @@ u64 scheduler_remove_event(scheduler_event_type_t event_type) {
     }
     return 0;
 }
+
+u64 scheduler_ticks_until_next_event() {
+    if (n64scheduler.scheduler_list) {
+        u64 next_event_ticks = n64scheduler.scheduler_list->event.time;
+        if (next_event_ticks < n64scheduler.scheduler_ticks) {
+            logwarn("Tried to get ticks until next event, but the first event in the list was in the past!");
+            return 1;
+        }
+        return next_event_ticks - n64scheduler.scheduler_ticks;
+    } else {
+        logwarn("Tried to get ticks until next event when there were no events in the queue!");
+        return 1;
+    }
+}

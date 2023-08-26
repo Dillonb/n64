@@ -9,6 +9,7 @@
 #include "v2_emitter.h"
 #include <system/mprotect_utils.h>
 #include <mips_instructions.h>
+#include <system/scheduler.h>
 
 #include "instruction_category.h"
 #include "ir_emitter.h"
@@ -18,6 +19,8 @@
 #include "register_allocator.h"
 
 //#define N64_LOG_COMPILATIONS
+
+static bool v2_idle_loop_detection_enabled = false;
 
 #define DISPATCHER_CODE_SIZE 4096
 static u8 run_block_codecache[DISPATCHER_CODE_SIZE] __attribute((aligned(4096)));
@@ -1025,6 +1028,28 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     v2_dasm_free();
 }
 
+bool detect_idle_loop() {
+    // SUPER basic, just detect if a block is:
+    // b -1
+    // nop
+
+    if (!v2_idle_loop_detection_enabled) {
+        return false;
+    }
+
+    if (temp_code_len == 2 && temp_code[0].instr.raw == 0x1000FFFF && temp_code[1].instr.raw == 0x00000000) {
+        return true;
+    }
+
+    return false;
+}
+
+int idle_loop_replacement() {
+    // +1 just in case we're executing this with 0 cycles until the next event
+    u64 ticks_to_skip = scheduler_ticks_until_next_event() + 1;
+    return ticks_to_skip;
+}
+
 void v2_compile_new_block(
         n64_dynarec_block_t* block,
         bool* code_mask,
@@ -1032,6 +1057,14 @@ void v2_compile_new_block(
         u32 physical_address) {
 
     fill_temp_code(virtual_address, physical_address, code_mask);
+
+    if (detect_idle_loop()) {
+        block->run = idle_loop_replacement;
+        block->guest_size = 0;
+        block->host_size = 0;
+        return;
+    }
+
     ir_context_reset();
     ir_context.block_start_virtual = virtual_address;
     ir_context.block_start_physical = physical_address;
@@ -1123,4 +1156,8 @@ void v2_compiler_init() {
         v2_encode(Dst, (u8 *) &run_block_codecache);
         v2_dasm_free();
     }
+}
+
+void v2_set_idle_loop_detection_enabled(bool enabled) {
+    v2_idle_loop_detection_enabled = enabled;
 }

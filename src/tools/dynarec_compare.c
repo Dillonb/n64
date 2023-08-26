@@ -297,6 +297,7 @@ void usage(cflags_t* flags) {
 }
 
 int main(int argc, char** argv) {
+    v2_set_idle_loop_detection_enabled(false);
     n64_settings_init();
     log_set_verbosity(LOG_VERBOSITY_WARN);
 #ifndef INSTANT_DMA
