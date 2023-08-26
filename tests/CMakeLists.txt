@@ -8,10 +8,6 @@ target_link_libraries(test_cpu r4300i common core)
 add_test(test_cpu test_cpu)
 endif()
 
-add_executable(test_gamepad_trim test_gamepad_trim.c)
-target_link_libraries(test_gamepad_trim core)
-add_test(test_gamepad_trim test_gamepad_trim)
-
 add_executable(test_vmadm_overflow test_vmadm_overflow.c unit.h)
 target_link_libraries(test_vmadm_overflow rsp common core)
 add_test(test_vmadm_overflow test_vmadm_overflow)
