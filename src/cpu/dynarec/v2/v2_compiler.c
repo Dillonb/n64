@@ -74,7 +74,6 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
     for (int i = 0; i < MAX_BLOCK_LENGTH || instructions_left_in_block > 0; i++) {
         u32 instr_address = physical_address + (i << 2);
         u32 next_instr_address = instr_address + 4;
-        u64 instr_virtual_address = virtual_address + (i << 2);
 
         bool page_boundary_ends_block = IS_PAGE_BOUNDARY(next_instr_address);
 
@@ -129,6 +128,7 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
 
 #ifdef N64_LOG_COMPILATIONS
         static char buf[50];
+        u64 instr_virtual_address = virtual_address + (i << 2);
         disassemble(instr_virtual_address, temp_code[i].instr.raw, buf, 50);
         printf("%d [%08X]=%08X %s\n", i, (u32)instr_virtual_address, temp_code[i].instr.raw, buf);
 #endif
