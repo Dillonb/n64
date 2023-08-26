@@ -1015,7 +1015,7 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     v2_end_block(Dst, temp_code_len);
     size_t code_size = v2_link(Dst);
 #ifdef N64_LOG_COMPILATIONS
-    printf("Generated %ld bytes of code\n", code_size);
+    printf("Generated %zu bytes of code\n", code_size);
 #endif
     block->guest_size = temp_code_len * 4;
     block->host_size = code_size;
@@ -1040,6 +1040,7 @@ void v2_compile_new_block(
 #endif
 
     // If the block ends with a branch, don't include it in the block, and instead fall back to the interpreter.
+    // The block should only ever end up on a branch if it's cut off by a page boundary.
     bool block_ends_with_branch = LAST_INSTR_IS_BRANCH;
 
     // Trim all branches off the end of the block (they will be replaced by the interpreter fallback)
