@@ -7,6 +7,9 @@
 #include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
 
+// Uncomment to try to find idle loops
+//#define DO_REPEATED_EXEC_DETECTION
+
 n64_dynarec_t n64dynarec;
 
 void update_sysconfig() {
@@ -65,6 +68,29 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
     return block_iter;
 }
 
+#ifdef DO_REPEATED_EXEC_DETECTION
+#include <disassemble.h>
+void do_repeated_exec_detection(u32 physical, n64_dynarec_block_t *block) {
+    static u32 last_physical_address = 0;
+    static size_t last_guest_size = 0;
+    static int num_times_executed = 0;
+
+    if (physical == last_physical_address) {
+        num_times_executed++;
+    } else {
+        if (num_times_executed > 100) {
+            if (last_physical_address < EREGION_RDRAM) {
+                printf("Executed a block at %08X %d times\n", last_physical_address, num_times_executed);
+                print_multi_guest(last_physical_address, &n64sys.mem.rdram[last_physical_address], last_guest_size);
+            }
+        }
+        num_times_executed = 0;
+    }
+    last_physical_address = physical;
+    last_guest_size = block->guest_size;
+}
+#endif // DO_REPEATED_EXEC_DETECTION
+
 int n64_dynarec_step() {
     N64CPU.branch = false;
     N64CPU.prev_branch = false;
@@ -110,6 +136,9 @@ int n64_dynarec_step() {
     {
         n64_dynarec_block_t* matching_block = find_matching_block(block, n64dynarec.sysconfig, N64CPU.pc);
         if (matching_block && matching_block->run) {
+            #ifdef DO_REPEATED_EXEC_DETECTION
+            do_repeated_exec_detection(physical, block);
+            #endif
             taken = n64dynarec.run_block((u64)matching_block->run);
         } else {
             return missing_block_handler(physical, matching_block, n64dynarec.sysconfig);
