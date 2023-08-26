@@ -1028,18 +1028,25 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     v2_dasm_free();
 }
 
-bool detect_idle_loop() {
-    // SUPER basic, just detect if a block is:
-    // b -1
-    // nop
-
+bool detect_idle_loop(u64 virtual_address) {
     if (!v2_idle_loop_detection_enabled) {
         return false;
     }
 
-    if (temp_code_len == 2 && temp_code[0].instr.raw == 0x1000FFFF && temp_code[1].instr.raw == 0x00000000) {
-        return true;
+    if (temp_code_len == 2 && temp_code[1].instr.raw == 0x00000000) {
+        // b -1
+        // nop
+        if (temp_code[0].instr.raw == 0x1000FFFF) {
+            return true;
+        }
+
+        // j (self)
+        // nop
+        if (temp_code[0].instr.op == OPC_J && temp_code[0].instr.j.target == ((virtual_address >> 2) & 0x3FFFFFF)) {
+            return true;
+        }
     }
+
 
     return false;
 }
@@ -1058,7 +1065,7 @@ void v2_compile_new_block(
 
     fill_temp_code(virtual_address, physical_address, code_mask);
 
-    if (detect_idle_loop()) {
+    if (detect_idle_loop(virtual_address)) {
         block->run = idle_loop_replacement;
         block->guest_size = 0;
         block->host_size = 0;
