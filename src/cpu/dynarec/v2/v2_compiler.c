@@ -20,7 +20,7 @@
 
 //#define N64_LOG_COMPILATIONS
 
-static bool v2_idle_loop_detection_enabled = false;
+static bool v2_idle_loop_detection_enabled = true;
 
 #define DISPATCHER_CODE_SIZE 4096
 static u8 run_block_codecache[DISPATCHER_CODE_SIZE] __attribute((aligned(4096)));
