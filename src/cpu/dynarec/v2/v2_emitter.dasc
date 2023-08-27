@@ -1753,9 +1753,9 @@ bool is_unordered(ir_float_condition_t condition) {
         case CONDITION_FLOAT_LE:
         case CONDITION_FLOAT_LT:
         case CONDITION_FLOAT_EQ:
+            return false;
         case CONDITION_FLOAT_NGE:
         case CONDITION_FLOAT_NGT:
-            return false;
         case CONDITION_FLOAT_UN:
             return true;
     }
@@ -1764,8 +1764,6 @@ bool is_unordered(ir_float_condition_t condition) {
 void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_float_value_type_t format, ir_register_allocation_t operand1, ir_register_allocation_t operand2) {
     int op1 = check_fgr(Dst, operand1);
     int op2 = check_fgr(Dst, operand2);
-    | mov Rd(TMPREG1), cpu_state->fcr31.raw
-    | and Rd(TMPREG1), ~(FCR31_COMPARE_MASK)
     switch (format) {
         case FLOAT_VALUE_TYPE_INVALID:
         case FLOAT_VALUE_TYPE_WORD:
@@ -1798,15 +1796,25 @@ void host_emit_float_cmp(dasm_State** Dst, ir_float_condition_t condition, ir_fl
             | sete Rb(TMPREG2)
             break;
         case CONDITION_FLOAT_NGE:
-            logfatal("CONDITION_FLOAT_NGE");
+            | setb Rb(TMPREG1)
+            // Set if unordered
+            | setp Rb(TMPREG2)
+            | or Rb(TMPREG2), Rb(TMPREG1)
+            break;
         case CONDITION_FLOAT_NGT:
-            logfatal("CONDITION_FLOAT_NGT");
+            | setbe Rb(TMPREG1)
+            // Set if unordered
+            | setp Rb(TMPREG2)
+            | or Rb(TMPREG2), Rb(TMPREG1)
+            break;
         case CONDITION_FLOAT_UN:
             | setp Rb(TMPREG2)
             break;
     }
     | movzx Rd(TMPREG2), Rb(TMPREG2)
     | sal Rd(TMPREG2), FCR31_COMPARE_SHIFT
+    | mov Rd(TMPREG1), cpu_state->fcr31.raw
+    | and Rd(TMPREG1), ~(FCR31_COMPARE_MASK)
     | or Rd(TMPREG1), Rd(TMPREG2)
     | mov cpu_state->fcr31.raw, Rd(TMPREG1)
     reset_temp_fgr(Dst);

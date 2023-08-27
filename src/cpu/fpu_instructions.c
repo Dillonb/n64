@@ -948,7 +948,7 @@ MIPS_INSTR(mips_cp_c_nge_d) {
     double fs = get_fpu_register_double_fs(instruction.fr.fs);
     double ft = get_fpu_register_double_ft(instruction.fr.ft);
     check_nans_d(fs, ft);
-    N64CPU.fcr31.compare = fs < ft || unordered_s(fs, ft);
+    N64CPU.fcr31.compare = fs < ft || unordered_d(fs, ft);
 }
 
 MIPS_INSTR(mips_cp_c_le_s) {
