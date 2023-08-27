@@ -115,7 +115,7 @@ bool tlb_probe_from_cache_entry(tlb_cache_entry_t* entry, u64 vaddr, bus_access_
         // Fall back to slow path for misses (for now?)
         bool hit = tlb_probe_slow(vaddr, bus_access, NULL, NULL, NULL);
         if (hit) {
-            logfatal("Vaddr %016llX missed when it should have hit!\n", vaddr);
+            logfatal("Vaddr %016" PRIX64 " missed when it should have hit!\n", vaddr);
         }
         return hit;
     }

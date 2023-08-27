@@ -489,7 +489,7 @@ static inline u32 get_tlb_exception_code(tlb_error_t error, bus_access_t bus_acc
 // todo - tune this value
 #define TLB_CACHE_INDEX_BITS 15
 
-_Static_assert(TLB_CACHE_BLOCK_OFFSET_BITS + TLB_CACHE_INDEX_BITS <= 40, "block offset + index must not exceed 40 bits (check how VPN is calculated to see why)");
+static_assert(TLB_CACHE_BLOCK_OFFSET_BITS + TLB_CACHE_INDEX_BITS <= 40, "block offset + index must not exceed 40 bits (check how VPN is calculated to see why)");
 
 // Derived TLB cache stuff
 #define TLB_CACHE_TAG_BITS ((64 - (TLB_CACHE_INDEX_BITS)) - (TLB_CACHE_BLOCK_OFFSET_BITS))
