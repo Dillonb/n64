@@ -15,14 +15,14 @@
 #include "backup.h"
 
 INLINE u64 get_vpn(u64 address, u32 page_mask_raw) {
-    u64 tmp = page_mask_raw | 0x1FFF;
+    u64 page_mask = page_mask_raw | 0x1FFF;
     // bits 40 and 41: bits 62 and 63 of the address, the "region"
     // bits 0 - 39: the low 40 bits of the address, the actual location being accessed.
     u64 vpn = (address & 0xFFFFFFFFFF) | ((address >> 22) & 0x30000000000);
 
     // This function is also called for entry_hi, the low 8 bits of which are the ASID
     // this is fine, this mask will take care of that.
-    vpn &= ~tmp;
+    vpn &= ~page_mask;
     return vpn;
 }
 
@@ -63,7 +63,7 @@ tlb_entry_t* find_tlb_entry(u64 vaddr, int* entry_number) {
     return NULL;
 }
 
-bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number) {
+bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number, bool* dirty) {
     tlb_entry_t* entry = find_tlb_entry(vaddr, entry_number);
     if (!entry) {
         N64CP0.tlb_error = TLB_ERROR_MISS;
@@ -84,6 +84,9 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
             N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
             return false;
         }
+        if (dirty) {
+            *dirty = entry->entry_lo0.dirty;
+        }
         pfn = entry->entry_lo0.pfn;
     } else {
         if (!(entry->entry_lo1.valid)) {
@@ -94,6 +97,9 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
             N64CP0.tlb_error = TLB_ERROR_MODIFICATION;
             return false;
         }
+        if (dirty) {
+            *dirty = entry->entry_lo1.dirty;
+        }
         pfn = entry->entry_lo1.pfn;
     }
 
@@ -102,6 +108,82 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
     }
 
     return true;
+}
+
+bool tlb_probe_from_cache_entry(tlb_cache_entry_t* entry, u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number) {
+    if (!entry->hit || (bus_access == BUS_STORE && !entry->dirty)) {
+        // Fall back to slow path for misses (for now?)
+        bool hit = tlb_probe_slow(vaddr, bus_access, NULL, NULL, NULL);
+        if (hit) {
+            logfatal("Vaddr %016llX missed when it should have hit!\n", vaddr);
+        }
+        return hit;
+    }
+
+    if (paddr) {
+        u32 resolved = entry->base_address + GET_TLB_CACHE_BLOCK_OFFSET(vaddr);
+        *paddr = resolved;
+    }
+    if (entry_number) {
+        *entry_number = entry->entry_num;
+    }
+
+    return entry->hit;
+}
+
+bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number) {
+    u64 index = GET_TLB_CACHE_INDEX(vaddr);
+    u64 tag = GET_TLB_CACHE_TAG(vaddr);
+    u64 base_address = GET_TLB_CACHE_BASE_ADDRESS(vaddr);
+    u8 asid = N64CP0.entry_hi.asid;
+
+    bool any_invalid = false;
+
+    tlb_cache_entry_t* entries = N64CP0.tlb_cache[index];
+
+    for (int i = 0; i < TLB_CACHE_ASSOCIATIVITY; i++) {
+        if (entries[i].valid) {
+            bool asid_match = entries[i].global || entries[i].asid == asid;
+            if (entries[i].tag == tag && asid_match) {
+                return tlb_probe_from_cache_entry(&entries[i], vaddr, bus_access, paddr, entry_number);
+            }
+        } else {
+            any_invalid = true;
+        }
+    }
+
+    // Didn't find it in the cache, fall back to the slow path:
+    int entry_number_cache;
+    u32 paddr_cache;
+    bool dirty;
+
+    bool hit = tlb_probe_slow(base_address, bus_access, &paddr_cache, &entry_number_cache, &dirty);
+
+    tlb_cache_entry_t* new_dest = NULL;
+    if (any_invalid) {
+        new_dest = N64CP0.tlb_cache[index];
+
+        // Should be safe, since any_invalid is set to true, there will be one.
+        while (new_dest->valid) {
+            new_dest++;
+        }
+    } else {
+        new_dest = &N64CP0.tlb_cache[index][rand() % TLB_CACHE_ASSOCIATIVITY];
+    }
+
+    memset(new_dest, 0, sizeof(tlb_cache_entry_t));
+    new_dest->valid = true;
+    new_dest->hit = hit;
+    new_dest->dirty = hit ? dirty : false;
+
+    new_dest->entry_num = hit ? entry_number_cache : 0;
+    new_dest->tag = tag;
+    new_dest->base_address = paddr_cache;
+    new_dest->asid = asid;
+
+    new_dest->global = hit ? N64CP0.tlb[entry_number_cache].global : true; // set it as global if it's a miss, so we'll always find it
+
+    return tlb_probe_from_cache_entry(new_dest, vaddr, bus_access, paddr, entry_number);
 }
 
 u32 read_word_rdramreg(u32 address) {

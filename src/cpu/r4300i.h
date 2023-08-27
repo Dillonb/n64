@@ -482,6 +482,34 @@ static inline u32 get_tlb_exception_code(tlb_error_t error, bus_access_t bus_acc
     }
 }
 
+// Set-associative cache for the TLB
+// todo - tune this value
+#define TLB_CACHE_ASSOCIATIVITY 4u
+#define TLB_CACHE_BLOCK_OFFSET_BITS 12
+// todo - tune this value
+#define TLB_CACHE_INDEX_BITS 15
+
+_Static_assert(TLB_CACHE_BLOCK_OFFSET_BITS + TLB_CACHE_INDEX_BITS <= 40, "block offset + index must not exceed 40 bits (check how VPN is calculated to see why)");
+
+// Derived TLB cache stuff
+#define TLB_CACHE_TAG_BITS ((64 - (TLB_CACHE_INDEX_BITS)) - (TLB_CACHE_BLOCK_OFFSET_BITS))
+// Getters for address components
+#define GET_TLB_CACHE_BLOCK_OFFSET(vaddr) ((vaddr) & (((u64)1 << (TLB_CACHE_BLOCK_OFFSET_BITS)) - 1))
+#define GET_TLB_CACHE_INDEX(vaddr) (((vaddr) >> (TLB_CACHE_BLOCK_OFFSET_BITS)) & (((u64)1 << TLB_CACHE_INDEX_BITS) - 1))
+#define GET_TLB_CACHE_TAG(vaddr) (((vaddr) >> ((TLB_CACHE_BLOCK_OFFSET_BITS) + (TLB_CACHE_INDEX_BITS))) & (((u64)1 << (TLB_CACHE_TAG_BITS)) - 1))
+#define GET_TLB_CACHE_BASE_ADDRESS(vaddr) ((vaddr) & ~(((u64)1 << TLB_CACHE_BLOCK_OFFSET_BITS) - 1))
+
+typedef struct tlb_cache_entry {
+    bool valid; // Is the TLB cache entry valid or do we need to fall back to the slow path?
+    bool hit; // Is the address a TLB hit?
+    int entry_num; // which tlb index did it match?
+    u64 tag;
+    u32 base_address;
+    u8 asid;
+    bool global;
+    bool dirty;
+} tlb_cache_entry_t;
+
 typedef bool (*resolve_virtual_address_handler)(u64 vaddr, bus_access_t bus_access, u32* paddr);
 
 typedef struct cp0 {
@@ -515,6 +543,8 @@ typedef struct cp0 {
 
     tlb_entry_t    tlb[32];
     tlb_error_t tlb_error;
+
+    tlb_cache_entry_t tlb_cache[1 << TLB_CACHE_INDEX_BITS][TLB_CACHE_ASSOCIATIVITY];
 
     bool kernel_mode;
     bool supervisor_mode;

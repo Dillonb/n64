@@ -9,6 +9,21 @@
 #define MIPS_INSTR(NAME) void NAME(mips_instruction_t instruction)
 #endif
 
+INLINE void clear_tlb_cache(tlb_entry_t entry) {
+    if (entry.initialized) {
+        u64 page_mask = entry.page_mask.raw | 0x1FFF;
+        u64 start = entry.entry_hi.raw & ~page_mask;
+        u64 end = start | page_mask;
+
+        u32 start_index = GET_TLB_CACHE_INDEX(start);
+        u32 end_index = GET_TLB_CACHE_INDEX(end);
+
+        for (u32 index = start_index; index <= end_index; index++) {
+            memset(N64CP0.tlb_cache[index], 0, TLB_CACHE_ASSOCIATIVITY * sizeof(tlb_cache_entry_t));
+        }
+    }
+}
+
 INLINE void do_tlbwi(int index) {
     cp0_page_mask_t page_mask;
     page_mask = N64CP0.page_mask;
@@ -25,6 +40,8 @@ INLINE void do_tlbwi(int index) {
     if (index >= 32) {
         logfatal("TLBWI to TLB index %d", index);
     }
+    // Clear old entry
+    clear_tlb_cache(N64CP0.tlb[index]);
     N64CP0.tlb[index].entry_hi.raw  = N64CP0.entry_hi.raw;
     N64CP0.tlb[index].entry_hi.vpn2 &= ~page_mask.mask;
     // Note: different masks than the Cop0 registers for entry_lo0 and 1, so another mask is needed here
@@ -36,6 +53,8 @@ INLINE void do_tlbwi(int index) {
 
     N64CP0.tlb[index].initialized = true;
 
+    // Clear new entry
+    clear_tlb_cache(N64CP0.tlb[index]);
 }
 
 MIPS_INSTR(mips_tlbwi);
