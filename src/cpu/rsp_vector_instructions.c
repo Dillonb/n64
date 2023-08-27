@@ -1,15 +1,16 @@
 #include "rsp_vector_instructions.h"
 
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
 #include <emmintrin.h>
 #endif
 
 #include <log.h>
-#ifdef N64_USE_SIMD
+
+#ifdef N64_HAVE_SSE
 #include <immintrin.h>
 #include <n64_rsp_bus.h>
-
 #endif
+
 #include "rsp.h"
 #include "rsp_rom.h"
 #include "n64_rsp_bus.h"
@@ -36,7 +37,7 @@ INLINE bool is_sign_extension(s16 high, s16 low) {
     return false;
 }
 
-#ifndef N64_USE_SIMD
+#ifndef N64_HAVE_SSE
 INLINE vu_reg_t broadcast(vu_reg_t* vt, int lane0, int lane1, int lane2, int lane3, int lane4, int lane5, int lane6, int lane7) {
     vu_reg_t vte;
     vte.elements[VU_ELEM_INDEX(0)] = vt->elements[VU_ELEM_INDEX(lane0)];
@@ -57,42 +58,42 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, u8 e) {
         case 0 ... 1:
             return *vt;
         case 2:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11110101), 0b11110101);
 #else
             vte = broadcast(vt, 0, 0, 2, 2, 4, 4, 6, 6);
 #endif
             break;
         case 3:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10100000), 0b10100000);
 #else
             vte = broadcast(vt, 1, 1, 3, 3, 5, 5, 7, 7);
 #endif
             break;
         case 4:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b11111111), 0b11111111);
 #else
             vte = broadcast(vt, 0, 0, 0, 0, 4, 4, 4, 4);
 #endif
             break;
         case 5:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b10101010), 0b10101010);
 #else
             vte = broadcast(vt, 1, 1, 1, 1, 5, 5, 5, 5);
 #endif
             break;
         case 6:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b01010101), 0b01010101);
 #else
             vte = broadcast(vt, 2, 2, 2, 2, 6, 6, 6, 6);
 #endif
             break;
         case 7:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vte.single = _mm_shufflehi_epi16(_mm_shufflelo_epi16(vt->single, 0b00000000), 0b00000000);
 #else
             vte = broadcast(vt, 3, 3, 3, 3, 7, 7, 7, 7);
@@ -100,7 +101,7 @@ INLINE vu_reg_t get_vte(vu_reg_t* vt, u8 e) {
             break;
         case 8 ... 15: {
             int index = VU_ELEM_INDEX(e - 8);
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vte.single = _mm_set1_epi16(vt->elements[index]);
 #else
             for (int i = 0; i < 8; i++) {
@@ -651,7 +652,7 @@ RSP_VECTOR_INSTR(rsp_vec_vabs) {
     defvd;
     defvte;
 
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
     // check if each element is zero
     __m128i vs_is_zero = _mm_cmpeq_epi16(vs->single, N64RSP.zero);
 
@@ -969,8 +970,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmadh) {
     defvs;
     defvd;
     defvte;
-#ifdef N64_USE_SIMD
-    vecr lo, hi, omask;
+#ifdef N64_HAVE_SSE
+    s128 lo, hi, omask;
     lo                 = _mm_mullo_epi16(vs->single, vte.single);
     hi                 = _mm_mulhi_epi16(vs->single, vte.single);
     omask              = _mm_adds_epu16(N64RSP.acc.m.single, lo);
@@ -1033,8 +1034,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmadm) {
     defvs;
     defvd;
     defvte;
-#ifdef N64_USE_SIMD
-    vecr lo, hi, sign, vta, omask;
+#ifdef N64_HAVE_SSE
+    s128 lo, hi, sign, vta, omask;
     lo                 = _mm_mullo_epi16(vs->single, vte.single);
     hi                 = _mm_mulhi_epu16(vs->single, vte.single);
     sign               = _mm_srai_epi16(vs->single, 15);
@@ -1079,8 +1080,8 @@ RSP_VECTOR_INSTR(rsp_vec_vmadn) {
     defvs;
     defvd;
     defvte;
-#ifdef N64_USE_SIMD
-    vecr lo, hi, sign, vsa, omask, nhi, nmd, shi, smd, cmask, cval;
+#ifdef N64_HAVE_SSE
+    s128 lo, hi, sign, vsa, omask, nhi, nmd, shi, smd, cmask, cval;
     lo                 = _mm_mullo_epi16(vs->single, vte.single);
     hi                 = _mm_mulhi_epu16(vs->single, vte.single);
     sign               = _mm_srai_epi16(vte.single, 15);
@@ -1158,7 +1159,7 @@ RSP_VECTOR_INSTR(rsp_vec_vmov) {
     u8 de = instruction.cp2_vec.vs & 7;
 
     u16 vte_elem = vte.elements[VU_ELEM_INDEX(se)];
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
     vd->elements[VU_ELEM_INDEX(de)] = vte_elem;
     N64RSP.acc.l = vte;
 #else
@@ -1416,7 +1417,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcp) {
     vd->elements[VU_ELEM_INDEX(de)] = result & 0xFFFF;
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin_loaded = false;
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
@@ -1442,7 +1443,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcpl) {
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin = 0;
     N64RSP.divin_loaded = false;
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
@@ -1535,7 +1536,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsq) {
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin_loaded = false;
 
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
@@ -1552,7 +1553,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrcph_vrsqh) {
     u8 e  = instruction.cp2_vec.e & 7;
     u8 de = instruction.cp2_vec.vs & 7;
 
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
@@ -1581,7 +1582,7 @@ RSP_VECTOR_INSTR(rsp_vec_vrsql) {
     N64RSP.divout = (result >> 16) & 0xFFFF;
     N64RSP.divin_loaded = false;
 
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
     N64RSP.acc.l.single = vte.single;
 #else
     for (int i = 0; i < 8; i++) {
@@ -1596,7 +1597,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
     defvd;
     switch (instruction.cp2_vec.e) {
         case 0x8:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vd->single = N64RSP.acc.h.single;
 #else
             for (int i = 0; i < 8; i++) {
@@ -1605,7 +1606,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
 #endif
             break;
         case 0x9:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vd->single = N64RSP.acc.m.single;
 #else
             for (int i = 0; i < 8; i++) {
@@ -1614,7 +1615,7 @@ RSP_VECTOR_INSTR(rsp_vec_vsar) {
 #endif
             break;
         case 0xA:
-#ifdef N64_USE_SIMD
+#ifdef N64_HAVE_SSE
             vd->single = N64RSP.acc.l.single;
 #else
             for (int i = 0; i < 8; i++) {

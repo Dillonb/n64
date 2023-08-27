@@ -3,14 +3,9 @@
 
 #include <stdbool.h>
 #include <assert.h>
-#ifdef N64_USE_SIMD
-#include <emmintrin.h>
-#endif
 #include <util.h>
 #include <cpu/dynarec/rsp_dynarec.h>
 #include "mips_instruction_decode.h"
-
-#define vecr __m128i
 
 #define SP_DMEM_SIZE 0x1000
 #define SP_IMEM_SIZE 0x1000
@@ -20,8 +15,8 @@ typedef union vu_reg {
     u8 bytes[16];
     s16 signed_elements[8];
     u16 elements[8];
-#ifdef N64_USE_SIMD
-    vecr single;
+#ifdef N64_HAVE_SSE
+    s128 single;
 #endif
     // Only used for loading
     u32 words[4];
@@ -124,8 +119,8 @@ typedef struct rsp {
 
     int steps;
 
-#ifdef N64_USE_SIMD
-    vecr zero;
+#ifdef N64_HAVE_SSE
+    s128 zero;
 #endif
 
     rsp_status_t status;
