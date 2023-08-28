@@ -8,7 +8,9 @@
 #include <system/n64system.h>
 #include <rdp/rdp.h>
 #include <mem/n64bus.h>
+#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
+#endif
 #include <mem/mem_util.h>
 
 #include "rsp_types.h"
@@ -216,9 +218,11 @@ INLINE void rsp_dma_write() {
 
         // Invalidate all pages touched by the DMA
         // This is probably unnecessary, since why would someone be copying code from the RSP to the CPU and then executing it?
+#ifdef N64_DYNAREC_ENABLED
         for (int j = 0; j < length; j += BLOCKCACHE_PAGE_SIZE) {
             invalidate_dynarec_page(dram_address + j);
         }
+#endif
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
 

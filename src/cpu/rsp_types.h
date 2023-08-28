@@ -4,7 +4,9 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <util.h>
+#ifdef N64_DYNAREC_V1_ENABLED
 #include <cpu/dynarec/rsp_dynarec.h>
+#endif
 #include "mips_instruction_decode.h"
 
 #define SP_DMEM_SIZE 0x1000
@@ -107,10 +109,14 @@ typedef union dram_addr {
 
 ASSERTWORD(dram_addr_t);
 
+#ifdef N64_DYNAREC_V1_ENABLED
 typedef struct rsp_dynarec rsp_dynarec_t;
+#endif
 
 typedef struct rsp {
+#ifdef N64_DYNAREC_V1_ENABLED
     rsp_dynarec_t *dynarec;
+#endif
 
     u32 gpr[32];
     u16 prev_pc;

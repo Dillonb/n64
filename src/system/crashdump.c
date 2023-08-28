@@ -1,5 +1,7 @@
 #include "crashdump.h"
+#ifdef N64_DYNAREC_ENABLED
 #include <dynarec/rsp_dynarec.h>
+#endif
 #include <generated/version.h>
 #include <rsp.h>
 
@@ -28,6 +30,7 @@ const char* n64_save_system_state(const char* crash_reason) {
     crash_dump->scheduler_base = (uintptr_t)&n64scheduler;
     memcpy(&crash_dump->scheduler, &n64scheduler, crash_dump->scheduler_size);
 
+#ifdef N64_DYNAREC_ENABLED
     crash_dump->dynarec_size = sizeof(n64_dynarec_t);
     crash_dump->dynarec_base = (uintptr_t)&n64dynarec;
     memcpy(&crash_dump->dynarec, &n64dynarec, crash_dump->dynarec_size);
@@ -43,6 +46,7 @@ const char* n64_save_system_state(const char* crash_reason) {
     crash_dump->rsp_codecache_size = RSP_CODECACHE_SIZE;
     crash_dump->rsp_codecache_base = (uintptr_t)n64rsp.dynarec->codecache;
     memcpy(&crash_dump->rsp_codecache, n64rsp.dynarec->codecache, crash_dump->rsp_codecache_size);
+#endif
 
     size_t needed = snprintf(NULL, 0, "%s.crashdump", n64sys.rom_path);
     char* path_buf = malloc(needed + 1);

@@ -14,7 +14,9 @@
 #include <metrics.h>
 #include <mem/pif.h>
 #include <mem/mem_util.h>
+#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
+#endif
 #include <frontend/audio.h>
 #include <frontend/render.h>
 #include <disassemble.h>
@@ -22,7 +24,9 @@
 static bool show_metrics_window = false;
 static bool show_imgui_demo_window = false;
 static bool show_settings_window = false;
+#ifdef N64_DYNAREC_ENABLED
 static bool show_dynarec_block_browser = false;
+#endif
 
 static bool is_fullscreen = false;
 
@@ -122,7 +126,9 @@ void render_menubar() {
         {
             if (ImGui::MenuItem("Metrics", nullptr, show_metrics_window)) { show_metrics_window = !show_metrics_window; }
             if (ImGui::MenuItem("Settings", nullptr, show_settings_window)) { show_settings_window = !show_settings_window; }
+#ifdef N64_DYNAREC_ENABLED
             if (ImGui::MenuItem("Dynarec Block Browser", nullptr, show_dynarec_block_browser)) { show_dynarec_block_browser = !show_dynarec_block_browser; }
+#endif
             if (ImGui::MenuItem("ImGui Demo Window", nullptr, show_imgui_demo_window)) { show_imgui_demo_window = !show_imgui_demo_window; }
             ImGui::EndMenu();
         }
@@ -156,7 +162,9 @@ void render_metrics_window() {
     rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
+#ifdef N64_DYNAREC_ENABLED
     codecache_bytes_used.add_point(n64dynarec.codecache_used);
+#endif
     audiostream_bytes_available.add_point(get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
 
     si_interrupts.add_point(get_metric(METRIC_SI_INTERRUPT));
@@ -202,12 +210,14 @@ void render_metrics_window() {
         ImPlot::EndPlot();
     }
 
+#ifdef N64_DYNAREC_ENABLED
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, n64dynarec.codecache_size, ImGuiCond_Always);
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("Codecache bytes used")) {
         ImPlot::PlotBars("Codecache bytes used", codecache_bytes_used.data, METRICS_HISTORY_ITEMS, 1, 0, flags, codecache_bytes_used.offset);
         ImPlot::EndPlot();
     }
+#endif
 
     ImGui::Text("Audio stream bytes available: %" PRId64, get_metric(METRIC_AUDIOSTREAM_AVAILABLE));
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, audiostream_bytes_available.max(), ImGuiCond_Always);
@@ -238,6 +248,8 @@ void render_settings_window() {
     ImGui::Begin("Settings", &show_settings_window);
     ImGui::End();
 }
+
+#ifdef N64_DYNAREC_ENABLED
 struct block {
     block(u32 address, int outer_index, int inner_index) : address(address), outer_index(outer_index), inner_index(inner_index) {}
     block() : block(0, 0, 0) {}
@@ -372,6 +384,7 @@ void render_dynarec_block_browser() {
     ImGui::EndGroup();
     ImGui::End();
 }
+#endif
 
 void render_ui() {
     if (SDL_GetMouseFocus() || n64sys.mem.rom.rom == nullptr) {
@@ -380,7 +393,9 @@ void render_ui() {
     if (show_metrics_window) { render_metrics_window(); }
     if (show_imgui_demo_window) { ImGui::ShowDemoWindow(&show_imgui_demo_window); }
     if (show_settings_window) { render_settings_window(); }
+#ifdef N64_DYNAREC_ENABLED
     if (show_dynarec_block_browser) { render_dynarec_block_browser(); }
+#endif
 }
 
 static VkAllocationCallbacks*   g_Allocator = NULL;

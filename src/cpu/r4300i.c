@@ -1,5 +1,7 @@
 #include "r4300i.h"
+#ifdef N64_DYNAREC_ENABLED
 #include <dynarec/dynarec.h>
+#endif
 #include <log.h>
 #include <system/n64system.h>
 #include <mem/n64bus.h>
@@ -859,7 +861,9 @@ void cp0_status_updated() {
             (N64CPU.cp0.kernel_mode && N64CPU.cp0.status.kx)
             || (N64CPU.cp0.supervisor_mode && N64CPU.cp0.status.sx)
                || (N64CPU.cp0.user_mode && N64CPU.cp0.status.ux);
+#ifdef N64_DYNAREC_ENABLED
     n64dynarec.sysconfig.fr = N64CP0.status.fr;
+#endif
     N64CP0.resolve_virtual_address = get_resolve_virtual_address_handler();
     r4300i_interrupt_update();
 }

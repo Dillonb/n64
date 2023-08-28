@@ -10,7 +10,10 @@
 #include <interface/vi.h>
 #include <interface/ai.h>
 #include <cpu/rsp.h>
+#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
+#include <dynarec/rsp_dynarec.h>
+#endif
 #include <util.h>
 #ifndef N64_WIN
 #include <sys/mman.h>
@@ -26,7 +29,6 @@
 #include <frontend/device.h>
 #include <interface/si.h>
 #include <interface/pi.h>
-#include <dynarec/rsp_dynarec.h>
 #include <mem/pif.h>
 #include <timing.h>
 
@@ -83,7 +85,9 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
     n64sys.video_type = video_type;
 
     mprotect_codecache();
+#ifdef N64_DYNAREC_ENABLED
     n64_dynarec_init(codecache, CODECACHE_SIZE);
+#endif
 #ifdef N64_DYNAREC_V1_ENABLED
     N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
 #endif
@@ -159,18 +163,22 @@ void reset_n64system() {
     n64sys.vi.num_fields = 1;
     n64sys.vi.cycles_per_halfline = 1000;
 
+#ifdef N64_DYNAREC_ENABLED
     invalidate_dynarec_all_pages();
+#endif
 
     scheduler_reset();
     scheduler_enqueue_relative((u64)n64sys.vi.cycles_per_halfline, SCHEDULER_VI_HALFLINE);
 }
 
+#ifdef N64_DYNAREC_ENABLED
 INLINE int jit_system_step() {
     int taken = n64_dynarec_step();
     N64CP0.count += taken;
     N64CP0.count &= 0x1FFFFFFFF;
     return taken;
 }
+#endif
 
 INLINE int interpreter_system_step_matchjit(const int cycles) {
     for (int i = 0; i < cycles; i++) {
@@ -308,7 +316,11 @@ int n64_system_step(bool dynarec, int steps) {
 
     int taken;
     if (dynarec) {
+#ifdef N64_DYNAREC_ENABLED
         taken = jit_system_step();
+#else
+        logfatal("Dynarec is not enabled!");
+#endif
     } else {
         taken = interpreter_system_step_matchjit(steps);
     }
@@ -350,6 +362,7 @@ void n64_queue_reset() {
     scheduler_enqueue_relative(0, SCHEDULER_RESET_SYSTEM);
 }
 
+#ifdef N64_DYNAREC_ENABLED
 void jit_system_loop() {
     while (!should_quit) {
         static int cpu_steps = 0;
@@ -381,6 +394,7 @@ void jit_system_loop() {
     }
     force_persist_backup();
 }
+#endif
 
 void interpreter_system_loop() {
     while (!should_quit) {
@@ -394,11 +408,15 @@ void interpreter_system_loop() {
 }
 
 void n64_system_loop() {
+#ifdef N64_DYNAREC_ENABLED
     if (n64sys.use_interpreter) {
+#endif
         interpreter_system_loop();
+#ifdef N64_DYNAREC_ENABLED
     } else {
         jit_system_loop();
     }
+#endif
 }
 
 void n64_system_cleanup() {
