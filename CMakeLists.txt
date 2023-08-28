@@ -55,6 +55,11 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+if (NOT "${N64_GIT_COMMIT_HASH}" STREQUAL "${_git_hash}")
+    file(REMOVE ${CMAKE_CURRENT_LIST_DIR}/src/generated/version.h)
+    set(N64_GIT_COMMIT_HASH "${_git_hash}" CACHE STRING "" FORCE)
+endif()
+
 check_c_compiler_flag("-mssse3" HAS_SSSE3)
 check_c_compiler_flag("-msse4.1" HAS_SSE4_1)
 
