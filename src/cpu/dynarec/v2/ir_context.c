@@ -318,6 +318,17 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
     }
 }
 
+void print_ir_block() {
+    ir_instruction_t* instr = ir_context.ir_cache_head;
+    while (instr != NULL) {
+        static char buf[100];
+        ir_instr_to_string(instr, buf, 100);
+        printf("%s\n", buf);
+
+        instr = instr->next;
+    }
+}
+
 bool instr_exception_possible(ir_instruction_t* instr) {
     switch (instr->type) {
         case IR_NOP:

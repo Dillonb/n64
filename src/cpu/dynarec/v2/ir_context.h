@@ -396,6 +396,7 @@ extern ir_context_t ir_context;
 
 void ir_context_reset();
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size);
+void print_ir_block();
 
 #define NO_GUEST_REG 0xFF
 
