@@ -174,7 +174,9 @@ void n64_dynarec_init(u8* codecache, size_t codecache_size) {
 
     n64dynarec.codecache = codecache;
 
+#ifdef N64_DYNAREC_V1_ENABLED
     v1_compiler_init();
+#endif
     v2_compiler_init();
 }
 

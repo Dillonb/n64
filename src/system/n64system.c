@@ -84,7 +84,9 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
 
     mprotect_codecache();
     n64_dynarec_init(codecache, CODECACHE_SIZE);
+#ifdef N64_DYNAREC_V1_ENABLED
     N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
+#endif
 
     if (enable_frontend) {
         render_init(video_type);
@@ -323,8 +325,11 @@ int n64_system_step(bool dynarec, int steps) {
             // 2 RSP steps per 3 CPU steps
             N64RSP.steps += (cpu_steps / 3) * 2;
             cpu_steps %= 3;
-
+#ifdef N64_DYNAREC_V1_ENABLED
             rsp_dynarec_run();
+#else
+            rsp_run();
+#endif
         } else {
             N64RSP.steps = 0;
             cpu_steps = 0;
@@ -364,7 +369,11 @@ void jit_system_loop() {
             N64RSP.steps += (cpu_steps / 3) * 2;
             cpu_steps %= 3;
 
+#ifdef N64_DYNAREC_V1_ENABLED
             rsp_dynarec_run();
+#else
+            rsp_run();
+#endif
         } else {
             N64RSP.steps = 0;
             cpu_steps = 0;

@@ -130,7 +130,9 @@ INLINE void quick_invalidate_rsp_icache(u32 address) {
 
     N64RSP.icache[index].handler = cache_rsp_instruction;
     N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
+#ifdef N64_DYNAREC_V1_ENABLED
     N64RSPDYNAREC->blockcache[index].run = rsp_missing_block_handler;
+#endif
 }
 
 INLINE void invalidate_rsp_icache(u32 address) {
@@ -410,7 +412,9 @@ INLINE void rsp_set_vce(u16 vce) {
 
 void rsp_step();
 void rsp_run();
+#ifdef N64_DYNAREC_V1_ENABLED
 void rsp_dynarec_run();
+#endif
 vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e);
 
 #endif //N64_RSP_H

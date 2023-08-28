@@ -12,6 +12,7 @@ void flush_code_cache() {
     }
 }
 
+#ifdef N64_DYNAREC_V1_ENABLED
 void flush_rsp_code_cache() {
     // Just set the pointer back to the beginning, no need to clear the actual data.
     N64RSPDYNAREC->codecache_used = 0;
@@ -21,6 +22,7 @@ void flush_rsp_code_cache() {
         N64RSPDYNAREC->blockcache[i].run = rsp_missing_block_handler;
     }
 }
+#endif
 
 void* dynarec_bumpalloc(size_t size) {
     if (n64dynarec.codecache_used + size >= n64dynarec.codecache_size) {
@@ -48,6 +50,7 @@ void* dynarec_bumpalloc_zero(size_t size) {
     return ptr;
 }
 
+#ifdef N64_DYNAREC_V1_ENABLED
 void* rsp_dynarec_bumpalloc(size_t size) {
     if (N64RSPDYNAREC->codecache_used + size >= N64RSPDYNAREC->codecache_size) {
         flush_rsp_code_cache();
@@ -63,3 +66,4 @@ void* rsp_dynarec_bumpalloc(size_t size) {
 
     return ptr;
 }
+#endif
