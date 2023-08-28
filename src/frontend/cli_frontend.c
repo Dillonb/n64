@@ -1,3 +1,4 @@
+#include <generated/version.h>
 #include <stdio.h>
 #include <cflags.h>
 #include <log.h>
@@ -29,6 +30,7 @@ void sig_handler(int signum) {
 #endif
 
 int main(int argc, char** argv) {
+    logalways("Welcome to dgb-n64: built from commit %s", N64_GIT_COMMIT_HASH);
     n64_settings_init();
 
 #ifndef N64_WIN

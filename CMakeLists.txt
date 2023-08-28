@@ -46,6 +46,15 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 include(CTest)
 message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
 
+find_package(Git REQUIRED)
+
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE _git_hash
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 check_c_compiler_flag("-mssse3" HAS_SSSE3)
 check_c_compiler_flag("-msse4.1" HAS_SSE4_1)
 
@@ -58,6 +67,8 @@ add_compile_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_COMP_OPTIONS}>")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_COMP_OPTIONS}>")
 add_link_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_LINK_OPTIONS}>")
 add_link_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_LINK_OPTIONS}>")
+
+configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/version.h.in ${CMAKE_CURRENT_LIST_DIR}/src/generated/version.h)
 
 add_subdirectory(src)
 add_subdirectory(tests)

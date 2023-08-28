@@ -35,12 +35,8 @@ static bool should_quit = false;
 
 n64_system_t n64sys;
 
-// 32MiB codecache
-#define CODECACHE_SIZE (1 << 25)
 static u8 codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 
-// 32MiB RSP codecache
-#define RSP_CODECACHE_SIZE (1 << 25)
 static u8 rsp_codecache[RSP_CODECACHE_SIZE] __attribute__((aligned(4096)));
 
 bool n64_should_quit() {

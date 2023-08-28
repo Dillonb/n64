@@ -1,6 +1,10 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -36,9 +40,9 @@ extern unsigned int next_n64_log_verbosity;
 #define update_delayed_log_verbosity() do {n64_log_verbosity = next_n64_log_verbosity;} while(0)
 #define log_get_verbosity() n64_log_verbosity
 
+void handle_logfatal(const char* message, const char* file, int line, ...);
 #define logfatal(message,...) do { \
-    fprintf(stderr, COLOR_RED "[FATAL] at %s:%d ", __FILE__, __LINE__);\
-    fprintf(stderr, message "\n" COLOR_END, ##__VA_ARGS__);\
+    handle_logfatal(message, __FILE__, __LINE__, ##__VA_ARGS__); \
     exit(EXIT_FAILURE);} while(0)
 
 #define logdie(message,...) do { \
@@ -65,4 +69,9 @@ extern unsigned int next_n64_log_verbosity;
 #define logtrace(message,...) do {} while(0)
 
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

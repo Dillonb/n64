@@ -16,18 +16,10 @@ extern "C" {
 #define CPU_CYCLES_PER_FRAME (CPU_HERTZ / n64sys.target_fps)
 #define CYCLES_PER_INSTR 1
 
-// The CPU runs at 93.75mhz. There are 60 frames per second, and 262 lines on the display.
-// There are 1562500 cycles per frame.
-// Because this doesn't divide nicely by 262, we have to run some lines for 1 more cycle than others.
-// We call these the "long" lines, and the others the "short" lines.
-
-// 5963*68+5964*194 == 1562500
-
-#define NUM_SHORTLINES 68
-#define NUM_LONGLINES  194
-
-#define SHORTLINE_CYCLES 5963
-#define LONGLINE_CYCLES  5964
+// 32MiB codecache
+#define CODECACHE_SIZE (1 << 25)
+// 32MiB RSP codecache
+#define RSP_CODECACHE_SIZE (1 << 25)
 
 typedef enum n64_video_type {
     UNKNOWN_VIDEO_TYPE,
