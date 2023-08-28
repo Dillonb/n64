@@ -45,8 +45,7 @@ add_library(r4300i
         v1_emitter.c dynarec/v1/v1_emitter.h
 
         v2_emitter.c dynarec/v2/v2_emitter.h
-        dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
-        dynarec/v2/v2_compiler_x64.c dynarec/v2/v2_compiler_platformspecific.h
+        dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h dynarec/v2/v2_compiler_platformspecific.h
         dynarec/v2/ir_context.c dynarec/v2/ir_context.h
         dynarec/v2/ir_emitter.c dynarec/v2/ir_emitter.h
         dynarec/v2/ir_emitter_fpu.c dynarec/v2/ir_emitter_fpu.h
@@ -55,7 +54,10 @@ add_library(r4300i
         dynarec/v2/register_allocator.c dynarec/v2/register_allocator.h)
 
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
-    target_sources(r4300i PRIVATE dynarec/v2/x86_64_target_platform.c)
+    target_sources(r4300i PRIVATE 
+        dynarec/v2/x86_64_target_platform.c
+        dynarec/v2/v2_compiler_x64.c
+    )
 else()
     message(FATAL_ERROR "Unsupported target CPU architecture ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
