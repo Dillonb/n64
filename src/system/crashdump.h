@@ -10,6 +10,7 @@ static_assert(sizeof(N64_GIT_COMMIT_HASH) == 41, "git commit hash is not the cor
 static_assert(sizeof(uintptr_t) == sizeof(u64), "uintptr_t should be 64 bit");
 typedef struct n64_crashdump {
     char git_commit_hash[41];
+    char crash_reason[1024]; // the logfatal message that made us crash
 
     size_t system_size;
     uintptr_t system_base;
@@ -45,9 +46,9 @@ typedef struct n64_crashdump {
 } n64_crashdump_t;
 
 
-// Saves a crash dump to a file using the above structure
+// Saves a crash dump to a file using the above structure. Takes the crash reason as a parameter.
 // Saves it to <rom path>.crashdump (will append .N if the file exists, where N is a number)
 // Returns the filename saved to
-const char* n64_save_system_state();
+const char* n64_save_system_state(const char* crash_reason);
 
 #endif // N64_CRASHDUMP_H

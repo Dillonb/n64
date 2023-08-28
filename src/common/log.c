@@ -31,7 +31,7 @@ void n64_error_messagebox(const char* message) {
     full_message = NULL;
 
     if (chosen == IDYES) {
-        const char* filename = n64_save_system_state();
+        const char* filename = n64_save_system_state(message);
         const char* saved_fmt = "Saved to %s. Please zip this file and send it to me privately (I can be reached through Discord @dgb) or through GitHub Issues.";
         needed = snprintf(NULL, 0, saved_fmt, filename);
         char* saved_message = malloc(needed + 1);

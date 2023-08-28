@@ -3,12 +3,14 @@
 #include <generated/version.h>
 #include <rsp.h>
 
-const char* n64_save_system_state() {
+const char* n64_save_system_state(const char* crash_reason) {
     n64_crashdump_t* crash_dump = malloc(sizeof(n64_crashdump_t));
+    memset(crash_dump, 0, sizeof(n64_crashdump_t));
 
     memcpy(&crash_dump->git_commit_hash, N64_GIT_COMMIT_HASH, sizeof(N64_GIT_COMMIT_HASH));
     memcpy(&crash_dump->system, &n64sys, sizeof(n64_system_t));
 
+    snprintf(crash_dump->crash_reason, sizeof(crash_dump->crash_reason), "%s", crash_reason);
 
     crash_dump->system_size = sizeof(n64_system_t);
     crash_dump->system_base = (uintptr_t)&n64sys;
