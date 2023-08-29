@@ -169,9 +169,9 @@ void write_word_pireg(u32 address, u32 value) {
 
             logdebug("DMA requested at PC 0x%016" PRIX64 " from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", N64CPU.pc, cart_addr, dram_addr, length);
 
-            if (is_flash(n64sys.mem.save_type) && cart_addr >= 0x08000000 && cart_addr < 0x08010000) {
+            if (is_flash(n64sys.mem.save_type) && cart_addr >= SREGION_PI_SRAM && cart_addr < 0x08010000) {
                 // Special case for Flash DMAs
-                cart_addr = 0x08000000 | ((cart_addr & 0xFFFFF) << 1);
+                cart_addr = SREGION_PI_SRAM | ((cart_addr & 0xFFFFF) << 1);
             }
 
             for (int i = 0; i < length; i++) {
