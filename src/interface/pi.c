@@ -49,7 +49,7 @@ u32 read_word_pireg(u32 address) {
     }
 }
 
-// All other regions of the PI BUS are domain 1 - the PI bus is an entirely separate bus from the CPU bus: https://n64brew.dev/wiki/Peripheral_Interface#Domains
+// The PI bus is an entirely separate bus from the CPU bus: https://n64brew.dev/wiki/Peripheral_Interface#Domains
 u8 pi_get_domain(u32 address) {
     switch (address) {
         case REGION_PI_UNKNOWN:
