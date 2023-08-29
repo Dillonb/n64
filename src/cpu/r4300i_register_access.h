@@ -35,6 +35,17 @@ INLINE void log_status(cp0_status_t status) {
     loginfo("    CP0 status: cu3: %d", status.cu3);
 }
 
+INLINE void set_cp0_reg_status(u32 value) {
+            N64CPU.cp0.status.raw &= ~CP0_STATUS_WRITE_MASK;
+            N64CPU.cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
+
+            unimplemented(N64CPU.cp0.status.re, "Reverse endian bit set in CP0 (this probably doesn't actually do anything)");
+            unimplemented(N64CP0.user_mode && !N64CP0.is_64bit_addressing, "user mode without 64 bit ops, need to implement reserved instruction exceptions for 64 bit instructions!");
+
+            cp0_status_updated();
+            log_status(N64CPU.cp0.status);
+}
+
 INLINE void set_cp0_register_word(u8 r, u32 value) {
     N64CP0.open_bus = value;
     switch (r) {
@@ -67,17 +78,9 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             N64CPU.cp0.compare = value;
             reschedule_compare_interrupt(0);
             break;
-        case R4300I_CP0_REG_STATUS: {
-            N64CPU.cp0.status.raw &= ~CP0_STATUS_WRITE_MASK;
-            N64CPU.cp0.status.raw |= value & CP0_STATUS_WRITE_MASK;
-
-            unimplemented(N64CPU.cp0.status.re, "Reverse endian bit set in CP0 (this probably doesn't actually do anything)");
-            unimplemented(N64CP0.user_mode && !N64CP0.is_64bit_addressing, "user mode without 64 bit ops, need to implement reserved instruction exceptions for 64 bit instructions!");
-
-            cp0_status_updated();
-            log_status(N64CPU.cp0.status);
+        case R4300I_CP0_REG_STATUS:
+            set_cp0_reg_status(value);
             break;
-        }
         case R4300I_CP0_REG_ENTRYLO0:
             N64CPU.cp0.entry_lo0.raw = value & CP0_ENTRY_LO_WRITE_MASK;
             break;
@@ -272,8 +275,8 @@ INLINE void set_cp0_register_dword(u8 r, u64 value) {
             reschedule_compare_interrupt(0);
             logfatal("Writing CP0 register R4300I_CP0_REG_COMPARE as dword!");
         case R4300I_CP0_REG_STATUS:
-            // TODO: handle write mask + updating interrupts
-            logfatal("Writing CP0 register R4300I_CP0_REG_STATUS as dword!");
+            set_cp0_reg_status((u32)value);
+            break;
         case R4300I_CP0_REG_CAUSE: {
             cp0_cause_t newcause;
             newcause.raw = value;
