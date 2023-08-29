@@ -130,9 +130,6 @@ void write_word_pireg(u32 address, u32 value) {
             }
             n64sys.mem.pi_reg[PI_RD_LEN_REG] = length;
 
-            if (cart_addr < SREGION_PI_ROM) {
-                logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
-            }
             if (dram_addr >= SREGION_RDRAM_UNUSED) {
                 logfatal("DRAM address too high!");
             }
@@ -169,10 +166,6 @@ void write_word_pireg(u32 address, u32 value) {
                 length -= dram_addr & 0x7;
             }
             n64sys.mem.pi_reg[PI_WR_LEN_REG] = length;
-
-            if (cart_addr < SREGION_PI_ROM) {
-                logfatal("Cart address too low! 0x%08X masked to 0x%08X\n", n64sys.mem.pi_reg[PI_CART_ADDR_REG], cart_addr);
-            }
 
             logdebug("DMA requested at PC 0x%016" PRIX64 " from 0x%08X to 0x%08X (CART to DRAM), with a length of %d", N64CPU.pc, cart_addr, dram_addr, length);
 
