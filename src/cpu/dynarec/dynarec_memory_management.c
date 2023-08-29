@@ -14,13 +14,12 @@ void flush_code_cache() {
 
 #ifdef N64_DYNAREC_V1_ENABLED
 void flush_rsp_code_cache() {
+    logalways("Flushing RSP code cache!");
     // Just set the pointer back to the beginning, no need to clear the actual data.
     N64RSPDYNAREC->codecache_used = 0;
 
     // However, the block cache needs to be fully invalidated.
-    for (int i = 0; i < RSP_BLOCKCACHE_SIZE; i++) {
-        N64RSPDYNAREC->blockcache[i].run = rsp_missing_block_handler;
-    }
+    reset_rsp_dynarec_code_overlays(N64RSPDYNAREC);
 }
 #endif
 

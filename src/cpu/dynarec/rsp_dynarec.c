@@ -23,7 +23,7 @@ void* rsp_link_and_encode(dasm_State** Dst) {
 
 #define NEXT(address) ((address + 4) & 0xFFF)
 
-void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
+void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_overlay_t* current_overlay) {
     dasm_State** Dst = v1_block_header();
 
     int block_length = 0;
@@ -38,6 +38,8 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
     do {
         static mips_instruction_t instr;
         instr.raw = word_from_byte_array(N64RSP.sp_imem, address);
+        current_overlay->code[address >> 2] = instr.raw;
+        current_overlay->code_mask[address >> 2] = true;
 
         u16 next_address = NEXT(address);
 
@@ -108,9 +110,24 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address) {
 
 int rsp_missing_block_handler() {
     u32 pc = N64RSP.pc & 0x3FF;
-    rsp_dynarec_block_t* block = &N64RSPDYNAREC->blockcache[pc];
-    compile_new_rsp_block(block, (N64RSP.pc << 2) & 0xFFF);
+    rsp_code_overlay_t* current_overlay = &N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay];
+    rsp_dynarec_block_t* block = &current_overlay->blockcache[pc];
+    compile_new_rsp_block(block, (N64RSP.pc << 2) & 0xFFF, current_overlay);
     return block->run(&N64RSP);
+}
+
+void reset_rsp_dynarec_code_overlay(rsp_code_overlay_t* overlay) {
+    for (int i = 0; i < RSP_BLOCKCACHE_SIZE; i++) {
+        overlay->blockcache[i].run = rsp_missing_block_handler;
+        overlay->code[i] = 0;
+        overlay->code_mask[i] = false;
+    }
+}
+
+void reset_rsp_dynarec_code_overlays(rsp_dynarec_t* dynarec) {
+    for (int i = 0; i < RSP_NUM_CODE_OVERLAYS; i++) {
+            reset_rsp_dynarec_code_overlay(&dynarec->code_overlays[i]);
+    }
 }
 
 rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size) {
@@ -119,15 +136,53 @@ rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size) {
     dynarec->codecache_size = codecache_size;
     dynarec->codecache_used = 0;
 
-    for (int i = 0; i < RSP_BLOCKCACHE_SIZE; i++) {
-        dynarec->blockcache[i].run = rsp_missing_block_handler;
-    }
+    reset_rsp_dynarec_code_overlays(dynarec);
 
     dynarec->codecache = codecache;
 
     return dynarec;
 }
 
+bool code_overlay_matches(int index) {
+    rsp_code_overlay_t* overlay = &N64RSPDYNAREC->code_overlays[index];
+
+    for (int i = 0; i < RSP_BLOCKCACHE_SIZE; i++) {
+        if (overlay->code_mask[i]) {
+            if (overlay->code[i] != word_from_byte_array(n64rsp.sp_imem, i << 2)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 int rsp_dynarec_step() {
-    return N64RSPDYNAREC->blockcache[N64RSP.pc & 0x3FF].run(&N64RSP);
+    if (N64RSPDYNAREC->dirty) {
+        // see if we match any existing blocks, if yes, just stay there
+        // if no, allocate a new one.
+        // if we're out of blocks, panic, i guess? (probably want to pick a block at random and use that)
+        bool found_match = false;
+        for (int i = 0; i < N64RSPDYNAREC->code_overlays_allocated && !found_match; i++) {
+            if (code_overlay_matches(i)) {
+                found_match = true;
+                N64RSPDYNAREC->selected_code_overlay = i;
+            }
+        }
+
+        if (!found_match) {
+            int new_code_overlay = N64RSPDYNAREC->code_overlays_allocated;
+            if (new_code_overlay >= RSP_NUM_CODE_OVERLAYS) {
+                new_code_overlay = rand() % RSP_NUM_CODE_OVERLAYS;
+                logalways("RSP: Out of code overlays! Selecting %d randomly", new_code_overlay);
+            } else {
+                N64RSPDYNAREC->code_overlays_allocated++;
+                logalways("RSP: Allocated a new code overlay. Allocated %d so far.", N64RSPDYNAREC->code_overlays_allocated);
+            }
+            reset_rsp_dynarec_code_overlay(&N64RSPDYNAREC->code_overlays[new_code_overlay]);
+            N64RSPDYNAREC->selected_code_overlay = new_code_overlay;
+        }
+        N64RSPDYNAREC->dirty = false;
+    }
+
+    return N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay].blockcache[N64RSP.pc & 0x3FF].run(&N64RSP);
 }
