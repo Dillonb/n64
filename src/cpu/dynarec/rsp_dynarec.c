@@ -39,7 +39,7 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_ove
         static mips_instruction_t instr;
         instr.raw = word_from_byte_array(N64RSP.sp_imem, address);
         current_overlay->code[address >> 2] = instr.raw;
-        current_overlay->code_mask[address >> 2] = true;
+        current_overlay->code_mask[address >> 2] = 0xFFFFFFFF;
 
         u16 next_address = NEXT(address);
 
@@ -120,7 +120,7 @@ void reset_rsp_dynarec_code_overlay(rsp_code_overlay_t* overlay) {
     for (int i = 0; i < RSP_BLOCKCACHE_SIZE; i++) {
         overlay->blockcache[i].run = rsp_missing_block_handler;
         overlay->code[i] = 0;
-        overlay->code_mask[i] = false;
+        overlay->code_mask[i] = 0;
     }
 }
 
@@ -146,6 +146,28 @@ rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size) {
 bool code_overlay_matches(int index) {
     rsp_code_overlay_t* overlay = &N64RSPDYNAREC->code_overlays[index];
 
+#ifdef N64_HAVE_SSE
+
+    const s128* mask_arr = (s128*)overlay->code_mask;
+    const s128* code_arr = (s128*)overlay->code;
+    const s128* imem_arr = (s128*)N64RSP.sp_imem;
+
+    for (int i = 0; i < RSP_BLOCKCACHE_SIZE / 4; i++) {
+        const s128 mask = _mm_loadu_si128(mask_arr + i);
+        const s128 code = _mm_loadu_si128(code_arr + i);
+        const s128 imem = _mm_loadu_si128(imem_arr + i);
+
+        const s128 code_masked = _mm_and_si128(mask, code);
+        const s128 imem_masked = _mm_and_si128(mask, imem);
+        const s128 result = _mm_cmpeq_epi8(code_masked, imem_masked);
+
+        if (_mm_movemask_epi8(result) != 0xFFFF) {
+            return false;
+        }
+    }
+
+#else
+
     for (int i = 0; i < RSP_BLOCKCACHE_SIZE; i++) {
         if (overlay->code_mask[i]) {
             if (overlay->code[i] != word_from_byte_array(n64rsp.sp_imem, i << 2)) {
@@ -153,14 +175,16 @@ bool code_overlay_matches(int index) {
             }
         }
     }
+
+#endif
     return true;
 }
 
 int rsp_dynarec_step() {
     if (N64RSPDYNAREC->dirty) {
-        // see if we match any existing blocks, if yes, just stay there
+        // see if we match any existing blocks, if yes, switch to the first matching block we find.
         // if no, allocate a new one.
-        // if we're out of blocks, panic, i guess? (probably want to pick a block at random and use that)
+        // if we're out of blocks, choose a random one to overwrite and use.
         bool found_match = false;
         for (int i = 0; i < N64RSPDYNAREC->code_overlays_allocated && !found_match; i++) {
             if (code_overlay_matches(i)) {

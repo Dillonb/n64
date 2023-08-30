@@ -18,7 +18,8 @@ typedef struct rsp_dynarec_block {
 
 typedef struct rsp_code_overlay {
     // Is the value at this index code? (Has it been compiled into a block indexed by this blockcache?)
-    bool code_mask[RSP_BLOCKCACHE_SIZE];
+    // value is either 0 or 0xFFFFFFFF - to make checking this with SIMD instructions easier
+    u32 code_mask[RSP_BLOCKCACHE_SIZE];
     // A copy of only the parts of IMEM that have been compiled into code.
     u32 code[RSP_BLOCKCACHE_SIZE];
     // Mapping of index -> executable block
