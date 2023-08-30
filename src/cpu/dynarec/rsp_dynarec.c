@@ -3,6 +3,10 @@
 #include "rsp_dynarec.h"
 #include "v1/v1_emitter.h"
 #include "dynarec_memory_management.h"
+#ifdef N64_HAVE_SSE
+#include <emmintrin.h>
+#include <smmintrin.h>
+#endif
 
 size_t rsp_link(dasm_State** d) {
     size_t code_size;
@@ -156,12 +160,8 @@ bool code_overlay_matches(int index) {
         const s128 mask = _mm_loadu_si128(mask_arr + i);
         const s128 code = _mm_loadu_si128(code_arr + i);
         const s128 imem = _mm_loadu_si128(imem_arr + i);
-
-        const s128 code_masked = _mm_and_si128(mask, code);
-        const s128 imem_masked = _mm_and_si128(mask, imem);
-        const s128 result = _mm_cmpeq_epi8(code_masked, imem_masked);
-
-        if (_mm_movemask_epi8(result) != 0xFFFF) {
+        // equivalent to if ((code ^ imem) & mask)
+        if (!_mm_testz_si128(_mm_xor_si128(code, imem), mask)) {
             return false;
         }
     }
