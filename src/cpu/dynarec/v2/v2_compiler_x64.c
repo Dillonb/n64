@@ -823,6 +823,35 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
+void v2_emit_rsp_block(rsp_dynarec_block_t* block) {
+    dasm_State** Dst = v2_block_header();
+
+    /*
+    if (rsp_should_break(address)) {
+        host_emit_debugbreak(Dst);
+    }
+    */
+
+    ir_instruction_t* instr = ir_context.ir_cache_head;
+    while (instr) {
+        v2_emit_instr(Dst, instr);
+        instr = instr->next;
+    }
+
+    if (!ir_context.block_end_pc_compiled && temp_code_len > 0) {
+        logfatal("TODO: emit end of block PC");
+    }
+    v2_end_block(Dst, temp_code_len);
+    size_t code_size = v2_link(Dst);
+#ifdef N64_LOG_COMPILATIONS
+    printf("Generated %zu bytes of code\n", code_size);
+#endif
+    block->run = (int(*)(rsp_t*))dynarec_bumpalloc(code_size);
+
+    v2_encode(Dst, (u8*)block->run);
+    v2_dasm_free();
+}
+
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     dasm_State** Dst = v2_block_header();
 

@@ -15,6 +15,9 @@ typedef struct source_instruction {
 // Extra slot for the edge case where the branch delay slot is in the next page
 #define TEMP_CODE_SIZE (BLOCKCACHE_INNER_SIZE + 1)
 #define MAX_BLOCK_LENGTH BLOCKCACHE_INNER_SIZE
+#define MAX_RSP_BLOCK_LENGTH ((SP_IMEM_SIZE) >> 2)
+
+static_assert(MAX_RSP_BLOCK_LENGTH < TEMP_CODE_SIZE, "max RSP block size needs to fit inside temp code");
 
 extern int temp_code_len;
 extern u64 temp_code_vaddr;
@@ -24,6 +27,7 @@ bool should_break(u32 address);
 u64 resolve_virtual_address_for_jit(u64 virtual, u64 except_pc, bus_access_t bus_access);
 u64 v2_get_last_compiled_block();
 void v2_compile_new_block(n64_dynarec_block_t *block, bool *code_mask, u64 virtual_address, u32 physical_address);
+void v2_compile_new_block_rsp(rsp_dynarec_block_t* block, rsp_code_overlay_t* overlay, u16 address);
 void v2_compiler_init();
 void v2_set_idle_loop_detection_enabled(bool enabled);
 

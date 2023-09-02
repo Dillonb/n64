@@ -14,6 +14,11 @@
 #define IR_IS_GPR(r) ((r) >= IR_GPR_BASE && (r) < (IR_GPR_BASE + 32))
 #define IR_IS_FGR(r) ((r) >= IR_FGR_BASE && (r) < (IR_FGR_BASE + 32))
 
+typedef enum compiler_target {
+    COMPILER_TARGET_CPU,
+    COMPILER_TARGET_RSP
+} compiler_target_t;
+
 typedef enum ir_condition {
     CONDITION_NOT_EQUAL,
     CONDITION_EQUAL,
@@ -368,6 +373,8 @@ typedef struct ir_instruction {
 } ir_instruction_t;
 
 typedef struct ir_context {
+    compiler_target_t target;
+
     /*
      * Maps a guest register to the SSA value currently in it, as of the current context
      * 0-31  - GPR

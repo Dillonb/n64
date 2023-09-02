@@ -1,6 +1,8 @@
+#include "rsp_dynarec.h"
+
+#include <dynarec/v2/v2_compiler.h>
 #include <log.h>
 #include <rsp.h>
-#include "rsp_dynarec.h"
 #include "v1/v1_emitter.h"
 #include "dynarec_memory_management.h"
 #ifdef N64_HAVE_SSE
@@ -116,7 +118,7 @@ int rsp_missing_block_handler() {
     u32 pc = N64RSP.pc & 0x3FF;
     rsp_code_overlay_t* current_overlay = &N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay];
     rsp_dynarec_block_t* block = &current_overlay->blockcache[pc];
-    compile_new_rsp_block(block, (N64RSP.pc << 2) & 0xFFF, current_overlay);
+    v2_compile_new_block_rsp(block, current_overlay, (N64RSP.pc << 2) & 0xFFF);
     return block->run(&N64RSP);
 }
 

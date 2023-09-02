@@ -3,6 +3,7 @@
 #include <dynarec/dynarec.h>
 
 void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address);
+void v2_emit_rsp_block(rsp_dynarec_block_t* block);
 void v2_compiler_init_platformspecific();
 
 #endif //N64_V2_COMPILER_X64_H
