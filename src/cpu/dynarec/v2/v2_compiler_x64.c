@@ -6,6 +6,7 @@
 #include <mem/n64bus.h>
 #include <mips_instructions.h>
 #include <r4300i_register_access.h>
+#include <rsp.h>
 #include <system/mprotect_utils.h>
 
 void compile_ir_set_constant(dasm_State** Dst, ir_instruction_t* instr) {
@@ -317,22 +318,39 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     if (instr->reg_alloc.type != instr->load_guest_reg.guest_reg_type) {
         logwarn("Wrong type of register allocated! Wanted %d but got %d\n", instr->load_guest_reg.guest_reg_type, instr->reg_alloc.type);
     }
-    switch (instr->load_guest_reg.guest_reg_type) {
-        case REGISTER_TYPE_NONE:
-            logfatal("Loading reg of type NONE");
-            break;
+    switch (ir_context.target) {
+    case COMPILER_TARGET_CPU:
+        switch (instr->load_guest_reg.guest_reg_type) {
+            case REGISTER_TYPE_NONE:
+                logfatal("Loading reg of type NONE");
+                break;
+            case REGISTER_TYPE_GPR:
+                unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
+                host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U64);
+                break;
+            case REGISTER_TYPE_FGR_32:
+                unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_32, but register is not an FGR!");
+                host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)get_fpu_register_ptr_word_fr(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U32);
+                break;
+            case REGISTER_TYPE_FGR_64:
+                unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_64, but register is not an FGR!");
+                host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)get_fpu_register_ptr_dword_fr(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U64);
+                break;
+        }
+        break;
+    case COMPILER_TARGET_RSP:
+        switch (instr->load_guest_reg.guest_reg_type) {
         case REGISTER_TYPE_GPR:
-            unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
-            host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U64);
-            break;
+                unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
+                host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64RSP.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U32);
+                break;
+        case REGISTER_TYPE_NONE:
         case REGISTER_TYPE_FGR_32:
-            unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_32, but register is not an FGR!");
-            host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)get_fpu_register_ptr_word_fr(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U32);
-            break;
         case REGISTER_TYPE_FGR_64:
-            unimplemented(!IR_IS_FGR(instr->load_guest_reg.guest_reg), "Loading an FGR_64, but register is not an FGR!");
-            host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)get_fpu_register_ptr_dword_fr(instr->load_guest_reg.guest_reg - IR_FGR_BASE), VALUE_TYPE_U64);
-            break;
+            logfatal("Only the GPR register type is supported for RSP code!");
+                break;
+        }
+        break;
     }
 }
 

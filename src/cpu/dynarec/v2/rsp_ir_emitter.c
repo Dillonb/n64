@@ -1,9 +1,17 @@
 #include "rsp_ir_emitter.h"
+#include <dynarec/v2/ir_context.h>
 #include <r4300i.h>
 #include <rsp.h>
 
 IR_RSP_EMITTER(ori) {
-    logfatal("ori");
+    ir_instruction_t* i_operand = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* i_operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
+    ir_emit_or(i_operand, i_operand2, instruction.i.rt);
+}
+
+IR_RSP_EMITTER(j) {
+    u16 target = (instruction.j.target << 2) & 0xFFF;
+    ir_emit_set_block_exit_pc(ir_emit_set_constant_u16(target, NO_GUEST_REG));
 }
 
 IR_RSP_EMITTER(instruction) {
@@ -39,7 +47,7 @@ IR_RSP_EMITTER(instruction) {
             case OPC_SH:    IR_RSP_UNIMPLEMENTED(OPC_SH);
             case OPC_SW:    IR_RSP_UNIMPLEMENTED(OPC_SW);
             case OPC_ORI:   CALL_IR_RSP_EMITTER(ori);
-            case OPC_J:     IR_RSP_UNIMPLEMENTED(OPC_J);
+            case OPC_J:     CALL_IR_RSP_EMITTER(j);
             case OPC_JAL:   IR_RSP_UNIMPLEMENTED(OPC_JAL);
             case OPC_SLTI:  IR_RSP_UNIMPLEMENTED(OPC_SLTI);
             case OPC_SLTIU: IR_RSP_UNIMPLEMENTED(OPC_SLTIU);
