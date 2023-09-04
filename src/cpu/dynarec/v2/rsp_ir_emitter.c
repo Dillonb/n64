@@ -1,4 +1,5 @@
 #include "rsp_ir_emitter.h"
+#include <disassemble.h>
 #include <dynarec/v2/ir_context.h>
 #include <r4300i.h>
 #include <rsp.h>
@@ -14,6 +15,12 @@ IR_RSP_EMITTER(j) {
     ir_emit_set_block_exit_pc(ir_emit_set_constant_u16(target, NO_GUEST_REG));
 }
 
+IR_RSP_EMITTER(addi) {
+    ir_instruction_t* addend1 = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* addend2 = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+    ir_emit_add(addend1, addend2, instruction.i.rt);
+}
+
 IR_RSP_EMITTER(instruction) {
     if (unlikely(instruction.raw == 0)) {
         return; // do nothing for NOP
@@ -22,14 +29,14 @@ IR_RSP_EMITTER(instruction) {
 #ifdef LOG_ENABLED
         static char buf[50];
         if (n64_log_verbosity >= LOG_VERBOSITY_DEBUG) {
-            disassemble(pc, instr.raw, buf, 50);
-            logdebug("RSP [0x%08X]=0x%08X %s", pc, instr.raw, buf);
+            disassemble(address, instruction.raw, buf, 50);
+            logdebug("RSP [0x%08X]=0x%08X %s", address, instruction.raw, buf);
         }
 #endif
         switch (instruction.op) {
             case OPC_LUI:   IR_RSP_UNIMPLEMENTED(OPC_LUI);
             case OPC_ADDIU: IR_RSP_UNIMPLEMENTED(OPC_ADDIU);
-            case OPC_ADDI:  IR_RSP_UNIMPLEMENTED(OPC_ADDI);
+            case OPC_ADDI:  CALL_IR_RSP_EMITTER(addi);
             case OPC_ANDI:  IR_RSP_UNIMPLEMENTED(OPC_ANDI);
             case OPC_LBU:   IR_RSP_UNIMPLEMENTED(OPC_LBU);
             case OPC_LHU:   IR_RSP_UNIMPLEMENTED(OPC_LHU);
@@ -69,7 +76,7 @@ IR_RSP_EMITTER(instruction) {
             default:
 #ifdef LOG_ENABLED
                 if (n64_log_verbosity < LOG_VERBOSITY_DEBUG) {
-                    disassemble(pc, instruction.raw, buf, 50);
+                    disassemble(address, instruction.raw, buf, 50);
                 }
                 logfatal("[RSP] Failed to decode instruction 0x%08X opcode %d%d%d%d%d%d [%s]",
                          instruction.raw, instruction.op0, instruction.op1, instruction.op2, instruction.op3, instruction.op4, instruction.op5, buf);

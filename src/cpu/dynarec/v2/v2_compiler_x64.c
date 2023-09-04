@@ -2,6 +2,7 @@
 #include "v2_emitter.h"
 #include "ir_optimizer.h"
 #include "v2_compiler.h"
+#include <disassemble.h>
 #include <dynarec/dynarec_memory_management.h>
 #include <mem/n64bus.h>
 #include <mips_instructions.h>
@@ -270,27 +271,39 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
-    if (IR_IS_FGR(instr->flush_guest_reg.guest_reg)) {
-        if (is_constant(instr->flush_guest_reg.value)) {
-            logfatal("Flushing const FPU reg with fr=%d", N64CP0.status.fr);
-        } else {
-            ir_register_type_t reg_type = instr->flush_guest_reg.value->reg_alloc.type;
-            if (reg_type == REGISTER_TYPE_FGR_64) {
-                uintptr_t dest = (uintptr_t)get_fpu_register_ptr_dword_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
-                host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
-            } else if (reg_type == REGISTER_TYPE_FGR_32) {
-                uintptr_t dest = (uintptr_t)get_fpu_register_ptr_dword_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
-                host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
+    switch (ir_context.target) {
+    case COMPILER_TARGET_CPU:
+        if (IR_IS_FGR(instr->flush_guest_reg.guest_reg)) {
+            if (is_constant(instr->flush_guest_reg.value)) {
+                logfatal("Flushing const FPU reg with fr=%d", N64CP0.status.fr);
             } else {
-                logfatal("Flushing non const FPU reg with unexpected reg_type %d", reg_type);
+                ir_register_type_t reg_type = instr->flush_guest_reg.value->reg_alloc.type;
+                if (reg_type == REGISTER_TYPE_FGR_64) {
+                    uintptr_t dest = (uintptr_t)get_fpu_register_ptr_dword_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
+                    host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
+                } else if (reg_type == REGISTER_TYPE_FGR_32) {
+                    uintptr_t dest = (uintptr_t)get_fpu_register_ptr_dword_fr(instr->flush_guest_reg.guest_reg - IR_FGR_BASE);
+                    host_emit_mov_mem_reg(Dst, dest, instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
+                } else {
+                    logfatal("Flushing non const FPU reg with unexpected reg_type %d", reg_type);
+                }
+            }
+        } else {
+            if (is_constant(instr->flush_guest_reg.value)) {
+                host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U64);
+            } else {
+                host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
             }
         }
-    } else {
+        break;
+    case COMPILER_TARGET_RSP:
+        unimplemented(!IR_IS_GPR(instr->flush_guest_reg.guest_reg), "Non-GPR flushed in RSP JIT!");
         if (is_constant(instr->flush_guest_reg.value)) {
-            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U64);
+            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64RSP.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U32);
         } else {
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64CPU.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U64);
+            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64RSP.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U32);
         }
+        break;
     }
 }
 
@@ -867,6 +880,8 @@ void v2_emit_rsp_block(rsp_dynarec_block_t* block) {
     block->run = (int(*)(rsp_t*))dynarec_bumpalloc(code_size);
 
     v2_encode(Dst, (u8*)block->run);
+    printf("Compiled new RSP block:\n");
+    print_multi_host((uintptr_t)block->run, (u8*)block->run, code_size);
     v2_dasm_free();
 }
 
@@ -909,7 +924,8 @@ void v2_compiler_init_platformspecific() {
         n64dynarec.run_block = (int (*)(u64)) run_block_code_ptr;
         mprotect_rwx((u8*)&run_block_codecache, DISPATCHER_CODE_SIZE, "run block");
 
-        dasm_State **Dst = v2_emit_run_block();
+        // CPU run_block
+        dasm_State **Dst = v2_emit_run_block((uintptr_t)&N64CPU);
         size_t dispatcher_code_size = v2_link(Dst);
 
         if (dispatcher_code_size >= DISPATCHER_CODE_SIZE) {
@@ -918,4 +934,17 @@ void v2_compiler_init_platformspecific() {
 
         v2_encode(Dst, (u8 *) &run_block_codecache);
         v2_dasm_free();
+
+        // RSP run_block
+        Dst = v2_emit_run_block((uintptr_t)&N64RSP);
+        size_t rsp_dispatcher_code_size = v2_link(Dst);
+
+        if ((dispatcher_code_size + rsp_dispatcher_code_size) >= DISPATCHER_CODE_SIZE) {
+            logfatal("Compiled RSP dispatcher too large!");
+        }
+        u8* rsp_run_block_codecache = ((u8*)&run_block_codecache) + dispatcher_code_size;
+        v2_encode(Dst, (u8*)rsp_run_block_codecache);
+        v2_dasm_free();
+
+        n64dynarec.run_rsp_block = (int (*)(u64)) rsp_run_block_codecache;
 }

@@ -6,7 +6,7 @@
 #include <cpu/dynarec/dynarec.h>
 
 dasm_State** v2_block_header();
-dasm_State** v2_emit_run_block();
+dasm_State** v2_emit_run_block(uintptr_t cpu_addr);
 void v2_dasm_free();
 
 enum args_reversed {

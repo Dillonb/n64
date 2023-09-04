@@ -64,6 +64,7 @@ INLINE void copy_dynarec_block(n64_dynarec_block_t* dest, n64_dynarec_block_t* s
 
 typedef struct n64_dynarec {
     int (*run_block)(u64 block_addr);
+    int (*run_rsp_block)(u64 block_addr);
     u8* codecache;
     u64 codecache_size;
     u64 codecache_used;

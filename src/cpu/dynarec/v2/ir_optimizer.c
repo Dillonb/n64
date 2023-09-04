@@ -136,6 +136,10 @@ s64 set_const_to_s64(ir_set_constant_t constant) {
     return (s64)set_const_to_u64(constant);
 }
 
+u16 const_to_u16(ir_instruction_t* constant) {
+    return (u16)(const_to_u64(constant) & 0xFFFF);
+}
+
 u64 const_to_u64(ir_instruction_t* constant) {
     unimplemented(constant->type != IR_SET_CONSTANT, "const_to_u64 on non-IR_SET_CONSTANT instruction");
     return set_const_to_u64(constant->set_constant);

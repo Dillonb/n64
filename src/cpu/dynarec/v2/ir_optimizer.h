@@ -43,6 +43,7 @@ s32 set_const_to_s32(ir_set_constant_t constant);
 u64 set_const_to_u64(ir_set_constant_t constant);
 s64 set_const_to_s64(ir_set_constant_t constant);
 
+u16 const_to_u16(ir_instruction_t* constant);
 u64 const_to_u64(ir_instruction_t* constant);
 
 u64 set_float_const_to_u64(ir_set_float_constant_t constant);

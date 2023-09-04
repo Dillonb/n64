@@ -195,12 +195,11 @@ void fill_temp_code_rsp(u16 address, rsp_code_overlay_t* overlay) {
                 break;
         }
 
-#ifdef N64_LOG_COMPILATIONS
+//#ifdef N64_LOG_COMPILATIONS
         static char buf[50];
-        u64 instr_virtual_address = virtual_address + (i << 2);
-        disassemble(instr_virtual_address, temp_code[i].instr.raw, buf, 50);
-        printf("%d [%08X]=%08X %s\n", i, (u32)instr_virtual_address, temp_code[i].instr.raw, buf);
-#endif
+        disassemble(instr_address, temp_code[i].instr.raw, buf, 50);
+        printf("%d [%04X]=%08X %s\n", i, instr_address, temp_code[i].instr.raw, buf);
+//#endif
 
 
         if (instr_ends_block) {
@@ -402,14 +401,6 @@ void v2_compile_new_block_rsp(rsp_dynarec_block_t* block, rsp_code_overlay_t* ov
     if (block->run == NULL) {
         logfatal("Failed to emit block");
     }
-#ifdef N64_DEBUG_MODE
-    if (should_break(physical_address)) {
-        print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
-        if (physical_address < N64_RDRAM_SIZE) {
-            print_multi_guest((uintptr_t)physical_address, &n64sys.mem.rdram[physical_address], block->guest_size);
-        }
-    }
-#endif
 #ifdef N64_LOG_COMPILATIONS
     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
 #endif

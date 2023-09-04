@@ -119,7 +119,7 @@ int rsp_missing_block_handler() {
     rsp_code_overlay_t* current_overlay = &N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay];
     rsp_dynarec_block_t* block = &current_overlay->blockcache[pc];
     v2_compile_new_block_rsp(block, current_overlay, (N64RSP.pc << 2) & 0xFFF);
-    return block->run(&N64RSP);
+    return n64dynarec.run_rsp_block((uintptr_t)block->run);
 }
 
 void reset_rsp_dynarec_code_overlay(rsp_code_overlay_t* overlay) {
@@ -210,5 +210,6 @@ int rsp_dynarec_step() {
         N64RSPDYNAREC->dirty = false;
     }
 
-    return N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay].blockcache[N64RSP.pc & 0x3FF].run(&N64RSP);
+    printf("About to run RSP block at PC: %04X\n", N64RSP.pc << 2);
+    return n64dynarec.run_rsp_block((uintptr_t)N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay].blockcache[N64RSP.pc & 0x3FF].run);
 }

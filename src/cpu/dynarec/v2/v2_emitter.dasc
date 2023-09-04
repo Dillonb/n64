@@ -4,6 +4,7 @@
 #include <cpu/dynarec/v2/target_platform.h>
 #include <cpu/dynarec/dynarec_memory_management.h>
 #include <cpu/r4300i.h>
+#include <cpu/rsp.h>
 #include <cpu/dynarec/v2/x86_64_registers.h>
 #include <r4300i_register_access.h>
 
@@ -113,12 +114,11 @@ dasm_State** v2_block_header() {
     return Dst;
 }
 
-dasm_State** v2_emit_run_block() {
-    uintptr_t n64_cpu_addr = (uintptr_t)&N64CPU;
+dasm_State** v2_emit_run_block(uintptr_t cpu_addr) {
     dasm_State** Dst = v2_common_header();
     | func_prologue
     // r12 always holds a pointer to the CPU struct
-    | mov64 r12, n64_cpu_addr
+    | mov64 r12, cpu_addr
     | call Rq(get_func_arg_registers()[0])
     | func_epilogue
     return Dst;
@@ -994,18 +994,38 @@ void host_emit_cmp_reg_reg(dasm_State** Dst, ir_register_allocation_t dest_reg_a
 }
 
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value) {
-    if (is_constant(value)) {
-        u64 const_value = const_to_u64(value);
-        | mov64 Rq(TMPREG2), const_value
-        | mov cpu_state->pc, Rq(TMPREG2)
-        | add Rq(TMPREG2), 4
-        | mov cpu_state->next_pc, Rq(TMPREG2)
-    } else {
-        int reg = check_reg(Dst, value->reg_alloc, NULL);
-        | mov Rq(TMPREG2), Rq(reg)
-        | mov cpu_state->pc, Rq(TMPREG2)
-        | add Rq(TMPREG2), 4
-        | mov cpu_state->next_pc, Rq(TMPREG2)
+    switch(ir_context.target) {
+        case COMPILER_TARGET_RSP:
+            if (is_constant(value)) {
+                u16 const_value = (const_to_u16(value) >> 2) & 0x3FF;
+                | mov word rsp_state->pc, const_value
+                | mov word rsp_state->next_pc, ((const_value + 1) & 0x3FF)
+            } else {
+                int reg = check_reg(Dst, value->reg_alloc, NULL);
+                | mov Rd(TMPREG2), Rd(reg)
+                | shr Rd(TMPREG2), 2
+                | and Rd(TMPREG2), 0x3FF
+                | mov rsp_state->pc, Rd(TMPREG2)
+                | add Rd(TMPREG2), 1
+                | and Rd(TMPREG2), 0x3FF
+                | mov rsp_state->next_pc, Rq(TMPREG2)
+            }
+            break;
+        case COMPILER_TARGET_CPU:
+            if (is_constant(value)) {
+                u64 const_value = const_to_u64(value);
+                | mov64 Rq(TMPREG2), const_value
+                | mov cpu_state->pc, Rq(TMPREG2)
+                | add Rq(TMPREG2), 4
+                | mov cpu_state->next_pc, Rq(TMPREG2)
+            } else {
+                int reg = check_reg(Dst, value->reg_alloc, NULL);
+                | mov Rq(TMPREG2), Rq(reg)
+                | mov cpu_state->pc, Rq(TMPREG2)
+                | add Rq(TMPREG2), 4
+                | mov cpu_state->next_pc, Rq(TMPREG2)
+            }
+            break;
     }
 }
 
@@ -1020,13 +1040,26 @@ void host_emit_cmov_pc_binary(dasm_State** Dst, ir_register_allocation_t cond_re
     |2:
 }
 
-// Gets the offset within N64CPU for a pointer, or negative if the pointer is not within n64cpu
-int get_n64cpu_offset(uintptr_t absolute) {
-    const uintptr_t n64cpu_addr = (uintptr_t)&N64CPU;
-    const uintptr_t offset = absolute - n64cpu_addr;
+// Gets the offset within N64CPU (or N64RSP) for a pointer, or negative if the pointer is not within n64cpu (or n64rsp)
+int get_cpu_offset(uintptr_t absolute) {
+    uintptr_t cpu_addr;
+    size_t cpu_size;
+
+    switch (ir_context.target) {
+        case COMPILER_TARGET_CPU:
+            cpu_addr = (uintptr_t)&N64CPU;
+            cpu_size = sizeof(N64CPU);
+            break;
+        case COMPILER_TARGET_RSP:
+            cpu_addr = (uintptr_t)&N64RSP;
+            cpu_size = sizeof(N64RSP);
+            break;
+    }
+
+    const uintptr_t offset = absolute - cpu_addr;
 
     // Check if the pointer is within N64CPU
-    if (absolute > n64cpu_addr && offset < sizeof(N64CPU)) {
+    if (absolute > cpu_addr && offset < cpu_size) {
         return offset;
     } else {
         return -1;
@@ -1034,7 +1067,7 @@ int get_n64cpu_offset(uintptr_t absolute) {
 }
 
 void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size) {
-    int offset = get_n64cpu_offset(mem);
+    int offset = get_cpu_offset(mem);
     u64 imm = set_const_to_u64(value);
     // Check if the pointer is within N64CPU
     if (offset > 0) {
@@ -1067,7 +1100,7 @@ void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t va
 
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc, ir_value_type_t type) {
     int reg = check_reg(Dst, reg_alloc, NULL);
-    int offset = get_n64cpu_offset(mem);
+    int offset = get_cpu_offset(mem);
 
     // Check if the pointer is within N64CPU
     if (offset > 0) {
@@ -1138,7 +1171,7 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
 
 void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type) {
     int reg = check_reg(Dst, reg_alloc, NULL);
-    int offset = get_n64cpu_offset(mem);
+    int offset = get_cpu_offset(mem);
 
     if (reg_alloc.type == REGISTER_TYPE_GPR) {
         // Check if the pointer is within N64CPU
