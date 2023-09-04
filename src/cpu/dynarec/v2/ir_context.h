@@ -328,6 +328,7 @@ typedef struct ir_instruction {
         } mult_div;
         struct {
             uintptr_t function;
+            bool save_result;
             int num_args;
             struct ir_instruction* arguments[3];
         } call;
@@ -471,8 +472,8 @@ ir_instruction_t* ir_emit_multiply(ir_instruction_t* multiplicand1, ir_instructi
 ir_instruction_t* ir_emit_divide(ir_instruction_t* dividend, ir_instruction_t* divisor, ir_value_type_t divide_type);
 // Run the MIPS ERET instruction
 ir_instruction_t* ir_emit_eret();
-// Call a function with no arguments. Result ignored.
-void ir_emit_call_0(uintptr_t function);
+// Call a function with no arguments.
+void ir_emit_call_0(uintptr_t function, u8 guest_reg);
 // Call a function with one argument. Result ignored.
 void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg);
 // Call a function with two arguments. Result ignored.

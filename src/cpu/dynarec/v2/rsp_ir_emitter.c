@@ -34,19 +34,19 @@ IR_RSP_EMITTER(andi) {
 }
 
 IR_RSP_EMITTER(lbu) {
-    logfatal("Unimplemented IR emitter: lbu");
+    ir_emit_load(VALUE_TYPE_U8, ir_get_rsp_memory_access_address(instruction), instruction.i.rt);
 }
 
 IR_RSP_EMITTER(lhu) {
-    logfatal("Unimplemented IR emitter: lhu");
+    ir_emit_load(VALUE_TYPE_U16, ir_get_rsp_memory_access_address(instruction), instruction.i.rt);
 }
 
 IR_RSP_EMITTER(lh) {
-    logfatal("Unimplemented IR emitter: lh");
+    ir_emit_load(VALUE_TYPE_S16, ir_get_rsp_memory_access_address(instruction), instruction.i.rt);
 }
 
 IR_RSP_EMITTER(lw) {
-    ir_emit_load(VALUE_TYPE_U32, ir_get_rsp_memory_access_address(instruction), instruction.i.rt);
+    ir_emit_load(VALUE_TYPE_S32, ir_get_rsp_memory_access_address(instruction), instruction.i.rt);
 }
 
 IR_RSP_EMITTER(lwu) {
@@ -61,10 +61,14 @@ IR_RSP_EMITTER(beq) {
 }
 
 IR_RSP_EMITTER(bgtz) {
-    logfatal("Unimplemented IR emitter: bgtz");
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_GREATER_THAN_SIGNED, rs, ir_emit_set_constant_u16(0, NO_GUEST_REG), NO_GUEST_REG);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, address);
 }
 IR_RSP_EMITTER(blez) {
-    logfatal("Unimplemented IR emitter: blez");
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_LESS_OR_EQUAL_TO_SIGNED, rs, ir_emit_set_constant_u16(0, NO_GUEST_REG), NO_GUEST_REG);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, address);
 }
 
 IR_RSP_EMITTER(bne) {
@@ -75,15 +79,18 @@ IR_RSP_EMITTER(bne) {
 }
 
 IR_RSP_EMITTER(sb) {
-    logfatal("Unimplemented IR emitter: sb");
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
+    ir_emit_store(VALUE_TYPE_U8, ir_get_rsp_memory_access_address(instruction), value);
 }
 
 IR_RSP_EMITTER(sh) {
-    logfatal("Unimplemented IR emitter: sh");
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
+    ir_emit_store(VALUE_TYPE_U16, ir_get_rsp_memory_access_address(instruction), value);
 }
 
 IR_RSP_EMITTER(sw) {
-    logfatal("Unimplemented IR emitter: sw");
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.i.rt);
+    ir_emit_store(VALUE_TYPE_U32, ir_get_rsp_memory_access_address(instruction), value);
 }
 
 IR_RSP_EMITTER(ori) {
@@ -123,8 +130,8 @@ IR_RSP_EMITTER(mtc0) {
     ir_emit_call_2((uintptr_t)&set_rsp_cp0_register, ir_emit_set_constant_u16(instruction.r.rd, NO_GUEST_REG), rt);
 }
 
-ir_instruction_t* ir_emit_get_rsp_status_bit(int bit, u8 guest_reg) {
-    ir_instruction_t* rsp_status = ir_emit_get_ptr(VALUE_TYPE_U32, &N64RSP.status.raw, NO_GUEST_REG);
+ir_instruction_t* ir_emit_get_ptr_bit(void* ptr, int bit, u8 guest_reg) {
+    ir_instruction_t* rsp_status = ir_emit_get_ptr(VALUE_TYPE_U32, ptr, NO_GUEST_REG);
     ir_instruction_t* shifted = ir_emit_shift(rsp_status, ir_emit_set_constant_u16(bit, NO_GUEST_REG), VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
     return ir_emit_and(shifted, ir_emit_set_constant_u16(1, NO_GUEST_REG), guest_reg);
 }
@@ -132,34 +139,40 @@ ir_instruction_t* ir_emit_get_rsp_status_bit(int bit, u8 guest_reg) {
 IR_RSP_EMITTER(mfc0) {
     switch (instruction.r.rd) {
         case RSP_CP0_DMA_CACHE:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_DMA_CACHE");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64RSP.io.mem_addr.raw, instruction.r.rt);
+            break;
         case RSP_CP0_DMA_DRAM:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_DMA_DRAM");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64RSP.io.dram_addr.raw, instruction.r.rt);
+            break;
         case RSP_CP0_DMA_READ_LENGTH:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_DMA_READ_LENGTH");
         case RSP_CP0_DMA_WRITE_LENGTH:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_DMA_WRITE_LENGTH");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64RSP.io.dma.raw, instruction.r.rt);
         case RSP_CP0_SP_STATUS:
-            ir_emit_get_ptr(VALUE_TYPE_U32, &N64RSP.status.raw, instruction.r.rt);
+            ir_emit_get_ptr(VALUE_TYPE_S32, &N64RSP.status.raw, instruction.r.rt);
             break;
         case RSP_CP0_DMA_FULL:
-            ir_emit_get_rsp_status_bit(3, instruction.r.rt);
+            ir_emit_get_ptr_bit(&N64RSP.status.raw, 3, instruction.r.rt);
             break;
         case RSP_CP0_DMA_BUSY:
-            ir_emit_get_rsp_status_bit(2, instruction.r.rt);
+            ir_emit_get_ptr_bit(&N64RSP.status.raw, 2, instruction.r.rt);
             break;
         case RSP_CP0_DMA_RESERVED:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_DMA_RESERVED");
+            ir_emit_call_0((uintptr_t)&rsp_acquire_semaphore, instruction.r.rt);
+            break;
         case RSP_CP0_CMD_START:
             logfatal("RSP JIT unimplemented MFC0 RSP_CP0_CMD_START");
         case RSP_CP0_CMD_END:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_CMD_END");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &n64sys.dpc.end, instruction.r.rt);
+            break;
         case RSP_CP0_CMD_CURRENT:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_CMD_CURRENT");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &n64sys.dpc.current, instruction.r.rt);
+            break;
         case RSP_CP0_CMD_STATUS:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_CMD_STATUS");
+            ir_emit_get_ptr(VALUE_TYPE_S32, &n64sys.dpc.status.raw, instruction.r.rt);
         case RSP_CP0_CMD_CLOCK:
-            logfatal("RSP JIT unimplemented MFC0 RSP_CP0_CMD_CLOCK");
+            logwarn("Read from RDP clock: returning 0.");
+            ir_emit_set_constant_u16(0, instruction.r.rt);
+            break;
         case RSP_CP0_CMD_BUSY:
             logfatal("Read from unknown RSP CP0 register RSP_CP0_CMD_BUSY");
         case RSP_CP0_CMD_PIPE_BUSY:
@@ -196,11 +209,17 @@ IR_RSP_EMITTER(cp0) {
 }
 
 IR_RSP_EMITTER(sll) {
-    logfatal("Unimplemented RSP emitter: sll");
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
+    ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_S32, SHIFT_DIRECTION_LEFT, NO_GUEST_REG);
+    ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_RSP_EMITTER(srl) {
-    logfatal("Unimplemented RSP emitter: srl");
+    ir_instruction_t* operand = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_instruction_t* shift_amount = ir_emit_set_constant_u16(instruction.r.sa, NO_GUEST_REG);
+    ir_instruction_t* shift_result = ir_emit_shift(operand, shift_amount, VALUE_TYPE_U32, SHIFT_DIRECTION_RIGHT, NO_GUEST_REG);
+    ir_emit_mask_and_cast(shift_result, VALUE_TYPE_S32, instruction.r.rd);
 }
 
 IR_RSP_EMITTER(sra) {
@@ -228,7 +247,9 @@ IR_RSP_EMITTER(jalr) {
 }
 
 IR_RSP_EMITTER(add) {
-    logfatal("Unimplemented RSP emitter: add");
+    ir_instruction_t* operand1 = ir_emit_load_guest_gpr(instruction.r.rs);
+    ir_instruction_t* operand2 = ir_emit_load_guest_gpr(instruction.r.rt);
+    ir_emit_add(operand1, operand2, instruction.r.rd);
 }
 
 IR_RSP_EMITTER(and) {
@@ -300,6 +321,142 @@ IR_RSP_EMITTER(spcl) {
     }
 }
 
+IR_RSP_EMITTER(regimm) {
+    logfatal("RSP regimm emitter unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_lbv) {
+    logfatal("RSP emitter for lwc2_lbv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_ldv) {
+    logfatal("RSP emitter for lwc2_ldv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_lfv) {
+    logfatal("RSP emitter for lwc2_lfv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_lhv) {
+    logfatal("RSP emitter for lwc2_lhv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_llv) {
+    logfatal("RSP emitter for lwc2_llv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_lpv) {
+    logfatal("RSP emitter for lwc2_lpv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_lqv) {
+    logfatal("RSP emitter for lwc2_lqv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_lrv) {
+    logfatal("RSP emitter for lwc2_lrv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_lsv) {
+    logfatal("RSP emitter for lwc2_lsv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_ltv) {
+    logfatal("RSP emitter for lwc2_ltv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2_luv) {
+    logfatal("RSP emitter for lwc2_luv unimplemented");
+}
+
+IR_RSP_EMITTER(lwc2) {
+    switch (instruction.v.funct) {
+        case LWC2_LBV: CALL_IR_RSP_EMITTER(lwc2_lbv);
+        case LWC2_LDV: CALL_IR_RSP_EMITTER(lwc2_ldv);
+        case LWC2_LFV: CALL_IR_RSP_EMITTER(lwc2_lfv);
+        case LWC2_LHV: CALL_IR_RSP_EMITTER(lwc2_lhv);
+        case LWC2_LLV: CALL_IR_RSP_EMITTER(lwc2_llv);
+        case LWC2_LPV: CALL_IR_RSP_EMITTER(lwc2_lpv);
+        case LWC2_LQV: CALL_IR_RSP_EMITTER(lwc2_lqv);
+        case LWC2_LRV: CALL_IR_RSP_EMITTER(lwc2_lrv);
+        case LWC2_LSV: CALL_IR_RSP_EMITTER(lwc2_lsv);
+        case LWC2_LTV: CALL_IR_RSP_EMITTER(lwc2_ltv);
+        case LWC2_LUV: CALL_IR_RSP_EMITTER(lwc2_luv);
+        case SWC2_SWV: return; // Does not exist on the RSP
+        default:
+            logfatal("other/unknown MIPS RSP LWC2 with funct: 0x%02X", instruction.v.funct);
+    }
+}
+
+IR_RSP_EMITTER(swc2_sbv) {
+    logfatal("RSP emitter for swc2_sbv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_sdv) {
+    logfatal("RSP emitter for swc2_sdv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_sfv) {
+    logfatal("RSP emitter for swc2_sfv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_shv) {
+    logfatal("RSP emitter for swc2_shv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_slv) {
+    logfatal("RSP emitter for swc2_slv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_spv) {
+    logfatal("RSP emitter for swc2_spv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_sqv) {
+    logfatal("RSP emitter for swc2_sqv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_srv) {
+    logfatal("RSP emitter for swc2_srv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_ssv) {
+    logfatal("RSP emitter for swc2_ssv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_stv) {
+    logfatal("RSP emitter for swc2_stv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_suv) {
+    logfatal("RSP emitter for swc2_suv unimplemented");
+}
+
+IR_RSP_EMITTER(swc2_swv) {
+    logfatal("RSP emitter for swc2_swv unimplemented");
+}
+
+
+IR_RSP_EMITTER(swc2) {
+    switch (instruction.v.funct) {
+        case LWC2_LBV: CALL_IR_RSP_EMITTER(swc2_sbv);
+        case LWC2_LDV: CALL_IR_RSP_EMITTER(swc2_sdv);
+        case LWC2_LFV: CALL_IR_RSP_EMITTER(swc2_sfv);
+        case LWC2_LHV: CALL_IR_RSP_EMITTER(swc2_shv);
+        case LWC2_LLV: CALL_IR_RSP_EMITTER(swc2_slv);
+        case LWC2_LPV: CALL_IR_RSP_EMITTER(swc2_spv);
+        case LWC2_LQV: CALL_IR_RSP_EMITTER(swc2_sqv);
+        case LWC2_LRV: CALL_IR_RSP_EMITTER(swc2_srv);
+        case LWC2_LSV: CALL_IR_RSP_EMITTER(swc2_ssv);
+        case LWC2_LTV: CALL_IR_RSP_EMITTER(swc2_stv);
+        case LWC2_LUV: CALL_IR_RSP_EMITTER(swc2_suv);
+        case SWC2_SWV: CALL_IR_RSP_EMITTER(swc2_swv);
+
+        default:
+            logfatal("other/unknown MIPS RSP SWC2 with funct: 0x%02X", instruction.v.funct);
+    }
+}
+
 IR_RSP_EMITTER(instruction) {
     if (unlikely(instruction.raw == 0)) {
         return; // do nothing for NOP
@@ -345,12 +502,12 @@ IR_RSP_EMITTER(instruction) {
             //case OPC_SWR:   return rsp_swr;
 
             case OPC_CP0:      CALL_IR_RSP_EMITTER(cp0);
-            case OPC_CP1:      IR_RSP_UNIMPLEMENTED(OPC_CP1);     //return rsp_cp1_decode(pc, instr);
+            case OPC_CP1:      logfatal("Tried to execute a COP1 instruction on the RSP!");
             case OPC_CP2:      IR_RSP_UNIMPLEMENTED(OPC_CP2); //return rsp_cp2_decode(pc, instruction);
-            case OPC_SPCL:     CALL_IR_RSP_EMITTER(spcl); //return rsp_special_decode(pc, instruction);
-            case OPC_REGIMM:   IR_RSP_UNIMPLEMENTED(OPC_REGIMM); //return rsp_regimm_decode(pc, instruction);
-            case RSP_OPC_LWC2: IR_RSP_UNIMPLEMENTED(RSP_OPC_LWC2); //return rsp_lwc2_decode(pc, instruction);
-            case RSP_OPC_SWC2: IR_RSP_UNIMPLEMENTED(RSP_OPC_SWC2); //return rsp_swc2_decode(pc, instruction);
+            case OPC_SPCL:     CALL_IR_RSP_EMITTER(spcl);
+            case OPC_REGIMM:   CALL_IR_RSP_EMITTER(regimm);
+            case RSP_OPC_LWC2: CALL_IR_RSP_EMITTER(lwc2);
+            case RSP_OPC_SWC2: CALL_IR_RSP_EMITTER(swc2);
 
             default:
 #ifdef LOG_ENABLED

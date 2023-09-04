@@ -47,7 +47,6 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         case IR_SET_PTR:
         case IR_ERET:
         case IR_FLOAT_CHECK_CONDITION: // uses FCR31.compare.
-        case IR_CALL:
         case IR_INTERPRETER_FALLBACK:
             return REGISTER_TYPE_NONE;
 
@@ -63,6 +62,14 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         case IR_SHIFT:
         case IR_NOT:
             return REGISTER_TYPE_GPR;
+
+        case IR_CALL:
+            if (instr->call.save_result) {
+                return REGISTER_TYPE_GPR;
+            } else {
+                return REGISTER_TYPE_NONE;
+            }
+            break;
 
         case IR_LOAD_GUEST_REG:
             if (IR_IS_FGR(instr->load_guest_reg.guest_reg)) {

@@ -874,17 +874,19 @@ ir_instruction_t* ir_emit_eret() {
     return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
-void ir_emit_call_0(uintptr_t function) {
+void ir_emit_call_0(uintptr_t function, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_CALL;
+    instruction.call.save_result = guest_reg != NO_GUEST_REG;
     instruction.call.function = function;
     instruction.call.num_args = 0;
-    append_ir_instruction(instruction, -1, NO_GUEST_REG);
+    append_ir_instruction(instruction, -1, guest_reg);
 }
 
 void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg) {
     ir_instruction_t instruction;
     instruction.type = IR_CALL;
+    instruction.call.save_result = false;
     instruction.call.function = function;
     instruction.call.num_args = 1;
     instruction.call.arguments[0] = arg;
@@ -894,6 +896,7 @@ void ir_emit_call_1(uintptr_t function, ir_instruction_t* arg) {
 void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2) {
     ir_instruction_t instruction;
     instruction.type = IR_CALL;
+    instruction.call.save_result = false;
     instruction.call.function = function;
     instruction.call.num_args = 2;
     instruction.call.arguments[0] = arg1;
@@ -904,6 +907,7 @@ void ir_emit_call_2(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t
 void ir_emit_call_3(uintptr_t function, ir_instruction_t* arg1, ir_instruction_t* arg2, ir_instruction_t* arg3) {
     ir_instruction_t instruction;
     instruction.type = IR_CALL;
+    instruction.call.save_result = false;
     instruction.call.function = function;
     instruction.call.num_args = 3;
     instruction.call.arguments[0] = arg1;

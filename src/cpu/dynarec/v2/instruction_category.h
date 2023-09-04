@@ -169,9 +169,16 @@ dynarec_instruction_category_t instr_category(mips_instruction_t instr) {
     }
     switch (instr.op) {
         case OPC_CP0:    return cp0_instruction_category(instr);
-        case OPC_CP1:    return cp1_instruction_category(instr);
         case OPC_SPCL:   return special_instruction_category(instr);
         case OPC_REGIMM: return regimm_instruction_category(instr);
+        
+        // Main CPU only
+        case OPC_CP1:    return cp1_instruction_category(instr);
+
+        // RSP only
+        case OPC_CP2:      return NORMAL;
+        case RSP_OPC_LWC2: return NORMAL;
+        case RSP_OPC_SWC2: return STORE;
 
         case OPC_LD: return NORMAL;
         case OPC_LUI: return NORMAL;

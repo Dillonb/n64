@@ -122,7 +122,7 @@ void val_to_func_arg(dasm_State** Dst, ir_instruction_t* val, int arg_index) {
     }
 }
 
-void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
+void compile_ir_store_cpu(dasm_State** Dst, ir_instruction_t* instr) {
     // If the address is known and is memory, it can be compiled as a direct store to memory
     if (instr_valid_immediate(instr->store.address) && is_memory(const_to_u64(instr->store.address))) {
         logfatal("Emitting IR_STORE directly to memory");
@@ -153,6 +153,44 @@ void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
                 host_emit_call(Dst, (uintptr_t)n64_write_physical_dword);
                 break;
         }
+    }
+}
+
+void compile_ir_store_rsp(dasm_State** Dst, ir_instruction_t* instr) {
+    switch (instr->store.type) {
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_U8:
+            val_to_func_arg(Dst, instr->store.address, 0);
+            val_to_func_arg(Dst, instr->store.value, 1);
+            host_emit_call(Dst, (uintptr_t)n64_rsp_write_byte);
+            break;
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            val_to_func_arg(Dst, instr->store.address, 0);
+            val_to_func_arg(Dst, instr->store.value, 1);
+            host_emit_call(Dst, (uintptr_t)n64_rsp_write_half);
+            break;
+        case VALUE_TYPE_S32:
+        case VALUE_TYPE_U32:
+            val_to_func_arg(Dst, instr->store.address, 0);
+            val_to_func_arg(Dst, instr->store.value, 1);
+            host_emit_call(Dst, (uintptr_t)n64_rsp_write_word);
+            break;
+        case VALUE_TYPE_U64:
+        case VALUE_TYPE_S64:
+            logfatal("64 bit write in RSP!");
+            break;
+    }
+}
+
+void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
+    switch (ir_context.target) {
+    case COMPILER_TARGET_CPU:
+        compile_ir_store_cpu(Dst, instr);
+        break;
+    case COMPILER_TARGET_RSP:
+        compile_ir_store_rsp(Dst, instr);
+        break;
     }
 }
 
@@ -390,15 +428,15 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
         break;
     case COMPILER_TARGET_RSP:
         switch (instr->load_guest_reg.guest_reg_type) {
-        case REGISTER_TYPE_GPR:
-                unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
-                host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64RSP.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U32);
-                break;
-        case REGISTER_TYPE_NONE:
-        case REGISTER_TYPE_FGR_32:
-        case REGISTER_TYPE_FGR_64:
-            logfatal("Only the GPR register type is supported for RSP code!");
-                break;
+            case REGISTER_TYPE_GPR:
+                    unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
+                    host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64RSP.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_S32);
+                    break;
+            case REGISTER_TYPE_NONE:
+            case REGISTER_TYPE_FGR_32:
+            case REGISTER_TYPE_FGR_64:
+                logfatal("Only the GPR register type is supported for RSP code!");
+                    break;
         }
         break;
     }
@@ -619,6 +657,9 @@ void compile_ir_call(dasm_State** Dst, ir_instruction_t* instr) {
         val_to_func_arg(Dst, instr->call.arguments[i], i);
     }
     host_emit_call(Dst, instr->call.function);
+    if (instr->call.save_result) {
+        host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_gpr(get_return_value_reg()), VALUE_TYPE_U64);
+    }
 }
 
 void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {

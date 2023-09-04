@@ -893,7 +893,7 @@ IR_EMITTER(mtc0) {
             ir_instruction_t* value_masked = ir_emit_and(value, status_mask, NO_GUEST_REG);
             ir_instruction_t* new_status = ir_emit_or(value_masked, old_status_masked, NO_GUEST_REG);
             ir_emit_set_ptr(VALUE_TYPE_U32, &N64CP0.status.raw, new_status);
-            ir_emit_call_0((uintptr_t)cp0_status_updated);
+            ir_emit_call_0((uintptr_t)cp0_status_updated, NO_GUEST_REG);
             break;
         }
         case R4300I_CP0_REG_ENTRYLO0: {
@@ -1034,7 +1034,7 @@ IR_EMITTER(dmtc0) {
             break;
         case R4300I_CP0_REG_STATUS:
             logfatal("dmtc0 R4300I_CP0_REG_STATUS");
-            ir_emit_call_0((uintptr_t)cp0_status_updated);
+            ir_emit_call_0((uintptr_t)cp0_status_updated, NO_GUEST_REG);
             break;
         case R4300I_CP0_REG_CAUSE:
             logfatal("dmtc0 R4300I_CP0_REG_CAUSE");
@@ -1104,7 +1104,7 @@ IR_EMITTER(dmtc0) {
 
 IR_EMITTER(eret) {
     ir_emit_eret();
-    ir_emit_call_0((uintptr_t)cp0_status_updated);
+    ir_emit_call_0((uintptr_t)cp0_status_updated, NO_GUEST_REG);
 }
 
 ir_instruction_t* ir_cp0_get_index(u8 guest_reg) {
@@ -1332,15 +1332,15 @@ void do_tlbwr() {
 }
 
 IR_EMITTER(tlbwr) {
-    ir_emit_call_0((uintptr_t)do_tlbwr);
+    ir_emit_call_0((uintptr_t)do_tlbwr, NO_GUEST_REG);
 }
 
 IR_EMITTER(tlbp) {
-    ir_emit_call_0((uintptr_t)do_tlbp);
+    ir_emit_call_0((uintptr_t)do_tlbp, NO_GUEST_REG);
 }
 
 IR_EMITTER(tlbr) {
-    ir_emit_call_0((uintptr_t)do_tlbr);
+    ir_emit_call_0((uintptr_t)do_tlbr, NO_GUEST_REG);
 }
 
 IR_EMITTER(invalid) {
