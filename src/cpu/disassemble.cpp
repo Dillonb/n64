@@ -48,6 +48,41 @@ bool should_fix_op_str(cs_insn& insn) {
     }
 }
 
+std::map<std::string, std::string> reg_to_cp0_rsp = {
+        {"$zero,", "$DmaCache"},       // 0 
+        {"$at,",   "$DmaDram"},        // 1 
+        {"$v0,",   "$DmaReadLength"},  // 2 
+        {"$v1,",   "$DmaWriteLength"}, // 3 
+        {"$a0,",   "$SpStatus"},       // 4 
+        {"$a1,",   "$DmaFull"},        // 5 
+        {"$a2,",   "$DmaBusy"},        // 6 
+        {"$a3,",   "$DmaReserved"},    // 7 
+        {"$t0,",   "$CmdStart"},       // 8 
+        {"$t1,",   "$CmdEnd"},         // 9 
+        {"$t2,",   "$CmdCurrent"},     // 10
+        {"$t3,",   "$CmdStatus"},      // 11
+        {"$t4,",   "$CmdClock"},       // 12
+        {"$t5,",   "$Cmdbusy"},        // 13
+        {"$t6,",   "$PipeBusy"},       // 14
+        {"$t7,",   "$TmemBusy"},       // 15
+        {"$s0,",   "$16"},             // 16
+        {"$s1,",   "$17"},             // 17
+        {"$s2,",   "$18"},             // 18
+        {"$s3,",   "$19"},             // 19
+        {"$s4,",   "$20"},             // 20
+        {"$s5,",   "$21"},             // 21
+        {"$s6,",   "$22"},             // 22
+        {"$s7,",   "$23"},             // 23
+        {"$t8,",   "$24"},             // 24
+        {"$t9,",   "$25"},             // 25
+        {"$k0,",   "$26"},             // 26
+        {"$k1,",   "$27"},             // 27
+        {"$gp,",   "$28"},             // 28
+        {"$sp,",   "$29"},             // 29
+        {"$fp,",   "$30"},             // 30
+        {"$ra,",   "$31"}              // 31
+};
+
 std::map<std::string, std::string> reg_to_cp0 = {
         {"$zero,", "$Index"},        // 0 
         {"$at,",   "$Random"},       // 1 
@@ -84,7 +119,7 @@ std::map<std::string, std::string> reg_to_cp0 = {
 };
 
 // Yes, I know.
-std::string fix_op_str(cs_insn& insn) {
+std::string fix_op_str(cs_insn& insn, bool rsp) {
     std::string original = insn.op_str;
     switch (insn.id) {
         case MIPS_INS_MTC0:
@@ -99,7 +134,7 @@ std::string fix_op_str(cs_insn& insn) {
             std::string badcp0;
             tok >> badcp0;
 
-            std::string goodcp0 = reg_to_cp0[badcp0];
+            std::string goodcp0 = (rsp ? reg_to_cp0_rsp : reg_to_cp0)[badcp0];
             
             return prefix + " " + goodcp0;
             break;
@@ -112,7 +147,7 @@ std::string fix_op_str(cs_insn& insn) {
 #endif
 
 
-int disassemble(u32 address, u32 raw, char* buf, int buflen) {
+int disassemble_common(u32 address, u32 raw, char* buf, int buflen, bool rsp) {
 #ifdef HAVE_CAPSTONE
     u8 code[4];
     code[0] = raw & 0xFF;
@@ -126,13 +161,21 @@ int disassemble(u32 address, u32 raw, char* buf, int buflen) {
         return 0;
     }
 
-    snprintf(buf, buflen, "%s %s", insn[0].mnemonic, fix_op_str(insn[0]).c_str());
+    snprintf(buf, buflen, "%s %s", insn[0].mnemonic, fix_op_str(insn[0], rsp).c_str());
 
     cs_free(insn, count);
 #else
     snprintf(buf, buflen, "[Disassembly Unsupported]");
 #endif
     return 1;
+}
+
+int disassemble(u32 address, u32 raw, char* buf, int buflen) {
+    return disassemble_common(address, raw, buf, buflen, false);
+}
+
+int disassemble_rsp(u32 address, u32 raw, char *buf, int buflen) {
+    return disassemble_common(address, raw, buf, buflen, true);
 }
 
 std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code, size_t code_size) {
@@ -145,6 +188,7 @@ std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code,
             handle = handle_x86_64;
             break;
         case DisassemblyArch::GUEST:
+        case DisassemblyArch::GUEST_RSP:
             handle = handle_mips64;
             break;
     }
@@ -163,7 +207,7 @@ std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code,
                            insn[i].bytes[2],
                            insn[i].bytes[1],
                            insn[i].bytes[0],
-                           insn[i].mnemonic, fix_op_str(insn[i]).c_str());
+                           insn[i].mnemonic, fix_op_str(insn[i], arch == DisassemblyArch::GUEST_RSP).c_str());
         }
         output += std::string(tmp);
         if (res < 0) {
@@ -182,4 +226,7 @@ void print_multi_host(uintptr_t address, u8 *code, size_t code_size) {
 }
 void print_multi_guest(uintptr_t address, u8 *code, size_t code_size) {
     printf("%s\n", disassemble_multi(DisassemblyArch::GUEST, address, code, code_size).c_str());
+}
+void print_multi_guest_rsp(uintptr_t address, u8 *code, size_t code_size) {
+    printf("%s\n", disassemble_multi(DisassemblyArch::GUEST_RSP, address, code, code_size).c_str());
 }

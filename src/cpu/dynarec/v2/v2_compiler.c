@@ -197,7 +197,7 @@ void fill_temp_code_rsp(u16 address, rsp_code_overlay_t* overlay) {
 
 //#ifdef N64_LOG_COMPILATIONS
         static char buf[50];
-        disassemble(instr_address, temp_code[i].instr.raw, buf, 50);
+        disassemble_rsp(instr_address, temp_code[i].instr.raw, buf, 50);
         printf("%d [%04X]=%08X %s\n", i, instr_address, temp_code[i].instr.raw, buf);
 //#endif
 
