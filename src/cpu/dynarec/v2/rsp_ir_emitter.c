@@ -1,8 +1,15 @@
 #include "rsp_ir_emitter.h"
 #include <disassemble.h>
 #include <dynarec/v2/ir_context.h>
+#include <dynarec/v2/ir_emitter.h>
 #include <r4300i.h>
 #include <rsp.h>
+
+ir_instruction_t* ir_get_rsp_memory_access_address(mips_instruction_t instruction) {
+    ir_instruction_t* base = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* i_offset = ir_emit_set_constant_s16(instruction.i.immediate, NO_GUEST_REG);
+    return ir_emit_add(base, i_offset, NO_GUEST_REG);
+}
 
 IR_RSP_EMITTER(ori) {
     ir_instruction_t* i_operand = ir_emit_load_guest_gpr(instruction.i.rs);
@@ -21,6 +28,23 @@ IR_RSP_EMITTER(addi) {
     ir_emit_add(addend1, addend2, instruction.i.rt);
 }
 
+IR_RSP_EMITTER(lw) {
+    ir_emit_load(VALUE_TYPE_U32, ir_get_rsp_memory_access_address(instruction), instruction.i.rt);
+}
+
+IR_RSP_EMITTER(andi) {
+    ir_instruction_t* operand1 = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* operand2 = ir_emit_set_constant_u16(instruction.i.immediate, NO_GUEST_REG);
+    ir_emit_and(operand1, operand2, instruction.i.rt);
+}
+
+IR_RSP_EMITTER(beq) {
+    ir_instruction_t* rs = ir_emit_load_guest_gpr(instruction.i.rs);
+    ir_instruction_t* rt = ir_emit_load_guest_gpr(instruction.i.rt);
+    ir_instruction_t* cond = ir_emit_check_condition(CONDITION_EQUAL, rs, rt, NO_GUEST_REG);
+    ir_emit_conditional_branch(cond, instruction.i.immediate, address);
+}
+
 IR_RSP_EMITTER(instruction) {
     if (unlikely(instruction.raw == 0)) {
         return; // do nothing for NOP
@@ -37,13 +61,13 @@ IR_RSP_EMITTER(instruction) {
             case OPC_LUI:   IR_RSP_UNIMPLEMENTED(OPC_LUI);
             case OPC_ADDIU: IR_RSP_UNIMPLEMENTED(OPC_ADDIU);
             case OPC_ADDI:  CALL_IR_RSP_EMITTER(addi);
-            case OPC_ANDI:  IR_RSP_UNIMPLEMENTED(OPC_ANDI);
+            case OPC_ANDI:  CALL_IR_RSP_EMITTER(andi);
             case OPC_LBU:   IR_RSP_UNIMPLEMENTED(OPC_LBU);
             case OPC_LHU:   IR_RSP_UNIMPLEMENTED(OPC_LHU);
             case OPC_LH:    IR_RSP_UNIMPLEMENTED(OPC_LH);
-            case OPC_LW:    IR_RSP_UNIMPLEMENTED(OPC_LW);
+            case OPC_LW:    CALL_IR_RSP_EMITTER(lw);
             case OPC_LWU:   IR_RSP_UNIMPLEMENTED(OPC_LWU);
-            case OPC_BEQ:   IR_RSP_UNIMPLEMENTED(OPC_BEQ);
+            case OPC_BEQ:   CALL_IR_RSP_EMITTER(beq);
             //case OPC_BEQL:  return rsp_beql;
             case OPC_BGTZ:  IR_RSP_UNIMPLEMENTED(OPC_BGTZ);
             case OPC_BLEZ:  IR_RSP_UNIMPLEMENTED(OPC_BLEZ);
