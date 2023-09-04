@@ -389,7 +389,7 @@ void n64_write_physical_dword(u32 address, u64 value) {
                 word_to_byte_array((u8*) &N64RSP.sp_imem, DWORD_ADDRESS(address & 0xFFF), value);
                 invalidate_rsp_icache(DWORD_ADDRESS(address));
             } else {
-                word_to_byte_array((u8*) &N64RSP.sp_dmem, DWORD_ADDRESS(address & 0xFFF), value);
+                word_to_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF, htobe32(value));
             }
             break;
         }
@@ -457,7 +457,7 @@ u64 n64_read_physical_dword(u32 address) {
             if (address & 0x1000) {
                 return dword_from_byte_array((u8*) &N64RSP.sp_imem, DWORD_ADDRESS(address & 0xFFF));
             } else {
-                return dword_from_byte_array((u8*) &N64RSP.sp_dmem, DWORD_ADDRESS(address & 0xFFF));
+                return be64toh(dword_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
             }
         case REGION_SP_REGS:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_SP_REGS", address);
@@ -519,7 +519,7 @@ void n64_write_physical_word(u32 address, u32 value) {
                 word_to_byte_array((u8*) &N64RSP.sp_imem, WORD_ADDRESS(address & 0xFFF), value);
                 invalidate_rsp_icache(WORD_ADDRESS(address));
             } else {
-                word_to_byte_array((u8 *) &N64RSP.sp_dmem, WORD_ADDRESS(address & 0xFFF), value);
+                word_to_byte_array((u8 *) &N64RSP.sp_dmem, address & 0xFFF, htobe32(value));
             }
             break;
         case REGION_SP_REGS:
@@ -588,7 +588,7 @@ u32 n64_read_physical_word(u32 address) {
             if (address & 0x1000) {
                 return word_from_byte_array((u8*) &N64RSP.sp_imem, WORD_ADDRESS(address & 0xFFF));
             } else {
-                return word_from_byte_array((u8*) &N64RSP.sp_dmem, WORD_ADDRESS(address & 0xFFF));
+                return be32toh(word_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
             }
         case REGION_SP_REGS:
             return read_word_spreg(address);
@@ -676,7 +676,7 @@ void n64_write_physical_half(u32 address, u32 value) {
                 word_to_byte_array((u8*) &N64RSP.sp_imem, address & 0xFFF, value);
                 invalidate_rsp_icache(address);
             } else {
-                word_to_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF, value);
+                word_to_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF, htobe32(value));
             }
             break;
         case REGION_SP_REGS:
@@ -746,7 +746,7 @@ u16 n64_read_physical_half(u32 address) {
             if (address & 0x1000) {
                 return half_from_byte_array((u8*) &N64RSP.sp_imem, HALF_ADDRESS(address & 0xFFF));
             } else {
-                return half_from_byte_array((u8*) &N64RSP.sp_dmem, HALF_ADDRESS(address & 0xFFF));
+                return be16toh(half_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
             }
         case REGION_SP_REGS:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_SP_REGS", address);
@@ -803,7 +803,7 @@ void n64_write_physical_byte(u32 address, u32 value) {
                 word_to_byte_array(N64RSP.sp_imem, address & 0xFFF, value);
                 invalidate_rsp_icache(address);
             } else {
-                word_to_byte_array(N64RSP.sp_dmem, address & 0xFFF, value);
+                word_to_byte_array(N64RSP.sp_dmem, address & 0xFFF, htobe32(value));
             }
             break;
         case REGION_SP_REGS:
@@ -860,7 +860,7 @@ u8 n64_read_physical_byte(u32 address) {
             if (address & 0x1000) {
                 return N64RSP.sp_imem[BYTE_ADDRESS(address) - SREGION_SP_IMEM];
             } else {
-                return N64RSP.sp_dmem[BYTE_ADDRESS(address) - SREGION_SP_DMEM];
+                return N64RSP.sp_dmem[address - SREGION_SP_DMEM];
             }
         case REGION_SP_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_SP_REGS", address);

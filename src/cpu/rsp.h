@@ -165,7 +165,7 @@ INLINE void rsp_dma_read() {
         u8* rdram = n64sys.mem.rdram + dram_address;
         for (int j = 0; j < length; j++) {
             u16 addr = (mem_address + j) & 0xFFF;
-            mem[addr] = rdram[j];
+            mem[mem_addr_reg.imem ? addr : BYTE_ADDRESS(addr)] = rdram[j];
         }
 
         if (mem_addr_reg.imem) {
@@ -214,7 +214,7 @@ INLINE void rsp_dma_write() {
         u8* rdram = n64sys.mem.rdram + dram_address;
         for (int j = 0; j < length; j++) {
             u16 addr = (mem_address + j) & 0xFFF;
-            rdram[j] = mem[addr];
+            rdram[j] = mem[mem_addr.imem ? addr : BYTE_ADDRESS(addr)];
         }
 
 
