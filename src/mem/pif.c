@@ -1,5 +1,6 @@
 #include <frontend/tas_movie.h>
 #include <frontend/gamepad.h>
+#include <n64_rsp_bus.h>
 #include <rsp.h>
 #include <n64_cic_nus_6105.h>
 #include "pif.h"
@@ -355,7 +356,9 @@ void pif_rom_execute_hle() {
     n64_write_physical_word(0x04300004, 0x01010101);
 
     // Copy the first 0x1000 bytes of the cartridge to 0xA4000000
-    memcpy(N64RSP.sp_dmem, n64sys.mem.rom.rom, sizeof(u8) * 0x1000);
+    for (int i = 0; i < 0x1000; i++) {
+        RSP_BYTE(i) = n64sys.mem.rom.rom[BYTE_ADDRESS(i)];
+    }
 
     set_pc_word_r4300i(0xA4000040);
 }
