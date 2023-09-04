@@ -6,6 +6,7 @@
 #include <dynarec/dynarec_memory_management.h>
 #include <mem/n64bus.h>
 #include <mips_instructions.h>
+#include <n64_rsp_bus.h>
 #include <r4300i_register_access.h>
 #include <rsp.h>
 #include <system/mprotect_utils.h>
@@ -155,7 +156,7 @@ void compile_ir_store(dasm_State** Dst, ir_instruction_t* instr) {
     }
 }
 
-void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
+void compile_ir_load_cpu(dasm_State** Dst, ir_instruction_t* instr) {
     // If the address is known and is memory, it can be compiled as a direct load from memory
     if (instr_valid_immediate(instr->load.address) && is_memory(const_to_u64(instr->load.address))) {
         logfatal("Emitting IR_LOAD directly from memory");
@@ -183,6 +184,42 @@ void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
         val_to_func_arg(Dst, instr->load.address, 0);
         host_emit_call(Dst, fp);
         host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_gpr(get_return_value_reg()), instr->load.type);
+    }
+}
+
+void compile_ir_load_rsp(dasm_State** Dst, ir_instruction_t* instr) {
+    uintptr_t fp;
+    switch (instr->load.type) {
+        case VALUE_TYPE_S8:
+        case VALUE_TYPE_U8:
+            fp = (uintptr_t)n64_rsp_read_byte;
+            break;
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            fp = (uintptr_t)n64_rsp_read_half;
+            break;
+        case VALUE_TYPE_S32:
+        case VALUE_TYPE_U32:
+            fp = (uintptr_t)n64_rsp_read_word;
+            break;
+        case VALUE_TYPE_U64:
+        case VALUE_TYPE_S64:
+            logfatal("64 bit RSP load");
+            break;
+    }
+    val_to_func_arg(Dst, instr->load.address, 0);
+    host_emit_call(Dst, fp);
+    host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_gpr(get_return_value_reg()), instr->load.type);
+}
+
+void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {
+    switch (ir_context.target) {
+    case COMPILER_TARGET_CPU:
+        compile_ir_load_cpu(Dst, instr);
+        break;
+    case COMPILER_TARGET_RSP:
+        compile_ir_load_rsp(Dst, instr);
+        break;
     }
 }
 
