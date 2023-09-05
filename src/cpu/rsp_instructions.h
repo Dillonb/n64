@@ -42,6 +42,7 @@ RSP_INSTR(rsp_spc_nor);
 RSP_INSTR(rsp_spc_slt);
 RSP_INSTR(rsp_spc_sltu);
 
+void rsp_do_break();
 RSP_INSTR(rsp_spc_break);
 
 RSP_INSTR(rsp_bne);

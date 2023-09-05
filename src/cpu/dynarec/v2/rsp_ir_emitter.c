@@ -4,6 +4,7 @@
 #include <dynarec/v2/ir_emitter.h>
 #include <r4300i.h>
 #include <rsp.h>
+#include <rsp_instructions.h>
 
 ir_instruction_t* ir_get_rsp_memory_access_address(mips_instruction_t instruction) {
     ir_instruction_t* base = ir_emit_load_guest_gpr(instruction.i.rs);
@@ -283,7 +284,7 @@ IR_RSP_EMITTER(sltu) {
 }
 
 IR_RSP_EMITTER(break) {
-    logfatal("Unimplemented RSP emitter: break");
+    ir_emit_call_0((uintptr_t)&rsp_do_break, NO_GUEST_REG);
 }
 
 IR_RSP_EMITTER(spcl) {

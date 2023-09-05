@@ -91,7 +91,7 @@ INLINE dynarec_instruction_category_t special_instruction_category(mips_instruct
         case FUNCT_DSLL32: return NORMAL;
         case FUNCT_DSRL32: return NORMAL;
         case FUNCT_DSRA32: return NORMAL;
-        case FUNCT_BREAK: return NORMAL;
+        case FUNCT_BREAK: return BLOCK_ENDER;
         case FUNCT_SYNC: return NORMAL;
         case FUNCT_TGE: return NORMAL;
         case FUNCT_TGEU: return NORMAL;

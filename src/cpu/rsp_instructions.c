@@ -140,7 +140,7 @@ RSP_INSTR(rsp_spc_and) {
     set_rsp_register(instruction.r.rd, get_rsp_register(instruction.r.rs) & get_rsp_register(instruction.r.rt));
 }
 
-RSP_INSTR(rsp_spc_break) {
+void rsp_do_break() {
     N64RSP.status.halt = true;
     N64RSP.steps = 0;
     N64RSP.status.broke = true;
@@ -148,6 +148,10 @@ RSP_INSTR(rsp_spc_break) {
     if (N64RSP.status.intr_on_break) {
         interrupt_raise(INTERRUPT_SP);
     }
+}
+
+RSP_INSTR(rsp_spc_break) {
+    rsp_do_break();
 }
 
 RSP_INSTR(rsp_lb) {
