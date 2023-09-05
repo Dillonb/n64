@@ -226,28 +226,17 @@ void compile_ir_load_cpu(dasm_State** Dst, ir_instruction_t* instr) {
 }
 
 void compile_ir_load_rsp(dasm_State** Dst, ir_instruction_t* instr) {
-    uintptr_t fp;
-    switch (instr->load.type) {
-        case VALUE_TYPE_S8:
-        case VALUE_TYPE_U8:
-            fp = (uintptr_t)n64_rsp_read_byte;
-            break;
-        case VALUE_TYPE_S16:
-        case VALUE_TYPE_U16:
-            fp = (uintptr_t)n64_rsp_read_half;
-            break;
-        case VALUE_TYPE_S32:
-        case VALUE_TYPE_U32:
-            fp = (uintptr_t)n64_rsp_read_word;
-            break;
-        case VALUE_TYPE_U64:
-        case VALUE_TYPE_S64:
-            logfatal("64 bit RSP load");
-            break;
+    if (is_constant(instr->load.address)) {
+        uintptr_t address = (uintptr_t)&N64RSP.sp_dmem + const_to_u16(instr->load.address);
+        host_emit_mov_reg_mem(Dst, instr->reg_alloc, address, instr->load.type);
+    } else {
+        host_emit_mov_reg_reg(Dst, TMPREG1_ALLOC, alloc_gpr(get_cpu_state_reg()), VALUE_TYPE_U64);
+        ir_set_constant_t dmem_offset = { .type = VALUE_TYPE_U16, .value_u16 = offsetof(rsp_t, sp_dmem) };
+        host_emit_add_reg_imm(Dst, TMPREG1_ALLOC, dmem_offset);
+        host_emit_add_reg_reg(Dst, TMPREG1_ALLOC, instr->load.address->reg_alloc);
+        host_emit_mov_reg_mem_ptr(Dst, instr->reg_alloc, TMPREG1_ALLOC, instr->load.type);
     }
-    val_to_func_arg(Dst, instr->load.address, 0);
-    host_emit_call(Dst, fp);
-    host_emit_mov_reg_reg(Dst, instr->reg_alloc, alloc_gpr(get_return_value_reg()), instr->load.type);
+    host_emit_bswap_reg(Dst, instr->reg_alloc, instr->load.type);
 }
 
 void compile_ir_load(dasm_State** Dst, ir_instruction_t* instr) {

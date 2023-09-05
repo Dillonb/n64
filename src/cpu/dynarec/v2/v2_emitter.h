@@ -17,6 +17,9 @@ enum args_reversed {
 #define TMPREG1_ALLOC alloc_gpr(get_scratch_registers()[0])
 #define TMPREG2_ALLOC alloc_gpr(get_scratch_registers()[1])
 
+#define TMPREG1_ALLOC alloc_gpr(get_scratch_registers()[0])
+#define TMPREG2_ALLOC alloc_gpr(get_scratch_registers()[1])
+
 void host_emit_mov_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_set_constant_t imm_value);
 void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_alloc, ir_register_allocation_t src_reg_alloc, ir_value_type_t source_value_type);
 
@@ -39,6 +42,8 @@ void host_emit_div_reg_imm(dasm_State** Dst, ir_register_allocation_t reg_alloc,
 void host_emit_div_imm_reg(dasm_State** Dst, ir_set_constant_t imm, ir_register_allocation_t reg_alloc, ir_value_type_t divide_type);
 void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, ir_value_type_t divide_type);
 
+void host_emit_bswap_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t size);
+
 void v2_end_block(dasm_State** Dst, int block_length);
 void host_emit_cmp_reg_imm(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_set_constant_t operand2, enum args_reversed args_reversed);
 void host_emit_cmp_reg_reg(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_condition_t cond, ir_register_allocation_t operand1_alloc, ir_register_allocation_t operand2_alloc, enum args_reversed args_reversed);
@@ -47,6 +52,7 @@ void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value);
 void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size);
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc, ir_value_type_t type);
 void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type);
+void host_emit_mov_reg_mem_ptr(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_register_allocation_t addr_reg_alloc, ir_value_type_t type);
 void host_emit_mov_reg_cp0(dasm_State** Dst, ir_register_allocation_t reg_alloc, int cp0_reg);
 void host_emit_mov_cp0_imm(dasm_State** Dst, int cp0_reg, ir_set_constant_t value);
 void host_emit_mov_cp0_reg(dasm_State** Dst, int cp0_reg, ir_register_allocation_t reg_alloc);

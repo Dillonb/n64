@@ -805,6 +805,45 @@ void host_emit_div_reg_reg(dasm_State** Dst, ir_register_allocation_t operand1_a
     }
 }
 
+void host_emit_bswap_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, ir_value_type_t size) {
+    int reg = check_gpr(Dst, reg_alloc, NULL);
+
+    switch (size) {
+    case VALUE_TYPE_U8:
+        break; // ??
+    case VALUE_TYPE_S8:
+        | movsx Rq(reg), Rb(reg)
+        break;
+    case VALUE_TYPE_S16:
+        | mov Rw(TMPREG1), Rw(reg)
+        | shr Rw(TMPREG1), 8
+        | shl Rw(reg), 8
+        | or Rw(reg), Rw(TMPREG1)
+        | movsx Rq(reg), Rw(reg)
+        break;
+    case VALUE_TYPE_U16:
+        | mov Rw(TMPREG1), Rw(reg)
+        | shr Rw(TMPREG1), 8
+        | shl Rw(reg), 8
+        | or Rw(reg), Rw(TMPREG1)
+        | movzx Rd(reg), Rw(reg)
+        break;
+    case VALUE_TYPE_S32:
+        | bswap Rd(reg)
+        | movsxd Rq(reg), Rd(reg)
+        break;
+    case VALUE_TYPE_U32:
+        | bswap Rd(reg)
+        break;
+    case VALUE_TYPE_U64:
+    case VALUE_TYPE_S64:
+        | bswap Rq(reg)
+        break;
+    }
+
+    flush_checked_reg(Dst, reg, reg_alloc);
+}
+
 void host_emit_mov_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_reg_alloc, ir_register_allocation_t src_reg_alloc, ir_value_type_t source_value_type) {
     if (source_value_type == VALUE_TYPE_U64 && reg_alloc_equal(src_reg_alloc, dst_reg_alloc)) {
         return;
@@ -1227,6 +1266,45 @@ void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc,
         }
     }
     reset_temp_fgr(Dst);
+}
+
+void host_emit_mov_reg_mem_ptr(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_register_allocation_t addr_reg_alloc, ir_value_type_t type) {
+    int dst = check_reg(Dst, dest_reg_alloc, NULL);
+    int addr = check_reg(Dst, addr_reg_alloc, NULL);
+
+    unimplemented(dest_reg_alloc.type != REGISTER_TYPE_GPR, "host_emit_mov_reg_mem_ptr: non-GPR destination!");
+    unimplemented(addr_reg_alloc.type != REGISTER_TYPE_GPR, "host_emit_mov_reg_mem_ptr: non-GPR address!");
+    switch (type) {
+        case VALUE_TYPE_U8:
+            | mov Rb(dst), [Rq(addr)]
+            | movzx Rq(dst), Rb(dst)
+            break;
+        case VALUE_TYPE_S8:
+            | mov Rb(dst), [Rq(addr)]
+            | movsx Rq(dst), Rb(dst)
+            break;
+        case VALUE_TYPE_S16:
+            | mov Rw(dst), [Rq(addr)]
+            | movsx Rq(dst), Rw(dst)
+            break;
+        case VALUE_TYPE_U16:
+            | mov Rw(dst), [Rq(addr)]
+            | movzx Rq(dst), Rw(dst)
+            break;
+        case VALUE_TYPE_S32:
+            | mov Rd(dst), [Rq(addr)]
+            | movsxd Rq(dst), Rd(dst)
+            break;
+        case VALUE_TYPE_U32:
+            | mov Rd(dst), [Rq(addr)]
+            break;
+        case VALUE_TYPE_U64:
+        case VALUE_TYPE_S64:
+            | mov Rq(dst), [Rq(addr)]
+            break;
+    }
+
+    flush_checked_reg(Dst, dst, dest_reg_alloc);
 }
 
 void host_emit_ret(dasm_State** Dst, ir_flush_info_t* flush_info, int block_length) {

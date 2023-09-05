@@ -31,6 +31,8 @@ const int* get_func_arg_registers();
 int get_num_func_arg_registers();
 // Gets the register used to hold a function's return value under the target platform's calling convention
 int get_return_value_reg();
+// Pointer to the CPU state
+int get_cpu_state_reg();
 
 // Gets a list of registers we can safely use for holding temporary values that have been spilled to memory.
 // These should not overlap with the function arg registers, or be any registers needed for special purposes (like multiplication/division on x86)

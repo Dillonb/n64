@@ -139,6 +139,11 @@ int get_return_value_reg() {
     return REG_RAX;
 }
 
+
+int get_cpu_state_reg() {
+    return REG_R12;
+}
+
 // Can't be RAX or RDX (used for multiplies) and also can't overlap with get_func_arg_registers()
 const int* get_temp_registers_for_spilled() {
     const static int temp_registers_for_spilled[] = {
