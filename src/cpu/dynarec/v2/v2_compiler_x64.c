@@ -227,7 +227,7 @@ void compile_ir_load_cpu(dasm_State** Dst, ir_instruction_t* instr) {
 
 void compile_ir_load_rsp(dasm_State** Dst, ir_instruction_t* instr) {
     if (is_constant(instr->load.address)) {
-        uintptr_t address = (uintptr_t)&N64RSP.sp_dmem + const_to_u16(instr->load.address);
+        uintptr_t address = (uintptr_t)N64RSP.sp_dmem + const_to_u16(instr->load.address);
         host_emit_mov_reg_mem(Dst, instr->reg_alloc, address, instr->load.type);
     } else {
         host_emit_mov_reg_reg(Dst, TMPREG1_ALLOC, alloc_gpr(get_cpu_state_reg()), VALUE_TYPE_U64);

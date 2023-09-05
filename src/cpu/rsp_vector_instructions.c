@@ -123,28 +123,6 @@ vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e) {
     return get_vte(vt, e);
 }
 
-
-#define SHIFT_AMOUNT_LBV_SBV 0
-#define SHIFT_AMOUNT_LSV_SSV 1
-#define SHIFT_AMOUNT_LLV_SLV 2
-#define SHIFT_AMOUNT_LDV_SDV 3
-#define SHIFT_AMOUNT_LQV_SQV 4
-#define SHIFT_AMOUNT_LRV_SRV 4
-#define SHIFT_AMOUNT_LPV_SPV 3
-#define SHIFT_AMOUNT_LUV_SUV 3
-#define SHIFT_AMOUNT_LHV_SHV 4
-#define SHIFT_AMOUNT_LFV_SFV 4
-#define SHIFT_AMOUNT_LTV_STV 4
-#define SHIFT_AMOUNT_SWV     4
-
-INLINE int sign_extend_7bit_offset(u8 offset, int shift_amount) {
-    s8 soffset = ((offset << 1) & 0x80) | offset;
-
-    s32 ofs = soffset;
-    u32 uofs = ofs;
-    return uofs << shift_amount;
-}
-
 u32 rcp(s32 sinput) {
     // One's complement absolute value, xor with the sign bit to invert all bits if the sign bit is set
     s32 mask = sinput >> 31;

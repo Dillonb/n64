@@ -4,6 +4,26 @@
 #include "mips_instruction_decode.h"
 #include "rsp_types.h"
 
+#define SHIFT_AMOUNT_LBV_SBV 0
+#define SHIFT_AMOUNT_LSV_SSV 1
+#define SHIFT_AMOUNT_LLV_SLV 2
+#define SHIFT_AMOUNT_LDV_SDV 3
+#define SHIFT_AMOUNT_LQV_SQV 4
+#define SHIFT_AMOUNT_LRV_SRV 4
+#define SHIFT_AMOUNT_LPV_SPV 3
+#define SHIFT_AMOUNT_LUV_SUV 3
+#define SHIFT_AMOUNT_LHV_SHV 4
+#define SHIFT_AMOUNT_LFV_SFV 4
+#define SHIFT_AMOUNT_LTV_STV 4
+#define SHIFT_AMOUNT_SWV     4
+
+INLINE s32 sign_extend_7bit_offset(u8 offset, int shift_amount) {
+    s8 soffset = ((offset << 1) & 0x80) | offset;
+
+    s32 ofs = soffset;
+    return ofs << shift_amount;
+}
+
 #define RSP_VECTOR_INSTR(NAME) void NAME(mips_instruction_t instruction)
 
 RSP_VECTOR_INSTR(rsp_lwc2_lbv);

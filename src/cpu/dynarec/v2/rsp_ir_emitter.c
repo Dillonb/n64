@@ -5,6 +5,7 @@
 #include <r4300i.h>
 #include <rsp.h>
 #include <rsp_instructions.h>
+#include <rsp_vector_instructions.h>
 
 ir_instruction_t* ir_get_rsp_memory_access_address(mips_instruction_t instruction) {
     ir_instruction_t* base = ir_emit_load_guest_gpr(instruction.i.rs);
@@ -330,8 +331,16 @@ IR_RSP_EMITTER(lwc2_lbv) {
     logfatal("RSP emitter for lwc2_lbv unimplemented");
 }
 
+ir_instruction_t* get_loadstore_addr(mips_instruction_t instruction, int shift_amount) {
+    ir_instruction_t* base = ir_emit_load_guest_gpr(instruction.v.base);
+    ir_instruction_t* offset = ir_emit_set_constant_s32(sign_extend_7bit_offset(instruction.v.offset, shift_amount), NO_GUEST_REG);
+    return ir_emit_add(base, offset, NO_GUEST_REG);
+}
+
 IR_RSP_EMITTER(lwc2_ldv) {
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LDV_SDV);
     logfatal("RSP emitter for lwc2_ldv unimplemented");
+    // TODO: emit RSP vector load IR instruction
 }
 
 IR_RSP_EMITTER(lwc2_lfv) {
@@ -394,6 +403,7 @@ IR_RSP_EMITTER(swc2_sbv) {
 }
 
 IR_RSP_EMITTER(swc2_sdv) {
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LDV_SDV);
     logfatal("RSP emitter for swc2_sdv unimplemented");
 }
 
