@@ -82,7 +82,7 @@ bool run_test(u32* input, int input_size, u32* output, int output_size) {
                 printf(" ");
             }
             if (i + b < output_size) {
-                u8 actual = N64RSP.sp_dmem[BYTE_ADDRESS(0x800 + i + b)];
+                u8 actual = N64RSP.sp_dmem[0x800 + i + b];
                 u8 expected = ((u8*)output)[i + b];
 
                 if (actual != expected) {
