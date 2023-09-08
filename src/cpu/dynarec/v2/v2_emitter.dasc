@@ -191,9 +191,22 @@ void reset_temp_fgr(dasm_State** Dst) {
     temp_fgrs_allocated = 0;
 }
 
+#define reset_temp_vpr(Dst) reset_temp_fgr(Dst);
+
 int check_fgr(dasm_State** Dst, ir_register_allocation_t reg) {
     if (reg.type != REGISTER_TYPE_FGR_32 && reg.type != REGISTER_TYPE_FGR_64) {
         logfatal("FGR expected, but register was not allocated as an FGR!");
+    }
+    if (reg.spilled) {
+        return allocate_temp_fgr(Dst, reg.spill_location);
+    } else {
+        return reg.host_reg;
+    }
+}
+
+int check_vpr(dasm_State** Dst, ir_register_allocation_t reg) {
+    if (reg.type != REGISTER_TYPE_VPR) {
+        logfatal("VPR expected, but register was not allocated as an VPR!");
     }
     if (reg.spilled) {
         return allocate_temp_fgr(Dst, reg.spill_location);
@@ -2034,6 +2047,32 @@ void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_
     | add Rd(TMPREG1), extra_cycles
     | block_epilogue
 
+}
+
+void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_instruction_t* addr, u8 element) {
+    if (is_constant(addr)) {
+        logfatal("LDV with constant address");
+    } else {
+        int addr_reg = check_gpr(Dst, addr->reg_alloc, NULL);
+        int dest_reg = check_vpr(Dst, dest_alloc);
+        switch (element) {
+            // Fast path
+            case 0:
+            case 8: {
+                const int index = element / 8;
+                | int3
+                | mov Rq(TMPREG1), rsp_state->sp_dmem
+                | add Rq(TMPREG1), addr_reg
+                | mov Rq(TMPREG1), [Rq(TMPREG1)]
+                | pinsrq xmm(dest_reg), Rq(TMPREG1), index
+                break;
+            }
+            default:
+                logfatal("Unimplemented or unsupported element for LDV: %d", element);
+        }
+        flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
+        reset_temp_vpr(Dst);
+    }
 }
 
 void v2_end_block(dasm_State** Dst, int block_length) {

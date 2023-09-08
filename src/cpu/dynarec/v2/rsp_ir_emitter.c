@@ -359,7 +359,8 @@ IR_RSP_EMITTER(lwc2_lpv) {
 }
 
 IR_RSP_EMITTER(lwc2_lqv) {
-    logfatal("RSP emitter for lwc2_lqv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LQV_SQV);
+    ir_emit_rsp_lwc2(addr, IR_RSP_LWC2_LQV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lrv) {

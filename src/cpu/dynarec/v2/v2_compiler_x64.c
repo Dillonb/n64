@@ -817,6 +817,17 @@ void compile_ir_interpreter_fallback(dasm_State** Dst, ir_instruction_t* instr, 
     }
 }
 
+void compile_ir_rsp_lwc2(dasm_State** Dst, ir_instruction_t* instr) {
+    switch (instr->rsp_lwc2.type) {
+        case IR_RSP_LWC2_LDV:
+            host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LQV:
+            logfatal("IR_RSP_LWC2_LQV");
+            break;
+    }
+}
+
 void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
     switch (instr->type) {
         case IR_NOP: break;
@@ -933,9 +944,11 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
             compile_ir_interpreter_fallback(Dst, instr, temp_code_len);
             break;
         case IR_RSP_LWC2:
-            logfatal("Compile LWC2");
+            compile_ir_rsp_lwc2(Dst, instr);
+            break;
         case IR_RSP_SWC2:
             logfatal("Compile SWC2");
+            break;
     }
 }
 

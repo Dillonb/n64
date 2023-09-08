@@ -292,7 +292,7 @@ void ir_allocate_registers() {
         if (allocation_type != REGISTER_TYPE_NONE) {
             if (allocation_type == REGISTER_TYPE_GPR) {
                 allocate_register(value, allocation_type, &spill_data, &gpr_state);
-            } else if (allocation_type == REGISTER_TYPE_FGR_32 || allocation_type == REGISTER_TYPE_FGR_64) {
+            } else if (allocation_type == REGISTER_TYPE_FGR_32 || allocation_type == REGISTER_TYPE_FGR_64 || allocation_type == REGISTER_TYPE_VPR) {
                 allocate_register(value, allocation_type, &spill_data, &fgr_state);
             } else {
                 logfatal("Unknown register allocation type!");
