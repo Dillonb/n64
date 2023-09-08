@@ -932,6 +932,8 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
         case IR_INTERPRETER_FALLBACK:
             compile_ir_interpreter_fallback(Dst, instr, temp_code_len);
             break;
+        case IR_RSP_LWC2:
+            logfatal("Compile LWC2");
     }
 }
 

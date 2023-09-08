@@ -131,6 +131,13 @@ const char* float_cond_to_str(ir_float_condition_t condition) {
     logfatal("Did not match any cases");
 }
 
+const char* rsp_lwc2_instruction_to_str(rsp_lwc2_instruction_t type) {
+    switch (type) {
+    case IR_RSP_LWC2_LDV:
+            return "ldv";
+    }
+}
+
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 
     if (instr->type != IR_STORE
@@ -317,6 +324,8 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                     break;
             }
             break;
+        case IR_RSP_LWC2:
+            snprintf(buf, buf_size, "lwc2_%s(v%d)", rsp_lwc2_instruction_to_str(instr->rsp_lwc2.type), instr->rsp_lwc2.addr->index);
     }
 }
 
@@ -368,6 +377,7 @@ bool instr_exception_possible(ir_instruction_t* instr) {
         case IR_FLOAT_NEG:
         case IR_FLOAT_CHECK_CONDITION:
         case IR_INTERPRETER_FALLBACK:
+        case IR_RSP_LWC2:
             return false;
 
         case IR_COND_BLOCK_EXIT:
@@ -384,7 +394,6 @@ bool instr_exception_possible(ir_instruction_t* instr) {
             return true;
     }
 }
-
 
 void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
     if (guest_reg > 0) {
@@ -457,6 +466,11 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
 
                 case IR_SET_FLOAT_CONSTANT:
                     new_type = float_val_to_reg_type(value->set_float_constant.format);
+                    break;
+                
+                // RSP vector operations
+                case IR_RSP_LWC2:
+                    new_type = REGISTER_TYPE_VPR;
                     break;
             }
 
@@ -1043,4 +1057,11 @@ ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_in
     instruction.float_check_condition.condition = cond;
     instruction.float_check_condition.format = operand_type;
     return append_ir_instruction(instruction, -1, NO_GUEST_REG);
+}
+
+void ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_RSP_LWC2;
+    instruction.rsp_lwc2.type = type;
+    instruction.rsp_lwc2.addr = addr;
 }

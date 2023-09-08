@@ -11,8 +11,10 @@
 #define IR_FGR_BASE 32
 #define IR_GPR(r) ((r) + IR_GPR_BASE)
 #define IR_FGR(r) ((r) + IR_FGR_BASE)
+#define IR_VPR(r) IR_FGR(r)
 #define IR_IS_GPR(r) ((r) >= IR_GPR_BASE && (r) < (IR_GPR_BASE + 32))
 #define IR_IS_FGR(r) ((r) >= IR_FGR_BASE && (r) < (IR_FGR_BASE + 32))
+#define IR_IS_VPR(r) IR_IS_FGR(r)
 
 typedef enum compiler_target {
     COMPILER_TARGET_CPU,
@@ -76,6 +78,10 @@ typedef enum ir_shift_direction {
     SHIFT_DIRECTION_LEFT,
     SHIFT_DIRECTION_RIGHT
 } ir_shift_direction_t;
+
+typedef enum rsp_lwc2_instruction {
+    IR_RSP_LWC2_LDV
+} rsp_lwc2_instruction_t;
 
 typedef struct ir_set_constant {
     ir_value_type_t type;
@@ -247,7 +253,8 @@ typedef struct ir_instruction {
         IR_FLOAT_ABS,
         IR_FLOAT_NEG,
         IR_FLOAT_CHECK_CONDITION,
-        IR_INTERPRETER_FALLBACK
+        IR_INTERPRETER_FALLBACK,
+        IR_RSP_LWC2
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -372,6 +379,10 @@ typedef struct ir_instruction {
         u32 code;
         int coprocessor_error;
     } cond_exception;
+    struct {
+        rsp_lwc2_instruction_t type;
+        struct ir_instruction* addr;
+    } rsp_lwc2;
 } ir_instruction_t;
 
 typedef struct ir_context {
@@ -501,6 +512,8 @@ ir_instruction_t* ir_emit_float_abs(int index, ir_instruction_t* operand, ir_flo
 ir_instruction_t* ir_emit_float_neg(int index, ir_instruction_t* operand, ir_float_value_type_t neg_type, u8 guest_reg);
 // Compare two floating point values, set the result to FCR31.compare
 ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type);
+// RSP LWC2 instruction
+void ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

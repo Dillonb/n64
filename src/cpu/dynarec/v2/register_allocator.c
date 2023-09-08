@@ -105,6 +105,11 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         case IR_FLOAT_ADD:
         case IR_FLOAT_SUB:
             return float_val_to_reg_type(instr->float_bin_op.format);
+
+        // RSP
+        case IR_RSP_LWC2:
+            return REGISTER_TYPE_VPR;
+
     }
     logfatal("Did not match any cases.");
 }

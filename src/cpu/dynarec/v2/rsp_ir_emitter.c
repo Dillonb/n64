@@ -339,8 +339,7 @@ ir_instruction_t* get_loadstore_addr(mips_instruction_t instruction, int shift_a
 
 IR_RSP_EMITTER(lwc2_ldv) {
     ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LDV_SDV);
-    logfatal("RSP emitter for lwc2_ldv unimplemented");
-    // TODO: emit RSP vector load IR instruction
+    ir_emit_rsp_lwc2(addr, IR_RSP_LWC2_LDV, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lfv) {
