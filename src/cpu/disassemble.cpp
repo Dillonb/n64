@@ -1,5 +1,6 @@
 #include "disassemble.h"
 
+#include <rsp_disassemble.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <map>
@@ -148,6 +149,14 @@ std::string fix_op_str(cs_insn& insn, bool rsp) {
 
 
 int disassemble_common(u32 address, u32 raw, char* buf, int buflen, bool rsp) {
+    if (rsp) {
+        // If it's a unique RSP instruction, don't use capstone
+        int result = disassemble_rsp_unique(address, raw, buf, buflen);
+        if (result != 0) {
+            return result;
+        }
+    }
+
 #ifdef HAVE_CAPSTONE
     u8 code[4];
     code[0] = raw & 0xFF;

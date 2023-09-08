@@ -1,4 +1,5 @@
 add_library(disassemble
+        rsp_disassemble.c rsp_disassemble.h
         disassemble.cpp disassemble.h)
 
 configure_file(../contrib/tools/dynasm/dynasm.lua dynasm/dynasm.lua COPYONLY)
