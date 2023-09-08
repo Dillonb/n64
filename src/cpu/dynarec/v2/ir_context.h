@@ -83,6 +83,10 @@ typedef enum rsp_lwc2_instruction {
     IR_RSP_LWC2_LDV
 } rsp_lwc2_instruction_t;
 
+typedef enum rsp_swc2_instruction {
+    IR_RSP_SWC2_SDV
+} rsp_swc2_instruction_t;
+
 typedef struct ir_set_constant {
     ir_value_type_t type;
     union {
@@ -254,7 +258,8 @@ typedef struct ir_instruction {
         IR_FLOAT_NEG,
         IR_FLOAT_CHECK_CONDITION,
         IR_INTERPRETER_FALLBACK,
-        IR_RSP_LWC2
+        IR_RSP_LWC2,
+        IR_RSP_SWC2
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -382,7 +387,14 @@ typedef struct ir_instruction {
     struct {
         rsp_lwc2_instruction_t type;
         struct ir_instruction* addr;
+        u8 element;
     } rsp_lwc2;
+    struct {
+    rsp_swc2_instruction_t type;
+    struct ir_instruction* addr;
+    struct ir_instruction* value;
+    u8 element;
+    } rsp_swc2;
 } ir_instruction_t;
 
 typedef struct ir_context {
@@ -430,6 +442,8 @@ ir_instruction_t* ir_emit_set_constant(ir_set_constant_t value, u8 guest_reg);
 ir_instruction_t* ir_emit_load_guest_gpr(u8 guest_reg);
 // Load a guest FGR, or return a reference to it if it's already loaded.
 ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t type);
+// Load a guest VPR, or return a reference to it if it's already loaded.
+ir_instruction_t* ir_emit_load_guest_vpr(u8 guest_vpr);
 // Flush a guest register back to memory. Emitted after a value's last usage to flush values back to memory.
 ir_instruction_t* ir_emit_flush_guest_reg(ir_instruction_t* last_usage, ir_instruction_t* value, u8 guest_reg);
 // OR two values together.
@@ -513,7 +527,9 @@ ir_instruction_t* ir_emit_float_neg(int index, ir_instruction_t* operand, ir_flo
 // Compare two floating point values, set the result to FCR31.compare
 ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type);
 // RSP LWC2 instruction
-void ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 guest_reg);
+void ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 element, u8 guest_reg);
+// RSP SWC2 instruction
+void ir_emit_rsp_swc2(ir_instruction_t* addr, ir_instruction_t* value, rsp_swc2_instruction_t type, u8 element);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

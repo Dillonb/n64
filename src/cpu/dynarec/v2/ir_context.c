@@ -133,14 +133,22 @@ const char* float_cond_to_str(ir_float_condition_t condition) {
 
 const char* rsp_lwc2_instruction_to_str(rsp_lwc2_instruction_t type) {
     switch (type) {
-    case IR_RSP_LWC2_LDV:
-            return "ldv";
+        case IR_RSP_LWC2_LDV:
+                return "ldv";
+    }
+}
+
+const char* rsp_swc2_instruction_to_str(rsp_swc2_instruction_t type) {
+    switch (type) {
+        case IR_RSP_SWC2_SDV:
+                return "sdv";
     }
 }
 
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
 
     if (instr->type != IR_STORE
+        && instr->type != IR_RSP_SWC2
         && instr->type != IR_SET_COND_BLOCK_EXIT_PC
         && instr->type != IR_SET_BLOCK_EXIT_PC
         && instr->type != IR_NOP
@@ -325,7 +333,11 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             }
             break;
         case IR_RSP_LWC2:
-            snprintf(buf, buf_size, "lwc2_%s(v%d)", rsp_lwc2_instruction_to_str(instr->rsp_lwc2.type), instr->rsp_lwc2.addr->index);
+            snprintf(buf, buf_size, "lwc2_%s(v%d, element = %d)", rsp_lwc2_instruction_to_str(instr->rsp_lwc2.type), instr->rsp_lwc2.addr->index, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_SWC2:
+            snprintf(buf, buf_size, "swc2_%s(address = v%d, value = v%d, element = %d)", rsp_swc2_instruction_to_str(instr->rsp_swc2.type), instr->rsp_swc2.addr->index, instr->rsp_swc2.value->index, instr->rsp_swc2.element);
+            break;
     }
 }
 
@@ -377,7 +389,9 @@ bool instr_exception_possible(ir_instruction_t* instr) {
         case IR_FLOAT_NEG:
         case IR_FLOAT_CHECK_CONDITION:
         case IR_INTERPRETER_FALLBACK:
+        // No RSP instructions ever throw exceptions
         case IR_RSP_LWC2:
+        case IR_RSP_SWC2:
             return false;
 
         case IR_COND_BLOCK_EXIT:
@@ -429,6 +443,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 case IR_ERET:
                 case IR_CALL:
                 case IR_INTERPRETER_FALLBACK:
+                case IR_RSP_SWC2:
                     logfatal("Unsupported IR instruction assigned to FPU reg");
 
                 case IR_LOAD_GUEST_REG:
@@ -612,6 +627,7 @@ ir_instruction_t* ir_emit_load_guest_gpr(u8 guest_reg) {
 }
 
 ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t type) {
+    unimplemented(ir_context.target != COMPILER_TARGET_CPU, "Loading FGR when not targeting CPU!");
     if (IR_IS_GPR(guest_fgr)) {
         logfatal("Loading GPR with ir_emit_load_guest_fgr(), use ir_emit_load_guest_gpr()");
     } else if (IR_IS_FGR(guest_fgr)) {
@@ -638,6 +654,22 @@ ir_instruction_t* ir_emit_load_guest_fgr(u8 guest_fgr, ir_float_value_type_t typ
         }
     } else {
         logfatal("Loading unknown (or out of range) guest register %d", guest_fgr);
+    }
+}
+
+ir_instruction_t* ir_emit_load_guest_vpr(u8 guest_vpr) {
+    unimplemented(ir_context.target != COMPILER_TARGET_RSP, "Loading VPR when not targeting RSP!");
+    if (IR_IS_VPR(guest_vpr)) {
+        if (ir_context.guest_reg_to_value[guest_vpr] != NULL) {
+            return ir_context.guest_reg_to_value[guest_vpr];
+        }
+
+        ir_instruction_t instruction;
+        instruction.type = IR_LOAD_GUEST_REG;
+        instruction.load_guest_reg.guest_reg = guest_vpr;
+        instruction.load_guest_reg.guest_reg_type = REGISTER_TYPE_VPR;
+    } else {
+        logfatal("ir_emit_load_guest_vpr with non-vpr argument");
     }
 }
 
@@ -1059,9 +1091,19 @@ ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_in
     return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
-void ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 guest_reg) {
+void ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 element, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_RSP_LWC2;
     instruction.rsp_lwc2.type = type;
     instruction.rsp_lwc2.addr = addr;
+    instruction.rsp_lwc2.element = element;
+}
+
+void ir_emit_rsp_swc2(ir_instruction_t* addr, ir_instruction_t* value, rsp_swc2_instruction_t type, u8 element) {
+    ir_instruction_t instruction;
+    instruction.type = IR_RSP_SWC2;
+    instruction.rsp_swc2.type = type;
+    instruction.rsp_swc2.addr = addr;
+    instruction.rsp_swc2.value = value;
+    instruction.rsp_swc2.element = element;
 }

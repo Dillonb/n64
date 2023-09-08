@@ -934,6 +934,8 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
             break;
         case IR_RSP_LWC2:
             logfatal("Compile LWC2");
+        case IR_RSP_SWC2:
+            logfatal("Compile SWC2");
     }
 }
 

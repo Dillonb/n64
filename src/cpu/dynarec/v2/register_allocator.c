@@ -40,6 +40,7 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         case IR_SET_COND_BLOCK_EXIT_PC:
         case IR_SET_BLOCK_EXIT_PC:
         case IR_STORE:
+        case IR_RSP_SWC2:
         case IR_FLUSH_GUEST_REG:
         case IR_COND_BLOCK_EXIT:
         case IR_MULTIPLY:
