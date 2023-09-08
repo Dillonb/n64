@@ -110,7 +110,8 @@ typedef enum ir_register_type {
     REGISTER_TYPE_NONE,
     REGISTER_TYPE_GPR,
     REGISTER_TYPE_FGR_32,
-    REGISTER_TYPE_FGR_64
+    REGISTER_TYPE_FGR_64,
+    REGISTER_TYPE_VPR
 } ir_register_type_t;
 
 typedef struct ir_register_allocation {

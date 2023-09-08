@@ -245,6 +245,8 @@ void ir_optimize_constant_propagation() {
                             instr->set_float_constant.format = FLOAT_VALUE_TYPE_LONG;
                             instr->set_float_constant.value_long = const_val;
                             break;
+                        case REGISTER_TYPE_VPR:
+                            logfatal("mov_reg_type to VPR");
                     }
                 } else if (float_is_constant(instr->mov_reg_type.value)) {
                     u64 bin_const_val = float_const_to_u64(instr->mov_reg_type.value);
@@ -263,6 +265,8 @@ void ir_optimize_constant_propagation() {
                         case REGISTER_TYPE_FGR_64:
                             logfatal("Constant propagation for mov_reg_type from FGR to FGR_32");
                             break;
+                        case REGISTER_TYPE_VPR:
+                            logfatal("mov_reg_type to VPR");
                     }
                 }
                 break;

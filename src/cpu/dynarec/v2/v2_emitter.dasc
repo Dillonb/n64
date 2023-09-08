@@ -1197,6 +1197,8 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
                 }
                 | movq qword [cpu_state + offset], xmm(reg)
                 break;
+            case REGISTER_TYPE_VPR:
+                logfatal("mov mem reg to VPR");
         }
     } else {
         unimplemented(reg_alloc.type != REGISTER_TYPE_GPR, "non-GPR write not within N64CPU");
@@ -1264,6 +1266,10 @@ void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc,
         } else {
             logfatal("not from N64CPU mov to xmm reg");
         }
+    } else if (reg_alloc.type == REGISTER_TYPE_VPR) {
+        logfatal("Mov to VPR");
+    } else {
+        logfatal("Unknown register type!");
     }
     reset_temp_fgr(Dst);
 }
@@ -1328,6 +1334,7 @@ void host_emit_ret(dasm_State** Dst, ir_flush_info_t* flush_info, int block_leng
                 logfatal("Flushing REGISTER_TYPE_NONE");
                 break;
             case REGISTER_TYPE_GPR:
+                unimplemented(ir_context.target != COMPILER_TARGET_CPU, "Flushing to CPU when CPU is not the target!");
                 dest = (uintptr_t)&N64CPU.gpr[flush_iter->guest_reg];
                 type = VALUE_TYPE_U64;
                 break;
@@ -1339,6 +1346,8 @@ void host_emit_ret(dasm_State** Dst, ir_flush_info_t* flush_info, int block_leng
                 dest = (uintptr_t)get_fpu_register_ptr_dword_fr(guest_reg - IR_FGR_BASE);
                 type = VALUE_TYPE_U64;
                 break;
+            case REGISTER_TYPE_VPR:
+                logfatal("Flush VPR!");
         }
 
         if (is_constant(flush_iter->item)) {

@@ -401,6 +401,9 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
             case REGISTER_TYPE_NONE:
                 logfatal("Loading reg of type NONE");
                 break;
+            case REGISTER_TYPE_VPR:
+                logfatal("Loading reg of type VPR in CPU!");
+                break;
             case REGISTER_TYPE_GPR:
                 unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
                 host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64CPU.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_U64);
@@ -421,10 +424,13 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
                     unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
                     host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64RSP.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_S32);
                     break;
+            case REGISTER_TYPE_VPR:
+                logfatal("Load VPR");
+                break;
             case REGISTER_TYPE_NONE:
             case REGISTER_TYPE_FGR_32:
             case REGISTER_TYPE_FGR_64:
-                logfatal("Only the GPR register type is supported for RSP code!");
+                logfatal("Only the GPR and VPR register types are supported for RSP code!");
                     break;
         }
         break;
@@ -674,6 +680,8 @@ void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
                     case REGISTER_TYPE_FGR_64:
                         host_emit_mov_fgr_gpr(Dst, instr->reg_alloc, instr->mov_reg_type.value->reg_alloc, instr->mov_reg_type.size);
                         break;
+                    case REGISTER_TYPE_VPR:
+                        logfatal("mov_reg_type to VPR");
                 }
                 break;
             case REGISTER_TYPE_FGR_32:
@@ -690,6 +698,8 @@ void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
                     case REGISTER_TYPE_FGR_64:
                         logfatal("mov_reg_type with source type REGISTER_TYPE_FGR_32 and dest type REGISTER_TYPE_FGR_64");
                         break;
+                    case REGISTER_TYPE_VPR:
+                        logfatal("mov_reg_type to VPR");
                 }
                 break;
             case REGISTER_TYPE_FGR_64:
@@ -706,8 +716,12 @@ void compile_ir_mov_reg_type(dasm_State** Dst, ir_instruction_t* instr) {
                     case REGISTER_TYPE_FGR_64:
                         logfatal("mov_reg_type REGISTER_TYPE_FGR_64 -> REGISTER_TYPE_FGR_64");
                         break;
+                    case REGISTER_TYPE_VPR:
+                        logfatal("mov_reg_type to VPR");
                 }
                 break;
+            case REGISTER_TYPE_VPR:
+                logfatal("mov_reg_type from VPR");
         }
     }
 }

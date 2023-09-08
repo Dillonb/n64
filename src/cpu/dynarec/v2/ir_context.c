@@ -72,6 +72,8 @@ const char* reg_type_to_str(ir_register_type_t type) {
             return "FGR32";
         case REGISTER_TYPE_FGR_64:
             return "FGR64";
+        case REGISTER_TYPE_VPR:
+            return "VPR";
     }
 }
 
