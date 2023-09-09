@@ -828,7 +828,7 @@ void compile_ir_rsp_lwc2(dasm_State** Dst, ir_instruction_t* instr) {
             host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
             break;
         case IR_RSP_LWC2_LQV:
-            logfatal("IR_RSP_LWC2_LQV");
+            host_emit_rsp_lqv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
             break;
     }
 }

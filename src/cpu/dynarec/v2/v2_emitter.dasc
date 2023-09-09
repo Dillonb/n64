@@ -2063,21 +2063,25 @@ void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_
 
 }
 
+// Loads an SP DMEM address into TMPREG1
+void host_emit_calculate_rsp_addr(dasm_State** Dst, int addr_reg) {
+    | lea Rq(TMPREG1), rsp_state->sp_dmem
+    | add Rq(TMPREG1), Rq(addr_reg)
+    | mov Rq(TMPREG1), [Rq(TMPREG1)]
+}
+
 void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_instruction_t* addr, u8 element) {
     if (is_constant(addr)) {
         logfatal("LDV with constant address");
     } else {
         int addr_reg = check_gpr(Dst, addr->reg_alloc, NULL);
         int dest_reg = check_vpr(Dst, dest_alloc);
+        host_emit_calculate_rsp_addr(Dst, addr_reg);
         switch (element) {
             // Fast path
             case 0:
             case 8: {
                 const int index = element / 8; // TODO this is probably backwards
-                | mov Rq(TMPREG1), rsp_state
-                | add Rq(TMPREG1), offsetof(rsp_t, sp_dmem)
-                | add Rq(TMPREG1), Rq(addr_reg)
-                | mov Rq(TMPREG1), [Rq(TMPREG1)]
                 // TODO do I need to bswap
                 | pinsrq xmm(dest_reg), Rq(TMPREG1), index
                 break;
@@ -2088,6 +2092,28 @@ void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
         flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
         reset_temp_vpr(Dst);
     }
+}
+
+void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_instruction_t* addr, u8 element) {
+    unimplemented(element != 0, "LQV with nonzero element");
+    int dest_reg = check_vpr(Dst, dest_alloc);
+
+
+    if (is_constant(addr)) {
+        u64 dmem_offset = const_to_u64(addr);
+        unimplemented(dmem_offset >= SP_DMEM_SIZE, "const DMEM offset too big!");
+        uintptr_t dmem_ptr = (uintptr_t)&N64RSP.sp_dmem[dmem_offset];
+
+        | mov64 Rq(TMPREG1), dmem_ptr
+        | movdqu xmm(dest_reg), [Rq(TMPREG1)]
+    } else {
+        int addr_reg = check_gpr(Dst, addr->reg_alloc, NULL);
+        host_emit_calculate_rsp_addr(Dst, addr_reg);
+        | movdqu xmm(dest_reg), [Rq(TMPREG1)]
+        flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
+    }
+
+    reset_temp_vpr(Dst);
 }
 
 void v2_end_block(dasm_State** Dst, int block_length) {
