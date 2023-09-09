@@ -361,11 +361,16 @@ void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
         }
         break;
     case COMPILER_TARGET_RSP:
-        unimplemented(!IR_IS_GPR(instr->flush_guest_reg.guest_reg), "Non-GPR flushed in RSP JIT!");
-        if (is_constant(instr->flush_guest_reg.value)) {
-            host_emit_mov_mem_imm(Dst, (uintptr_t)&N64RSP.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U32);
+        if (IR_IS_GPR(instr->flush_guest_reg.guest_reg)) {
+            if (is_constant(instr->flush_guest_reg.value)) {
+                host_emit_mov_mem_imm(Dst, (uintptr_t)&N64RSP.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->set_constant, VALUE_TYPE_U32);
+            } else {
+                host_emit_mov_mem_reg(Dst, (uintptr_t)&N64RSP.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U32);
+            }
+        } else if (IR_IS_VPR(instr->flush_guest_reg.guest_reg)) {
+            host_emit_mov_mem_vpr(Dst, (uintptr_t)&N64RSP.vu_regs[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc);
         } else {
-            host_emit_mov_mem_reg(Dst, (uintptr_t)&N64RSP.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U32);
+            logfatal("Unknown reg type flushed in RSP JIT!");
         }
         break;
     }

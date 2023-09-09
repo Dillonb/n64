@@ -217,7 +217,7 @@ int check_vpr(dasm_State** Dst, ir_register_allocation_t reg) {
 
 int check_gpr(dasm_State** Dst, ir_register_allocation_t reg, int* num_reloaded) {
     if (reg.type != REGISTER_TYPE_GPR) {
-        logfatal("FGR expected, but register was not allocated as an FGR!");
+        logfatal("GPR expected, but register was not allocated as a GPR!");
     }
     return check_reg(Dst, reg, num_reloaded);
 }
@@ -1223,6 +1223,20 @@ void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocati
     reset_temp_fgr(Dst);
 }
 
+void host_emit_mov_mem_vpr(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc) {
+    int offset = get_cpu_offset(mem);
+    int reg = check_vpr(Dst, reg_alloc);
+    // Check if the pointer is within CPU
+    if (offset > 0) {
+        | movdqu [cpu_state + offset], xmm(reg)
+    } else {
+        logfatal("Mov mem VPR to not in CPU");
+    }
+
+    reset_temp_vpr(Dst);
+}
+
+
 void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type) {
     int reg = check_reg(Dst, reg_alloc, NULL);
     int offset = get_cpu_offset(mem);
@@ -2059,11 +2073,12 @@ void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
             // Fast path
             case 0:
             case 8: {
-                const int index = element / 8;
-                | int3
-                | mov Rq(TMPREG1), rsp_state->sp_dmem
-                | add Rq(TMPREG1), addr_reg
+                const int index = element / 8; // TODO this is probably backwards
+                | mov Rq(TMPREG1), rsp_state
+                | add Rq(TMPREG1), offsetof(rsp_t, sp_dmem)
+                | add Rq(TMPREG1), Rq(addr_reg)
                 | mov Rq(TMPREG1), [Rq(TMPREG1)]
+                // TODO do I need to bswap
                 | pinsrq xmm(dest_reg), Rq(TMPREG1), index
                 break;
             }

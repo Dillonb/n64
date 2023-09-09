@@ -51,6 +51,7 @@ void host_emit_cmov_pc_binary(dasm_State** Dst, ir_register_allocation_t cond_re
 void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value);
 void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size);
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc, ir_value_type_t type);
+void host_emit_mov_mem_vpr(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc);
 void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type);
 void host_emit_mov_reg_mem_ptr(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_register_allocation_t addr_reg_alloc, ir_value_type_t type);
 void host_emit_mov_reg_cp0(dasm_State** Dst, ir_register_allocation_t reg_alloc, int cp0_reg);
