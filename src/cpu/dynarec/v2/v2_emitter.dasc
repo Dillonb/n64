@@ -2119,21 +2119,6 @@ void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
         element += offset;
     }
 
-    /*
-    switch (element) {
-        // Fast path
-        case 0:
-        case 8: {
-            const int index = element / 8; // TODO this is probably backwards
-            // TODO do I need to bswap
-            | pinsrq xmm(dest_reg), Rq(TMPREG1), index
-            break;
-        }
-        default:
-            logwarn("Unimplemented or unsupported element for LDV: %d", element);
-    }
-    */
-
     reset_temp_vpr(Dst);
 }
 
@@ -2178,53 +2163,6 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
             }
         }
     }
-
-    /*
-    switch (element) {
-        case 0:
-            | movdqu xmm(dest_reg), [Rq(TMPREG1)]
-            break;
-        case 1:
-            //x 1 [2 3] [4 5 6 7] [8 9 10 11 12 13 14 15]
-            // pinsrb to 1
-            | pinsrb xmm(dest_reg), byte [Rq(TMPREG1)], 1
-            // pinsrw to 2,3
-            | add Rq(TMPREG1), 1
-            | pinsrw xmm(dest_reg), word [Rq(TMPREG1)], 1
-            // pinsrd to 4,7
-            | add Rq(TMPREG1), 2
-            | pinsrd xmm(dest_reg), dword [Rq(TMPREG1)], 1
-            // pinsrq to 8,15
-            | add Rq(TMPREG1), 4
-            | pinsrq xmm(dest_reg), qword [Rq(TMPREG1)], 1
-            break;
-        case 2:
-        case 3:
-            logfatal("LQV element %d", element);
-        case 4:
-            //x x x x [4 5 6 7] [8 9 10 11 12 13 14 15]
-            // pinsrd to 4,7
-            | add Rq(TMPREG1), 2
-            | pinsrd xmm(dest_reg), dword [Rq(TMPREG1)], 1
-            // pinsrq to 8,15
-            | add Rq(TMPREG1), 4
-            | pinsrq xmm(dest_reg), qword [Rq(TMPREG1)], 1
-            break;
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-        case 14:
-        case 15:
-        default:
-            logfatal("LQV element %d", element);
-    }
-    */
 
     reset_temp_vpr(Dst);
 }
