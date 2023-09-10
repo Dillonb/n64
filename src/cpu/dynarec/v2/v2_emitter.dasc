@@ -2090,7 +2090,7 @@ void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     int dest_reg = check_vpr(Dst, dest_alloc);
     int old_value_reg = check_vpr(Dst, old_value_alloc);
     if (is_constant(addr)) {
-        u64 dmem_offset = const_to_u64(addr) & 0xFFF;
+        u16 dmem_offset = const_to_u64(addr) & 0xFFF;
         uintptr_t dmem_ptr = (uintptr_t)&N64RSP.sp_dmem[dmem_offset];
         | mov64 Rq(TMPREG1), dmem_ptr
     } else {
@@ -2142,7 +2142,7 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     int old_value_reg = check_vpr(Dst, old_value_alloc);
 
     if (is_constant(addr)) {
-        u64 dmem_offset = const_to_u64(addr) & 0xFFF;
+        u16 dmem_offset = const_to_u64(addr) & 0xFFF;
         uintptr_t dmem_ptr = (uintptr_t)&N64RSP.sp_dmem[dmem_offset];
         | mov64 Rq(TMPREG1), dmem_ptr
     } else {
@@ -2162,17 +2162,20 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
                 // so we need to use rax and hope for the best
                 | pinsrq xmm(dest_reg), qword [rax + offset], (element / 8)
                 offset += 8;
+                element += 8;
             } else if ((element % 4) == 0) {
                 | pinsrd xmm(dest_reg), dword [rax + offset], (element / 4)
                 offset += 4;
+                element += 4;
             } else if ((element % 2) == 0) {
                 | pinsrw xmm(dest_reg), word [rax + offset], (element / 2)
                 offset += 2;
+                element += 2;
             } else {
                 | pinsrb xmm(dest_reg), byte [rax + offset], element
                 offset += 1;
+                element += 1;
             }
-            element += offset;
         }
     }
 
