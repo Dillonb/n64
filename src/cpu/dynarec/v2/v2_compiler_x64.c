@@ -368,7 +368,8 @@ void compile_ir_flush_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
                 host_emit_mov_mem_reg(Dst, (uintptr_t)&N64RSP.gpr[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc, VALUE_TYPE_U32);
             }
         } else if (IR_IS_VPR(instr->flush_guest_reg.guest_reg)) {
-            host_emit_mov_mem_vpr(Dst, (uintptr_t)&N64RSP.vu_regs[instr->flush_guest_reg.guest_reg], instr->flush_guest_reg.value->reg_alloc);
+            uintptr_t ptr = (uintptr_t)&N64RSP.vu_regs[instr->flush_guest_reg.guest_reg - IR_VPR_BASE];
+            host_emit_mov_mem_vpr(Dst, ptr, instr->flush_guest_reg.value->reg_alloc);
         } else {
             logfatal("Unknown reg type flushed in RSP JIT!");
         }
@@ -426,11 +427,11 @@ void compile_ir_load_guest_reg(dasm_State** Dst, ir_instruction_t* instr) {
     case COMPILER_TARGET_RSP:
         switch (instr->load_guest_reg.guest_reg_type) {
             case REGISTER_TYPE_GPR:
-                    unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
-                    host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64RSP.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_S32);
-                    break;
+                unimplemented(!IR_IS_GPR(instr->load_guest_reg.guest_reg), "Loading a GPR, but register is not a GPR!");
+                host_emit_mov_reg_mem(Dst, instr->reg_alloc, (uintptr_t)&N64RSP.gpr[instr->load_guest_reg.guest_reg], VALUE_TYPE_S32);
+                break;
             case REGISTER_TYPE_VPR:
-                logfatal("Load VPR");
+                host_emit_mov_vpr_mem(Dst, instr->reg_alloc, (uintptr_t)&N64RSP.vu_regs[instr->load_guest_reg.guest_reg]);
                 break;
             case REGISTER_TYPE_NONE:
             case REGISTER_TYPE_FGR_32:
@@ -823,12 +824,26 @@ void compile_ir_interpreter_fallback(dasm_State** Dst, ir_instruction_t* instr, 
 }
 
 void compile_ir_rsp_lwc2(dasm_State** Dst, ir_instruction_t* instr) {
+    unimplemented(is_constant(instr->rsp_lwc2.old_value), "Constant old value");
+
     switch (instr->rsp_lwc2.type) {
         case IR_RSP_LWC2_LDV:
-            host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
             break;
         case IR_RSP_LWC2_LQV:
-            host_emit_rsp_lqv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            host_emit_rsp_lqv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+    }
+}
+
+void compile_ir_rsp_swc2(dasm_State** Dst, ir_instruction_t* instr) {
+    switch (instr->rsp_swc2.type) {
+        case IR_RSP_SWC2_SDV:
+            logfatal("IR_RSP_SWC2_SDV");
+            //host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_SWC2_SQV:
+            host_emit_rsp_sqv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_lwc2.element);
             break;
     }
 }
@@ -952,7 +967,7 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
             compile_ir_rsp_lwc2(Dst, instr);
             break;
         case IR_RSP_SWC2:
-            logfatal("Compile SWC2");
+            compile_ir_rsp_swc2(Dst, instr);
             break;
     }
 }

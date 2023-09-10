@@ -339,7 +339,8 @@ ir_instruction_t* get_loadstore_addr(mips_instruction_t instruction, int shift_a
 
 IR_RSP_EMITTER(lwc2_ldv) {
     ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LDV_SDV);
-    ir_emit_rsp_lwc2(addr, IR_RSP_LWC2_LDV, instruction.v.element, IR_VPR(instruction.v.vt));
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LDV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lfv) {
@@ -360,7 +361,8 @@ IR_RSP_EMITTER(lwc2_lpv) {
 
 IR_RSP_EMITTER(lwc2_lqv) {
     ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LQV_SQV);
-    ir_emit_rsp_lwc2(addr, IR_RSP_LWC2_LQV, instruction.v.element, IR_VPR(instruction.v.vt));
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LQV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lrv) {
@@ -425,7 +427,9 @@ IR_RSP_EMITTER(swc2_spv) {
 }
 
 IR_RSP_EMITTER(swc2_sqv) {
-    logfatal("RSP emitter for swc2_sqv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LQV_SQV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SQV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_srv) {

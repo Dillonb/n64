@@ -9,6 +9,7 @@
 
 #define IR_GPR_BASE 0
 #define IR_FGR_BASE 32
+#define IR_VPR_BASE IR_FGR_BASE
 #define IR_GPR(r) ((r) + IR_GPR_BASE)
 #define IR_FGR(r) ((r) + IR_FGR_BASE)
 #define IR_VPR(r) IR_FGR(r)
@@ -85,7 +86,8 @@ typedef enum rsp_lwc2_instruction {
 } rsp_lwc2_instruction_t;
 
 typedef enum rsp_swc2_instruction {
-    IR_RSP_SWC2_SDV
+    IR_RSP_SWC2_SDV,
+    IR_RSP_SWC2_SQV
 } rsp_swc2_instruction_t;
 
 typedef struct ir_set_constant {
@@ -387,14 +389,15 @@ typedef struct ir_instruction {
     } cond_exception;
     struct {
         rsp_lwc2_instruction_t type;
+        struct ir_instruction* old_value;
         struct ir_instruction* addr;
         u8 element;
     } rsp_lwc2;
     struct {
-    rsp_swc2_instruction_t type;
-    struct ir_instruction* addr;
-    struct ir_instruction* value;
-    u8 element;
+        rsp_swc2_instruction_t type;
+        struct ir_instruction* addr;
+        struct ir_instruction* value;
+        u8 element;
     } rsp_swc2;
 } ir_instruction_t;
 
@@ -528,7 +531,7 @@ ir_instruction_t* ir_emit_float_neg(int index, ir_instruction_t* operand, ir_flo
 // Compare two floating point values, set the result to FCR31.compare
 ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_instruction_t* operand1, ir_instruction_t* operand2, ir_float_value_type_t operand_type);
 // RSP LWC2 instruction
-ir_instruction_t* ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 element, u8 guest_reg);
+ir_instruction_t* ir_emit_rsp_lwc2(ir_instruction_t* addr, ir_instruction_t* old_value, rsp_lwc2_instruction_t type, u8 element, u8 guest_reg);
 // RSP SWC2 instruction
 ir_instruction_t* ir_emit_rsp_swc2(ir_instruction_t* addr, ir_instruction_t* value, rsp_swc2_instruction_t type, u8 element);
 

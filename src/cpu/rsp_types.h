@@ -1,6 +1,7 @@
 #ifndef N64_RSP_TYPES_H
 #define N64_RSP_TYPES_H
 
+#include <stdalign.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <util.h>
@@ -180,6 +181,9 @@ typedef struct rsp {
 
     u8 sp_dmem[SP_DMEM_SIZE];
     u8 sp_imem[SP_IMEM_SIZE];
+
+    // For dynarec
+    alignas(16) u8 rotate_mask[16][16];
 } rsp_t;
 
 #endif //N64_RSP_TYPES_H

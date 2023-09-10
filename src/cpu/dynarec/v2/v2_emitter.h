@@ -52,6 +52,7 @@ void host_emit_mov_pc(dasm_State** Dst, ir_instruction_t* value);
 void host_emit_mov_mem_imm(dasm_State** Dst, uintptr_t mem, ir_set_constant_t value, ir_value_type_t write_size);
 void host_emit_mov_mem_reg(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc, ir_value_type_t type);
 void host_emit_mov_mem_vpr(dasm_State** Dst, uintptr_t mem, ir_register_allocation_t reg_alloc);
+void host_emit_mov_vpr_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem);
 void host_emit_mov_reg_mem(dasm_State** Dst, ir_register_allocation_t reg_alloc, uintptr_t mem, ir_value_type_t type);
 void host_emit_mov_reg_mem_ptr(dasm_State** Dst, ir_register_allocation_t dest_reg_alloc, ir_register_allocation_t addr_reg_alloc, ir_value_type_t type);
 void host_emit_mov_reg_cp0(dasm_State** Dst, ir_register_allocation_t reg_alloc, int cp0_reg);
@@ -86,8 +87,10 @@ void host_emit_eret(dasm_State** Dst);
 
 void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_cycles);
 
-void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_instruction_t* addr, u8 element);
-void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+
+void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
 
 size_t v2_link(dasm_State** d);
 void v2_encode(dasm_State** d, u8* buf);

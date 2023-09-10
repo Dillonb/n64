@@ -144,6 +144,8 @@ const char* rsp_swc2_instruction_to_str(rsp_swc2_instruction_t type) {
     switch (type) {
         case IR_RSP_SWC2_SDV:
                 return "sdv";
+        case IR_RSP_SWC2_SQV:
+                return "sqv";
     }
 }
 
@@ -335,7 +337,7 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
             }
             break;
         case IR_RSP_LWC2:
-            snprintf(buf, buf_size, "lwc2_%s(v%d, element = %d)", rsp_lwc2_instruction_to_str(instr->rsp_lwc2.type), instr->rsp_lwc2.addr->index, instr->rsp_lwc2.element);
+            snprintf(buf, buf_size, "lwc2_%s(v%d, old_value = v%d, element = %d)", rsp_lwc2_instruction_to_str(instr->rsp_lwc2.type), instr->rsp_lwc2.addr->index, instr->rsp_lwc2.old_value->index, instr->rsp_lwc2.element);
             break;
         case IR_RSP_SWC2:
             snprintf(buf, buf_size, "swc2_%s(address = v%d, value = v%d, element = %d)", rsp_swc2_instruction_to_str(instr->rsp_swc2.type), instr->rsp_swc2.addr->index, instr->rsp_swc2.value->index, instr->rsp_swc2.element);
@@ -1094,11 +1096,12 @@ ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_in
     return append_ir_instruction(instruction, -1, NO_GUEST_REG);
 }
 
-ir_instruction_t* ir_emit_rsp_lwc2(ir_instruction_t* addr, rsp_lwc2_instruction_t type, u8 element, u8 guest_reg) {
+ir_instruction_t* ir_emit_rsp_lwc2(ir_instruction_t* addr, ir_instruction_t* old_value, rsp_lwc2_instruction_t type, u8 element, u8 guest_reg) {
     ir_instruction_t instruction;
     instruction.type = IR_RSP_LWC2;
     instruction.rsp_lwc2.type = type;
     instruction.rsp_lwc2.addr = addr;
+    instruction.rsp_lwc2.old_value = old_value;
     instruction.rsp_lwc2.element = element;
     return append_ir_instruction(instruction, -1, guest_reg);
 }

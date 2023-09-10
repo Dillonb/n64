@@ -78,7 +78,8 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
             return false;
 
         case IR_RSP_LWC2:
-            return instr->rsp_lwc2.addr == value;
+            // TODO: we don't always need the old_value.
+            return instr->rsp_lwc2.addr == value || instr->rsp_lwc2.old_value == value;
 
         case IR_RSP_SWC2:
             return instr->rsp_swc2.addr == value || instr->rsp_swc2.value == value;
@@ -613,6 +614,11 @@ void ir_optimize_eliminate_dead_code() {
                 instr->store.value->dead_code = false;
                 instr->dead_code = false;
                 break;
+            case IR_RSP_SWC2:
+                instr->dead_code = false;
+                instr->rsp_swc2.addr->dead_code = false;
+                instr->rsp_swc2.value->dead_code = false;
+                break;
             case IR_LOAD:
                 instr->load.address->dead_code = false;
                 instr->dead_code = false;
@@ -738,12 +744,7 @@ void ir_optimize_eliminate_dead_code() {
             case IR_RSP_LWC2:
                 if (!instr->dead_code) {
                     instr->rsp_lwc2.addr->dead_code = false;
-                }
-                break;
-            case IR_RSP_SWC2:
-                if (!instr->dead_code) {
-                    instr->rsp_swc2.addr->dead_code = false;
-                    instr->rsp_swc2.value->dead_code = false;
+                    instr->rsp_lwc2.old_value->dead_code = false;
                 }
                 break;
 

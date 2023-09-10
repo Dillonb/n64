@@ -419,6 +419,12 @@ void v2_compiler_init() {
 
     N64CPU.int64_min = INT64_MIN;
 
+    for (int i = 0; i < 16; i++) {
+        for (int j = 0; j < 16; j++) {
+            N64RSP.rotate_mask[i][j] = (i + j) & 15;
+        }
+    }
+
     v2_compiler_init_platformspecific();
 }
 
