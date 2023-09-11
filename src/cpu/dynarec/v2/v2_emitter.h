@@ -90,7 +90,18 @@ void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_
 void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
 void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
 
+void host_emit_rsp_sbv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_ssv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_slv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_sdv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
 void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_srv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_spv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_suv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_shv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_sfv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_swv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
+void host_emit_rsp_stv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
 
 size_t v2_link(dasm_State** d);
 void v2_encode(dasm_State** d, u8* buf);

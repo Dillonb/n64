@@ -838,14 +838,43 @@ void compile_ir_rsp_lwc2(dasm_State** Dst, ir_instruction_t* instr) {
 
 void compile_ir_rsp_swc2(dasm_State** Dst, ir_instruction_t* instr) {
     switch (instr->rsp_swc2.type) {
+        case IR_RSP_SWC2_SBV:
+            host_emit_rsp_sbv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_SSV:
+            host_emit_rsp_ssv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_SLV:
+            host_emit_rsp_slv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
         case IR_RSP_SWC2_SDV:
-            logfatal("IR_RSP_SWC2_SDV");
-            //host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            host_emit_rsp_sdv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
             break;
         case IR_RSP_SWC2_SQV:
             host_emit_rsp_sqv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
             break;
-    }
+        case IR_RSP_SWC2_SRV:
+            host_emit_rsp_srv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_SPV:
+            host_emit_rsp_spv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_SUV:
+            host_emit_rsp_suv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_SHV:
+            host_emit_rsp_shv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_SFV:
+            host_emit_rsp_sfv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_SWV:
+            host_emit_rsp_swv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        case IR_RSP_SWC2_STV:
+            host_emit_rsp_stv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
+            break;
+        }
 }
 
 void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {

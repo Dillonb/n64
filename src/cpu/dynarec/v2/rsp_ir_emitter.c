@@ -401,7 +401,9 @@ IR_RSP_EMITTER(lwc2) {
 }
 
 IR_RSP_EMITTER(swc2_sbv) {
-    logfatal("RSP emitter for swc2_sbv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LBV_SBV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SBV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_sdv) {
@@ -411,19 +413,27 @@ IR_RSP_EMITTER(swc2_sdv) {
 }
 
 IR_RSP_EMITTER(swc2_sfv) {
-    logfatal("RSP emitter for swc2_sfv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LFV_SFV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SFV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_shv) {
-    logfatal("RSP emitter for swc2_shv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LHV_SHV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SHV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_slv) {
-    logfatal("RSP emitter for swc2_slv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LLV_SLV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SLV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_spv) {
-    logfatal("RSP emitter for swc2_spv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LPV_SPV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SPV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_sqv) {
@@ -433,23 +443,33 @@ IR_RSP_EMITTER(swc2_sqv) {
 }
 
 IR_RSP_EMITTER(swc2_srv) {
-    logfatal("RSP emitter for swc2_srv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LRV_SRV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SRV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_ssv) {
-    logfatal("RSP emitter for swc2_ssv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LSV_SSV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SSV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_stv) {
-    logfatal("RSP emitter for swc2_stv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LTV_STV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_STV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_suv) {
-    logfatal("RSP emitter for swc2_suv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LUV_SUV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SUV, instruction.v.element);
 }
 
 IR_RSP_EMITTER(swc2_swv) {
-    logfatal("RSP emitter for swc2_swv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_SWV);
+    ir_instruction_t* value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_swc2(addr, value, IR_RSP_SWC2_SWV, instruction.v.element);
 }
 
 

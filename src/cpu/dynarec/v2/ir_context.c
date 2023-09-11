@@ -142,11 +142,31 @@ const char* rsp_lwc2_instruction_to_str(rsp_lwc2_instruction_t type) {
 
 const char* rsp_swc2_instruction_to_str(rsp_swc2_instruction_t type) {
     switch (type) {
+        case IR_RSP_SWC2_SBV:
+            return "sbv";
+        case IR_RSP_SWC2_SSV:
+            return "ssv";
+        case IR_RSP_SWC2_SLV:
+            return "slv";
         case IR_RSP_SWC2_SDV:
-                return "sdv";
+            return "sdv";
         case IR_RSP_SWC2_SQV:
-                return "sqv";
-    }
+            return "sqv";
+        case IR_RSP_SWC2_SRV:
+            return "srv";
+        case IR_RSP_SWC2_SPV:
+            return "spv";
+        case IR_RSP_SWC2_SUV:
+            return "suv";
+        case IR_RSP_SWC2_SHV:
+            return "shv";
+        case IR_RSP_SWC2_SFV:
+            return "sfv";
+        case IR_RSP_SWC2_SWV:
+            return "swv";
+        case IR_RSP_SWC2_STV:
+            return "stv";
+        }
 }
 
 void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {

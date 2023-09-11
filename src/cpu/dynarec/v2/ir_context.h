@@ -86,8 +86,18 @@ typedef enum rsp_lwc2_instruction {
 } rsp_lwc2_instruction_t;
 
 typedef enum rsp_swc2_instruction {
+    IR_RSP_SWC2_SBV,
+    IR_RSP_SWC2_SSV,
+    IR_RSP_SWC2_SLV,
     IR_RSP_SWC2_SDV,
-    IR_RSP_SWC2_SQV
+    IR_RSP_SWC2_SQV,
+    IR_RSP_SWC2_SRV,
+    IR_RSP_SWC2_SPV,
+    IR_RSP_SWC2_SUV,
+    IR_RSP_SWC2_SHV,
+    IR_RSP_SWC2_SFV,
+    IR_RSP_SWC2_SWV,
+    IR_RSP_SWC2_STV
 } rsp_swc2_instruction_t;
 
 typedef struct ir_set_constant {
