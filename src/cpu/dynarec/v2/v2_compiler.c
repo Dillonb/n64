@@ -425,6 +425,12 @@ void v2_compiler_init() {
         }
     }
 
+    for (int i = 0; i < 16; i++) {
+        for (int j = 0; j < 16; j++) {
+            N64RSP.lqv_mask[i][j] = (i + j) > 15 ? 0xFF : 0x00;
+        }
+    }
+
     v2_compiler_init_platformspecific();
 }
 

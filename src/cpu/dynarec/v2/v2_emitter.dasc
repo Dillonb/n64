@@ -172,7 +172,7 @@ int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
         }
     }
 
-    int result = temp_fgrs_allocated++;
+    int result = (temp_fgrs_allocated++) + 1;
 
     if (result >= (get_num_temp_fgrs())) {
         logfatal("Tried to allocate too many temp fgrs! Did you forget to call reset_temp_fgr()?");
@@ -186,7 +186,7 @@ int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
 
 void reset_temp_fgr(dasm_State** Dst) {
     for (int i = 0; i < temp_fgrs_allocated; i++) {
-        | movq qword [rsp + temp_fgr_to_spill_location[i]], xmm(i)
+        | movq qword [rsp + temp_fgr_to_spill_location[i + 1]], xmm(i + 1)
     }
     temp_fgrs_allocated = 0;
 }
@@ -2141,28 +2141,44 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     } else {
         | movdqa xmm(dest_reg), xmm(old_value_reg)
         unsigned int offset = 0;
-        while (element < 16) {
-            if ((element % 8) == 0) {
+        u8 e = element;
+        while (e < 16) {
+            if ((e % 8) == 0) {
                 // dynasm doesn't like [Rq(TMPREG1) + offset] forms here for some reason,
                 // so we need to use rax and hope for the best
-                | pinsrq xmm(dest_reg), qword [rax + offset], (element / 8)
+                | pinsrq xmm(dest_reg), qword [rax + offset], (e / 8)
                 offset += 8;
-                element += 8;
-            } else if ((element % 4) == 0) {
-                | pinsrd xmm(dest_reg), dword [rax + offset], (element / 4)
+                e += 8;
+            } else if ((e % 4) == 0) {
+                | pinsrd xmm(dest_reg), dword [rax + offset], (e / 4)
                 offset += 4;
-                element += 4;
-            } else if ((element % 2) == 0) {
-                | pinsrw xmm(dest_reg), word [rax + offset], (element / 2)
+                e += 4;
+            } else if ((e % 2) == 0) {
+                | pinsrw xmm(dest_reg), word [rax + offset], (e / 2)
                 offset += 2;
-                element += 2;
+                e += 2;
             } else {
-                | pinsrb xmm(dest_reg), byte [rax + offset], element
+                | pinsrb xmm(dest_reg), byte [rax + offset], e
                 offset += 1;
-                element += 1;
+                e += 1;
             }
         }
     }
+
+    // Load a mask for when the address is not on a 16 byte boundary
+    | lea Rq(TMPREG2), rsp_state->lqv_mask
+    // Get address misalignment (this works because dmem is allocated to a 16 byte aligned host address)
+    | and Rq(TMPREG1), 15
+    // Turn it into an array index (* 16)
+    | shl Rq(TMPREG1), 4
+    // Add it to the lqv_mask base address
+    | add Rq(TMPREG2), Rq(TMPREG1)
+    static_assert(TMPVPR1 == 0, "tmpvpr1 needs to be xmm0");
+    // Load it into the mask reg (required to be xmm0 by pblendvb)
+    | movdqu xmm0, [Rq(TMPREG2)]
+    // Shift entire mask to handle element
+    | pslldq xmm0, element
+    | pblendvb xmm(dest_reg), xmm(old_value_reg), xmm0
 
     reset_temp_vpr(Dst);
 }
@@ -2177,11 +2193,9 @@ void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
 
     if (is_constant(addr)) {
         u16 dmem_offset = const_to_u64(addr) & 0xFFF;
-        printf("SQV[%d] to %04X\n", element, dmem_offset);
 
         uintptr_t dmem_ptr_base = (uintptr_t)&N64RSP.sp_dmem;
         uintptr_t dmem_ptr = dmem_ptr_base + dmem_offset;
-        printf("dmem ptr base: %016llX after: %016llX\n", dmem_ptr_base, dmem_ptr);
 
         | mov64 Rq(TMPREG1), dmem_ptr
     } else {

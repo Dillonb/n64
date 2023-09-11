@@ -179,11 +179,12 @@ typedef struct rsp {
 
     bool semaphore_held;
 
-    u8 sp_dmem[SP_DMEM_SIZE];
-    u8 sp_imem[SP_IMEM_SIZE];
+    alignas(16) u8 sp_dmem[SP_DMEM_SIZE];
+    alignas(16) u8 sp_imem[SP_IMEM_SIZE];
 
     // For dynarec
     alignas(16) u8 rotate_mask[16][16];
+    alignas(16) u8 lqv_mask[16][16];
 } rsp_t;
 
 #endif //N64_RSP_TYPES_H
