@@ -172,7 +172,7 @@ int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
         }
     }
 
-    int result = (temp_fgrs_allocated++) + 1;
+    int result = (temp_fgrs_allocated++) + 2;
 
     if (result >= (get_num_temp_fgrs())) {
         logfatal("Tried to allocate too many temp fgrs! Did you forget to call reset_temp_fgr()?");
@@ -186,7 +186,7 @@ int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
 
 void reset_temp_fgr(dasm_State** Dst) {
     for (int i = 0; i < temp_fgrs_allocated; i++) {
-        | movq qword [rsp + temp_fgr_to_spill_location[i + 1]], xmm(i + 1)
+        | movq qword [rsp + temp_fgr_to_spill_location[i + 2]], xmm(i + 2)
     }
     temp_fgrs_allocated = 0;
 }
@@ -2202,6 +2202,11 @@ void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
     unimplemented(is_constant(value), "SQV with constant value");
     int source_reg = check_vpr(Dst, value->reg_alloc);
 
+    // Save original value of the source register to the stack (x86 has no push xmm instruction)
+    | sub rsp, 16
+    | movdqu [rsp], xmm(source_reg)
+
+    // Rotate bytes based on value of element (element 0 has no rotation)
     if (element != 0) {
         | pshufb xmm(source_reg), rsp_state->rotate_mask[element]
     }
@@ -2219,11 +2224,29 @@ void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
         flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
     }
 
+    // Blend with existing values in memory
+
+    // Load address of mask into TMPREG2
+    | lea Rq(TMPREG2), rsp_state->lqv_mask
+    | push Rq(TMPREG1) // save
+    | and Rd(TMPREG1), 15
+    | shl Rb(TMPREG1), 4
+    | add Rq(TMPREG2), Rq(TMPREG1)
+    | pop Rq(TMPREG1) // restore
+    // Load mask into xmm0
+    | movdqu xmm0, [Rq(TMPREG2)]
+    // Load existing memory values into xmm1
+    | movdqu xmm1, [Rq(TMPREG1)]
+
+    // Blend
+    | pblendvb xmm(source_reg), xmm1, xmm0
+
+    // Writeback
     | movdqu [Rq(TMPREG1)], xmm(source_reg)
 
-    if (element != 0) {
-        | pshufb xmm(source_reg), rsp_state->rotate_mask[(16 - element) & 15]
-    }
+    // Restore original value of source reg
+    | movdqu [rsp], xmm(source_reg)
+    | add rsp, 16
 }
 
 void v2_end_block(dasm_State** Dst, int block_length) {

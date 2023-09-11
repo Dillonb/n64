@@ -49,7 +49,6 @@ int get_num_preserved_gprs() {
 
 const int* get_available_fgrs() {
     const static int available_regs[] = {
-            4,
             5,
             6,
             7,
@@ -67,7 +66,7 @@ const int* get_available_fgrs() {
 }
 
 int get_num_available_fgrs() {
-    return 16 - 4; // Reserve the first 4
+    return 16 - 5; // Reserve the first 5
 }
 
 const int* get_scratch_registers() {

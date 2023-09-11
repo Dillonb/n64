@@ -843,7 +843,7 @@ void compile_ir_rsp_swc2(dasm_State** Dst, ir_instruction_t* instr) {
             //host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
             break;
         case IR_RSP_SWC2_SQV:
-            host_emit_rsp_sqv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_lwc2.element);
+            host_emit_rsp_sqv(Dst, instr->rsp_swc2.addr, instr->rsp_swc2.value, instr->rsp_swc2.element);
             break;
     }
 }

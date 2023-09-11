@@ -47,8 +47,10 @@ bool is_valid_immediate(ir_value_type_t value_type);
 #define TMPREG2 get_scratch_registers()[1]
 
 #define TMPFGR1 0
+#define TMPFGR2 0
 
 // vector registers have the same mapping as FGRs
 #define TMPVPR1 TMPFGR1
+#define TMPVPR2 TMPFGR2
 
 #endif //N64_TARGET_PLATFORM_H
