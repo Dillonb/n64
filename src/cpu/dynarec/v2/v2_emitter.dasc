@@ -2234,12 +2234,12 @@ void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
     | add Rq(TMPREG2), Rq(TMPREG1)
     | pop Rq(TMPREG1) // restore
     // Load mask into xmm0
-    | movdqu xmm0, [Rq(TMPREG2)]
+    | movdqu xmm(TMPVPR1), [Rq(TMPREG2)]
     // Load existing memory values into xmm1
-    | movdqu xmm1, [Rq(TMPREG1)]
+    | movdqu xmm(TMPVPR2), [Rq(TMPREG1)]
 
     // Blend
-    | pblendvb xmm(source_reg), xmm1, xmm0
+    | pblendvb xmm(source_reg), xmm(TMPVPR2), xmm0
 
     // Writeback
     | movdqu [Rq(TMPREG1)], xmm(source_reg)
