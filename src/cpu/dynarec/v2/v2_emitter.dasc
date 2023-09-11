@@ -2168,9 +2168,9 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     // Load a mask for when the address is not on a 16 byte boundary
     | lea Rq(TMPREG2), rsp_state->lqv_mask
     // Get address misalignment (this works because dmem is allocated to a 16 byte aligned host address)
-    | and Rq(TMPREG1), 15
+    | and Rd(TMPREG1), 15
     // Turn it into an array index (* 16)
-    | shl Rq(TMPREG1), 4
+    | shl Rb(TMPREG1), 4
     // Add it to the lqv_mask base address
     | add Rq(TMPREG2), Rq(TMPREG1)
     static_assert(TMPVPR1 == 0, "tmpvpr1 needs to be xmm0");
