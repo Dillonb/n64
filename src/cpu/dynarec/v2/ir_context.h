@@ -81,8 +81,17 @@ typedef enum ir_shift_direction {
 } ir_shift_direction_t;
 
 typedef enum rsp_lwc2_instruction {
+    IR_RSP_LWC2_LBV,
     IR_RSP_LWC2_LDV,
+    IR_RSP_LWC2_LFV,
+    IR_RSP_LWC2_LHV,
+    IR_RSP_LWC2_LLV,
+    IR_RSP_LWC2_LPV,
     IR_RSP_LWC2_LQV,
+    IR_RSP_LWC2_LRV,
+    IR_RSP_LWC2_LSV,
+    IR_RSP_LWC2_LTV,
+    IR_RSP_LWC2_LUV,
 } rsp_lwc2_instruction_t;
 
 typedef enum rsp_swc2_instruction {

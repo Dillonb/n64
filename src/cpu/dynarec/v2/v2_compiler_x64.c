@@ -827,13 +827,40 @@ void compile_ir_rsp_lwc2(dasm_State** Dst, ir_instruction_t* instr) {
     unimplemented(is_constant(instr->rsp_lwc2.old_value), "Constant old value");
 
     switch (instr->rsp_lwc2.type) {
+        case IR_RSP_LWC2_LBV:
+            host_emit_rsp_lbv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
         case IR_RSP_LWC2_LDV:
             host_emit_rsp_ldv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LFV:
+            host_emit_rsp_lfv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LHV:
+            host_emit_rsp_lhv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LLV:
+            host_emit_rsp_llv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LPV:
+            host_emit_rsp_lpv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
             break;
         case IR_RSP_LWC2_LQV:
             host_emit_rsp_lqv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
             break;
-    }
+        case IR_RSP_LWC2_LRV:
+            host_emit_rsp_lrv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LSV:
+            host_emit_rsp_lsv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LTV:
+            host_emit_rsp_ltv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        case IR_RSP_LWC2_LUV:
+            host_emit_rsp_luv(Dst, instr->reg_alloc, instr->rsp_lwc2.old_value->reg_alloc, instr->rsp_lwc2.addr, instr->rsp_lwc2.element);
+            break;
+        }
 }
 
 void compile_ir_rsp_swc2(dasm_State** Dst, ir_instruction_t* instr) {

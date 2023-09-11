@@ -2086,6 +2086,10 @@ void host_emit_calculate_rsp_addr(dasm_State** Dst, int addr_reg) {
     | mov Rq(TMPREG1), [Rq(TMPREG1)]
 }
 
+void host_emit_rsp_lbv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_lbv");
+}
+
 void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
     int dest_reg = check_vpr(Dst, dest_alloc);
     int old_value_reg = check_vpr(Dst, old_value_alloc);
@@ -2120,6 +2124,22 @@ void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     }
 
     reset_temp_vpr(Dst);
+}
+
+void host_emit_rsp_lfv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_lfv");
+}
+
+void host_emit_rsp_lhv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_lhv");
+}
+
+void host_emit_rsp_llv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_llv");
+}
+
+void host_emit_rsp_lpv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_lpv");
 }
 
 void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
@@ -2196,6 +2216,22 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     | pblendvb xmm(dest_reg), xmm(old_value_reg), xmm0
 
     reset_temp_vpr(Dst);
+}
+
+void host_emit_rsp_lrv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_lrv");
+}
+
+void host_emit_rsp_lsv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_lsv");
+}
+
+void host_emit_rsp_ltv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_ltv");
+}
+
+void host_emit_rsp_luv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    logfatal("host_emit_rsp_luv");
 }
 
 void host_emit_rsp_sbv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element) {

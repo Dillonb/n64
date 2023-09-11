@@ -87,8 +87,17 @@ void host_emit_eret(dasm_State** Dst);
 
 void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_cycles);
 
+void host_emit_rsp_lbv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
 void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_lfv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_lhv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_llv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_lpv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
 void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_lrv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_lsv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_ltv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
+void host_emit_rsp_luv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element);
 
 void host_emit_rsp_sbv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
 void host_emit_rsp_ssv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);

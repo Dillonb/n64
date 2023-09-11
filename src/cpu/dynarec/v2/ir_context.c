@@ -134,10 +134,28 @@ const char* float_cond_to_str(ir_float_condition_t condition) {
 const char* rsp_lwc2_instruction_to_str(rsp_lwc2_instruction_t type) {
     switch (type) {
         case IR_RSP_LWC2_LDV:
-                return "ldv";
+            return "ldv";
         case IR_RSP_LWC2_LQV:
-                return "lqv";
-    }
+            return "lqv";
+        case IR_RSP_LWC2_LBV:
+            return "lbv";
+        case IR_RSP_LWC2_LFV:
+            return "lfv";
+        case IR_RSP_LWC2_LHV:
+            return "lhv";
+        case IR_RSP_LWC2_LLV:
+            return "llv";
+        case IR_RSP_LWC2_LPV:
+            return "lpv";
+        case IR_RSP_LWC2_LRV:
+            return "lrv";
+        case IR_RSP_LWC2_LSV:
+            return "lsv";
+        case IR_RSP_LWC2_LTV:
+            return "ltv";
+        case IR_RSP_LWC2_LUV:
+            return "luv";
+        }
 }
 
 const char* rsp_swc2_instruction_to_str(rsp_swc2_instruction_t type) {
