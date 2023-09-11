@@ -2137,9 +2137,24 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     }
 
     if (element == 0) {
+        // If the element is zero, we're loading the entire register, so no need to be fancy.
         | movdqu xmm(dest_reg), [Rq(TMPREG1)]
     } else {
+        // If the element is nonzero, parts of the register will need to remain untouched.
+        // Since this instruction got a new register allocated for it, load the old value first
         | movdqa xmm(dest_reg), xmm(old_value_reg)
+
+        // Break apart the load into the fewest possible instructions. The SSE PINSRx family can only
+        // load to 'aligned' parts of the register, so figure out what the largest load we can possibly
+        // do is.
+
+        // This graphic might illustrate things better. If e == 1, we need to load every value but the first byte.
+        // x, [26], [27, 28], [29, 2a, 2b, 2c,] [2d, 2e, 2f, 30, 31, 32, 33, 34]
+        // first iteration: e == 1, which can only be loaded with a pinsrb.
+        // second iteration: e == 2, which hits the pinsrw case because it is word aligned.
+        // third iteration: e == 4, we can use pinsrd to load 4 bytes.
+        // fourth iteration: e == 8, we can use pinsrq to load the remaining part of the register
+
         unsigned int offset = 0;
         u8 e = element;
         while (e < 16) {
