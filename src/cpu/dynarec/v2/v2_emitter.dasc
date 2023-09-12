@@ -2100,6 +2100,7 @@ void host_emit_rsp_lbv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     host_emit_calculate_rsp_addr(Dst, addr);
     | movdqa xmm(dest_reg), xmm(old_value_reg)
     | pinsrb xmm(dest_reg), byte [rax], element
+    reset_temp_vpr(Dst);
 }
 
 void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
@@ -2233,6 +2234,7 @@ void host_emit_rsp_lsv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
         // Always loading the full word here, because 15 is odd and will hit the above path
         | pinsrw xmm(dest_reg), word [rax], element / 2
     }
+    reset_temp_vpr(Dst);
 }
 
 void host_emit_rsp_ltv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
@@ -2297,6 +2299,7 @@ void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
     // Restore original value of source reg
     | movdqu [rsp], xmm(source_reg)
     | add rsp, 16
+    reset_temp_vpr(Dst);
 }
 
 void host_emit_rsp_srv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element) {
