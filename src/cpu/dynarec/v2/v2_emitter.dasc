@@ -2109,21 +2109,39 @@ void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     host_emit_calculate_rsp_addr(Dst, addr);
     | movdqa xmm(dest_reg), xmm(old_value_reg)
 
+    // Break apart the load into the fewest possible instructions. The SSE PINSRx family can only
+    // load to 'aligned' parts of the register, so figure out what the largest load we can possibly
+    // do is.
+
+    // See LQV for more details on this algorithm - it's nearly identical, except for two major differences.
+    // It does not stop loading at a 16 byte boundary, and it does not always load to the end of the register.
+    // So, the code after the main loop is removed, element 0 is not special cased, and a new "remaining" value
+    // is added.
+
+
     unsigned int offset = 0;
-    while (element < 16 && offset <= 4) {
-        // dynasm doesn't like [Rq(TMPREG1) + offset] forms here for some reason,
-        // so we need to use rax and hope for the best
-        if ((element % 4) == 0) {
-            | pinsrd xmm(dest_reg), dword [rax + offset], (element / 4)
+    u8 e = element;
+    while (e < 16 && (e - element) < 8) {
+        int remaining = 8 - (e - element);
+        if ((e % 8) == 0 && remaining >= 8) {
+            // dynasm doesn't like [Rq(TMPREG1) + offset] forms here for some reason,
+            // so we need to use rax and hope for the best
+            | pinsrq xmm(dest_reg), qword [rax + offset], (e / 8)
+            offset += 8;
+            e += 8;
+        } else if ((e % 4) == 0 && remaining >= 4) {
+            | pinsrd xmm(dest_reg), dword [rax + offset], (e / 4)
             offset += 4;
-        } else if ((element % 2) == 0) {
-            | pinsrw xmm(dest_reg), word [rax + offset], (element / 2)
+            e += 4;
+        } else if ((e % 2) == 0 && remaining >= 2) {
+            | pinsrw xmm(dest_reg), word [rax + offset], (e / 2)
             offset += 2;
+            e += 2;
         } else {
-            | pinsrb xmm(dest_reg), byte [rax + offset], element
+            | pinsrb xmm(dest_reg), byte [rax + offset], e
             offset += 1;
+            e += 1;
         }
-        element += offset;
     }
 
     reset_temp_vpr(Dst);
