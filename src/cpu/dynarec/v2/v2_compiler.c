@@ -159,7 +159,7 @@ void fill_temp_code_rsp(u16 address, rsp_code_overlay_t* overlay) {
             prev_instr_category = temp_code[i - 1].category;
         }
 
-        overlay->code_mask[instr_address >> 2] = true;
+        overlay->code_mask[instr_address >> 2] = 0xFFFFFFFF;
 
         temp_code[i].instr.raw = word_from_byte_array(N64RSP.sp_imem, instr_address);
         temp_code[i].category = instr_category(temp_code[i].instr);
