@@ -2080,30 +2080,32 @@ void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_
 }
 
 // Loads an SP DMEM address into TMPREG1
-void host_emit_calculate_rsp_addr(dasm_State** Dst, int addr_reg) {
-    | lea Rq(TMPREG1), rsp_state->sp_dmem
-    | add Rq(TMPREG1), Rq(addr_reg)
-    | mov Rq(TMPREG1), [Rq(TMPREG1)]
-}
-
-void host_emit_rsp_lbv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
-    logfatal("host_emit_rsp_lbv");
-}
-
-void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
-    int dest_reg = check_vpr(Dst, dest_alloc);
-    int old_value_reg = check_vpr(Dst, old_value_alloc);
+void host_emit_calculate_rsp_addr(dasm_State** Dst, ir_instruction_t* addr) {
     if (is_constant(addr)) {
         u16 dmem_offset = const_to_u64(addr) & 0xFFF;
         uintptr_t dmem_ptr = (uintptr_t)&N64RSP.sp_dmem[dmem_offset];
         | mov64 Rq(TMPREG1), dmem_ptr
     } else {
         int addr_reg = check_gpr(Dst, addr->reg_alloc, NULL);
-        host_emit_calculate_rsp_addr(Dst, addr_reg);
+        | lea Rq(TMPREG1), rsp_state->sp_dmem
+        | add Rq(TMPREG1), Rq(addr_reg)
+        | mov Rq(TMPREG1), [Rq(TMPREG1)]
         flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
     }
+}
 
+void host_emit_rsp_lbv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    int dest_reg = check_vpr(Dst, dest_alloc);
+    int old_value_reg = check_vpr(Dst, old_value_alloc);
+    host_emit_calculate_rsp_addr(Dst, addr);
+    | movdqa xmm(dest_reg), xmm(old_value_reg)
+    | pinsrb xmm(dest_reg), byte [rax], element
+}
 
+void host_emit_rsp_ldv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
+    int dest_reg = check_vpr(Dst, dest_alloc);
+    int old_value_reg = check_vpr(Dst, old_value_alloc);
+    host_emit_calculate_rsp_addr(Dst, addr);
     | movdqa xmm(dest_reg), xmm(old_value_reg)
 
     unsigned int offset = 0;
@@ -2146,15 +2148,9 @@ void host_emit_rsp_lqv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
     int dest_reg = check_vpr(Dst, dest_alloc);
     int old_value_reg = check_vpr(Dst, old_value_alloc);
 
-    if (is_constant(addr)) {
-        u16 dmem_offset = const_to_u64(addr) & 0xFFF;
-        uintptr_t dmem_ptr = (uintptr_t)&N64RSP.sp_dmem[dmem_offset];
-        | mov64 Rq(TMPREG1), dmem_ptr
-    } else {
-        int addr_reg = check_gpr(Dst, addr->reg_alloc, NULL);
-        host_emit_calculate_rsp_addr(Dst, addr_reg);
-        flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
-    }
+    host_emit_calculate_rsp_addr(Dst, addr);
+
+    | movdqa xmm(dest_reg), xmm(old_value_reg)
 
     if (element == 0) {
         // If the element is zero, we're loading the entire register, so no need to be fancy.
@@ -2223,7 +2219,20 @@ void host_emit_rsp_lrv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir
 }
 
 void host_emit_rsp_lsv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
-    logfatal("host_emit_rsp_lsv");
+    int dest_reg = check_vpr(Dst, dest_alloc);
+    int old_value_reg = check_vpr(Dst, old_value_alloc);
+    host_emit_calculate_rsp_addr(Dst, addr);
+    | movdqa xmm(dest_reg), xmm(old_value_reg)
+
+    if (element & 1) {
+        | pinsrb xmm(dest_reg), byte [rax], element
+        if (element < 15) {
+            | pinsrb xmm(dest_reg), byte [rax + 1], element + 1
+        }
+    } else {
+        // Always loading the full word here, because 15 is odd and will hit the above path
+        | pinsrw xmm(dest_reg), word [rax], element / 2
+    }
 }
 
 void host_emit_rsp_ltv(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_register_allocation_t old_value_alloc, ir_instruction_t* addr, u8 element) {
@@ -2263,18 +2272,7 @@ void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
         | pshufb xmm(source_reg), rsp_state->rotate_mask[element]
     }
 
-    if (is_constant(addr)) {
-        u16 dmem_offset = const_to_u64(addr) & 0xFFF;
-
-        uintptr_t dmem_ptr_base = (uintptr_t)&N64RSP.sp_dmem;
-        uintptr_t dmem_ptr = dmem_ptr_base + dmem_offset;
-
-        | mov64 Rq(TMPREG1), dmem_ptr
-    } else {
-        int addr_reg = check_gpr(Dst, addr->reg_alloc, NULL);
-        host_emit_calculate_rsp_addr(Dst, addr_reg);
-        flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
-    }
+    host_emit_calculate_rsp_addr(Dst, addr);
 
     // Blend with existing values in memory
 
