@@ -327,14 +327,16 @@ IR_RSP_EMITTER(regimm) {
     logfatal("RSP regimm emitter unimplemented");
 }
 
-IR_RSP_EMITTER(lwc2_lbv) {
-    logfatal("RSP emitter for lwc2_lbv unimplemented");
-}
-
 ir_instruction_t* get_loadstore_addr(mips_instruction_t instruction, int shift_amount) {
     ir_instruction_t* base = ir_emit_load_guest_gpr(instruction.v.base);
     ir_instruction_t* offset = ir_emit_set_constant_s32(sign_extend_7bit_offset(instruction.v.offset, shift_amount), NO_GUEST_REG);
     return ir_emit_add(base, offset, NO_GUEST_REG);
+}
+
+IR_RSP_EMITTER(lwc2_lbv) {
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LBV_SBV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LBV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_ldv) {
@@ -344,19 +346,27 @@ IR_RSP_EMITTER(lwc2_ldv) {
 }
 
 IR_RSP_EMITTER(lwc2_lfv) {
-    logfatal("RSP emitter for lwc2_lfv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LFV_SFV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LFV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lhv) {
-    logfatal("RSP emitter for lwc2_lhv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LHV_SHV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LHV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_llv) {
-    logfatal("RSP emitter for lwc2_llv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LLV_SLV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LLV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lpv) {
-    logfatal("RSP emitter for lwc2_lpv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LPV_SPV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LPV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lqv) {
@@ -366,19 +376,27 @@ IR_RSP_EMITTER(lwc2_lqv) {
 }
 
 IR_RSP_EMITTER(lwc2_lrv) {
-    logfatal("RSP emitter for lwc2_lrv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LRV_SRV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LRV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_lsv) {
-    logfatal("RSP emitter for lwc2_lsv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LSV_SSV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LSV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_ltv) {
-    logfatal("RSP emitter for lwc2_ltv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LTV_STV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LTV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2_luv) {
-    logfatal("RSP emitter for lwc2_luv unimplemented");
+    ir_instruction_t* addr = get_loadstore_addr(instruction, SHIFT_AMOUNT_LUV_SUV);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.v.vt));
+    ir_emit_rsp_lwc2(addr, old_value, IR_RSP_LWC2_LUV, instruction.v.element, IR_VPR(instruction.v.vt));
 }
 
 IR_RSP_EMITTER(lwc2) {
