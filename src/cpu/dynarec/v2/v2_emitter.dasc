@@ -2088,8 +2088,7 @@ void host_emit_calculate_rsp_addr(dasm_State** Dst, ir_instruction_t* addr) {
     } else {
         int addr_reg = check_gpr(Dst, addr->reg_alloc, NULL);
         | lea Rq(TMPREG1), rsp_state->sp_dmem
-        | add Rq(TMPREG1), Rq(addr_reg)
-        | mov Rq(TMPREG1), [Rq(TMPREG1)]
+        | mov Rq(TMPREG1), [rax + Rq(addr_reg)]
         flush_checked_reg(Dst, addr_reg, addr->reg_alloc);
     }
 }
