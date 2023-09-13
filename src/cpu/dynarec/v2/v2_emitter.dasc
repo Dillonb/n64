@@ -2314,7 +2314,7 @@ void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
     | movdqu [Rq(TMPREG1)], xmm(source_reg)
 
     // Restore original value of source reg
-    | movdqu [rsp], xmm(source_reg)
+    | movdqu xmm(source_reg), [rsp]
     | add rsp, 16
     reset_temp_vpr(Dst);
 }
