@@ -2275,7 +2275,27 @@ void host_emit_rsp_slv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
 }
 
 void host_emit_rsp_sdv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element) {
-    logfatal("host_emit_rsp_sdv");
+    unimplemented(is_constant(value), "SDV with constant value");
+    int source_reg = check_vpr(Dst, value->reg_alloc);
+
+    // Rotate bytes based on value of element (element 0 has no rotation)
+    // Since element 0 doesn't rotate the reigster, no need to save it
+    if (element != 0) {
+        // Save original value of the source register to the stack (x86 has no push xmm instruction)
+        | sub rsp, 16
+        | movdqu [rsp], xmm(source_reg)
+        | pshufb xmm(source_reg), rsp_state->rotate_mask[element]
+    }
+    host_emit_calculate_rsp_addr(Dst, addr);
+    //| movdqu [Rq(TMPREG1)], xmm(source_reg)
+    | int3
+    | movq qword [Rq(TMPREG1)], xmm(source_reg)
+
+    // Restore original value of source reg
+    if (element != 0) {
+        | movdqu xmm(source_reg), [rsp]
+        | add rsp, 16
+    }
 }
 
 void host_emit_rsp_sqv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element) {
