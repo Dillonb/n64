@@ -136,6 +136,8 @@ int check_reg(dasm_State** Dst, ir_register_allocation_t reg, int* num_reloaded)
     if (reg.spilled) {
         if (reg.type == REGISTER_TYPE_FGR_32 || reg.type == REGISTER_TYPE_FGR_64) {
             return check_fgr(Dst, reg);
+        } else if (reg.type == REGISTER_TYPE_VPR) {
+            return check_vpr(Dst, reg);
         } else if (index >= 3) {
             logfatal("No space to reload a spilled register! Does this function load more than 3?");
         } else {
@@ -164,7 +166,7 @@ void flush_checked_reg(dasm_State** Dst, int reg, ir_register_allocation_t reg_a
 int temp_fgrs_allocated = 0;
 int temp_fgr_to_spill_location[16];
 
-int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
+int allocate_temp_fgr(dasm_State** Dst, int spill_location, ir_register_type_t type) {
     // See if this temp fgr has already been allocated
     for (int i = 0; i < temp_fgrs_allocated; i++) {
         if (temp_fgr_to_spill_location[i] == spill_location) {
@@ -179,7 +181,19 @@ int allocate_temp_fgr(dasm_State** Dst, int spill_location) {
     }
 
     temp_fgr_to_spill_location[result] = spill_location;
-    | movq xmm(result), qword [rsp + spill_location]
+    switch (type) {
+        case REGISTER_TYPE_NONE:
+        case REGISTER_TYPE_GPR:
+            logfatal("Invalid register type!");
+            break;
+        case REGISTER_TYPE_FGR_32:
+        case REGISTER_TYPE_FGR_64:
+            | movq xmm(result), qword [rsp + spill_location]
+            break;
+        case REGISTER_TYPE_VPR:
+            | movdqu xmm(result), oword [rsp + spill_location]
+            break;
+    }
 
     return result;
 }
@@ -191,14 +205,19 @@ void reset_temp_fgr(dasm_State** Dst) {
     temp_fgrs_allocated = 0;
 }
 
-#define reset_temp_vpr(Dst) reset_temp_fgr(Dst);
+void reset_temp_vpr(dasm_State** Dst) {
+    for (int i = 0; i < temp_fgrs_allocated; i++) {
+        | movdqu oword [rsp + temp_fgr_to_spill_location[i + 2]], xmm(i + 2)
+    }
+    temp_fgrs_allocated = 0;
+}
 
 int check_fgr(dasm_State** Dst, ir_register_allocation_t reg) {
     if (reg.type != REGISTER_TYPE_FGR_32 && reg.type != REGISTER_TYPE_FGR_64) {
         logfatal("FGR expected, but register was not allocated as an FGR!");
     }
     if (reg.spilled) {
-        return allocate_temp_fgr(Dst, reg.spill_location);
+        return allocate_temp_fgr(Dst, reg.spill_location, reg.type);
     } else {
         return reg.host_reg;
     }
@@ -212,7 +231,7 @@ int check_vpr(dasm_State** Dst, ir_register_allocation_t reg) {
         logfatal("VPR expected, but register was not allocated as an VPR!");
     }
     if (reg.spilled) {
-        return allocate_temp_fgr(Dst, reg.spill_location);
+        return allocate_temp_fgr(Dst, reg.spill_location, reg.type);
     } else {
         return reg.host_reg;
     }
@@ -831,6 +850,7 @@ void host_emit_bswap_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, i
         | movsx Rq(reg), Rb(reg)
         break;
     case VALUE_TYPE_S16:
+        unimplemented(reg == TMPREG1, "Cannot bswap a 16 bit value in TMPREG1 because it is needed for the operation!");
         | mov Rw(TMPREG1), Rw(reg)
         | shr Rw(TMPREG1), 8
         | shl Rw(reg), 8
@@ -838,6 +858,7 @@ void host_emit_bswap_reg(dasm_State** Dst, ir_register_allocation_t reg_alloc, i
         | movsx Rq(reg), Rw(reg)
         break;
     case VALUE_TYPE_U16:
+        unimplemented(reg == TMPREG1, "Cannot bswap a 16 bit value in TMPREG1 because it is needed for the operation!");
         | mov Rw(TMPREG1), Rw(reg)
         | shr Rw(TMPREG1), 8
         | shl Rw(reg), 8
@@ -2388,38 +2409,56 @@ void host_emit_vpr_insert(dasm_State** Dst, ir_register_allocation_t dest_alloc,
     // So, the code after the main loop is removed, element 0 is not special cased, and a new "remaining" value
     // is added.
 
-    int value_size_bytes = 2;
+    int value_size_bytes;
 
-    unsigned int offset = 0;
+
+    switch (value_type) {
+        case VALUE_TYPE_U8:
+        case VALUE_TYPE_S8:
+            value_size_bytes = 1;
+            break;
+        case VALUE_TYPE_S16:
+        case VALUE_TYPE_U16:
+            unimplemented(TMPREG1 != 0, "tmpreg1 must be rax");
+            value_size_bytes = 2;
+            | xchg al, ah
+            break;
+        case VALUE_TYPE_S32:
+        case VALUE_TYPE_U32:
+            | bswap Rd(TMPREG1)
+            value_size_bytes = 4;
+            break;
+        case VALUE_TYPE_U64:
+        case VALUE_TYPE_S64:
+            | bswap Rq(TMPREG1)
+            value_size_bytes = 8;
+            break;
+    }
+
     u8 e = byte_offset;
-    while (e < 16 && (e - byte_offset) < 8) {
+    while (e < 16 && (e - byte_offset) < value_size_bytes) {
         int remaining = value_size_bytes - (e - byte_offset);
+        unimplemented(remaining > 2 || remaining < 0, "wtf: %d", remaining);
         int shift = 0;
         if ((e % 8) == 0 && remaining >= 8) {
-            // dynasm doesn't like [Rq(TMPREG1) + offset] forms here for some reason,
-            // so we need to use rax and hope for the best
-            //| pinsrq xmm(dest_reg), qword [rax + offset], (e / 8)
             | pinsrq xmm(dest_reg), Rq(TMPREG1), (e / 8)
             shift = 8;
             e += 8;
         } else if ((e % 4) == 0 && remaining >= 4) {
-            //| pinsrd xmm(dest_reg), dword [rax + offset], (e / 4)
             | pinsrd xmm(dest_reg), Rd(TMPREG1), (e / 4)
             shift = 4;
             e += 4;
         } else if ((e % 2) == 0 && remaining >= 2) {
-            //| pinsrw xmm(dest_reg), word [rax + offset], (e / 2)
             | pinsrw xmm(dest_reg), Rd(TMPREG1), (e / 2)
             shift = 2;
             e += 2;
         } else {
-            //| pinsrb xmm(dest_reg), byte [rax + offset], e
             | pinsrb xmm(dest_reg), Rd(TMPREG1), e
             shift = 1;
             e += 1;
         }
-        if (remaining > 0) {
-            | shr Rq(TMPREG1), shift
+        if ((remaining - shift) > 0) {
+            | shr Rq(TMPREG1), (shift * 8)
         }
     }
 

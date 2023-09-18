@@ -177,14 +177,54 @@ typedef struct spill_data {
     ir_instruction_t* spilled_values[SPILL_SPACE_NUM_ENTRIES];
 } spill_data_t;
 
-int find_spill_index(spill_data_t* spill_data, ir_instruction_t* for_value) {
+bool spill_index_valid(int i) {
+    if (i < 0) {
+        return false;
+    }
+    if (i >= SPILL_SPACE_NUM_ENTRIES) {
+        return false;
+    }
+
+    return true;
+}
+
+bool spill_index_free(int i, spill_data_t* spill_data, ir_instruction_t* for_value) {
+    return spill_data->spilled_values[i]->last_use < for_value->index;
+}
+
+int find_spill_index(spill_data_t* spill_data, ir_instruction_t* for_value, ir_register_type_t type) {
     // Try to find an already allocated space that has expired
 
     for (int i = 0; i < spill_data->index; i++) {
         if (i >= SPILL_SPACE_NUM_ENTRIES) {
             logfatal("Out of spill space entries when trying to allocate v%d!", for_value->index);
         }
-        if (spill_data->spilled_values[i]->last_use < for_value->index) {
+        if (spill_index_free(i, spill_data, for_value)) {
+            if (type == REGISTER_TYPE_VPR) {
+                // VPRs are 128 bit and need two free entries in a row
+                int next_i = i + 1;
+                if (!spill_index_valid(next_i)) {
+                    break; // Handle the error below
+                }
+                if (next_i > spill_data->index) {
+                    logfatal("wtf? next_i (%d) > spill_data->index (%d)", next_i, spill_data->index);
+                }
+                bool next_free = false;
+                if (next_i == spill_data->index) {
+                    // Can consider the next entry free
+                    next_free = true;
+                    // ... but need to bump the index
+                    spill_data->index++;
+                } else if (spill_index_free(next_i, spill_data, for_value)) {
+                    next_free = true;
+                }
+
+                if (next_free) {
+                    spill_data->spilled_values[next_i] = for_value;
+                } else {
+                    continue;
+                }
+            }
             spill_data->spilled_values[i] = for_value;
             return i * SPILL_ENTRY_SIZE;
         }
@@ -194,8 +234,13 @@ int find_spill_index(spill_data_t* spill_data, ir_instruction_t* for_value) {
     if (spill_data->index >= SPILL_SPACE_NUM_ENTRIES || spill_data->index < 0) {
         logfatal("Invalid spill data index %d\n", spill_data->index);
     }
-    spill_data->spilled_values[spill_data->index] = for_value;
-    return (spill_data->index++) * SPILL_ENTRY_SIZE;
+    int result = spill_data->index * SPILL_ENTRY_SIZE;
+    spill_data->spilled_values[spill_data->index++] = for_value;
+    if (type == REGISTER_TYPE_VPR) {
+        // vector registers take up two slots
+        spill_data->spilled_values[spill_data->index++] = for_value;
+    }
+    return result;
 }
 
 ir_register_allocation_t alloc_reg_spilled(int spill_location, ir_register_type_t type) {
@@ -230,13 +275,13 @@ void allocate_register(
 
             // Allocate a new space on the stack for the spilled value
             spill->reg_alloc.spilled = true;
-            spill->reg_alloc.spill_location = find_spill_index(spill_data, spill);
+            spill->reg_alloc.spill_location = find_spill_index(spill_data, spill, get_required_register_type(spill));
 
             // Replace spilled value in active list with the new value
             state->active[active_index] = value;
         } else {
             // Allocate a new space on the stack for the new value
-            value->reg_alloc = alloc_reg_spilled(find_spill_index(spill_data, value), type);
+            value->reg_alloc = alloc_reg_spilled(find_spill_index(spill_data, value, type), type);
         }
     } else {
         int reg = first_available_register(state);
