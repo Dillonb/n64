@@ -112,6 +112,8 @@ void host_emit_rsp_sfv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
 void host_emit_rsp_swv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
 void host_emit_rsp_stv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_t* value, u8 element);
 
+void host_emit_vpr_insert(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_instruction_t* old_value, ir_instruction_t* value_to_insert, ir_value_type_t value_type, u8 byte_offset);
+
 size_t v2_link(dasm_State** d);
 void v2_encode(dasm_State** d, u8* buf);
 

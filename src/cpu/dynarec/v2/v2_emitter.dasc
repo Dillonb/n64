@@ -2365,6 +2365,67 @@ void host_emit_rsp_stv(dasm_State** Dst, ir_instruction_t* addr, ir_instruction_
     logfatal("host_emit_rsp_stv");
 }
 
+void host_emit_vpr_insert(dasm_State** Dst, ir_register_allocation_t dest_alloc, ir_instruction_t* old_value, ir_instruction_t* value_to_insert, ir_value_type_t value_type, u8 byte_offset) {
+    unimplemented(is_constant(old_value), "constant old value");
+
+    if (is_constant(value_to_insert)) {
+        host_emit_mov_reg_imm(Dst, TMPREG1_ALLOC, value_to_insert->set_constant);
+    } else {
+        host_emit_mov_reg_reg(Dst, TMPREG1_ALLOC, value_to_insert->reg_alloc, value_type);
+    }
+
+    int dest_reg = check_vpr(Dst, dest_alloc);
+    int old_value_reg = check_vpr(Dst, old_value->reg_alloc);
+    //host_emit_calculate_rsp_addr(Dst, addr);
+    | movdqa xmm(dest_reg), xmm(old_value_reg)
+
+    // Break apart the load into the fewest possible instructions. The SSE PINSRx family can only
+    // load to 'aligned' parts of the register, so figure out what the largest load we can possibly
+    // do is.
+
+    // See LQV for more details on this algorithm - it's nearly identical, except for two major differences.
+    // It does not stop loading at a 16 byte boundary, and it does not always load to the end of the register.
+    // So, the code after the main loop is removed, element 0 is not special cased, and a new "remaining" value
+    // is added.
+
+    int value_size_bytes = 2;
+
+    unsigned int offset = 0;
+    u8 e = byte_offset;
+    while (e < 16 && (e - byte_offset) < 8) {
+        int remaining = value_size_bytes - (e - byte_offset);
+        int shift = 0;
+        if ((e % 8) == 0 && remaining >= 8) {
+            // dynasm doesn't like [Rq(TMPREG1) + offset] forms here for some reason,
+            // so we need to use rax and hope for the best
+            //| pinsrq xmm(dest_reg), qword [rax + offset], (e / 8)
+            | pinsrq xmm(dest_reg), Rq(TMPREG1), (e / 8)
+            shift = 8;
+            e += 8;
+        } else if ((e % 4) == 0 && remaining >= 4) {
+            //| pinsrd xmm(dest_reg), dword [rax + offset], (e / 4)
+            | pinsrd xmm(dest_reg), Rd(TMPREG1), (e / 4)
+            shift = 4;
+            e += 4;
+        } else if ((e % 2) == 0 && remaining >= 2) {
+            //| pinsrw xmm(dest_reg), word [rax + offset], (e / 2)
+            | pinsrw xmm(dest_reg), Rd(TMPREG1), (e / 2)
+            shift = 2;
+            e += 2;
+        } else {
+            //| pinsrb xmm(dest_reg), byte [rax + offset], e
+            | pinsrb xmm(dest_reg), Rd(TMPREG1), e
+            shift = 1;
+            e += 1;
+        }
+        if (remaining > 0) {
+            | shr Rq(TMPREG1), shift
+        }
+    }
+
+    reset_temp_vpr(Dst);
+}
+
 void v2_end_block(dasm_State** Dst, int block_length) {
     if (ir_context.block_ended) {
         return;

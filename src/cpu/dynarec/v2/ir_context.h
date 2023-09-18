@@ -109,6 +109,59 @@ typedef enum rsp_swc2_instruction {
     IR_RSP_SWC2_STV
 } rsp_swc2_instruction_t;
 
+typedef enum rsp_vec_instruction {
+    IR_RSP_VEC_VABS,
+    IR_RSP_VEC_VADD,
+    IR_RSP_VEC_VADDC,
+    IR_RSP_VEC_VAND,
+    IR_RSP_VEC_VCH,
+    IR_RSP_VEC_VCL,
+    IR_RSP_VEC_VCR,
+    IR_RSP_VEC_VEQ,
+    IR_RSP_VEC_VGE,
+    IR_RSP_VEC_VLT,
+    IR_RSP_VEC_VMACF,
+    IR_RSP_VEC_VMACQ,
+    IR_RSP_VEC_VMACU,
+    IR_RSP_VEC_VMADH,
+    IR_RSP_VEC_VMADL,
+    IR_RSP_VEC_VMADM,
+    IR_RSP_VEC_VMADN,
+    IR_RSP_VEC_VMOV,
+    IR_RSP_VEC_VMRG,
+    IR_RSP_VEC_VMUDH,
+    IR_RSP_VEC_VMUDL,
+    IR_RSP_VEC_VMUDM,
+    IR_RSP_VEC_VMUDN,
+    IR_RSP_VEC_VMULF,
+    IR_RSP_VEC_VMULQ,
+    IR_RSP_VEC_VMULU,
+    IR_RSP_VEC_VNAND,
+    IR_RSP_VEC_VNE,
+    IR_RSP_VEC_VNOP,
+    IR_RSP_VEC_VNOR,
+    IR_RSP_VEC_VNXOR,
+    IR_RSP_VEC_VOR,
+    IR_RSP_VEC_VRCP,
+    IR_RSP_VEC_VRCPH_VRSQH,
+    IR_RSP_VEC_VRCPL,
+    IR_RSP_VEC_VRNDN,
+    IR_RSP_VEC_VRNDP,
+    IR_RSP_VEC_VRSQ,
+    IR_RSP_VEC_VRSQL,
+    IR_RSP_VEC_VSAR,
+    IR_RSP_VEC_VSUB,
+    IR_RSP_VEC_VSUBC,
+    IR_RSP_VEC_VXOR,
+    IR_RSP_VEC_VZERO,
+    /* these can all be implemented with pure IR
+    IR_RSP_VEC_CFC2,
+    IR_RSP_VEC_CTC2,
+    IR_RSP_VEC_MFC2,
+    IR_RSP_VEC_MTC2
+    */
+} rsp_vec_instruction_t;
+
 typedef struct ir_set_constant {
     ir_value_type_t type;
     union {
@@ -281,7 +334,8 @@ typedef struct ir_instruction {
         IR_FLOAT_CHECK_CONDITION,
         IR_INTERPRETER_FALLBACK,
         IR_RSP_LWC2,
-        IR_RSP_SWC2
+        IR_RSP_SWC2,
+        IR_VPR_INSERT
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -418,6 +472,12 @@ typedef struct ir_instruction {
         struct ir_instruction* value;
         u8 element;
     } rsp_swc2;
+    struct {
+        u8 byte_offset;
+        struct ir_instruction* old_value;
+        struct ir_instruction* value_to_insert;
+        ir_value_type_t value_type;
+    } vpr_insert;
 } ir_instruction_t;
 
 typedef struct ir_context {
@@ -553,6 +613,8 @@ ir_instruction_t* ir_emit_float_check_condition(ir_float_condition_t cond, ir_in
 ir_instruction_t* ir_emit_rsp_lwc2(ir_instruction_t* addr, ir_instruction_t* old_value, rsp_lwc2_instruction_t type, u8 element, u8 guest_reg);
 // RSP SWC2 instruction
 ir_instruction_t* ir_emit_rsp_swc2(ir_instruction_t* addr, ir_instruction_t* value, rsp_swc2_instruction_t type, u8 element);
+// Insert a value to an offset into a VPR. Do not wrap.
+ir_instruction_t* ir_emit_ir_vpr_insert(ir_instruction_t* old_value, ir_instruction_t* value_to_insert, ir_value_type_t value_type, u8 byte_offset, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.

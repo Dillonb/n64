@@ -511,6 +511,288 @@ IR_RSP_EMITTER(swc2) {
     }
 }
 
+IR_RSP_EMITTER(vec_vabs) {
+    logfatal("Unimplemented RSP IR emitter: vec_vabs");
+}
+
+IR_RSP_EMITTER(vec_vadd) {
+    logfatal("Unimplemented RSP IR emitter: vec_vadd");
+}
+
+IR_RSP_EMITTER(vec_vaddc) {
+    logfatal("Unimplemented RSP IR emitter: vec_vaddc");
+}
+
+IR_RSP_EMITTER(vec_vand) {
+    logfatal("Unimplemented RSP IR emitter: vec_vand");
+}
+
+IR_RSP_EMITTER(vec_vch) {
+    logfatal("Unimplemented RSP IR emitter: vec_vch");
+}
+
+IR_RSP_EMITTER(vec_vcl) {
+    logfatal("Unimplemented RSP IR emitter: vec_vcl");
+}
+
+IR_RSP_EMITTER(vec_vcr) {
+    logfatal("Unimplemented RSP IR emitter: vec_vcr");
+}
+
+IR_RSP_EMITTER(vec_veq) {
+    logfatal("Unimplemented RSP IR emitter: vec_veq");
+}
+
+IR_RSP_EMITTER(vec_vge) {
+    logfatal("Unimplemented RSP IR emitter: vec_vge");
+}
+
+IR_RSP_EMITTER(vec_vlt) {
+    logfatal("Unimplemented RSP IR emitter: vec_vlt");
+}
+
+IR_RSP_EMITTER(vec_vmacf) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmacf");
+}
+
+IR_RSP_EMITTER(vec_vmacq) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmacq");
+}
+
+IR_RSP_EMITTER(vec_vmacu) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmacu");
+}
+
+IR_RSP_EMITTER(vec_vmadh) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmadh");
+}
+
+IR_RSP_EMITTER(vec_vmadl) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmadl");
+}
+
+IR_RSP_EMITTER(vec_vmadm) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmadm");
+}
+
+IR_RSP_EMITTER(vec_vmadn) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmadn");
+}
+
+IR_RSP_EMITTER(vec_vmov) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmov");
+}
+
+IR_RSP_EMITTER(vec_vmrg) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmrg");
+}
+
+IR_RSP_EMITTER(vec_vmudh) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmudh");
+}
+
+IR_RSP_EMITTER(vec_vmudl) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmudl");
+}
+
+IR_RSP_EMITTER(vec_vmudm) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmudm");
+}
+
+IR_RSP_EMITTER(vec_vmudn) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmudn");
+}
+
+IR_RSP_EMITTER(vec_vmulf) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmulf");
+}
+
+IR_RSP_EMITTER(vec_vmulq) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmulq");
+}
+
+IR_RSP_EMITTER(vec_vmulu) {
+    logfatal("Unimplemented RSP IR emitter: vec_vmulu");
+}
+
+IR_RSP_EMITTER(vec_vnand) {
+    logfatal("Unimplemented RSP IR emitter: vec_vnand");
+}
+
+IR_RSP_EMITTER(vec_vne) {
+    logfatal("Unimplemented RSP IR emitter: vec_vne");
+}
+
+IR_RSP_EMITTER(vec_vnop) {
+    logfatal("Unimplemented RSP IR emitter: vec_vnop");
+}
+
+IR_RSP_EMITTER(vec_vnor) {
+    logfatal("Unimplemented RSP IR emitter: vec_vnor");
+}
+
+IR_RSP_EMITTER(vec_vnxor) {
+    logfatal("Unimplemented RSP IR emitter: vec_vnxor");
+}
+
+IR_RSP_EMITTER(vec_vor) {
+    logfatal("Unimplemented RSP IR emitter: vec_vor");
+}
+
+IR_RSP_EMITTER(vec_vrcp) {
+    logfatal("Unimplemented RSP IR emitter: vec_vrcp");
+}
+
+IR_RSP_EMITTER(vec_vrcph_vrsqh) {
+    logfatal("Unimplemented RSP IR emitter: vec_vrcph_vrsqh");
+}
+
+IR_RSP_EMITTER(vec_vrcpl) {
+    logfatal("Unimplemented RSP IR emitter: vec_vrcpl");
+}
+
+IR_RSP_EMITTER(vec_vrndn) {
+    logfatal("Unimplemented RSP IR emitter: vec_vrndn");
+}
+
+IR_RSP_EMITTER(vec_vrndp) {
+    logfatal("Unimplemented RSP IR emitter: vec_vrndp");
+}
+
+IR_RSP_EMITTER(vec_vrsq) {
+    logfatal("Unimplemented RSP IR emitter: vec_vrsq");
+}
+
+IR_RSP_EMITTER(vec_vrsql) {
+    logfatal("Unimplemented RSP IR emitter: vec_vrsql");
+}
+
+IR_RSP_EMITTER(vec_vsar) {
+    logfatal("Unimplemented RSP IR emitter: vec_vsar");
+}
+
+IR_RSP_EMITTER(vec_vsub) {
+    logfatal("Unimplemented RSP IR emitter: vec_vsub");
+}
+
+IR_RSP_EMITTER(vec_vsubc) {
+    logfatal("Unimplemented RSP IR emitter: vec_vsubc");
+}
+
+IR_RSP_EMITTER(vec_vxor) {
+    logfatal("Unimplemented RSP IR emitter: vec_vxor");
+}
+
+IR_RSP_EMITTER(vec_vzero) {
+    logfatal("Unimplemented RSP IR emitter: vec_vzero");
+}
+
+IR_RSP_EMITTER(cfc2) {
+    logfatal("Unimplemented RSP IR emitter: cfc2");
+}
+
+IR_RSP_EMITTER(ctc2) {
+    logfatal("Unimplemented RSP IR emitter: ctc2");
+}
+
+IR_RSP_EMITTER(mfc2) {
+    logfatal("Unimplemented RSP IR emitter: mfc2");
+}
+
+IR_RSP_EMITTER(mtc2) {
+    ir_instruction_t* value = ir_emit_load_guest_gpr(instruction.cp2_regmove.rt);
+    ir_instruction_t* old_value = ir_emit_load_guest_vpr(IR_VPR(instruction.cp2_regmove.rd));
+    ir_emit_ir_vpr_insert(old_value, value, VALUE_TYPE_U16, instruction.cp2_regmove.e, IR_VPR(instruction.cp2_regmove.rd));
+}
+
+IR_RSP_EMITTER(cp2) {
+    if (instruction.cp2_vec.is_vec) {
+        switch (instruction.cp2_vec.funct) {
+            case FUNCT_RSP_VEC_VABS:  CALL_IR_RSP_EMITTER(vec_vabs);
+            case FUNCT_RSP_VEC_VADD:  CALL_IR_RSP_EMITTER(vec_vadd);
+            case FUNCT_RSP_VEC_VADDC: CALL_IR_RSP_EMITTER(vec_vaddc);
+            case FUNCT_RSP_VEC_VAND:  CALL_IR_RSP_EMITTER(vec_vand);
+            case FUNCT_RSP_VEC_VCH:   CALL_IR_RSP_EMITTER(vec_vch);
+            case FUNCT_RSP_VEC_VCL:   CALL_IR_RSP_EMITTER(vec_vcl);
+            case FUNCT_RSP_VEC_VCR:   CALL_IR_RSP_EMITTER(vec_vcr);
+            case FUNCT_RSP_VEC_VEQ:   CALL_IR_RSP_EMITTER(vec_veq);
+            case FUNCT_RSP_VEC_VGE:   CALL_IR_RSP_EMITTER(vec_vge);
+            case FUNCT_RSP_VEC_VLT:   CALL_IR_RSP_EMITTER(vec_vlt);
+            case FUNCT_RSP_VEC_VMACF: CALL_IR_RSP_EMITTER(vec_vmacf);
+            case FUNCT_RSP_VEC_VMACQ: CALL_IR_RSP_EMITTER(vec_vmacq);
+            case FUNCT_RSP_VEC_VMACU: CALL_IR_RSP_EMITTER(vec_vmacu);
+            case FUNCT_RSP_VEC_VMADH: CALL_IR_RSP_EMITTER(vec_vmadh);
+            case FUNCT_RSP_VEC_VMADL: CALL_IR_RSP_EMITTER(vec_vmadl);
+            case FUNCT_RSP_VEC_VMADM: CALL_IR_RSP_EMITTER(vec_vmadm);
+            case FUNCT_RSP_VEC_VMADN: CALL_IR_RSP_EMITTER(vec_vmadn);
+            case FUNCT_RSP_VEC_VMOV:  CALL_IR_RSP_EMITTER(vec_vmov);
+            case FUNCT_RSP_VEC_VMRG:  CALL_IR_RSP_EMITTER(vec_vmrg);
+            case FUNCT_RSP_VEC_VMUDH: CALL_IR_RSP_EMITTER(vec_vmudh);
+            case FUNCT_RSP_VEC_VMUDL: CALL_IR_RSP_EMITTER(vec_vmudl);
+            case FUNCT_RSP_VEC_VMUDM: CALL_IR_RSP_EMITTER(vec_vmudm);
+            case FUNCT_RSP_VEC_VMUDN: CALL_IR_RSP_EMITTER(vec_vmudn);
+            case FUNCT_RSP_VEC_VMULF: CALL_IR_RSP_EMITTER(vec_vmulf);
+            case FUNCT_RSP_VEC_VMULQ: CALL_IR_RSP_EMITTER(vec_vmulq);
+            case FUNCT_RSP_VEC_VMULU: CALL_IR_RSP_EMITTER(vec_vmulu);
+            case FUNCT_RSP_VEC_VNAND: CALL_IR_RSP_EMITTER(vec_vnand);
+            case FUNCT_RSP_VEC_VNE:   CALL_IR_RSP_EMITTER(vec_vne);
+            case FUNCT_RSP_VEC_VNOP:  CALL_IR_RSP_EMITTER(vec_vnop);
+            case FUNCT_RSP_VEC_VNOR:  CALL_IR_RSP_EMITTER(vec_vnor);
+            case FUNCT_RSP_VEC_VNXOR: CALL_IR_RSP_EMITTER(vec_vnxor);
+            case FUNCT_RSP_VEC_VOR :  CALL_IR_RSP_EMITTER(vec_vor);
+            case FUNCT_RSP_VEC_VRCP:  CALL_IR_RSP_EMITTER(vec_vrcp);
+            case FUNCT_RSP_VEC_VRCPH: CALL_IR_RSP_EMITTER(vec_vrcph_vrsqh);
+            case FUNCT_RSP_VEC_VRCPL: CALL_IR_RSP_EMITTER(vec_vrcpl);
+            case FUNCT_RSP_VEC_VRNDN: CALL_IR_RSP_EMITTER(vec_vrndn);
+            case FUNCT_RSP_VEC_VRNDP: CALL_IR_RSP_EMITTER(vec_vrndp);
+            case FUNCT_RSP_VEC_VRSQ:  CALL_IR_RSP_EMITTER(vec_vrsq);
+            case FUNCT_RSP_VEC_VRSQH: CALL_IR_RSP_EMITTER(vec_vrcph_vrsqh);
+            case FUNCT_RSP_VEC_VRSQL: CALL_IR_RSP_EMITTER(vec_vrsql);
+            case FUNCT_RSP_VEC_VSAR:  CALL_IR_RSP_EMITTER(vec_vsar);
+            case FUNCT_RSP_VEC_VSUB:  CALL_IR_RSP_EMITTER(vec_vsub);
+            case FUNCT_RSP_VEC_VSUBC: CALL_IR_RSP_EMITTER(vec_vsubc);
+            case FUNCT_RSP_VEC_VXOR:  CALL_IR_RSP_EMITTER(vec_vxor);
+            case FUNCT_RSP_VEC_VSUT:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VADDB: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VSUBB: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VACCB: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VSUCB: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VSAD:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VSAC:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VSUM:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_0x1E:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_0x1F:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_0x2E:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_0x2F:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VEXTT: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VEXTQ: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VEXTN: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_0x3B:  CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VINST: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VINSQ: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VINSN: CALL_IR_RSP_EMITTER(vec_vzero); // undocumented
+            case FUNCT_RSP_VEC_VNULL: return; // undocumented (NOP)
+            default: {
+                char buf[50];
+                disassemble(address, instruction.raw, buf, 50);
+                logfatal("Invalid RSP CP2 VEC with FUNCT 0x%02X [0x%08X]=0x%08X | Capstone thinks it's %s", instruction.cp2_vec.funct, address, instruction.raw, buf);
+            }
+        }
+    } else {
+        switch (instruction.cp2_regmove.funct) {
+            case COP_CF: CALL_IR_RSP_EMITTER(cfc2);
+            case COP_CT: CALL_IR_RSP_EMITTER(ctc2);
+            case COP_MF: CALL_IR_RSP_EMITTER(mfc2);
+            case COP_MT: CALL_IR_RSP_EMITTER(mtc2);
+            default: {
+                char buf[50];
+                disassemble(address, instruction.raw, buf, 50);
+                logfatal("Invalid RSP CP2 regmove instruction! [0x%08x]=0x%08x | Capstone thinks it's %s", address, instruction.raw, buf);
+            }
+        }
+    }
+}
+
 IR_RSP_EMITTER(instruction) {
     if (unlikely(instruction.raw == 0)) {
         return; // do nothing for NOP
@@ -557,7 +839,7 @@ IR_RSP_EMITTER(instruction) {
 
             case OPC_CP0:      CALL_IR_RSP_EMITTER(cp0);
             case OPC_CP1:      logfatal("Tried to execute a COP1 instruction on the RSP!");
-            case OPC_CP2:      IR_RSP_UNIMPLEMENTED(OPC_CP2); //return rsp_cp2_decode(pc, instruction);
+            case OPC_CP2:      CALL_IR_RSP_EMITTER(cp2);
             case OPC_SPCL:     CALL_IR_RSP_EMITTER(spcl);
             case OPC_REGIMM:   CALL_IR_RSP_EMITTER(regimm);
             case RSP_OPC_LWC2: CALL_IR_RSP_EMITTER(lwc2);

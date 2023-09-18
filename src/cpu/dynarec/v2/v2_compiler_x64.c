@@ -904,6 +904,10 @@ void compile_ir_rsp_swc2(dasm_State** Dst, ir_instruction_t* instr) {
         }
 }
 
+void compile_ir_vpr_insert(dasm_State** Dst, ir_instruction_t* instr) {
+    host_emit_vpr_insert(Dst, instr->reg_alloc, instr->vpr_insert.old_value, instr->vpr_insert.value_to_insert, instr->vpr_insert.value_type, instr->vpr_insert.byte_offset);
+}
+
 void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
     switch (instr->type) {
         case IR_NOP: break;
@@ -1024,6 +1028,9 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
             break;
         case IR_RSP_SWC2:
             compile_ir_rsp_swc2(Dst, instr);
+            break;
+        case IR_VPR_INSERT:
+            compile_ir_vpr_insert(Dst, instr);
             break;
     }
 }

@@ -380,6 +380,13 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
         case IR_RSP_SWC2:
             snprintf(buf, buf_size, "swc2_%s(address = v%d, value = v%d, element = %d)", rsp_swc2_instruction_to_str(instr->rsp_swc2.type), instr->rsp_swc2.addr->index, instr->rsp_swc2.value->index, instr->rsp_swc2.element);
             break;
+        case IR_VPR_INSERT:
+            snprintf(buf, buf_size, "vpr_insert(old_value = v%d, to_insert = v%d, offset = %d, type = %s)",
+                     instr->vpr_insert.old_value->index,
+                     instr->vpr_insert.value_to_insert->index,
+                     instr->vpr_insert.byte_offset,
+                     val_type_to_str(instr->vpr_insert.value_type));
+            break;
     }
 }
 
@@ -434,6 +441,7 @@ bool instr_exception_possible(ir_instruction_t* instr) {
         // No RSP instructions ever throw exceptions
         case IR_RSP_LWC2:
         case IR_RSP_SWC2:
+        case IR_VPR_INSERT:
             return false;
 
         case IR_COND_BLOCK_EXIT:
@@ -527,6 +535,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 
                 // RSP vector operations
                 case IR_RSP_LWC2:
+                case IR_VPR_INSERT:
                     new_type = REGISTER_TYPE_VPR;
                     break;
             }
@@ -1152,4 +1161,14 @@ ir_instruction_t* ir_emit_rsp_swc2(ir_instruction_t* addr, ir_instruction_t* val
     instruction.rsp_swc2.value = value;
     instruction.rsp_swc2.element = element;
     return append_ir_instruction(instruction, -1, NO_GUEST_REG);
+}
+
+ir_instruction_t* ir_emit_ir_vpr_insert(ir_instruction_t* old_value, ir_instruction_t* value_to_insert, ir_value_type_t value_type, u8 byte_offset, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_VPR_INSERT;
+    instruction.vpr_insert.old_value = old_value;
+    instruction.vpr_insert.value_to_insert = value_to_insert;
+    instruction.vpr_insert.value_type = value_type;
+    instruction.vpr_insert.byte_offset = byte_offset;
+    return append_ir_instruction(instruction, -1, guest_reg);
 }
