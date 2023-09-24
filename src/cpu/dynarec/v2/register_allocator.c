@@ -110,6 +110,7 @@ ir_register_type_t get_required_register_type(ir_instruction_t* instr) {
         // RSP
         case IR_RSP_LWC2:
         case IR_VPR_INSERT:
+        case IR_RSP_GET_VTE:
             return REGISTER_TYPE_VPR;
 
     }

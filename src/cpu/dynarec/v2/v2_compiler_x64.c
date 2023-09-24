@@ -1032,6 +1032,9 @@ void v2_emit_instr(dasm_State** Dst, ir_instruction_t* instr) {
         case IR_VPR_INSERT:
             compile_ir_vpr_insert(Dst, instr);
             break;
+        case IR_RSP_GET_VTE:
+            logfatal("compile get vte");
+            break;
     }
 }
 

@@ -387,6 +387,9 @@ void ir_instr_to_string(ir_instruction_t* instr, char* buf, size_t buf_size) {
                      instr->vpr_insert.byte_offset,
                      val_type_to_str(instr->vpr_insert.value_type));
             break;
+        case IR_RSP_GET_VTE:
+            snprintf(buf, buf_size, "get_vte(vt = v%d, e = %d)", instr->rsp_get_vte.vt->index, instr->rsp_get_vte.e);
+            break;
     }
 }
 
@@ -442,6 +445,7 @@ bool instr_exception_possible(ir_instruction_t* instr) {
         case IR_RSP_LWC2:
         case IR_RSP_SWC2:
         case IR_VPR_INSERT:
+        case IR_RSP_GET_VTE:
             return false;
 
         case IR_COND_BLOCK_EXIT:
@@ -536,6 +540,7 @@ void update_guest_reg_mapping(u8 guest_reg, ir_instruction_t* value) {
                 // RSP vector operations
                 case IR_RSP_LWC2:
                 case IR_VPR_INSERT:
+                case IR_RSP_GET_VTE:
                     new_type = REGISTER_TYPE_VPR;
                     break;
             }
@@ -1170,5 +1175,13 @@ ir_instruction_t* ir_emit_ir_vpr_insert(ir_instruction_t* old_value, ir_instruct
     instruction.vpr_insert.value_to_insert = value_to_insert;
     instruction.vpr_insert.value_type = value_type;
     instruction.vpr_insert.byte_offset = byte_offset;
+    return append_ir_instruction(instruction, -1, guest_reg);
+}
+
+ir_instruction_t* ir_emit_rsp_get_vte(ir_instruction_t* vt, u8 e, u8 guest_reg) {
+    ir_instruction_t instruction;
+    instruction.type = IR_RSP_GET_VTE;
+    instruction.rsp_get_vte.vt = vt;
+    instruction.rsp_get_vte.e = e;
     return append_ir_instruction(instruction, -1, guest_reg);
 }

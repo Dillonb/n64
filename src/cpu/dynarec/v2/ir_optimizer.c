@@ -87,6 +87,9 @@ bool instr_uses_value(ir_instruction_t* instr, ir_instruction_t* value) {
         case IR_VPR_INSERT:
             return instr->vpr_insert.old_value == value || instr->vpr_insert.value_to_insert == value;
 
+        case IR_RSP_GET_VTE:
+            return instr->rsp_get_vte.vt == value;
+
         // Float bin ops
         case IR_FLOAT_DIVIDE:
         case IR_FLOAT_MULTIPLY:
@@ -231,6 +234,7 @@ void ir_optimize_constant_propagation() {
             case IR_RSP_LWC2:
             case IR_RSP_SWC2:
             case IR_VPR_INSERT:
+            case IR_RSP_GET_VTE:
             case IR_COND_BLOCK_EXIT: // Const condition checked in compiler
             // TODO
             case IR_MULTIPLY:
@@ -755,6 +759,11 @@ void ir_optimize_eliminate_dead_code() {
                 if (!instr->dead_code) {
                     instr->vpr_insert.value_to_insert->dead_code = false;
                     instr->vpr_insert.old_value->dead_code = false;
+                }
+                break;
+            case IR_RSP_GET_VTE:
+                if (!instr->dead_code) {
+                    instr->rsp_get_vte.vt->dead_code = false;
                 }
                 break;
 

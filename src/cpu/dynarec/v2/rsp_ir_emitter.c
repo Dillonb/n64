@@ -604,7 +604,11 @@ IR_RSP_EMITTER(vec_vmudn) {
 }
 
 IR_RSP_EMITTER(vec_vmulf) {
-    logfatal("Unimplemented RSP IR emitter: vec_vmulf");
+    ir_instruction_t* vs = ir_emit_load_guest_vpr(IR_VPR(instruction.cp2_vec.vs));
+    ir_instruction_t* vt = ir_emit_load_guest_vpr(IR_VPR(instruction.cp2_vec.vt));
+    ir_instruction_t* vte = ir_emit_rsp_get_vte(vt, instruction.cp2_vec.e, NO_GUEST_REG);
+
+    //logfatal("Unimplemented RSP IR emitter: vec_vmulf");
 }
 
 IR_RSP_EMITTER(vec_vmulq) {

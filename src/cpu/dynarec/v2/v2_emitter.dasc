@@ -125,6 +125,7 @@ dasm_State** v2_emit_run_block(uintptr_t cpu_addr) {
 }
 
 int check_fgr(dasm_State** Dst, ir_register_allocation_t reg);
+int check_vpr(dasm_State** Dst, ir_register_allocation_t reg);
 
 int check_reg(dasm_State** Dst, ir_register_allocation_t reg, int* num_reloaded) {
     int index = num_reloaded ? *num_reloaded : 0;

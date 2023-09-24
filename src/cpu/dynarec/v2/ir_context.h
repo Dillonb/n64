@@ -335,7 +335,8 @@ typedef struct ir_instruction {
         IR_INTERPRETER_FALLBACK,
         IR_RSP_LWC2,
         IR_RSP_SWC2,
-        IR_VPR_INSERT
+        IR_VPR_INSERT,
+        IR_RSP_GET_VTE
     } type;
     union {
         ir_set_constant_t set_constant;
@@ -478,6 +479,10 @@ typedef struct ir_instruction {
         struct ir_instruction* value_to_insert;
         ir_value_type_t value_type;
     } vpr_insert;
+    struct {
+        struct ir_instruction* vt;
+        u8 e;
+    } rsp_get_vte;
 } ir_instruction_t;
 
 typedef struct ir_context {
@@ -615,6 +620,8 @@ ir_instruction_t* ir_emit_rsp_lwc2(ir_instruction_t* addr, ir_instruction_t* old
 ir_instruction_t* ir_emit_rsp_swc2(ir_instruction_t* addr, ir_instruction_t* value, rsp_swc2_instruction_t type, u8 element);
 // Insert a value to an offset into a VPR. Do not wrap.
 ir_instruction_t* ir_emit_ir_vpr_insert(ir_instruction_t* old_value, ir_instruction_t* value_to_insert, ir_value_type_t value_type, u8 byte_offset, u8 guest_reg);
+// Calculates vt[e] for RSP instructions
+ir_instruction_t* ir_emit_rsp_get_vte(ir_instruction_t* vt, u8 e, u8 guest_reg);
 
 
 // Emit an s16 constant to the IR, optionally associating it with a guest register.
