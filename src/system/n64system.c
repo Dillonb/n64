@@ -116,9 +116,9 @@ void reset_n64system() {
         free(n64sys.mem.save_data);
         n64sys.mem.save_data = NULL;
     }
-    if (n64sys.mem.mempack_data != NULL) {
-        free(n64sys.mem.mempack_data);
-        n64sys.mem.mempack_data = NULL;
+    if (n64sys.mem.mempak_data != NULL) {
+        free(n64sys.mem.mempak_data);
+        n64sys.mem.mempak_data = NULL;
     }
     N64CPU.branch = false;
     N64CPU.prev_branch = false;

@@ -11,7 +11,7 @@ u8 backup_read_byte(u32 index);
 
 size_t get_save_size(n64_save_type_t save_type);
 void init_savedata(n64_mem_t* mem, const char* rom_path);
-void init_mempack(n64_mem_t* mem, const char* rom_path);
+void init_mempak(n64_mem_t* mem, const char* rom_path);
 
 void persist_backup();
 void force_persist_backup();

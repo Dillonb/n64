@@ -37,8 +37,8 @@ typedef enum n64_button {
 
 typedef enum n64_controller_accessory_type {
     CONTROLLER_ACCESSORY_NONE,
-    CONTROLLER_ACCESSORY_MEMPACK,
-    CONTROLLER_ACCESSORY_RUMBLE_PACK
+    CONTROLLER_ACCESSORY_MEMPAK,
+    CONTROLLER_ACCESSORY_RUMBLE_PAK
 } n64_controller_accessory_type_t;
 
 #define JOYAXIS_MIN INT16_MIN
