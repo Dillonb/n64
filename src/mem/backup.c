@@ -2,7 +2,7 @@
 #include <limits.h>
 
 #define SAVE_DATA_DEBOUNCE_FRAMES 60
-#define MEMPACK_SIZE 32768
+#define MEMPAK_SIZE 32768
 
 u32 sram_read_word() {
     return 0xFFFFFFFF;
@@ -322,9 +322,9 @@ void init_savedata(n64_mem_t* mem, const char* rom_path) {
 }
 
 
-void init_mempack(n64_mem_t* mem, const char* rom_path) {
-    if (mem->mempack_data == NULL) {
-        mem->mempack_data = load_backup_file(rom_path, ".mempak", MEMPACK_SIZE, mem->mempack_file_path, 0x00);
+void init_mempak(n64_mem_t* mem, const char* rom_path) {
+    if (mem->mempak_data == NULL) {
+        mem->mempak_data = load_backup_file(rom_path, ".mempak", MEMPAK_SIZE, mem->mempak_file_path, 0x00);
     }
 }
 
@@ -350,12 +350,12 @@ void persist_backup() {
             n64sys.mem.save_data,
             "save");
 
-    persist(&n64sys.mem.mempack_data_dirty,
-            &n64sys.mem.mempack_data_debounce_counter,
-            MEMPACK_SIZE,
-            n64sys.mem.mempack_file_path,
-            n64sys.mem.mempack_data,
-            "mempack");
+    persist(&n64sys.mem.mempak_data_dirty,
+            &n64sys.mem.mempak_data_debounce_counter,
+            MEMPAK_SIZE,
+            n64sys.mem.mempak_file_path,
+            n64sys.mem.mempak_data,
+            "mempak");
 }
 
 void force_persist_backup() {
@@ -365,8 +365,8 @@ void force_persist_backup() {
         should_persist = true;
     }
 
-    if (n64sys.mem.mempack_data_dirty || n64sys.mem.mempack_data_debounce_counter > 0) {
-        n64sys.mem.mempack_data_debounce_counter = 0;
+    if (n64sys.mem.mempak_data_dirty || n64sys.mem.mempak_data_debounce_counter > 0) {
+        n64sys.mem.mempak_data_debounce_counter = 0;
         should_persist = true;
     }
 

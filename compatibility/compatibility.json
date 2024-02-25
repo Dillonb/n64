@@ -103,7 +103,7 @@
     "publisher": "Ubisoft",
     "genre": "Racing",
     "compatibility": "MINOR_ISSUES",
-    "notes": "Does not detect controller pack",
+    "notes": "Does not detect controller pak",
     "path": "f1_pole_position.z64",
     "date_tested": "2021-05-22"
   },
@@ -211,7 +211,7 @@
     "publisher": "Titus",
     "genre": "Racing",
     "compatibility": "MINOR_ISSUES",
-    "notes": "Can't repair controller pack, works when I copy one repaired by another game.",
+    "notes": "Can't repair controller pak, works when I copy one repaired by another game.",
     "path": "automobili_lamborghini.z64",
     "date_tested": "2021-05-22"
   },
@@ -1411,7 +1411,7 @@
     "publisher": "Iguana",
     "genre": "FPS",
     "compatibility": "BROKEN",
-    "notes": "hang when repairing controller pack, hang when going ingame",
+    "notes": "hang when repairing controller pak, hang when going ingame",
     "path": "forsaken_64.z64",
     "date_tested": "2021-05-30"
   },
@@ -1507,7 +1507,7 @@
     "publisher": "Titus",
     "genre": "Adventure",
     "compatibility": "MINOR_ISSUES",
-    "notes": "Unable to repair controller pack, crackly audio",
+    "notes": "Unable to repair controller pak, crackly audio",
     "path": "hercules.z64",
     "date_tested": ""
   },
