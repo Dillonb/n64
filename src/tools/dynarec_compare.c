@@ -16,6 +16,7 @@
 #include <settings.h>
 #include <cflags.h>
 #include <frontend/tas_movie.h>
+#include <cpu/dynarec/v2/ir_context.h>
 
 r4300i_t* n64cpu_interpreter_ptr;
 int mq_jit_to_interp_id = -1;

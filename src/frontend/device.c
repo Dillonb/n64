@@ -170,7 +170,7 @@ void devices_init(n64_save_type_t save_type) {
         joybus_devices[i].type = n64_settings.controller_port[i];
         if (joybus_devices[i].type) {
             // TODO: make this configurable
-            joybus_devices[i].controller.accessory_type = CONTROLLER_ACCESSORY_MEMPACK;
+            joybus_devices[i].controller.accessory_type = CONTROLLER_ACCESSORY_MEMPAK;
         }
     }
 

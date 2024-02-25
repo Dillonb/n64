@@ -96,7 +96,7 @@ typedef struct n64_mem {
     si_reg_t si_reg;
     u8 pif_ram[PIF_RAM_SIZE];
     char save_file_path[PATH_MAX];
-    char mempack_file_path[PATH_MAX];
+    char mempak_file_path[PATH_MAX];
     n64_save_type_t save_type;
     u8 isviewer_buffer[CART_ISVIEWER_SIZE];
 
@@ -116,9 +116,9 @@ typedef struct n64_mem {
         u8 write_buffer[128];
     } flash;
 
-    u8* mempack_data;
-    bool mempack_data_dirty;
-    int mempack_data_debounce_counter;
+    u8* mempak_data;
+    bool mempak_data_dirty;
+    int mempak_data_debounce_counter;
 
 } n64_mem_t;
 

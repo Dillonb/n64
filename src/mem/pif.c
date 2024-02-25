@@ -9,13 +9,13 @@
 
 #define PIF_COMMAND_CONTROLLER_ID 0x00
 #define PIF_COMMAND_READ_BUTTONS  0x01
-#define PIF_COMMAND_MEMPACK_READ  0x02
-#define PIF_COMMAND_MEMPACK_WRITE 0x03
+#define PIF_COMMAND_MEMPAK_READ   0x02
+#define PIF_COMMAND_MEMPAK_WRITE  0x03
 #define PIF_COMMAND_EEPROM_READ   0x04
 #define PIF_COMMAND_EEPROM_WRITE  0x05
 #define PIF_COMMAND_RESET         0xFF
 
-#define MEMPACK_SIZE 0x8000
+#define MEMPAK_SIZE 0x8000
 
 #define CMD_CMDLEN_INDEX 0
 #define CMD_RESLEN_INDEX 1
@@ -449,8 +449,8 @@ u8 data_crc(const u8* data) {
 }
 
 
-INLINE void pif_mempack_read(u8* cmd, u8* res) {
-    init_mempack(&n64sys.mem, n64sys.rom_path);
+INLINE void pif_mempak_read(u8* cmd, u8* res) {
+    init_mempak(&n64sys.mem, n64sys.rom_path);
     // First two bytes in the command are the offset
     u16 offset = CMD_DATA[0] << 8;
     offset |= CMD_DATA[1];
@@ -463,14 +463,14 @@ INLINE void pif_mempack_read(u8* cmd, u8* res) {
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
             break;
-        case CONTROLLER_ACCESSORY_MEMPACK:
-            if (offset <= MEMPACK_SIZE - 0x20) {
+        case CONTROLLER_ACCESSORY_MEMPAK:
+            if (offset <= MEMPAK_SIZE - 0x20) {
                 for (int i = 0; i < 32; i++) {
-                    res[i] = n64sys.mem.mempack_data[offset + i];
+                    res[i] = n64sys.mem.mempak_data[offset + i];
                 }
             }
             break;
-        case CONTROLLER_ACCESSORY_RUMBLE_PACK:
+        case CONTROLLER_ACCESSORY_RUMBLE_PAK:
             for (int i = 0; i < 32; i++) {
                 res[i] = 0x80;
             }
@@ -481,7 +481,7 @@ INLINE void pif_mempack_read(u8* cmd, u8* res) {
     res[32] = data_crc(&res[0]);
 }
 
-INLINE void pif_mempack_write(u8* cmd, u8* res) {
+INLINE void pif_mempak_write(u8* cmd, u8* res) {
     // First two bytes in the command are the offset
     u16 offset = CMD_DATA[0] << 8;
     offset |= CMD_DATA[1];
@@ -494,18 +494,18 @@ INLINE void pif_mempack_write(u8* cmd, u8* res) {
     switch (get_controller_accessory_type(pif_channel)) {
         case CONTROLLER_ACCESSORY_NONE:
             break;
-        case CONTROLLER_ACCESSORY_MEMPACK:
-            if (offset <= MEMPACK_SIZE - 0x20) {
-                init_mempack(&n64sys.mem, n64sys.rom_path);
+        case CONTROLLER_ACCESSORY_MEMPAK:
+            if (offset <= MEMPAK_SIZE - 0x20) {
+                init_mempak(&n64sys.mem, n64sys.rom_path);
                 bool data_changed = false;
                 for (int i = 0; i < 32; i++) {
-                    data_changed |= (n64sys.mem.mempack_data[offset + i] != CMD_DATA[i + 2]);
-                    n64sys.mem.mempack_data[offset + i] = CMD_DATA[i + 2];
+                    data_changed |= (n64sys.mem.mempak_data[offset + i] != CMD_DATA[i + 2]);
+                    n64sys.mem.mempak_data[offset + i] = CMD_DATA[i + 2];
                 }
-                n64sys.mem.mempack_data_dirty |= data_changed;
+                n64sys.mem.mempak_data_dirty |= data_changed;
             }
             break;
-        case CONTROLLER_ACCESSORY_RUMBLE_PACK: {
+        case CONTROLLER_ACCESSORY_RUMBLE_PAK: {
             bool all_zeroes = true;
             bool all_ones = true;
             for (int i = 0; i < 32; i++) {
@@ -636,15 +636,15 @@ void process_pif_command() {
                         unimplemented(reslen != 4, "Read buttons with reslen != 4");
                         pif_read_buttons(cmd, res);
                         break;
-                    case PIF_COMMAND_MEMPACK_READ:
-                        unimplemented(cmdlen != 3, "Mempack read with cmdlen != 3");
-                        unimplemented(reslen != 33, "Mempack read with reslen != 33");
-                        pif_mempack_read(cmd, res);
+                    case PIF_COMMAND_MEMPAK_READ:
+                        unimplemented(cmdlen != 3, "Mempak read with cmdlen != 3");
+                        unimplemented(reslen != 33, "Mempak read with reslen != 33");
+                        pif_mempak_read(cmd, res);
                         break;
-                    case PIF_COMMAND_MEMPACK_WRITE:
-                        unimplemented(cmdlen != 35, "Mempack write with cmdlen != 35");
-                        unimplemented(reslen != 1, "Mempack write with reslen != 1");
-                        pif_mempack_write(cmd, res);
+                    case PIF_COMMAND_MEMPAK_WRITE:
+                        unimplemented(cmdlen != 35, "Mempak write with cmdlen != 35");
+                        unimplemented(reslen != 1, "Mempak write with reslen != 1");
+                        pif_mempak_write(cmd, res);
                         break;
                     case PIF_COMMAND_EEPROM_READ:
                         unimplemented(cmdlen != 2, "EEPROM read with cmdlen != 2");
