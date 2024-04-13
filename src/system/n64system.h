@@ -207,7 +207,6 @@ void check_vsync();
 void n64_queue_reset();
 extern n64_system_t n64sys;
 #define PIF_ROM_PATH (n64sys.mem.rom.pal ? "pif.pal.rom" : "pif.rom")
-bool file_exists(const char* path);
 #ifdef __cplusplus
 }
 #endif
