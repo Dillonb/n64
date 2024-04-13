@@ -1012,7 +1012,8 @@ MIPS_INSTR(mips_ldc1) {
     }
 
     u32 physical;
-    if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
+    bool cached;
+    if (!resolve_virtual_address(address, BUS_LOAD, &cached, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
@@ -1028,7 +1029,8 @@ MIPS_INSTR(mips_sdc1) {
     u64 value   = get_fpu_register_dword_fr(instruction.fi.ft);
 
     u32 physical;
-    if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
+    bool cached;
+    if (!resolve_virtual_address(address, BUS_LOAD, &cached, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
@@ -1042,7 +1044,8 @@ MIPS_INSTR(mips_lwc1) {
     u64 address = get_register(instruction.fi.base) + offset;
 
     u32 physical;
-    if (!resolve_virtual_address(address, BUS_LOAD, &physical)) {
+    bool cached;
+    if (!resolve_virtual_address(address, BUS_LOAD, &cached, &physical)) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
@@ -1057,7 +1060,14 @@ MIPS_INSTR(mips_swc1) {
     u64 address = get_register(instruction.fi.base) + offset;
     u32 value    = get_fpu_register_word_fr(instruction.fi.ft);
 
-    n64_write_word(address, value);
+    u32 physical;
+    bool cached;
+    if (!resolve_virtual_address(address, BUS_LOAD, &cached, &physical)) {
+        on_tlb_exception(address);
+        r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
+    } else {
+        n64_write_physical_word(physical, value);
+    }
 }
 
 MIPS_INSTR(mips_cp1_invalid) {

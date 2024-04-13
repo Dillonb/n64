@@ -150,7 +150,8 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
 u64 resolve_virtual_address_for_jit(u64 virtual, u64 except_pc, bus_access_t bus_access) {
     u32 physical = 0;
 
-    if (resolve_virtual_address(virtual, bus_access, &physical)) {
+    bool cached; // ignored for now
+    if (resolve_virtual_address(virtual, bus_access, &cached, &physical)) {
         return physical;
     } else {
         on_tlb_exception(virtual);

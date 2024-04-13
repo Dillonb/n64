@@ -503,6 +503,7 @@ typedef struct tlb_cache_entry {
     bool valid; // Is the TLB cache entry valid or do we need to fall back to the slow path?
     bool hit; // Is the address a TLB hit?
     int entry_num; // which tlb index did it match?
+    bool cached; // Should the icache/dcache be used?
     u64 tag;
     u32 base_address;
     u8 asid;
@@ -510,7 +511,7 @@ typedef struct tlb_cache_entry {
     bool dirty;
 } tlb_cache_entry_t;
 
-typedef bool (*resolve_virtual_address_handler)(u64 vaddr, bus_access_t bus_access, u32* paddr);
+typedef bool (*resolve_virtual_address_handler)(u64 vaddr, bus_access_t bus_access, bool* cached, u32* paddr);
 
 typedef struct cp0 {
     u32 index;

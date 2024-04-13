@@ -65,7 +65,7 @@ tlb_entry_t* find_tlb_entry(u64 vaddr, int* entry_number) {
     return NULL;
 }
 
-bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number, bool* dirty) {
+bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, bool* cached, u32* paddr, int* entry_number, bool* dirty) {
     tlb_entry_t* entry = find_tlb_entry(vaddr, entry_number);
     if (!entry) {
         N64CP0.tlb_error = TLB_ERROR_MISS;
@@ -90,6 +90,7 @@ bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_n
             *dirty = entry->entry_lo0.dirty;
         }
         pfn = entry->entry_lo0.pfn;
+        *cached = entry->entry_lo0.c != 2;
     } else {
         if (!(entry->entry_lo1.valid)) {
             N64CP0.tlb_error = TLB_ERROR_INVALID;
@@ -103,6 +104,7 @@ bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_n
             *dirty = entry->entry_lo1.dirty;
         }
         pfn = entry->entry_lo1.pfn;
+        *cached = entry->entry_lo0.c != 2;
     }
 
     if (paddr != NULL) {
@@ -112,10 +114,10 @@ bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_n
     return true;
 }
 
-bool tlb_probe_from_cache_entry(tlb_cache_entry_t* entry, u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number) {
+bool tlb_probe_from_cache_entry(tlb_cache_entry_t* entry, u64 vaddr, bus_access_t bus_access, bool* cached, u32* paddr, int* entry_number) {
     if (!entry->hit || (bus_access == BUS_STORE && !entry->dirty)) {
         // Fall back to slow path for misses (for now?)
-        bool hit = tlb_probe_slow(vaddr, bus_access, NULL, NULL, NULL);
+        bool hit = tlb_probe_slow(vaddr, bus_access, cached, NULL, NULL, NULL);
         if (hit) {
             logfatal("Vaddr %016" PRIX64 " missed when it should have hit!\n", vaddr);
         }
@@ -130,10 +132,12 @@ bool tlb_probe_from_cache_entry(tlb_cache_entry_t* entry, u64 vaddr, bus_access_
         *entry_number = entry->entry_num;
     }
 
+    *cached = entry->cached;
+
     return entry->hit;
 }
 
-bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number) {
+bool tlb_probe(u64 vaddr, bus_access_t bus_access, bool* cached, u32* paddr, int* entry_number) {
     u64 index = GET_TLB_CACHE_INDEX(vaddr);
     u64 tag = GET_TLB_CACHE_TAG(vaddr);
     u64 base_address = GET_TLB_CACHE_BASE_ADDRESS(vaddr);
@@ -147,7 +151,7 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
         if (entries[i].valid) {
             bool asid_match = entries[i].global || entries[i].asid == asid;
             if (entries[i].tag == tag && asid_match) {
-                return tlb_probe_from_cache_entry(&entries[i], vaddr, bus_access, paddr, entry_number);
+                return tlb_probe_from_cache_entry(&entries[i], vaddr, bus_access, cached, paddr, entry_number);
             }
         } else {
             any_invalid = true;
@@ -159,7 +163,7 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
     u32 paddr_cache;
     bool dirty;
 
-    bool hit = tlb_probe_slow(base_address, bus_access, &paddr_cache, &entry_number_cache, &dirty);
+    bool hit = tlb_probe_slow(base_address, bus_access, cached, &paddr_cache, &entry_number_cache, &dirty);
 
     tlb_cache_entry_t* new_dest = NULL;
     if (any_invalid) {
@@ -177,6 +181,7 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
     new_dest->valid = true;
     new_dest->hit = hit;
     new_dest->dirty = hit ? dirty : false;
+    new_dest->cached = *cached;
 
     new_dest->entry_num = hit ? entry_number_cache : 0;
     new_dest->tag = tag;
@@ -185,7 +190,7 @@ bool tlb_probe(u64 vaddr, bus_access_t bus_access, u32* paddr, int* entry_number
 
     new_dest->global = hit ? N64CP0.tlb[entry_number_cache].global : true; // set it as global if it's a miss, so we'll always find it
 
-    return tlb_probe_from_cache_entry(new_dest, vaddr, bus_access, paddr, entry_number);
+    return tlb_probe_from_cache_entry(new_dest, vaddr, bus_access, cached, paddr, entry_number);
 }
 
 u32 read_word_rdramreg(u32 address) {

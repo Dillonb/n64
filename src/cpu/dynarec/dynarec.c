@@ -95,7 +95,8 @@ int n64_dynarec_step() {
     N64CPU.branch = false;
     N64CPU.prev_branch = false;
     u32 physical;
-    if (!resolve_virtual_address(N64CPU.pc, BUS_LOAD, &physical)) {
+    bool cached;
+    if (!resolve_virtual_address(N64CPU.pc, BUS_LOAD, &cached, &physical)) {
         u64 fault_pc = N64CPU.pc;
         on_tlb_exception(fault_pc);
         r4300i_handle_exception(fault_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);

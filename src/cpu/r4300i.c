@@ -776,7 +776,8 @@ void r4300i_step() {
     }
 
     u32 physical_pc;
-    if (!resolve_virtual_address(pc, BUS_LOAD, &physical_pc)) {
+    bool cached;
+    if (!resolve_virtual_address(pc, BUS_LOAD, &cached, &physical_pc)) {
         // tlb exception
         on_tlb_exception(pc);
         r4300i_handle_exception(pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);

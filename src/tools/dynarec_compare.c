@@ -252,7 +252,8 @@ void run_compare_parent() {
     printf("MIPS code:\n");
     u32 physical = 0;
     n64_dynarec_block_t* block = NULL;
-    bool resolved = resolve_virtual_address(start_pc, BUS_LOAD, &physical);
+    bool cached;
+    bool resolved = resolve_virtual_address(start_pc, BUS_LOAD, &cached, &physical);
     if (resolved) {
          block = &n64dynarec.blockcache[BLOCKCACHE_OUTER_INDEX(physical)][BLOCKCACHE_INNER_INDEX(physical)];
         if (physical >= N64_RDRAM_SIZE) {
