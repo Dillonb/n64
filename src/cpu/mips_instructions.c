@@ -109,11 +109,9 @@ MIPS_INSTR(mips_cache) {
                 break;
             }
             case ICACHE_OP(1): // Index_Load_Tag
-                printf("Index_Load_Tag at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
                 logfatal("Index_Load_Tag icache unimplemented\n");
                 break;
             case DCACHE_OP(1): // Index_Load_Tag
-                printf("Index_Load_Tag at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
                 logfatal("Index_Load_Tag dcache unimplemented\n");
                 break;
             case ICACHE_OP(2): // Index_Store_Tag
@@ -132,20 +130,17 @@ MIPS_INSTR(mips_cache) {
                 }
                 break;
             }
-            case DCACHE_OP(4):
-                printf("pc: %016lX\n", N64CPU.pc);
-                printf("Hit_Invalidate dcache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
+            case DCACHE_OP(4): {
                 int cache_line = get_dcache_line_index(virtual_address);
                 if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
                     logfatal("Hit_Invalidate dcache unimplemented");
                 }
                 break;
+            }
             case ICACHE_OP(5): // Fill
-                printf("Fill icache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
                 logfatal("Fill icache unimplemented\n");
                 break;
             case DCACHE_OP(5): { // Hit_Write_Back_Invalidate
-                printf("Hit_Write_Back_Invalidate dcache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
                 int cache_line = get_dcache_line_index(virtual_address);
                 if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
                     logfatal("Hit_Write_Back_Invalidate dcache unimplemented\n");
@@ -153,7 +148,6 @@ MIPS_INSTR(mips_cache) {
                 break;
             }
             case ICACHE_OP(6): // Hit_Write_Back icache
-                printf("Hit_Write_Back at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
                 logfatal("Hit_Write_Back icache unimplemented\n");
                 break;
             case DCACHE_OP(6): { // Hit_Write_Back dcache
@@ -164,7 +158,6 @@ MIPS_INSTR(mips_cache) {
                 break;
             }
             default:
-                printf("Invalid cache op %u\n", cache_op);
                 logfatal("Invalid cache op\n");
                 break;
         }
