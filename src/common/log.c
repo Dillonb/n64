@@ -57,6 +57,8 @@ void handle_logfatal(const char* message, const char* file, int line, ...) {
     char* message_buf = malloc(needed + 1);
     vsnprintf(message_buf, needed + 1, message, vargs);
 
+    va_end(vargs);
+
     needed = snprintf(NULL, 0, "%s%s", prefix_buf, message_buf);
     char* everything_buf = malloc(needed + 1);
     snprintf(everything_buf, needed + 1, "%s%s", prefix_buf, message_buf);

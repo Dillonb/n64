@@ -2,7 +2,6 @@
 #define N64_RSP_DYNAREC_H
 
 #include <util.h>
-#include <stdlib.h>
 #include <cpu/rsp_types.h>
 
 // the same size as IMEM
