@@ -141,7 +141,7 @@ bool compare() {
     good &= n64cpu_interpreter_ptr->cp0.x_context.raw == n64cpu_ptr->cp0.x_context.raw;
     good &= n64cpu_interpreter_ptr->cp0.parity_error == n64cpu_ptr->cp0.parity_error;
     good &= n64cpu_interpreter_ptr->cp0.cache_error == n64cpu_ptr->cp0.cache_error;
-    good &= n64cpu_interpreter_ptr->cp0.tag_lo == n64cpu_ptr->cp0.tag_lo;
+    good &= n64cpu_interpreter_ptr->cp0.tag_lo.raw == n64cpu_ptr->cp0.tag_lo.raw;
     good &= n64cpu_interpreter_ptr->cp0.tag_hi == n64cpu_ptr->cp0.tag_hi;
     good &= n64cpu_interpreter_ptr->cp0.error_epc == n64cpu_ptr->cp0.error_epc;
 
@@ -208,7 +208,7 @@ void print_state() {
     print_colorcoded_u64("cp0 x_context", n64cpu_interpreter_ptr->cp0.x_context.raw, N64CPU.cp0.x_context.raw);
     print_colorcoded_u64("cp0 parity_error", n64cpu_interpreter_ptr->cp0.parity_error, N64CPU.cp0.parity_error);
     print_colorcoded_u64("cp0 cache_error", n64cpu_interpreter_ptr->cp0.cache_error, N64CPU.cp0.cache_error);
-    print_colorcoded_u64("cp0 tag_lo", n64cpu_interpreter_ptr->cp0.tag_lo, N64CPU.cp0.tag_lo);
+    print_colorcoded_u64("cp0 tag_lo", n64cpu_interpreter_ptr->cp0.tag_lo.raw, N64CPU.cp0.tag_lo.raw);
     print_colorcoded_u64("cp0 tag_hi", n64cpu_interpreter_ptr->cp0.tag_hi, N64CPU.cp0.tag_hi);
     print_colorcoded_u64("cp0 error_epc", n64cpu_interpreter_ptr->cp0.error_epc, N64CPU.cp0.error_epc);
     printf("\n");

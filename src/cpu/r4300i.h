@@ -458,6 +458,18 @@ typedef union cp0_x_context {
 
 ASSERTDWORD(cp0_x_context_t);
 
+typedef union cp0_tag_lo {
+    u32 raw;
+    struct {
+        u32:6;
+        u32 pstate:2;
+        u32 ptaglo:20;
+        u32:4;
+    } PACKED;
+} cp0_tag_lo_t;
+
+ASSERTWORD(cp0_tag_lo_t);
+
 typedef enum tlb_error {
     TLB_ERROR_NONE,
     TLB_ERROR_MISS,
@@ -536,7 +548,7 @@ typedef struct cp0 {
     cp0_x_context_t x_context;
     u32 parity_error;
     u32 cache_error;
-    u32 tag_lo;
+    cp0_tag_lo_t tag_lo;
     u32 tag_hi;
     u64 error_epc;
 
@@ -609,6 +621,44 @@ typedef union fgr {
 
 ASSERTDWORD(fgr_t);
 
+typedef struct icache_line {
+    struct {
+        u32 valid:1;
+        u32 ptag:20;
+    };
+    // since the icache will only ever be accessed as u32, just store it as u32
+    u32 data[8]; // 32 bytes, 8 words
+} icache_line_t;
+
+typedef struct dcache_line {
+    struct {
+        u32 valid:1;
+        u32 dirty:1;
+        u32 ptag:20;
+    };
+    u8 data[16];
+} dcache_line_t;
+
+INLINE int get_icache_line_index(u64 vaddr) {
+    return (vaddr >> 5) & 0x1FF;
+}
+
+INLINE u32 get_icache_line_start(u32 paddr) {
+    return paddr & ~0x1F;
+}
+
+INLINE int get_dcache_line_index(u64 vaddr) {
+    return (vaddr >> 4) & 0x1FF;
+}
+
+INLINE u32 get_dcache_line_start(u32 paddr) {
+    return paddr & ~0xF;
+}
+
+INLINE u32 get_paddr_ptag(u32 paddr) {
+    return paddr >> 13;
+}
+
 typedef struct r4300i {
     u64 gpr[32];
     fgr_t f[32];
@@ -624,6 +674,10 @@ typedef struct r4300i {
 
     fcr0_t  fcr0;
     fcr31_t fcr31;
+
+    // caches
+    icache_line_t icache[512]; // 16KiB
+    dcache_line_t dcache[512]; // 8KiB
 
 
     cp0_t cp0;

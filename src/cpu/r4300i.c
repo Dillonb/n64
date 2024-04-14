@@ -784,7 +784,24 @@ void r4300i_step() {
         return;
     }
     mips_instruction_t instruction;
-    instruction.raw = n64_read_physical_word(physical_pc);
+
+    if (cached) {
+        int cache_line = get_icache_line_index(pc);
+        u32 ptag = get_paddr_ptag(physical_pc);
+        if (!N64CPU.icache[cache_line].valid || N64CPU.icache[cache_line].ptag != ptag) {
+            // Load the entire cache line
+            u32 line_start = get_icache_line_start(physical_pc);
+            for (int i = 0; i < 8; i++) {
+                u32 addr = line_start + i * 4;
+                N64CPU.icache[cache_line].data[i] = n64_read_physical_word(addr);
+            }
+            N64CPU.icache[cache_line].valid = true;
+            N64CPU.icache[cache_line].ptag = ptag;
+        }
+        instruction.raw = N64CPU.icache[cache_line].data[(physical_pc & 0x1F) >> 2];
+    } else {
+        instruction.raw = n64_read_physical_word(physical_pc);
+    }
 
     N64CPU.prev_pc = N64CPU.pc;
     N64CPU.pc = N64CPU.next_pc;

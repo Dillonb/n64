@@ -66,10 +66,10 @@ INLINE void set_cp0_register_word(u8 r, u32 value) {
             r4300i_interrupt_update();
             break;
         }
-        case R4300I_CP0_REG_TAGLO: // Used for the cache, which is unimplemented.
-            N64CPU.cp0.tag_lo = value;
+        case R4300I_CP0_REG_TAGLO:
+            N64CPU.cp0.tag_lo.raw = value;
             break;
-        case R4300I_CP0_REG_TAGHI: // Used for the cache, which is unimplemented.
+        case R4300I_CP0_REG_TAGHI:
             N64CPU.cp0.tag_hi = value;
             break;
         case R4300I_CP0_REG_COMPARE:
@@ -223,7 +223,7 @@ INLINE u32 get_cp0_register_word(u8 r) {
         case R4300I_CP0_REG_CACHEER:
             return N64CPU.cp0.cache_error;
         case R4300I_CP0_REG_TAGLO:
-            return N64CPU.cp0.tag_lo;
+            return N64CPU.cp0.tag_lo.raw;
         case R4300I_CP0_REG_TAGHI:
             return N64CPU.cp0.tag_hi;
         case R4300I_CP0_REG_ERR_EPC:
