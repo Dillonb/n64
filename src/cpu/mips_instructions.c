@@ -82,79 +82,87 @@ MIPS_INSTR(mips_bnel) {
     conditional_branch_likely(instruction.i.immediate, rs != rt);
 }
 
-#define CACHE_OP(op, cache) ((op << 2) | cache)
+#define ICACHE_OP(op) (((op) << 2) | 0)
+#define DCACHE_OP(op) (((op) << 2) | 1)
 MIPS_INSTR(mips_cache) {
-    const int icache = 0;
-    const int dcache = 1;
-
     // TODO: check cp0 in user or supervisor mode
     s16 offset = instruction.i.immediate;
     u64 virtual_address = get_register(instruction.i.rs) + offset;
-    // u8 cache_op = instruction.i.rt >> 2;
     u8 cache_op = instruction.i.rt;
-    // u8 cache_index = instruction.i.rt & 0b11; // 0 = icache 1 == dcache
 
     u32 physical;
     bool cached;
     if (!resolve_virtual_address(virtual_address, BUS_LOAD, &cached, &physical)) {
-        // logfatal("TLB miss in CACHE instruction");
         on_tlb_exception(virtual_address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
         u32 physical_tag = get_paddr_ptag(physical);
         switch (cache_op) { // page 404
-            case CACHE_OP(0, icache): {
-                int cache_line = get_icache_line_index(virtual_address);
-                N64CPU.icache[cache_line].valid = false;
+            case ICACHE_OP(0): // Index_Invalidate
+                N64CPU.icache[get_icache_line_index(virtual_address)].valid = false;
+                break;
+            case DCACHE_OP(0): { // Index_Write_Back_Invalidate
+                int cache_line = get_dcache_line_index(virtual_address);
+                if (N64CPU.dcache[cache_line].valid) {
+                    logfatal("writeback");
+                }
                 break;
             }
-            case CACHE_OP(0, dcache):
-                // printf("Index_Write_Back_Invalidate dcache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
-                // logfatal("unimplemented\n");
-                // TODO dcache
-                break;
-            case CACHE_OP(1, icache):
-            case CACHE_OP(1, dcache):
-                // Index_Load_Tag
+            case ICACHE_OP(1): // Index_Load_Tag
                 printf("Index_Load_Tag at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
-                logfatal("unimplemented\n");
+                logfatal("Index_Load_Tag icache unimplemented\n");
                 break;
-            case CACHE_OP(2, icache): // Index_Store_Tag
+            case DCACHE_OP(1): // Index_Load_Tag
+                printf("Index_Load_Tag at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
+                logfatal("Index_Load_Tag dcache unimplemented\n");
+                break;
+            case ICACHE_OP(2): // Index_Store_Tag
                 N64CPU.icache[get_icache_line_index(virtual_address)].ptag = N64CP0.tag_lo.ptaglo;
                 break;
-            case CACHE_OP(2, dcache):
+            case DCACHE_OP(2):
                 N64CPU.dcache[get_dcache_line_index(virtual_address)].ptag = N64CP0.tag_lo.ptaglo;
                 break;
-            case CACHE_OP(3, dcache): // Create_Dirty_Exclusive
+            case DCACHE_OP(3): // Create_Dirty_Exclusive
                 logfatal("Create_Dirty_Exclusive unimplemented\n");
                 break;
-            case CACHE_OP(4, icache): {
+            case ICACHE_OP(4): {
                 int cache_line = get_icache_line_index(virtual_address);
                 if (N64CPU.icache[cache_line].ptag == physical_tag) {
                     N64CPU.icache[cache_line].valid = false;
                 }
                 break;
             }
-            case CACHE_OP(4, dcache):
-                // printf("Hit_Invalidate dcache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
-                // logfatal("Hit_Invalidate dcache unimplemented");
+            case DCACHE_OP(4):
+                printf("pc: %016lX\n", N64CPU.pc);
+                printf("Hit_Invalidate dcache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
+                int cache_line = get_dcache_line_index(virtual_address);
+                if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
+                    logfatal("Hit_Invalidate dcache unimplemented");
+                }
                 break;
-            case CACHE_OP(5, icache): // Fill
+            case ICACHE_OP(5): // Fill
                 printf("Fill icache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
                 logfatal("Fill icache unimplemented\n");
                 break;
-            case CACHE_OP(5, dcache): // Hit_Write_Back_Invalidate
-                // printf("Hit_Write_Back_Invalidate dcache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
-                // logfatal("Hit_Write_Back_Invalidate dcache unimplemented\n");
+            case DCACHE_OP(5): { // Hit_Write_Back_Invalidate
+                printf("Hit_Write_Back_Invalidate dcache at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
+                int cache_line = get_dcache_line_index(virtual_address);
+                if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
+                    logfatal("Hit_Write_Back_Invalidate dcache unimplemented\n");
+                }
                 break;
-            case CACHE_OP(6, icache):
-                // Hit_Write_Back
+            }
+            case ICACHE_OP(6): // Hit_Write_Back icache
                 printf("Hit_Write_Back at vaddr 0x%016" PRIx64 " paddr 0x%08" PRIx32 "\n", virtual_address, physical);
                 logfatal("Hit_Write_Back icache unimplemented\n");
                 break;
-            case CACHE_OP(6, dcache):
-                // logfatal("Hit_Write_Back dcache unimplemented\n");
+            case DCACHE_OP(6): { // Hit_Write_Back dcache
+                int cache_line = get_dcache_line_index(virtual_address);
+                if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
+                    logfatal("Hit_Write_Back dcache unimplemented\n");
+                }
                 break;
+            }
             default:
                 printf("Invalid cache op %u\n", cache_op);
                 logfatal("Invalid cache op\n");
