@@ -1,6 +1,7 @@
 #include "mips_instructions.h"
 #include "r4300i_register_access.h"
 
+#include <cache.h>
 #include <mem/n64bus.h>
 
 MIPS_INSTR(mips_nop) {}
@@ -104,7 +105,8 @@ MIPS_INSTR(mips_cache) {
             case DCACHE_OP(0): { // Index_Write_Back_Invalidate
                 int cache_line = get_dcache_line_index(virtual_address);
                 if (N64CPU.dcache[cache_line].valid) {
-                    logfatal("writeback");
+                    writeback_dcache(virtual_address, physical);
+                    N64CPU.dcache[cache_line].valid = false;
                 }
                 break;
             }
@@ -133,7 +135,7 @@ MIPS_INSTR(mips_cache) {
             case DCACHE_OP(4): {
                 int cache_line = get_dcache_line_index(virtual_address);
                 if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
-                    logfatal("Hit_Invalidate dcache unimplemented");
+                    N64CPU.dcache[cache_line].valid = false;
                 }
                 break;
             }
@@ -143,7 +145,8 @@ MIPS_INSTR(mips_cache) {
             case DCACHE_OP(5): { // Hit_Write_Back_Invalidate
                 int cache_line = get_dcache_line_index(virtual_address);
                 if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
-                    logfatal("Hit_Write_Back_Invalidate dcache unimplemented\n");
+                    writeback_dcache(virtual_address, physical);
+                    N64CPU.dcache[cache_line].valid = false;
                 }
                 break;
             }
@@ -153,7 +156,7 @@ MIPS_INSTR(mips_cache) {
             case DCACHE_OP(6): { // Hit_Write_Back dcache
                 int cache_line = get_dcache_line_index(virtual_address);
                 if (N64CPU.dcache[cache_line].valid && N64CPU.dcache[cache_line].ptag == physical_tag) {
-                    logfatal("Hit_Write_Back dcache unimplemented\n");
+                    writeback_dcache(virtual_address, physical);
                 }
                 break;
             }
@@ -239,7 +242,7 @@ MIPS_INSTR(mips_ld) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        u64 value = n64_read_physical_dword(physical);
+        u64 value = conditional_cache_read_dword(cached, address, physical);
         set_register(instruction.i.rt, value);
     }
 }
@@ -263,7 +266,7 @@ MIPS_INSTR(mips_lbu) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        u8 value = n64_read_physical_byte(physical);
+        u8 value = conditional_cache_read_byte(cached, address, physical);
         set_register(instruction.i.rt, value); // zero extend
     }
 }
@@ -282,7 +285,7 @@ MIPS_INSTR(mips_lhu) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        u16 value = n64_read_physical_half(physical);
+        u16 value = conditional_cache_read_half(cached, address, physical);
         set_register(instruction.i.rt, value); // zero extend
     }
 }
@@ -300,7 +303,7 @@ MIPS_INSTR(mips_lh) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        s16 value = n64_read_physical_half(physical);
+        s16 value = conditional_cache_read_half(cached, address, physical);
         set_register(instruction.i.rt, (s64)value); // zero extend
     }
 }
@@ -320,7 +323,7 @@ MIPS_INSTR(mips_lw) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        s32 value = n64_read_physical_word(physical);
+        s32 value = conditional_cache_read_word(cached, address, physical);
         set_register(instruction.i.rt, (s64)value);
     }
 }
@@ -338,7 +341,7 @@ MIPS_INSTR(mips_lwu) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        u32 value = n64_read_physical_word(physical);
+        u32 value = conditional_cache_read_word(cached, address, physical);
         set_register(instruction.i.rt, value);
     }
 }
@@ -355,7 +358,7 @@ MIPS_INSTR(mips_sb) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
-        n64_write_physical_byte(physical, value);
+        conditional_cache_write_byte(cached, address, physical, value);
     }
 }
 
@@ -370,7 +373,7 @@ MIPS_INSTR(mips_sh) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
-        n64_write_physical_half(physical, value);
+        conditional_cache_write_half(cached, address, physical, value);
     }
 }
 
@@ -391,7 +394,7 @@ MIPS_INSTR(mips_sw) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
-        n64_write_physical_word(physical, get_register(instruction.i.rt));
+        conditional_cache_write_word(cached, address, physical, get_register(instruction.i.rt));
     }
 }
 
@@ -412,7 +415,7 @@ MIPS_INSTR(mips_sd) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
-        n64_write_physical_dword(physical, value);
+        conditional_cache_write_dword(cached, address, physical, value);
     }
 }
 
@@ -441,7 +444,7 @@ MIPS_INSTR(mips_lb) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        s8 value = n64_read_physical_byte(physical);
+        s8 value = conditional_cache_read_byte(cached, address, physical);
         set_register(instruction.i.rt, (s64)value);
     }
 }
@@ -459,7 +462,7 @@ MIPS_INSTR(mips_lwl) {
     } else {
         u32 shift = 8 * ((address ^ 0) & 3);
         u32 mask = 0xFFFFFFFF << shift;
-        u32 data = n64_read_physical_word(physical & ~3);
+        u32 data = conditional_cache_read_word(cached, address & ~3, physical & ~3);
         s32 result = (get_register(instruction.i.rt) & ~mask) | data << shift;
         set_register(instruction.i.rt, (s64)result);
     }
@@ -477,7 +480,7 @@ MIPS_INSTR(mips_lwr) {
         u32 shift = 8 * ((address ^ 3) & 3);
 
         u32 mask = 0xFFFFFFFF >> shift;
-        u32 data = n64_read_physical_word(physical & ~3);
+        u32 data = conditional_cache_read_word(cached, address & ~3, physical & ~3);
         s32 result = (get_register(instruction.i.rt) & ~mask) | data >> shift;
         set_register(instruction.i.rt, (s64)result);
     }
@@ -495,9 +498,9 @@ MIPS_INSTR(mips_swl) {
     } else {
         u32 shift = 8 * ((address ^ 0) & 3);
         u32 mask = 0xFFFFFFFF >> shift;
-        u32 data = n64_read_physical_word(physical & ~3);
+        u32 data = conditional_cache_read_word(cached, address & ~3, physical & ~3);
         u32 oldreg = get_register(instruction.i.rt);
-        n64_write_physical_word(physical & ~3, (data & ~mask) | (oldreg >> shift));
+        conditional_cache_write_word(cached, address & ~3, physical & ~3, (data & ~mask) | (oldreg >> shift));
     }
 }
 
@@ -512,9 +515,9 @@ MIPS_INSTR(mips_swr) {
     } else {
         u32 shift = 8 * ((address ^ 3) & 3);
         u32 mask = 0xFFFFFFFF << shift;
-        u32 data = n64_read_physical_word(physical & ~3);
+        u32 data = conditional_cache_read_word(cached, address & ~3, physical & ~3);
         u32 oldreg = get_register(instruction.i.rt);
-        n64_write_physical_word(physical & ~3, (data & ~mask) | oldreg << shift);
+        conditional_cache_write_word(cached, address & ~3, physical & ~3, (data & ~mask) | oldreg << shift);
     }
 }
 
@@ -529,7 +532,7 @@ MIPS_INSTR(mips_ldl) {
     } else {
         int shift = 8 * ((address ^ 0) & 7);
         u64 mask = (u64) 0xFFFFFFFFFFFFFFFF << shift;
-        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 data = conditional_cache_read_dword(cached, address & ~7, physical & ~7);
         u64 oldreg = get_register(instruction.i.rt);
 
         set_register(instruction.i.rt, (oldreg & ~mask) | (data << shift));
@@ -547,7 +550,7 @@ MIPS_INSTR(mips_ldr) {
     } else {
         int shift = 8 * ((address ^ 7) & 7);
         u64 mask = (u64) 0xFFFFFFFFFFFFFFFF >> shift;
-        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 data = conditional_cache_read_dword(cached, address & ~7, physical & ~7);
         u64 oldreg = get_register(instruction.i.rt);
 
         set_register(instruction.i.rt, (oldreg & ~mask) | (data >> shift));
@@ -567,9 +570,9 @@ MIPS_INSTR(mips_sdl) {
         int shift = 8 * ((address ^ 0) & 7);
         u64 mask = 0xFFFFFFFFFFFFFFFF;
         mask >>= shift;
-        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 data = conditional_cache_read_dword(cached, address & ~7, physical & ~7);
         u64 oldreg = get_register(instruction.i.rt);
-        n64_write_physical_dword(physical & ~7, (data & ~mask) | (oldreg >> shift));
+        conditional_cache_write_dword(cached, address & ~7, physical & ~7, (data & ~mask) | (oldreg >> shift));
     }
 }
 
@@ -585,9 +588,9 @@ MIPS_INSTR(mips_sdr) {
         int shift = 8 * ((address ^ 7) & 7);
         u64 mask = 0xFFFFFFFFFFFFFFFF;
         mask <<= shift;
-        u64 data = n64_read_physical_dword(physical & ~7);
+        u64 data = conditional_cache_read_dword(cached, address & ~7, physical & ~7);
         u64 oldreg = get_register(instruction.i.rt);
-        n64_write_physical_dword(physical & ~7, (data & ~mask) | (oldreg << shift));
+        conditional_cache_write_dword(cached, address & ~7, physical & ~7, (data & ~mask) | (oldreg << shift));
     }
 }
 
@@ -602,7 +605,7 @@ MIPS_INSTR(mips_ll) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        s32 result = n64_read_physical_word(physical);
+        s32 result = conditional_cache_read_word(cached, address, physical);
         if ((address & 0b11) > 0) {
             logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
         }
@@ -632,7 +635,7 @@ MIPS_INSTR(mips_lld) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        u64 result = n64_read_physical_dword(physical);
+        u64 result = conditional_cache_read_dword(cached, address, physical);
         if ((address & 0b111) > 0) {
             logfatal("TODO: throw an 'address error' exception! Tried to load from unaligned address 0x%016" PRIX64, address);
         }
@@ -663,7 +666,7 @@ MIPS_INSTR(mips_sc) {
             r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
         } else {
             u32 value = get_register(instruction.i.rt);
-            n64_write_physical_word(physical_address, value);
+            conditional_cache_write_word(cached, address, physical_address, value);
             set_register(instruction.i.rt, 1); // Success!
         }
     } else {
@@ -693,7 +696,7 @@ MIPS_INSTR(mips_scd) {
         u32 physical_address = resolve_virtual_address_or_die(address, BUS_STORE, &cached);
 
         u64 value = get_register(instruction.i.rt);
-        n64_write_physical_dword(physical_address, value);
+        conditional_cache_write_dword(cached, address, physical_address, value);
         set_register(instruction.i.rt, 1); // Success!
 
     } else {

@@ -161,10 +161,10 @@ INLINE resolve_virtual_address_handler get_resolve_virtual_address_handler() {
 
 #define resolve_virtual_address(vaddr, bus_access, cached, physical) N64CP0.resolve_virtual_address(vaddr, bus_access, cached, physical)
 
-INLINE u32 resolve_virtual_address_or_die(u64 virtual, bus_access_t bus_access, bool* cached) {
+INLINE u32 resolve_virtual_address_or_die(u64 vaddr, bus_access_t bus_access, bool* cached) {
     u32 physical;
-    if (!resolve_virtual_address(virtual, bus_access, cached, &physical)) {
-        logfatal("Unhandled TLB exception at 0x%016" PRIX64 "! Stop calling resolve_virtual_address_or_die() here!", virtual);
+    if (!resolve_virtual_address(vaddr, bus_access, cached, &physical)) {
+        logfatal("Unhandled TLB exception at 0x%016" PRIX64 "! Stop calling resolve_virtual_address_or_die() here!", vaddr);
     }
     return physical;
 }
@@ -183,7 +183,73 @@ u8 n64_read_physical_byte(u32 address);
 
 INLINE u8 n64_read_byte(u64 address) {
     bool cached;
-    return n64_read_physical_byte(resolve_virtual_address_or_die(address, false, &cached));
+    return n64_read_physical_byte(resolve_virtual_address_or_die(address, BUS_LOAD, &cached));
 }
+
+INLINE u8 conditional_cache_read_byte(bool cached, u64 vaddr, u32 paddr) {
+    if (cached) {
+        return cache_read_byte(vaddr, paddr);
+    } else {
+        return n64_read_physical_byte(paddr);
+    }
+}
+
+INLINE void conditional_cache_write_byte(bool cached, u64 vaddr, u32 paddr, u8 value) {
+    if (cached) {
+        cache_write_byte(vaddr, paddr, value);
+    } else {
+        n64_write_physical_byte(paddr, value);
+    }
+}
+
+INLINE u16 conditional_cache_read_half(bool cached, u64 vaddr, u32 paddr) {
+    if (cached) {
+        return cache_read_half(vaddr, paddr);
+    } else {
+        return n64_read_physical_half(paddr);
+    }
+}
+
+INLINE void conditional_cache_write_half(bool cached, u64 vaddr, u32 paddr, u16 value) {
+    if (cached) {
+        cache_write_half(vaddr, paddr, value);
+    } else {
+        n64_write_physical_half(paddr, value);
+    }
+}
+
+INLINE u32 conditional_cache_read_word(bool cached, u64 vaddr, u32 paddr) {
+    if (cached) {
+        return cache_read_word(vaddr, paddr);
+    } else {
+        return n64_read_physical_word(paddr);
+    }
+}
+
+INLINE void conditional_cache_write_word(bool cached, u64 vaddr, u32 paddr, u32 value) {
+    if (cached) {
+        cache_write_word(vaddr, paddr, value);
+    } else {
+        n64_write_physical_word(paddr, value);
+    }
+}
+
+INLINE u64 conditional_cache_read_dword(bool cached, u64 vaddr, u32 paddr) {
+    if (cached) {
+        return cache_read_dword(vaddr, paddr);
+    } else {
+        return n64_read_physical_dword(paddr);
+    }
+}
+
+INLINE void conditional_cache_write_dword(bool cached, u64 vaddr, u32 paddr, u64 value) {
+    if (cached) {
+        cache_write_dword(vaddr, paddr, value);
+    } else {
+        n64_write_physical_dword(paddr, value);
+    }
+}
+
+
 
 #endif //N64_N64BUS_H

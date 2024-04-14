@@ -1,5 +1,6 @@
 #include "fpu_instructions.h"
 
+#include <cache.h>
 #include <util.h>
 #include <mem/n64bus.h>
 #include <math.h>
@@ -1017,7 +1018,7 @@ MIPS_INSTR(mips_ldc1) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        u64 value = n64_read_physical_dword(physical);
+        u64 value = conditional_cache_read_dword(cached, address, physical);
         set_fpu_register_dword_fr(instruction.i.rt, value);
     }
 }
@@ -1034,7 +1035,7 @@ MIPS_INSTR(mips_sdc1) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
-        n64_write_physical_dword(physical, value);
+        conditional_cache_write_dword(cached, address, physical, value);
     }
 }
 
@@ -1049,7 +1050,7 @@ MIPS_INSTR(mips_lwc1) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_LOAD), 0);
     } else {
-        u32 value = n64_read_physical_word(physical);
+        u32 value = conditional_cache_read_word(cached, address, physical);
         set_fpu_register_word_fr(instruction.fi.ft, value);
     }
 }
@@ -1066,7 +1067,7 @@ MIPS_INSTR(mips_swc1) {
         on_tlb_exception(address);
         r4300i_handle_exception(N64CPU.prev_pc, get_tlb_exception_code(N64CP0.tlb_error, BUS_STORE), 0);
     } else {
-        n64_write_physical_word(physical, value);
+        conditional_cache_write_word(cached, address, physical, value);
     }
 }
 

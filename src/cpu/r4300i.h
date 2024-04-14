@@ -1,5 +1,6 @@
 #ifndef N64_R4300I_H
 #define N64_R4300I_H
+#include <cpu/cache.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h>
@@ -620,44 +621,6 @@ typedef union fgr {
 } fgr_t;
 
 ASSERTDWORD(fgr_t);
-
-typedef struct icache_line {
-    struct {
-        u32 valid:1;
-        u32 ptag:20;
-    };
-    // since the icache will only ever be accessed as u32, just store it as u32
-    u32 data[8]; // 32 bytes, 8 words
-} icache_line_t;
-
-typedef struct dcache_line {
-    struct {
-        u32 valid:1;
-        u32 dirty:1;
-        u32 ptag:20;
-    };
-    u8 data[16];
-} dcache_line_t;
-
-INLINE int get_icache_line_index(u64 vaddr) {
-    return (vaddr >> 5) & 0x1FF;
-}
-
-INLINE u32 get_icache_line_start(u32 paddr) {
-    return paddr & ~0x1F;
-}
-
-INLINE int get_dcache_line_index(u64 vaddr) {
-    return (vaddr >> 4) & 0x1FF;
-}
-
-INLINE u32 get_dcache_line_start(u32 paddr) {
-    return paddr & ~0xF;
-}
-
-INLINE u32 get_paddr_ptag(u32 paddr) {
-    return paddr >> 13;
-}
 
 typedef struct r4300i {
     u64 gpr[32];

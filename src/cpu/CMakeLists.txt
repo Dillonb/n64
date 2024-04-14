@@ -10,6 +10,7 @@ configure_file(../contrib/tools/dynasm/dasm_x86.lua dynasm/dasm_x86.lua COPYONLY
 
 add_library(r4300i
         r4300i.c r4300i.h r4300i_register_access.h
+        cache.c cache.h
         mips_instructions.c mips_instructions.h
         fpu_instructions.c fpu_instructions.h
         tlb_instructions.c tlb_instructions.h
