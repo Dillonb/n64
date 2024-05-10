@@ -26,7 +26,7 @@ in
 pkgs.mkShell {
   buildInputs = buildInputs;
   shellHook = ''
-    export CPATH=$CPATH:${libcxx.dev}/include/c++/v1
+    export CPATH=$CPATH:${libcxx.dev}/include/c++/v1:${pkgs.glibc.dev}/include
     export CPLUS_INCLUDE_PATH=$CPATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${libcxx}/lib:${libcxxabi}/lib:${pkgs.vulkan-loader}/lib
   '';
