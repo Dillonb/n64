@@ -5,6 +5,7 @@
 #include <dynarec/dynarec_memory_management.h>
 #include <mem/n64bus.h>
 #include <mips_instructions.h>
+#include <perf_map_file.h>
 #include <r4300i_register_access.h>
 #include <system/mprotect_utils.h>
 
@@ -848,6 +849,9 @@ void v2_emit_block(n64_dynarec_block_t* block, u32 physical_address) {
     block->run = (int(*)(r4300i_t *))dynarec_bumpalloc(code_size);
 
     v2_encode(Dst, (u8*)block->run);
+    char block_name[500];
+    snprintf(block_name, 500, "cpu_jit_block_%08X", physical_address);
+    n64_perf_map_file_write((uintptr_t)block->run, code_size, block_name);
     v2_dasm_free();
 }
 
@@ -870,5 +874,6 @@ void v2_compiler_init_platformspecific() {
         }
 
         v2_encode(Dst, (u8 *) &run_block_codecache);
+        n64_perf_map_file_write((uintptr_t)&run_block_codecache, dispatcher_code_size, "v2_jit_dispatcher");
         v2_dasm_free();
 }

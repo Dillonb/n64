@@ -1,4 +1,5 @@
 #include <log.h>
+#include <perf_map_file.h>
 #include <rsp.h>
 #include "rsp_dynarec.h"
 #include "v1/v1_emitter.h"
@@ -14,13 +15,17 @@ size_t rsp_link(dasm_State** d) {
     return code_size;
 }
 
-void* rsp_link_and_encode(dasm_State** Dst) {
+void* rsp_link_and_encode(dasm_State** Dst, size_t* code_size_result) {
     size_t code_size = rsp_link(Dst);
 #ifdef N64_LOG_COMPILATIONS
     printf("Generated %ld bytes of RSP code\n", code_size);
 #endif
     void* buf = rsp_dynarec_bumpalloc(code_size);
     dasm_encode(Dst, buf);
+
+    if (code_size_result) {
+        *code_size_result = code_size;
+    }
 
     return buf;
 }
@@ -106,10 +111,16 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_ove
     }
 
     end_rsp_block(Dst, block_length + block_extra_cycles);
-    void* compiled = rsp_link_and_encode(Dst);
+    size_t code_size;
+    void* compiled = rsp_link_and_encode(Dst, &code_size);
     v1_dasm_free();
 
     block->run = compiled;
+
+    char block_name[500];
+    snprintf(block_name, 500, "rsp_jit_block_%04X", address);
+
+    n64_perf_map_file_write((uintptr_t)compiled, code_size, block_name);
 }
 
 int rsp_missing_block_handler() {

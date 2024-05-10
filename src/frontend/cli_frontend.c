@@ -1,4 +1,5 @@
 #include <generated/version.h>
+#include <perf_map_file.h>
 #include <stdio.h>
 #include <cflags.h>
 #include <log.h>
@@ -72,7 +73,18 @@ int main(int argc, char** argv) {
     const char* pif_rom_path = NULL;
     cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
 
+    #ifdef __linux__
+    bool perf_map = false;
+    cflags_add_bool(flags, '\0', "perf-map", &perf_map, "Write a perf map file to /tmp for profiling JIT code");
+    #endif
+
     cflags_parse(flags, argc, argv);
+
+    #ifdef __linux__
+    if (perf_map) {
+        n64_perf_map_file_enable();
+    }
+    #endif
 
     if (record_tas_movie && tas_movie_path == NULL) {
         usage(flags);

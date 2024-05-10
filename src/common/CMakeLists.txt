@@ -4,6 +4,7 @@ add_library(common
         util.h
         fifo.h
         timing.c timing.h
-        settings.c settings.h)
+        settings.c settings.h
+        perf_map_file.c perf_map_file.h)
 
 target_link_libraries(common inih)
