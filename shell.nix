@@ -28,7 +28,7 @@ pkgs.mkShell {
   shellHook = ''
     export CPATH=$CPATH:${libcxx.dev}/include/c++/v1
     export CPLUS_INCLUDE_PATH=$CPATH
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${libcxx}/lib:${libcxxabi}/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${libcxx}/lib:${libcxxabi}/lib:${pkgs.vulkan-loader}/lib
   '';
   CPATH = pkgs.lib.makeSearchPathOutput "dev" "include" (buildInputs);
 }
