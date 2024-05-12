@@ -68,6 +68,41 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
     return block_iter;
 }
 
+// If a block exists, return it. If not, return a block with a NULL run function.
+INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysconfig, u64 virtual_address, u32 physical_address) {
+    u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
+    n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
+
+    if (unlikely(block_list == NULL)) {
+#ifdef N64_LOG_COMPILATIONS
+        printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical_address, N64CPU.pc);
+#endif
+        block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
+        for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
+            block_list[i].run = NULL;
+            block_list[i].next = NULL;
+            block_list[i].host_size = 0;
+            block_list[i].guest_size = 0;
+            block_list[i].sysconfig.raw = 0;
+        }
+        n64dynarec.blockcache[outer_index] = block_list;
+        n64dynarec.code_mask[outer_index] = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(bool));
+    }
+
+    u32 inner_index = BLOCKCACHE_INNER_INDEX(physical_address);
+    n64_dynarec_block_t* block = &block_list[inner_index];
+
+
+#ifdef LOG_ENABLED
+    static long total_blocks_run;
+    logdebug("Running block at 0x%016" PRIX64 " - block run #%ld - block FP: 0x%016" PRIX64, N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
+#endif
+    N64CPU.exception = false;
+
+    // Find the first block that's both non-null and matches the current sysconfig
+    return find_matching_block(block, n64dynarec.sysconfig, N64CPU.pc);
+}
+
 #ifdef DO_REPEATED_EXEC_DETECTION
 #include <disassemble.h>
 void do_repeated_exec_detection(u32 physical, n64_dynarec_block_t *block) {
@@ -103,48 +138,18 @@ int n64_dynarec_step() {
         return 1; // TODO does exception handling have a cost by itself? does it matter?
     }
 
-    u32 outer_index = physical >> BLOCKCACHE_OUTER_SHIFT;
-    n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
+    n64_dynarec_block_t* block = block_at_address(n64dynarec.sysconfig, N64CPU.pc, physical);
 
-    if (unlikely(block_list == NULL)) {
-#ifdef N64_LOG_COMPILATIONS
-        printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical, N64CPU.pc);
-#endif
-        block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
-        for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
-            block_list[i].run = NULL;
-            block_list[i].next = NULL;
-            block_list[i].host_size = 0;
-            block_list[i].guest_size = 0;
-            block_list[i].sysconfig.raw = 0;
-        }
-        n64dynarec.blockcache[outer_index] = block_list;
-        n64dynarec.code_mask[outer_index] = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(bool));
-    }
-
-    u32 inner_index = BLOCKCACHE_INNER_INDEX(physical);
-    n64_dynarec_block_t* block = &block_list[inner_index];
-
-
-#ifdef LOG_ENABLED
-    static long total_blocks_run;
-    logdebug("Running block at 0x%016" PRIX64 " - block run #%ld - block FP: 0x%016" PRIX64, N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
-#endif
-    N64CPU.exception = false;
     int taken;
-
-    // Find the first block that's both non-null and matches the current sysconfig
-    {
-        n64_dynarec_block_t* matching_block = find_matching_block(block, n64dynarec.sysconfig, N64CPU.pc);
-        if (matching_block && matching_block->run) {
-            #ifdef DO_REPEATED_EXEC_DETECTION
-            do_repeated_exec_detection(physical, block);
-            #endif
-            taken = n64dynarec.run_block((u64)matching_block->run);
-        } else {
-            return missing_block_handler(physical, matching_block, n64dynarec.sysconfig);
-        }
+    if (block->run) {
+        #ifdef DO_REPEATED_EXEC_DETECTION
+        do_repeated_exec_detection(physical, block);
+        #endif
+        taken = n64dynarec.run_block((u64)block->run);
+    } else {
+        taken = missing_block_handler(physical, block, n64dynarec.sysconfig);
     }
+
 #ifdef N64_LOG_JIT_SYNC_POINTS
     printf("JITSYNC %d %08X ", taken, N64CPU.pc);
     for (int i = 0; i < 32; i++) {
