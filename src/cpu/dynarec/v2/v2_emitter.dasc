@@ -54,6 +54,7 @@
       // Push saved regs to stack. Each reg is 8 bytes and the stack must be 16-byte aligned.
       // Stack is misaligned by 8 at first
       | push rbp
+      | mov rbp, rsp
       // Stack is now aligned - push regs in pairs.
       | push rbx
       | push r12
@@ -69,7 +70,7 @@
       | pop r13
       | pop r12
       | pop rbx
-      | pop rbp
+      | leave // mov rsp, rbp; pop rbp
       | ret
     |.endmacro
 |.endif // TODO ARM version?

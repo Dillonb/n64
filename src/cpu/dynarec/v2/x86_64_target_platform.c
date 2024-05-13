@@ -13,7 +13,7 @@ const int* get_preserved_gprs() {
     const static int preserved_regs[] = {
 #ifdef N64_WIN
             REG_RBX,
-            REG_RBP,
+            // REG_RBP,
             REG_RDI,
             REG_RSI,
             // Yes, it's preserved, but we can't use it for register allocation.
@@ -27,7 +27,7 @@ const int* get_preserved_gprs() {
             REG_RBX,
             // Yes, it's preserved, but we can't use it for register allocation.
             //REG_RSP,
-            REG_RBP,
+            // REG_RBP,
             // holds the CPU state
             //REG_R12,
             REG_R13,
@@ -41,9 +41,9 @@ const int* get_preserved_gprs() {
 
 int get_num_preserved_gprs() {
 #ifdef N64_WIN
-    return 7; // 9 if we include the stack pointer and r12, but we can't.
+    return 6; // 9 if we include the stack/base pointers and r12, but we can't.
 #else
-    return 5; // 7 if we include the stack pointer and r12, but we can't.
+    return 4; // 7 if we include the stack/base pointers and r12, but we can't.
 #endif // N64_WIN
 }
 
