@@ -28,10 +28,10 @@ void check_cpu_log(FILE* fp) {
     int line = 0;
     while (true) {
         line++;
-        fread(&expected_pc, sizeof(u64), 1, fp);
-        fread(expected_gpr, sizeof(u64), 32, fp);
-        fread(&expected_cp0_cause.raw, sizeof(u32), 1, fp);
-        fread(&expected_mi_intr.raw, sizeof(u32), 1, fp);
+        checked_fread(&expected_pc, sizeof(u64), 1, fp);
+        checked_fread(expected_gpr, sizeof(u64), 32, fp);
+        checked_fread(&expected_cp0_cause.raw, sizeof(u32), 1, fp);
+        checked_fread(&expected_mi_intr.raw, sizeof(u32), 1, fp);
         bool bad = false;
         if (expected_pc != N64CPU.pc) {
           logalways("PC is wrong: expected %016" PRIX64 " but was %016" PRIX64, expected_pc, N64CPU.pc);

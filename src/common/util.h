@@ -85,4 +85,9 @@ INLINE bool file_exists(const char* path) {
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+#define checked_fread(buf, size, count, fp) do { \
+    if (fread(buf, size, count, fp) != (count)) { \
+        logfatal("Error from fread!"); \
+    }} while(0)
+
 #endif

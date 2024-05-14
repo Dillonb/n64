@@ -694,7 +694,7 @@ void load_pif_rom(const char* pif_rom_path) {
 
     fseek(fp, 0, SEEK_SET);
     u8 *buf = malloc(size);
-    fread(buf, size, 1, fp);
+    checked_fread(buf, size, 1, fp);
 
     n64sys.mem.rom.pif_rom = buf;
     n64sys.mem.rom.pif_rom_size = size;

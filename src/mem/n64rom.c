@@ -163,7 +163,7 @@ void load_n64rom(n64_rom_t* rom, const char* path) {
     }
     fseek(fp, 0, SEEK_SET);
     u8 *buf = malloc(size);
-    fread(buf, size, 1, fp);
+    checked_fread(buf, size, 1, fp);
 
     byteswap_to_be(buf, size);
 

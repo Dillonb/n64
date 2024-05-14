@@ -151,9 +151,9 @@ int main(int argc, char** argv) {
     for (int i = 4; i < argc; i++) {
         const char* subtest_name = argv[i];
         u8 input[input_size];
-        fread(input, 1, input_size, input_data_handle);
+        checked_fread(input, 1, input_size, input_data_handle);
         u8 output[output_size];
-        fread(output, 1, output_size, output_data_handle);
+        checked_fread(output, 1, output_size, output_data_handle);
 
         bool subtest_failed = run_test((u32 *) input, input_size, (u32 *) output, output_size);
 

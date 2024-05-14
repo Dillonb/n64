@@ -443,7 +443,9 @@ void n64_settings_init() {
     n64_settings_load_defaults();
     char cwd[PATH_MAX];
     char config_file_path[PATH_MAX];
-    GETCWD(cwd, PATH_MAX);
+    if (!GETCWD(cwd, PATH_MAX)) {
+        logfatal("Unable to get current working directory.");
+    }
     int result = snprintf(config_file_path, PATH_MAX, "%s%c" CONFIG_FILENAME, cwd, PATH_DELIMITER);
     if (result < 0) {
         logfatal("Unable to build path to config file.");

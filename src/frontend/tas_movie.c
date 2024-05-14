@@ -114,7 +114,7 @@ void load_tas_movie(const char* filename) {
 
     fseek(fp, 0, SEEK_SET);
     u8 *buf = malloc(size);
-    fread(buf, size, 1, fp);
+    checked_fread(buf, size, 1, fp);
 
     loaded_tas_movie = buf;
     loaded_tas_movie_size = size;

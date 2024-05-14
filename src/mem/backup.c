@@ -304,7 +304,7 @@ u8* load_backup_file(const char *rom_path, const char *suffix, size_t save_size,
         }
 
         save_data = malloc(actual_size);
-        fread(save_data, actual_size, 1, f);
+        checked_fread(save_data, actual_size, 1, f);
     }
 
     return save_data;
