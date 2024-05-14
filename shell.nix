@@ -6,7 +6,6 @@ let llvmPackage = pkgs.llvmPackages_17;
     libcxxabi = llvmPackage.libraries.libcxxabi;
 
   buildInputs = [
-    pkgs.hello
     pkgs.cmake
     llvmPackage.libcxxClang
     pkgs.SDL2
