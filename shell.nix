@@ -1,33 +1,33 @@
 { pkgs ? import <nixpkgs> {} }:
 
-let llvmPackage = pkgs.llvmPackages_17;
-    stdenv = llvmPackage.libcxxStdenv;
-    libcxx = llvmPackage.libraries.libcxx;
-    libcxxabi = llvmPackage.libraries.libcxxabi;
+let llvmPackage = pkgs.llvmPackages_18;
 
-  buildInputs = [
+  libcxx = llvmPackage.libraries.libcxx;
+  clang  = llvmPackage.libcxxClang;
+
+  tools = [
     pkgs.cmake
-    llvmPackage.libcxxClang
-    pkgs.SDL2
-    pkgs.capstone
+    clang
     pkgs.ninja
     pkgs.shaderc
     pkgs.pkg-config
-    pkgs.dbus
-    pkgs.bzip2
     pkgs.gdb
     pkgs.vulkan-loader
-    stdenv
-    libcxx
-    libcxxabi
   ];
+
+  libs = [
+    pkgs.SDL2
+    pkgs.capstone
+    pkgs.dbus
+    pkgs.bzip2
+    libcxx
+  ];
+  lib_cpath = pkgs.lib.makeSearchPathOutput "dev" "include" (libs);
+  # Taken from CMake's ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES}
+  extra_cpath = "${libcxx.dev}/include/c++/v1:${clang}/resource-root/include:${pkgs.glibc.dev}/include";
 in
 pkgs.mkShell {
-  buildInputs = buildInputs;
-  shellHook = ''
-    export CPATH=$CPATH:${libcxx.dev}/include/c++/v1:${pkgs.glibc.dev}/include
-    export CPLUS_INCLUDE_PATH=$CPATH
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${libcxx}/lib:${libcxxabi}/lib:${pkgs.vulkan-loader}/lib
-  '';
-  CPATH = pkgs.lib.makeSearchPathOutput "dev" "include" (buildInputs);
+  buildInputs = tools ++ libs;
+  CPATH = "${lib_cpath}:${extra_cpath}";
+  LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
 }
