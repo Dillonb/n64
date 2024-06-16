@@ -5,8 +5,6 @@
 #include <map>
 #include <sstream>
 
-#include "mips_instruction_decode.h"
-
 #ifdef HAVE_CAPSTONE
 #include <capstone/capstone.h>
 #endif
@@ -49,16 +47,16 @@ bool should_fix_op_str(cs_insn& insn) {
 }
 
 std::map<std::string, std::string> reg_to_cp0 = {
-        {"$zero,", "$Index"},        // 0 
-        {"$at,",   "$Random"},       // 1 
-        {"$v0,",   "$EntryLo0"},     // 2 
-        {"$v1,",   "$EntryLo1"},     // 3 
-        {"$a0,",   "$Context"},      // 4 
-        {"$a1,",   "$PageMask"},     // 5 
-        {"$a2,",   "$Wired"},        // 6 
-        {"$a3,",   "$7"},            // 7 
-        {"$t0,",   "$BadVAddr"},     // 8 
-        {"$t1,",   "$Count"},        // 9 
+        {"$zero,", "$Index"},        // 0
+        {"$at,",   "$Random"},       // 1
+        {"$v0,",   "$EntryLo0"},     // 2
+        {"$v1,",   "$EntryLo1"},     // 3
+        {"$a0,",   "$Context"},      // 4
+        {"$a1,",   "$PageMask"},     // 5
+        {"$a2,",   "$Wired"},        // 6
+        {"$a3,",   "$7"},            // 7
+        {"$t0,",   "$BadVAddr"},     // 8
+        {"$t1,",   "$Count"},        // 9
         {"$t2,",   "$EntryHi"},      // 10
         {"$t3,",   "$Compare"},      // 11
         {"$t4,",   "$Status"},       // 12
@@ -100,7 +98,7 @@ std::string fix_op_str(cs_insn& insn) {
             tok >> badcp0;
 
             std::string goodcp0 = reg_to_cp0[badcp0];
-            
+
             return prefix + " " + goodcp0;
             break;
         }
