@@ -321,7 +321,8 @@ void write_word_mireg(u32 address, u32 value) {
             logwarn("Ignoring write to MI version reg!");
             break;
         case ADDR_MI_INTR_REG:
-            logfatal("Unhandled write to ADDR_MI_INTR_REG");
+            logwarn("Ignoring write to MI intr reg!");
+            break;
         case ADDR_MI_INTR_MASK_REG:
             for (int bit = 0; bit < 6; bit++) {
                 int clearbit = bit * 2;
