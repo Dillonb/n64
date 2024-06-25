@@ -40,9 +40,15 @@ extern unsigned int next_n64_log_verbosity;
 #define update_delayed_log_verbosity() do {n64_log_verbosity = next_n64_log_verbosity;} while(0)
 #define log_get_verbosity() n64_log_verbosity
 
-void handle_logfatal(const char* message, const char* file, int line, ...);
+void handle_logfatal(const char* message);
+
+#define LOGFATAL_BUF_SIZE 1024
+extern char logfatal_buf[LOGFATAL_BUF_SIZE];
+
 #define logfatal(message,...) do { \
-    handle_logfatal(message, __FILE__, __LINE__, ##__VA_ARGS__); \
+    snprintf(logfatal_buf, LOGFATAL_BUF_SIZE, "[FATAL] at %s:%d " message, __FILE__, __LINE__, ##__VA_ARGS__); \
+    fprintf(stderr, COLOR_RED "%s\n" COLOR_END, logfatal_buf); \
+    handle_logfatal(logfatal_buf); \
     exit(EXIT_FAILURE);} while(0)
 
 #define logdie(message,...) do { \

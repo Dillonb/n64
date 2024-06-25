@@ -45,33 +45,7 @@ void n64_error_messagebox(const char* message) {
 #define n64_error_messagebox(msg)
 #endif
 
-void handle_logfatal(const char* message, const char* file, int line, ...) {
-    size_t needed = snprintf(NULL, 0, "[FATAL] at %s:%d ", file, line);
-    char* prefix_buf = malloc(needed + 1);
-    snprintf(prefix_buf, needed + 1, "[FATAL] at %s:%d ", file, line);
-
-    va_list vargs;
-    va_start(vargs, line);
-
-    needed = vsnprintf(NULL, 0, message, vargs);
-    char* message_buf = malloc(needed + 1);
-    vsnprintf(message_buf, needed + 1, message, vargs);
-
-    va_end(vargs);
-
-    needed = snprintf(NULL, 0, "%s%s", prefix_buf, message_buf);
-    char* everything_buf = malloc(needed + 1);
-    snprintf(everything_buf, needed + 1, "%s%s", prefix_buf, message_buf);
-
-    free(prefix_buf);
-    prefix_buf = NULL;
-    free(message_buf);
-    message_buf = NULL;
-
-    fprintf(stderr, "%s%s%s\n", COLOR_RED, everything_buf, COLOR_END);
-
+char logfatal_buf[LOGFATAL_BUF_SIZE];
+void handle_logfatal(const char* buf) {
     n64_error_messagebox(everything_buf);
-
-    free(everything_buf);
-    everything_buf = NULL;
 }
