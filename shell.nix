@@ -13,6 +13,7 @@ let llvmPackage = pkgs.llvmPackages_18;
     pkgs.pkg-config
     pkgs.gdb
     pkgs.vulkan-loader
+    pkgs.mold-wrapped
   ];
 
   libs = [
