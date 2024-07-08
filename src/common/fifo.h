@@ -1,12 +1,7 @@
 #ifndef N64_FIFO_H
 #define N64_FIFO_H
 
-#ifdef N64_WIN
-#define atomic_load(ptr) (*(ptr))
-#define atomic_store(ptr, val) (*(ptr) = val)
-#else
-#include <stdatomic.h>
-#endif
+#include <string.h>
 #include <util.h>
 
 struct fifo {
@@ -29,7 +24,7 @@ void fifo_write(struct fifo *q, const void *buf, int size) {
     }
 
     int new_tail = (q->tail + size) & q->mask;
-    atomic_store(&q->tail, new_tail);
+    q->tail = new_tail;
 }
 
 void fifo_read(struct fifo *q, void *buf, int size) {
@@ -44,18 +39,16 @@ void fifo_read(struct fifo *q, void *buf, int size) {
     }
 
     int new_head = (q->head + size) & q->mask;
-    atomic_store(&q->head, new_head);
+    q->head = new_head;
+}
+
+int fifo_read_available(struct fifo *q) {
+    return (q->tail - q->head) & q->mask;
 }
 
 int fifo_write_remaining(struct fifo *q) {
     /* can't use last entry, it exists to disambiguate empty and full states */
     return q->mask - fifo_read_available(q);
-}
-
-int fifo_read_available(struct fifo *q) {
-    int head = atomic_load(&q->head);
-    int tail = atomic_load(&q->tail);
-    return (tail - head) & q->mask;
 }
 
 int fifo_size(struct fifo *q) {
