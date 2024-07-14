@@ -186,6 +186,7 @@ INLINE u8 n64_read_byte(u64 address) {
     return n64_read_physical_byte(resolve_virtual_address_or_die(address, BUS_LOAD, &cached));
 }
 
+#ifdef ENABLE_DCACHE
 INLINE u8 conditional_cache_read_byte(bool cached, u64 vaddr, u32 paddr) {
     if (cached) {
         return cache_read_byte(vaddr, paddr);
@@ -249,6 +250,16 @@ INLINE void conditional_cache_write_dword(bool cached, u64 vaddr, u32 paddr, u64
         n64_write_physical_dword(paddr, value);
     }
 }
+#else
+#define conditional_cache_read_byte(cached, vaddr, paddr) n64_read_physical_byte(paddr)
+#define conditional_cache_write_byte(cached, vaddr, paddr, value) n64_write_physical_byte(paddr, value)
+#define conditional_cache_read_half(cached, vaddr, paddr) n64_read_physical_half(paddr)
+#define conditional_cache_write_half(cached, vaddr, paddr, value) n64_write_physical_half(paddr, value)
+#define conditional_cache_read_word(cached, vaddr, paddr) n64_read_physical_word(paddr)
+#define conditional_cache_write_word(cached, vaddr, paddr, value) n64_write_physical_word(paddr, value)
+#define conditional_cache_read_dword(cached, vaddr, paddr) n64_read_physical_dword(paddr)
+#define conditional_cache_write_dword(cached, vaddr, paddr, value) n64_write_physical_dword(paddr, value)
+#endif
 
 
 

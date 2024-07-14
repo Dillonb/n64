@@ -47,6 +47,13 @@ INCLUDE(CheckCCompilerFlag)
 # Uncomment me if building on a big endian system (good luck!)
 # ADD_COMPILE_DEFINITIONS(N64_BIG_ENDIAN)
 
+# Instant DMAs - useful for debugging issues when timing is not a problem
+# ADD_COMPILE_DEFINITIONS(INSTANT_DMA)
+
+# Enable the icache/dcache emulation (interpreter only, not fully accurate yet)
+# ADD_COMPILE_DEFINITIONS(ENABLE_DCACHE)
+# ADD_COMPILE_DEFINITIONS(ENABLE_ICACHE)
+
 project (N64)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)

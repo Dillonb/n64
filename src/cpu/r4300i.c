@@ -785,6 +785,7 @@ void r4300i_step() {
     }
     mips_instruction_t instruction;
 
+#ifdef ENABLE_ICACHE
     if (cached) {
         int cache_line = get_icache_line_index(pc);
         u32 ptag = get_paddr_ptag(physical_pc);
@@ -800,8 +801,11 @@ void r4300i_step() {
         }
         instruction.raw = N64CPU.icache[cache_line].data[(physical_pc & 0x1F) >> 2];
     } else {
+#endif
         instruction.raw = n64_read_physical_word(physical_pc);
+#ifdef ENABLE_ICACHE
     }
+#endif
 
     N64CPU.prev_pc = N64CPU.pc;
     N64CPU.pc = N64CPU.next_pc;
