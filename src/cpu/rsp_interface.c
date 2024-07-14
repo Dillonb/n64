@@ -88,6 +88,8 @@ u32 read_word_spreg(u32 address) {
             return 0; // DMA not busy, since it's instant.
         case ADDR_SP_SEMAPHORE_REG:
             return rsp_acquire_semaphore();
+        case ADDR_SP_DMA_FULL_REG:
+            return 0;
         default:
             logfatal("Reading word from unknown/unsupported address 0x%08X in region: REGION_SP_REGS", address);
     }
