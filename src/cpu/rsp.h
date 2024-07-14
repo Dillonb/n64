@@ -162,10 +162,19 @@ INLINE void rsp_dma_read() {
 
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
         u8* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem);
-        u8* rdram = n64sys.mem.rdram + dram_address;
+        char imem_dmem = mem_addr_reg.imem ? 'i' : 'd';
+        loginfo("RSP DMA READ! rdram[0x%08X] to %cmem[0x%03X] length %d / 0x%X", dram_address, imem_dmem, mem_address, length, length);
         for (int j = 0; j < length; j++) {
             u16 addr = (mem_address + j) & 0xFFF;
-            mem[mem_addr_reg.imem ? addr : BYTE_ADDRESS(addr)] = rdram[j];
+            u16 index = mem_addr_reg.imem ? addr : BYTE_ADDRESS(addr);
+
+            if ((dram_address + j) < N64_RDRAM_SIZE) {
+                mem[index] = n64sys.mem.rdram[dram_address + j];
+            } else {
+                logwarn("Out of range rsp dma read! [%08X] Setting %cmem[%03X] to 0\n", dram_address + j, imem_dmem, addr);
+                mem[index] = 0;
+            }
+
         }
 
         if (mem_addr_reg.imem) {
@@ -215,6 +224,9 @@ INLINE void rsp_dma_write() {
         for (int j = 0; j < length; j++) {
             u16 addr = (mem_address + j) & 0xFFF;
             rdram[j] = mem[mem_addr.imem ? addr : BYTE_ADDRESS(addr)];
+            if ((dram_address + j) >= N64_RDRAM_SIZE) {
+                logfatal("Out of range RSP DMA write (ignored?)");
+            }
         }
 
 
