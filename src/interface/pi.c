@@ -125,7 +125,7 @@ void write_word_pireg(u32 address, u32 value) {
             u32 cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
             u32 dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
 
-            if (dram_addr & 0x7) {
+            if (dram_addr & 0x7 && length >= 0x7) {
                 length -= dram_addr & 0x7;
             }
             n64sys.mem.pi_reg[PI_RD_LEN_REG] = length;
@@ -162,7 +162,7 @@ void write_word_pireg(u32 address, u32 value) {
             u32 cart_addr = n64sys.mem.pi_reg[PI_CART_ADDR_REG] & 0xFFFFFFFE;
             u32 dram_addr = n64sys.mem.pi_reg[PI_DRAM_ADDR_REG] & 0x007FFFFE;
 
-            if (dram_addr & 0x7) {
+            if (dram_addr & 0x7 && length >= 0x7) {
                 length -= dram_addr & 0x7;
             }
             n64sys.mem.pi_reg[PI_WR_LEN_REG] = length;
