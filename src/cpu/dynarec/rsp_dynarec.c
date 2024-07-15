@@ -208,10 +208,10 @@ int rsp_dynarec_step() {
             int new_code_overlay = N64RSPDYNAREC->code_overlays_allocated;
             if (new_code_overlay >= RSP_NUM_CODE_OVERLAYS) {
                 new_code_overlay = rand() % RSP_NUM_CODE_OVERLAYS;
-                logalways("RSP: Out of code overlays! Selecting %d randomly", new_code_overlay);
+                logwarn("RSP: Out of code overlays! Selecting %d randomly", new_code_overlay);
             } else {
                 N64RSPDYNAREC->code_overlays_allocated++;
-                logalways("RSP: Allocated a new code overlay. Allocated %d so far.", N64RSPDYNAREC->code_overlays_allocated);
+                logwarn("RSP: Allocated a new code overlay. Allocated %d so far.", N64RSPDYNAREC->code_overlays_allocated);
             }
             reset_rsp_dynarec_code_overlay(&N64RSPDYNAREC->code_overlays[new_code_overlay]);
             N64RSPDYNAREC->selected_code_overlay = new_code_overlay;
