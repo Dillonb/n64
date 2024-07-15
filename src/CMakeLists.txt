@@ -61,7 +61,8 @@ add_library(core
         frontend/tas_movie.c frontend/tas_movie.h
         frontend/audio.c frontend/audio.h
         frontend/gamepad.c frontend/gamepad.h
-        frontend/game_db.c frontend/game_db.h)
+        frontend/game_db.c frontend/game_db.h
+        frontend/http_api.cpp frontend/http_api.h)
 
 target_include_directories(core PUBLIC
         contrib/libsamplerate/include)

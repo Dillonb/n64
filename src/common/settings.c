@@ -209,6 +209,8 @@ void n64_settings_load_defaults() {
     n64_settings.controller[3].gamepad_enabled = false;
 
     n64_settings.scaling = 0;
+    n64_settings.http_api_port = 0; // disabled
+    strcpy(n64_settings.http_api_host, "127.0.0.1");
 }
 
 const char* joybus_to_str(n64_joybus_device_type_t joybus) {
@@ -263,6 +265,11 @@ int n64_settings_write(const char* path) {
     CONFIG_LINE("; Settings can be modified manually, but only when the emulator is closed.");
     CONFIG_LINE("; All formatting changes will be lost when the emulator rewrites this file.");
     CONFIG_LINE("");
+
+    CONFIG_LINE("; HTTP server. Set port to 0 to disable.");
+    CONFIG_LINE("[http]");
+    CONFIG_LINE("port=%d", n64_settings.http_api_port);
+    CONFIG_LINE("host=%s", n64_settings.http_api_host);
 
     CONFIG_LINE("[graphics]");
     CONFIG_LINE("; Graphics upscaling. Valid values: 0, 2, 4, 8.");
@@ -430,6 +437,10 @@ int handler(void* user, const char* section, const char* name, const char* value
         if (n64_settings.scaling != 0 && n64_settings.scaling != 2 && n64_settings.scaling != 4 && n64_settings.scaling != 8) {
             n64_settings.scaling = 0;
         }
+    } else if (MATCH("http", "port")) {
+        n64_settings.http_api_port = atoi(value);
+    } else if (MATCH("http", "host")) {
+        strncpy(n64_settings.http_api_host, value, 255);
     }
 
     return 1;

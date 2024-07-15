@@ -1,3 +1,4 @@
+#include <frontend/http_api.h>
 #include <generated/version.h>
 #include <perf_map_file.h>
 #include <stdio.h>
@@ -151,6 +152,9 @@ int main(int argc, char** argv) {
     cflags_free(flags);
     while (n64sys.mem.rom.rom == NULL && !n64_should_quit()) {
         prdp_update_screen_no_game();
+    }
+    if (n64_settings.http_api_port != 0) {
+        http_api_init();
     }
     n64_system_loop();
     n64_system_cleanup();

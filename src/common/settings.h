@@ -38,6 +38,8 @@ typedef struct n64_settings {
     n64_joybus_device_type_t controller_port[4];
     n64_controller_mapping_t controller[4];
     int scaling; // valid values: 0, 2, 4, 8
+    int http_api_port;
+    char http_api_host[256];
 } n64_settings_t;
 
 extern n64_settings_t n64_settings;

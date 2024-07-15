@@ -3,6 +3,7 @@
 #include "mprotect_utils.h"
 #include "scheduler_utils.h"
 
+#include <frontend/http_api.h>
 #include <string.h>
 
 #include <mem/n64bus.h>
@@ -429,6 +430,7 @@ void n64_system_cleanup() {
 
     free(n64sys.mem.rom.pif_rom);
     n64sys.mem.rom.pif_rom = NULL;
+    http_api_stop();
 }
 
 void n64_request_quit() {
