@@ -97,6 +97,19 @@ void http_api_init() {
             res.set_content(result.dump(), "application/json");
     });
 
+    svr.Get("/control/break", [&](const httplib::Request& req, httplib::Response& res) {
+        n64sys.debugger_state.broken = true;
+    });
+
+    svr.Get("/control/continue", [&](const httplib::Request& req, httplib::Response& res) {
+        n64sys.debugger_state.broken = false;
+    });
+
+    svr.Get("/control/quit", [&](const httplib::Request& req, httplib::Response& res) {
+        n64sys.debugger_state.broken = false; // if we're paused, we need to unpause for the quit to work
+        n64_request_quit();
+    });
+
     t = std::thread(http_server_thread);
 }
 
