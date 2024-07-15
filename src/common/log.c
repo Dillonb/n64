@@ -47,5 +47,5 @@ void n64_error_messagebox(const char* message) {
 
 char logfatal_buf[LOGFATAL_BUF_SIZE];
 void handle_logfatal(const char* buf) {
-    n64_error_messagebox(everything_buf);
+    n64_error_messagebox(buf);
 }
