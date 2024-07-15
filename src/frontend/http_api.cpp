@@ -88,6 +88,9 @@ void http_api_init() {
 
     svr.Get("/registers", [&](const httplib::Request& req, httplib::Response& res) {
             json result;
+            result["pc"] = N64CPU.pc;
+            result["hi"] = N64CPU.mult_hi;
+            result["lo"] = N64CPU.mult_lo;
             for (int i = 0; i < 32; i++) {
                 result[register_names[i]] = N64CPU.gpr[i];
             }
