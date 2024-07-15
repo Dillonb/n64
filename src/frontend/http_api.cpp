@@ -1,6 +1,5 @@
 #include "http_api.h"
 
-#include <cstdio>
 #include <cstdlib>
 #include <format>
 
@@ -10,6 +9,9 @@ extern "C" {
 }
 
 #include <httplib.h>
+#include <nlohmann/json.hpp>
+
+using nlohmann::json;
 
 httplib::Server svr;
 
@@ -82,6 +84,14 @@ void http_api_init() {
                 HTTP_ERROR("Invalid size", BadRequest_400);
             }
         }
+    });
+
+    svr.Get("/registers", [&](const httplib::Request& req, httplib::Response& res) {
+            json result;
+            for (int i = 0; i < 32; i++) {
+                result[register_names[i]] = N64CPU.gpr[i];
+            }
+            res.set_content(result.dump(), "application/json");
     });
 
     t = std::thread(http_server_thread);
