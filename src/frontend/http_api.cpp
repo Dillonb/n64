@@ -1,5 +1,7 @@
 #include "http_api.h"
 
+// TODO: support as much of this as possible: https://github.com/skylersaleh/SkyEmu/blob/dev/docs/HTTP_CONTROL_SERVER.md
+
 #include <cstdlib>
 #include <format>
 
