@@ -1,10 +1,13 @@
 #ifndef N64_PARALLEL_RDP_WRAPPER_SDL_H
 #define N64_PARALLEL_RDP_WRAPPER_SDL_H
 
+#include <wsi.hpp>
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
 #include <frontend/render.h>
 #include <frontend/frontend.h>
+
+#include "parallel_rdp_wrapper.h"
 
 extern "C" {
 extern SDL_Window* window;
@@ -52,6 +55,10 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
 
         void poll_input() override {
             n64_poll_input();
+        }
+
+        void poll_input_async(Granite::InputTrackerHandler *handler) override {
+            logfatal("poll_input_async is unimplemented.");
         }
 
         void event_frame_tick(double frame, double elapsed) override {

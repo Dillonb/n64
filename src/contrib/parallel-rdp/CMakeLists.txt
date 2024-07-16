@@ -31,6 +31,7 @@ add_library(parallel-rdp
         parallel-rdp-standalone/util/arena_allocator.cpp
         parallel-rdp-standalone/util/arena_allocator.hpp
         parallel-rdp-standalone/util/aligned_alloc.cpp
+        parallel-rdp-standalone/util/environment.cpp
         parallel-rdp-standalone/util/timer.cpp
         parallel-rdp-standalone/util/timeline_trace_file.cpp
         parallel-rdp-standalone/util/timeline_trace_file.hpp
