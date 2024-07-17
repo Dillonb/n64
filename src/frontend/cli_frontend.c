@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 #ifdef N64_DEBUG_MODE
 #ifndef N64_WIN
     char description[110];
-    snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port %d for gdb. NOTE: implies -i!", GDB_CPU_PORT);
+    snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port defined in dgb-n64.ini for connections. NOTE: implies -i!");
     cflags_add_bool(flags, 'd', "debug", &debug, description);
 #endif
 #endif
@@ -142,13 +142,12 @@ int main(int argc, char** argv) {
         pif_rom_execute();
     }
 #ifdef N64_DEBUG_MODE
-#ifndef N64_WIN
     if (debug) {
-        printf("Listening on 0.0.0.0:%d - Waiting for GDB to connect...\n", GDB_CPU_PORT);
+        printf("Waiting for debugger to connect...\n");
         n64sys.debugger_state.broken = true;
     }
 #endif
-#endif
+
     cflags_free(flags);
     while (n64sys.mem.rom.rom == NULL && !n64_should_quit()) {
         prdp_update_screen_no_game();

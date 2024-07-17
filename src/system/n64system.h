@@ -181,9 +181,7 @@ typedef struct n64_system {
         u32 latch;
     } pi;
     n64_dpc_t dpc;
-#ifndef N64_WIN
     n64_debugger_state_t debugger_state;
-#endif
     softrdp_state_t softrdp_state;
     bool use_interpreter;
     char rom_path[PATH_MAX];

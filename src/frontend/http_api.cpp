@@ -9,6 +9,7 @@ extern "C" {
     #include <common/settings.h>
     #include <mem/n64bus.h>
 }
+#include <debugger/debugger.hpp>
 
 #include <httplib.h>
 #include <nlohmann/json.hpp>
@@ -101,6 +102,10 @@ void http_api_init() {
 
     svr.Get("/control/break", [&](const httplib::Request& req, httplib::Response& res) {
         n64sys.debugger_state.broken = true;
+    });
+
+    svr.Get("/control/step", [&](const httplib::Request& req, httplib::Response& res) {
+        debugger_step();
     });
 
     svr.Get("/control/continue", [&](const httplib::Request& req, httplib::Response& res) {

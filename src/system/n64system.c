@@ -96,12 +96,11 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
     if (enable_frontend) {
         render_init(video_type);
     }
-#ifndef N64_WIN
     n64sys.debugger_state.enabled = enable_debug;
     if (enable_debug) {
         debugger_init();
     }
-#endif
+
     n64sys.use_interpreter = use_interpreter;
 
     reset_n64system();
@@ -208,15 +207,11 @@ void log_cpu_state() {
 
 INLINE void interpreter_system_step() {
 #ifdef N64_DEBUG_MODE
-#ifndef N64_WIN
-    if (n64sys.debugger_state.enabled && check_breakpoint(&n64sys.debugger_state, N64CPU.pc)) {
-        debugger_breakpoint_hit();
-    }
+    check_breakpoint(N64CPU.pc);
     while (n64sys.debugger_state.broken) {
         usleep(1000);
         debugger_tick();
     }
-#endif
 #endif
 
 #ifdef LOG_CPU_STATE
