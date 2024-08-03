@@ -3,3 +3,4 @@
 .cache
 .vscode
 *.json
+.direnv
