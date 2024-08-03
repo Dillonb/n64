@@ -4,3 +4,4 @@
 .vscode
 *.json
 .direnv
+*.ini
