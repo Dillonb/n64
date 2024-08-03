@@ -62,18 +62,29 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 include(CTest)
 message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
 
-find_package(Git REQUIRED)
+find_program(Git_FOUND git)
 
-execute_process(
-    COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE _git_hash
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if (Git_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE _git_hash
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 
-if (NOT "${N64_GIT_COMMIT_HASH}" STREQUAL "${_git_hash}")
-    file(REMOVE ${CMAKE_CURRENT_LIST_DIR}/src/generated/version.h)
-    set(N64_GIT_COMMIT_HASH "${_git_hash}" CACHE STRING "" FORCE)
+    if (NOT "${N64_GIT_COMMIT_HASH}" STREQUAL "${_git_hash}")
+        file(REMOVE ${CMAKE_CURRENT_LIST_DIR}/src/generated/version.h)
+        set(N64_GIT_COMMIT_HASH "${_git_hash}" CACHE STRING "" FORCE)
+    endif()
+else()
+    # Otherwise, ensure N64_GIT_COMMIT_HASH is defined
+    if (DEFINED N64_GIT_COMMIT_HASH)
+        set(_git_hash "${N64_GIT_COMMIT_HASH}" CACHE STRING "" FORCE)
+        file(REMOVE ${CMAKE_CURRENT_LIST_DIR}/src/generated/version.h)
+        message("Git not found, but git commit hash was defined as ${N64_GIT_COMMIT_HASH}")
+    else()
+        message(FATAL_ERROR "Git not found, please define N64_GIT_COMMIT_HASH manually.")
+    endif()
 endif()
 
 check_c_compiler_flag("-mssse3" HAS_SSSE3)

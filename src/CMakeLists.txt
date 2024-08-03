@@ -83,3 +83,5 @@ target_link_libraries(imgui-ui imgui nfd)
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core imgui-ui)
+
+install(TARGETS ${N64_TARGET} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

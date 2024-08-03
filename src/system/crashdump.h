@@ -8,7 +8,9 @@
 #include <system/scheduler.h>
 #include <generated/version.h>
 
-static_assert(sizeof(N64_GIT_COMMIT_HASH) == 41, "git commit hash is not the correct size (40 characters plus null terminator)");
+// 41 bytes = commit hash + null terminator
+// 47 bytes = commit hash+ "-dirty" + null terminator
+static_assert(sizeof(N64_GIT_COMMIT_HASH) == 41 || sizeof(N64_GIT_COMMIT_HASH) == 47, "git commit hash is not 41 or 47 bytes");
 static_assert(sizeof(uintptr_t) == sizeof(u64), "uintptr_t should be 64 bit");
 typedef struct n64_crashdump {
     char git_commit_hash[41];
