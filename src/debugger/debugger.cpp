@@ -19,8 +19,7 @@ bool check_breakpoint(u64 address) {
 
 void debugger_step() {
     // To step once, set a temporary breakpoint at the next PC and unpause
-    // TODO: does this work with branches?
-    breakpoints.insert({N64CPU.next_pc, {N64CPU.next_pc, true}});
+    breakpoints[N64CPU.next_pc] = {N64CPU.next_pc, true};
     n64sys.debugger_state.broken = false;
 }
 
