@@ -62,9 +62,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 include(CTest)
 message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
 
-find_program(Git_FOUND git)
+find_program(GIT_EXECUTABLE git)
 
-if (Git_FOUND)
+if (GIT_EXECUTABLE)
     execute_process(
         COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
