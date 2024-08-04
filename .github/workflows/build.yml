@@ -5,6 +5,8 @@ on: push
 jobs:
   build-windows:
     runs-on: windows-2019
+    env:
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
       - name: Checkout
@@ -12,16 +14,17 @@ jobs:
         with:
           submodules: true
 
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
       - name: Setup dependencies
         run: |
           vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
-
-      # - name: Setup Qt
-      #   uses: jurplel/install-qt-action@v3
-      #   with:
-      #     arch: win64_msvc2019_64
-      #     version: 6.3.1
 
       - name: Build N64
         run: |
@@ -35,9 +38,7 @@ jobs:
         run: |
           mkdir upload
           move build\Release\n64.exe upload
-          move build\Release\n64-qt.exe upload
           move build\Release\SDL2.dll upload
-          windeployqt --dir upload upload\n64-qt.exe
 
       - name: Upload files
         uses: actions/upload-artifact@master
@@ -56,10 +57,8 @@ jobs:
 
       - name: Setup dependencies
         run: |
-          # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          # sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
           sudo apt-get update -y -qq
-          sudo apt-get install glslc libsdl2-dev libdbus-1-dev
+          sudo apt-get install glslc libsdl2-dev libdbus-1-dev libbz2-dev ninja-build
 
       - name: Setup chksum64 and bass
         run: |
@@ -78,7 +77,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release ..
+          cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
           make
           strip n64
 
