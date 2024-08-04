@@ -78,7 +78,7 @@ jobs:
           mkdir -p build
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
-          make
+          ninja
           strip n64
 
       - name: Run tests on N64
@@ -86,7 +86,7 @@ jobs:
           CTEST_OUTPUT_ON_FAILURE: 1
         run: |
           cd build
-          make test
+          ninja test
 
       - name: Collect files
         run: |
