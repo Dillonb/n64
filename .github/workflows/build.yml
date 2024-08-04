@@ -17,11 +17,11 @@ jobs:
           vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
 
-      - name: Setup Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          arch: win64_msvc2019_64
-          version: 6.3.1
+      # - name: Setup Qt
+      #   uses: jurplel/install-qt-action@v3
+      #   with:
+      #     arch: win64_msvc2019_64
+      #     version: 6.3.1
 
       - name: Build N64
         run: |
@@ -44,9 +44,9 @@ jobs:
         with:
           name: n64-windows
           path: upload
-          
+
   build-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -56,8 +56,8 @@ jobs:
 
       - name: Setup dependencies
         run: |
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+          # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          # sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list https://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
           sudo apt-get update -y -qq
           sudo apt-get install shaderc libsdl2-dev libdbus-1-dev
 
