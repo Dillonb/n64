@@ -59,6 +59,8 @@
           cmakeFlags = [
             (pkgs.lib.cmakeFeature "N64_GIT_COMMIT_HASH" rev) # Flakes do not have access to the .git dir, so we'll set this manually
             (pkgs.lib.cmakeFeature "CMAKE_BUILD_TYPE" "Release")
+            (pkgs.lib.cmakeFeature "CMAKE_C_COMPILER" "${clang}/bin/clang")
+            (pkgs.lib.cmakeFeature "CMAKE_CXX_COMPILER" "${clang}/bin/clang++")
           ];
           passthru.exePath = "/bin/n64";
           postInstall = ''
@@ -76,6 +78,10 @@
           buildInputs = tools ++ libs ++ devShellTools;
           CPATH = "${lib_cpath}:${extra_cpath}";
           LD_LIBRARY_PATH = "${pkgs.vulkan-loader}/lib";
+          shellHook = ''
+            export CC="${clang}/bin/clang"
+            export CXX="${clang}/bin/clang++"
+          '';
         };
     }
   );
