@@ -36,7 +36,7 @@
         libcxx
       ];
 
-      lib_cpath = pkgs.lib.makeSearchPathOutput "dev" "include" (libs);
+      lib_cpath = pkgs.lib.makeSearchPathOutput "dev" "include" libs;
       # Taken from CMake's ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES}
       extra_cpath = "${libcxx.dev}/include/c++/v1:${clang}/resource-root/include:${pkgs.glibc.dev}/include";
     in
