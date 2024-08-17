@@ -29,6 +29,26 @@ std::thread t;
     return; \
 } while(0)
 
+template <typename T>
+T debugger_read(u32 address) {
+    T result = 0;
+
+    for (int i = 0; i < sizeof(T); i++) {
+        // silence a compiler warning
+        if (sizeof(T) > 1) {
+            result <<= 8;
+        }
+        u8 b;
+        if (debugger_read_physical_byte(address + i, &b)) {
+            result |= b;
+        } else {
+            logwarn("Failed to read byte at %08X", address + i);
+        }
+    }
+
+    return result;
+}
+
 void http_api_init() {
     logalways("http_api_init listening on: %s:%d\n", n64_settings.http_api_host, n64_settings.http_api_port);
 
@@ -55,7 +75,7 @@ void http_api_init() {
                     res.set_content("Failed to resolve virtual address", "text/plain");
                     return;
                 } else {
-                    result += std::format("{:02X}", n64_read_physical_byte(physical));
+                    result += std::format("{:02X}", debugger_read<u8>(physical));
                 }
             }
             res.set_content(result, "text/plain");
@@ -64,24 +84,24 @@ void http_api_init() {
             res.set_content("Failed to resolve virtual address", "text/plain");
         } else {
             if (s_size == "byte") {
-                res.set_content(std::format("{:02X}", n64_read_physical_byte(physical)), "text/plain");
+                res.set_content(std::format("{:02X}", debugger_read<u8>(physical)), "text/plain");
             } else if (s_size == "half") {
                 if (physical & 1) {
                     HTTP_ERROR("Unaligned halfword read", BadRequest_400);
                 } else {
-                    res.set_content(std::format("{:04X}", n64_read_physical_half(physical)), "text/plain");
+                    res.set_content(std::format("{:04X}", debugger_read<u16>(physical)), "text/plain");
                 }
             } else if (s_size == "word") {
                 if (physical & 3) {
                     HTTP_ERROR("Unaligned word read", BadRequest_400);
                 } else {
-                    res.set_content(std::format("{:08X}", n64_read_physical_word(physical)), "text/plain");
+                    res.set_content(std::format("{:08X}", debugger_read<u32>(physical)), "text/plain");
                 }
             } else if (s_size == "dword") {
                 if (physical & 7) {
                     HTTP_ERROR("Unaligned dword read", BadRequest_400);
                 } else {
-                    res.set_content(std::format("{:016X}", n64_read_physical_dword(physical)), "text/plain");
+                    res.set_content(std::format("{:016X}", debugger_read<u64>(physical)), "text/plain");
                 }
             } else {
                 HTTP_ERROR("Invalid size", BadRequest_400);

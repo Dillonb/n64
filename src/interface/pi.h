@@ -25,6 +25,7 @@ void write_word_pireg(u32 address, u32 value);
 
 void write_byte_pibus(u32 address, u32 value);
 u8 read_byte_pibus(u32 address);
+u8 read_byte_pibus_nolatch(u32 address);
 
 void write_half_pibus(u32 address, u16 value);
 u16 read_half_pibus(u32 address);

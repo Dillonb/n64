@@ -294,6 +294,13 @@ u8 read_byte_pibus(u32 address) {
     if (unlikely(!pi_read_latch())) {
         return n64sys.pi.latch >> 24;
     }
+    return read_byte_pibus_nolatch(address);
+}
+
+u8 read_byte_pibus_nolatch(u32 address) {
+    if (unlikely(!pi_read_latch())) {
+        return n64sys.pi.latch >> 24;
+    }
 
     switch (address) {
         case REGION_PI_UNKNOWN:

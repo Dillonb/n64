@@ -918,3 +918,42 @@ u8 n64_read_physical_byte(u32 address) {
             logfatal("Reading byte from unknown address: 0x%08X", address);
     }
 }
+
+bool debugger_read_physical_byte(u32 address, u8* result) {
+    switch (address) {
+        case REGION_RDRAM:
+            *result = n64sys.mem.rdram[BYTE_ADDRESS(address)];
+            return true;
+        case REGION_SP_MEM:
+            if (address & 0x1000) {
+                *result = N64RSP.sp_imem[BYTE_ADDRESS(address) - SREGION_SP_IMEM];
+                return true;
+            } else {
+                *result = N64RSP.sp_dmem[address - SREGION_SP_DMEM];
+                return true;
+            }
+        case REGION_CART:
+            *result = read_byte_pibus(address);
+            return true;
+        case REGION_PIF_BOOT: {
+            if (n64sys.mem.rom.pif_rom == NULL) {
+                logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
+            } else {
+                u32 index = address - SREGION_PIF_BOOT;
+                if (index > n64sys.mem.rom.size) {
+                    logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
+                } else {
+                    *result = n64sys.mem.rom.pif_rom[index];
+                    return true;
+                }
+            }
+        }
+        case REGION_PIF_RAM:
+            *result = n64sys.mem.pif_ram[address - SREGION_PIF_RAM];
+            return true;
+        default:
+            logwarn("Debugger reading from unknown address: 0x%08X", address);
+            *result = 0;
+            return false;
+    }
+}

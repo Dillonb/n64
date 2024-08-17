@@ -181,6 +181,8 @@ u16 n64_read_physical_half(u32 address);
 void n64_write_physical_byte(u32 address, u32 value);
 u8 n64_read_physical_byte(u32 address);
 
+bool debugger_read_physical_byte(u32 address, u8* result);
+
 INLINE u8 n64_read_byte(u64 address) {
     bool cached;
     return n64_read_physical_byte(resolve_virtual_address_or_die(address, BUS_LOAD, &cached));
