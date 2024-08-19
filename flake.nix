@@ -4,9 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    n64-tools.url = "github:Dillonb/n64-tools.nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachDefaultSystem (system:
+  outputs = { self, nixpkgs, flake-utils, n64-tools }: flake-utils.lib.eachDefaultSystem (system:
     let
       shortRev = with self; if sourceInfo?dirtyShortRev then sourceInfo.dirtyShortRev else sourceInfo.shortRev;
       rev = with self; if sourceInfo?dirtyRev then sourceInfo.dirtyRev else sourceInfo.rev;
@@ -22,6 +23,8 @@
         pkgs.pkg-config
         pkgs.vulkan-loader
         pkgs.mold-wrapped
+        n64-tools.packages.${system}.bass
+        n64-tools.packages.${system}.chksum64
       ];
 
       devShellTools = [
