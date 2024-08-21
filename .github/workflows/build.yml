@@ -98,3 +98,13 @@ jobs:
         with:
           name: n64-linux
           path: upload
+
+  build-nix:
+    runs-on: ubuntu-22.04
+        steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
+      - name: Run `nix build`
+        run: nix build .
