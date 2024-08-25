@@ -139,7 +139,10 @@ void http_api_init() {
         json result = json::array({});
         for (const auto& [ address, breakpoint ] : breakpoints) {
             if (!breakpoint.temporary) {
-                result.push_back(std::format("{:016X}", address));
+                json bp;
+                bp["muted"] = false; // TODO
+                bp["address"] = std::format("{:016X}", address);
+                result.push_back(bp);
             }
         }
         res.set_content(result.dump(), "application/json");

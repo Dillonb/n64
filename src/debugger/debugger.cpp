@@ -19,7 +19,10 @@ bool check_breakpoint(u64 address) {
 
 void debugger_step() {
     // To step once, set a temporary breakpoint at the next PC and unpause
-    breakpoints[N64CPU.next_pc] = {N64CPU.next_pc, true};
+    // If a breakpoint already exists at the address, just unpause and we'll hit it.
+    if (breakpoints.find(N64CPU.next_pc) == breakpoints.end()) {
+        breakpoints[N64CPU.next_pc] = {N64CPU.next_pc, true};
+    }
     n64sys.debugger_state.broken = false;
 }
 
