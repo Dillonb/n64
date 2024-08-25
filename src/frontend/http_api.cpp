@@ -186,6 +186,11 @@ void http_api_init() {
         HTTP_OK;
     });
 
+    svr.Get("/control/break-continue", [&](const httplib::Request& req, httplib::Response& res) {
+        n64sys.debugger_state.broken = !n64sys.debugger_state.broken;
+        HTTP_OK;
+    });
+
     svr.Get("/control/quit", [&](const httplib::Request& req, httplib::Response& res) {
         n64sys.debugger_state.broken = false; // if we're paused, we need to unpause for the quit to work
         n64_request_quit();
