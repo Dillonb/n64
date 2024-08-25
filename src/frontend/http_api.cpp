@@ -186,9 +186,10 @@ void http_api_init() {
         HTTP_OK;
     });
 
-    svr.Get("/control/break-continue", [&](const httplib::Request& req, httplib::Response& res) {
-        n64sys.debugger_state.broken = !n64sys.debugger_state.broken;
-        HTTP_OK;
+    svr.Get("/control/state", [&](const httplib::Request& req, httplib::Response& res) {
+        json result;
+        result["running"] = !n64sys.debugger_state.broken;
+        res.set_content(result.dump(), "application/json");
     });
 
     svr.Get("/control/quit", [&](const httplib::Request& req, httplib::Response& res) {
