@@ -12,12 +12,14 @@
       shortRev = with self; if sourceInfo?dirtyShortRev then sourceInfo.dirtyShortRev else sourceInfo.shortRev;
       rev = with self; if sourceInfo?dirtyRev then sourceInfo.dirtyRev else sourceInfo.rev;
       pkgs = import nixpkgs { inherit system; };
-      llvmPackage = pkgs.llvmPackages_18;
-      libcxx = llvmPackage.libraries.libcxx;
-      clang = llvmPackage.libcxxClang;
+
+      devShellTools = [
+        pkgs.clang-tools
+      ];
+
       tools = [
+        pkgs.gcc
         pkgs.cmake
-        clang
         pkgs.ninja
         pkgs.shaderc
         pkgs.pkg-config
@@ -27,21 +29,12 @@
         n64-tools.packages.${system}.chksum64
       ];
 
-      devShellTools = [
-        pkgs.gdb
-      ];
-
       libs = [
         pkgs.SDL2
         pkgs.capstone
         pkgs.dbus
         pkgs.bzip2
-        libcxx
       ];
-
-      lib_cpath = pkgs.lib.makeSearchPathOutput "dev" "include" libs;
-      # Taken from CMake's ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES}
-      extra_cpath = "${libcxx.dev}/include/c++/v1:${clang}/resource-root/include:${pkgs.glibc.dev}/include";
     in
     {
       packages.default = pkgs.stdenv.mkDerivation
@@ -62,8 +55,6 @@
           cmakeFlags = [
             (pkgs.lib.cmakeFeature "N64_GIT_COMMIT_HASH" rev) # Flakes do not have access to the .git dir, so we'll set this manually
             (pkgs.lib.cmakeFeature "CMAKE_BUILD_TYPE" "Release")
-            (pkgs.lib.cmakeFeature "CMAKE_C_COMPILER" "${clang}/bin/clang")
-            (pkgs.lib.cmakeFeature "CMAKE_CXX_COMPILER" "${clang}/bin/clang++")
           ];
           passthru.exePath = "/bin/n64";
           postInstall = ''
@@ -78,13 +69,8 @@
 
       devShells.default = pkgs.mkShell
         {
-          buildInputs = tools ++ libs ++ devShellTools;
-          CPATH = "${lib_cpath}:${extra_cpath}";
+          buildInputs = devShellTools ++ tools ++ libs;
           LD_LIBRARY_PATH = "${pkgs.vulkan-loader}/lib";
-          shellHook = ''
-            export CC="${clang}/bin/clang"
-            export CXX="${clang}/bin/clang++"
-          '';
         };
     }
   );
