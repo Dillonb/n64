@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
     bool debug = false;
 #ifdef N64_DEBUG_MODE
 #ifndef N64_WIN
-    char description[110];
+    char description[111];
     snprintf(description, sizeof(description), "Enable debug mode. Starts halted and listens on port defined in dgb-n64.ini for connections. NOTE: implies -i!");
     cflags_add_bool(flags, 'd', "debug", &debug, description);
 #endif
