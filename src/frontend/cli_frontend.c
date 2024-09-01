@@ -143,6 +143,9 @@ int main(int argc, char** argv) {
     }
 #ifdef N64_DEBUG_MODE
     if (debug) {
+        if (n64_settings.http_api_port == 0) {
+            logfatal("Debug mode enabled, but HTTP API not enabled! Please configure in dgb-n64.ini");
+        }
         printf("Waiting for debugger to connect...\n");
         n64sys.debugger_state.broken = true;
     }
