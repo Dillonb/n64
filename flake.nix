@@ -79,10 +79,11 @@
       devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
         {
           buildInputs = devShellTools ++ tools ++ libs;
-          LD_LIBRARY_PATH = "${pkgs.vulkan-loader}/lib";
-          shellHook = ''
+          shellHook = if stdenv.isLinux then ''
+            export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
+          '' else if stdenv.isDarwin then ''
             export DYLD_FALLBACK_LIBRARY_PATH="${pkgs.darwin.moltenvk}/lib";
-          '';
+          '' else throw "Unsupported platform";
         };
     }
   );
