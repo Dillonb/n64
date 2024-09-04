@@ -42,8 +42,8 @@ add_library(rsp
         rsp_vector_instructions.c rsp_vector_instructions.h
         mips_instruction_decode.h)
 
-TARGET_LINK_LIBRARIES(rsp    disassemble common)
-TARGET_LINK_LIBRARIES(r4300i disassemble common)
+TARGET_LINK_LIBRARIES(rsp    disassemble common jit)
+TARGET_LINK_LIBRARIES(r4300i disassemble common jit)
 if (NOT WIN32)
     TARGET_LINK_LIBRARIES(r4300i m)
 endif()

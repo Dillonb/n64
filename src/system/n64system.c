@@ -1,4 +1,3 @@
-#include "jit_rs.h"
 #include "n64system.h"
 #include "scheduler.h"
 #include "mprotect_utils.h"
@@ -48,7 +47,6 @@ bool n64_should_quit() {
 }
 
 void n64_load_rom(const char* rom_path) {
-    hello_world_rs();
     logalways("Loading %s", rom_path);
     load_n64rom(&n64sys.mem.rom, rom_path);
     n64sys.target_fps = n64sys.mem.rom.pal ? 50 : 60;

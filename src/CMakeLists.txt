@@ -73,7 +73,7 @@ add_library(core
 target_include_directories(core PUBLIC
         contrib/libsamplerate/include)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 samplerate jit)
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 samplerate)
 
 add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)
