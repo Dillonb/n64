@@ -15,6 +15,7 @@
 
       devShellTools = [
         pkgs.clang-tools
+        pkgs.rust-analyzer
       ];
 
       tools = [
@@ -27,7 +28,6 @@
         pkgs.mold-wrapped
         pkgs.cargo
         pkgs.rustc
-        pkgs.rust-analyzer
         pkgs.rust-cbindgen
 
         n64-tools.packages.${system}.bass
