@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #define LOG_ENABLED
 #include <log.h>
+#include <inttypes.h>
 #include <system/n64system.h>
 #include <cpu/mips_instructions.h>
 #include <cpu/r4300i_register_access.h>
@@ -15,7 +16,7 @@ bool test_complete() {
     s64 test_failed = get_register(TEST_FAILED_REGISTER);
     if (test_failed != 0) {
         if (test_failed != -1) {
-            logfatal("Test #%ld failed.", test_failed);
+            logfatal("Test #%" PRId64 " failed.", test_failed);
         }
 
         return true;

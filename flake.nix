@@ -27,8 +27,6 @@
         pkgs.mold-wrapped
         n64-tools.packages.${system}.bass
         n64-tools.packages.${system}.chksum64
-      ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-        pkgs.clang_18
       ];
 
       libs = [
@@ -39,9 +37,12 @@
       ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
         pkgs.darwin.apple_sdk.frameworks.Cocoa
       ];
+      stdenv = if pkgs.stdenv.isLinux then pkgs.stdenv
+                else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
+                else throw "Unsupported platform";
     in
     {
-      packages.default = pkgs.stdenv.mkDerivation
+      packages.default = stdenv.mkDerivation
         {
           pname = "dgb-n64";
           version = "0.0.1-${shortRev}";
@@ -75,10 +76,13 @@
         program = "${self.packages.${system}.default}/bin/n64";
       };
 
-      devShells.default = pkgs.mkShell
+      devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
         {
           buildInputs = devShellTools ++ tools ++ libs;
           LD_LIBRARY_PATH = "${pkgs.vulkan-loader}/lib";
+          shellHook = ''
+            export DYLD_FALLBACK_LIBRARY_PATH="${pkgs.darwin.moltenvk}/lib";
+          '';
         };
     }
   );
