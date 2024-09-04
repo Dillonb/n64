@@ -25,6 +25,11 @@
         pkgs.pkg-config
         pkgs.vulkan-loader
         pkgs.mold-wrapped
+        pkgs.cargo
+        pkgs.rustc
+        pkgs.rust-analyzer
+        pkgs.rust-cbindgen
+
         n64-tools.packages.${system}.bass
         n64-tools.packages.${system}.chksum64
       ];

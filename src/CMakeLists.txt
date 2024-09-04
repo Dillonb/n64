@@ -20,6 +20,7 @@ add_subdirectory(debugger)
 add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
+add_subdirectory(contrib/corrosion)
 block(SCOPE_FOR VARIABLES POLICIES)
         set(BUILD_TESTING Off)
         add_subdirectory(contrib/libsamplerate)
@@ -29,6 +30,10 @@ SET(NFD_PORTAL ON CACHE BOOL "Use dbus for native file dialog instead of gtk")
 add_subdirectory(contrib/nativefiledialog-extended)
 add_subdirectory(contrib/inih)
 add_subdirectory(tools)
+
+find_program(cbindgen_program cbindgen REQUIRED)
+corrosion_import_crate(MANIFEST_PATH jit/Cargo.toml)
+corrosion_experimental_cbindgen(TARGET jit HEADER_NAME "jit_rs.h" FLAGS --lang c)
 
 find_package(Qt6 COMPONENTS Core Gui Widgets)
 if (Qt6_FOUND)
@@ -71,7 +76,7 @@ add_library(core
 target_include_directories(core PUBLIC
         contrib/libsamplerate/include)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 samplerate)
+target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 samplerate jit)
 
 add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)
