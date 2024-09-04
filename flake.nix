@@ -46,9 +46,18 @@
         if pkgs.stdenv.isLinux then pkgs.stdenv
         else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
         else throw "Unsupported platform";
+
       cargoDeps = pkgs.rustPlatform.importCargoLock {
         lockFile = ./src/jit/Cargo.lock;
       };
+
+      cargoConfigFile = pkgs.writeText "cargo-config.toml" ''
+        [source.crates-io]
+        replace-with = "vendored-sources"
+
+        [source.vendored-sources]
+        directory = "${cargoDeps}"
+      '';
     in
     {
       packages.default = stdenv.mkDerivation
@@ -91,8 +100,8 @@
         {
           buildInputs = devShellTools ++ tools ++ libs;
           shellHook = ''
-            # So the cargo dependencies get cached offline, just in case
-            export cargoDeps=${cargoDeps}
+            mkdir -p ./src/jit/.cargo
+            ln -s ${cargoConfigFile} ./src/jit/.cargo/config.toml
           '' + (if stdenv.isLinux then ''
             export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
           '' else if stdenv.isDarwin then ''
