@@ -100,8 +100,17 @@
         {
           buildInputs = devShellTools ++ tools ++ libs;
           shellHook = ''
-            mkdir -p ./src/jit/.cargo
-            ln -s ${cargoConfigFile} ./src/jit/.cargo/config.toml
+          FLAKE_ROOT="$(git rev-parse --show-toplevel)"
+          (
+            cd "$FLAKE_ROOT"
+            if [ -f .dgb-n64-root ]; then
+              echo "Creating cargo config.toml to use vendored dependencies"
+              mkdir -p ./src/jit/.cargo
+              ln -sf ${cargoConfigFile} ./src/jit/.cargo/config.toml
+            else
+              echo "Did not find .dgb-n64-root, not creating cargo config.toml"
+            fi
+          )
           '' + (if stdenv.isLinux then ''
             export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
           '' else if stdenv.isDarwin then ''
