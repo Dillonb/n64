@@ -48,11 +48,11 @@ typedef __m128i s128;
 #define ASSERTDWORD(type) _Static_assert(sizeof(type) == 8, #type " must be 64 bits")
 #endif
 
-#ifndef N64_WIN
+#if defined(N64_WIN) || defined(N64_MACOS)
+#define PATH_MAX 0x1000
+#else
 #include <unistd.h>
 #include <linux/limits.h>
-#else
-#define PATH_MAX 0x1000
 #endif
 
 
@@ -69,7 +69,7 @@ INLINE u32 npow2(u32 x) {
 }
 
 INLINE bool file_exists(const char* path) {
-#ifndef N64_WIN
+#if !defined(N64_WIN) && !defined(N64_MACOS)
     return access(path, F_OK) == 0;
 #else
     FILE* f = fopen(path, "r");

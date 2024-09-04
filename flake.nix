@@ -39,10 +39,15 @@
         pkgs.capstone
         pkgs.dbus
         pkgs.bzip2
+      ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        pkgs.darwin.apple_sdk.frameworks.Cocoa
       ];
+      stdenv = if pkgs.stdenv.isLinux then pkgs.stdenv
+                else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
+                else throw "Unsupported platform";
     in
     {
-      packages.default = pkgs.stdenv.mkDerivation
+      packages.default = stdenv.mkDerivation
         {
           cargoDeps = pkgs.rustPlatform.importCargoLock {
             lockFile = ./src/jit/Cargo.lock;
@@ -66,9 +71,13 @@
             (pkgs.lib.cmakeFeature "CMAKE_BUILD_TYPE" "Release")
           ];
           passthru.exePath = "/bin/n64";
-          postInstall = ''
-            wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
-          '';
+          postInstall =
+            if pkgs.stdenv.isLinux then ''
+              wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
+            '' else if pkgs.stdenv.isDarwin then ''
+              wrapProgram $out/bin/n64 --set DYLD_FALLBACK_LIBRARY_PATH ${pkgs.darwin.moltenvk}/lib
+            '' else throw "Unsupported platform";
+
         };
 
       apps.default = {
@@ -76,10 +85,14 @@
         program = "${self.packages.${system}.default}/bin/n64";
       };
 
-      devShells.default = pkgs.mkShell
+      devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
         {
           buildInputs = devShellTools ++ tools ++ libs;
-          LD_LIBRARY_PATH = "${pkgs.vulkan-loader}/lib";
+          shellHook = if stdenv.isLinux then ''
+            export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
+          '' else if stdenv.isDarwin then ''
+            export DYLD_FALLBACK_LIBRARY_PATH="${pkgs.darwin.moltenvk}/lib";
+          '' else throw "Unsupported platform";
         };
     }
   );

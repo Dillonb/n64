@@ -38,7 +38,7 @@ void test_branch_likely(bool jit) {
     n64_system_step(false, 1);
 
     assert_reg_value((u64)0, MIPS_REG_T0);
-    assert_eq_u64("pc", 0xFFFFFFFF80000008, N64CPU.pc);
+    assert_eq_u64("pc", 0xFFFFFFFF80000008ULL, N64CPU.pc);
 
     if (jit) {
         n64_system_step(true, -1);
@@ -48,7 +48,7 @@ void test_branch_likely(bool jit) {
     }
 
     // Branch was NOT taken.
-    assert_eq_u64("pc", 0xFFFFFFFF80000014, N64CPU.pc);
+    assert_eq_u64("pc", 0xFFFFFFFF80000014ULL, N64CPU.pc);
 
     // Delay slot was skipped.
     // 0: register is not getting written back at all
