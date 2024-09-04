@@ -27,6 +27,8 @@
         pkgs.mold-wrapped
         n64-tools.packages.${system}.bass
         n64-tools.packages.${system}.chksum64
+      ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        pkgs.clang_18
       ];
 
       libs = [
@@ -34,6 +36,8 @@
         pkgs.capstone
         pkgs.dbus
         pkgs.bzip2
+      ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        pkgs.darwin.apple_sdk.frameworks.Cocoa
       ];
     in
     {
@@ -57,9 +61,13 @@
             (pkgs.lib.cmakeFeature "CMAKE_BUILD_TYPE" "Release")
           ];
           passthru.exePath = "/bin/n64";
-          postInstall = ''
-            wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
-          '';
+          postInstall =
+            if pkgs.stdenv.isLinux then ''
+              wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
+            '' else if pkgs.stdenv.isDarwin then ''
+              wrapProgram $out/bin/n64 --set DYLD_FALLBACK_LIBRARY_PATH ${pkgs.darwin.moltenvk}/lib
+            '' else throw "Unsupported platform";
+
         };
 
       apps.default = {

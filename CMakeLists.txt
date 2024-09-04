@@ -87,10 +87,16 @@ else()
     endif()
 endif()
 
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+    set (X86 TRUE)
+else ()
+    set (X86 FALSE)
+endif ()
+
 check_c_compiler_flag("-mssse3" HAS_SSSE3)
 check_c_compiler_flag("-msse4.1" HAS_SSE4_1)
 
-if (HAS_SSSE3 AND HAS_SSE4_1)
+if (HAS_SSSE3 AND HAS_SSE4_1 AND X86)
     set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -mssse3 -msse4.1)
     ADD_COMPILE_DEFINITIONS(N64_HAVE_SSE)
 endif()
