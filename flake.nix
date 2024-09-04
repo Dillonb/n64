@@ -44,6 +44,10 @@
     {
       packages.default = pkgs.stdenv.mkDerivation
         {
+          cargoDeps = pkgs.rustPlatform.importCargoLock {
+            lockFile = ./src/jit/Cargo.lock;
+          };
+          cargoRoot = "src/jit";
           pname = "dgb-n64";
           version = "0.0.1-${shortRev}";
           src = pkgs.lib.fileset.toSource {
@@ -55,7 +59,7 @@
               ./tests
             ];
           };
-          nativeBuildInputs = tools ++ [ pkgs.makeWrapper ];
+          nativeBuildInputs = tools ++ [ pkgs.makeWrapper pkgs.rustPlatform.cargoSetupHook ];
           buildInputs = libs;
           cmakeFlags = [
             (pkgs.lib.cmakeFeature "N64_GIT_COMMIT_HASH" rev) # Flakes do not have access to the .git dir, so we'll set this manually

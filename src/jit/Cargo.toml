@@ -7,3 +7,4 @@ edition = "2021"
 crate-type = ["staticlib"]
 
 [dependencies]
+dynasm = "2.0.0"
