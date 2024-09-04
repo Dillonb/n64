@@ -42,16 +42,18 @@
       ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
         pkgs.darwin.apple_sdk.frameworks.Cocoa
       ];
-      stdenv = if pkgs.stdenv.isLinux then pkgs.stdenv
-                else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
-                else throw "Unsupported platform";
+      stdenv =
+        if pkgs.stdenv.isLinux then pkgs.stdenv
+        else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
+        else throw "Unsupported platform";
+      cargoDeps = pkgs.rustPlatform.importCargoLock {
+        lockFile = ./src/jit/Cargo.lock;
+      };
     in
     {
       packages.default = stdenv.mkDerivation
         {
-          cargoDeps = pkgs.rustPlatform.importCargoLock {
-            lockFile = ./src/jit/Cargo.lock;
-          };
+          cargoDeps = cargoDeps;
           cargoRoot = "src/jit";
           pname = "dgb-n64";
           version = "0.0.1-${shortRev}";
@@ -88,11 +90,14 @@
       devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
         {
           buildInputs = devShellTools ++ tools ++ libs;
-          shellHook = if stdenv.isLinux then ''
+          shellHook = ''
+            # So the cargo dependencies get cached offline, just in case
+            export cargoDeps=${cargoDeps}
+          '' + (if stdenv.isLinux then ''
             export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
           '' else if stdenv.isDarwin then ''
             export DYLD_FALLBACK_LIBRARY_PATH="${pkgs.darwin.moltenvk}/lib";
-          '' else throw "Unsupported platform";
+          '' else throw "Unsupported platform");
         };
     }
   );
