@@ -74,6 +74,8 @@ typedef struct n64_dynarec {
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
+static_assert(sizeof(bool) == 1, "sizeof(bool) == 1");
+
 extern n64_dynarec_t n64dynarec;
 
 INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {

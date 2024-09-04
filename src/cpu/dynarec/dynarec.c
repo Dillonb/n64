@@ -36,8 +36,14 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
 #endif
 
     mark_metric(METRIC_BLOCK_COMPILATION);
-    // v2_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
-    v3_compile_new_block((void*)block, (void*)code_mask, N64CPU.pc, physical_address);
+    static_assert(sizeof(JitBlock) == sizeof(n64_dynarec_block_t), "sizeof(Rust JitBlock) == sizeof(n64_dynarec_block_t)");
+    v3_compile_new_block((JitBlock*)block, (uint8_t*)code_mask, BLOCKCACHE_INNER_SIZE, N64CPU.pc, physical_address);
+
+
+    printf("Code mask at 0: %d\n", code_mask[0]);
+    printf("Code mask at 1: %d\n", code_mask[1]);
+    printf("Host size: %zu\nGuest size: %zu\n", block->host_size, block->guest_size);
+    v2_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
     if (block->run == NULL) {
         logfatal("Failed to compile block!");
         //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
