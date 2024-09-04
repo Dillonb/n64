@@ -21,6 +21,7 @@ add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
 add_subdirectory(contrib/corrosion)
+add_subdirectory(jit) # depends on corrosion
 block(SCOPE_FOR VARIABLES POLICIES)
         set(BUILD_TESTING Off)
         add_subdirectory(contrib/libsamplerate)
@@ -30,10 +31,6 @@ SET(NFD_PORTAL ON CACHE BOOL "Use dbus for native file dialog instead of gtk")
 add_subdirectory(contrib/nativefiledialog-extended)
 add_subdirectory(contrib/inih)
 add_subdirectory(tools)
-
-find_program(cbindgen_program cbindgen REQUIRED)
-corrosion_import_crate(MANIFEST_PATH jit/Cargo.toml)
-corrosion_experimental_cbindgen(TARGET jit HEADER_NAME "jit_rs.h" FLAGS --lang c)
 
 find_package(Qt6 COMPONENTS Core Gui Widgets)
 if (Qt6_FOUND)
