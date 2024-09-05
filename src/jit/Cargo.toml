@@ -8,3 +8,4 @@ crate-type = ["staticlib"]
 
 [dependencies]
 dynasm = "2.0.0"
+proc-bitfield = "0.5.0"

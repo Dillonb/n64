@@ -27,4 +27,6 @@ void v2_compile_new_block(n64_dynarec_block_t *block, bool *code_mask, u64 virtu
 void v2_compiler_init();
 void v2_set_idle_loop_detection_enabled(bool enabled);
 
+void v3_compile_new_block(n64_dynarec_block_t *block, bool *code_mask, u64 virtual_address, u32 physical_address);
+
 #endif // N64_V2_COMPILER_H

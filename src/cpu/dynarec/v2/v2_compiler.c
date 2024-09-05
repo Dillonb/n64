@@ -1,5 +1,6 @@
 #include "v2_compiler.h"
 
+#include "jit_rs.h"
 #include <log.h>
 #include <mem/n64bus.h>
 #include <disassemble.h>
@@ -188,6 +189,15 @@ int idle_loop_replacement() {
     // +1 just in case we're executing this with 0 cycles until the next event
     u64 ticks_to_skip = scheduler_ticks_until_next_event() + 1;
     return ticks_to_skip;
+}
+
+void v3_compile_new_block(
+        n64_dynarec_block_t* block,
+        bool* code_mask,
+        u64 virtual_address,
+        u32 physical_address) {
+    fill_temp_code(virtual_address, physical_address, code_mask);
+    rs_jit_compile_new_block((uint32_t*)temp_code, temp_code_len, virtual_address, physical_address);
 }
 
 void v2_compile_new_block(
