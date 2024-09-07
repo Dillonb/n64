@@ -90,7 +90,10 @@ void debug_output_log(const char *tag, const char *fmt, ...);
 	} while (false)
 #endif
 
-#define LOGE(...) do { if (!::Util::interface_log("[ERROR]: ", __VA_ARGS__)) { LOGE_FALLBACK(__VA_ARGS__); }} while(0)
-#define LOGW(...) do { if (!::Util::interface_log("[WARN]: ", __VA_ARGS__)) { LOGW_FALLBACK(__VA_ARGS__); }} while(0)
-#define LOGI(...) do { if (!::Util::interface_log("[INFO]: ", __VA_ARGS__)) { LOGI_FALLBACK(__VA_ARGS__); }} while(0)
+/* #define LOGE(...) do { if (!::Util::interface_log("[ERROR]: ", __VA_ARGS__)) { LOGE_FALLBACK(__VA_ARGS__); }} while(0) */
+/* #define LOGW(...) do { if (!::Util::interface_log("[WARN]: ", __VA_ARGS__)) { LOGW_FALLBACK(__VA_ARGS__); }} while(0) */
+/* #define LOGI(...) do { if (!::Util::interface_log("[INFO]: ", __VA_ARGS__)) { LOGI_FALLBACK(__VA_ARGS__); }} while(0) */
 
+#define LOGE(...) do {} while(0)
+#define LOGW(...) do {} while(0)
+#define LOGI(...) do {} while(0)
