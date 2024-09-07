@@ -6,9 +6,9 @@ proc_bitfield::bitfield! {
         pub imm:   u16 @ 0..=15,
         pub s_imm: i16 @ 0..=15,
 
-        pub rt: u8 @ 16 .. 20,
-        pub rs: u8 @ 21 .. 25,
-        pub op: u8 @ 26 .. 31,
+        pub rt: u8 @ 16 ..=20,
+        pub rs: u8 @ 21 ..=25,
+        pub op: u8 @ 26 ..=31,
     }
 }
 
