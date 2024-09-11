@@ -7,5 +7,5 @@ edition = "2021"
 crate-type = ["staticlib"]
 
 [dependencies]
-dynasm = "2.0.0"
+dynasmrt = "2.0.0"
 proc-bitfield = "0.5.0"
