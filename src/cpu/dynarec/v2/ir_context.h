@@ -305,13 +305,6 @@ typedef struct ir_instruction {
             ir_shift_direction_t direction;
         } shift;
         struct {
-            int reg;
-        } get_cp0;
-        struct {
-            int reg;
-            struct ir_instruction* value;
-        } set_cp0;
-        struct {
             struct ir_instruction* condition;
             cond_block_exit_type_t type;
             cond_block_exit_info_t info;
