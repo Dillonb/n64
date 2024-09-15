@@ -241,7 +241,7 @@ void compile_ir_tlb_lookup(dasm_State** Dst, ir_instruction_t* instr) {
     if (instr->block_length <= 0) {
         logfatal("TLB lookup compiled with a block length of %d", instr->block_length);
     }
-    bool prev_branch = instr->block_length > 1 && (temp_code[instr->block_length - 2].category == BRANCH || temp_code[instr->block_length - 2].category == BRANCH_LIKELY);
+    bool prev_branch = instr->block_length > 1 && (temp_code_category[instr->block_length - 2] == BRANCH || temp_code_category[instr->block_length - 2] == BRANCH_LIKELY);
     static_assert(sizeof(N64CPU.prev_branch) == 1, "prev_branch should be one byte");
 
     ir_set_constant_t prev_branch_const = { .type = VALUE_TYPE_U8, .value_u8 = prev_branch };
