@@ -1,6 +1,7 @@
 #include "v2_compiler.h"
 
 #include "jit_rs.h"
+#include <dynarec/dynarec.h>
 #include <log.h>
 #include <mem/n64bus.h>
 #include <disassemble.h>
@@ -42,10 +43,11 @@ bool should_break(u32 address) {
 static bool v2_idle_loop_detection_enabled = true;
 
 int temp_code_len = 0;
-source_instruction_t temp_code[TEMP_CODE_SIZE];
+mips_instruction_t temp_code[TEMP_CODE_SIZE];
+dynarec_instruction_category_t temp_code_category[TEMP_CODE_SIZE];
 u64 temp_code_vaddr = 0;
 
-#define LAST_INSTR_CATEGORY (temp_code[temp_code_len - 1].category)
+#define LAST_INSTR_CATEGORY (temp_code_category[temp_code_len - 1])
 #define LAST_INSTR_IS_BRANCH ((temp_code_len > 0) && ((LAST_INSTR_CATEGORY == BRANCH) || (LAST_INSTR_CATEGORY == BRANCH_LIKELY)))
 
 u64 v2_get_last_compiled_block() {
@@ -69,18 +71,18 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
 
         dynarec_instruction_category_t prev_instr_category = NORMAL;
         if (i > 0) {
-            prev_instr_category = temp_code[i - 1].category;
+            prev_instr_category = temp_code_category[i - 1];
         }
 
         code_mask[BLOCKCACHE_INNER_INDEX(instr_address)] = true;
 
-        temp_code[i].instr.raw = n64_read_physical_word(instr_address);
-        temp_code[i].category = instr_category(temp_code[i].instr);
+        temp_code[i].raw = n64_read_physical_word(instr_address);
+        temp_code_category[i] = instr_category(temp_code[i]);
         temp_code_len++;
         instructions_left_in_block--;
 
         bool instr_ends_block;
-        switch (temp_code[i].category) {
+        switch (temp_code_category[i]) {
             // Possible to end block
             case CACHE:
             case STORE:
@@ -134,7 +136,7 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
 #endif
 
     // If we filled up the buffer, make sure the last instruction is not a branch
-    if (temp_code_len == TEMP_CODE_SIZE && is_branch(temp_code[TEMP_CODE_SIZE - 1].category)) {
+    if (temp_code_len == TEMP_CODE_SIZE && is_branch(temp_code_category[TEMP_CODE_SIZE - 1])) {
         logwarn("Filled temp_code buffer, but the last instruction was a branch. Stripping it out.");
         temp_code_len--;
     }
@@ -167,16 +169,16 @@ bool detect_idle_loop(u64 virtual_address) {
         return false;
     }
 
-    if (temp_code_len == 2 && temp_code[1].instr.raw == 0x00000000) {
+    if (temp_code_len == 2 && temp_code[1].raw == 0x00000000) {
         // b -1
         // nop
-        if (temp_code[0].instr.raw == 0x1000FFFF) {
+        if (temp_code[0].raw == 0x1000FFFF) {
             return true;
         }
 
         // j (self)
         // nop
-        if (temp_code[0].instr.op == OPC_J && temp_code[0].instr.j.target == ((virtual_address >> 2) & 0x3FFFFFF)) {
+        if (temp_code[0].op == OPC_J && temp_code[0].j.target == ((virtual_address >> 2) & 0x3FFFFFF)) {
             return true;
         }
     }
@@ -234,7 +236,7 @@ void v2_compile_new_block(
     for (int i = 0; i < temp_code_len; i++) {
         u64 instr_virtual_address = virtual_address + (i << 2);
         u32 instr_physical_address = physical_address + (i << 2);
-        emit_instruction_ir(temp_code[i].instr, i, instr_virtual_address, instr_physical_address);
+        emit_instruction_ir(temp_code[i], i, instr_virtual_address, instr_physical_address);
     }
 
     if (!ir_context.block_end_pc_ir_emitted && temp_code_len > 0) {
