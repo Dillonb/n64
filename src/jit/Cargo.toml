@@ -9,3 +9,4 @@ crate-type = ["staticlib"]
 [dependencies]
 dynasmrt = "2.0.0"
 proc-bitfield = "0.5.0"
+itertools = "0.13.0"
