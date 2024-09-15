@@ -7,7 +7,11 @@ pub enum IrSize {
     S16,
     U32,
     S32
+}
 
+pub enum MipsRegister {
+    Gpr(u8),
+    Cop0(u8),
 }
 
 pub enum IrInstruction {

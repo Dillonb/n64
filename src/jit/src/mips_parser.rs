@@ -1,8 +1,161 @@
 use itertools::izip;
 use proc_bitfield::ConvRaw;
 
-#[derive(ConvRaw, Debug)]
+#[derive(Debug)]
+enum BranchCondition {
+    EQ,
+    NE,
+    GTZ,
+    LTZ,
+    LEZ,
+    GEZ,
+}
+
+#[derive(Debug)]
+struct BranchInfo {
+    cond: BranchCondition,
+    likely: bool,
+    link: bool
+}
+
+#[derive(Debug)]
 enum MipsOpcode {
+    NOP,
+    LD,
+    LUI,
+    ADDI,
+    ADDIU,
+    DADDI,
+    ANDI,
+    LBU,
+    LHU,
+    LH,
+    LW,
+    LWU,
+    BRANCH(BranchInfo),
+    CACHE,
+    SB,
+    SH,
+    SD,
+    SW,
+    ORI,
+    J,
+    JAL,
+    SLTI,
+    SLTIU,
+    XORI,
+    DADDIU,
+    LB,
+    LDC1,
+    SDC1,
+    LWC1,
+    SWC1,
+    LWL,
+    LWR,
+    SWL,
+    SWR,
+    LDL,
+    LDR,
+    SDL,
+    SDR,
+    LL,
+    LLD,
+    SC,
+    SCD,
+    RDHWR,
+    MFC0,
+    DMFC0,
+    CFC0,
+    DCFC0,
+    MTC0,
+    DMTC0,
+    CTC0,
+    DCTC0,
+    SLL,
+    SRL,
+    SRA,
+    SRAV,
+    SLLV,
+    SRLV,
+    JR,
+    JALR,
+    SYSCALL,
+    SYNC,
+    MFHI,
+    MTHI,
+    MFLO,
+    MTLO,
+    DSLLV,
+    DSRLV,
+    DSRAV,
+    MULT,
+    MULTU,
+    DIV,
+    DIVU,
+    DMULT,
+    DMULTU,
+    DDIV,
+    DDIVU,
+    ADD,
+    ADDU,
+    AND,
+    SUB,
+    SUBU,
+    OR,
+    XOR,
+    NOR,
+    SLT,
+    SLTU,
+    DADD,
+    DADDU,
+    DSUB,
+    DSUBU,
+    TGE,
+    TGEU,
+    TLT,
+    TLTU,
+    TEQ,
+    TNE,
+    DSLL,
+    DSRL,
+    DSRA,
+    DSLL32,
+    DSRL32,
+    DSRA32,
+}
+
+#[derive(ConvRaw, Debug)]
+enum MipsCopRsField {
+    MF    = 0b00000,
+    DMF   = 0b00001,
+    CF    = 0b00010,
+    DCF   = 0b00011,
+    MT    = 0b00100,
+    DMT   = 0b00101,
+    CT    = 0b00110,
+    DCT   = 0b00111,
+    BC    = 0b01000,
+}
+
+#[derive(ConvRaw, Debug)]
+enum MipsRegimmRtField {
+    BLTZ    = 0b00000,
+    BLTZL   = 0b00010,
+    BGEZ    = 0b00001,
+    BGEZL   = 0b00011,
+    TGEI    = 0b01000,
+    TGEIU   = 0b01001,
+    TLTI    = 0b01010,
+    TLTIU   = 0b01011,
+    TEQI    = 0b01100,
+    TNEI    = 0b01110,
+    BLTZAL  = 0b10000,
+    BGEZAL  = 0b10001,
+    BGEZALL = 0b10011
+}
+
+#[derive(ConvRaw, Debug)]
+enum MipsOpcodeField {
     CP0    = 0b010000,
     CP1    = 0b010001,
     CP2    = 0b010010,
@@ -60,32 +213,252 @@ enum MipsOpcode {
     RDHWR  = 0b011111
 }
 
+#[derive(ConvRaw, Debug)]
+enum MipsFunctField {
+    SLL     = 0b000000,
+    SRL     = 0b000010,
+    SRA     = 0b000011,
+    SRAV    = 0b000111,
+    SLLV    = 0b000100,
+    SRLV    = 0b000110,
+    JR      = 0b001000,
+    JALR    = 0b001001,
+    SYSCALL = 0b001100,
+    SYNC    = 0b001111,
+    MFHI    = 0b010000,
+    MTHI    = 0b010001,
+    MFLO    = 0b010010,
+    MTLO    = 0b010011,
+    DSLLV   = 0b010100,
+    DSRLV   = 0b010110,
+    DSRAV   = 0b010111,
+    MULT    = 0b011000,
+    MULTU   = 0b011001,
+    DIV     = 0b011010,
+    DIVU    = 0b011011,
+    DMULT   = 0b011100,
+    DMULTU  = 0b011101,
+    DDIV    = 0b011110,
+    DDIVU   = 0b011111,
+    ADD     = 0b100000,
+    ADDU    = 0b100001,
+    AND     = 0b100100,
+    SUB     = 0b100010,
+    SUBU    = 0b100011,
+    OR      = 0b100101,
+    XOR     = 0b100110,
+    NOR     = 0b100111,
+    SLT     = 0b101010,
+    SLTU    = 0b101011,
+    DADD    = 0b101100,
+    DADDU   = 0b101101,
+    DSUB    = 0b101110,
+    DSUBU   = 0b101111,
+    TGE     = 0b110000,
+    TGEU    = 0b110001,
+    TLT     = 0b110010,
+    TLTU    = 0b110011,
+    TEQ     = 0b110100,
+    TNE     = 0b110110,
+    DSLL    = 0b111000,
+    DSRL    = 0b111010,
+    DSRA    = 0b111011,
+    DSLL32  = 0b111100,
+    DSRL32  = 0b111110,
+    DSRA32  = 0b111111,
+}
+
 proc_bitfield::bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq)]
-    pub struct MipsInstruction(pub u32): Debug, FromStorage, IntoStorage, DerefStorage {
-        pub raw : u32 @ ..,
+    pub struct MipsInstructionBitfield(pub u32): Debug, FromStorage, IntoStorage, DerefStorage {
+        pub raw: u32 @ ..,
+
+        pub funct: u8 [unwrap MipsFunctField] @ 0..=5,
+        pub funct_bits: u8 @ 0..=5,
 
         pub imm:   u16 @ 0..=15,
         pub s_imm: i16 @ 0..=15,
 
         pub rt: u8 @ 16 ..=20,
+        pub rt_op: u8 [unwrap MipsRegimmRtField] @ 16 ..=20,
+
         pub rs: u8 @ 21 ..=25,
+        pub cop_op: u8 [unwrap MipsCopRsField] @ 21 ..=25,
 
         pub op_bits: u8 @ 26 ..=31,
-        pub op: u8 [unwrap MipsOpcode] @ 26 ..= 31
+        pub op: u8 [unwrap MipsOpcodeField] @ 26 ..= 31,
+
+        pub is_coprocessor_funct: bool @ 25,
+    }
+}
+
+pub struct ParsedMipsInstruction {
+    paddr: u32,
+    vaddr: u64,
+    instr: MipsInstructionBitfield,
+    op: MipsOpcode
+}
+
+fn opcode_of_instruction(instr : &MipsInstructionBitfield) -> MipsOpcode {
+    match instr.op() {
+        _ if instr.raw() == 0 => MipsOpcode::NOP,
+        MipsOpcodeField::CP0 if instr.is_coprocessor_funct() => todo!(),
+        MipsOpcodeField::CP0 => match instr.cop_op() {
+            MipsCopRsField::MF => MipsOpcode::MFC0,
+            MipsCopRsField::DMF => MipsOpcode::DMFC0,
+            MipsCopRsField::CF => MipsOpcode::CFC0,
+            MipsCopRsField::DCF => MipsOpcode::DCFC0,
+            MipsCopRsField::MT => MipsOpcode::MTC0,
+            MipsCopRsField::DMT => MipsOpcode::DMTC0,
+            MipsCopRsField::CT => MipsOpcode::CTC0,
+            MipsCopRsField::DCT => MipsOpcode::DCTC0,
+            MipsCopRsField::BC => todo!()
+        }
+        MipsOpcodeField::CP1 => todo!(),
+        MipsOpcodeField::CP2 => todo!(),
+        MipsOpcodeField::CP3 => todo!(),
+        MipsOpcodeField::REGIMM => match instr.rt_op() {
+            MipsRegimmRtField::BLTZ => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::LTZ, likely: false, link: false }),
+            MipsRegimmRtField::BLTZL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::LTZ, likely: true, link: false }),
+            MipsRegimmRtField::BLTZAL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::LTZ, likely: false, link: true }),
+
+
+            MipsRegimmRtField::BGEZ => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GEZ, likely: false, link: false }),
+            MipsRegimmRtField::BGEZL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GEZ, likely: true, link: false }),
+            MipsRegimmRtField::BGEZAL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GEZ, likely: false, link: true }),
+            MipsRegimmRtField::BGEZALL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GEZ, likely: true, link: true }),
+
+            MipsRegimmRtField::TGEI => todo!(),
+            MipsRegimmRtField::TGEIU => todo!(),
+            MipsRegimmRtField::TLTI => todo!(),
+            MipsRegimmRtField::TLTIU => todo!(),
+            MipsRegimmRtField::TEQI => todo!(),
+            MipsRegimmRtField::TNEI => todo!(),
+        }
+        MipsOpcodeField::SPCL => match instr.funct() {
+            MipsFunctField::SLL => MipsOpcode::SLL,
+            MipsFunctField::SRL => MipsOpcode::SRL,
+            MipsFunctField::SRA => MipsOpcode::SRA,
+            MipsFunctField::SRAV => MipsOpcode::SRAV,
+            MipsFunctField::SLLV => MipsOpcode::SLLV,
+            MipsFunctField::SRLV => MipsOpcode::SRLV,
+            MipsFunctField::JR => MipsOpcode::JR,
+            MipsFunctField::JALR => MipsOpcode::JALR,
+            MipsFunctField::SYSCALL => MipsOpcode::SYSCALL,
+            MipsFunctField::SYNC => MipsOpcode::SYNC,
+            MipsFunctField::MFHI => MipsOpcode::MFHI,
+            MipsFunctField::MTHI => MipsOpcode::MTHI,
+            MipsFunctField::MFLO => MipsOpcode::MFLO,
+            MipsFunctField::MTLO => MipsOpcode::MTLO,
+            MipsFunctField::DSLLV => MipsOpcode::DSLLV,
+            MipsFunctField::DSRLV => MipsOpcode::DSRLV,
+            MipsFunctField::DSRAV => MipsOpcode::DSRAV,
+            MipsFunctField::MULT => MipsOpcode::MULT,
+            MipsFunctField::MULTU => MipsOpcode::MULTU,
+            MipsFunctField::DIV => MipsOpcode::DIV,
+            MipsFunctField::DIVU => MipsOpcode::DIVU,
+            MipsFunctField::DMULT => MipsOpcode::DMULT,
+            MipsFunctField::DMULTU => MipsOpcode::DMULTU,
+            MipsFunctField::DDIV => MipsOpcode::DDIV,
+            MipsFunctField::DDIVU => MipsOpcode::DDIVU,
+            MipsFunctField::ADD => MipsOpcode::ADD,
+            MipsFunctField::ADDU => MipsOpcode::ADDU,
+            MipsFunctField::AND => MipsOpcode::AND,
+            MipsFunctField::SUB => MipsOpcode::SUB,
+            MipsFunctField::SUBU => MipsOpcode::SUBU,
+            MipsFunctField::OR => MipsOpcode::OR,
+            MipsFunctField::XOR => MipsOpcode::XOR,
+            MipsFunctField::NOR => MipsOpcode::NOR,
+            MipsFunctField::SLT => MipsOpcode::SLT,
+            MipsFunctField::SLTU => MipsOpcode::SLTU,
+            MipsFunctField::DADD => MipsOpcode::DADD,
+            MipsFunctField::DADDU => MipsOpcode::DADDU,
+            MipsFunctField::DSUB => MipsOpcode::DSUB,
+            MipsFunctField::DSUBU => MipsOpcode::DSUBU,
+            MipsFunctField::TGE => MipsOpcode::TGE,
+            MipsFunctField::TGEU => MipsOpcode::TGEU,
+            MipsFunctField::TLT => MipsOpcode::TLT,
+            MipsFunctField::TLTU => MipsOpcode::TLTU,
+            MipsFunctField::TEQ => MipsOpcode::TEQ,
+            MipsFunctField::TNE => MipsOpcode::TNE,
+            MipsFunctField::DSLL => MipsOpcode::DSLL,
+            MipsFunctField::DSRL => MipsOpcode::DSRL,
+            MipsFunctField::DSRA => MipsOpcode::DSRA,
+            MipsFunctField::DSLL32 => MipsOpcode::DSLL32,
+            MipsFunctField::DSRL32 => MipsOpcode::DSRL32,
+            MipsFunctField::DSRA32 => MipsOpcode::DSRA32,
+        }
+        MipsOpcodeField::LD => MipsOpcode::LD,
+        MipsOpcodeField::LUI => MipsOpcode::LUI,
+        MipsOpcodeField::ADDI => MipsOpcode::ADDI,
+        MipsOpcodeField::ADDIU => MipsOpcode::ADDIU,
+        MipsOpcodeField::DADDI => MipsOpcode::DADDI,
+        MipsOpcodeField::ANDI => MipsOpcode::ANDI,
+        MipsOpcodeField::LBU => MipsOpcode::LBU,
+        MipsOpcodeField::LHU => MipsOpcode::LHU,
+        MipsOpcodeField::LH => MipsOpcode::LH,
+        MipsOpcodeField::LW => MipsOpcode::LW,
+        MipsOpcodeField::LWU => MipsOpcode::LWU,
+        MipsOpcodeField::BEQ => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::EQ, likely: false, link: false }),
+        MipsOpcodeField::BEQL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::EQ, likely: true, link: false }),
+        MipsOpcodeField::BGTZ => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GTZ, likely: false, link: false }),
+        MipsOpcodeField::BGTZL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GTZ, likely: true, link: false }),
+        MipsOpcodeField::BLEZ => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::LEZ, likely: false, link: false }),
+        MipsOpcodeField::BLEZL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::LEZ, likely: true, link: false }),
+        MipsOpcodeField::BNE => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::NE, likely: false, link: false }),
+        MipsOpcodeField::BNEL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::NE, likely: true, link: false }),
+        MipsOpcodeField::CACHE => MipsOpcode::CACHE,
+        MipsOpcodeField::SB => MipsOpcode::SB,
+        MipsOpcodeField::SH => MipsOpcode::SH,
+        MipsOpcodeField::SD => MipsOpcode::SD,
+        MipsOpcodeField::SW => MipsOpcode::SW,
+        MipsOpcodeField::ORI => MipsOpcode::ORI,
+        MipsOpcodeField::J => MipsOpcode::J,
+        MipsOpcodeField::JAL => MipsOpcode::JAL,
+        MipsOpcodeField::SLTI => MipsOpcode::SLTI,
+        MipsOpcodeField::SLTIU => MipsOpcode::SLTIU,
+        MipsOpcodeField::XORI => MipsOpcode::XORI,
+        MipsOpcodeField::DADDIU => MipsOpcode::DADDIU,
+        MipsOpcodeField::LB => MipsOpcode::LB,
+        MipsOpcodeField::LDC1 => MipsOpcode::LDC1,
+        MipsOpcodeField::SDC1 => MipsOpcode::SDC1,
+        MipsOpcodeField::LWC1 => MipsOpcode::LWC1,
+        MipsOpcodeField::SWC1 => MipsOpcode::SWC1,
+        MipsOpcodeField::LWL => MipsOpcode::LWL,
+        MipsOpcodeField::LWR => MipsOpcode::LWR,
+        MipsOpcodeField::SWL => MipsOpcode::SWL,
+        MipsOpcodeField::SWR => MipsOpcode::SWR,
+        MipsOpcodeField::LDL => MipsOpcode::LDL,
+        MipsOpcodeField::LDR => MipsOpcode::LDR,
+        MipsOpcodeField::SDL => MipsOpcode::SDL,
+        MipsOpcodeField::SDR => MipsOpcode::SDR,
+        MipsOpcodeField::LL => MipsOpcode::LL,
+        MipsOpcodeField::LLD => MipsOpcode::LLD,
+        MipsOpcodeField::SC => MipsOpcode::SC,
+        MipsOpcodeField::SCD => MipsOpcode::SCD,
+        MipsOpcodeField::RDHWR => MipsOpcode::RDHWR,
     }
 }
 
 pub fn parse(code: &[u32], virtual_address: u64, physical_address: u32) {
-    let instructions = code.iter().map(|word| MipsInstruction(*word));
-    let zipped = izip!(instructions, (virtual_address..).step_by(4), (physical_address..).step_by(4));
+    let instructions = code.iter().map(|word| MipsInstructionBitfield(*word));
+    let parsed = izip!(instructions, (virtual_address..).step_by(4), (physical_address..).step_by(4)).map(|(instr, vaddr, paddr)| {
+        ParsedMipsInstruction {
+            paddr,
+            vaddr,
+            instr,
+            op: opcode_of_instruction(&instr)
+        }
+    });
 
     let code_len = code.len();
     println!("Compiling {code_len} instructions at virtual address 0x{virtual_address:016X} and physical address 0x{physical_address:08X}");
 
-    for (instruction, vaddr, paddr) in zipped {
-        let iw = instruction.raw();
-        let op_enum = instruction.op();
+    for instr in parsed {
+        let iw = instr.instr.raw();
+        let op_enum = instr.op;
+        let vaddr = instr.vaddr;
+        let paddr = instr.paddr;
         println!("{vaddr:016X}\t{paddr:08X}\t{iw:08X} (opcode {op_enum:?})");
     }
 }
