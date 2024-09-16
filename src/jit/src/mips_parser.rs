@@ -71,6 +71,14 @@ enum MipsOpcode {
     DMTC0,
     CTC0,
     DCTC0,
+    MFC1,
+    DMFC1,
+    CFC1,
+    DCFC1,
+    MTC1,
+    DMTC1,
+    CTC1,
+    DCTC1,
     SLL,
     SRL,
     SRA,
@@ -268,12 +276,69 @@ enum MipsFunctField {
     DSRA32  = 0b111111,
 }
 
+#[derive(ConvRaw, Debug)]
+enum MipsCop0FunctField {
+    TLBR  = 0b000001,
+    TLBWI = 0b000010,
+    DIV   = 0b000011,
+    SQRT  = 0b000100,
+    ABS   = 0b000101,
+    TLBWR = 0b000110,
+    TLBP  = 0b001000,
+    ERET  = 0b011000,
+    WAIT  = 0b100000,
+}
+
+#[derive(ConvRaw, Debug)]
+#[allow(non_camel_case_types)]
+enum MipsCop1FunctField {
+    ADD        = 0b000000,
+    SUB        = 0b000001,
+    MULT       = 0b000010,
+    DIV        = 0b000011,
+    SQRT       = 0b000100,
+    ABS        = 0b000101,
+    MOV        = 0b000110,
+    ROUND_L    = 0b001000,
+    TRUNC_L    = 0b001001,
+    CEIL_L     = 0b001010,
+    FLOOR_L    = 0b001011,
+    ROUND_W    = 0b001100,
+    TRUNC_W    = 0b001101,
+    CEIL_W     = 0b001110,
+    FLOOR_W    = 0b001111,
+    ERET       = 0b011000,
+    CVT_S      = 0b100000,
+    CVT_D      = 0b100001,
+    CVT_W      = 0b100100,
+    CVT_L      = 0b100101,
+    NEG        = 0b000111,
+    C_F        = 0b110000,
+    C_UN       = 0b110001,
+    C_EQ       = 0b110010,
+    C_UEQ      = 0b110011,
+    C_OLT      = 0b110100,
+    C_ULT      = 0b110101,
+    C_OLE      = 0b110110,
+    C_ULE      = 0b110111,
+    C_SF       = 0b111000,
+    C_NGLE     = 0b111001,
+    C_SEQ      = 0b111010,
+    C_NGL      = 0b111011,
+    C_LT       = 0b111100,
+    C_NGE      = 0b111101,
+    C_LE       = 0b111110,
+    C_NGT      = 0b111111,
+}
+
 proc_bitfield::bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq)]
     pub struct MipsInstructionBitfield(pub u32): Debug, FromStorage, IntoStorage, DerefStorage {
         pub raw: u32 @ ..,
 
         pub funct: u8 [unwrap MipsFunctField] @ 0..=5,
+        pub cop0_funct: u8 [unwrap MipsCop0FunctField] @ 0..=5,
+        pub cop1_funct: u8 [unwrap MipsCop1FunctField] @ 0..=5,
         pub funct_bits: u8 @ 0..=5,
 
         pub imm:   u16 @ 0..=15,
@@ -302,7 +367,17 @@ pub struct ParsedMipsInstruction {
 fn opcode_of_instruction(instr : &MipsInstructionBitfield) -> MipsOpcode {
     match instr.op() {
         _ if instr.raw() == 0 => MipsOpcode::NOP,
-        MipsOpcodeField::CP0 if instr.is_coprocessor_funct() => todo!(),
+        MipsOpcodeField::CP0 if instr.is_coprocessor_funct() =>  match instr.cop0_funct() {
+            MipsCop0FunctField::TLBR => todo!("MipsCop0FunctField::TLBR"),
+            MipsCop0FunctField::TLBWI => todo!("MipsCop0FunctField::TLBWI"),
+            MipsCop0FunctField::DIV => todo!("MipsCop0FunctField::DIV"),
+            MipsCop0FunctField::SQRT => todo!("MipsCop0FunctField::SQRT"),
+            MipsCop0FunctField::ABS => todo!("MipsCop0FunctField::ABS"),
+            MipsCop0FunctField::TLBWR => todo!("MipsCop0FunctField::TLBWR"),
+            MipsCop0FunctField::TLBP => todo!("MipsCop0FunctField::TLBP"),
+            MipsCop0FunctField::ERET => todo!("MipsCop0FunctField::ERET"),
+            MipsCop0FunctField::WAIT => todo!("MipsCop0FunctField::WAIT"),
+        }
         MipsOpcodeField::CP0 => match instr.cop_op() {
             MipsCopRsField::MF => MipsOpcode::MFC0,
             MipsCopRsField::DMF => MipsOpcode::DMFC0,
@@ -312,11 +387,60 @@ fn opcode_of_instruction(instr : &MipsInstructionBitfield) -> MipsOpcode {
             MipsCopRsField::DMT => MipsOpcode::DMTC0,
             MipsCopRsField::CT => MipsOpcode::CTC0,
             MipsCopRsField::DCT => MipsOpcode::DCTC0,
-            MipsCopRsField::BC => todo!()
+            MipsCopRsField::BC => todo!("CP0 MipsCopRsField::BC")
         }
-        MipsOpcodeField::CP1 => todo!(),
-        MipsOpcodeField::CP2 => todo!(),
-        MipsOpcodeField::CP3 => todo!(),
+        MipsOpcodeField::CP1 if instr.is_coprocessor_funct() => match instr.cop1_funct() {
+            MipsCop1FunctField::ADD => todo!("MipsCop1FunctField::ADD"),
+            MipsCop1FunctField::SUB => todo!("MipsCop1FunctField::SUB"),
+            MipsCop1FunctField::MULT => todo!("MipsCop1FunctField::MULT"),
+            MipsCop1FunctField::DIV => todo!("MipsCop1FunctField::DIV"),
+            MipsCop1FunctField::SQRT => todo!("MipsCop1FunctField::SQRT"),
+            MipsCop1FunctField::ABS => todo!("MipsCop1FunctField::ABS"),
+            MipsCop1FunctField::MOV => todo!("MipsCop1FunctField::MOV"),
+            MipsCop1FunctField::ROUND_L => todo!("MipsCop1FunctField::ROUND_L"),
+            MipsCop1FunctField::TRUNC_L => todo!("MipsCop1FunctField::TRUNC_L"),
+            MipsCop1FunctField::CEIL_L => todo!("MipsCop1FunctField::CEIL_L"),
+            MipsCop1FunctField::FLOOR_L => todo!("MipsCop1FunctField::FLOOR_L"),
+            MipsCop1FunctField::ROUND_W => todo!("MipsCop1FunctField::ROUND_W"),
+            MipsCop1FunctField::TRUNC_W => todo!("MipsCop1FunctField::TRUNC_W"),
+            MipsCop1FunctField::CEIL_W => todo!("MipsCop1FunctField::CEIL_W"),
+            MipsCop1FunctField::FLOOR_W => todo!("MipsCop1FunctField::FLOOR_W"),
+            MipsCop1FunctField::ERET => todo!("MipsCop1FunctField::ERET"),
+            MipsCop1FunctField::CVT_S => todo!("MipsCop1FunctField::CVT_S"),
+            MipsCop1FunctField::CVT_D => todo!("MipsCop1FunctField::CVT_D"),
+            MipsCop1FunctField::CVT_W => todo!("MipsCop1FunctField::CVT_W"),
+            MipsCop1FunctField::CVT_L => todo!("MipsCop1FunctField::CVT_L"),
+            MipsCop1FunctField::NEG => todo!("MipsCop1FunctField::NEG"),
+            MipsCop1FunctField::C_F => todo!("MipsCop1FunctField::C_F"),
+            MipsCop1FunctField::C_UN => todo!("MipsCop1FunctField::C_UN"),
+            MipsCop1FunctField::C_EQ => todo!("MipsCop1FunctField::C_EQ"),
+            MipsCop1FunctField::C_UEQ => todo!("MipsCop1FunctField::C_UEQ"),
+            MipsCop1FunctField::C_OLT => todo!("MipsCop1FunctField::C_OLT"),
+            MipsCop1FunctField::C_ULT => todo!("MipsCop1FunctField::C_ULT"),
+            MipsCop1FunctField::C_OLE => todo!("MipsCop1FunctField::C_OLE"),
+            MipsCop1FunctField::C_ULE => todo!("MipsCop1FunctField::C_ULE"),
+            MipsCop1FunctField::C_SF => todo!("MipsCop1FunctField::C_SF"),
+            MipsCop1FunctField::C_NGLE => todo!("MipsCop1FunctField::C_NGLE"),
+            MipsCop1FunctField::C_SEQ => todo!("MipsCop1FunctField::C_SEQ"),
+            MipsCop1FunctField::C_NGL => todo!("MipsCop1FunctField::C_NGL"),
+            MipsCop1FunctField::C_LT => todo!("MipsCop1FunctField::C_LT"),
+            MipsCop1FunctField::C_NGE => todo!("MipsCop1FunctField::C_NGE"),
+            MipsCop1FunctField::C_LE => todo!("MipsCop1FunctField::C_LE"),
+            MipsCop1FunctField::C_NGT => todo!("MipsCop1FunctField::C_NGT"),
+        }
+        MipsOpcodeField::CP1 => match instr.cop_op() {
+            MipsCopRsField::MF => MipsOpcode::MFC1,
+            MipsCopRsField::DMF => MipsOpcode::DMFC1,
+            MipsCopRsField::CF => MipsOpcode::CFC1,
+            MipsCopRsField::DCF => MipsOpcode::DCFC1,
+            MipsCopRsField::MT => MipsOpcode::MTC1,
+            MipsCopRsField::DMT => MipsOpcode::DMTC1,
+            MipsCopRsField::CT => MipsOpcode::CTC1,
+            MipsCopRsField::DCT => MipsOpcode::DCTC1,
+            MipsCopRsField::BC => todo!("CP1 MipsCopRsField::BC")
+        }
+        MipsOpcodeField::CP2 => todo!("MipsOpcodeField::CP2"),
+        MipsOpcodeField::CP3 => todo!("MipsOpcodeField::CP3"),
         MipsOpcodeField::REGIMM => match instr.rt_op() {
             MipsRegimmRtField::BLTZ => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::LTZ, likely: false, link: false }),
             MipsRegimmRtField::BLTZL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::LTZ, likely: true, link: false }),
@@ -328,12 +452,12 @@ fn opcode_of_instruction(instr : &MipsInstructionBitfield) -> MipsOpcode {
             MipsRegimmRtField::BGEZAL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GEZ, likely: false, link: true }),
             MipsRegimmRtField::BGEZALL => MipsOpcode::BRANCH(BranchInfo { cond: BranchCondition::GEZ, likely: true, link: true }),
 
-            MipsRegimmRtField::TGEI => todo!(),
-            MipsRegimmRtField::TGEIU => todo!(),
-            MipsRegimmRtField::TLTI => todo!(),
-            MipsRegimmRtField::TLTIU => todo!(),
-            MipsRegimmRtField::TEQI => todo!(),
-            MipsRegimmRtField::TNEI => todo!(),
+            MipsRegimmRtField::TGEI => todo!("MipsRegimmRtField::TGEI"),
+            MipsRegimmRtField::TGEIU => todo!("MipsRegimmRtField::TGEIU"),
+            MipsRegimmRtField::TLTI => todo!("MipsRegimmRtField::TLTI"),
+            MipsRegimmRtField::TLTIU => todo!("MipsRegimmRtField::TLTIU"),
+            MipsRegimmRtField::TEQI => todo!("MipsRegimmRtField::TEQI"),
+            MipsRegimmRtField::TNEI => todo!("MipsRegimmRtField::TNEI"),
         }
         MipsOpcodeField::SPCL => match instr.funct() {
             MipsFunctField::SLL => MipsOpcode::SLL,
