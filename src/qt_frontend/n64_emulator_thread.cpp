@@ -4,6 +4,9 @@
 #include <frontend/audio.h>
 #include <frontend/render.h>
 #include "n64_emulator_thread.h"
+
+#include <QWindow>
+
 #include "qt_wsi_platform.h"
 
 class QtParallelRdpWindowInfo : public ParallelRdpWindowInfo {
@@ -19,8 +22,8 @@ private:
     QWindow* pane;
 };
 
-N64EmulatorThread::N64EmulatorThread(QtWSIPlatform* wsiPlatform) {
-    this->wsiPlatform = wsiPlatform;
+N64EmulatorThread::N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform)
+        : wsiPlatform(wsiPlatform), instanceFactory(instanceFactory) {
     init_n64system(nullptr, true, false, QT_VULKAN_VIDEO_TYPE, false);
 
     if (file_exists(PIF_ROM_PATH)) {
@@ -37,16 +40,13 @@ void N64EmulatorThread::start() {
         logfatal("Tried to start emulator thread, but it was already running!");
     }
 
-    QtWSIPlatform* _wsiPlatform = this->wsiPlatform;
-    QWindow* pane = wsiPlatform->getPane();
     running = true;
-    bool* _game_loaded = &game_loaded;
-    emuThread = std::thread([_wsiPlatform, pane, _game_loaded]() {
-        init_vulkan_wsi(_wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(pane));
+    emuThread = std::thread([&] {
+        init_vulkan_wsi(instanceFactory, wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(wsiPlatform->getWindowHandle()));
 
         init_parallel_rdp();
 
-        while (!(*_game_loaded)) {
+        while (!game_loaded) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
             prdp_update_screen_no_game();
         }

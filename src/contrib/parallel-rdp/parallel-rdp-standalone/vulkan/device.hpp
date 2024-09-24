@@ -506,6 +506,7 @@ public:
 	                                 VkShaderStageFlagBits stage = VK_SHADER_STAGE_COMPUTE_BIT) const;
 
 	const QueueInfo &get_queue_info() const;
+  	const RenderPass &request_render_pass(const RenderPassInfo &info, bool compatible);
 
 	void timestamp_log_reset();
 	void timestamp_log(const TimestampIntervalReportCallback &cb) const;
@@ -543,7 +544,6 @@ private:
 	                                                         const uint32_t *stages_for_sets,
 	                                                         const ImmutableSampler * const *immutable_samplers);
 	const Framebuffer &request_framebuffer(const RenderPassInfo &info);
-	const RenderPass &request_render_pass(const RenderPassInfo &info, bool compatible);
 
 	VkPhysicalDeviceMemoryProperties mem_props;
 	VkPhysicalDeviceProperties gpu_props;

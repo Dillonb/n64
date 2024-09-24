@@ -210,7 +210,7 @@ public:
 
 	// The simple approach. WSI internally creates the context with instance + device.
 	// Required information about extensions etc, is pulled from the platform.
-	bool init_context_from_platform(unsigned num_thread_indices, const Context::SystemHandles &system_handles);
+	bool init_context_from_platform(InstanceFactory*, unsigned num_thread_indices, const Context::SystemHandles &system_handles);
 
 	// If you have your own VkInstance and/or VkDevice, you must create your own Vulkan::Context with
 	// the appropriate init() call. Based on the platform you use, you must make sure to enable the
@@ -231,7 +231,7 @@ public:
 	bool init_external_swapchain(std::vector<ImageHandle> external_images);
 
 	// Calls init_context_from_platform -> init_device -> init_surface_swapchain in succession.
-	bool init_simple(unsigned num_thread_indices, const Context::SystemHandles &system_handles);
+	bool init_simple(InstanceFactory*, unsigned num_thread_indices, const Context::SystemHandles &system_handles);
 
 	~WSI();
 

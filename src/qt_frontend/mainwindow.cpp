@@ -14,8 +14,7 @@ void MainWindow::showEvent(QShowEvent *event) {
     QWidget::showEvent(event);
 
     vkPane = new VulkanPane();
-    vkPane->setSurfaceType(QSurface::VulkanSurface);
-    setCentralWidget(QWidget::createWindowContainer(vkPane, this));
+    setCentralWidget(vkPane);
 }
 
 void MainWindow::resetTriggered() {

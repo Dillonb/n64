@@ -326,9 +326,9 @@ bool WSI::init_surface_swapchain()
 	return true;
 }
 
-bool WSI::init_simple(unsigned num_thread_indices, const Context::SystemHandles &system_handles)
+bool WSI::init_simple(InstanceFactory* instanceFactory, unsigned num_thread_indices, const Context::SystemHandles &system_handles)
 {
-	if (!init_context_from_platform(num_thread_indices, system_handles))
+	if (!init_context_from_platform(instanceFactory, num_thread_indices, system_handles))
 		return false;
 	if (!init_device())
 		return false;
@@ -337,7 +337,7 @@ bool WSI::init_simple(unsigned num_thread_indices, const Context::SystemHandles 
 	return true;
 }
 
-bool WSI::init_context_from_platform(unsigned num_thread_indices, const Context::SystemHandles &system_handles)
+bool WSI::init_context_from_platform(InstanceFactory* instanceFactory, unsigned num_thread_indices, const Context::SystemHandles &system_handles)
 {
 	VK_ASSERT(platform);
 	auto instance_ext = platform->get_instance_extensions();
@@ -357,6 +357,8 @@ bool WSI::init_context_from_platform(unsigned num_thread_indices, const Context:
 	new_context->set_application_info(platform->get_application_info());
 	new_context->set_num_thread_indices(num_thread_indices);
 	new_context->set_system_handles(system_handles);
+  	if(instanceFactory)
+  		new_context->set_instance_factory(instanceFactory);
 
 	if (!new_context->init_instance(
 			instance_ext.data(), instance_ext.size(),

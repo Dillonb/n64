@@ -7,7 +7,7 @@
 class QtWSIPlatform;
 class N64EmulatorThread {
 public:
-    explicit N64EmulatorThread(QtWSIPlatform* wsiPlatform);
+    explicit N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform);
     void start();
     void reset();
     void loadRom(const std::string& filename);
@@ -17,6 +17,7 @@ private:
     bool game_loaded = false;
     std::thread emuThread;
     QtWSIPlatform* wsiPlatform;
+    Vulkan::InstanceFactory* instanceFactory;
 };
 
 
