@@ -32,6 +32,7 @@ public slots:
 private:
     Ui::MainWindow *ui;
     VulkanPane* vkPane;
+    std::unique_ptr<N64EmulatorThread> emulatorThread;
 };
 
 

@@ -36,6 +36,8 @@ public:
 
     VkSurfaceKHR create_surface(VkInstance, VkPhysicalDevice) override;
 
+    void destroy_surface(VkInstance, VkSurfaceKHR) override {}
+
     uint32_t get_surface_width() override;
 
     uint32_t get_surface_height() override;

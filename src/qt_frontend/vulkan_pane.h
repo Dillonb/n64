@@ -12,10 +12,8 @@ class VulkanPane : public QWidget {
 public:
     explicit VulkanPane();
 
-    N64EmulatorThread& getEmulatorThread() { return *emulatorThread; }
+    [[nodiscard]] QPaintEngine *paintEngine() const override { return nullptr; }
 
-private:
-    std::unique_ptr<N64EmulatorThread> emulatorThread;
     std::unique_ptr<QtWSIPlatform> platform;
     std::unique_ptr<QtInstanceFactory> qtVkInstanceFactory;
 };

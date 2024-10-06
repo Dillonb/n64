@@ -35,7 +35,7 @@ N64EmulatorThread::N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, Q
     }
 }
 
-void N64EmulatorThread::start() {
+void N64EmulatorThread::run() noexcept {
     if (n64_should_quit() || running) {
         logfatal("Tried to start emulator thread, but it was already running!");
     }

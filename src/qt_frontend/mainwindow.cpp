@@ -8,22 +8,29 @@ MainWindow::MainWindow(QWidget *parent)
         : QMainWindow(parent) {
     ui = new Ui::MainWindow();
     ui->setupUi(this);
+
+    vkPane = new VulkanPane();
+    setCentralWidget(vkPane);
+    vkPane->hide();
+
+    emulatorThread = std::make_unique<N64EmulatorThread>(vkPane->qtVkInstanceFactory.get(), vkPane->platform.get());
+
+    connect(ui->actionOpen, &QAction::triggered, this, &MainWindow::openFileTriggered);
 }
 
 void MainWindow::showEvent(QShowEvent *event) {
     QWidget::showEvent(event);
-
-    vkPane = new VulkanPane();
-    setCentralWidget(vkPane);
 }
 
 void MainWindow::resetTriggered() {
-    vkPane->getEmulatorThread().reset();
+    emulatorThread->reset();
 }
 
 void MainWindow::openFileTriggered() {
     auto filename = QFileDialog::getOpenFileName(this, "Load ROM", QString(), "N64 ROM files (*.z64 *.n64 *.v64)");
     if (!filename.isEmpty()) {
-        vkPane->getEmulatorThread().loadRom(filename.toStdString());
+        vkPane->show();
+        emulatorThread->start();
+        emulatorThread->loadRom(filename.toStdString());
     }
 }

@@ -47,6 +47,4 @@ VulkanPane::VulkanPane() {
     windowHandle()->create();
 
     platform = std::make_unique<QtWSIPlatform>(windowHandle());
-    emulatorThread = std::make_unique<N64EmulatorThread>(qtVkInstanceFactory.get(), platform.get());
-    emulatorThread->start();
 }
