@@ -22,9 +22,9 @@ private:
     QWindow* pane;
 };
 
-N64EmulatorThread::N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform)
+N64EmulatorThread::N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform, const char* rom_path, bool debug, bool interpreter)
         : wsiPlatform(wsiPlatform), instanceFactory(instanceFactory) {
-    init_n64system(nullptr, true, false, QT_VULKAN_VIDEO_TYPE, false);
+    init_n64system(rom_path, true, debug, QT_VULKAN_VIDEO_TYPE, interpreter);
 
     if (file_exists(PIF_ROM_PATH)) {
         logalways("Found PIF ROM at %s, loading", PIF_ROM_PATH);
@@ -56,8 +56,10 @@ void N64EmulatorThread::run() noexcept {
 }
 
 void N64EmulatorThread::reset() {
-    if (running) {
-        n64_queue_reset();
+    if (game_loaded) {
+        reset_n64system();
+        n64_load_rom(n64sys.rom_path);
+        pif_rom_execute();
     }
 }
 

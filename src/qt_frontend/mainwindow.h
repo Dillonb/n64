@@ -20,10 +20,11 @@ class MainWindow : public QMainWindow
 Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(const char* rom_path = nullptr, bool debug = false, bool interpreter = false, QWidget *parent = nullptr);
     virtual ~MainWindow() {};
 
     void showEvent(QShowEvent* event) override;
+    std::unique_ptr<N64EmulatorThread> emulatorThread;
 
 public slots:
     void resetTriggered();
@@ -32,7 +33,6 @@ public slots:
 private:
     Ui::MainWindow *ui;
     VulkanPane* vkPane;
-    std::unique_ptr<N64EmulatorThread> emulatorThread;
 };
 
 

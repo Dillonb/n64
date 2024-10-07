@@ -14,7 +14,7 @@ class N64EmulatorThread : public QThread {
     QtWSIPlatform* wsiPlatform;
     Vulkan::InstanceFactory* instanceFactory;
 public:
-    explicit N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform);
+    explicit N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform, const char* rom_path = nullptr, bool debug = false, bool interpreter = false);
     void run() noexcept override;
     void reset();
     void loadRom(const std::string& filename);
