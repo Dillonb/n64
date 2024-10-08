@@ -41,18 +41,17 @@ void N64EmulatorThread::run() noexcept {
     }
 
     running = true;
-    emuThread = std::thread([&] {
-        init_vulkan_wsi(instanceFactory, wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(wsiPlatform->getWindowHandle()));
 
-        init_parallel_rdp();
+    init_vulkan_wsi(instanceFactory, wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(wsiPlatform->getWindowHandle()));
 
-        while (!game_loaded) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
-            prdp_update_screen_no_game();
-        }
+    init_parallel_rdp();
 
-        n64_system_loop();
-    });
+    while (!game_loaded) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
+        prdp_update_screen_no_game();
+    }
+
+    n64_system_loop();
 }
 
 void N64EmulatorThread::reset() {
