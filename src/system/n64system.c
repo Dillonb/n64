@@ -209,7 +209,11 @@ INLINE void interpreter_system_step() {
 #ifdef N64_DEBUG_MODE
     check_breakpoint(N64CPU.pc);
     while (n64sys.debugger_state.broken) {
+#ifdef N64_WIN
+        Sleep(1);
+#else
         usleep(1000);
+#endif
         debugger_tick();
     }
 #endif

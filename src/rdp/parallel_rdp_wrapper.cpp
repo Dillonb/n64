@@ -78,12 +78,12 @@ uint32_t fullscreen_quad_frag[] =
 
 Program* fullscreen_quad_program;
 
-WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, std::unique_ptr<ParallelRdpWindowInfo>&& newWindowInfo) {
+WSI* init_vulkan_wsi(Vulkan::InstanceFactory* instance_factory, Vulkan::WSIPlatform* wsi_platform, std::unique_ptr<ParallelRdpWindowInfo>&& newWindowInfo) {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(wsi_platform);
     Context::SystemHandles handles;
-    if (!wsi->init_simple(1, handles)) {
+    if (!wsi->init_simple(instance_factory, 1, handles)) {
         logfatal("Failed to initialize WSI!");
     }
     windowInfo = std::move(newWindowInfo);
@@ -139,7 +139,7 @@ void init_parallel_rdp() {
 }
 
 void prdp_init_internal_swapchain() {
-    init_vulkan_wsi(new SDLWSIPlatform(), std::make_unique<SDLParallelRdpWindowInfo>());
+    init_vulkan_wsi(nullptr, new SDLWSIPlatform(), std::make_unique<SDLParallelRdpWindowInfo>());
     init_parallel_rdp();
 }
 

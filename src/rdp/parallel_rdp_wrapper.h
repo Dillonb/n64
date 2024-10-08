@@ -23,7 +23,7 @@ uint32_t get_vk_graphics_queue_family();
 VkFormat get_vk_format();
 VkCommandBuffer get_vk_command_buffer();
 void submit_requested_vk_command_buffer();
-Vulkan::WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, std::unique_ptr<ParallelRdpWindowInfo>&& windowInfo);
+Vulkan::WSI* init_vulkan_wsi(Vulkan::InstanceFactory* instance_factory, Vulkan::WSIPlatform* wsi_platform, std::unique_ptr<ParallelRdpWindowInfo>&& windowInfo);
 void init_parallel_rdp();
 
 extern "C" {
