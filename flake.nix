@@ -37,7 +37,8 @@
       ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
         pkgs.darwin.apple_sdk.frameworks.Cocoa
       ] ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
-        pkgs.qt6.full # TODO: Qt should work on Darwin too
+        pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
+        pkgs.qt6.wrapQtAppsHook
       ];
       stdenv = if pkgs.stdenv.isLinux then pkgs.stdenv
                 else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
@@ -67,6 +68,7 @@
           postInstall =
             if pkgs.stdenv.isLinux then ''
               wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
+              wrapProgram $out/bin/n64-qt --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
             '' else if pkgs.stdenv.isDarwin then ''
               wrapProgram $out/bin/n64 --set DYLD_FALLBACK_LIBRARY_PATH ${pkgs.darwin.moltenvk}/lib
             '' else throw "Unsupported platform";
@@ -76,6 +78,11 @@
       apps.default = {
         type = "app";
         program = "${self.packages.${system}.default}/bin/n64";
+      };
+
+      apps.qt = {
+        type = "app";
+        program = "${self.packages.${system}.default}/bin/n64-qt";
       };
 
       devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
