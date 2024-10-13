@@ -34,6 +34,7 @@
         pkgs.capstone
         pkgs.dbus
         pkgs.bzip2
+        pkgs.qt6.full
       ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
         pkgs.darwin.apple_sdk.frameworks.Cocoa
       ];
