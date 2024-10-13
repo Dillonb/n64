@@ -64,7 +64,7 @@ jobs:
         run: |
           mkdir -p tmp
           cd tmp
-          wget https://raw.githubusercontent.com/DragonMinded/libdragon/trunk/tools/chksum64.c
+          wget https://raw.githubusercontent.com/DragonMinded/libdragon/8c4e8505778a5c84e5477394eddfb127ce44d71b/tools/chksum64.c
           gcc chksum64.c -o chksum64
           sudo mv chksum64 /bin/
           git clone https://github.com/ARM9/bass.git
