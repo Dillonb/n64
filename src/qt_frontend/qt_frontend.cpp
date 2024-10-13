@@ -1,5 +1,4 @@
 #include <QApplication>
-#include <QCommandLineParser>
 #include <settings.h>
 #include <cflags.h>
 
@@ -33,9 +32,6 @@ int main(int argc, char** argv) {
 #else
     bool interpreter = true;
 #endif
-
-    bool software_mode = false;
-    cflags_add_bool(flags, 's', "software-mode", &software_mode, "Use software mode RDP (UNFINISHED!) (currently does nothing in the Qt frontend)");
 
     bool debug = false;
 #ifdef N64_DEBUG_MODE
