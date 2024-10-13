@@ -20,4 +20,4 @@ https://github.com/btzy/nativefiledialog-extended
 
 https://github.com/Themaister/parallel-rdp-standalone
 
-7e5ad30b8c6e5b863c117997c459441649da9bc7
+d1cc912c5c47abaf9b6b155d3cd15255df65cf5b
