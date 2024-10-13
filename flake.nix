@@ -34,9 +34,10 @@
         pkgs.capstone
         pkgs.dbus
         pkgs.bzip2
-        pkgs.qt6.full
       ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
         pkgs.darwin.apple_sdk.frameworks.Cocoa
+      ] ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+        pkgs.qt6.full # TODO: Qt should work on Darwin too
       ];
       stdenv = if pkgs.stdenv.isLinux then pkgs.stdenv
                 else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
