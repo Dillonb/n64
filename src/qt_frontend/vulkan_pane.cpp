@@ -1,21 +1,50 @@
+#include <qt_frontend/vulkan_pane.h>
+#include <QGuiApplication>
 #include <log.h>
-#include <rdp/parallel_rdp_wrapper.h>
-#include "vulkan_pane.h"
+
+#include <QWindow>
+
 #include "qt_wsi_platform.h"
 
-VulkanPane::VulkanPane() {
-    setSurfaceType(QWindow::VulkanSurface);
+enum class CompositorCategory { Windows, MacOS, XCB, Wayland };
+
+static CompositorCategory GetOSCompositorCategory() {
+    const QString platform_name = QGuiApplication::platformName();
+    if (platform_name == QStringLiteral("windows"))
+        return CompositorCategory::Windows;
+    if (platform_name == QStringLiteral("xcb"))
+        return CompositorCategory::XCB;
+    if (platform_name == QStringLiteral("wayland") || platform_name == QStringLiteral("wayland-egl"))
+        return CompositorCategory::Wayland;
+    if (platform_name == QStringLiteral("cocoa") || platform_name == QStringLiteral("ios"))
+        return CompositorCategory::MacOS;
+
+    logwarn("Unknown Qt platform!");
+    return CompositorCategory::Windows;
 }
 
-void VulkanPane::showEvent(QShowEvent *event) {
-    QWindow::showEvent(event);
-    if (volkInitialize() != VK_SUCCESS) {
-        logfatal("Failed to load Volk");
+VulkanPane::VulkanPane() {
+    setAttribute(Qt::WA_NativeWindow);
+    setAttribute(Qt::WA_PaintOnScreen);
+    if (GetOSCompositorCategory() == CompositorCategory::Wayland) {
+        setAttribute(Qt::WA_DontCreateNativeAncestors);
     }
 
-    platform = std::make_unique<QtWSIPlatform>(this);
+    if (GetOSCompositorCategory() == CompositorCategory::MacOS) {
+        windowHandle()->setSurfaceType(QWindow::MetalSurface);
+    } else {
+        windowHandle()->setSurfaceType(QWindow::VulkanSurface);
+    }
 
-    emulatorThread = std::make_unique<N64EmulatorThread>(platform.get());
-    emulatorThread->start();
+    if (!Vulkan::Context::init_loader(nullptr)) {
+        logfatal("Could not initialize Vulkan ICD");
+    }
 
+
+    qtVkInstanceFactory = std::make_unique<QtInstanceFactory>();
+
+    windowHandle()->setVulkanInstance(&qtVkInstanceFactory->handle);
+    windowHandle()->create();
+
+    platform = std::make_unique<QtWSIPlatform>(windowHandle());
 }

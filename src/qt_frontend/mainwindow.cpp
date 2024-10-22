@@ -4,27 +4,31 @@
 #include "ui_mainwindow.h"
 #include "qt_wsi_platform.h"
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(const char* rom_path, bool debug, bool interpreter, QWidget *parent)
         : QMainWindow(parent) {
     ui = new Ui::MainWindow();
     ui->setupUi(this);
+
+    vkPane = new VulkanPane();
+    setCentralWidget(vkPane);
+    vkPane->hide();
+
+    emulatorThread = std::make_unique<N64EmulatorThread>(vkPane->qtVkInstanceFactory.get(), vkPane->platform.get(), rom_path, debug, interpreter);
 }
 
 void MainWindow::showEvent(QShowEvent *event) {
     QWidget::showEvent(event);
-
-    vkPane = new VulkanPane();
-    vkPane->setSurfaceType(QSurface::VulkanSurface);
-    setCentralWidget(QWidget::createWindowContainer(vkPane, this));
 }
 
 void MainWindow::resetTriggered() {
-    vkPane->getEmulatorThread().reset();
+    emulatorThread->reset();
 }
 
 void MainWindow::openFileTriggered() {
     auto filename = QFileDialog::getOpenFileName(this, "Load ROM", QString(), "N64 ROM files (*.z64 *.n64 *.v64)");
     if (!filename.isEmpty()) {
-        vkPane->getEmulatorThread().loadRom(filename.toStdString());
+        vkPane->show();
+        emulatorThread->loadRom(filename.toStdString());
+        emulatorThread->start();
     }
 }

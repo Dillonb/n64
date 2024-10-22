@@ -4,6 +4,9 @@
 #include <frontend/audio.h>
 #include <frontend/render.h>
 #include "n64_emulator_thread.h"
+
+#include <QWindow>
+
 #include "qt_wsi_platform.h"
 
 class QtParallelRdpWindowInfo : public ParallelRdpWindowInfo {
@@ -19,9 +22,9 @@ private:
     QWindow* pane;
 };
 
-N64EmulatorThread::N64EmulatorThread(QtWSIPlatform* wsiPlatform) {
-    this->wsiPlatform = wsiPlatform;
-    init_n64system(nullptr, true, false, QT_VULKAN_VIDEO_TYPE, false);
+N64EmulatorThread::N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform, const char* rom_path, bool debug, bool interpreter)
+        : wsiPlatform(wsiPlatform), instanceFactory(instanceFactory) {
+    init_n64system(rom_path, true, debug, QT_VULKAN_VIDEO_TYPE, interpreter);
 
     if (file_exists(PIF_ROM_PATH)) {
         logalways("Found PIF ROM at %s, loading", PIF_ROM_PATH);
@@ -32,32 +35,30 @@ N64EmulatorThread::N64EmulatorThread(QtWSIPlatform* wsiPlatform) {
     }
 }
 
-void N64EmulatorThread::start() {
+void N64EmulatorThread::run() noexcept {
     if (n64_should_quit() || running) {
         logfatal("Tried to start emulator thread, but it was already running!");
     }
 
-    QtWSIPlatform* _wsiPlatform = this->wsiPlatform;
-    QWindow* pane = wsiPlatform->getPane();
     running = true;
-    bool* _game_loaded = &game_loaded;
-    emuThread = std::thread([_wsiPlatform, pane, _game_loaded]() {
-        init_vulkan_wsi(_wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(pane));
 
-        init_parallel_rdp();
+    init_vulkan_wsi(instanceFactory, wsiPlatform, std::make_unique<QtParallelRdpWindowInfo>(wsiPlatform->getWindowHandle()));
 
-        while (!(*_game_loaded)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
-            prdp_update_screen_no_game();
-        }
+    init_parallel_rdp();
 
-        n64_system_loop();
-    });
+    while (!game_loaded) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
+        prdp_update_screen_no_game();
+    }
+
+    n64_system_loop();
 }
 
 void N64EmulatorThread::reset() {
-    if (running) {
-        n64_queue_reset();
+    if (game_loaded) {
+        reset_n64system();
+        n64_load_rom(n64sys.rom_path);
+        pif_rom_execute();
     }
 }
 

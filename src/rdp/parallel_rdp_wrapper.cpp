@@ -1,4 +1,5 @@
 #include "parallel_rdp_wrapper.h"
+#include "context.hpp"
 #include "parallel_rdp_wrapper_sdl.h"
 #include "rdp.h"
 #include <memory>
@@ -78,14 +79,63 @@ uint32_t fullscreen_quad_frag[] =
 
 Program* fullscreen_quad_program;
 
-WSI* init_vulkan_wsi(Vulkan::WSIPlatform* wsi_platform, std::unique_ptr<ParallelRdpWindowInfo>&& newWindowInfo) {
+// Copied and modified from WSI::init_context_from_platform
+Util::IntrusivePtr<Context> init_vulkan_context(Vulkan::WSIPlatform* platform, unsigned num_thread_indices, const Context::SystemHandles &system_handles, Vulkan::InstanceFactory* instance_factory) {
+    VK_ASSERT(platform);
+    auto instance_ext = platform->get_instance_extensions();
+    auto device_ext = platform->get_device_extensions();
+    auto new_context = Util::make_handle<Context>();
+
+    new_context->set_application_info(platform->get_application_info());
+    new_context->set_num_thread_indices(num_thread_indices);
+    new_context->set_system_handles(system_handles);
+    if (instance_factory) {
+        new_context->set_instance_factory(instance_factory);
+    }
+
+    if (!new_context->init_instance(instance_ext.data(), instance_ext.size(), CONTEXT_CREATION_ENABLE_ADVANCED_WSI_BIT)) {
+        logfatal("Failed to create Vulkan instance.\n");
+    }
+
+    VkSurfaceKHR tmp_surface = platform->create_surface(new_context->get_instance(), VK_NULL_HANDLE);
+
+    bool ret = new_context->init_device(
+            VK_NULL_HANDLE, tmp_surface,
+            device_ext.data(), device_ext.size(),
+            CONTEXT_CREATION_ENABLE_ADVANCED_WSI_BIT);
+
+    if (tmp_surface) {
+        platform->destroy_surface(new_context->get_instance(), tmp_surface);
+    }
+
+    if (!ret) {
+        logfatal("Failed to create Vulkan device.\n");
+    }
+
+    return new_context;
+}
+
+
+WSI* init_vulkan_wsi(Vulkan::InstanceFactory* instance_factory, Vulkan::WSIPlatform* wsi_platform, std::unique_ptr<ParallelRdpWindowInfo>&& newWindowInfo) {
     wsi = new WSI();
     wsi->set_backbuffer_srgb(false);
     wsi->set_platform(wsi_platform);
     Context::SystemHandles handles;
-    if (!wsi->init_simple(1, handles)) {
-        logfatal("Failed to initialize WSI!");
+
+    auto vulkan_context = init_vulkan_context(wsi_platform, 1, handles, instance_factory);
+
+    if (!wsi->init_from_existing_context(vulkan_context)) {
+        logfatal("Failed to initialize WSI: init_from_existing_context() failed");
     }
+
+    if (!wsi->init_device()) {
+        logfatal("Failed to initialize WSI: init_device() failed");
+    }
+
+    if (!wsi->init_surface_swapchain()) {
+        logfatal("Failed to initialize WSI: init_surface_swapchain() failed");
+    }
+
     windowInfo = std::move(newWindowInfo);
     return wsi;
 }
@@ -139,7 +189,7 @@ void init_parallel_rdp() {
 }
 
 void prdp_init_internal_swapchain() {
-    init_vulkan_wsi(new SDLWSIPlatform(), std::make_unique<SDLParallelRdpWindowInfo>());
+    init_vulkan_wsi(nullptr, new SDLWSIPlatform(), std::make_unique<SDLParallelRdpWindowInfo>());
     init_parallel_rdp();
 }
 

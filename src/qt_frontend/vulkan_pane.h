@@ -1,24 +1,21 @@
 #ifndef N64_VULKAN_PANE_H
 #define N64_VULKAN_PANE_H
 
-
 #undef signals
-#include <wsi.hpp>
-#include <QWindow>
-#include "n64_emulator_thread.h"
+#include <rdp/parallel_rdp_wrapper.h>
+#include <qt_frontend/n64_emulator_thread.h>
+#include <qt_frontend/qt_wsi_platform.h>
+#include <QVulkanWindow>
+#include <QWidget>
 
-class VulkanPane : public QWindow {
+class VulkanPane : public QWidget {
 public:
     explicit VulkanPane();
 
-    void showEvent(QShowEvent* event) override;
+    [[nodiscard]] QPaintEngine *paintEngine() const override { return nullptr; }
 
-    N64EmulatorThread& getEmulatorThread() { return *emulatorThread; }
-
-private:
-    std::unique_ptr<N64EmulatorThread> emulatorThread;
     std::unique_ptr<QtWSIPlatform> platform;
-    Vulkan::WSI* wsi;
+    std::unique_ptr<QtInstanceFactory> qtVkInstanceFactory;
 };
 
 
