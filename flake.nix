@@ -13,8 +13,11 @@
       rev = with self; if sourceInfo?dirtyRev then sourceInfo.dirtyRev else sourceInfo.rev;
       pkgs = import nixpkgs { inherit system; };
 
+      llvmPackages = pkgs.llvmPackages_19;
+
       devShellTools = [
-        pkgs.clang-tools
+        llvmPackages.clang-tools
+        pkgs.git
         pkgs.rust-analyzer
       ];
 
@@ -39,16 +42,13 @@
         pkgs.capstone
         pkgs.dbus
         pkgs.bzip2
-      ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-        pkgs.darwin.apple_sdk.frameworks.Cocoa
       ] ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
         pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
         pkgs.qt6.wrapQtAppsHook
       ];
-      stdenv =
-        if pkgs.stdenv.isLinux then pkgs.stdenv
-        else if pkgs.stdenv.isDarwin then pkgs.clang18Stdenv
-        else throw "Unsupported platform";
+      stdenv = if pkgs.stdenv.isLinux then pkgs.stdenv
+                else if pkgs.stdenv.isDarwin then llvmPackages.stdenv
+                else throw "Unsupported platform";
 
       cargoDeps = pkgs.rustPlatform.importCargoLock {
         lockFile = ./src/jit/Cargo.lock;
@@ -123,6 +123,8 @@
           '' + (if stdenv.isLinux then ''
             export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
           '' else if stdenv.isDarwin then ''
+            # clangd needs to come from clang-tools. Because Darwin uses clang stdenv, this is the only way to ensure we use the right clangd.
+            export PATH="${llvmPackages.clang-tools}/bin:$PATH";
             export DYLD_FALLBACK_LIBRARY_PATH="${pkgs.darwin.moltenvk}/lib";
           '' else throw "Unsupported platform");
         };
