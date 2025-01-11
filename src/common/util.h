@@ -6,7 +6,11 @@
 #include <stdio.h>
 
 #ifdef N64_HAVE_SSE
+#ifdef N64_USE_NEON
+#include <sse2neon.h>
+#else
 #include <emmintrin.h>
+#endif
 #endif
 
 typedef uint8_t u8;

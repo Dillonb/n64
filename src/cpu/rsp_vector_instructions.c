@@ -1,15 +1,16 @@
 #include "rsp_vector_instructions.h"
 
 #ifdef N64_HAVE_SSE
+#ifdef N64_USE_NEON
+#include <sse2neon.h>
+#else
 #include <emmintrin.h>
+#include <immintrin.h>
+#endif
+#include <n64_rsp_bus.h>
 #endif
 
 #include <log.h>
-
-#ifdef N64_HAVE_SSE
-#include <immintrin.h>
-#include <n64_rsp_bus.h>
-#endif
 
 #include "rsp.h"
 #include "rsp_rom.h"

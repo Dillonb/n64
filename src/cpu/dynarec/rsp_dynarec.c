@@ -4,9 +4,14 @@
 #include "rsp_dynarec.h"
 #include "v1/v1_emitter.h"
 #include "dynarec_memory_management.h"
+
 #ifdef N64_HAVE_SSE
+#ifdef N64_USE_NEON
+#include <sse2neon.h>
+#else
 #include <emmintrin.h>
 #include <smmintrin.h>
+#endif
 #endif
 
 size_t rsp_link(dasm_State** d) {
