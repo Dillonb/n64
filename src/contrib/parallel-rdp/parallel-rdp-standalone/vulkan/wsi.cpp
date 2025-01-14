@@ -720,8 +720,10 @@ bool WSI::begin_frame()
 #ifdef VULKAN_DEBUG
 			LOGI("AcquireNextImageKHR is suboptimal, will recreate.\n");
 #endif
+#ifndef N64_MACOS // Hack - this seems to always be true on MoltenVK
 			swapchain_is_suboptimal = true;
 			LOGW("Swapchain suboptimal.\n");
+#endif
 		}
 
 		if (result >= 0)
@@ -902,7 +904,9 @@ bool WSI::end_frame()
 #ifdef VULKAN_DEBUG
 			LOGI("QueuePresent is suboptimal, will recreate.\n");
 #endif
+#ifndef N64_MACOS // Hack - this seems to always be true on MoltenVK
 			swapchain_is_suboptimal = true;
+#endif
 		}
 
 		// The present semaphore is consumed even on OUT_OF_DATE, etc.
