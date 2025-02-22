@@ -1,5 +1,8 @@
 #ifndef N64_DEBUGGER_TYPES
 #define N64_DEBUGGER_TYPES
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <util.h>
 
@@ -15,5 +18,7 @@ typedef struct n64_debugger_state {
     bool enabled;
 } n64_debugger_state_t;
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif

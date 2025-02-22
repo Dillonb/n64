@@ -1,5 +1,8 @@
 #ifndef N64_N64MEM_H
 #define N64_N64MEM_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "n64rom.h"
 #include "addresses.h"
@@ -126,4 +129,7 @@ typedef struct n64_mem {
 void save_rdram_dump(bool bswap);
 void init_mem(n64_mem_t* mem);
 
+#ifdef __cplusplus
+}
+#endif
 #endif //N64_N64MEM_H
