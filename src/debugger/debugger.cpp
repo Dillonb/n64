@@ -5,24 +5,23 @@ extern "C" {
 }
 
 std::unordered_map<u64, Breakpoint> breakpoints;
+// The debugger was just stepped - we should break on the next instruction
+bool break_for_step = false;
 
 bool check_breakpoint(u64 address) {
-    bool hit = breakpoints.find(address) != breakpoints.end();
+    bool hit = breakpoints.find(address) != breakpoints.end() || break_for_step;
     if (hit) {
         n64sys.debugger_state.broken = true;
-        if (breakpoints[address].temporary) {
+        if (breakpoints.find(address) != breakpoints.end() && breakpoints[address].temporary) {
             breakpoints.erase(address);
         }
+        break_for_step = false;
     }
     return hit;
 }
 
 void debugger_step() {
-    // To step once, set a temporary breakpoint at the next PC and unpause
-    // If a breakpoint already exists at the address, just unpause and we'll hit it.
-    if (breakpoints.find(N64CPU.next_pc) == breakpoints.end()) {
-        breakpoints[N64CPU.next_pc] = {N64CPU.next_pc, true};
-    }
+    break_for_step = true;
     n64sys.debugger_state.broken = false;
 }
 

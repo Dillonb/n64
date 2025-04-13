@@ -6,7 +6,11 @@
 #include <stdio.h>
 
 #ifdef N64_HAVE_SSE
+#ifdef N64_USE_NEON
+#include <sse2neon.h>
+#else
 #include <emmintrin.h>
+#endif
 #endif
 
 typedef uint8_t u8;
@@ -48,11 +52,13 @@ typedef __m128i s128;
 #define ASSERTDWORD(type) _Static_assert(sizeof(type) == 8, #type " must be 64 bits")
 #endif
 
-#if defined(N64_WIN) || defined(N64_MACOS)
+#if defined(N64_WIN)
 #define PATH_MAX 0x1000
 #else
-#include <unistd.h>
+#if !defined(N64_MACOS)
 #include <linux/limits.h>
+#endif
+#include <unistd.h>
 #endif
 
 

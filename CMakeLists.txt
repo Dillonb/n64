@@ -93,12 +93,18 @@ else ()
     set (X86 FALSE)
 endif ()
 
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
+    set (ARM64 TRUE)
+endif()
+
 check_c_compiler_flag("-mssse3" HAS_SSSE3)
 check_c_compiler_flag("-msse4.1" HAS_SSE4_1)
 
 if (HAS_SSSE3 AND HAS_SSE4_1 AND X86)
     set(DEFAULT_C_COMP_OPTIONS ${DEFAULT_C_COMP_OPTIONS} -mssse3 -msse4.1)
     ADD_COMPILE_DEFINITIONS(N64_HAVE_SSE)
+elseif(ARM64)
+    ADD_COMPILE_DEFINITIONS(N64_HAVE_SSE N64_USE_NEON SSE2NEON_SUPPRESS_WARNINGS)
 endif()
 
 add_compile_options("$<$<COMPILE_LANGUAGE:C>:${DEFAULT_C_COMP_OPTIONS}>")
