@@ -1,8 +1,11 @@
 #ifndef N64_MEM_UTIL_H
 #define N64_MEM_UTIL_H
 
-#include <util.h>
 #include <string.h>
+
+#include "util.h"
+#include "log.h"
+
 #ifdef _MSC_VER
 
 #include <stdlib.h>
