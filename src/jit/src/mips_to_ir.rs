@@ -1,8 +1,8 @@
 use std::mem::offset_of;
 
-use dgbir::ir::{const_u16, const_u32, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot};
+use dgbir::ir::{const_ptr, const_s16, const_u16, const_u32, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot};
 
-use crate::{mips_parser::{BranchInfo, MipsOpcode, ParsedMipsInstruction}, r4300i_t};
+use crate::{bus_access_BUS_STORE, mips_parser::{BranchInfo, MipsOpcode, ParsedMipsInstruction}, n64_write_physical_word, r4300i, r4300i_t};
 
 struct GuestRegisterManager {
     gprs: [Option<InputSlot>; 32],
@@ -35,7 +35,7 @@ impl GuestRegisterManager {
     }
 }
 
-pub fn to_ir(parsed: Vec<ParsedMipsInstruction>) {
+pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
     let context = IRContext::new();
     let func = IRFunction::new(context);
     let mut block = func.new_block(vec![DataType::Ptr]);
@@ -79,7 +79,45 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>) {
             MipsOpcode::SB => todo!("SB"),
             MipsOpcode::SH => todo!("SH"),
             MipsOpcode::SD => todo!("SD"),
-            MipsOpcode::SW => todo!("SW"),
+            MipsOpcode::SW => {
+                let base = guest_regs.get_register(&mut block, instr.instr.rs());
+                let virtual_address = block.add(DataType::U64, base, const_s16(instr.instr.s_imm()));
+
+                static mut physical : u32 = 0;
+                static mut cached: bool = false;
+
+                let physical_ptr = const_ptr(&raw const physical as usize);
+                let cached_ptr = const_ptr(&raw const cached as usize);
+
+                let resolve_virtual = const_ptr(cpu.cp0.resolve_virtual_address.unwrap() as usize);
+
+                fn on_fail(vaddr: u64) {
+                    panic!("Failed to resolve virtual address 0x{:016X}", vaddr);
+                }
+
+                let success = block.call_function(resolve_virtual, DataType::Bool, vec![
+                    virtual_address.val(),
+                    const_u32(bus_access_BUS_STORE),
+                    cached_ptr,
+                    physical_ptr,
+                ]);
+
+                let mut on_fail_block = func.new_block(vec![]);
+                on_fail_block.call_function(const_ptr(on_fail as usize), DataType::U32, vec![virtual_address.val()]);
+                on_fail_block.ret(None);
+
+                let on_success_block = func.new_block(vec![]);
+                block.branch(success.val(), on_success_block.call(vec![]), on_fail_block.call(vec![]));
+                block = on_success_block;
+
+                let resolved_physical_address = block.load_ptr(DataType::U32, physical_ptr, 0);
+                let to_write = guest_regs.get_register(&mut block, instr.instr.rt());
+                block.call_function(const_ptr(n64_write_physical_word as usize), DataType::U32, vec![
+                    resolved_physical_address.val(),
+                    to_write,
+                ]);
+
+            },
             MipsOpcode::ORI => {
                 let rs = guest_regs.get_register(&mut block, instr.instr.rs());
                 let result = block.or(DataType::U64, rs, const_u16(instr.instr.imm()));

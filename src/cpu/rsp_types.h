@@ -72,8 +72,8 @@ typedef union rsp_types {
         unsigned signal_7:1;
         unsigned:17;
 #endif
-    };
-} PACKED rsp_status_t;
+    } PACKED;
+} rsp_status_t;
 
 ASSERTWORD(rsp_status_t);
 

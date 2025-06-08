@@ -3,6 +3,7 @@ use std::{env, path::PathBuf};
 fn main() {
     let bindings = bindgen::Builder::default()
         .header("../cpu/r4300i.h")
+        .header("../mem/n64bus.h")
 
         // Automatically generate the bindings if the C code changes
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
