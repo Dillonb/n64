@@ -1,4 +1,5 @@
 *build*
+!build.rs
 .idea
 .cache
 .vscode
