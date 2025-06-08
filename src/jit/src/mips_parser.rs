@@ -13,9 +13,9 @@ pub enum BranchCondition {
 
 #[derive(Debug)]
 pub struct BranchInfo {
-    cond: BranchCondition,
-    likely: bool,
-    link: bool
+    pub cond: BranchCondition,
+    pub likely: bool,
+    pub link: bool
 }
 
 #[derive(Debug)]
