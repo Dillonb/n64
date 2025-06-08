@@ -37,17 +37,21 @@ const char* n64_save_system_state(const char* crash_reason) {
     crash_dump->dynarec_base = (uintptr_t)&n64dynarec;
     memcpy(&crash_dump->dynarec, &n64dynarec, crash_dump->dynarec_size);
 
+#ifdef N64_DYNAREC_V1_ENABLED
     crash_dump->rsp_dynarec_size = sizeof(rsp_dynarec_t);
     crash_dump->rsp_dynarec_base = (uintptr_t)n64rsp.dynarec;
     memcpy(&crash_dump->rsp_dynarec, n64rsp.dynarec, crash_dump->rsp_dynarec_size);
+#endif
 
     crash_dump->codecache_size = CODECACHE_SIZE;
     crash_dump->codecache_base = (uintptr_t)n64dynarec.codecache;
     memcpy(&crash_dump->cpu_codecache, n64dynarec.codecache, crash_dump->codecache_size);
 
+#ifdef N64_DYNAREC_V1_ENABLED
     crash_dump->rsp_codecache_size = RSP_CODECACHE_SIZE;
     crash_dump->rsp_codecache_base = (uintptr_t)n64rsp.dynarec->codecache;
     memcpy(&crash_dump->rsp_codecache, n64rsp.dynarec->codecache, crash_dump->rsp_codecache_size);
+#endif
 #endif
 
     size_t needed = snprintf(NULL, 0, "%s.crashdump", n64sys.rom_path);

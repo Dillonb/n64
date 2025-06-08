@@ -2,7 +2,7 @@ use itertools::izip;
 use proc_bitfield::ConvRaw;
 
 #[derive(Debug)]
-enum BranchCondition {
+pub enum BranchCondition {
     EQ,
     NE,
     GTZ,
@@ -12,14 +12,14 @@ enum BranchCondition {
 }
 
 #[derive(Debug)]
-struct BranchInfo {
+pub struct BranchInfo {
     cond: BranchCondition,
     likely: bool,
     link: bool
 }
 
 #[derive(Debug)]
-enum MipsOpcode {
+pub enum MipsOpcode {
     NOP,
     LD,
     LUI,
@@ -358,10 +358,10 @@ proc_bitfield::bitfield! {
 }
 
 pub struct ParsedMipsInstruction {
-    paddr: u32,
-    vaddr: u64,
-    instr: MipsInstructionBitfield,
-    op: MipsOpcode
+    pub paddr: u32,
+    pub vaddr: u64,
+    pub instr: MipsInstructionBitfield,
+    pub op: MipsOpcode
 }
 
 fn opcode_of_instruction(instr : &MipsInstructionBitfield) -> MipsOpcode {
@@ -564,7 +564,7 @@ fn opcode_of_instruction(instr : &MipsInstructionBitfield) -> MipsOpcode {
     }
 }
 
-pub fn parse(code: &[u32], virtual_address: u64, physical_address: u32) {
+pub fn parse(code: &[u32], virtual_address: u64, physical_address: u32) -> Vec<ParsedMipsInstruction> {
     let instructions = code.iter().map(|word| MipsInstructionBitfield(*word));
     let parsed = izip!(instructions, (virtual_address..).step_by(4), (physical_address..).step_by(4)).map(|(instr, vaddr, paddr)| {
         ParsedMipsInstruction {
@@ -573,16 +573,11 @@ pub fn parse(code: &[u32], virtual_address: u64, physical_address: u32) {
             instr,
             op: opcode_of_instruction(&instr)
         }
-    });
+    }).collect::<Vec<_>>();
 
     let code_len = code.len();
     println!("Compiling {code_len} instructions at virtual address 0x{virtual_address:016X} and physical address 0x{physical_address:08X}");
 
-    for instr in parsed {
-        let iw = instr.instr.raw();
-        let op_enum = instr.op;
-        let vaddr = instr.vaddr;
-        let paddr = instr.paddr;
-        println!("{vaddr:016X}\t{paddr:08X}\t{iw:08X} (opcode {op_enum:?})");
-    }
+    return parsed;
 }
+

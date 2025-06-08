@@ -37,9 +37,11 @@ typedef struct n64_crashdump {
     uintptr_t dynarec_base;
     n64_dynarec_t dynarec;
 
+#ifdef N64_DYNAREC_V1_ENABLED
     size_t rsp_dynarec_size;
     uintptr_t rsp_dynarec_base;
     rsp_dynarec_t rsp_dynarec;
+#endif
 
     size_t codecache_size;
     uintptr_t codecache_base;

@@ -93,10 +93,14 @@ if (N64_DYNAREC_ENABLED)
                 MAIN_DEPENDENCY dynarec/v2/v2_emitter.dasc
                 DEPENDS minilua)
 
-        target_sources(r4300i PRIVATE 
+        target_sources(r4300i PRIVATE
             v2_emitter.c dynarec/v2/v2_emitter.h
             dynarec/v2/x86_64_target_platform.c
             dynarec/v2/v2_compiler_x64.c
+        )
+    else()
+        target_sources(r4300i PRIVATE 
+            dynarec/v2/blank_target_platform.c
         )
     endif()
 endif()
