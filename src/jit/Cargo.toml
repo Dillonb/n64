@@ -10,3 +10,6 @@ crate-type = ["staticlib"]
 proc-bitfield = "0.5.0"
 itertools = "0.13.0"
 dgbir = { path = "./dgbir" }
+
+[build-dependencies]
+bindgen = "0.71.1"

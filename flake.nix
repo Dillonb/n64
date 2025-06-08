@@ -46,9 +46,10 @@
         pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
         pkgs.qt6.wrapQtAppsHook
       ];
-      stdenv = if pkgs.stdenv.isLinux then pkgs.stdenv
-                else if pkgs.stdenv.isDarwin then llvmPackages.stdenv
-                else throw "Unsupported platform";
+      stdenv =
+        if pkgs.stdenv.isLinux then pkgs.stdenv
+        else if pkgs.stdenv.isDarwin then llvmPackages.stdenv
+        else throw "Unsupported platform";
 
       cargoDeps = pkgs.rustPlatform.importCargoLock {
         lockFile = ./src/jit/Cargo.lock;
@@ -100,7 +101,10 @@
       devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
         {
           buildInputs = devShellTools ++ tools ++ libs;
-          shellHook = (if stdenv.isLinux then ''
+          shellHook = let clang_path = "${llvmPackages.libclang.lib}/lib/clang/${pkgs.lib.versions.major (pkgs.lib.getVersion llvmPackages.clang)}"; in ''
+            export LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
+            export BINDGEN_EXTRA_CLANG_ARGS="-isystem ${clang_path}/include -isystem ${pkgs.glibc.dev}/include";
+          '' + (if stdenv.isLinux then ''
             export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
           '' else if stdenv.isDarwin then ''
             # clangd needs to come from clang-tools. Because Darwin uses clang stdenv, this is the only way to ensure we use the right clangd.

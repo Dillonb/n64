@@ -36,6 +36,7 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
 #endif
 
     mark_metric(METRIC_BLOCK_COMPILATION);
+    rs_jit_test_c_repr_struct(&N64CPU);
     v3_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
     if (block->run == NULL) {
         logfatal("Failed to compile block!");
