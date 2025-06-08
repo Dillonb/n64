@@ -103,9 +103,10 @@
           buildInputs = devShellTools ++ tools ++ libs;
           shellHook = let clang_path = "${llvmPackages.libclang.lib}/lib/clang/${pkgs.lib.versions.major (pkgs.lib.getVersion llvmPackages.clang)}"; in ''
             export LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
-            export BINDGEN_EXTRA_CLANG_ARGS="-isystem ${clang_path}/include -isystem ${pkgs.glibc.dev}/include";
+            export BINDGEN_EXTRA_CLANG_ARGS="-isystem ${clang_path}/include";
           '' + (if stdenv.isLinux then ''
             export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
+            export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS -isystem ${pkgs.glibc.dev}/include";
           '' else if stdenv.isDarwin then ''
             # clangd needs to come from clang-tools. Because Darwin uses clang stdenv, this is the only way to ensure we use the right clangd.
             export PATH="${llvmPackages.clang-tools}/bin:$PATH";

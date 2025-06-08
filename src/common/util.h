@@ -55,7 +55,7 @@ typedef __m128i s128;
 #if defined(N64_WIN)
 #define PATH_MAX 0x1000
 #else
-#if !defined(N64_MACOS)
+#ifdef linux
 #include <linux/limits.h>
 #endif
 #include <unistd.h>
