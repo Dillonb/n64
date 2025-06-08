@@ -11,7 +11,13 @@ fn main() {
         .clang_arg("-I..")
         .clang_arg("-I../common")
 
-        .allowlist_type("r4300i_t")
+        // These functions all use u128, which is not FFI-safe
+        .blocklist_function("qecvt")
+        .blocklist_function("qecvt_r")
+        .blocklist_function("qfcvt")
+        .blocklist_function("qfcvt_r")
+        .blocklist_function("qgcvt")
+        .blocklist_function("strtold")
 
         .generate()
         .expect("Unable to generate bindings");
