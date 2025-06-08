@@ -1,3 +1,6 @@
 [submodule "tests/n64-tests"]
 	path = tests/n64-tests
 	url = https://github.com/Dillonb/n64-tests.git
+[submodule "src/jit/dgbir"]
+	path = src/jit/dgbir
+	url = https://github.com/Dillonb/dgbir.git

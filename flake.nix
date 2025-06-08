@@ -53,14 +53,6 @@
       cargoDeps = pkgs.rustPlatform.importCargoLock {
         lockFile = ./src/jit/Cargo.lock;
       };
-
-      cargoConfigFile = pkgs.writeText "cargo-config.toml" ''
-        [source.crates-io]
-        replace-with = "vendored-sources"
-
-        [source.vendored-sources]
-        directory = "${cargoDeps}"
-      '';
     in
     {
       packages.default = stdenv.mkDerivation
@@ -108,19 +100,7 @@
       devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
         {
           buildInputs = devShellTools ++ tools ++ libs;
-          shellHook = ''
-          FLAKE_ROOT="$(git rev-parse --show-toplevel)"
-          (
-            cd "$FLAKE_ROOT"
-            if [ -f .dgb-n64-root ]; then
-              echo "Creating cargo config.toml to use vendored dependencies"
-              mkdir -p ./src/jit/.cargo
-              ln -sf ${cargoConfigFile} ./src/jit/.cargo/config.toml
-            else
-              echo "Did not find .dgb-n64-root, not creating cargo config.toml"
-            fi
-          )
-          '' + (if stdenv.isLinux then ''
+          shellHook = (if stdenv.isLinux then ''
             export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
           '' else if stdenv.isDarwin then ''
             # clangd needs to come from clang-tools. Because Darwin uses clang stdenv, this is the only way to ensure we use the right clangd.
