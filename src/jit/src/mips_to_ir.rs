@@ -1,27 +1,70 @@
-use dgbir::ir::{IRContext, IRFunction};
+use std::mem::offset_of;
 
-use crate::mips_parser::{BranchInfo, MipsOpcode, ParsedMipsInstruction};
+use dgbir::ir::{const_u16, const_u32, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot};
+
+use crate::{mips_parser::{BranchInfo, MipsOpcode, ParsedMipsInstruction}, r4300i_t};
+
+struct GuestRegisterManager {
+    gprs: [Option<InputSlot>; 32],
+    cpu_address: InputSlot,
+}
+
+impl GuestRegisterManager {
+    pub fn new(cpu_address: InputSlot) -> Self {
+        GuestRegisterManager {
+            gprs: [None; 32],
+            cpu_address,
+        }
+    }
+
+    pub fn set_gpr(&mut self, r: u8, value: InputSlot) {
+        println!("Setting GPR[{}] to {}", r, value);
+        self.gprs[r as usize] = Some(value);
+    }
+
+    fn get_register(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
+        *self.gprs[r as usize].get_or_insert_with(|| {
+            let offset = offset_of!(r4300i_t, gpr) + (r as usize * std::mem::size_of::<u64>());
+            println!("Loading GPR[{}] from CPU address offset {}", r, offset);
+            block.load_ptr(DataType::U64, self.cpu_address, offset).val()
+        })
+    }
+}
 
 pub fn to_ir(parsed: Vec<ParsedMipsInstruction>) {
     let context = IRContext::new();
     let func = IRFunction::new(context);
+    let mut block = func.new_block(vec![DataType::Ptr]);
 
+    let mut guest_regs = GuestRegisterManager::new(block.input(0));
 
-    for instr in parsed {
+    for instr in parsed.iter() {
         let iw = instr.instr.raw();
-        let op_enum = instr.op;
+        let op_enum = &instr.op;
         let vaddr = instr.vaddr;
         let paddr = instr.paddr;
         println!("{vaddr:016X}\t{paddr:08X}\t{iw:08X} (opcode {op_enum:?})");
+    }
 
-        match op_enum {
+    for instr in parsed {
+        println!("Function so far:");
+        println!("{}", func);
+
+        match instr.op {
             MipsOpcode::NOP => todo!("NOP"),
             MipsOpcode::LD => todo!("LD"),
-            MipsOpcode::LUI => todo!("LUI"),
+            MipsOpcode::LUI => {
+                let c = (instr.instr.imm() as u32) << 16;
+                guest_regs.set_gpr(instr.instr.rt(), const_u32(c));
+            },
             MipsOpcode::ADDI => todo!("ADDI"),
             MipsOpcode::ADDIU => todo!("ADDIU"),
             MipsOpcode::DADDI => todo!("DADDI"),
-            MipsOpcode::ANDI => todo!("ANDI"),
+            MipsOpcode::ANDI => {
+                let rs = guest_regs.get_register(&mut block, instr.instr.rs());
+                let result = block.and(DataType::U64, rs, const_u16(instr.instr.imm()));
+                guest_regs.set_gpr(instr.instr.rt(), result.val());
+            },
             MipsOpcode::LBU => todo!("LBU"),
             MipsOpcode::LHU => todo!("LHU"),
             MipsOpcode::LH => todo!("LH"),
@@ -33,7 +76,11 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>) {
             MipsOpcode::SH => todo!("SH"),
             MipsOpcode::SD => todo!("SD"),
             MipsOpcode::SW => todo!("SW"),
-            MipsOpcode::ORI => todo!("ORI"),
+            MipsOpcode::ORI => {
+                let rs = guest_regs.get_register(&mut block, instr.instr.rs());
+                let result = block.or(DataType::U64, rs, const_u16(instr.instr.imm()));
+                guest_regs.set_gpr(instr.instr.rt(), result.val());
+            },
             MipsOpcode::J => todo!("J"),
             MipsOpcode::JAL => todo!("JAL"),
             MipsOpcode::SLTI => todo!("SLTI"),
