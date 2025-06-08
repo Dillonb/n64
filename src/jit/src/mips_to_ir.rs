@@ -11,15 +11,19 @@ struct GuestRegisterManager {
 
 impl GuestRegisterManager {
     pub fn new(cpu_address: InputSlot) -> Self {
-        GuestRegisterManager {
+        let mut v = GuestRegisterManager {
             gprs: [None; 32],
             cpu_address,
-        }
+        };
+        v.gprs[0] = Some(const_u32(0)); // GPR[0] is always 0
+        return v;
     }
 
     pub fn set_gpr(&mut self, r: u8, value: InputSlot) {
         println!("Setting GPR[{}] to {}", r, value);
-        self.gprs[r as usize] = Some(value);
+        if r != 0 {
+            self.gprs[r as usize] = Some(value);
+        }
     }
 
     fn get_register(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
