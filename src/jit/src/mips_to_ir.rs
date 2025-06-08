@@ -2,7 +2,7 @@ use std::mem::offset_of;
 
 use dgbir::ir::{const_ptr, const_s16, const_u16, const_u32, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot};
 
-use crate::{bus_access_BUS_STORE, mips_parser::{BranchInfo, MipsOpcode, ParsedMipsInstruction}, n64_write_physical_word, r4300i, r4300i_t};
+use crate::{bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, mips_parser::{BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction}, n64_read_physical_word, n64_write_physical_word, r4300i, r4300i_t};
 
 struct GuestRegisterManager {
     gprs: [Option<InputSlot>; 32],
@@ -35,6 +35,41 @@ impl GuestRegisterManager {
     }
 }
 
+fn get_paddr_for_loadstore(cpu: &r4300i_t, guest_regs: &mut GuestRegisterManager, func: &IRFunction, block: &mut IRBlockHandle, instr: MipsInstructionBitfield, bus_access: bus_access) -> InputSlot {
+    let base = guest_regs.get_register(block, instr.rs());
+    let virtual_address = block.add(DataType::U64, base, const_s16(instr.s_imm()));
+
+    static mut physical : u32 = 0;
+    static mut cached: bool = false;
+
+    let physical_ptr = const_ptr(&raw const physical as usize);
+    let cached_ptr = const_ptr(&raw const cached as usize);
+
+    let resolve_virtual = const_ptr(cpu.cp0.resolve_virtual_address.unwrap() as usize);
+
+    fn on_fail(vaddr: u64) {
+        panic!("Failed to resolve virtual address 0x{:016X}", vaddr);
+    }
+
+    let success = block.call_function(resolve_virtual, DataType::Bool, vec![
+        virtual_address.val(),
+        const_u32(bus_access),
+        cached_ptr,
+        physical_ptr,
+    ]);
+
+    let mut on_fail_block = func.new_block(vec![]);
+    on_fail_block.call_function(const_ptr(on_fail as usize), DataType::U32, vec![virtual_address.val()]);
+    on_fail_block.ret(None);
+
+    let on_success_block = func.new_block(vec![]);
+    block.branch(success.val(), on_success_block.call(vec![]), on_fail_block.call(vec![]));
+    *block = on_success_block;
+
+    return block.load_ptr(DataType::U32, physical_ptr, 0).val();
+
+}
+
 pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
     let context = IRContext::new();
     let func = IRFunction::new(context);
@@ -50,29 +85,38 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
         println!("{vaddr:016X}\t{paddr:08X}\t{iw:08X} (opcode {op_enum:?})");
     }
 
-    for instr in parsed {
+    for ParsedMipsInstruction { paddr, vaddr, instr, op } in parsed {
         println!("Function so far:");
         println!("{}", func);
 
-        match instr.op {
+        match op {
             MipsOpcode::NOP => todo!("NOP"),
             MipsOpcode::LD => todo!("LD"),
             MipsOpcode::LUI => {
-                let c = (instr.instr.imm() as u32) << 16;
-                guest_regs.set_gpr(instr.instr.rt(), const_u32(c));
+                let c = (instr.imm() as u32) << 16;
+                guest_regs.set_gpr(instr.rt(), const_u32(c));
             },
             MipsOpcode::ADDI => todo!("ADDI"),
             MipsOpcode::ADDIU => todo!("ADDIU"),
             MipsOpcode::DADDI => todo!("DADDI"),
             MipsOpcode::ANDI => {
-                let rs = guest_regs.get_register(&mut block, instr.instr.rs());
-                let result = block.and(DataType::U64, rs, const_u16(instr.instr.imm()));
-                guest_regs.set_gpr(instr.instr.rt(), result.val());
+                let rs = guest_regs.get_register(&mut block, instr.rs());
+                let result = block.and(DataType::U64, rs, const_u16(instr.imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
             },
             MipsOpcode::LBU => todo!("LBU"),
             MipsOpcode::LHU => todo!("LHU"),
             MipsOpcode::LH => todo!("LH"),
-            MipsOpcode::LW => todo!("LW"),
+            MipsOpcode::LW => {
+                let paddr = get_paddr_for_loadstore(cpu, &mut guest_regs, &func, &mut block, instr, bus_access_BUS_LOAD);
+                let temp_value = block.call_function(const_ptr(n64_read_physical_word as usize), DataType::S32, vec![
+                    paddr,
+                ]);
+
+                let sign_extended = block.convert(DataType::S64, temp_value.val());
+
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
+            },
             MipsOpcode::LWU => todo!("LWU"),
             MipsOpcode::BRANCH(BranchInfo { cond: _cond, likely: _likely, link: _link }) => todo!("BRANCH"),
             MipsOpcode::CACHE => todo!("CACHE"),
@@ -80,48 +124,17 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
             MipsOpcode::SH => todo!("SH"),
             MipsOpcode::SD => todo!("SD"),
             MipsOpcode::SW => {
-                let base = guest_regs.get_register(&mut block, instr.instr.rs());
-                let virtual_address = block.add(DataType::U64, base, const_s16(instr.instr.s_imm()));
-
-                static mut physical : u32 = 0;
-                static mut cached: bool = false;
-
-                let physical_ptr = const_ptr(&raw const physical as usize);
-                let cached_ptr = const_ptr(&raw const cached as usize);
-
-                let resolve_virtual = const_ptr(cpu.cp0.resolve_virtual_address.unwrap() as usize);
-
-                fn on_fail(vaddr: u64) {
-                    panic!("Failed to resolve virtual address 0x{:016X}", vaddr);
-                }
-
-                let success = block.call_function(resolve_virtual, DataType::Bool, vec![
-                    virtual_address.val(),
-                    const_u32(bus_access_BUS_STORE),
-                    cached_ptr,
-                    physical_ptr,
-                ]);
-
-                let mut on_fail_block = func.new_block(vec![]);
-                on_fail_block.call_function(const_ptr(on_fail as usize), DataType::U32, vec![virtual_address.val()]);
-                on_fail_block.ret(None);
-
-                let on_success_block = func.new_block(vec![]);
-                block.branch(success.val(), on_success_block.call(vec![]), on_fail_block.call(vec![]));
-                block = on_success_block;
-
-                let resolved_physical_address = block.load_ptr(DataType::U32, physical_ptr, 0);
-                let to_write = guest_regs.get_register(&mut block, instr.instr.rt());
+                let paddr = get_paddr_for_loadstore(cpu, &mut guest_regs, &func, &mut block, instr, bus_access_BUS_STORE);
+                let to_write = guest_regs.get_register(&mut block, instr.rt());
                 block.call_function(const_ptr(n64_write_physical_word as usize), DataType::U32, vec![
-                    resolved_physical_address.val(),
+                    paddr,
                     to_write,
                 ]);
-
             },
             MipsOpcode::ORI => {
-                let rs = guest_regs.get_register(&mut block, instr.instr.rs());
-                let result = block.or(DataType::U64, rs, const_u16(instr.instr.imm()));
-                guest_regs.set_gpr(instr.instr.rt(), result.val());
+                let rs = guest_regs.get_register(&mut block, instr.rs());
+                let result = block.or(DataType::U64, rs, const_u16(instr.imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
             },
             MipsOpcode::J => todo!("J"),
             MipsOpcode::JAL => todo!("JAL"),
