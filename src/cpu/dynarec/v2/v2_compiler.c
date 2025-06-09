@@ -118,12 +118,12 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
             }
         }
 
-#ifdef N64_LOG_COMPILATIONS
+// #ifdef N64_LOG_COMPILATIONS
         static char buf[50];
         u64 instr_virtual_address = virtual_address + (i << 2);
-        disassemble(instr_virtual_address, temp_code[i].instr.raw, buf, 50);
-        printf("%d [%08X]=%08X %s\n", i, (u32)instr_virtual_address, temp_code[i].instr.raw, buf);
-#endif
+        disassemble(instr_virtual_address, temp_code[i].raw, buf, 50);
+        printf("%d [%08X]=%08X %s\n", i, (u32)instr_virtual_address, temp_code[i].raw, buf);
+// #endif
 
 
         if (instr_ends_block || page_boundary_ends_block) {

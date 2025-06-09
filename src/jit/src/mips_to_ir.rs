@@ -1,8 +1,8 @@
 use std::mem::offset_of;
 
-use dgbir::ir::{const_ptr, const_s16, const_u16, const_u32, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot};
+use dgbir::ir::{const_ptr, const_s16, const_u16, const_u32, const_u64, CompareType, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot};
 
-use crate::{bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, mips_parser::{BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction}, n64_read_physical_word, n64_write_physical_word, r4300i, r4300i_t};
+use crate::{bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, mips_parser::{BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction}, n64_read_physical_word, n64_write_physical_word, r4300i_t};
 
 struct GuestRegisterManager {
     gprs: [Option<InputSlot>; 32],
@@ -20,7 +20,6 @@ impl GuestRegisterManager {
     }
 
     pub fn set_gpr(&mut self, r: u8, value: InputSlot) {
-        println!("Setting GPR[{}] to {}", r, value);
         if r != 0 {
             self.gprs[r as usize] = Some(value);
         }
@@ -29,9 +28,22 @@ impl GuestRegisterManager {
     fn get_register(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
         *self.gprs[r as usize].get_or_insert_with(|| {
             let offset = offset_of!(r4300i_t, gpr) + (r as usize * std::mem::size_of::<u64>());
-            println!("Loading GPR[{}] from CPU address offset {}", r, offset);
             block.load_ptr(DataType::U64, self.cpu_address, offset).val()
         })
+    }
+
+    fn flush_all(&mut self, block: &mut IRBlockHandle) {
+        self
+            .gprs
+            .iter_mut()
+            .enumerate()
+            .filter(|(i, reg)| *i != 0 && reg.is_some())
+            .for_each(|(i, reg)| {
+                if let Some(value) = reg.take() {
+                    let offset = offset_of!(r4300i_t, gpr) + (i * std::mem::size_of::<u64>());
+                    block.write_ptr(DataType::U64, self.cpu_address, offset, value);
+                }
+            });
     }
 }
 
@@ -51,7 +63,7 @@ fn get_paddr_for_loadstore(cpu: &r4300i_t, guest_regs: &mut GuestRegisterManager
         panic!("Failed to resolve virtual address 0x{:016X}", vaddr);
     }
 
-    let success = block.call_function(resolve_virtual, DataType::Bool, vec![
+    let success = block.call_function(resolve_virtual, Some(DataType::Bool), vec![
         virtual_address.val(),
         const_u32(bus_access),
         cached_ptr,
@@ -59,7 +71,7 @@ fn get_paddr_for_loadstore(cpu: &r4300i_t, guest_regs: &mut GuestRegisterManager
     ]);
 
     let mut on_fail_block = func.new_block(vec![]);
-    on_fail_block.call_function(const_ptr(on_fail as usize), DataType::U32, vec![virtual_address.val()]);
+    on_fail_block.call_function(const_ptr(on_fail as usize), None, vec![virtual_address.val()]);
     on_fail_block.ret(None);
 
     let on_success_block = func.new_block(vec![]);
@@ -70,27 +82,27 @@ fn get_paddr_for_loadstore(cpu: &r4300i_t, guest_regs: &mut GuestRegisterManager
 
 }
 
-pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
+fn set_pc(block: &mut IRBlockHandle, cpu_address: InputSlot, value: InputSlot) {
+    let offset = offset_of!(r4300i_t, pc);
+    let next_pc_offset = offset_of!(r4300i_t, next_pc);
+
+    block.write_ptr(DataType::U64, cpu_address, offset, value);
+    let next_pc = block.add(DataType::U64, value, const_u32(4));
+    block.write_ptr(DataType::U64, cpu_address, next_pc_offset, next_pc.val());
+}
+
+pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) -> IRFunction {
     let context = IRContext::new();
     let func = IRFunction::new(context);
     let mut block = func.new_block(vec![DataType::Ptr]);
 
-    let mut guest_regs = GuestRegisterManager::new(block.input(0));
+    let cpu_address = block.input(0);
 
-    for instr in parsed.iter() {
-        let iw = instr.instr.raw();
-        let op_enum = &instr.op;
-        let vaddr = instr.vaddr;
-        let paddr = instr.paddr;
-        println!("{vaddr:016X}\t{paddr:08X}\t{iw:08X} (opcode {op_enum:?})");
-    }
+    let mut guest_regs = GuestRegisterManager::new(cpu_address);
 
-    for ParsedMipsInstruction { paddr, vaddr, instr, op } in parsed {
-        println!("Function so far:");
-        println!("{}", func);
-
+    for ParsedMipsInstruction { paddr: _paddr, vaddr, instr, op } in parsed {
         match op {
-            MipsOpcode::NOP => todo!("NOP"),
+            MipsOpcode::NOP => {},
             MipsOpcode::LD => todo!("LD"),
             MipsOpcode::LUI => {
                 let c = (instr.imm() as u32) << 16;
@@ -109,7 +121,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
             MipsOpcode::LH => todo!("LH"),
             MipsOpcode::LW => {
                 let paddr = get_paddr_for_loadstore(cpu, &mut guest_regs, &func, &mut block, instr, bus_access_BUS_LOAD);
-                let temp_value = block.call_function(const_ptr(n64_read_physical_word as usize), DataType::S32, vec![
+                let temp_value = block.call_function(const_ptr(n64_read_physical_word as usize), Some(DataType::S32), vec![
                     paddr,
                 ]);
 
@@ -118,7 +130,42 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             },
             MipsOpcode::LWU => todo!("LWU"),
-            MipsOpcode::BRANCH(BranchInfo { cond: _cond, likely: _likely, link: _link }) => todo!("BRANCH"),
+            MipsOpcode::BRANCH(BranchInfo { cond, likely, link }) => {
+                assert_eq!(likely, false, "Likely branches are not supported yet");
+                assert_eq!(link, false, "Link branches are not supported yet");
+
+                let compare_type = match cond {
+                    BranchCondition::EQ => todo!(),
+                    BranchCondition::NE => CompareType::NotEqual,
+                    BranchCondition::GTZ => todo!(),
+                    BranchCondition::LTZ => todo!(),
+                    BranchCondition::LEZ => todo!(),
+                    BranchCondition::GEZ => todo!(),
+                };
+
+                let rs = guest_regs.get_register(&mut block, instr.rs());
+                let rt = guest_regs.get_register(&mut block, instr.rt());
+
+                let take_branch = block.compare(rs, compare_type, rt);
+
+                let mut taken_block = func.new_block(vec![]);
+                let mut not_taken_block = func.new_block(vec![]);
+
+                let taken_pc = vaddr.wrapping_add_signed((instr.s_imm() as i64) << 2);
+                let not_taken_pc = vaddr.wrapping_add(8);
+
+                println!("Jumping to {:016X} if taken, continuing to {:016X} if not taken", taken_pc, not_taken_pc);
+
+                set_pc(&mut taken_block, cpu_address, const_u64(taken_pc));
+                set_pc(&mut not_taken_block, cpu_address, const_u64(not_taken_pc));
+
+                block.branch(take_branch.val(), taken_block.call(vec![]), not_taken_block.call(vec![]));
+
+                block = func.new_block(vec![]);
+
+                taken_block.jump(block.call(vec![]));
+                not_taken_block.jump(block.call(vec![]));
+            },
             MipsOpcode::CACHE => todo!("CACHE"),
             MipsOpcode::SB => todo!("SB"),
             MipsOpcode::SH => todo!("SH"),
@@ -126,7 +173,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
             MipsOpcode::SW => {
                 let paddr = get_paddr_for_loadstore(cpu, &mut guest_regs, &func, &mut block, instr, bus_access_BUS_STORE);
                 let to_write = guest_regs.get_register(&mut block, instr.rt());
-                block.call_function(const_ptr(n64_write_physical_word as usize), DataType::U32, vec![
+                block.call_function(const_ptr(n64_write_physical_word as usize), None, vec![
                     paddr,
                     to_write,
                 ]);
@@ -228,6 +275,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) {
             MipsOpcode::DSRL32 => todo!("DSRL32"),
             MipsOpcode::DSRA32 => todo!("DSRA32"),
         }
-
     }
+
+    guest_regs.flush_all(&mut block);
+    block.ret(None);
+
+    println!("{}", func);
+
+    return func;
 }

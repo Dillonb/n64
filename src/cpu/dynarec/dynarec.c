@@ -36,14 +36,18 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
 #endif
 
     mark_metric(METRIC_BLOCK_COMPILATION);
-    rs_jit_test_c_repr_struct(&N64CPU);
+    // TODO: for now, this also runs the block
     v3_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
-    if (block->run == NULL) {
-        logfatal("Failed to compile block!");
-        //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
-    }
 
-    return n64dynarec.run_block((u64)block->run);
+    // TODO: uncomment this when the compiler is actually emitting to the blockcache
+    //if (block->run == NULL) {
+    //    logfatal("Failed to compile block!");
+    //    //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
+    //}
+
+    return 10;
+    // Uncomment when the block can be run like this and returns the number of steps taken
+    // return n64dynarec.run_block((u64)block->run);
 }
 
 INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64_block_sysconfig_t current_sysconfig, u64 virtual_address) {
