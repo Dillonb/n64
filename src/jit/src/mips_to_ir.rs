@@ -119,6 +119,12 @@ fn set_pc(block: &mut IRBlockHandle, cpu_address: InputSlot, value: InputSlot) {
     block.write_ptr(DataType::U64, cpu_address, next_pc_offset, next_pc.val());
 }
 
+fn set_link_reg(guest_regs: &mut GuestRegisterManager, vaddr: u64, mips_reg: u8) {
+    // Skip the delay slot on return
+    let vaddr = vaddr.wrapping_add(8);
+    guest_regs.set_gpr(mips_reg, const_u64(vaddr));
+}
+
 pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     let context = IRContext::new();
     let func = IRFunction::new(context);
@@ -142,7 +148,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let c = (instr.imm() as u32) << 16;
                 guest_regs.set_gpr(instr.rt(), const_u32(c));
             }
-            MipsOpcode::ADDI => todo!("ADDI"),
+            MipsOpcode::ADDI => {
+                let rs = guest_regs.get_register(&mut block, instr.rs());
+                let result = block.add(DataType::S32, rs, const_u16(instr.imm()));
+                let sign_extended = block.convert(DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
+            },
             MipsOpcode::ADDIU => todo!("ADDIU"),
             MipsOpcode::DADDI => todo!("DADDI"),
             MipsOpcode::ANDI => {
@@ -242,7 +253,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::J => todo!("J"),
-            MipsOpcode::JAL => todo!("JAL"),
+            MipsOpcode::JAL => {
+                set_link_reg(&mut guest_regs, vaddr, 31);
+                let upper_bits = vaddr & 0xFFFFFFFFF0000000;
+                let target = (instr.j_target() as u64) << 2 | upper_bits;
+
+                set_pc(&mut block, cpu_address, const_u64(target));
+            },
             MipsOpcode::SLTI => todo!("SLTI"),
             MipsOpcode::SLTIU => todo!("SLTIU"),
             MipsOpcode::XORI => todo!("XORI"),

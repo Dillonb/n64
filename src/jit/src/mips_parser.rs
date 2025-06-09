@@ -353,6 +353,8 @@ proc_bitfield::bitfield! {
         pub op_bits: u8 @ 26 ..=31,
         pub op: u8 [unwrap MipsOpcodeField] @ 26 ..= 31,
 
+        pub j_target: u32 @ 0..=25,
+
         pub is_coprocessor_funct: bool @ 25,
     }
 }
