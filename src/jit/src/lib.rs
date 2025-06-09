@@ -14,7 +14,13 @@ mod mips_to_ir;
 include!(concat!(env!("OUT_DIR"), "/c_bindings_generated.rs"));
 
 #[no_mangle]
-pub unsafe extern fn rs_jit_compile_new_block(instructions: *mut u32, num_instructions: usize, virtual_address: u64, physical_address: u32, cpu: &r4300i_t) {
+pub unsafe extern "C" fn rs_jit_compile_new_block(
+    instructions: *mut u32,
+    num_instructions: usize,
+    virtual_address: u64,
+    physical_address: u32,
+    cpu: &r4300i_t,
+) {
     println!("Compiling block at 0x{:016X}", virtual_address);
     let safe_code = std::slice::from_raw_parts(instructions, num_instructions);
     let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);

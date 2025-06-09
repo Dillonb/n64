@@ -1,8 +1,17 @@
 use std::mem::offset_of;
 
-use dgbir::ir::{const_ptr, const_s16, const_u16, const_u32, const_u64, CompareType, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot};
+use dgbir::ir::{
+    const_ptr, const_s16, const_u16, const_u32, const_u64, CompareType, DataType, IRBlockHandle,
+    IRContext, IRFunction, InputSlot,
+};
 
-use crate::{bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, mips_parser::{BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction}, n64_read_physical_word, n64_write_physical_word, r4300i_t};
+use crate::{
+    bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE,
+    mips_parser::{
+        BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
+    },
+    n64_read_physical_word, n64_write_physical_word, r4300i_t,
+};
 
 struct GuestRegisterManager {
     gprs: [Option<InputSlot>; 32],
@@ -28,13 +37,14 @@ impl GuestRegisterManager {
     fn get_register(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
         *self.gprs[r as usize].get_or_insert_with(|| {
             let offset = offset_of!(r4300i_t, gpr) + (r as usize * std::mem::size_of::<u64>());
-            block.load_ptr(DataType::U64, self.cpu_address, offset).val()
+            block
+                .load_ptr(DataType::U64, self.cpu_address, offset)
+                .val()
         })
     }
 
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
-        self
-            .gprs
+        self.gprs
             .iter_mut()
             .enumerate()
             .filter(|(i, reg)| *i != 0 && reg.is_some())
@@ -47,11 +57,18 @@ impl GuestRegisterManager {
     }
 }
 
-fn get_paddr_for_loadstore(cpu: &r4300i_t, guest_regs: &mut GuestRegisterManager, func: &IRFunction, block: &mut IRBlockHandle, instr: MipsInstructionBitfield, bus_access: bus_access) -> InputSlot {
+fn get_paddr_for_loadstore(
+    cpu: &r4300i_t,
+    guest_regs: &mut GuestRegisterManager,
+    func: &IRFunction,
+    block: &mut IRBlockHandle,
+    instr: MipsInstructionBitfield,
+    bus_access: bus_access,
+) -> InputSlot {
     let base = guest_regs.get_register(block, instr.rs());
     let virtual_address = block.add(DataType::U64, base, const_s16(instr.s_imm()));
 
-    static mut physical : u32 = 0;
+    static mut physical: u32 = 0;
     static mut cached: bool = false;
 
     let physical_ptr = const_ptr(&raw const physical as usize);
@@ -63,23 +80,34 @@ fn get_paddr_for_loadstore(cpu: &r4300i_t, guest_regs: &mut GuestRegisterManager
         panic!("Failed to resolve virtual address 0x{:016X}", vaddr);
     }
 
-    let success = block.call_function(resolve_virtual, Some(DataType::Bool), vec![
-        virtual_address.val(),
-        const_u32(bus_access),
-        cached_ptr,
-        physical_ptr,
-    ]);
+    let success = block.call_function(
+        resolve_virtual,
+        Some(DataType::Bool),
+        vec![
+            virtual_address.val(),
+            const_u32(bus_access),
+            cached_ptr,
+            physical_ptr,
+        ],
+    );
 
     let mut on_fail_block = func.new_block(vec![]);
-    on_fail_block.call_function(const_ptr(on_fail as usize), None, vec![virtual_address.val()]);
+    on_fail_block.call_function(
+        const_ptr(on_fail as usize),
+        None,
+        vec![virtual_address.val()],
+    );
     on_fail_block.ret(None);
 
     let on_success_block = func.new_block(vec![]);
-    block.branch(success.val(), on_success_block.call(vec![]), on_fail_block.call(vec![]));
+    block.branch(
+        success.val(),
+        on_success_block.call(vec![]),
+        on_fail_block.call(vec![]),
+    );
     *block = on_success_block;
 
     return block.load_ptr(DataType::U32, physical_ptr, 0).val();
-
 }
 
 fn set_pc(block: &mut IRBlockHandle, cpu_address: InputSlot, value: InputSlot) {
@@ -91,7 +119,7 @@ fn set_pc(block: &mut IRBlockHandle, cpu_address: InputSlot, value: InputSlot) {
     block.write_ptr(DataType::U64, cpu_address, next_pc_offset, next_pc.val());
 }
 
-pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) -> IRFunction {
+pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     let context = IRContext::new();
     let func = IRFunction::new(context);
     let mut block = func.new_block(vec![DataType::Ptr]);
@@ -100,14 +128,20 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) -> IRFunction 
 
     let mut guest_regs = GuestRegisterManager::new(cpu_address);
 
-    for ParsedMipsInstruction { paddr: _paddr, vaddr, instr, op } in parsed {
+    for ParsedMipsInstruction {
+        paddr: _paddr,
+        vaddr,
+        instr,
+        op,
+    } in parsed
+    {
         match op {
-            MipsOpcode::NOP => {},
+            MipsOpcode::NOP => {}
             MipsOpcode::LD => todo!("LD"),
             MipsOpcode::LUI => {
                 let c = (instr.imm() as u32) << 16;
                 guest_regs.set_gpr(instr.rt(), const_u32(c));
-            },
+            }
             MipsOpcode::ADDI => todo!("ADDI"),
             MipsOpcode::ADDIU => todo!("ADDIU"),
             MipsOpcode::DADDI => todo!("DADDI"),
@@ -115,20 +149,29 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) -> IRFunction 
                 let rs = guest_regs.get_register(&mut block, instr.rs());
                 let result = block.and(DataType::U64, rs, const_u16(instr.imm()));
                 guest_regs.set_gpr(instr.rt(), result.val());
-            },
+            }
             MipsOpcode::LBU => todo!("LBU"),
             MipsOpcode::LHU => todo!("LHU"),
             MipsOpcode::LH => todo!("LH"),
             MipsOpcode::LW => {
-                let paddr = get_paddr_for_loadstore(cpu, &mut guest_regs, &func, &mut block, instr, bus_access_BUS_LOAD);
-                let temp_value = block.call_function(const_ptr(n64_read_physical_word as usize), Some(DataType::S32), vec![
-                    paddr,
-                ]);
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+                let temp_value = block.call_function(
+                    const_ptr(n64_read_physical_word as usize),
+                    Some(DataType::S32),
+                    vec![paddr],
+                );
 
                 let sign_extended = block.convert(DataType::S64, temp_value.val());
 
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
-            },
+            }
             MipsOpcode::LWU => todo!("LWU"),
             MipsOpcode::BRANCH(BranchInfo { cond, likely, link }) => {
                 assert_eq!(likely, false, "Likely branches are not supported yet");
@@ -154,35 +197,50 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu : &r4300i_t) -> IRFunction 
                 let taken_pc = vaddr.wrapping_add_signed((instr.s_imm() as i64) << 2);
                 let not_taken_pc = vaddr.wrapping_add(8);
 
-                println!("Jumping to {:016X} if taken, continuing to {:016X} if not taken", taken_pc, not_taken_pc);
+                println!(
+                    "Jumping to {:016X} if taken, continuing to {:016X} if not taken",
+                    taken_pc, not_taken_pc
+                );
 
                 set_pc(&mut taken_block, cpu_address, const_u64(taken_pc));
                 set_pc(&mut not_taken_block, cpu_address, const_u64(not_taken_pc));
 
-                block.branch(take_branch.val(), taken_block.call(vec![]), not_taken_block.call(vec![]));
+                block.branch(
+                    take_branch.val(),
+                    taken_block.call(vec![]),
+                    not_taken_block.call(vec![]),
+                );
 
                 block = func.new_block(vec![]);
 
                 taken_block.jump(block.call(vec![]));
                 not_taken_block.jump(block.call(vec![]));
-            },
+            }
             MipsOpcode::CACHE => todo!("CACHE"),
             MipsOpcode::SB => todo!("SB"),
             MipsOpcode::SH => todo!("SH"),
             MipsOpcode::SD => todo!("SD"),
             MipsOpcode::SW => {
-                let paddr = get_paddr_for_loadstore(cpu, &mut guest_regs, &func, &mut block, instr, bus_access_BUS_STORE);
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
                 let to_write = guest_regs.get_register(&mut block, instr.rt());
-                block.call_function(const_ptr(n64_write_physical_word as usize), None, vec![
-                    paddr,
-                    to_write,
-                ]);
-            },
+                block.call_function(
+                    const_ptr(n64_write_physical_word as usize),
+                    None,
+                    vec![paddr, to_write],
+                );
+            }
             MipsOpcode::ORI => {
                 let rs = guest_regs.get_register(&mut block, instr.rs());
                 let result = block.or(DataType::U64, rs, const_u16(instr.imm()));
                 guest_regs.set_gpr(instr.rt(), result.val());
-            },
+            }
             MipsOpcode::J => todo!("J"),
             MipsOpcode::JAL => todo!("JAL"),
             MipsOpcode::SLTI => todo!("SLTI"),

@@ -19,6 +19,7 @@
         llvmPackages.clang-tools
         pkgs.git
         pkgs.rust-analyzer
+        pkgs.rustfmt
       ];
 
       tools = [

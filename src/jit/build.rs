@@ -4,14 +4,11 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("../cpu/r4300i.h")
         .header("../mem/n64bus.h")
-
         // Automatically generate the bindings if the C code changes
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
-
         // Set some include paths
         .clang_arg("-I..")
         .clang_arg("-I../common")
-
         // These functions all use u128, which is not FFI-safe
         .blocklist_function("qecvt")
         .blocklist_function("qecvt_r")
@@ -19,7 +16,6 @@ fn main() {
         .blocklist_function("qfcvt_r")
         .blocklist_function("qgcvt")
         .blocklist_function("strtold")
-
         .generate()
         .expect("Unable to generate bindings");
 
