@@ -45,7 +45,7 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
     //    //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
     //}
 
-    return 10;
+    return 10000;
     // Uncomment when the block can be run like this and returns the number of steps taken
     // return n64dynarec.run_block((u64)block->run);
 }

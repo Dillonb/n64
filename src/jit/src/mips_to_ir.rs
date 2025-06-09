@@ -194,7 +194,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let mut taken_block = func.new_block(vec![]);
                 let mut not_taken_block = func.new_block(vec![]);
 
-                let taken_pc = vaddr.wrapping_add_signed((instr.s_imm() as i64) << 2);
+                let taken_pc = vaddr.wrapping_add(4).wrapping_add_signed((instr.s_imm() as i64) << 2);
                 let not_taken_pc = vaddr.wrapping_add(8);
 
                 println!(
@@ -287,7 +287,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::SRAV => todo!("SRAV"),
             MipsOpcode::SLLV => todo!("SLLV"),
             MipsOpcode::SRLV => todo!("SRLV"),
-            MipsOpcode::JR => todo!("JR"),
+            MipsOpcode::JR => {
+                let target = guest_regs.get_register(&mut block, instr.rs());
+                set_pc(&mut block, cpu_address, target);
+            },
             MipsOpcode::JALR => todo!("JALR"),
             MipsOpcode::SYSCALL => todo!("SYSCALL"),
             MipsOpcode::SYNC => todo!("SYNC"),
