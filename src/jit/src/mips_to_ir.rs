@@ -338,7 +338,5 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     guest_regs.flush_all(&mut block);
     block.ret(None);
 
-    println!("{}", func);
-
     return func;
 }
