@@ -150,12 +150,16 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::ADDI => {
                 let rs = guest_regs.get_register(&mut block, instr.rs());
-                let result = block.add(DataType::S32, rs, const_u16(instr.imm()));
+                let result = block.add(DataType::S32, rs, const_s16(instr.s_imm()));
                 let sign_extended = block.convert(DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             },
             MipsOpcode::ADDIU => todo!("ADDIU"),
-            MipsOpcode::DADDI => todo!("DADDI"),
+            MipsOpcode::DADDI => {
+                let rs = guest_regs.get_register(&mut block, instr.rs());
+                let result = block.add(DataType::S64, rs, const_s16(instr.s_imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
+            },
             MipsOpcode::ANDI => {
                 let rs = guest_regs.get_register(&mut block, instr.rs());
                 let result = block.and(DataType::U64, rs, const_u16(instr.imm()));
@@ -183,13 +187,29 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
-            MipsOpcode::LWU => todo!("LWU"),
+            MipsOpcode::LWU => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_word as usize),
+                    Some(DataType::U32),
+                    vec![paddr],
+                );
+
+                guest_regs.set_gpr(instr.rt(), value.val());
+            }
             MipsOpcode::BRANCH(BranchInfo { cond, likely, link }) => {
-                assert_eq!(likely, false, "Likely branches are not supported yet");
                 assert_eq!(link, false, "Link branches are not supported yet");
 
                 let compare_type = match cond {
-                    BranchCondition::EQ => todo!(),
+                    BranchCondition::EQ => CompareType::Equal,
                     BranchCondition::NE => CompareType::NotEqual,
                     BranchCondition::GTZ => todo!(),
                     BranchCondition::LTZ => todo!(),
@@ -216,6 +236,15 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 set_pc(&mut taken_block, cpu_address, const_u64(taken_pc));
                 set_pc(&mut not_taken_block, cpu_address, const_u64(not_taken_pc));
 
+                if likely {
+                    // For likely branches, flush all the regs here so we don't have to do it twice
+                    // (if the branch is taken)
+                    // Regs needed by the delay slot instruction will be reloaded
+                    // TODO: it'd be best to somehow not flush registers needed by the delay slot
+                    // instruction
+                    guest_regs.flush_all(&mut block);
+                }
+
                 block.branch(
                     take_branch.val(),
                     taken_block.call(vec![]),
@@ -225,7 +254,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 block = func.new_block(vec![]);
 
                 taken_block.jump(block.call(vec![]));
-                not_taken_block.jump(block.call(vec![]));
+                if likely {
+                    // Likely branches, return, don't execute the delay slot.
+                    not_taken_block.ret(None);
+                } else {
+                    // Normal branches, continue and execute the delay slot.
+                    not_taken_block.jump(block.call(vec![]));
+                }
             }
             MipsOpcode::CACHE => todo!("CACHE"),
             MipsOpcode::SB => todo!("SB"),
