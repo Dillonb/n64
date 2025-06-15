@@ -252,7 +252,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.or(DataType::U64, rs, const_u16(instr.imm()));
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
-            MipsOpcode::J => todo!("J"),
+            MipsOpcode::J => {
+                let upper_bits = vaddr & 0xFFFFFFFFF0000000;
+                let target = (instr.j_target() as u64) << 2 | upper_bits;
+
+                set_pc(&mut block, cpu_address, const_u64(target));
+            },
             MipsOpcode::JAL => {
                 set_link_reg(&mut guest_regs, vaddr, 31);
                 let upper_bits = vaddr & 0xFFFFFFFFF0000000;
