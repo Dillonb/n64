@@ -28,6 +28,7 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     let compiled = compile(&mut func);
 
     println!("{}", func);
+    println!("{}", compiled.allocations.lifetimes);
 
     let f: extern "C" fn(&r4300i_t) = unsafe { mem::transmute(compiled.ptr_entrypoint()) };
     println!("{}", disassemble(&compiled.code, f as u64));
