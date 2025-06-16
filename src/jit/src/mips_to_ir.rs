@@ -134,6 +134,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
     let mut guest_regs = GuestRegisterManager::new(cpu_address);
 
+    let mut cycles = 0;
+
     for ParsedMipsInstruction {
         paddr: _paddr,
         vaddr,
@@ -282,7 +284,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 taken_block.jump(block.call(vec![]));
                 if likely {
                     // Likely branches, return, don't execute the delay slot.
-                    not_taken_block.ret(None);
+                    not_taken_block.ret(Some(const_s32(cycles + 1)));
                 } else {
                     // Normal branches, continue and execute the delay slot.
                     not_taken_block.jump(block.call(vec![]));
@@ -436,10 +438,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::DSRL32 => todo!("DSRL32"),
             MipsOpcode::DSRA32 => todo!("DSRA32"),
         }
+
+        cycles += 1;
     }
 
     guest_regs.flush_all(&mut block);
-    block.ret(None);
+    block.ret(Some(const_s32(cycles)));
 
     return func;
 }

@@ -20,7 +20,7 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     virtual_address: u64,
     physical_address: u32,
     cpu: &r4300i_t,
-) {
+) -> i32 {
     println!("Compiling block at 0x{:016X}", virtual_address);
     let safe_code = std::slice::from_raw_parts(instructions, num_instructions);
     let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);
@@ -30,16 +30,18 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     println!("{}", func);
     println!("{}", compiled.allocations.lifetimes);
 
-    let f: extern "C" fn(&r4300i_t) = unsafe { mem::transmute(compiled.ptr_entrypoint()) };
+    let f: extern "C" fn(&r4300i_t) -> s32 = unsafe { mem::transmute(compiled.ptr_entrypoint()) };
     println!("{}", disassemble(&compiled.code, f as u64));
 
     println!("Here goes nothing");
-    f(cpu);
-    println!("I survived!");
+    let taken = f(cpu);
+    println!("I survived! Took {} cycles", taken);
     println!("PC: {:016X}", cpu.pc);
     println!("Next PC: {:016X}", cpu.next_pc);
 
     if cpu.pc & 0xFFFFFFFF00000000 == 0 {
         panic!("Upper 32 bits of PC should not be zero!");
     }
+
+    return taken;
 }
