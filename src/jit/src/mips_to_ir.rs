@@ -1,16 +1,13 @@
 use std::mem::offset_of;
 
 use dgbir::ir::{
-    const_ptr, const_s16, const_u16, const_u32, const_u64, CompareType, DataType, IRBlockHandle,
-    IRContext, IRFunction, InputSlot,
+    const_ptr, const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot
 };
 
 use crate::{
-    bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE,
-    mips_parser::{
+    bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, mips_parser::{
         BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
-    },
-    n64_read_physical_word, n64_write_physical_word, r4300i_t,
+    }, n64_read_physical_byte, n64_read_physical_word, n64_write_physical_word, r4300i_t
 };
 
 struct GuestRegisterManager {
@@ -146,7 +143,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::LD => todo!("LD"),
             MipsOpcode::LUI => {
                 let c = (instr.imm() as u32) << 16;
-                guest_regs.set_gpr(instr.rt(), const_u32(c));
+                guest_regs.set_gpr(instr.rt(), const_s32(c as i32));
             }
             MipsOpcode::ADDI => {
                 let rs = guest_regs.get_register(&mut block, instr.rs());
@@ -154,7 +151,14 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let sign_extended = block.convert(DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             },
-            MipsOpcode::ADDIU => todo!("ADDIU"),
+            MipsOpcode::ADDIU => {
+                // Identical to ADDI, but does not throw overflow exceptions (which are not
+                // implemented yet anyway)
+                let rs = guest_regs.get_register(&mut block, instr.rs());
+                let result = block.add(DataType::S32, rs, const_s16(instr.s_imm()));
+                let sign_extended = block.convert(DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
+            },
             MipsOpcode::DADDI => {
                 let rs = guest_regs.get_register(&mut block, instr.rs());
                 let result = block.add(DataType::S64, rs, const_s16(instr.s_imm()));
@@ -165,7 +169,24 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.and(DataType::U64, rs, const_u16(instr.imm()));
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
-            MipsOpcode::LBU => todo!("LBU"),
+            MipsOpcode::LBU => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_byte as usize),
+                    Some(DataType::U8),
+                    vec![paddr],
+                );
+
+                guest_regs.set_gpr(instr.rt(), value.val());
+            },
             MipsOpcode::LHU => todo!("LHU"),
             MipsOpcode::LH => todo!("LH"),
             MipsOpcode::LW => {
@@ -338,7 +359,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::DMTC1 => todo!("DMTC1"),
             MipsOpcode::CTC1 => todo!("CTC1"),
             MipsOpcode::DCTC1 => todo!("DCTC1"),
-            MipsOpcode::SLL => todo!("SLL"),
+            MipsOpcode::SLL => {
+                let input = guest_regs.get_register(&mut block, instr.rt());
+                let result = block.left_shift(DataType::S32, input, const_u16(instr.sa() as u16));
+                let sign_extended = block.convert(DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            },
             MipsOpcode::SRL => todo!("SRL"),
             MipsOpcode::SRA => todo!("SRA"),
             MipsOpcode::SRAV => todo!("SRAV"),
@@ -348,7 +374,11 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let target = guest_regs.get_register(&mut block, instr.rs());
                 set_pc(&mut block, cpu_address, target);
             },
-            MipsOpcode::JALR => todo!("JALR"),
+            MipsOpcode::JALR => {
+                let target = guest_regs.get_register(&mut block, instr.rs());
+                set_pc(&mut block, cpu_address, target);
+                set_link_reg(&mut guest_regs, vaddr, instr.rd());
+            },
             MipsOpcode::SYSCALL => todo!("SYSCALL"),
             MipsOpcode::SYNC => todo!("SYNC"),
             MipsOpcode::MFHI => todo!("MFHI"),
@@ -367,7 +397,15 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::DDIV => todo!("DDIV"),
             MipsOpcode::DDIVU => todo!("DDIVU"),
             MipsOpcode::ADD => todo!("ADD"),
-            MipsOpcode::ADDU => todo!("ADDU"),
+            MipsOpcode::ADDU => {
+                // Identical to ADD, but does not throw overflow exceptions (which are not
+                // implemented yet anyway)
+                let rs = guest_regs.get_register(&mut block, instr.rs());
+                let rt = guest_regs.get_register(&mut block, instr.rt());
+                let result = block.add(DataType::S32, rs, rt);
+                let sign_extended = block.convert(DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            },
             MipsOpcode::AND => todo!("AND"),
             MipsOpcode::SUB => todo!("SUB"),
             MipsOpcode::SUBU => todo!("SUBU"),

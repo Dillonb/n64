@@ -38,4 +38,8 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     println!("I survived!");
     println!("PC: {:016X}", cpu.pc);
     println!("Next PC: {:016X}", cpu.next_pc);
+
+    if cpu.pc & 0xFFFFFFFF00000000 == 0 {
+        panic!("Upper 32 bits of PC should not be zero!");
+    }
 }

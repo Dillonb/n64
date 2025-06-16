@@ -102,7 +102,7 @@ INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysco
 
 #ifdef LOG_ENABLED
     static long total_blocks_run;
-    logdebug("Running block at 0x%016" PRIX64 " - block run #%ld - block FP: 0x%016" PRIX64, N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
+    logdebug("Running block at 0x%016" PRIX64 " - block run #%ld - block FP: 0x%016" PRIX64, N64CPU.pc, ++total_blocks_run, (u64)block->run);
 #endif
     N64CPU.exception = false;
 
