@@ -3,12 +3,15 @@ use std::{env, path::PathBuf};
 fn main() {
     let bindings = bindgen::Builder::default()
         .header("../cpu/r4300i.h")
+        .header("../cpu/dynarec/dynarec.h")
+        .header("../cpu/dynarec/dynarec_memory_management.h")
         .header("../mem/n64bus.h")
         // Automatically generate the bindings if the C code changes
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         // Set some include paths
         .clang_arg("-I..")
         .clang_arg("-I../common")
+        .clang_arg("-I../contrib/include")
         // These functions all use u128, which is not FFI-safe
         .blocklist_function("qecvt")
         .blocklist_function("qecvt_r")

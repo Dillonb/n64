@@ -8,6 +8,9 @@
 #include "dynarec_memory_management.h"
 #include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
+#ifdef N64_MACOS
+#include <pthread.h>
+#endif
 
 // Uncomment to try to find idle loops
 //#define DO_REPEATED_EXEC_DETECTION
@@ -21,6 +24,11 @@ void update_sysconfig() {
 
 int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_block_sysconfig_t current_sysconfig) {
     u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
+
+#ifdef N64_MACOS
+    // Allow writing to the code cache
+    pthread_jit_write_protect_np(false);
+#endif
 
     block->run = NULL;
     block->host_size = 0;
@@ -36,18 +44,17 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
 #endif
 
     mark_metric(METRIC_BLOCK_COMPILATION);
-    // TODO: for now, this also runs the block
-    return v3_compile_new_block(block, code_mask, N64CPU.pc, physical_address) * 1000;
+    v3_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
+#ifdef N64_MACOS
+    // Disallow writing to the code cache to allow exec
+    pthread_jit_write_protect_np(true);
+#endif
 
-    // TODO: uncomment this when the compiler is actually emitting to the blockcache
-    //if (block->run == NULL) {
-    //    logfatal("Failed to compile block!");
-    //    //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
-    //}
+    if (block->run == NULL) {
+       logfatal("Failed to compile block!");
+    }
 
-    // return 10000;
-    // Uncomment when the block can be run like this and returns the number of steps taken
-    // return n64dynarec.run_block((u64)block->run);
+    return block->run(&N64CPU);
 }
 
 INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64_block_sysconfig_t current_sysconfig, u64 virtual_address) {
@@ -83,6 +90,10 @@ INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysco
     if (unlikely(block_list == NULL)) {
 #ifdef N64_LOG_COMPILATIONS
         printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical_address, N64CPU.pc);
+#endif
+        // Allow writing to the code cache
+#ifdef N64_MACOS
+        pthread_jit_write_protect_np(false);
 #endif
         block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
@@ -152,7 +163,13 @@ int n64_dynarec_step() {
         #ifdef DO_REPEATED_EXEC_DETECTION
         do_repeated_exec_detection(physical, block);
         #endif
-        taken = n64dynarec.run_block((u64)block->run);
+        #ifdef N64_MACOS
+        // logfatal("Running block at 0x%08X with run function %p", physical, block->run);
+        // Disallow writing to the code cache to allow exec
+        pthread_jit_write_protect_np(true);
+        #endif
+        // taken = n64dynarec.run_block((u64)block->run);
+        taken = block->run(&N64CPU);
     } else {
         taken = missing_block_handler(physical, block, n64dynarec.sysconfig);
     }

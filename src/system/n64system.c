@@ -32,15 +32,23 @@
 #include <interface/pi.h>
 #include <mem/pif.h>
 #include <timing.h>
+#ifdef N64_MACOS
+#include <pthread.h>
+#endif
 
 static bool should_quit = false;
 
 
 n64_system_t n64sys;
 
+#ifndef N64_MACOS
 static u8 codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
-
 static u8 rsp_codecache[RSP_CODECACHE_SIZE] __attribute__((aligned(4096)));
+#else
+static u8* codecache = NULL;
+static u8* rsp_codecache = NULL;
+#endif
+
 
 bool n64_should_quit() {
     return should_quit;
@@ -59,8 +67,13 @@ void n64_load_rom(const char* rom_path) {
 }
 
 void mprotect_codecache() {
+    #ifdef N64_MACOS
+    codecache = (u8*)mmap(NULL, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,-1, 0);
+    rsp_codecache = (u8*)mmap(NULL, RSP_CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,-1, 0);
+    #else
     mprotect_rwx((u8*)&codecache, CODECACHE_SIZE, "codecache");
     mprotect_rwx((u8*)&rsp_codecache, RSP_CODECACHE_SIZE, "codecache");
+    #endif
 }
 
 #ifdef LOG_CPU_STATE

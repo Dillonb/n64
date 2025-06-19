@@ -39,6 +39,10 @@ void* dynarec_bumpalloc(size_t size) {
     return ptr;
 }
 
+void* dynarec_bumpalloc_get_next_allocation_ptr() {
+    return &n64dynarec.codecache[n64dynarec.codecache_used];
+}
+
 void* dynarec_bumpalloc_zero(size_t size) {
     u8* ptr = dynarec_bumpalloc(size);
 

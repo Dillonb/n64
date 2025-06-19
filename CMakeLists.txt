@@ -95,6 +95,7 @@ endif ()
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
     set (ARM64 TRUE)
+    ADD_COMPILE_DEFINITIONS(N64_ARM64)
 endif()
 
 check_c_compiler_flag("-mssse3" HAS_SSSE3)

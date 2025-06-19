@@ -2,11 +2,14 @@
 #include <log.h>
 #include <string.h>
 
+#ifdef N64_MACOS
+#include <pthread.h>
+#endif
+
 #ifndef N64_WIN
 #include <sys/mman.h>
 #include <errno.h>
 #include <unistd.h>
-
 #else
 #include <windows.h>
 #include <memoryapi.h>
