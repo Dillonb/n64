@@ -5,6 +5,7 @@ fn main() {
         .header("../cpu/r4300i.h")
         .header("../cpu/dynarec/dynarec.h")
         .header("../cpu/dynarec/dynarec_memory_management.h")
+        .header("../system/scheduler_utils.h")
         .header("../mem/n64bus.h")
         // Automatically generate the bindings if the C code changes
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))

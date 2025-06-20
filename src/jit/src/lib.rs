@@ -29,11 +29,7 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     let compiled = compile_vec(&mut func, baseaddr);
 
     let alloc = dynarec_bumpalloc(compiled.len());
-    std::ptr::copy_nonoverlapping(
-        compiled.as_ptr(),
-        alloc as *mut u8,
-        compiled.len(),
-    );
+    std::ptr::copy_nonoverlapping(compiled.as_ptr(), alloc as *mut u8, compiled.len());
     flush_icache(unsafe { std::slice::from_raw_parts(alloc as *const u8, compiled.len()) });
 
     let f: unsafe extern "C" fn(*mut r4300i) -> i32 = mem::transmute(alloc);
