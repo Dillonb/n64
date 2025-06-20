@@ -199,6 +199,13 @@ void v3_compile_new_block(
         u64 virtual_address,
         u32 physical_address) {
     fill_temp_code(virtual_address, physical_address, code_mask);
+    if (detect_idle_loop(virtual_address)) {
+        printf("Detected idle loop at %08X, replacing with idle_loop_replacement\n", (u32)virtual_address);
+        block->run = idle_loop_replacement;
+        block->guest_size = 0;
+        block->host_size = 0;
+        return;
+    }
     rs_jit_compile_new_block(block, (uint32_t*)temp_code, temp_code_len, virtual_address, physical_address, n64cpu_ptr);
 }
 
