@@ -29,7 +29,6 @@
         pkgs.shaderc
         pkgs.pkg-config
         pkgs.vulkan-loader
-        pkgs.mold-wrapped
         pkgs.cargo
         pkgs.rustc
         pkgs.rust-cbindgen
