@@ -1,8 +1,8 @@
 use std::mem::offset_of;
 
 use dgbir::ir::{
-    const_ptr, const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType,
-    IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType,
+    const_ptr, const_s16, const_s32, const_s64, const_u16, const_u32, const_u64, CompareType,
+    DataType, IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType,
 };
 
 use crate::{
@@ -842,7 +842,80 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_lo(lo.val());
                 guest_regs.set_hi(hi.val());
             }
-            MipsOpcode::DIV => todo!("DIV"),
+            MipsOpcode::DIV => {
+                let dividend = guest_regs.get_gpr(&mut block, instr.rs());
+                let divisor = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let is_divide_by_zero = block.compare(divisor, CompareType::Equal, const_u32(0));
+
+                let mut normal = func.new_block(vec![]);
+                let mut divide_by_zero = func.new_block(vec![]);
+                block.branch(
+                    is_divide_by_zero.val(),
+                    divide_by_zero.call(vec![]),
+                    normal.call(vec![]),
+                );
+
+                let sign_extended_dividend =
+                    divide_by_zero.convert_from(DataType::S32, DataType::S64, dividend);
+                divide_by_zero.write_ptr(
+                    DataType::S64,
+                    cpu_address,
+                    offset_of!(r4300i_t, mult_hi),
+                    sign_extended_dividend.val(),
+                );
+
+                let is_dividend_gte_zero = divide_by_zero.compare(
+                    dividend,
+                    CompareType::GreaterThanOrEqualSigned,
+                    const_s32(0),
+                );
+                let mut dividend_gte_zero = func.new_block(vec![]);
+                let mut dividend_lt_zero = func.new_block(vec![]);
+                divide_by_zero.branch(
+                    is_dividend_gte_zero.val(),
+                    dividend_gte_zero.call(vec![]),
+                    dividend_lt_zero.call(vec![]),
+                );
+
+                dividend_gte_zero.write_ptr(
+                    DataType::S64,
+                    cpu_address,
+                    offset_of!(r4300i_t, mult_lo),
+                    const_s64(-1),
+                );
+
+                dividend_lt_zero.write_ptr(
+                    DataType::S64,
+                    cpu_address,
+                    offset_of!(r4300i_t, mult_lo),
+                    const_s64(1),
+                );
+
+                let result = normal.divide(DataType::S32, dividend, divisor);
+                let quotient = normal.convert_from(DataType::S32, DataType::S64, result.at(0));
+                let remainder = normal.convert_from(DataType::S32, DataType::S64, result.at(1));
+
+                normal.write_ptr(
+                    DataType::S64,
+                    cpu_address,
+                    offset_of!(r4300i_t, mult_lo),
+                    quotient.val(),
+                );
+                normal.write_ptr(
+                    DataType::S64,
+                    cpu_address,
+                    offset_of!(r4300i_t, mult_hi),
+                    remainder.val(),
+                );
+
+                let end = func.new_block(vec![]);
+                dividend_gte_zero.jump(end.call(vec![]));
+                dividend_lt_zero.jump(end.call(vec![]));
+                normal.jump(end.call(vec![]));
+
+                block = end;
+            }
             MipsOpcode::DIVU => todo!("DIVU"),
             MipsOpcode::DMULT => todo!("DMULT"),
             MipsOpcode::DMULTU => todo!("DMULTU"),
