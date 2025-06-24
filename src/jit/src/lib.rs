@@ -28,6 +28,8 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     let baseaddr = dynarec_bumpalloc_get_next_allocation_ptr() as usize;
     let compiled = compile_vec(&mut func, baseaddr);
 
+    println!("{}", func);
+
     let alloc = dynarec_bumpalloc(compiled.len());
     std::ptr::copy_nonoverlapping(compiled.as_ptr(), alloc as *mut u8, compiled.len());
     flush_icache(unsafe { std::slice::from_raw_parts(alloc as *const u8, compiled.len()) });

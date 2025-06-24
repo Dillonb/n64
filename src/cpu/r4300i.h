@@ -638,13 +638,13 @@ typedef struct r4300i {
     fcr0_t  fcr0;
     fcr31_t fcr31;
 
+    // Needs to come before the cache so that the JIT can use it
+    cp0_t cp0;
+    u64 cp2_latch;
+
     // caches
     icache_line_t icache[512]; // 16KiB
     dcache_line_t dcache[512]; // 8KiB
-
-
-    cp0_t cp0;
-    u64 cp2_latch;
 
     // Cached value of `cp0.cause.interrupt_pending & cp0.status.im`
     u8 interrupts;
