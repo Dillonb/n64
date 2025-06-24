@@ -276,19 +276,36 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
             MipsOpcode::BRANCH(BranchInfo { cond, likely, link }) => {
-                assert_eq!(link, false, "Link branches are not supported yet");
+                if link {
+                    set_link_reg(&mut guest_regs, vaddr, 31);
+                }
+
+                let rs_reg = instr.rs();
+                let mut rt_reg = instr.rt();
 
                 let compare_type = match cond {
                     BranchCondition::EQ => CompareType::Equal,
                     BranchCondition::NE => CompareType::NotEqual,
-                    BranchCondition::GTZ => todo!(),
-                    BranchCondition::LTZ => todo!(),
-                    BranchCondition::LEZ => todo!(),
-                    BranchCondition::GEZ => todo!(),
+                    BranchCondition::GTZ => {
+                        rt_reg = 0;
+                        CompareType::GreaterThanSigned
+                    },
+                    BranchCondition::LTZ => {
+                        rt_reg = 0;
+                        CompareType::LessThanSigned
+                    },
+                    BranchCondition::LEZ => {
+                        rt_reg = 0;
+                        CompareType::LessThanOrEqualSigned
+                    },
+                    BranchCondition::GEZ => {
+                        rt_reg = 0;
+                        CompareType::GreaterThanOrEqualSigned
+                    },
                 };
 
-                let rs = guest_regs.get_gpr(&mut block, instr.rs());
-                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let rs = guest_regs.get_gpr(&mut block, rs_reg);
+                let rt = guest_regs.get_gpr(&mut block, rt_reg);
 
                 let take_branch = block.compare(rs, compare_type, rt);
 
@@ -401,7 +418,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     todo!("MFC0 R4300I_CP0_REG_ENTRYHI")
                 }
                 R4300I_CP0_REG_STATUS => {
-                    todo!("MFC0 R4300I_CP0_REG_STATUS")
+                    let result = block.load_ptr(
+                        DataType::S32,
+                        cpu_address,
+                        offset_of!(r4300i_t, cp0.status.raw),
+                    );
+                    let sign_extended = block.convert(DataType::S64, result.val());
+                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 R4300I_CP0_REG_TAGLO => {
                     todo!("MFC0 R4300I_CP0_REG_TAGLO")
@@ -678,8 +701,27 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::SRL => todo!("SRL"),
             MipsOpcode::SRA => todo!("SRA"),
             MipsOpcode::SRAV => todo!("SRAV"),
-            MipsOpcode::SLLV => todo!("SLLV"),
-            MipsOpcode::SRLV => todo!("SRLV"),
+            MipsOpcode::SLLV => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let shift_amount = block.and(DataType::U32, rs, const_u32(0b11111));
+
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.left_shift(DataType::U32, rt, shift_amount.val());
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
+
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            },
+            MipsOpcode::SRLV => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let shift_amount = block.and(DataType::U32, rs, const_u32(0b11111));
+
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.right_shift(DataType::U32, rt, shift_amount.val());
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
+
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+
+            },
             MipsOpcode::JR => {
                 let target = guest_regs.get_gpr(&mut block, instr.rs());
                 set_pc(&mut block, cpu_address, target);
@@ -747,15 +789,34 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.and(DataType::U64, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             },
-            MipsOpcode::SUB => todo!("SUB"),
-            MipsOpcode::SUBU => todo!("SUBU"),
+            MipsOpcode::SUB => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.subtract(DataType::S32, rs, rt);
+                let sign_extended = block.convert(DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            },
+            MipsOpcode::SUBU => {
+                // Identical to SUB, but does not throw overflow exceptions (which are not
+                // implemented yet anyway)
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.subtract(DataType::S32, rs, rt);
+                let sign_extended = block.convert(DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            },
             MipsOpcode::OR => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.or(DataType::U64, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             },
-            MipsOpcode::XOR => todo!("XOR"),
+            MipsOpcode::XOR => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.xor(DataType::U64, rs, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            },
             MipsOpcode::NOR => todo!("NOR"),
             MipsOpcode::SLT => todo!("SLT"),
             MipsOpcode::SLTU => {

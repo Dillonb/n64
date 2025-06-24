@@ -26,8 +26,8 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);
     let mut func = to_ir(parsed, cpu);
     let baseaddr = dynarec_bumpalloc_get_next_allocation_ptr() as usize;
+    println!("{}", func);
     let compiled = compile_vec(&mut func, baseaddr);
-
     println!("{}", func);
 
     let alloc = dynarec_bumpalloc(compiled.len());
