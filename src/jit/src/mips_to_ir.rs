@@ -6,13 +6,13 @@ use dgbir::ir::{
 };
 
 use crate::{
-    bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE,
+    bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, cp0_status_updated,
     mips_parser::{
         BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
     },
     n64_read_physical_byte, n64_read_physical_word, n64_write_physical_word, r4300i_t,
-    reschedule_compare_interrupt, R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23,
-    R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
+    reschedule_compare_interrupt, CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22,
+    R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
     R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE,
     R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI,
     R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC,
@@ -58,7 +58,13 @@ impl GuestRegisterManager {
 
     fn get_hi(&mut self, block: &mut IRBlockHandle) -> InputSlot {
         *self.hi.get_or_insert_with(|| {
-            block.load_ptr(DataType::U64, self.cpu_address, offset_of!(r4300i_t, mult_hi)).val()
+            block
+                .load_ptr(
+                    DataType::U64,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, mult_hi),
+                )
+                .val()
         })
     }
 
@@ -68,7 +74,13 @@ impl GuestRegisterManager {
 
     fn get_lo(&mut self, block: &mut IRBlockHandle) -> InputSlot {
         *self.lo.get_or_insert_with(|| {
-            block.load_ptr(DataType::U64, self.cpu_address, offset_of!(r4300i_t, mult_lo)).val()
+            block
+                .load_ptr(
+                    DataType::U64,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, mult_lo),
+                )
+                .val()
         })
     }
 
@@ -89,11 +101,21 @@ impl GuestRegisterManager {
             });
 
         if let Some(value) = self.lo.take() {
-            block.write_ptr(DataType::U64, self.cpu_address, offset_of!(r4300i_t, mult_lo), value);
+            block.write_ptr(
+                DataType::U64,
+                self.cpu_address,
+                offset_of!(r4300i_t, mult_lo),
+                value,
+            );
         }
 
         if let Some(value) = self.hi.take() {
-            block.write_ptr(DataType::U64, self.cpu_address, offset_of!(r4300i_t, mult_hi), value);
+            block.write_ptr(
+                DataType::U64,
+                self.cpu_address,
+                offset_of!(r4300i_t, mult_hi),
+                value,
+            );
         }
     }
 }
@@ -289,19 +311,19 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     BranchCondition::GTZ => {
                         rt_reg = 0;
                         CompareType::GreaterThanSigned
-                    },
+                    }
                     BranchCondition::LTZ => {
                         rt_reg = 0;
                         CompareType::LessThanSigned
-                    },
+                    }
                     BranchCondition::LEZ => {
                         rt_reg = 0;
                         CompareType::LessThanOrEqualSigned
-                    },
+                    }
                     BranchCondition::GEZ => {
                         rt_reg = 0;
                         CompareType::GreaterThanOrEqualSigned
-                    },
+                    }
                 };
 
                 let rs = guest_regs.get_gpr(&mut block, rs_reg);
@@ -353,7 +375,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::CACHE => {
                 println!("TODO: Cache in the JIT (NOP for now)")
-            },
+            }
             MipsOpcode::SB => todo!("SB"),
             MipsOpcode::SH => todo!("SH"),
             MipsOpcode::SD => todo!("SD"),
@@ -531,13 +553,45 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                         todo!("MTC0 R4300I_CP0_REG_ENTRYHI")
                     }
                     R4300I_CP0_REG_STATUS => {
-                        todo!("MTC0 R4300I_CP0_REG_STATUS")
+                        let status_mask = const_u32(CP0_STATUS_WRITE_MASK);
+                        let inverse_status_mask = block.not(DataType::U32, status_mask);
+                        let old_status = block.load_ptr(
+                            DataType::U32,
+                            cpu_address,
+                            offset_of!(r4300i_t, cp0.status.raw),
+                        );
+                        let old_status_masked =
+                            block.and(DataType::U32, old_status.val(), inverse_status_mask.val());
+                        let value_masked = block.and(DataType::U32, value, status_mask);
+                        let new_status =
+                            block.or(DataType::U32, value_masked.val(), old_status_masked.val());
+                        block.write_ptr(
+                            DataType::U32,
+                            cpu_address,
+                            offset_of!(r4300i_t, cp0.status.raw),
+                            new_status.val(),
+                        );
+                        block.call_function(
+                            const_ptr(cp0_status_updated as usize),
+                            None,
+                            vec![const_u32(index as u32)],
+                        );
                     }
                     R4300I_CP0_REG_TAGLO => {
-                        block.write_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.tag_lo), value);
+                        block.write_ptr(
+                            DataType::U32,
+                            cpu_address,
+                            offset_of!(r4300i_t, cp0.tag_lo),
+                            value,
+                        );
                     }
                     R4300I_CP0_REG_TAGHI => {
-                        block.write_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.tag_hi), value);
+                        block.write_ptr(
+                            DataType::U32,
+                            cpu_address,
+                            offset_of!(r4300i_t, cp0.tag_hi),
+                            value,
+                        );
                     }
                     R4300I_CP0_REG_CAUSE => {
                         let cause_mask = const_u32(0x300);
@@ -653,7 +707,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                         todo!("MTC0 R4300I_CP0_REG_31")
                     }
                     R4300I_CP0_REG_INDEX => {
-                        block.write_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.index), value);
+                        block.write_ptr(
+                            DataType::U32,
+                            cpu_address,
+                            offset_of!(r4300i_t, cp0.index),
+                            value,
+                        );
                     }
                     R4300I_CP0_REG_RANDOM => {
                         todo!("MTC0 R4300I_CP0_REG_INDEX")
@@ -698,8 +757,20 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let sign_extended = block.convert(DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
             }
-            MipsOpcode::SRL => todo!("SRL"),
-            MipsOpcode::SRA => todo!("SRA"),
+            MipsOpcode::SRL => {
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16));
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            }
+            MipsOpcode::SRA => {
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                // SRA and SRAV are weird. They shift the entire 64 bit value and then sign extend
+                // the low 32 bits.
+                let result = block.left_shift(DataType::S64, input, const_u16(instr.sa() as u16));
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            }
             MipsOpcode::SRAV => todo!("SRAV"),
             MipsOpcode::SLLV => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
@@ -710,7 +781,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
 
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
-            },
+            }
             MipsOpcode::SRLV => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let shift_amount = block.and(DataType::U32, rs, const_u32(0b11111));
@@ -720,8 +791,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
 
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
-
-            },
+            }
             MipsOpcode::JR => {
                 let target = guest_regs.get_gpr(&mut block, instr.rs());
                 set_pc(&mut block, cpu_address, target);
@@ -736,29 +806,42 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::MFHI => {
                 let hi = guest_regs.get_hi(&mut block);
                 guest_regs.set_gpr(instr.rd(), hi);
-            },
+            }
             MipsOpcode::MTHI => todo!("MTHI"),
             MipsOpcode::MFLO => {
                 let lo = guest_regs.get_lo(&mut block);
                 guest_regs.set_gpr(instr.rd(), lo);
-            },
+            }
             MipsOpcode::MTLO => todo!("MTLO"),
             MipsOpcode::DSLLV => todo!("DSLLV"),
             MipsOpcode::DSRLV => todo!("DSRLV"),
             MipsOpcode::DSRAV => todo!("DSRAV"),
-            MipsOpcode::MULT => todo!("MULT"),
+            MipsOpcode::MULT => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let result =
+                    block.multiply(DataType::S64, DataType::S32, MultiplyType::Split, rs, rt);
+
+                let lo = block.convert_from(DataType::S32, DataType::S64, result.at(0));
+                let hi = block.convert_from(DataType::S32, DataType::S64, result.at(1));
+
+                guest_regs.set_lo(lo.val());
+                guest_regs.set_hi(hi.val());
+            }
             MipsOpcode::MULTU => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
 
-                let result = block.multiply(DataType::U64, DataType::U32, MultiplyType::Split, rs, rt);
+                let result =
+                    block.multiply(DataType::U64, DataType::U32, MultiplyType::Split, rs, rt);
 
-                let hi = block.convert_from(DataType::S32, DataType::S64, result.at(1));
                 let lo = block.convert_from(DataType::S32, DataType::S64, result.at(0));
+                let hi = block.convert_from(DataType::S32, DataType::S64, result.at(1));
 
                 guest_regs.set_lo(lo.val());
                 guest_regs.set_hi(hi.val());
-            },
+            }
             MipsOpcode::DIV => todo!("DIV"),
             MipsOpcode::DIVU => todo!("DIVU"),
             MipsOpcode::DMULT => todo!("DMULT"),
@@ -773,7 +856,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.add(DataType::S32, rs, rt);
                 let sign_extended = block.convert(DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
-            },
+            }
             MipsOpcode::ADDU => {
                 // Identical to ADD, but does not throw overflow exceptions (which are not
                 // implemented yet anyway)
@@ -788,14 +871,14 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.and(DataType::U64, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
-            },
+            }
             MipsOpcode::SUB => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.subtract(DataType::S32, rs, rt);
                 let sign_extended = block.convert(DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
-            },
+            }
             MipsOpcode::SUBU => {
                 // Identical to SUB, but does not throw overflow exceptions (which are not
                 // implemented yet anyway)
@@ -804,27 +887,32 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.subtract(DataType::S32, rs, rt);
                 let sign_extended = block.convert(DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
-            },
+            }
             MipsOpcode::OR => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.or(DataType::U64, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
-            },
+            }
             MipsOpcode::XOR => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.xor(DataType::U64, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
-            },
+            }
             MipsOpcode::NOR => todo!("NOR"),
-            MipsOpcode::SLT => todo!("SLT"),
+            MipsOpcode::SLT => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.compare(rs, CompareType::LessThanSigned, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             MipsOpcode::SLTU => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.compare(rs, CompareType::LessThanUnsigned, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
-            },
+            }
             MipsOpcode::DADD => todo!("DADD"),
             MipsOpcode::DADDU => todo!("DADDU"),
             MipsOpcode::DSUB => todo!("DSUB"),
