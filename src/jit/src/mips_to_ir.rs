@@ -759,7 +759,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::SRL => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
-                let result = block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16));
+                let result = block.right_shift(DataType::U32, input, const_u16(instr.sa() as u16));
                 let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
             }
