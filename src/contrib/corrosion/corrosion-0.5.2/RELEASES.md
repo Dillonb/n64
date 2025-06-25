@@ -1,3 +1,19 @@
+# v0.5.2 (2025-04-23)
+
+### Fixes
+
+- Leave choosing the MSVC runtime up to the C/C++ CMake code ([#573], [#566])
+
+[#573]: https://github.com/corrosion-rs/corrosion/pull/573
+[#566]: https://github.com/corrosion-rs/corrosion/pull/566
+
+# v0.5.1 (2024-12-29)
+
+### Fixes
+
+- Update FindRust to support `rustup` v1.28.0. Support for older rustup versions is retained,
+  so updating corrosion quickly is recommended to all rustup users.
+
 # v0.5.0 (2024-05-11)
 
 ### Breaking Changes

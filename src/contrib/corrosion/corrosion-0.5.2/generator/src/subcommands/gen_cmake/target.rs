@@ -134,6 +134,8 @@ impl CargoTarget {
                 writeln!(
                     out_file,
                     "
+                    add_library({target_name} INTERFACE)
+                    _corrosion_initialize_properties({target_name})
                     _corrosion_add_library_target(
                             WORKSPACE_MANIFEST_PATH \"{workspace_manifest_path}\"
                             TARGET_NAME \"{target_name}\"
@@ -157,6 +159,8 @@ impl CargoTarget {
                 writeln!(
                     out_file,
                     "
+                    add_executable({target_name} IMPORTED GLOBAL)
+                    _corrosion_initialize_properties({target_name})
                     _corrosion_add_bin_target(\"{workspace_manifest_path}\" \"{target_name}\"
                         bin_byproduct pdb_byproduct
                     )
@@ -189,22 +193,22 @@ impl CargoTarget {
 
             if(archive_byproducts)
                 _corrosion_copy_byproducts(
-                    {target_name} ARCHIVE_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{archive_byproducts}}\" FALSE
+                    {target_name} INTERFACE_ARCHIVE_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{archive_byproducts}}\" FALSE
                 )
             endif()
             if(shared_lib_byproduct)
                 _corrosion_copy_byproducts(
-                    {target_name} LIBRARY_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{shared_lib_byproduct}}\" FALSE
+                    {target_name} INTERFACE_LIBRARY_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{shared_lib_byproduct}}\" FALSE
                 )
             endif()
             if(pdb_byproduct)
                 _corrosion_copy_byproducts(
-                    {target_name} PDB_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{pdb_byproduct}}\" FALSE
+                    {target_name} INTERFACE_PDB_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{pdb_byproduct}}\" FALSE
                 )
             endif()
             if(bin_byproduct)
                 _corrosion_copy_byproducts(
-                    {target_name} RUNTIME_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{bin_byproduct}}\" TRUE
+                    {target_name} INTERFACE_RUNTIME_OUTPUT_DIRECTORY \"${{cargo_build_out_dir}}\" \"${{bin_byproduct}}\" TRUE
                 )
             endif()
             set_property(TARGET {target_name} PROPERTY INTERFACE_COR_CARGO_PACKAGE_NAME {package_name} )

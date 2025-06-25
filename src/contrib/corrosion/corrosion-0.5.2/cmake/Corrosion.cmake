@@ -107,36 +107,6 @@ get_property(
     TARGET Rust::Cargo PROPERTY IMPORTED_LOCATION
 )
 
-# Note: Legacy function, used when respecting the `XYZ_OUTPUT_DIRECTORY` target properties is not
-# possible.
-function(_corrosion_set_imported_location_legacy target_name base_property filename)
-    foreach(config_type ${CMAKE_CONFIGURATION_TYPES})
-        set(binary_root "${CMAKE_CURRENT_BINARY_DIR}/${config_type}")
-        string(TOUPPER "${config_type}" config_type_upper)
-        message(DEBUG "Setting ${base_property}_${config_type_upper} for target ${target_name}"
-                " to `${binary_root}/${filename}`.")
-        # For Multiconfig we want to specify the correct location for each configuration
-        set_property(
-            TARGET ${target_name}
-            PROPERTY "${base_property}_${config_type_upper}"
-                "${binary_root}/${filename}"
-        )
-    endforeach()
-    if(NOT COR_IS_MULTI_CONFIG)
-        set(binary_root "${CMAKE_CURRENT_BINARY_DIR}")
-    endif()
-
-    message(DEBUG "Setting ${base_property} for target ${target_name}"
-                " to `${binary_root}/${filename}`.")
-
-    # IMPORTED_LOCATION must be set regardless of possible overrides. In the multiconfig case,
-    # the last configuration "wins".
-    set_property(
-            TARGET ${target_name}
-            PROPERTY "${base_property}" "${binary_root}/${filename}"
-        )
-endfunction()
-
 
 # Sets out_var to true if the byproduct copying and imported location is done in a deferred
 # manner to respect target properties, etc. that may be set later.
@@ -170,6 +140,9 @@ function(_corrosion_set_imported_location_deferred target_name base_property out
         set(output_dir_prop_target_name "${CMAKE_MATCH_1}")
     else()
         set(output_dir_prop_target_name "${target_name}")
+    endif()
+    if(CORROSION_NATIVE_TOOLING)
+        set(output_directory_property "INTERFACE_${output_directory_property}")
     endif()
 
     # Append .exe suffix for executable by-products if the target is windows or if it's a host
@@ -262,37 +235,10 @@ function(_corrosion_set_imported_location target_name base_property output_direc
     if(defer)
         _corrosion_call_set_imported_location_deferred("${target_name}" "${base_property}" "${output_directory_property}" "${filename}")
     else()
-        _corrosion_set_imported_location_legacy("${target_name}" "${base_property}" "${filename}")
+        # We can't actually call the function in a deferred way, but we can still respect the output directory
+        # variables that were set **before** importing the crate.
+        _corrosion_set_imported_location_deferred("${target_name}" "${base_property}" "${output_directory_property}" "${filename}")
     endif()
-endfunction()
-
-function(_corrosion_copy_byproduct_legacy target_name cargo_build_dir file_names)
-    if(ARGN)
-        message(FATAL_ERROR "Unexpected additional arguments")
-    endif()
-
-    if(COR_IS_MULTI_CONFIG)
-        set(output_dir "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>")
-    else()
-        set(output_dir "${CMAKE_CURRENT_BINARY_DIR}")
-    endif()
-
-    list(TRANSFORM file_names PREPEND "${cargo_build_dir}/" OUTPUT_VARIABLE src_file_names)
-    list(TRANSFORM file_names PREPEND "${output_dir}/" OUTPUT_VARIABLE dst_file_names)
-    message(DEBUG "Adding command to copy byproducts `${file_names}` to ${dst_file_names}")
-    add_custom_command(TARGET _cargo-build_${target_name}
-                        POST_BUILD
-                        COMMAND  ${CMAKE_COMMAND} -E make_directory "${output_dir}"
-                        COMMAND
-                        ${CMAKE_COMMAND} -E copy_if_different
-                            # tested to work with both multiple files and paths with spaces
-                            ${src_file_names}
-                            "${output_dir}"
-                        BYPRODUCTS ${dst_file_names}
-                        COMMENT "Copying byproducts `${file_names}` to ${output_dir}"
-                        VERBATIM
-                        COMMAND_EXPAND_LISTS
-    )
 endfunction()
 
 function(_corrosion_copy_byproduct_deferred target_name output_dir_prop_name cargo_build_dir file_names)
@@ -395,7 +341,7 @@ function(_corrosion_copy_byproducts target_name output_dir_prop_name cargo_build
     if(defer)
         _corrosion_call_copy_byproduct_deferred("${target_name}" "${output_dir_prop_name}" "${cargo_build_dir}" "${filenames}")
     else()
-        _corrosion_copy_byproduct_legacy("${target_name}" "${cargo_build_dir}" "${filenames}")
+        _corrosion_copy_byproduct_deferred("${target_name}" "${output_dir_prop_name}" "${cargo_build_dir}" "${filenames}")
     endif()
 endfunction()
 
@@ -500,8 +446,6 @@ function(_corrosion_add_library_target)
     endif()
     set("${CALT_OUT_ARCHIVE_OUTPUT_BYPRODUCTS}" "${archive_output_byproducts}" PARENT_SCOPE)
 
-    add_library(${target_name} INTERFACE)
-
     if(has_staticlib)
         add_library(${target_name}-static STATIC IMPORTED GLOBAL)
         add_dependencies(${target_name}-static cargo-build_${target_name})
@@ -583,20 +527,7 @@ function(_corrosion_add_bin_target workspace_manifest_path bin_name out_bin_bypr
 
     set(bin_filename "${bin_name}")
     _corrosion_determine_deferred_byproduct_copying_and_import_location_handling("defer")
-    if(defer)
-        # .exe suffix will be added later, also depending on possible hostbuild
-        # target property
-    else()
-        if(Rust_CARGO_TARGET_OS STREQUAL "windows")
-            set(bin_filename "${bin_name}.exe")
-        endif()
-    endif()
     set(${out_bin_byproduct} "${bin_filename}" PARENT_SCOPE)
-
-
-    # Todo: This is compatible with the way corrosion previously exposed the bin name,
-    # but maybe we want to prefix the exposed name with the package name?
-    add_executable(${bin_name} IMPORTED GLOBAL)
     add_dependencies(${bin_name} cargo-build_${bin_name})
 
     if(Rust_CARGO_TARGET_OS STREQUAL "darwin")
@@ -1851,6 +1782,13 @@ function(corrosion_experimental_cbindgen)
                           DEPENDS "${generated_header}"
                           COMMENT "Generate ${generated_header} for ${rust_target}"
         )
+        if(NOT installed_cbindgen)
+            add_custom_command(
+                    OUTPUT "${generated_header}"
+                    APPEND
+                    DEPENDS _corrosion_cbindgen
+            )
+        endif()
     else()
         add_custom_target("_corrosion_cbindgen_${rust_target}_bindings_${header_identifier}"
                           "${CMAKE_COMMAND}" -E env
@@ -1864,14 +1802,9 @@ function(corrosion_experimental_cbindgen)
                           COMMAND_EXPAND_LISTS
                           WORKING_DIRECTORY "${package_manifest_dir}"
         )
-    endif()
-
-    if(NOT installed_cbindgen)
-        add_custom_command(
-            OUTPUT "${generated_header}"
-            APPEND
-            DEPENDS _corrosion_cbindgen
-        )
+        if(NOT installed_cbindgen)
+            add_dependencies("_corrosion_cbindgen_${rust_target}_bindings_${header_identifier}" _corrosion_cbindgen)
+        endif()
     endif()
 
     if(NOT TARGET "_corrosion_cbindgen_${rust_target}_bindings")
@@ -1929,6 +1862,26 @@ function(corrosion_parse_package_version package_manifest_path out_package_versi
             PARENT_SCOPE
         )
     endif()
+endfunction()
+
+function(_corrosion_initialize_properties target_name)
+    set(prefix "")
+    if(CORROSION_NATIVE_TOOLING)
+        set(prefix "INTERFACE_")
+    endif()
+    # Initialize the `<XYZ>_OUTPUT_DIRECTORY` properties based on `CMAKE_<XYZ>_OUTPUT_DIRECTORY`.
+    foreach(output_var RUNTIME_OUTPUT_DIRECTORY ARCHIVE_OUTPUT_DIRECTORY LIBRARY_OUTPUT_DIRECTORY PDB_OUTPUT_DIRECTORY)
+        if (DEFINED "CMAKE_${output_var}")
+            set_property(TARGET ${target_name} PROPERTY "${prefix}${output_var}" "${CMAKE_${output_var}}")
+        endif()
+
+        foreach(config_type ${CMAKE_CONFIGURATION_TYPES})
+            string(TOUPPER "${config_type}" config_type_upper)
+            if (DEFINED "CMAKE_${output_var}_${config_type_upper}")
+                set_property(TARGET ${target_name} PROPERTY "${prefix}${output_var}_${config_type_upper}" "${CMAKE_${output_var}_${config_type_upper}}")
+            endif()
+        endforeach()
+    endforeach()
 endfunction()
 
 # Helper macro to pass through an optional `OPTION` argument parsed via `cmake_parse_arguments`
