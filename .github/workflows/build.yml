@@ -14,6 +14,8 @@ jobs:
         with:
           submodules: true
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
         with:
@@ -54,6 +56,8 @@ jobs:
         uses: actions/checkout@master
         with:
           submodules: true
+
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Setup dependencies
         run: |
