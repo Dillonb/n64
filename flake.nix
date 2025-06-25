@@ -2,6 +2,7 @@
   description = "Dillon's N64 Emulator";
 
   inputs = {
+    self.submodules = true;
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     n64-tools.url = "github:Dillonb/n64-tools.nix";
