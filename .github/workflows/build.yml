@@ -81,7 +81,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          export PATH=$PATH:${CARGO_HOME}/bin
+          which rustc
           cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
           ninja
           strip n64
