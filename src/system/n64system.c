@@ -39,7 +39,7 @@
 static bool should_quit = false;
 
 
-n64_system_t n64sys;
+n64_system_t* n64sys_ptr;
 
 #ifndef N64_MACOS
 static u8 codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
@@ -81,6 +81,12 @@ FILE* log_file = NULL;
 #endif
 
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
+    if (n64sys_ptr) {
+        logwarn("n64sys already initialized");
+    } else {
+        n64sys_ptr = malloc(sizeof(n64_system_t));
+    }
+
     if (n64cpu_ptr) {
         logwarn("n64cpu already initialized");
     } else {

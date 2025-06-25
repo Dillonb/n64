@@ -19,11 +19,14 @@
 #include <cpu/dynarec/v2/ir_context.h>
 
 r4300i_t* n64cpu_interpreter_ptr;
+n64_system_t* n64sys_interpreter_ptr;
+
 int mq_jit_to_interp_id = -1;
 int mq_interp_to_jit_id = -1;
 
 int joybus_shmem_id = -1;
 int cpu_shmem_id = -1;
+int sys_shmem_id = -1;
 
 int cleanup_mq(int mq_id) {
     if (mq_id == -1) {
@@ -114,7 +117,7 @@ bool compare() {
     good &= n64cpu_interpreter_ptr->pc == N64CPU.pc;
     good &= memcmp(n64cpu_interpreter_ptr->gpr, n64cpu_ptr->gpr, sizeof(u64) * 32) == 0;
     good &= memcmp(n64cpu_interpreter_ptr->f, n64cpu_ptr->f, sizeof(fgr_t) * 32) == 0;
-    //good &= memcmp(n64sys_interpreter.mem.rdram, n64sys_dynarec.mem.rdram, N64_RDRAM_SIZE) == 0;
+    good &= memcmp(n64sys_interpreter_ptr->mem.rdram, n64sys.mem.rdram, N64_RDRAM_SIZE) == 0;
 
     good &= n64cpu_interpreter_ptr->mult_lo == n64cpu_ptr->mult_lo;
     good &= n64cpu_interpreter_ptr->mult_hi == n64cpu_ptr->mult_hi;
@@ -214,13 +217,11 @@ void print_state() {
     printf("\n");
     print_colorcoded_u64("cp1 fcr31", n64cpu_interpreter_ptr->fcr31.raw, N64CPU.fcr31.raw);
 
-    /*
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
-        if (n64sys_interpreter.mem.rdram[i] != n64sys_dynarec.mem.rdram[i]) {
-            printf("%08X: %02X %02X\n", i, n64sys_interpreter.mem.rdram[i], n64sys_dynarec.mem.rdram[i]);
+        if (n64sys_interpreter_ptr->mem.rdram[i] != n64sys.mem.rdram[i]) {
+            printf("%08X: %02X %02X\n", i, n64sys_interpreter_ptr->mem.rdram[i], n64sys.mem.rdram[i]);
         }
     }
-    */
 }
 
 void run_compare_parent() {
@@ -298,6 +299,12 @@ void usage(cflags_t* flags) {
                        "");
 }
 
+#define KEY_CPU_SHMEM 1
+#define KEY_MQ_JIT_TO_INTERP 2
+#define KEY_MQ_INTERP_TO_JIT 3
+#define KEY_JOYBUS_SHMEM 4
+#define KEY_SYS_SHMEM 5
+
 int main(int argc, char** argv) {
     v2_set_idle_loop_detection_enabled(false);
     n64_settings_init();
@@ -323,16 +330,20 @@ int main(int argc, char** argv) {
     }
     const char* rom_path = flags->argv[0];
 
-    key_t cpu_shmem_key = ftok(argv[0], 1);
-    key_t joybus_shmem_key = ftok(argv[0], 4);
+    key_t cpu_shmem_key = ftok(argv[0], KEY_CPU_SHMEM);
+    key_t joybus_shmem_key = ftok(argv[0], KEY_JOYBUS_SHMEM);
+    key_t sys_shmem_key = ftok(argv[0], KEY_SYS_SHMEM);
 
-    key_t mq_jit_to_interp_key = ftok(argv[0], 2);
+    key_t mq_jit_to_interp_key = ftok(argv[0], KEY_MQ_JIT_TO_INTERP);
     mq_jit_to_interp_id = create_and_configure_mq(mq_jit_to_interp_key);
-    key_t mq_interp_to_jit_key = ftok(argv[0], 3);
+    key_t mq_interp_to_jit_key = ftok(argv[0], KEY_MQ_INTERP_TO_JIT);
     mq_interp_to_jit_id = create_and_configure_mq(mq_interp_to_jit_key);
 
     cpu_shmem_id = shmget(cpu_shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
     n64cpu_interpreter_ptr = shmat(cpu_shmem_id, NULL, 0);
+
+    sys_shmem_id = shmget(sys_shmem_key, sizeof(n64_system_t), IPC_CREAT | 0777);
+    n64sys_interpreter_ptr = shmat(sys_shmem_id, NULL, 0);
 
     joybus_shmem_id = shmget(joybus_shmem_key, sizeof(n64_joybus_device_t) * 6, IPC_CREAT | 0777);
     n64_joybus_device_t* joybus_override = shmat(joybus_shmem_id, NULL, 0);
@@ -345,6 +356,7 @@ int main(int argc, char** argv) {
 
     if (is_child) {
         n64cpu_ptr = n64cpu_interpreter_ptr;
+        n64sys_ptr = n64sys_interpreter_ptr;
     } else {
         int res = atexit(cleanup_resources);
         if (res) {

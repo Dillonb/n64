@@ -203,7 +203,10 @@ void interrupt_lower(n64_interrupt_t interrupt);
 void on_interrupt_change();
 void check_vsync();
 void n64_queue_reset();
-extern n64_system_t n64sys;
+
+extern n64_system_t* n64sys_ptr;
+#define n64sys (*n64sys_ptr)
+
 #define PIF_ROM_PATH (n64sys.mem.rom.pal ? "pif.pal.rom" : "pif.rom")
 #ifdef __cplusplus
 }
