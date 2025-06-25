@@ -82,7 +82,7 @@ jobs:
           mkdir -p build
           cd build
           which rustc
-          cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
+          cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -DRust_COMPILER=$(which rustc) ..
           ninja
           strip n64
 
