@@ -10,16 +10,16 @@ use crate::{
     mips_parser::{
         BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
     },
-    n64_read_physical_byte, n64_read_physical_word, n64_write_physical_word, r4300i_t,
-    reschedule_compare_interrupt, CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22,
-    R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
-    R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE,
-    R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI,
-    R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC,
-    R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER,
-    R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI,
-    R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED,
-    R4300I_CP0_REG_XCONTEXT,
+    n64_read_physical_byte, n64_read_physical_word, n64_write_physical_byte,
+    n64_write_physical_word, r4300i_t, reschedule_compare_interrupt, CP0_STATUS_WRITE_MASK,
+    R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25,
+    R4300I_CP0_REG_31, R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER,
+    R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT,
+    R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1,
+    R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR,
+    R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM,
+    R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI,
+    R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT,
 };
 
 struct GuestRegisterManager {
@@ -186,6 +186,14 @@ fn set_link_reg(guest_regs: &mut GuestRegisterManager, vaddr: u64, mips_reg: u8)
     // Skip the delay slot on return
     let vaddr = vaddr.wrapping_add(8);
     guest_regs.set_gpr(mips_reg, const_u64(vaddr));
+}
+
+fn checkcp1(
+    _block: &mut IRBlockHandle,
+    _guest_regs: &mut GuestRegisterManager,
+    _preserve_cause: bool,
+) {
+    println!("TODO: check if CP1 is enabled in the JIT")
 }
 
 pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
@@ -376,7 +384,22 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::CACHE => {
                 println!("TODO: Cache in the JIT (NOP for now)")
             }
-            MipsOpcode::SB => todo!("SB"),
+            MipsOpcode::SB => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
+                let to_write = guest_regs.get_gpr(&mut block, instr.rt());
+                block.call_function(
+                    const_ptr(n64_write_physical_byte as usize),
+                    None,
+                    vec![paddr, to_write],
+                );
+            }
             MipsOpcode::SH => todo!("SH"),
             MipsOpcode::SD => todo!("SD"),
             MipsOpcode::SW => {
@@ -745,11 +768,52 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::DCTC0 => todo!("DCTC0"),
             MipsOpcode::MFC1 => todo!("MFC1"),
             MipsOpcode::DMFC1 => todo!("DMFC1"),
-            MipsOpcode::CFC1 => todo!("CFC1"),
+            MipsOpcode::CFC1 => {
+                checkcp1(&mut block, &mut guest_regs, true);
+
+                let fs = instr.rd();
+                let value = match fs {
+                    0 => {
+                        println!("Reading FCR0 - probably returning an invalid value!");
+                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr0.raw))
+                    }
+                    31 => {
+                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr31.raw))
+                    }
+                    _ => {
+                        todo!("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
+                    }
+                };
+
+                guest_regs.set_gpr(instr.rt(), block.convert(DataType::S64, value.val()).val());
+            }
             MipsOpcode::DCFC1 => todo!("DCFC1"),
             MipsOpcode::MTC1 => todo!("MTC1"),
             MipsOpcode::DMTC1 => todo!("DMTC1"),
-            MipsOpcode::CTC1 => todo!("CTC1"),
+            MipsOpcode::CTC1 => {
+                checkcp1(&mut block, &mut guest_regs, true);
+                let fs = instr.rd();
+                let value = guest_regs.get_gpr(&mut block, instr.rt());
+                match fs {
+                    0 => {
+                        println!("CTC1 FCR0: Writing to read-only register FCR0!");
+                    }
+                    31 => {
+                        let mask = const_u32(0x183ffff);
+                        let masked = block.and(DataType::U32, value, mask);
+                        block.write_ptr(
+                            DataType::U32,
+                            cpu_address,
+                            offset_of!(r4300i_t, fcr31.raw),
+                            masked.val(),
+                        );
+                        println!("TODO: check_fpu_exception();");
+                    }
+                    _ => {
+                        todo!("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
+                    }
+                }
+            }
             MipsOpcode::DCTC1 => todo!("DCTC1"),
             MipsOpcode::SLL => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
