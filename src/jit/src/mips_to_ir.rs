@@ -437,7 +437,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 set_pc(&mut block, cpu_address, const_u64(target));
             }
-            MipsOpcode::SLTI => todo!("SLTI"),
+            MipsOpcode::SLTI => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let simm = const_s16(instr.s_imm());
+                let result = block.compare(rs, CompareType::LessThanSigned, simm);
+                guest_regs.set_gpr(instr.rt(), result.val());
+            },
             MipsOpcode::SLTIU => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let simm = const_s16(instr.s_imm());
