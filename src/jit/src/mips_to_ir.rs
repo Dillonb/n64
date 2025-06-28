@@ -963,12 +963,6 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 let sign_extended_dividend =
                     divide_by_zero.convert_from(DataType::S32, DataType::S64, dividend);
-                divide_by_zero.write_ptr(
-                    DataType::S64,
-                    cpu_address,
-                    offset_of!(r4300i_t, mult_hi),
-                    sign_extended_dividend.val(),
-                );
 
                 let is_dividend_gte_zero = divide_by_zero.compare(
                     dividend,
@@ -983,45 +977,50 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     dividend_lt_zero.call(vec![]),
                 );
 
-                dividend_gte_zero.write_ptr(
-                    DataType::S64,
-                    cpu_address,
-                    offset_of!(r4300i_t, mult_lo),
-                    const_s64(-1),
-                );
-
-                dividend_lt_zero.write_ptr(
-                    DataType::S64,
-                    cpu_address,
-                    offset_of!(r4300i_t, mult_lo),
-                    const_s64(1),
-                );
-
                 let result = normal.divide(DataType::S32, dividend, divisor);
                 let quotient = normal.convert_from(DataType::S32, DataType::S64, result.at(0));
                 let remainder = normal.convert_from(DataType::S32, DataType::S64, result.at(1));
 
-                normal.write_ptr(
-                    DataType::S64,
-                    cpu_address,
-                    offset_of!(r4300i_t, mult_lo),
-                    quotient.val(),
-                );
-                normal.write_ptr(
-                    DataType::S64,
-                    cpu_address,
-                    offset_of!(r4300i_t, mult_hi),
-                    remainder.val(),
-                );
+                // Takes mult_lo and mult_hi results as arguments (in that order)
+                let end = func.new_block(vec![DataType::S64, DataType::S64]);
+                dividend_gte_zero.jump(end.call(vec![const_s64(-1), sign_extended_dividend.val()]));
+                dividend_lt_zero.jump(end.call(vec![const_s64(1), sign_extended_dividend.val()]));
+                normal.jump(end.call(vec![quotient.val(), remainder.val()]));
 
-                let end = func.new_block(vec![]);
-                dividend_gte_zero.jump(end.call(vec![]));
-                dividend_lt_zero.jump(end.call(vec![]));
-                normal.jump(end.call(vec![]));
+                guest_regs.set_lo(end.input(0));
+                guest_regs.set_hi(end.input(1));
 
                 block = end;
             }
-            MipsOpcode::DIVU => todo!("DIVU"),
+            MipsOpcode::DIVU => {
+                let dividend = guest_regs.get_gpr(&mut block, instr.rs());
+                let divisor = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let is_divide_by_zero = block.compare(divisor, CompareType::Equal, const_u32(0));
+
+                let mut normal = func.new_block(vec![]);
+                let mut divide_by_zero = func.new_block(vec![]);
+                block.branch(
+                    is_divide_by_zero.val(),
+                    divide_by_zero.call(vec![]),
+                    normal.call(vec![]),
+                );
+
+                let end = func.new_block(vec![DataType::S64, DataType::S64]);
+
+                let sign_extended_dividend =
+                    divide_by_zero.convert_from(DataType::S32, DataType::S64, dividend);
+                divide_by_zero.jump(end.call(vec![const_s64(-1), sign_extended_dividend.val()]));
+
+                let result = normal.divide(DataType::U32, dividend, divisor);
+                let quotient = normal.convert_from(DataType::S32, DataType::S64, result.at(0));
+                let remainder = normal.convert_from(DataType::S32, DataType::S64, result.at(1));
+                normal.jump(end.call(vec![quotient.val(), remainder.val()]));
+                guest_regs.set_lo(end.input(0));
+                guest_regs.set_hi(end.input(1));
+
+                block = end;
+            }
             MipsOpcode::DMULT => todo!("DMULT"),
             MipsOpcode::DMULTU => todo!("DMULTU"),
             MipsOpcode::DDIV => todo!("DDIV"),
