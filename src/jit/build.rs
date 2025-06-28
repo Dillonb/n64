@@ -19,9 +19,12 @@ fn main() {
         .blocklist_function("qfcvt")
         .blocklist_function("qfcvt_r")
         .blocklist_function("qgcvt")
-        .blocklist_function("strtold")
-        .generate()
-        .expect("Unable to generate bindings");
+        .blocklist_function("strtold");
+
+    #[cfg(target_os = "windows")]
+    let bindings = bindings.clang_arg("-DN64_WIN");
+
+    let bindings = bindings.generate().expect("Unable to generate bindings");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
