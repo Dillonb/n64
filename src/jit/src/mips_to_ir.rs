@@ -175,7 +175,13 @@ fn get_paddr_for_loadstore(
     return block.load_ptr(DataType::U32, physical_ptr, 0).val();
 }
 
-fn set_pc(block: &mut IRBlockHandle, cpu_address: InputSlot, value: InputSlot) {
+fn set_pc(
+    pc_set_flag: &mut bool,
+    block: &mut IRBlockHandle,
+    cpu_address: InputSlot,
+    value: InputSlot,
+) {
+    *pc_set_flag = true;
     let offset = offset_of!(r4300i_t, pc);
     let next_pc_offset = offset_of!(r4300i_t, next_pc);
 
@@ -208,6 +214,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     let mut guest_regs = GuestRegisterManager::new(cpu_address);
 
     let mut cycles = 0;
+    let mut pc_set = false;
+
+    let mut last_vaddr = 0;
 
     for (
         index,
@@ -219,6 +228,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
         },
     ) in parsed.into_iter().enumerate()
     {
+        last_vaddr = vaddr;
         match op {
             MipsOpcode::NOP => {}
             MipsOpcode::LD => {
@@ -387,8 +397,18 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     taken_pc, not_taken_pc
                 );
 
-                set_pc(&mut taken_block, cpu_address, const_u64(taken_pc));
-                set_pc(&mut not_taken_block, cpu_address, const_u64(not_taken_pc));
+                set_pc(
+                    &mut pc_set,
+                    &mut taken_block,
+                    cpu_address,
+                    const_u64(taken_pc),
+                );
+                set_pc(
+                    &mut pc_set,
+                    &mut not_taken_block,
+                    cpu_address,
+                    const_u64(not_taken_pc),
+                );
 
                 if likely {
                     // For likely branches, flush all the regs here so we don't have to do it twice
@@ -492,14 +512,14 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let upper_bits = vaddr & 0xFFFFFFFFF0000000;
                 let target = (instr.j_target() as u64) << 2 | upper_bits;
 
-                set_pc(&mut block, cpu_address, const_u64(target));
+                set_pc(&mut pc_set, &mut block, cpu_address, const_u64(target));
             }
             MipsOpcode::JAL => {
                 set_link_reg(&mut guest_regs, vaddr, 31);
                 let upper_bits = vaddr & 0xFFFFFFFFF0000000;
                 let target = (instr.j_target() as u64) << 2 | upper_bits;
 
-                set_pc(&mut block, cpu_address, const_u64(target));
+                set_pc(&mut pc_set, &mut block, cpu_address, const_u64(target));
             }
             MipsOpcode::SLTI => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
@@ -603,11 +623,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     todo!("MFC0 R4300I_CP0_REG_PAGEMASK")
                 }
                 R4300I_CP0_REG_EPC => {
-                    let result = block.load_ptr(
-                        DataType::S32,
-                        cpu_address,
-                        offset_of!(r4300i_t, cp0.EPC),
-                    );
+                    let result =
+                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, cp0.EPC));
                     let sign_extended = block.convert(DataType::S64, result.val());
                     guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
@@ -675,7 +692,28 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     todo!("MFC0 R4300I_CP0_REG_INDEX")
                 }
                 R4300I_CP0_REG_COUNT => {
-                    todo!("MFC0 R4300I_CP0_REG_COUNT")
+                    let count = block.load_ptr(
+                        DataType::U64,
+                        cpu_address,
+                        offset_of!(r4300i_t, cp0.count),
+                    );
+
+                    let adjusted = block.add(
+                        DataType::U64,
+                        count.val(),
+                        const_u32(index as u32),
+                    );
+
+                    let shifted = block.right_shift(
+                        DataType::U64,
+                        adjusted.val(),
+                        const_u16(1),
+                    );
+
+                    let sign_extended =
+                        block.convert_from(DataType::S32, DataType::S64, shifted.val());
+
+                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 _ => {
                     panic!("Unknown register in MFC0: {}", instr.rd());
@@ -987,11 +1025,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 // SRA and SRAV are weird. They shift the entire 64 bit value and then sign extend
                 // the low 32 bits.
                 let shift_amount = guest_regs.get_gpr(&mut block, instr.rs());
-                let shift_amount_masked = block.and(DataType::U32, shift_amount, const_u32(0b11111));
+                let shift_amount_masked =
+                    block.and(DataType::U32, shift_amount, const_u32(0b11111));
                 let result = block.right_shift(DataType::U64, input, shift_amount_masked.val());
                 let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
-            },
+            }
             MipsOpcode::SLLV => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let shift_amount = block.and(DataType::U32, rs, const_u32(0b11111));
@@ -1014,11 +1053,11 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::JR => {
                 let target = guest_regs.get_gpr(&mut block, instr.rs());
-                set_pc(&mut block, cpu_address, target);
+                set_pc(&mut pc_set, &mut block, cpu_address, target);
             }
             MipsOpcode::JALR => {
                 let target = guest_regs.get_gpr(&mut block, instr.rs());
-                set_pc(&mut block, cpu_address, target);
+                set_pc(&mut pc_set, &mut block, cpu_address, target);
                 set_link_reg(&mut guest_regs, vaddr, instr.rd());
             }
             MipsOpcode::SYSCALL => todo!("SYSCALL"),
@@ -1255,7 +1294,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     cpu_address,
                     offset_of!(r4300i_t, cp0.error_epc),
                 );
-                set_pc(&mut block_erl, cpu_address, error_epc.val());
+                set_pc(&mut pc_set, &mut block_erl, cpu_address, error_epc.val());
                 // Set erl to false
                 let inverse_erl_mask = block_erl.not(DataType::U32, erl_mask);
                 let masked_status =
@@ -1273,7 +1312,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     cpu_address,
                     offset_of!(r4300i_t, cp0.EPC),
                 );
-                set_pc(&mut block_no_erl, cpu_address, epc.val());
+                set_pc(&mut pc_set, &mut block_no_erl, cpu_address, epc.val());
                 let inverse_exl_mask = block_no_erl.not(DataType::U32, const_u32(STATUS_EXL_MASK));
                 let masked_status =
                     block_no_erl.and(DataType::U32, status.val(), inverse_exl_mask.val());
@@ -1295,6 +1334,15 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
         }
 
         cycles += 1;
+    }
+
+    if !pc_set {
+        set_pc(
+            &mut pc_set,
+            &mut block,
+            cpu_address,
+            const_u64(last_vaddr + 4),
+        );
     }
 
     guest_regs.flush_all(&mut block);

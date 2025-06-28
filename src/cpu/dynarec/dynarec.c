@@ -63,6 +63,9 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         // make sure it matches the sysconfig and virtual address. If not, keep looking.
         if (block_iter->sysconfig.raw == current_sysconfig.raw && block_iter->virtual_address == virtual_address) {
             if (block_iter != blocks) {
+#ifdef N64_MACOS
+                pthread_jit_write_protect_np(false);
+#endif
                 n64_dynarec_block_t temp = *blocks;
                 copy_dynarec_block(blocks, block_iter);
                 copy_dynarec_block(block_iter, &temp);
