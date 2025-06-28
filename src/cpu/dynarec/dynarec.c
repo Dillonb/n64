@@ -74,6 +74,9 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         }
         // Add a block to the end of the list
         if (block_iter->next == NULL) {
+#ifdef N64_MACOS
+            pthread_jit_write_protect_np(false);
+#endif
             block_iter->next = dynarec_bumpalloc_zero(sizeof(n64_dynarec_block_t));
             return block_iter->next;
         }
