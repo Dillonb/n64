@@ -1354,6 +1354,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 block = end;
                 println!("TODO: set llbit to false");
             }
+            MipsOpcode::CVT_S => todo!("CVT_S"),
+            MipsOpcode::CVT_D => todo!("CVT_D"),
+            MipsOpcode::CVT_W => todo!("CVT_W"),
+            MipsOpcode::CVT_L => todo!("CVT_L"),
         }
 
         cycles += 1;

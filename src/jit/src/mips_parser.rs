@@ -132,6 +132,10 @@ pub enum MipsOpcode {
     DSRA32,
     TLBWI,
     ERET,
+    CVT_S,
+    CVT_D,
+    CVT_W,
+    CVT_L,
 }
 
 #[derive(ConvRaw, Debug)]
@@ -414,10 +418,10 @@ fn opcode_of_instruction(instr: &MipsInstructionBitfield) -> MipsOpcode {
             MipsCop1FunctField::CEIL_W => todo!("MipsCop1FunctField::CEIL_W"),
             MipsCop1FunctField::FLOOR_W => todo!("MipsCop1FunctField::FLOOR_W"),
             MipsCop1FunctField::ERET => todo!("MipsCop1FunctField::ERET"),
-            MipsCop1FunctField::CVT_S => todo!("MipsCop1FunctField::CVT_S"),
-            MipsCop1FunctField::CVT_D => todo!("MipsCop1FunctField::CVT_D"),
-            MipsCop1FunctField::CVT_W => todo!("MipsCop1FunctField::CVT_W"),
-            MipsCop1FunctField::CVT_L => todo!("MipsCop1FunctField::CVT_L"),
+            MipsCop1FunctField::CVT_S => MipsOpcode::CVT_S,
+            MipsCop1FunctField::CVT_D => MipsOpcode::CVT_D,
+            MipsCop1FunctField::CVT_W => MipsOpcode::CVT_W,
+            MipsCop1FunctField::CVT_L => MipsOpcode::CVT_L,
             MipsCop1FunctField::NEG => todo!("MipsCop1FunctField::NEG"),
             MipsCop1FunctField::C_F => todo!("MipsCop1FunctField::C_F"),
             MipsCop1FunctField::C_UN => todo!("MipsCop1FunctField::C_UN"),
