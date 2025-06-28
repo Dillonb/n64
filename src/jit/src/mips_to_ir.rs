@@ -312,7 +312,26 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
-            MipsOpcode::LH => todo!("LH"),
+            MipsOpcode::LH => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_half as usize),
+                    Some(DataType::S16),
+                    vec![paddr],
+                );
+
+                let sign_extended = block.convert(DataType::S64, value.val());
+
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
+            }
             MipsOpcode::LW => {
                 let paddr = get_paddr_for_loadstore(
                     cpu,
@@ -692,23 +711,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     todo!("MFC0 R4300I_CP0_REG_INDEX")
                 }
                 R4300I_CP0_REG_COUNT => {
-                    let count = block.load_ptr(
-                        DataType::U64,
-                        cpu_address,
-                        offset_of!(r4300i_t, cp0.count),
-                    );
+                    let count =
+                        block.load_ptr(DataType::U64, cpu_address, offset_of!(r4300i_t, cp0.count));
 
-                    let adjusted = block.add(
-                        DataType::U64,
-                        count.val(),
-                        const_u32(index as u32),
-                    );
+                    let adjusted = block.add(DataType::U64, count.val(), const_u32(index as u32));
 
-                    let shifted = block.right_shift(
-                        DataType::U64,
-                        adjusted.val(),
-                        const_u16(1),
-                    );
+                    let shifted = block.right_shift(DataType::U64, adjusted.val(), const_u16(1));
 
                     let sign_extended =
                         block.convert_from(DataType::S32, DataType::S64, shifted.val());
@@ -1237,7 +1245,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.xor(DataType::U64, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            MipsOpcode::NOR => todo!("NOR"),
+            MipsOpcode::NOR => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let not_rs = block.not(DataType::U64, rs);
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.or(DataType::U64, not_rs.val(), rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             MipsOpcode::SLT => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
@@ -1260,10 +1274,19 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::TLTU => todo!("TLTU"),
             MipsOpcode::TEQ => todo!("TEQ"),
             MipsOpcode::TNE => todo!("TNE"),
-            MipsOpcode::DSLL => todo!("DSLL"),
+            MipsOpcode::DSLL => {
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16));
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             MipsOpcode::DSRL => todo!("DSRL"),
             MipsOpcode::DSRA => todo!("DSRA"),
-            MipsOpcode::DSLL32 => todo!("DSLL32"),
+            MipsOpcode::DSLL32 => {
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                let result =
+                    block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16 + 32));
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             MipsOpcode::DSRL32 => todo!("DSRL32"),
             MipsOpcode::DSRA32 => todo!("DSRA32"),
             MipsOpcode::TLBWI => {
