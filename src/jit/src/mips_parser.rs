@@ -131,6 +131,7 @@ pub enum MipsOpcode {
     DSRL32,
     DSRA32,
     TLBWI,
+    ERET,
 }
 
 #[derive(ConvRaw, Debug)]
@@ -382,7 +383,7 @@ fn opcode_of_instruction(instr: &MipsInstructionBitfield) -> MipsOpcode {
             MipsCop0FunctField::ABS => todo!("MipsCop0FunctField::ABS"),
             MipsCop0FunctField::TLBWR => todo!("MipsCop0FunctField::TLBWR"),
             MipsCop0FunctField::TLBP => todo!("MipsCop0FunctField::TLBP"),
-            MipsCop0FunctField::ERET => todo!("MipsCop0FunctField::ERET"),
+            MipsCop0FunctField::ERET => MipsOpcode::ERET,
             MipsCop0FunctField::WAIT => todo!("MipsCop0FunctField::WAIT"),
         },
         MipsOpcodeField::CP0 => match instr.cop_op() {

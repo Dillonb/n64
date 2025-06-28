@@ -11,17 +11,17 @@ use crate::{
         BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
     },
     n64_read_physical_byte, n64_read_physical_dword, n64_read_physical_half,
-    n64_read_physical_word, n64_write_physical_byte, n64_write_physical_half,
-    n64_write_physical_word, r4300i_t, reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK,
-    CP0_PAGEMASK_WRITE_MASK, CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22,
-    R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
-    R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE,
-    R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI,
-    R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC,
-    R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER,
-    R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI,
-    R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED,
-    R4300I_CP0_REG_XCONTEXT,
+    n64_read_physical_word, n64_write_physical_byte, n64_write_physical_dword,
+    n64_write_physical_half, n64_write_physical_word, r4300i_t, reschedule_compare_interrupt,
+    CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK, CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21,
+    R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31,
+    R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE,
+    R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT,
+    R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC,
+    R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK,
+    R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS,
+    R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO,
+    R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
 };
 
 struct GuestRegisterManager {
@@ -451,7 +451,22 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     vec![paddr, to_write],
                 );
             }
-            MipsOpcode::SD => todo!("SD"),
+            MipsOpcode::SD => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
+                let to_write = guest_regs.get_gpr(&mut block, instr.rt());
+                block.call_function(
+                    const_ptr(n64_write_physical_dword as usize),
+                    None,
+                    vec![paddr, to_write],
+                );
+            }
             MipsOpcode::SW => {
                 let paddr = get_paddr_for_loadstore(
                     cpu,
@@ -569,7 +584,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     todo!("MFC0 R4300I_CP0_REG_PAGEMASK")
                 }
                 R4300I_CP0_REG_EPC => {
-                    todo!("MFC0 R4300I_CP0_REG_EPC")
+                    let result = block.load_ptr(
+                        DataType::S32,
+                        cpu_address,
+                        offset_of!(r4300i_t, cp0.EPC),
+                    );
+                    let sign_extended = block.convert(DataType::S64, result.val());
+                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 R4300I_CP0_REG_CONFIG => {
                     todo!("MFC0 R4300I_CP0_REG_CONFIG")
@@ -989,7 +1010,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::MTLO => {
                 let value = guest_regs.get_gpr(&mut block, instr.rs());
                 guest_regs.set_lo(value);
-            },
+            }
             MipsOpcode::DSLLV => todo!("DSLLV"),
             MipsOpcode::DSRLV => todo!("DSRLV"),
             MipsOpcode::DSRAV => todo!("DSRAV"),
@@ -1180,6 +1201,68 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::DSRA32 => todo!("DSRA32"),
             MipsOpcode::TLBWI => {
                 println!("TLBWI: TODO, NOP for now");
+            }
+            MipsOpcode::ERET => {
+                let status = block.load_ptr(
+                    DataType::U32,
+                    cpu_address,
+                    offset_of!(r4300i_t, cp0.status.raw),
+                );
+                let erl_mask = const_u32(STATUS_ERL_MASK);
+                let masked = block.and(DataType::U32, status.val(), erl_mask);
+                let is_erl = block.compare(masked.val(), CompareType::NotEqual, const_u32(0));
+
+                let mut block_erl = func.new_block(vec![]);
+                let mut block_no_erl = func.new_block(vec![]);
+
+                // if ERL is set, set the PC to error_epc
+                block.branch(
+                    is_erl.val(),
+                    block_erl.call(vec![]),
+                    block_no_erl.call(vec![]),
+                );
+
+                let error_epc = block_erl.load_ptr(
+                    DataType::U64,
+                    cpu_address,
+                    offset_of!(r4300i_t, cp0.error_epc),
+                );
+                set_pc(&mut block_erl, cpu_address, error_epc.val());
+                // Set erl to false
+                let inverse_erl_mask = block_erl.not(DataType::U32, erl_mask);
+                let masked_status =
+                    block_erl.and(DataType::U32, status.val(), inverse_erl_mask.val());
+                block_erl.write_ptr(
+                    DataType::U32,
+                    cpu_address,
+                    offset_of!(r4300i_t, cp0.status.raw),
+                    masked_status.val(),
+                );
+
+                // If erl is not set, set the PC to EPC
+                let epc = block_no_erl.load_ptr(
+                    DataType::U64,
+                    cpu_address,
+                    offset_of!(r4300i_t, cp0.EPC),
+                );
+                set_pc(&mut block_no_erl, cpu_address, epc.val());
+                let inverse_exl_mask = block_no_erl.not(DataType::U32, const_u32(STATUS_EXL_MASK));
+                let masked_status =
+                    block_no_erl.and(DataType::U32, status.val(), inverse_exl_mask.val());
+                block_no_erl.write_ptr(
+                    DataType::U32,
+                    cpu_address,
+                    offset_of!(r4300i_t, cp0.status.raw),
+                    masked_status.val(),
+                );
+
+                let mut end = func.new_block(vec![]);
+                block_erl.jump(end.call(vec![]));
+                block_no_erl.jump(end.call(vec![]));
+                end.call_function(const_ptr(cp0_status_updated as usize), None, vec![]);
+
+                block = end;
+                println!("TODO: set llbit to false");
             }
         }
 
