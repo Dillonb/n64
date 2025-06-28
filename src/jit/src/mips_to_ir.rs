@@ -519,7 +519,26 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::DADDIU => todo!("DADDIU"),
-            MipsOpcode::LB => todo!("LB"),
+            MipsOpcode::LB => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_byte as usize),
+                    Some(DataType::S8),
+                    vec![paddr],
+                );
+
+                let sign_extended = block.convert(DataType::S64, value.val());
+
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
+            }
             MipsOpcode::LDC1 => todo!("LDC1"),
             MipsOpcode::SDC1 => todo!("SDC1"),
             MipsOpcode::LWC1 => todo!("LWC1"),
@@ -963,7 +982,16 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
                 guest_regs.set_gpr(instr.rd(), sign_extended.val());
             }
-            MipsOpcode::SRAV => todo!("SRAV"),
+            MipsOpcode::SRAV => {
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                // SRA and SRAV are weird. They shift the entire 64 bit value and then sign extend
+                // the low 32 bits.
+                let shift_amount = guest_regs.get_gpr(&mut block, instr.rs());
+                let shift_amount_masked = block.and(DataType::U32, shift_amount, const_u32(0b11111));
+                let result = block.right_shift(DataType::U64, input, shift_amount_masked.val());
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rd(), sign_extended.val());
+            },
             MipsOpcode::SLLV => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let shift_amount = block.and(DataType::U32, rs, const_u32(0b11111));
