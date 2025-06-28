@@ -10,7 +10,8 @@ use crate::{
     mips_parser::{
         BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
     },
-    n64_read_physical_byte, n64_read_physical_word, n64_write_physical_byte,
+    n64_read_physical_byte, n64_read_physical_dword, n64_read_physical_half,
+    n64_read_physical_word, n64_write_physical_byte, n64_write_physical_half,
     n64_write_physical_word, r4300i_t, reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK,
     CP0_PAGEMASK_WRITE_MASK, CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22,
     R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
@@ -220,7 +221,23 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     {
         match op {
             MipsOpcode::NOP => {}
-            MipsOpcode::LD => todo!("LD"),
+            MipsOpcode::LD => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_dword as usize),
+                    Some(DataType::S64),
+                    vec![paddr],
+                );
+
+                guest_regs.set_gpr(instr.rt(), value.val());
+            }
             MipsOpcode::LUI => {
                 let c = (instr.imm() as u32) << 16;
                 guest_regs.set_gpr(instr.rt(), const_s32(c as i32));
@@ -267,7 +284,24 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
-            MipsOpcode::LHU => todo!("LHU"),
+            MipsOpcode::LHU => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_half as usize),
+                    Some(DataType::U16),
+                    vec![paddr],
+                );
+
+                guest_regs.set_gpr(instr.rt(), value.val());
+            }
             MipsOpcode::LH => todo!("LH"),
             MipsOpcode::LW => {
                 let paddr = get_paddr_for_loadstore(
@@ -401,7 +435,22 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     vec![paddr, to_write],
                 );
             }
-            MipsOpcode::SH => todo!("SH"),
+            MipsOpcode::SH => {
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
+                let to_write = guest_regs.get_gpr(&mut block, instr.rt());
+                block.call_function(
+                    const_ptr(n64_write_physical_half as usize),
+                    None,
+                    vec![paddr, to_write],
+                );
+            }
             MipsOpcode::SD => todo!("SD"),
             MipsOpcode::SW => {
                 let paddr = get_paddr_for_loadstore(
@@ -442,7 +491,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let simm = const_s16(instr.s_imm());
                 let result = block.compare(rs, CompareType::LessThanSigned, simm);
                 guest_regs.set_gpr(instr.rt(), result.val());
-            },
+            }
             MipsOpcode::SLTIU => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let simm = const_s16(instr.s_imm());
@@ -499,7 +548,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     todo!("MFC0 R4300I_CP0_REG_TAGHI")
                 }
                 R4300I_CP0_REG_CAUSE => {
-                    todo!("MFC0 R4300I_CP0_REG_CAUSE")
+                    let result = block.load_ptr(
+                        DataType::S32,
+                        cpu_address,
+                        offset_of!(r4300i_t, cp0.cause.raw),
+                    );
+                    let sign_extended = block.convert(DataType::S64, result.val());
+                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 R4300I_CP0_REG_COMPARE => {
                     todo!("MFC0 R4300I_CP0_REG_COMPARE")
@@ -716,7 +771,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                         );
                     }
                     R4300I_CP0_REG_EPC => {
-                        todo!("MTC0 R4300I_CP0_REG_EPC")
+                        let sign_extended = block.convert_from(DataType::S32, DataType::S64, value);
+                        block.write_ptr(
+                            DataType::U64,
+                            cpu_address,
+                            offset_of!(r4300i_t, cp0.EPC),
+                            sign_extended.val(),
+                        );
                     }
                     R4300I_CP0_REG_CONFIG => {
                         todo!("MTC0 R4300I_CP0_REG_CONFIG")
@@ -917,12 +978,18 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let hi = guest_regs.get_hi(&mut block);
                 guest_regs.set_gpr(instr.rd(), hi);
             }
-            MipsOpcode::MTHI => todo!("MTHI"),
+            MipsOpcode::MTHI => {
+                let value = guest_regs.get_gpr(&mut block, instr.rs());
+                guest_regs.set_hi(value);
+            }
             MipsOpcode::MFLO => {
                 let lo = guest_regs.get_lo(&mut block);
                 guest_regs.set_gpr(instr.rd(), lo);
             }
-            MipsOpcode::MTLO => todo!("MTLO"),
+            MipsOpcode::MTLO => {
+                let value = guest_regs.get_gpr(&mut block, instr.rs());
+                guest_regs.set_lo(value);
+            },
             MipsOpcode::DSLLV => todo!("DSLLV"),
             MipsOpcode::DSRLV => todo!("DSRLV"),
             MipsOpcode::DSRAV => todo!("DSRAV"),
