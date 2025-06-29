@@ -12,20 +12,26 @@ use crate::{
     },
     n64_read_physical_byte, n64_read_physical_dword, n64_read_physical_half,
     n64_read_physical_word, n64_write_physical_byte, n64_write_physical_dword,
-    n64_write_physical_half, n64_write_physical_word, r4300i_t, reschedule_compare_interrupt,
-    CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK, CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21,
-    R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31,
-    R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE,
-    R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT,
-    R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC,
-    R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK,
-    R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS,
-    R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO,
-    R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
+    n64_write_physical_half, n64_write_physical_word, n64cpu_ptr, r4300i_t,
+    reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK,
+    CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23,
+    R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
+    R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE,
+    R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI,
+    R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC,
+    R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER,
+    R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI,
+    R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED,
+    R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
 };
+
+fn is_fr_set() -> bool {
+    return unsafe { (*n64cpu_ptr).cp0.status.__bindgen_anon_1.fr() } != 0;
+}
 
 struct GuestRegisterManager {
     gprs: [Option<InputSlot>; 32],
+    fgrs: [Option<InputSlot>; 32],
     lo: Option<InputSlot>,
     hi: Option<InputSlot>,
     cpu_address: InputSlot,
@@ -35,6 +41,7 @@ impl GuestRegisterManager {
     pub fn new(cpu_address: InputSlot) -> Self {
         let mut v = GuestRegisterManager {
             gprs: [None; 32],
+            fgrs: [None; 32],
             lo: None,
             hi: None,
             cpu_address,
@@ -90,6 +97,51 @@ impl GuestRegisterManager {
         self.lo = Some(value);
     }
 
+    // Get the full 64-bit floating point register.
+    fn get_fgr(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
+        *self.fgrs[r as usize].get_or_insert_with(|| {
+            let offset = offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>());
+            block
+                .load_ptr(DataType::U64, self.cpu_address, offset)
+                .val()
+        })
+    }
+
+    // Set the full 64 bit floating point register.
+    fn set_fgr(&mut self, r: u8, value: InputSlot) {
+        self.fgrs[r as usize] = Some(value);
+    }
+
+    // Set a 32 bit floating point register, respecting the FR bit.
+    fn set_fgr_32bit_fr(&mut self, r: u8, value: InputSlot, block: &mut IRBlockHandle) {
+        let fr = is_fr_set();
+
+        if fr {
+            todo!("set_fgr_32bit_fr with fr set");
+        } else {
+            let r_to_set = r & !1;
+            let reg = self.get_fgr(block, r_to_set);
+            let hi_mask = const_u64(0xFFFFFFFF00000000);
+            let lo_mask = const_u64(0x00000000FFFFFFFF);
+
+            if (r & 1) != 0 {
+                let shifted_value = block.left_shift(DataType::U64, value, const_u16(32));
+                let masked_reg = block.and(DataType::U64, reg, lo_mask);
+                let result = block.or(DataType::U64, masked_reg.val(), shifted_value.val());
+
+                self.set_fgr(r_to_set, result.val());
+            } else {
+                // todo!("set_fgr_32bit_fr with fr unset and r even");
+                // let shifted = block.left_shift(DataType::U64, value, const_u16(32));
+                let masked_value = block.and(DataType::U64, value, lo_mask);
+                let masked_reg = block.and(DataType::U64, reg, hi_mask);
+                let result = block.or(DataType::U64, masked_value.val(), masked_reg.val());
+
+                self.set_fgr(r_to_set, result.val());
+            }
+        }
+    }
+
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
         self.gprs
             .iter_mut()
@@ -98,6 +150,17 @@ impl GuestRegisterManager {
             .for_each(|(i, reg)| {
                 if let Some(value) = reg.take() {
                     let offset = offset_of!(r4300i_t, gpr) + (i * std::mem::size_of::<u64>());
+                    block.write_ptr(DataType::U64, self.cpu_address, offset, value);
+                }
+            });
+
+        self.fgrs
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, reg)| reg.is_some())
+            .for_each(|(i, reg)| {
+                if let Some(value) = reg.take() {
+                    let offset = offset_of!(r4300i_t, f) + (i * std::mem::size_of::<u64>());
                     block.write_ptr(DataType::U64, self.cpu_address, offset, value);
                 }
             });
@@ -981,7 +1044,11 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rt(), block.convert(DataType::S64, value.val()).val());
             }
             MipsOpcode::DCFC1 => todo!("DCFC1"),
-            MipsOpcode::MTC1 => todo!("MTC1"),
+            MipsOpcode::MTC1 => {
+                checkcp1(&mut block, &mut guest_regs, true);
+                let value = guest_regs.get_gpr(&mut block, instr.rt());
+                guest_regs.set_fgr_32bit_fr(instr.rd(), value, &mut block);
+            }
             MipsOpcode::DMTC1 => todo!("DMTC1"),
             MipsOpcode::CTC1 => {
                 checkcp1(&mut block, &mut guest_regs, true);
