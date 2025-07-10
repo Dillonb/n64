@@ -14,24 +14,43 @@ use crate::{
     n64_read_physical_word, n64_write_physical_byte, n64_write_physical_dword,
     n64_write_physical_half, n64_write_physical_word, n64cpu_ptr, r4300i_t,
     reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK,
-    CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23,
-    R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
-    R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE,
-    R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI,
-    R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC,
-    R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER,
-    R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI,
-    R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED,
-    R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
+    CP0_STATUS_WRITE_MASK, FP_FMT_DOUBLE, FP_FMT_LONG, FP_FMT_SINGLE, FP_FMT_WORD,
+    R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25,
+    R4300I_CP0_REG_31, R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER,
+    R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT,
+    R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1,
+    R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR,
+    R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM,
+    R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI,
+    R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK,
+    STATUS_EXL_MASK,
 };
 
 fn is_fr_set() -> bool {
     return unsafe { (*n64cpu_ptr).cp0.status.__bindgen_anon_1.fr() } != 0;
 }
 
+fn parse_instr_fmt(fmt: u8) -> Option<DataType> {
+    let fmt = fmt as u32;
+    match fmt {
+        FP_FMT_SINGLE => Some(DataType::F32),
+        FP_FMT_DOUBLE => Some(DataType::F64),
+        FP_FMT_WORD => Some(DataType::U32),
+        FP_FMT_LONG => Some(DataType::U64),
+        _ => None,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FgrLoadState {
+    Low32,
+    High32,
+    Full64,
+}
+
 struct GuestRegisterManager {
     gprs: [Option<InputSlot>; 32],
-    fgrs: [Option<InputSlot>; 32],
+    fgrs: [Option<(FgrLoadState, InputSlot)>; 32],
     lo: Option<InputSlot>,
     hi: Option<InputSlot>,
     cpu_address: InputSlot,
@@ -97,30 +116,89 @@ impl GuestRegisterManager {
         self.lo = Some(value);
     }
 
-    // Get the full 64-bit floating point register.
-    fn get_fgr(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
-        *self.fgrs[r as usize].get_or_insert_with(|| {
-            let offset = offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>());
-            block
-                .load_ptr(DataType::U64, self.cpu_address, offset)
-                .val()
-        })
+    fn flush_fgr(
+        &mut self,
+        block: &mut IRBlockHandle,
+        r: usize,
+        load_state: FgrLoadState,
+        value: InputSlot,
+    ) {
+        match load_state {
+            FgrLoadState::Low32 => todo!("Flush low32"),
+            FgrLoadState::High32 => todo!("Flush high32"),
+            FgrLoadState::Full64 => {
+                let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
+                block.write_ptr(DataType::U64, self.cpu_address, offset, value);
+            }
+        }
+
+        self.fgrs[r as usize] = None;
     }
 
-    // Set the full 64 bit floating point register.
-    fn set_fgr(&mut self, r: u8, value: InputSlot) {
-        self.fgrs[r as usize] = Some(value);
+    fn get_fgr(&mut self, block: &mut IRBlockHandle, r: u8, tp: FgrLoadState) -> InputSlot {
+        // Need to flush if the register is already loaded with a different type.
+        // Don't need to reload if the register is not loaded at all.
+        if let Some((load_state, value)) = self.fgrs[r as usize] {
+            if load_state != tp {
+                self.flush_fgr(block, r as usize, load_state, value);
+            }
+        }
+
+        let (_, value) = *self.fgrs[r as usize].get_or_insert_with(|| {
+            let v = match tp {
+                FgrLoadState::Low32 => block
+                    .load_ptr(
+                        DataType::U32,
+                        self.cpu_address,
+                        // ENDIANNESS: this will point at the low 32 bits of the 64 bit FGR
+                        offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>()),
+                    )
+                    .val(),
+                FgrLoadState::High32 => todo!("Load high32"),
+                FgrLoadState::Full64 => block
+                    .load_ptr(
+                        DataType::U64,
+                        self.cpu_address,
+                        offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>()),
+                    )
+                    .val(),
+            };
+
+            (tp, v)
+        });
+        return value;
+    }
+
+    fn set_fgr(&mut self, r: u8, value: InputSlot, tp: FgrLoadState) {
+        self.fgrs[r as usize] = Some((tp, value));
     }
 
     // Set a 32 bit floating point register, respecting the FR bit.
     fn set_fgr_32bit_fr(&mut self, r: u8, value: InputSlot, block: &mut IRBlockHandle) {
+        /*
+        if (N64CPU.cp0.status.fr) {
+            N64CPU.f[r].lo = value;
+        } else {
+            if (r & 1) {
+                N64CPU.f[r & ~1].hi = value;
+            } else {
+                N64CPU.f[r].lo = value;
+            }
+        }
+        */
+        // Maybe try:
+        // if fr || !(r & 1) {
+        //   set lo
+        // } else {
+        //   set hi
+        // }
         let fr = is_fr_set();
 
         if fr {
             todo!("set_fgr_32bit_fr with fr set");
         } else {
             let r_to_set = r & !1;
-            let reg = self.get_fgr(block, r_to_set);
+            let reg = self.get_fgr(block, r_to_set, FgrLoadState::Full64);
             let hi_mask = const_u64(0xFFFFFFFF00000000);
             let lo_mask = const_u64(0x00000000FFFFFFFF);
 
@@ -128,18 +206,25 @@ impl GuestRegisterManager {
                 let shifted_value = block.left_shift(DataType::U64, value, const_u16(32));
                 let masked_reg = block.and(DataType::U64, reg, lo_mask);
                 let result = block.or(DataType::U64, masked_reg.val(), shifted_value.val());
-
-                self.set_fgr(r_to_set, result.val());
+                self.set_fgr(r_to_set, result.val(), FgrLoadState::Full64);
             } else {
-                // todo!("set_fgr_32bit_fr with fr unset and r even");
-                // let shifted = block.left_shift(DataType::U64, value, const_u16(32));
                 let masked_value = block.and(DataType::U64, value, lo_mask);
                 let masked_reg = block.and(DataType::U64, reg, hi_mask);
                 let result = block.or(DataType::U64, masked_value.val(), masked_reg.val());
-
-                self.set_fgr(r_to_set, result.val());
+                self.set_fgr(r_to_set, result.val(), FgrLoadState::Full64);
             }
         }
+    }
+
+    fn set_fgr_64bit(&mut self, r: u8, value: InputSlot) {
+        // No need to flush in this one since we're writing the full register.
+        self.set_fgr(r, value, FgrLoadState::Full64);
+    }
+
+    fn get_fgr_word_fs(&mut self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
+        let fs = if !is_fr_set() { fs & !1 } else { fs };
+
+        return self.get_fgr(block, fs, FgrLoadState::Low32);
     }
 
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
@@ -154,16 +239,19 @@ impl GuestRegisterManager {
                 }
             });
 
-        self.fgrs
-            .iter_mut()
+        let to_flush = self
+            .fgrs
+            .iter()
             .enumerate()
             .filter(|(_, reg)| reg.is_some())
-            .for_each(|(i, reg)| {
-                if let Some(value) = reg.take() {
-                    let offset = offset_of!(r4300i_t, f) + (i * std::mem::size_of::<u64>());
-                    block.write_ptr(DataType::U64, self.cpu_address, offset, value);
-                }
-            });
+            .map(|(r, _)| r)
+            .collect::<Vec<_>>();
+
+        to_flush.into_iter().for_each(|r| {
+            if let Some((load_state, value)) = self.fgrs[r].take() {
+                self.flush_fgr(block, r, load_state, value);
+            }
+        });
 
         if let Some(value) = self.lo.take() {
             block.write_ptr(
@@ -620,7 +708,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.xor(DataType::U64, rs, const_u16(instr.imm()));
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
-            MipsOpcode::DADDIU => todo!("DADDIU"),
+            MipsOpcode::DADDIU => {
+                todo!("DADDIU")
+            }
             MipsOpcode::LB => {
                 let paddr = get_paddr_for_loadstore(
                     cpu,
@@ -641,23 +731,57 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
-            MipsOpcode::LDC1 => todo!("LDC1"),
-            MipsOpcode::SDC1 => todo!("SDC1"),
-            MipsOpcode::LWC1 => todo!("LWC1"),
-            MipsOpcode::SWC1 => todo!("SWC1"),
-            MipsOpcode::LWL => todo!("LWL"),
-            MipsOpcode::LWR => todo!("LWR"),
-            MipsOpcode::SWL => todo!("SWL"),
-            MipsOpcode::SWR => todo!("SWR"),
-            MipsOpcode::LDL => todo!("LDL"),
-            MipsOpcode::LDR => todo!("LDR"),
-            MipsOpcode::SDL => todo!("SDL"),
-            MipsOpcode::SDR => todo!("SDR"),
-            MipsOpcode::LL => todo!("LL"),
-            MipsOpcode::LLD => todo!("LLD"),
-            MipsOpcode::SC => todo!("SC"),
-            MipsOpcode::SCD => todo!("SCD"),
-            MipsOpcode::RDHWR => todo!("RDHWR"),
+            MipsOpcode::LDC1 => {
+                todo!("LDC1")
+            }
+            MipsOpcode::SDC1 => {
+                todo!("SDC1")
+            }
+            MipsOpcode::LWC1 => {
+                todo!("LWC1")
+            }
+            MipsOpcode::SWC1 => {
+                todo!("SWC1")
+            }
+            MipsOpcode::LWL => {
+                todo!("LWL")
+            }
+            MipsOpcode::LWR => {
+                todo!("LWR")
+            }
+            MipsOpcode::SWL => {
+                todo!("SWL")
+            }
+            MipsOpcode::SWR => {
+                todo!("SWR")
+            }
+            MipsOpcode::LDL => {
+                todo!("LDL")
+            }
+            MipsOpcode::LDR => {
+                todo!("LDR")
+            }
+            MipsOpcode::SDL => {
+                todo!("SDL")
+            }
+            MipsOpcode::SDR => {
+                todo!("SDR")
+            }
+            MipsOpcode::LL => {
+                todo!("LL")
+            }
+            MipsOpcode::LLD => {
+                todo!("LLD")
+            }
+            MipsOpcode::SC => {
+                todo!("SC")
+            }
+            MipsOpcode::SCD => {
+                todo!("SCD")
+            }
+            MipsOpcode::RDHWR => {
+                todo!("RDHWR")
+            }
             MipsOpcode::MFC0 => match instr.rd() as u32 {
                 R4300I_CP0_REG_ENTRYHI => {
                     let result = block.load_ptr(
@@ -790,9 +914,15 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     panic!("Unknown register in MFC0: {}", instr.rd());
                 }
             },
-            MipsOpcode::DMFC0 => todo!("DMFC0"),
-            MipsOpcode::CFC0 => todo!("CFC0"),
-            MipsOpcode::DCFC0 => todo!("DCFC0"),
+            MipsOpcode::DMFC0 => {
+                todo!("DMFC0")
+            }
+            MipsOpcode::CFC0 => {
+                todo!("CFC0")
+            }
+            MipsOpcode::DCFC0 => {
+                todo!("DCFC0")
+            }
             MipsOpcode::MTC0 => {
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
 
@@ -1019,11 +1149,21 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     }
                 }
             }
-            MipsOpcode::DMTC0 => todo!("DMTC0"),
-            MipsOpcode::CTC0 => todo!("CTC0"),
-            MipsOpcode::DCTC0 => todo!("DCTC0"),
-            MipsOpcode::MFC1 => todo!("MFC1"),
-            MipsOpcode::DMFC1 => todo!("DMFC1"),
+            MipsOpcode::DMTC0 => {
+                todo!("DMTC0")
+            }
+            MipsOpcode::CTC0 => {
+                todo!("CTC0")
+            }
+            MipsOpcode::DCTC0 => {
+                todo!("DCTC0")
+            }
+            MipsOpcode::MFC1 => {
+                todo!("MFC1")
+            }
+            MipsOpcode::DMFC1 => {
+                todo!("DMFC1")
+            }
             MipsOpcode::CFC1 => {
                 checkcp1(&mut block, &mut guest_regs, true);
 
@@ -1043,13 +1183,17 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 guest_regs.set_gpr(instr.rt(), block.convert(DataType::S64, value.val()).val());
             }
-            MipsOpcode::DCFC1 => todo!("DCFC1"),
+            MipsOpcode::DCFC1 => {
+                todo!("DCFC1")
+            }
             MipsOpcode::MTC1 => {
                 checkcp1(&mut block, &mut guest_regs, true);
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
                 guest_regs.set_fgr_32bit_fr(instr.rd(), value, &mut block);
             }
-            MipsOpcode::DMTC1 => todo!("DMTC1"),
+            MipsOpcode::DMTC1 => {
+                todo!("DMTC1")
+            }
             MipsOpcode::CTC1 => {
                 checkcp1(&mut block, &mut guest_regs, true);
                 let fs = instr.rd();
@@ -1074,7 +1218,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     }
                 }
             }
-            MipsOpcode::DCTC1 => todo!("DCTC1"),
+            MipsOpcode::DCTC1 => {
+                todo!("DCTC1")
+            }
             MipsOpcode::SLL => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.left_shift(DataType::S32, input, const_u16(instr.sa() as u16));
@@ -1135,8 +1281,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 set_pc(&mut pc_set, &mut block, cpu_address, target);
                 set_link_reg(&mut guest_regs, vaddr, instr.rd());
             }
-            MipsOpcode::SYSCALL => todo!("SYSCALL"),
-            MipsOpcode::SYNC => todo!("SYNC"),
+            MipsOpcode::SYSCALL => {
+                todo!("SYSCALL")
+            }
+            MipsOpcode::SYNC => {
+                todo!("SYNC")
+            }
             MipsOpcode::MFHI => {
                 let hi = guest_regs.get_hi(&mut block);
                 guest_regs.set_gpr(instr.rd(), hi);
@@ -1153,9 +1303,15 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let value = guest_regs.get_gpr(&mut block, instr.rs());
                 guest_regs.set_lo(value);
             }
-            MipsOpcode::DSLLV => todo!("DSLLV"),
-            MipsOpcode::DSRLV => todo!("DSRLV"),
-            MipsOpcode::DSRAV => todo!("DSRAV"),
+            MipsOpcode::DSLLV => {
+                todo!("DSLLV")
+            }
+            MipsOpcode::DSRLV => {
+                todo!("DSRLV")
+            }
+            MipsOpcode::DSRAV => {
+                todo!("DSRAV")
+            }
             MipsOpcode::MULT => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
@@ -1256,10 +1412,18 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 block = end;
             }
-            MipsOpcode::DMULT => todo!("DMULT"),
-            MipsOpcode::DMULTU => todo!("DMULTU"),
-            MipsOpcode::DDIV => todo!("DDIV"),
-            MipsOpcode::DDIVU => todo!("DDIVU"),
+            MipsOpcode::DMULT => {
+                todo!("DMULT")
+            }
+            MipsOpcode::DMULTU => {
+                todo!("DMULTU")
+            }
+            MipsOpcode::DDIV => {
+                todo!("DDIV")
+            }
+            MipsOpcode::DDIVU => {
+                todo!("DDIVU")
+            }
             MipsOpcode::ADD => {
                 // Identical to ADD, but does not throw overflow exceptions (which are not
                 // implemented yet anyway)
@@ -1331,31 +1495,59 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let result = block.compare(rs, CompareType::LessThanUnsigned, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            MipsOpcode::DADD => todo!("DADD"),
-            MipsOpcode::DADDU => todo!("DADDU"),
-            MipsOpcode::DSUB => todo!("DSUB"),
-            MipsOpcode::DSUBU => todo!("DSUBU"),
-            MipsOpcode::TGE => todo!("TGE"),
-            MipsOpcode::TGEU => todo!("TGEU"),
-            MipsOpcode::TLT => todo!("TLT"),
-            MipsOpcode::TLTU => todo!("TLTU"),
-            MipsOpcode::TEQ => todo!("TEQ"),
-            MipsOpcode::TNE => todo!("TNE"),
+            MipsOpcode::DADD => {
+                todo!("DADD")
+            }
+            MipsOpcode::DADDU => {
+                todo!("DADDU")
+            }
+            MipsOpcode::DSUB => {
+                todo!("DSUB")
+            }
+            MipsOpcode::DSUBU => {
+                todo!("DSUBU")
+            }
+            MipsOpcode::TGE => {
+                todo!("TGE")
+            }
+            MipsOpcode::TGEU => {
+                todo!("TGEU")
+            }
+            MipsOpcode::TLT => {
+                todo!("TLT")
+            }
+            MipsOpcode::TLTU => {
+                todo!("TLTU")
+            }
+            MipsOpcode::TEQ => {
+                todo!("TEQ")
+            }
+            MipsOpcode::TNE => {
+                todo!("TNE")
+            }
             MipsOpcode::DSLL => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            MipsOpcode::DSRL => todo!("DSRL"),
-            MipsOpcode::DSRA => todo!("DSRA"),
+            MipsOpcode::DSRL => {
+                todo!("DSRL")
+            }
+            MipsOpcode::DSRA => {
+                todo!("DSRA")
+            }
             MipsOpcode::DSLL32 => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
                 let result =
                     block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16 + 32));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            MipsOpcode::DSRL32 => todo!("DSRL32"),
-            MipsOpcode::DSRA32 => todo!("DSRA32"),
+            MipsOpcode::DSRL32 => {
+                todo!("DSRL32")
+            }
+            MipsOpcode::DSRA32 => {
+                todo!("DSRA32")
+            }
             MipsOpcode::TLBWI => {
                 println!("TLBWI: TODO, NOP for now");
             }
@@ -1421,10 +1613,39 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 block = end;
                 println!("TODO: set llbit to false");
             }
-            MipsOpcode::CVT_S => todo!("CVT_S"),
-            MipsOpcode::CVT_D => todo!("CVT_D"),
-            MipsOpcode::CVT_W => todo!("CVT_W"),
-            MipsOpcode::CVT_L => todo!("CVT_L"),
+            MipsOpcode::CVT_S => {
+                todo!("CVT_S")
+            }
+            MipsOpcode::CVT_D => {
+                checkcp1(&mut block, &mut guest_regs, false);
+
+                match parse_instr_fmt(instr.fmt()) {
+                    Some(DataType::F32) => {
+                        todo!("cvt_d_s")
+                    }
+                    Some(DataType::U32) => {
+                        // todo!("cvt_d_w")
+                        // s32 fs = get_fpu_register_word_fs(instruction.fr.fs);
+                        let fs = guest_regs.get_fgr_word_fs(&mut block, instr.fs());
+                        let result = block.convert_from(DataType::S32, DataType::F64, fs);
+                        // double result;
+                        // fpu_op_check_except({ result = (double)fs; });
+                        // check_fpu_result_d(result);
+                        // set_fpu_register_double(instruction.fr.fd, result);
+                        guest_regs.set_fgr_64bit(instr.fd(), result.val());
+                    }
+                    Some(DataType::U64) => {
+                        todo!("cvt_d_l")
+                    }
+                    _ => todo!("Fire unimplemented operation here"),
+                }
+            }
+            MipsOpcode::CVT_W => {
+                todo!("CVT_W")
+            }
+            MipsOpcode::CVT_L => {
+                todo!("CVT_L")
+            }
         }
 
         cycles += 1;

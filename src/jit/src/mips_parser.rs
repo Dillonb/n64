@@ -351,14 +351,18 @@ proc_bitfield::bitfield! {
         pub s_imm: i16 @ 0..=15,
 
         pub sa: u8 @ 6 ..=10,
+        pub fd: u8 @ 6 ..=10,
 
         pub rd: u8 @ 11 ..=15,
+        pub fs: u8 @ 11 ..=15,
 
         pub rt: u8 @ 16 ..=20,
         pub rt_op: u8 [unwrap MipsRegimmRtField] @ 16 ..=20,
+        pub ft: u8 @ 16 ..=20,
 
         pub rs: u8 @ 21 ..=25,
         pub cop_op: u8 [unwrap MipsCopRsField] @ 21 ..=25,
+        pub fmt: u8 @ 21 ..=25,
 
         pub op_bits: u8 @ 26 ..=31,
         pub op: u8 [unwrap MipsOpcodeField] @ 26 ..= 31,
