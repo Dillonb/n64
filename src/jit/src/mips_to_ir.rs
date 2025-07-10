@@ -738,7 +738,21 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("SDC1")
             }
             MipsOpcode::LWC1 => {
-                todo!("LWC1")
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_word as usize),
+                    Some(DataType::S32),
+                    vec![paddr],
+                );
+
+                guest_regs.set_fgr_32bit_fr(instr.ft(), value.val(), &mut block);
             }
             MipsOpcode::SWC1 => {
                 todo!("SWC1")
