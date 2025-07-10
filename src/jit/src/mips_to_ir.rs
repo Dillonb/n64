@@ -221,7 +221,7 @@ impl GuestRegisterManager {
         self.set_fgr(r, value, FgrLoadState::Full64);
     }
 
-    fn get_fgr_word_fs(&mut self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
+    fn get_fgr_32bit_fs(&mut self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
         let fs = if !is_fr_set() { fs & !1 } else { fs };
 
         return self.get_fgr(block, fs, FgrLoadState::Low32);
@@ -270,6 +270,10 @@ impl GuestRegisterManager {
                 value,
             );
         }
+    }
+
+    fn get_fgr_64bit_fs(&self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
+        todo!()
     }
 }
 
@@ -1628,24 +1632,34 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 println!("TODO: set llbit to false");
             }
             MipsOpcode::CVT_S => {
-                todo!("CVT_S")
+                checkcp1(&mut block, &mut guest_regs, false);
+                match parse_instr_fmt(instr.fmt()) {
+                    Some(DataType::F64) => {
+                        let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                        let result = block.convert_from(DataType::F64, DataType::F32, fs);
+                        guest_regs.set_fgr_64bit(instr.fd(), result.val());
+                    },
+                    Some(DataType::U32) => {
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let result = block.convert_from(DataType::U32, DataType::F32, fs);
+                        guest_regs.set_fgr_64bit(instr.fd(), result.val());
+                    },
+                    Some(DataType::U64) => {
+                        todo!()
+                    },
+                    _ => todo!("Fire unimplemented operation here"),
+                }
+
             }
             MipsOpcode::CVT_D => {
                 checkcp1(&mut block, &mut guest_regs, false);
-
                 match parse_instr_fmt(instr.fmt()) {
                     Some(DataType::F32) => {
                         todo!("cvt_d_s")
                     }
                     Some(DataType::U32) => {
-                        // todo!("cvt_d_w")
-                        // s32 fs = get_fpu_register_word_fs(instruction.fr.fs);
-                        let fs = guest_regs.get_fgr_word_fs(&mut block, instr.fs());
-                        let result = block.convert_from(DataType::S32, DataType::F64, fs);
-                        // double result;
-                        // fpu_op_check_except({ result = (double)fs; });
-                        // check_fpu_result_d(result);
-                        // set_fpu_register_double(instruction.fr.fd, result);
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let result = block.convert_from(DataType::U32, DataType::F64, fs);
                         guest_regs.set_fgr_64bit(instr.fd(), result.val());
                     }
                     Some(DataType::U64) => {
