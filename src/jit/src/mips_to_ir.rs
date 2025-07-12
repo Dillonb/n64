@@ -227,6 +227,12 @@ impl GuestRegisterManager {
         return self.get_fgr(block, fs, FgrLoadState::Low32);
     }
 
+    fn get_fgr_64bit_fs(&mut self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
+        let fs = if !is_fr_set() { fs & !1 } else { fs };
+        return self.get_fgr(block, fs, FgrLoadState::Full64);
+
+    }
+
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
         self.gprs
             .iter_mut()
@@ -272,9 +278,6 @@ impl GuestRegisterManager {
         }
     }
 
-    fn get_fgr_64bit_fs(&self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
-        todo!()
-    }
 }
 
 fn get_paddr_for_loadstore(
