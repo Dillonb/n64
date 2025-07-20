@@ -35,8 +35,8 @@ fn parse_instr_fmt(fmt: u8) -> Option<DataType> {
     match fmt {
         FP_FMT_SINGLE => Some(DataType::F32),
         FP_FMT_DOUBLE => Some(DataType::F64),
-        FP_FMT_WORD => Some(DataType::U32),
-        FP_FMT_LONG => Some(DataType::U64),
+        FP_FMT_WORD => Some(DataType::S32),
+        FP_FMT_LONG => Some(DataType::S64),
         _ => None,
     }
 }
@@ -1642,9 +1642,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                         let result = block.convert_from(DataType::F64, DataType::F32, fs);
                         guest_regs.set_fgr_64bit(instr.fd(), result.val());
                     },
-                    Some(DataType::U32) => {
+                    Some(DataType::S32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                        let result = block.convert_from(DataType::U32, DataType::F32, fs);
+                        let result = block.convert_from(DataType::S32, DataType::F32, fs);
                         guest_regs.set_fgr_64bit(instr.fd(), result.val());
                     },
                     Some(DataType::U64) => {
@@ -1660,12 +1660,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     Some(DataType::F32) => {
                         todo!("cvt_d_s")
                     }
-                    Some(DataType::U32) => {
+                    Some(DataType::S32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                        let result = block.convert_from(DataType::U32, DataType::F64, fs);
+                        let result = block.convert_from(DataType::S32, DataType::F64, fs);
                         guest_regs.set_fgr_64bit(instr.fd(), result.val());
                     }
-                    Some(DataType::U64) => {
+                    Some(DataType::S64) => {
                         todo!("cvt_d_l")
                     }
                     _ => todo!("Fire unimplemented operation here"),
