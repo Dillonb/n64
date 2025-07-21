@@ -231,6 +231,10 @@ impl GuestRegisterManager {
         return self.get_fgr(block, fs, FgrLoadState::Full64);
     }
 
+    fn get_fgr_32bit_ft(&mut self, block: &mut IRBlockHandle, ft: u8) -> InputSlot {
+        return self.get_fgr(block, ft, FgrLoadState::Low32);
+    }
+
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
         self.gprs
             .iter_mut()
@@ -1683,7 +1687,18 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("FPU_MULT")
             }
             MipsOpcode::FPU_DIV => {
-                todo!("FPU_DIV")
+                match instr.fmt_datatype() {
+                    Some(DataType::F32) => {
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                        let result = block.divide(DataType::F32, fs, ft);
+                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                    }
+                    Some(DataType::F64) => {
+                        todo!("FPU_DIV_D")
+                    }
+                    _ => todo!("Fire unimplemented operation here"),
+                }
             }
             MipsOpcode::FPU_SQRT => {
                 todo!("FPU_SQRT")
