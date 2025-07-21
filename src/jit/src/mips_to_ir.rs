@@ -44,7 +44,7 @@ fn parse_instr_fmt(fmt: u8) -> Option<DataType> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FgrLoadState {
     Low32,
-    High32,
+    // High32,
     Full64,
 }
 
@@ -125,7 +125,7 @@ impl GuestRegisterManager {
     ) {
         match load_state {
             FgrLoadState::Low32 => todo!("Flush low32"),
-            FgrLoadState::High32 => todo!("Flush high32"),
+            // FgrLoadState::High32 => todo!("Flush high32"),
             FgrLoadState::Full64 => {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
                 block.write_ptr(DataType::U64, self.cpu_address, offset, value);
@@ -154,7 +154,7 @@ impl GuestRegisterManager {
                         offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>()),
                     )
                     .val(),
-                FgrLoadState::High32 => todo!("Load high32"),
+                // FgrLoadState::High32 => todo!("Load high32"),
                 FgrLoadState::Full64 => block
                     .load_ptr(
                         DataType::U64,
@@ -230,7 +230,6 @@ impl GuestRegisterManager {
     fn get_fgr_64bit_fs(&mut self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
         let fs = if !is_fr_set() { fs & !1 } else { fs };
         return self.get_fgr(block, fs, FgrLoadState::Full64);
-
     }
 
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
@@ -277,7 +276,6 @@ impl GuestRegisterManager {
             );
         }
     }
-
 }
 
 fn get_paddr_for_loadstore(
@@ -1634,27 +1632,26 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 block = end;
                 println!("TODO: set llbit to false");
             }
-            MipsOpcode::CVT_S => {
+            MipsOpcode::FPU_CVT_S => {
                 checkcp1(&mut block, &mut guest_regs, false);
                 match parse_instr_fmt(instr.fmt()) {
                     Some(DataType::F64) => {
                         let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                         let result = block.convert_from(DataType::F64, DataType::F32, fs);
                         guest_regs.set_fgr_64bit(instr.fd(), result.val());
-                    },
+                    }
                     Some(DataType::S32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                         let result = block.convert_from(DataType::S32, DataType::F32, fs);
                         guest_regs.set_fgr_64bit(instr.fd(), result.val());
-                    },
+                    }
                     Some(DataType::U64) => {
                         todo!()
-                    },
+                    }
                     _ => todo!("Fire unimplemented operation here"),
                 }
-
             }
-            MipsOpcode::CVT_D => {
+            MipsOpcode::FPU_CVT_D => {
                 checkcp1(&mut block, &mut guest_regs, false);
                 match parse_instr_fmt(instr.fmt()) {
                     Some(DataType::F32) => {
@@ -1671,11 +1668,119 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     _ => todo!("Fire unimplemented operation here"),
                 }
             }
-            MipsOpcode::CVT_W => {
+            MipsOpcode::FPU_CVT_W => {
                 todo!("CVT_W")
             }
-            MipsOpcode::CVT_L => {
+            MipsOpcode::FPU_CVT_L => {
                 todo!("CVT_L")
+            }
+            MipsOpcode::FPU_ADD => {
+                todo!("FPU_ADD")
+            }
+            MipsOpcode::FPU_SUB => {
+                todo!("FPU_SUB")
+            }
+            MipsOpcode::FPU_MULT => {
+                todo!("FPU_MULT")
+            }
+            MipsOpcode::FPU_DIV => {
+                todo!("FPU_DIV")
+            }
+            MipsOpcode::FPU_SQRT => {
+                todo!("FPU_SQRT")
+            }
+            MipsOpcode::FPU_ABS => {
+                todo!("FPU_ABS")
+            }
+            MipsOpcode::FPU_MOV => {
+                todo!("FPU_MOV")
+            }
+            MipsOpcode::FPU_ROUND_L => {
+                todo!("FPU_ROUND_L")
+            }
+            MipsOpcode::FPU_TRUNC_L => {
+                todo!("FPU_TRUNC_L")
+            }
+            MipsOpcode::FPU_CEIL_L => {
+                todo!("FPU_CEIL_L")
+            }
+            MipsOpcode::FPU_FLOOR_L => {
+                todo!("FPU_FLOOR_L")
+            }
+            MipsOpcode::FPU_ROUND_W => {
+                todo!("FPU_ROUND_W")
+            }
+            MipsOpcode::FPU_TRUNC_W => {
+                todo!("FPU_TRUNC_W")
+            }
+            MipsOpcode::FPU_CEIL_W => {
+                todo!("FPU_CEIL_W")
+            }
+            MipsOpcode::FPU_FLOOR_W => {
+                todo!("FPU_FLOOR_W")
+            }
+            MipsOpcode::FPU_NEG => {
+                todo!("FPU_NEG")
+            }
+            MipsOpcode::FPU_C_F => {
+                todo!("FPU_C_F")
+            }
+            MipsOpcode::FPU_C_UN => {
+                todo!("FPU_C_UN")
+            }
+            MipsOpcode::FPU_C_EQ => {
+                todo!("FPU_C_EQ")
+            }
+            MipsOpcode::FPU_C_UEQ => {
+                todo!("FPU_C_UEQ")
+            }
+            MipsOpcode::FPU_C_OLT => {
+                todo!("FPU_C_OLT")
+            }
+            MipsOpcode::FPU_C_ULT => {
+                todo!("FPU_C_ULT")
+            }
+            MipsOpcode::FPU_C_OLE => {
+                todo!("FPU_C_OLE")
+            }
+            MipsOpcode::FPU_C_ULE => {
+                todo!("FPU_C_ULE")
+            }
+            MipsOpcode::FPU_C_SF => {
+                todo!("FPU_C_SF")
+            }
+            MipsOpcode::FPU_C_NGLE => {
+                todo!("FPU_C_NGLE")
+            }
+            MipsOpcode::FPU_C_SEQ => {
+                todo!("FPU_C_SEQ")
+            }
+            MipsOpcode::FPU_C_NGL => {
+                todo!("FPU_C_NGL")
+            }
+            MipsOpcode::FPU_C_LT => {
+                todo!("FPU_C_LT")
+            }
+            MipsOpcode::FPU_C_NGE => {
+                todo!("FPU_C_NGE")
+            }
+            MipsOpcode::FPU_C_LE => {
+                todo!("FPU_C_LE")
+            }
+            MipsOpcode::FPU_C_NGT => {
+                todo!("FPU_C_NGT")
+            }
+            MipsOpcode::FPU_BC1F => {
+                todo!("FPU_BC1F")
+            }
+            MipsOpcode::FPU_BC1T => {
+                todo!("FPU_BC1T")
+            }
+            MipsOpcode::FPU_BC1FL => {
+                todo!("FPU_BC1FL")
+            }
+            MipsOpcode::FPU_BC1TL => {
+                todo!("FPU_BC1TL")
             }
         }
 
