@@ -14,31 +14,19 @@ use crate::{
     n64_read_physical_word, n64_write_physical_byte, n64_write_physical_dword,
     n64_write_physical_half, n64_write_physical_word, n64cpu_ptr, r4300i_t,
     reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK,
-    CP0_STATUS_WRITE_MASK, FP_FMT_DOUBLE, FP_FMT_LONG, FP_FMT_SINGLE, FP_FMT_WORD,
-    R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25,
-    R4300I_CP0_REG_31, R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER,
-    R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT,
-    R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1,
-    R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR,
-    R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM,
-    R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI,
-    R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK,
-    STATUS_EXL_MASK,
+    CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23,
+    R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
+    R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE,
+    R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI,
+    R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC,
+    R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER,
+    R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI,
+    R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED,
+    R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
 };
 
 fn is_fr_set() -> bool {
     return unsafe { (*n64cpu_ptr).cp0.status.__bindgen_anon_1.fr() } != 0;
-}
-
-fn parse_instr_fmt(fmt: u8) -> Option<DataType> {
-    let fmt = fmt as u32;
-    match fmt {
-        FP_FMT_SINGLE => Some(DataType::F32),
-        FP_FMT_DOUBLE => Some(DataType::F64),
-        FP_FMT_WORD => Some(DataType::S32),
-        FP_FMT_LONG => Some(DataType::S64),
-        _ => None,
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1634,7 +1622,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::FPU_CVT_S => {
                 checkcp1(&mut block, &mut guest_regs, false);
-                match parse_instr_fmt(instr.fmt()) {
+                match instr.fmt_datatype() {
                     Some(DataType::F64) => {
                         let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                         let result = block.convert_from(DataType::F64, DataType::F32, fs);
@@ -1653,7 +1641,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::FPU_CVT_D => {
                 checkcp1(&mut block, &mut guest_regs, false);
-                match parse_instr_fmt(instr.fmt()) {
+                match instr.fmt_datatype() {
                     Some(DataType::F32) => {
                         todo!("cvt_d_s")
                     }

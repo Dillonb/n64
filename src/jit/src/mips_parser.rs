@@ -1,5 +1,8 @@
+use dgbir::ir::DataType;
 use itertools::izip;
 use proc_bitfield::ConvRaw;
+
+use crate::{FP_FMT_DOUBLE, FP_FMT_LONG, FP_FMT_SINGLE, FP_FMT_WORD};
 
 #[derive(Debug)]
 pub enum BranchCondition {
@@ -416,6 +419,18 @@ proc_bitfield::bitfield! {
         pub j_target: u32 @ 0..=25,
 
         pub is_coprocessor_funct: bool @ 25,
+    }
+}
+
+impl MipsInstructionBitfield {
+    pub fn fmt_datatype(&self) -> Option<DataType> {
+        match self.fmt() as u32 {
+            FP_FMT_SINGLE => Some(DataType::F32),
+            FP_FMT_DOUBLE => Some(DataType::F64),
+            FP_FMT_WORD => Some(DataType::S32),
+            FP_FMT_LONG => Some(DataType::S64),
+            _ => None,
+        }
     }
 }
 
