@@ -127,8 +127,19 @@ impl GuestRegisterManager {
         // Need to flush if the register is already loaded with a different type.
         // Don't need to reload if the register is not loaded at all.
         if let Some((load_state, value)) = self.fgrs[r as usize] {
-            if load_state != tp {
-                self.flush_fgr(block, r as usize, load_state, value);
+            match (load_state, tp) {
+                // Same state, no need to flush
+                (FgrLoadState::Low32, FgrLoadState::Low32) => {},
+                (FgrLoadState::Full64, FgrLoadState::Full64) => {},
+
+                // FGR is loaded with only the low 32, but we need the full 64, we need to flush
+                // and reload.
+                (FgrLoadState::Low32, FgrLoadState::Full64) => {
+                    self.flush_fgr(block, r as usize, load_state, value);
+                }
+                // FGR is loaded with the full 64, but we only need the low 32, this is fine, no
+                // need to flush.
+                (FgrLoadState::Full64, FgrLoadState::Low32) => {},
             }
         }
 
