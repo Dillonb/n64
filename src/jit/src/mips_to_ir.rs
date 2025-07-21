@@ -112,7 +112,10 @@ impl GuestRegisterManager {
         value: InputSlot,
     ) {
         match load_state {
-            FgrLoadState::Low32 => todo!("Flush low32"),
+            FgrLoadState::Low32 => {
+                let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
+                block.write_ptr(DataType::U32, self.cpu_address, offset, value);
+            },
             // FgrLoadState::High32 => todo!("Flush high32"),
             FgrLoadState::Full64 => {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
@@ -1678,10 +1681,32 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("CVT_L")
             }
             MipsOpcode::FPU_ADD => {
-                todo!("FPU_ADD")
+                match instr.fmt_datatype() {
+                    Some(DataType::F32) => {
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                        let result = block.add(DataType::F32, fs, ft);
+                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                    }
+                    Some(DataType::F64) => {
+                        todo!("FPU_ADD_D")
+                    }
+                    _ => todo!("Fire unimplemented operation here"),
+                }
             }
             MipsOpcode::FPU_SUB => {
-                todo!("FPU_SUB")
+                match instr.fmt_datatype() {
+                    Some(DataType::F32) => {
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                        let result = block.subtract(DataType::F32, fs, ft);
+                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                    }
+                    Some(DataType::F64) => {
+                        todo!("FPU_SUB_D")
+                    }
+                    _ => todo!("Fire unimplemented operation here"),
+                }
             }
             MipsOpcode::FPU_MULT => {
                 todo!("FPU_MULT")
