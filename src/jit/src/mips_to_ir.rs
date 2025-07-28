@@ -41,6 +41,7 @@ struct GuestRegisterManager {
     fgrs: [Option<(FgrLoadState, InputSlot)>; 32],
     lo: Option<InputSlot>,
     hi: Option<InputSlot>,
+    fcr31: Option<InputSlot>,
     cpu_address: InputSlot,
 }
 
@@ -51,6 +52,7 @@ impl GuestRegisterManager {
             fgrs: [None; 32],
             lo: None,
             hi: None,
+            fcr31: None,
             cpu_address,
         };
         v.gprs[0] = Some(const_u32(0)); // GPR[0] is always 0
@@ -238,6 +240,20 @@ impl GuestRegisterManager {
         return self.get_fgr(block, ft, FgrLoadState::Low32);
     }
 
+    fn get_fcr31(&mut self, block: &mut IRBlockHandle) -> InputSlot {
+        *self.fcr31.get_or_insert_with(|| {
+            block.load_ptr(
+                DataType::S32,
+                self.cpu_address,
+                offset_of!(r4300i_t, fcr31.raw)
+            ).val()
+        })
+    }
+
+    fn set_fcr31(&mut self, value: InputSlot) {
+        self.fcr31 = Some(value);
+    }
+
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
         self.gprs
             .iter_mut()
@@ -278,6 +294,15 @@ impl GuestRegisterManager {
                 DataType::U64,
                 self.cpu_address,
                 offset_of!(r4300i_t, mult_hi),
+                value,
+            );
+        }
+
+        if let Some(value) = self.fcr31.take() {
+            block.write_ptr(
+                DataType::U32,
+                self.cpu_address,
+                offset_of!(r4300i_t, fcr31.raw),
                 value,
             );
         }
@@ -1196,17 +1221,17 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let value = match fs {
                     0 => {
                         println!("Reading FCR0 - probably returning an invalid value!");
-                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr0.raw))
+                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr0.raw)).val()
                     }
                     31 => {
-                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr31.raw))
+                        guest_regs.get_fcr31(&mut block)
                     }
                     _ => {
                         todo!("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
                     }
                 };
 
-                guest_regs.set_gpr(instr.rt(), block.convert(DataType::S64, value.val()).val());
+                guest_regs.set_gpr(instr.rt(), block.convert_from(DataType::S32, DataType::S64, value).val());
             }
             MipsOpcode::DCFC1 => {
                 todo!("DCFC1")
@@ -1230,12 +1255,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     31 => {
                         let mask = const_u32(0x183ffff);
                         let masked = block.and(DataType::U32, value, mask);
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, fcr31.raw),
-                            masked.val(),
-                        );
+                        guest_regs.set_fcr31(masked.val());
                         println!("TODO: check_fpu_exception();");
                     }
                     _ => {
