@@ -5,7 +5,7 @@
 
 use std::mem;
 
-use dgbir::{compiler::compile_vec, disassembler::disassemble, util::flush_icache};
+use dgbir::{compiler::compile_vec, disassembler::disassemble_vec_function, util::flush_icache};
 use mips_to_ir::to_ir;
 
 mod mips_parser;
@@ -28,17 +28,18 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     let baseaddr = dynarec_bumpalloc_get_next_allocation_ptr() as usize;
     println!("{}", func);
     let compiled = compile_vec(&mut func, baseaddr);
+    let code = &compiled.code;
     println!("{}", func);
 
-    let alloc = dynarec_bumpalloc(compiled.len());
-    std::ptr::copy_nonoverlapping(compiled.as_ptr(), alloc as *mut u8, compiled.len());
-    flush_icache(unsafe { std::slice::from_raw_parts(alloc as *const u8, compiled.len()) });
+    let alloc = dynarec_bumpalloc(code.len());
+    std::ptr::copy_nonoverlapping(code.as_ptr(), alloc as *mut u8, code.len());
+    flush_icache(unsafe { std::slice::from_raw_parts(alloc as *const u8, code.len()) });
 
     let f: unsafe extern "C" fn(*mut r4300i) -> i32 = mem::transmute(alloc);
 
     block.run = Some(f);
-    block.host_size = compiled.len();
+    block.host_size = code.len();
     block.guest_size = num_instructions * 4;
 
-    println!("{}", disassemble(&compiled, baseaddr as u64));
+    println!("{}", disassemble_vec_function(&compiled));
 }
