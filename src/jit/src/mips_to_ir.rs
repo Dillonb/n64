@@ -117,7 +117,7 @@ impl GuestRegisterManager {
             FgrLoadState::Low32 => {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
                 block.write_ptr(DataType::U32, self.cpu_address, offset, value);
-            },
+            }
             // FgrLoadState::High32 => todo!("Flush high32"),
             FgrLoadState::Full64 => {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
@@ -134,8 +134,8 @@ impl GuestRegisterManager {
         if let Some((load_state, value)) = self.fgrs[r as usize] {
             match (load_state, tp) {
                 // Same state, no need to flush
-                (FgrLoadState::Low32, FgrLoadState::Low32) => {},
-                (FgrLoadState::Full64, FgrLoadState::Full64) => {},
+                (FgrLoadState::Low32, FgrLoadState::Low32) => {}
+                (FgrLoadState::Full64, FgrLoadState::Full64) => {}
 
                 // FGR is loaded with only the low 32, but we need the full 64, we need to flush
                 // and reload.
@@ -144,7 +144,7 @@ impl GuestRegisterManager {
                 }
                 // FGR is loaded with the full 64, but we only need the low 32, this is fine, no
                 // need to flush.
-                (FgrLoadState::Full64, FgrLoadState::Low32) => {},
+                (FgrLoadState::Full64, FgrLoadState::Low32) => {}
             }
         }
 
@@ -242,11 +242,13 @@ impl GuestRegisterManager {
 
     fn get_fcr31(&mut self, block: &mut IRBlockHandle) -> InputSlot {
         *self.fcr31.get_or_insert_with(|| {
-            block.load_ptr(
-                DataType::S32,
-                self.cpu_address,
-                offset_of!(r4300i_t, fcr31.raw)
-            ).val()
+            block
+                .load_ptr(
+                    DataType::S32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, fcr31.raw),
+                )
+                .val()
         })
     }
 
@@ -1221,17 +1223,22 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let value = match fs {
                     0 => {
                         println!("Reading FCR0 - probably returning an invalid value!");
-                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr0.raw)).val()
+                        block
+                            .load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr0.raw))
+                            .val()
                     }
-                    31 => {
-                        guest_regs.get_fcr31(&mut block)
-                    }
+                    31 => guest_regs.get_fcr31(&mut block),
                     _ => {
                         todo!("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
                     }
                 };
 
-                guest_regs.set_gpr(instr.rt(), block.convert_from(DataType::S32, DataType::S64, value).val());
+                guest_regs.set_gpr(
+                    instr.rt(),
+                    block
+                        .convert_from(DataType::S32, DataType::S64, value)
+                        .val(),
+                );
             }
             MipsOpcode::DCFC1 => {
                 todo!("DCFC1")
@@ -1700,51 +1707,45 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_CVT_L => {
                 todo!("CVT_L")
             }
-            MipsOpcode::FPU_ADD => {
-                match instr.fmt_datatype() {
-                    Some(DataType::F32) => {
-                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                        let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
-                        let result = block.add(DataType::F32, fs, ft);
-                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
-                    }
-                    Some(DataType::F64) => {
-                        todo!("FPU_ADD_D")
-                    }
-                    _ => todo!("Fire unimplemented operation here"),
+            MipsOpcode::FPU_ADD => match instr.fmt_datatype() {
+                Some(DataType::F32) => {
+                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                    let result = block.add(DataType::F32, fs, ft);
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
-            }
-            MipsOpcode::FPU_SUB => {
-                match instr.fmt_datatype() {
-                    Some(DataType::F32) => {
-                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                        let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
-                        let result = block.subtract(DataType::F32, fs, ft);
-                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
-                    }
-                    Some(DataType::F64) => {
-                        todo!("FPU_SUB_D")
-                    }
-                    _ => todo!("Fire unimplemented operation here"),
+                Some(DataType::F64) => {
+                    todo!("FPU_ADD_D")
                 }
-            }
+                _ => todo!("Fire unimplemented operation here"),
+            },
+            MipsOpcode::FPU_SUB => match instr.fmt_datatype() {
+                Some(DataType::F32) => {
+                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                    let result = block.subtract(DataType::F32, fs, ft);
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                }
+                Some(DataType::F64) => {
+                    todo!("FPU_SUB_D")
+                }
+                _ => todo!("Fire unimplemented operation here"),
+            },
             MipsOpcode::FPU_MULT => {
                 todo!("FPU_MULT")
             }
-            MipsOpcode::FPU_DIV => {
-                match instr.fmt_datatype() {
-                    Some(DataType::F32) => {
-                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                        let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
-                        let result = block.divide(DataType::F32, fs, ft);
-                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
-                    }
-                    Some(DataType::F64) => {
-                        todo!("FPU_DIV_D")
-                    }
-                    _ => todo!("Fire unimplemented operation here"),
+            MipsOpcode::FPU_DIV => match instr.fmt_datatype() {
+                Some(DataType::F32) => {
+                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                    let result = block.divide(DataType::F32, fs, ft);
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
-            }
+                Some(DataType::F64) => {
+                    todo!("FPU_DIV_D")
+                }
+                _ => todo!("Fire unimplemented operation here"),
+            },
             MipsOpcode::FPU_SQRT => {
                 todo!("FPU_SQRT")
             }
