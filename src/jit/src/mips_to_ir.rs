@@ -359,7 +359,7 @@ fn get_paddr_for_loadstore(
         Some(DataType::Bool),
         vec![
             virtual_address.val(),
-            const_u32(bus_access),
+            const_u32(bus_access as u32), // on Windows, this is an i32, need to convert.
             cached_ptr,
             physical_ptr,
         ],
