@@ -258,16 +258,9 @@ impl GuestRegisterManager {
 
     fn get_fcr31_compare(&mut self, block: &mut IRBlockHandle) -> InputSlot {
         let fcr31 = self.get_fcr31(block);
-        let masked = block.and(
-            DataType::U32,
-            fcr31,
-            const_u32(FCR31_COMPARE_MASK),
-        );
-        let shifted = block.right_shift(
-            DataType::U32,
-            masked.val(),
-            const_u32(FCR31_COMPARE_SHIFT),
-        );
+        let masked = block.and(DataType::U32, fcr31, const_u32(FCR31_COMPARE_MASK));
+        let shifted =
+            block.right_shift(DataType::U32, masked.val(), const_u32(FCR31_COMPARE_SHIFT));
         return shifted.val();
     }
 
@@ -276,8 +269,7 @@ impl GuestRegisterManager {
 
         let masked = block.and(DataType::U32, fcr31, const_u32(!FCR31_COMPARE_MASK));
 
-        let shifted =
-            block.left_shift(DataType::U32, value, const_u32(FCR31_COMPARE_SHIFT));
+        let shifted = block.left_shift(DataType::U32, value, const_u32(FCR31_COMPARE_SHIFT));
 
         let result = block.or(DataType::U32, masked.val(), shifted.val());
 
@@ -419,6 +411,71 @@ fn checkcp1(
     _preserve_cause: bool,
 ) {
     println!("TODO: check if CP1 is enabled in the JIT")
+}
+
+fn do_branch(
+    link: bool,
+    likely: bool,
+    guest_regs: &mut GuestRegisterManager,
+    vaddr: u64,
+    func: &IRFunction,
+    take_branch: InputSlot,
+    instr: MipsInstructionBitfield,
+    cpu_address: InputSlot,
+    pc_set: &mut bool,
+    block: &mut IRBlockHandle,
+    cycles: i32,
+) {
+    if link {
+        set_link_reg(guest_regs, vaddr, 31);
+    }
+
+    let mut taken_block = func.new_block(vec![]);
+    let mut not_taken_block = func.new_block(vec![]);
+
+    let taken_pc = vaddr
+        .wrapping_add(4)
+        .wrapping_add_signed((instr.s_imm() as i64) << 2);
+    let not_taken_pc = vaddr.wrapping_add(8);
+
+    println!(
+        "Jumping to {:016X} if taken, continuing to {:016X} if not taken",
+        taken_pc, not_taken_pc
+    );
+
+    set_pc(pc_set, &mut taken_block, cpu_address, const_u64(taken_pc));
+    set_pc(
+        pc_set,
+        &mut not_taken_block,
+        cpu_address,
+        const_u64(not_taken_pc),
+    );
+
+    if likely {
+        // For likely branches, flush all the regs here so we don't have to do it twice
+        // (if the branch is taken)
+        // Regs needed by the delay slot instruction will be reloaded
+        // TODO: it'd be best to somehow not flush registers needed by the delay slot
+        // instruction
+        guest_regs.flush_all(block);
+    }
+
+    block.branch(
+        take_branch,
+        taken_block.call(vec![]),
+        not_taken_block.call(vec![]),
+    );
+
+    *block = func.new_block(vec![]);
+
+    taken_block.jump(block.call(vec![]));
+    if likely {
+        // Likely branches, return, don't execute the delay slot.
+        not_taken_block.ret(Some(const_s32(cycles + 1)));
+    } else {
+        // Normal branches, continue and execute the delay slot.
+        not_taken_block.jump(block.call(vec![]));
+    }
 }
 
 pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
@@ -620,57 +677,19 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
 
                 let take_branch = block.compare(rs, compare_type, rt);
 
-                let mut taken_block = func.new_block(vec![]);
-                let mut not_taken_block = func.new_block(vec![]);
-
-                let taken_pc = vaddr
-                    .wrapping_add(4)
-                    .wrapping_add_signed((instr.s_imm() as i64) << 2);
-                let not_taken_pc = vaddr.wrapping_add(8);
-
-                println!(
-                    "Jumping to {:016X} if taken, continuing to {:016X} if not taken",
-                    taken_pc, not_taken_pc
-                );
-
-                set_pc(
-                    &mut pc_set,
-                    &mut taken_block,
-                    cpu_address,
-                    const_u64(taken_pc),
-                );
-                set_pc(
-                    &mut pc_set,
-                    &mut not_taken_block,
-                    cpu_address,
-                    const_u64(not_taken_pc),
-                );
-
-                if likely {
-                    // For likely branches, flush all the regs here so we don't have to do it twice
-                    // (if the branch is taken)
-                    // Regs needed by the delay slot instruction will be reloaded
-                    // TODO: it'd be best to somehow not flush registers needed by the delay slot
-                    // instruction
-                    guest_regs.flush_all(&mut block);
-                }
-
-                block.branch(
+                do_branch(
+                    link,
+                    likely,
+                    &mut guest_regs,
+                    vaddr,
+                    &func,
                     take_branch.val(),
-                    taken_block.call(vec![]),
-                    not_taken_block.call(vec![]),
+                    instr,
+                    cpu_address,
+                    &mut pc_set,
+                    &mut block,
+                    cycles,
                 );
-
-                block = func.new_block(vec![]);
-
-                taken_block.jump(block.call(vec![]));
-                if likely {
-                    // Likely branches, return, don't execute the delay slot.
-                    not_taken_block.ret(Some(const_s32(cycles + 1)));
-                } else {
-                    // Normal branches, continue and execute the delay slot.
-                    not_taken_block.jump(block.call(vec![]));
-                }
             }
             MipsOpcode::CACHE => {
                 println!("TODO: Cache in the JIT (NOP for now)")
@@ -1880,7 +1899,21 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("FPU_BC1FL")
             }
             MipsOpcode::FPU_BC1TL => {
-                todo!("FPU_BC1TL")
+                checkcp1(&mut block, &mut guest_regs, false);
+                let take_branch = guest_regs.get_fcr31_compare(&mut block);
+                do_branch(
+                    false,
+                    true,
+                    &mut guest_regs,
+                    vaddr,
+                    &func,
+                    take_branch,
+                    instr,
+                    cpu_address,
+                    &mut pc_set,
+                    &mut block,
+                    cycles,
+                );
             }
         }
 
