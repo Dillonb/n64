@@ -14,15 +14,15 @@ use crate::{
     n64_read_physical_word, n64_write_physical_byte, n64_write_physical_dword,
     n64_write_physical_half, n64_write_physical_word, n64cpu_ptr, r4300i_t,
     reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK,
-    CP0_STATUS_WRITE_MASK, R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23,
-    R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31, R4300I_CP0_REG_7,
-    R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE,
-    R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI,
-    R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC,
-    R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER,
-    R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI,
-    R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED,
-    R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
+    CP0_STATUS_WRITE_MASK, FCR31_COMPARE_MASK, FCR31_COMPARE_SHIFT, R4300I_CP0_REG_21,
+    R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31,
+    R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE,
+    R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT,
+    R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC,
+    R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK,
+    R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS,
+    R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO,
+    R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
 };
 
 fn is_fr_set() -> bool {
@@ -254,6 +254,34 @@ impl GuestRegisterManager {
 
     fn set_fcr31(&mut self, value: InputSlot) {
         self.fcr31 = Some(value);
+    }
+
+    fn get_fcr31_compare(&mut self, block: &mut IRBlockHandle) -> InputSlot {
+        let fcr31 = self.get_fcr31(block);
+        let masked = block.and(
+            DataType::U32,
+            fcr31,
+            const_u32(FCR31_COMPARE_MASK),
+        );
+        let shifted = block.right_shift(
+            DataType::U32,
+            masked.val(),
+            const_u32(FCR31_COMPARE_SHIFT),
+        );
+        return shifted.val();
+    }
+
+    fn set_fcr31_compare(&mut self, block: &mut IRBlockHandle, value: InputSlot) {
+        let fcr31 = self.get_fcr31(block);
+
+        let masked = block.and(DataType::U32, fcr31, const_u32(!FCR31_COMPARE_MASK));
+
+        let shifted =
+            block.left_shift(DataType::U32, value, const_u32(FCR31_COMPARE_SHIFT));
+
+        let result = block.or(DataType::U32, masked.val(), shifted.val());
+
+        self.set_fcr31(result.val());
     }
 
     fn flush_all(&mut self, block: &mut IRBlockHandle) {
@@ -1824,9 +1852,21 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_C_NGE => {
                 todo!("FPU_C_NGE")
             }
-            MipsOpcode::FPU_C_LE => {
-                todo!("FPU_C_LE")
-            }
+            MipsOpcode::FPU_C_LE => match instr.fmt_datatype() {
+                Some(DataType::F32) => {
+                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                    let result = block.compare(fs, CompareType::LessThanOrEqualSigned, ft);
+                    guest_regs.set_fcr31_compare(&mut block, result.val());
+                }
+                Some(DataType::F64) => {
+                    todo!("FPU_C_LE_D")
+                }
+                _ => panic!(
+                    "Unsupported datatype for FPU_C_LE: {:?}",
+                    instr.fmt_datatype()
+                ),
+            },
             MipsOpcode::FPU_C_NGT => {
                 todo!("FPU_C_NGT")
             }
