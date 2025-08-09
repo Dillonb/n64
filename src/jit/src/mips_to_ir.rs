@@ -116,12 +116,12 @@ impl GuestRegisterManager {
         match load_state {
             FgrLoadState::Low32 => {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
-                block.write_ptr(DataType::U32, self.cpu_address, offset, value);
+                block.write_ptr(DataType::F32, self.cpu_address, offset, value);
             }
             // FgrLoadState::High32 => todo!("Flush high32"),
             FgrLoadState::Full64 => {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
-                block.write_ptr(DataType::U64, self.cpu_address, offset, value);
+                block.write_ptr(DataType::F64, self.cpu_address, offset, value);
             }
         }
 
@@ -152,7 +152,7 @@ impl GuestRegisterManager {
             let v = match tp {
                 FgrLoadState::Low32 => block
                     .load_ptr(
-                        DataType::U32,
+                        DataType::F32,
                         self.cpu_address,
                         // ENDIANNESS: this will point at the low 32 bits of the 64 bit FGR
                         offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>()),
@@ -161,7 +161,7 @@ impl GuestRegisterManager {
                 // FgrLoadState::High32 => todo!("Load high32"),
                 FgrLoadState::Full64 => block
                     .load_ptr(
-                        DataType::U64,
+                        DataType::F64,
                         self.cpu_address,
                         offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>()),
                     )
