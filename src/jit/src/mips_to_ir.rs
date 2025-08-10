@@ -1826,9 +1826,18 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_ROUND_W => {
                 todo!("FPU_ROUND_W")
             }
-            MipsOpcode::FPU_TRUNC_W => {
-                todo!("FPU_TRUNC_W")
-            }
+            MipsOpcode::FPU_TRUNC_W => match instr.fmt_datatype() {
+                Some(DataType::F32) => {
+                    todo!("FPU_TRUNC_W_S")
+                }
+                Some(DataType::F64) => {
+                    todo!("FPU_TRUNC_W_D")
+                }
+                _ => panic!(
+                    "Unsupported datatype for FPU_TRUNC_W: {:?}",
+                    instr.fmt_datatype()
+                ),
+            },
             MipsOpcode::FPU_CEIL_W => {
                 todo!("FPU_CEIL_W")
             }
