@@ -1442,7 +1442,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let dividend = guest_regs.get_gpr(&mut block, instr.rs());
                 let divisor = guest_regs.get_gpr(&mut block, instr.rt());
 
-                let is_divide_by_zero = block.compare(DataType::U64, divisor, CompareType::Equal, const_u32(0));
+                let is_divide_by_zero =
+                    block.compare(DataType::U64, divisor, CompareType::Equal, const_u32(0));
 
                 let mut normal = func.new_block(vec![]);
                 let mut divide_by_zero = func.new_block(vec![]);
@@ -1488,7 +1489,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let dividend = guest_regs.get_gpr(&mut block, instr.rs());
                 let divisor = guest_regs.get_gpr(&mut block, instr.rt());
 
-                let is_divide_by_zero = block.compare(DataType::U32, divisor, CompareType::Equal, const_u32(0));
+                let is_divide_by_zero =
+                    block.compare(DataType::U32, divisor, CompareType::Equal, const_u32(0));
 
                 let mut normal = func.new_block(vec![]);
                 let mut divide_by_zero = func.new_block(vec![]);
