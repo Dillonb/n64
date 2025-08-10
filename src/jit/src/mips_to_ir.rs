@@ -651,31 +651,32 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let rs_reg = instr.rs();
                 let mut rt_reg = instr.rt();
 
-                let compare_type = match cond {
-                    BranchCondition::EQ => CompareType::Equal,
-                    BranchCondition::NE => CompareType::NotEqual,
+                let (signed, compare_type) = match cond {
+                    BranchCondition::EQ => (false, CompareType::Equal),
+                    BranchCondition::NE => (false, CompareType::NotEqual),
                     BranchCondition::GTZ => {
                         rt_reg = 0;
-                        CompareType::GreaterThanSigned
+                        (true, CompareType::GreaterThan)
                     }
                     BranchCondition::LTZ => {
                         rt_reg = 0;
-                        CompareType::LessThanSigned
+                        (true, CompareType::LessThan)
                     }
                     BranchCondition::LEZ => {
                         rt_reg = 0;
-                        CompareType::LessThanOrEqualSigned
+                        (true, CompareType::LessThanOrEqual)
                     }
                     BranchCondition::GEZ => {
                         rt_reg = 0;
-                        CompareType::GreaterThanOrEqualSigned
+                        (true, CompareType::GreaterThanOrEqual)
                     }
                 };
 
                 let rs = guest_regs.get_gpr(&mut block, rs_reg);
                 let rt = guest_regs.get_gpr(&mut block, rt_reg);
 
-                let take_branch = block.compare(rs, compare_type, rt);
+                let tp = if signed { DataType::S64 } else { DataType::U64 };
+                let take_branch = block.compare(tp, rs, compare_type, rt);
 
                 do_branch(
                     link,
@@ -779,13 +780,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::SLTI => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let simm = const_s16(instr.s_imm());
-                let result = block.compare(rs, CompareType::LessThanSigned, simm);
+                let result = block.compare(DataType::S64, rs, CompareType::LessThan, simm);
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::SLTIU => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let simm = const_s16(instr.s_imm());
-                let result = block.compare(rs, CompareType::LessThanUnsigned, simm);
+                let result = block.compare(DataType::U64, rs, CompareType::LessThan, simm);
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::XORI => {
@@ -1441,7 +1442,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let dividend = guest_regs.get_gpr(&mut block, instr.rs());
                 let divisor = guest_regs.get_gpr(&mut block, instr.rt());
 
-                let is_divide_by_zero = block.compare(divisor, CompareType::Equal, const_u32(0));
+                let is_divide_by_zero = block.compare(DataType::U64, divisor, CompareType::Equal, const_u32(0));
 
                 let mut normal = func.new_block(vec![]);
                 let mut divide_by_zero = func.new_block(vec![]);
@@ -1455,8 +1456,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     divide_by_zero.convert_from(DataType::S32, DataType::S64, dividend);
 
                 let is_dividend_gte_zero = divide_by_zero.compare(
+                    DataType::S32,
                     dividend,
-                    CompareType::GreaterThanOrEqualSigned,
+                    CompareType::GreaterThanOrEqual,
                     const_s32(0),
                 );
                 let mut dividend_gte_zero = func.new_block(vec![]);
@@ -1486,7 +1488,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let dividend = guest_regs.get_gpr(&mut block, instr.rs());
                 let divisor = guest_regs.get_gpr(&mut block, instr.rt());
 
-                let is_divide_by_zero = block.compare(divisor, CompareType::Equal, const_u32(0));
+                let is_divide_by_zero = block.compare(DataType::U32, divisor, CompareType::Equal, const_u32(0));
 
                 let mut normal = func.new_block(vec![]);
                 let mut divide_by_zero = func.new_block(vec![]);
@@ -1585,13 +1587,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::SLT => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
-                let result = block.compare(rs, CompareType::LessThanSigned, rt);
+                let result = block.compare(DataType::S64, rs, CompareType::LessThan, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::SLTU => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
-                let result = block.compare(rs, CompareType::LessThanUnsigned, rt);
+                let result = block.compare(DataType::U64, rs, CompareType::LessThan, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::DADD => {
@@ -1658,7 +1660,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
                 let erl_mask = const_u32(STATUS_ERL_MASK);
                 let masked = block.and(DataType::U32, status.val(), erl_mask);
-                let is_erl = block.compare(masked.val(), CompareType::NotEqual, const_u32(0));
+                let is_erl = block.compare(
+                    DataType::U32,
+                    masked.val(),
+                    CompareType::NotEqual,
+                    const_u32(0),
+                );
 
                 let mut block_erl = func.new_block(vec![]);
                 let mut block_no_erl = func.new_block(vec![]);
@@ -1875,7 +1882,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 Some(DataType::F32) => {
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
-                    let result = block.compare(fs, CompareType::LessThanOrEqualSigned, ft);
+                    let result = block.compare(DataType::F32, fs, CompareType::LessThanOrEqual, ft);
                     guest_regs.set_fcr31_compare(&mut block, result.val());
                 }
                 Some(DataType::F64) => {
