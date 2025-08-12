@@ -32,7 +32,7 @@ fn is_fr_set() -> bool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FgrLoadState {
     Low32,
-    // High32,
+    High32,
     Full64,
 }
 
@@ -118,7 +118,7 @@ impl GuestRegisterManager {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
                 block.write_ptr(DataType::F32, self.cpu_address, offset, value);
             }
-            // FgrLoadState::High32 => todo!("Flush high32"),
+            FgrLoadState::High32 => todo!("Flush high32"),
             FgrLoadState::Full64 => {
                 let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>());
                 block.write_ptr(DataType::F64, self.cpu_address, offset, value);
@@ -136,12 +136,17 @@ impl GuestRegisterManager {
                 // Same state, no need to flush
                 (FgrLoadState::Low32, FgrLoadState::Low32) => {}
                 (FgrLoadState::Full64, FgrLoadState::Full64) => {}
+                (FgrLoadState::High32, FgrLoadState::High32) => {}
 
-                // FGR is loaded with only the low 32, but we need the full 64, we need to flush
-                // and reload.
-                (FgrLoadState::Low32, FgrLoadState::Full64) => {
+                // FGR is loaded with the wrong bits, we need to flush and reload.
+                (FgrLoadState::Low32, FgrLoadState::Full64)
+                | (FgrLoadState::Low32, FgrLoadState::High32)
+                | (FgrLoadState::High32, FgrLoadState::Low32)
+                | (FgrLoadState::High32, FgrLoadState::Full64)
+                | (FgrLoadState::Full64, FgrLoadState::High32) => {
                     self.flush_fgr(block, r as usize, load_state, value);
                 }
+
                 // FGR is loaded with the full 64, but we only need the low 32, this is fine, no
                 // need to flush.
                 (FgrLoadState::Full64, FgrLoadState::Low32) => {}
@@ -158,7 +163,7 @@ impl GuestRegisterManager {
                         offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>()),
                     )
                     .val(),
-                // FgrLoadState::High32 => todo!("Load high32"),
+                FgrLoadState::High32 => todo!("Load high32"),
                 FgrLoadState::Full64 => block
                     .load_ptr(
                         DataType::F64,
@@ -238,6 +243,20 @@ impl GuestRegisterManager {
 
     fn get_fgr_32bit_ft(&mut self, block: &mut IRBlockHandle, ft: u8) -> InputSlot {
         return self.get_fgr(block, ft, FgrLoadState::Low32);
+    }
+
+    fn get_fgr_32bit_fr(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
+        let fr = is_fr_set();
+        if fr {
+            return self.get_fgr(block, r, FgrLoadState::Low32);
+        } else {
+            let r_to_get = r & !1;
+            if (r & 1) != 0 {
+                return self.get_fgr(block, r_to_get, FgrLoadState::High32);
+            } else {
+                return self.get_fgr(block, r_to_get, FgrLoadState::Low32);
+            }
+        }
     }
 
     fn get_fcr31(&mut self, block: &mut IRBlockHandle) -> InputSlot {
@@ -1259,7 +1278,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("DCTC0")
             }
             MipsOpcode::MFC1 => {
-                todo!("MFC1")
+                checkcp1(&mut block, &mut guest_regs, true);
+                let value = guest_regs.get_fgr_32bit_fr(&mut block, instr.fs());
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, value);
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
             MipsOpcode::DMFC1 => {
                 todo!("DMFC1")
@@ -1828,7 +1850,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::FPU_TRUNC_W => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
-                    todo!("FPU_TRUNC_W_S")
+                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                    println!("TODO: round towards zero (specify rounding mode in IR instruction)");
+                    let result = block.convert_from(DataType::F32, DataType::S32, fs);
+                    guest_regs.set_gpr(instr.fd(), result.val());
                 }
                 Some(DataType::F64) => {
                     todo!("FPU_TRUNC_W_D")
