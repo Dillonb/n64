@@ -1853,7 +1853,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                     println!("TODO: round towards zero (specify rounding mode in IR instruction)");
                     let result = block.convert_from(DataType::F32, DataType::S32, fs);
-                    guest_regs.set_gpr(instr.fd(), result.val());
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
                     todo!("FPU_TRUNC_W_D")
