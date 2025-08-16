@@ -340,13 +340,37 @@ int main(int argc, char** argv) {
     mq_interp_to_jit_id = create_and_configure_mq(mq_interp_to_jit_key);
 
     cpu_shmem_id = shmget(cpu_shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
+    if (cpu_shmem_id == -1) {
+        perror("shmget cpu_shmem_id");
+        exit(1);
+    }
     n64cpu_interpreter_ptr = shmat(cpu_shmem_id, NULL, 0);
+    if (n64cpu_interpreter_ptr == (void*)-1) {
+        perror("shmat cpu_shmem_id");
+        exit(1);
+    }
 
     sys_shmem_id = shmget(sys_shmem_key, sizeof(n64_system_t), IPC_CREAT | 0777);
+    if (sys_shmem_id == -1) {
+        perror("shmget sys_shmem_id");
+        exit(1);
+    }
     n64sys_interpreter_ptr = shmat(sys_shmem_id, NULL, 0);
+    if (n64sys_interpreter_ptr == (void*)-1) {
+        perror("shmat sys_shmem_id");
+        exit(1);
+    }
 
     joybus_shmem_id = shmget(joybus_shmem_key, sizeof(n64_joybus_device_t) * 6, IPC_CREAT | 0777);
+    if (joybus_shmem_id == -1) {
+        perror("shmget joybus_shmem_id");
+        exit(1);
+    }
     n64_joybus_device_t* joybus_override = shmat(joybus_shmem_id, NULL, 0);
+    if (joybus_override == (void*)-1) {
+        perror("shmat joybus_shmem_id");
+        exit(1);
+    }
     memset(joybus_override, 0, sizeof(n64_joybus_device_t) * 6);
     override_joybus_devices_ptr(joybus_override);
 
