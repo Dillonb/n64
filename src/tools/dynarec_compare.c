@@ -1,3 +1,12 @@
+/*
+ * Compare the dynarec to the interpreter using IPC
+ *
+ * On MacOS, you must set the following kernel parameters.
+ * By default, the maximum size of shared memory is 4MB.
+ *
+ * sudo sysctl -w kern.sysv.shmmax=67108864
+ * sudo sysctl -w kern.sysv.shmall=16384
+ */
 #include <stdio.h>
 #include <log.h>
 #include <system/n64system.h>
