@@ -351,6 +351,9 @@ int main(int argc, char** argv) {
     cpu_shmem_id = shmget(cpu_shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
     if (cpu_shmem_id == -1) {
         perror("shmget cpu_shmem_id");
+#ifdef N64_MACOS
+        printf("Did you set the sysctl parameters for shared memory? (see comment in dynarec_compare.c)\n");
+#endif
         exit(1);
     }
     n64cpu_interpreter_ptr = shmat(cpu_shmem_id, NULL, 0);
