@@ -734,8 +734,14 @@ INLINE void set_pc_dword_r4300i(u64 new_pc) {
     N64CPU.next_pc = N64CPU.pc + 4;
 }
 
+#ifdef INSTANT_DMA
+#define checkcp1_preservecause do { } while(0)
+#define checkcp1 do { } while(0)
+#define checkcp2 do { } while(0)
+#else
 #define checkcp1_preservecause do { if (!N64CPU.cp0.status.cu1) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 1); return; } } while(0)
 #define checkcp1 do { checkcp1_preservecause; N64CPU.fcr31.cause = 0; } while(0)
 #define checkcp2 do { if (!N64CPU.cp0.status.cu2) { r4300i_handle_exception(N64CPU.prev_pc, EXCEPTION_COPROCESSOR_UNUSABLE, 2); return; } } while(0)
+#endif // INSTANT_DMA
 
 #endif //N64_R4300I_H
