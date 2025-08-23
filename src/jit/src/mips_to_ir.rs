@@ -863,7 +863,38 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("SWC1")
             }
             MipsOpcode::LWL => {
-                todo!("LWL")
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+                ////u32 shift = (physical & 3) << 3;
+                let masked_physical = block.and(DataType::U32, paddr, const_u32(3)).val();
+                let shift = block.left_shift(DataType::U32, masked_physical, const_u32(3));
+                ////u32 mask = 0xFFFFFFFF << shift;
+                let mask = block.left_shift(DataType::U32, const_u32(0xFFFFFFFF), shift.val());
+
+                ////u32 data = n64_read_physical_word(physical & ~3);
+                let load_addr = block.and(DataType::U32, paddr, const_u32(!3));
+                let data = block.call_function(
+                    const_ptr(n64_read_physical_word as usize),
+                    Some(DataType::U32),
+                    vec![load_addr.val()],
+                );
+
+                ////s32 result = (get_register(instruction.i.rt) & ~mask) | data << shift;
+                ////set_register(instruction.i.rt, (s64)result);
+                let reg = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let inverse_mask = block.not(DataType::U32, mask.val());
+                let reg_masked = block.and(DataType::U32, reg, inverse_mask.val());
+                let shifted_data = block.left_shift(DataType::U32, data.val(), shift.val());
+                let result = block.or(DataType::U32, reg_masked.val(), shifted_data.val());
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
             MipsOpcode::LWR => {
                 todo!("LWR")
