@@ -936,7 +936,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 R4300I_CP0_REG_COMPARE => {
-                    todo!("MFC0 R4300I_CP0_REG_COMPARE")
+                    let result = block.load_ptr(
+                        DataType::S32,
+                        cpu_address,
+                        offset_of!(r4300i_t, cp0.compare),
+                    );
+                    let sign_extended = block.convert(DataType::S64, result.val());
+                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 R4300I_CP0_REG_ENTRYLO0 => {
                     todo!("MFC0 R4300I_CP0_REG_ENTRYLO0")
