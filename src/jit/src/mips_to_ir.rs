@@ -930,10 +930,76 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
             MipsOpcode::SWL => {
-                todo!("SWL")
+                let physical = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
+                //u32 shift = (physical & 3) << 3;
+                let masked_physical = block.and(DataType::U32, physical, const_u32(3)).val();
+                let shift = block.left_shift(DataType::U32, masked_physical, const_u32(3));
+                // u32 mask = 0xFFFFFFFF >> shift;
+                let mask = block.right_shift(DataType::U32, const_u32(0xFFFFFFFF), shift.val());
+
+                //u32 data = n64_read_physical_word(physical & ~3);
+                let data_addr = block.and(DataType::U32, physical, const_u32(!3));
+                let data = block.call_function(
+                    const_ptr(n64_read_physical_word as usize),
+                    Some(DataType::U32),
+                    vec![data_addr.val()],
+                );
+
+                //u32 oldreg = get_register(instruction.i.rt);
+                let oldreg = guest_regs.get_gpr(&mut block, instr.rt());
+                //n64_write_physical_word(physical & ~3, (data & ~mask) | (oldreg >> shift));
+                let inverse_mask = block.not(DataType::U32, mask.val());
+                let masked_data = block.and(DataType::U32, data.val(), inverse_mask.val());
+                let shifted_reg = block.right_shift(DataType::U32, oldreg, shift.val());
+                let result = block.or(DataType::U32, masked_data.val(), shifted_reg.val());
+                block.call_function(
+                    const_ptr(n64_write_physical_word as usize),
+                    None,
+                    vec![data_addr.val(), result.val()],
+                );
             }
             MipsOpcode::SWR => {
-                todo!("SWR")
+                //ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_STORE);
+                let physical = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
+                //u32 shift = ((address ^ 3) & 3) << 3;
+                let xored_physical = block.xor(DataType::U32, physical, const_u32(3)).val();
+                let masked_physical = block.and(DataType::U32, xored_physical, const_u32(3)).val();
+                let shift = block.left_shift(DataType::U32, masked_physical, const_u32(3));
+                //u32 mask = 0xFFFFFFFF << shift;
+                let mask = block.left_shift(DataType::U32, const_u32(0xFFFFFFFF), shift.val());
+                //u32 data = n64_read_physical_word(physical & ~3);
+                let data_addr = block.and(DataType::U32, physical, const_u32(!3));
+                let data = block.call_function(
+                    const_ptr(n64_read_physical_word as usize),
+                    Some(DataType::U32),
+                    vec![data_addr.val()],
+                );
+                //u32 oldreg = get_register(instruction.i.rt);
+                let oldreg = guest_regs.get_gpr(&mut block, instr.rt());
+                //n64_write_physical_word(physical & ~3, (data & ~mask) | oldreg << shift);
+                let inverse_mask = block.not(DataType::U32, mask.val());
+                let masked_data = block.and(DataType::U32, data.val(), inverse_mask.val());
+                let shifted_reg = block.left_shift(DataType::U32, oldreg, shift.val());
+                let result = block.or(DataType::U32, masked_data.val(), shifted_reg.val());
+                block.call_function(
+                    const_ptr(n64_write_physical_word as usize),
+                    None,
+                    vec![data_addr.val(), result.val()],
+                );
             }
             MipsOpcode::LDL => {
                 todo!("LDL")
