@@ -1136,6 +1136,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                             old_cause_masked.val(),
                         );
 
+                        block.write_ptr(
+                            DataType::U32,
+                            cpu_address,
+                            offset_of!(r4300i_t, cp0.compare),
+                            value,
+                        );
+
                         block.call_function(
                             const_ptr(reschedule_compare_interrupt as usize),
                             None,
