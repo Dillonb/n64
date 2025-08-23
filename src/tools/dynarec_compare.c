@@ -175,7 +175,7 @@ void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
 }
 
 void print_state() {
-    printf("expected (interpreter)  actual (dynarec)\n");
+    printf("            expected (interpreter)  actual (dynarec)\n");
     print_colorcoded_u64("PC", n64cpu_interpreter_ptr->pc, N64CPU.pc);
     printf("\n");
     for (int i = 0; i < 32; i++) {
