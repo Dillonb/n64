@@ -837,12 +837,45 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
             MipsOpcode::LDC1 => {
-                todo!("LDC1")
+                checkcp1(&mut block, &mut guest_regs, false);
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+                let value = block.call_function(
+                    const_ptr(n64_read_physical_dword as usize),
+                    Some(DataType::U64),
+                    vec![paddr],
+                );
+
+                guest_regs.set_fgr_64bit(instr.ft(), value.val());
             }
             MipsOpcode::SDC1 => {
-                todo!("SDC1")
+                checkcp1(&mut block, &mut guest_regs, false);
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
+
+                let value = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                // Convert from u64 to u64 to ensure we're in a GPR
+                let value_converted = block.convert_from(DataType::U64, DataType::U64, value);
+                block.call_function(
+                    const_ptr(n64_write_physical_dword as usize),
+                    None,
+                    vec![paddr, value_converted.val()],
+                );
             }
             MipsOpcode::LWC1 => {
+                checkcp1(&mut block, &mut guest_regs, false);
                 let paddr = get_paddr_for_loadstore(
                     cpu,
                     &mut guest_regs,
