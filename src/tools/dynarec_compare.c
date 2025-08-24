@@ -275,18 +275,21 @@ void run_compare_parent() {
         printf("TLB miss PC, guest code unavailable\n");
     }
 
-    printf("IR\n");
-    if (v2_get_last_compiled_block() == start_pc) {
-        print_ir_block();
-    } else {
-        printf("Unavailable, a new block has been compiled in the meantime.\n");
-    }
-    printf("Host code:\n");
-    if (resolved) {
-        print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
-    } else {
-        printf("TLB miss PC, host code unavailable\n");
-    }
+    // TODO: Rewrite to print the Rust JIT's IR
+    // printf("IR\n");
+    // if (v2_get_last_compiled_block() == start_pc) {
+    //     print_ir_block();
+    // } else {
+    //     printf("Unavailable, a new block has been compiled in the meantime.\n");
+    // }
+
+    // TODO: Rewrite to print the host code through the Rust JIT so we get comments
+    // printf("Host code:\n");
+    // if (resolved) {
+    //     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
+    // } else {
+    //     printf("TLB miss PC, host code unavailable\n");
+    // }
     print_state();
 }
 
