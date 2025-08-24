@@ -1999,9 +1999,24 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 }
                 _ => todo!("Fire unimplemented operation here"),
             },
-            MipsOpcode::FPU_MULT => {
-                todo!("FPU_MULT")
-            }
+            MipsOpcode::FPU_MULT => match instr.fmt_datatype() {
+                Some(DataType::F32) => {
+                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                    let result = block.multiply(
+                        DataType::F32,
+                        DataType::F32,
+                        MultiplyType::Combined,
+                        fs,
+                        ft,
+                    );
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                }
+                Some(DataType::F64) => {
+                    todo!("FPU_MUL_D")
+                }
+                _ => todo!("Fire unimplemented operation here"),
+            },
             MipsOpcode::FPU_DIV => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
@@ -2025,8 +2040,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                     guest_regs.set_fgr_64bit(instr.fd(), fs);
                 }
-                _=> todo!("Fire unimplemented operation here"),
-            }
+                _ => todo!("Fire unimplemented operation here"),
+            },
             MipsOpcode::FPU_ROUND_L => {
                 todo!("FPU_ROUND_L")
             }
