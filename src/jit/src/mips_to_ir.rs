@@ -1052,10 +1052,69 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
             }
             MipsOpcode::LDL => {
-                todo!("LDL")
+                let physical = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+                //u32 shift = ((address ^ 0) & 7) << 3;
+                let masked_physical = block.and(DataType::U32, physical, const_u32(7)).val();
+                let shift = block.left_shift(DataType::U32, masked_physical, const_u32(3));
+                //u64 mask = (u64) 0xFFFFFFFFFFFFFFFF << shift;
+                let mask = block.left_shift(DataType::U64, const_u64(0xFFFFFFFFFFFFFFFF), shift.val());
+
+                //u64 data = n64_read_physical_dword(physical & ~7);
+                let load_addr = block.and(DataType::U32, physical, const_u32(!7));
+                let data = block.call_function(
+                    const_ptr(n64_read_physical_dword as usize),
+                    Some(DataType::U64),
+                    vec![load_addr.val()],
+                );
+
+                //u64 result = (get_register(instruction.i.rt) & ~mask) | (data << shift);
+                //set_register(instruction.i.rt, result);
+                let reg = guest_regs.get_gpr(&mut block, instr.rt());
+                let inverse_mask = block.not(DataType::U64, mask.val());
+                let reg_masked = block.and(DataType::U64, reg, inverse_mask.val());
+                let shifted_data = block.left_shift(DataType::U64, data.val(), shift.val());
+                let result = block.or(DataType::U64, reg_masked.val(), shifted_data.val());
+                guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::LDR => {
-                todo!("LDR")
+                let physical = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_LOAD,
+                );
+                //u32 shift = ((address ^ 7) & 7) << 3;
+                let xored_physical = block.xor(DataType::U32, physical, const_u32(7)).val();
+                let masked_physical = block.and(DataType::U32, xored_physical, const_u32(7)).val();
+                let shift = block.left_shift(DataType::U32, masked_physical, const_u32(3));
+                //u64 mask = (u64) 0xFFFFFFFFFFFFFFFF >> shift;
+                let mask = block.right_shift(DataType::U64, const_u64(0xFFFFFFFFFFFFFFFF), shift.val());
+
+                //u64 data = n64_read_physical_dword(physical & ~7);
+                let load_addr = block.and(DataType::U32, physical, const_u32(!7));
+                let data = block.call_function(
+                    const_ptr(n64_read_physical_dword as usize),
+                    Some(DataType::U64),
+                    vec![load_addr.val()],
+                );
+
+                //u64 result = (get_register(instruction.i.rt) & ~mask) | (data >> shift);
+                //set_register(instruction.i.rt, result);
+                let reg = guest_regs.get_gpr(&mut block, instr.rt());
+                let inverse_mask = block.not(DataType::U64, mask.val());
+                let reg_masked = block.and(DataType::U64, reg, inverse_mask.val());
+                let shifted_data = block.right_shift(DataType::U64, data.val(), shift.val());
+                let result = block.or(DataType::U64, reg_masked.val(), shifted_data.val());
+                guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::SDL => {
                 todo!("SDL")
