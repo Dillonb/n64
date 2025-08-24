@@ -2197,9 +2197,24 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_C_NGL => {
                 todo!("FPU_C_NGL")
             }
-            MipsOpcode::FPU_C_LT => {
-                todo!("FPU_C_LT")
-            }
+            MipsOpcode::FPU_C_LT => match instr.fmt_datatype() {
+                Some(DataType::F32) => {
+                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
+                    let result = block.compare(DataType::F32, fs, CompareType::LessThan, ft);
+                    guest_regs.set_fcr31_compare(&mut block, result.val());
+                }
+                Some(DataType::F64) => {
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
+                    let result = block.compare(DataType::F64, fs, CompareType::LessThan, ft);
+                    guest_regs.set_fcr31_compare(&mut block, result.val());
+                }
+                _ => panic!(
+                    "Unsupported datatype for FPU_C_LT: {:?}",
+                    instr.fmt_datatype()
+                ),
+            },
             MipsOpcode::FPU_C_NGE => {
                 todo!("FPU_C_NGE")
             }
@@ -2222,13 +2237,43 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("FPU_C_NGT")
             }
             MipsOpcode::FPU_BC1F => {
-                todo!("FPU_BC1F")
+                checkcp1(&mut block, &mut guest_regs, false);
+                let dont_take_branch = guest_regs.get_fcr31_compare(&mut block);
+                let take_branch = block.not(DataType::Bool, dont_take_branch).val();
+                do_branch(
+                    false,
+                    false,
+                    &mut guest_regs,
+                    vaddr,
+                    &func,
+                    take_branch,
+                    instr,
+                    cpu_address,
+                    &mut pc_set,
+                    &mut block,
+                    cycles,
+                );
             }
             MipsOpcode::FPU_BC1T => {
                 todo!("FPU_BC1T")
             }
             MipsOpcode::FPU_BC1FL => {
-                todo!("FPU_BC1FL")
+                checkcp1(&mut block, &mut guest_regs, false);
+                let dont_take_branch = guest_regs.get_fcr31_compare(&mut block);
+                let take_branch = block.not(DataType::Bool, dont_take_branch).val();
+                do_branch(
+                    false,
+                    true,
+                    &mut guest_regs,
+                    vaddr,
+                    &func,
+                    take_branch,
+                    instr,
+                    cpu_address,
+                    &mut pc_set,
+                    &mut block,
+                    cycles,
+                );
             }
             MipsOpcode::FPU_BC1TL => {
                 checkcp1(&mut block, &mut guest_regs, false);
