@@ -245,6 +245,10 @@ impl GuestRegisterManager {
         return self.get_fgr_64bit_fr(block, fs);
     }
 
+    fn get_fgr_64bit_ft(&mut self, block: &mut IRBlockHandle, ft: u8) -> InputSlot {
+        return self.get_fgr(block, ft, FgrLoadState::Full64);
+    }
+
     fn get_fgr_32bit_ft(&mut self, block: &mut IRBlockHandle, ft: u8) -> InputSlot {
         return self.get_fgr(block, ft, FgrLoadState::Low32);
     }
@@ -2077,7 +2081,16 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
-                    todo!("FPU_MUL_D")
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
+                    let result = block.multiply(
+                        DataType::F64,
+                        DataType::F64,
+                        MultiplyType::Combined,
+                        fs,
+                        ft,
+                    );
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 _ => todo!("Fire unimplemented operation here"),
             },
@@ -2089,7 +2102,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
-                    todo!("FPU_DIV_D")
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
+                    let result = block.divide(DataType::F64, fs, ft);
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 _ => todo!("Fire unimplemented operation here"),
             },
