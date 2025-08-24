@@ -893,7 +893,24 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_fgr_32bit_fr(instr.ft(), value.val(), &mut block);
             }
             MipsOpcode::SWC1 => {
-                todo!("SWC1")
+                checkcp1(&mut block, &mut guest_regs, false);
+                let paddr = get_paddr_for_loadstore(
+                    cpu,
+                    &mut guest_regs,
+                    &func,
+                    &mut block,
+                    instr,
+                    bus_access_BUS_STORE,
+                );
+
+                let value = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                // Convert from u32 to u32 to ensure we're in a GPR
+                let value_converted = block.convert_from(DataType::U32, DataType::U32, value);
+                block.call_function(
+                    const_ptr(n64_write_physical_word as usize),
+                    None,
+                    vec![paddr, value_converted.val()],
+                );
             }
             MipsOpcode::LWL => {
                 let paddr = get_paddr_for_loadstore(
@@ -2003,8 +2020,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_ABS => {
                 todo!("FPU_ABS")
             }
-            MipsOpcode::FPU_MOV => {
-                todo!("FPU_MOV")
+            MipsOpcode::FPU_MOV => match instr.fmt_datatype() {
+                Some(DataType::F32) | Some(DataType::F64) => {
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    guest_regs.set_fgr_64bit(instr.fd(), fs);
+                }
+                _=> todo!("Fire unimplemented operation here"),
             }
             MipsOpcode::FPU_ROUND_L => {
                 todo!("FPU_ROUND_L")
