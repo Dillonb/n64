@@ -522,6 +522,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     ) in parsed.into_iter().enumerate()
     {
         last_vaddr = vaddr;
+        block.comment(format!("{:016X}: {:?}", vaddr, op));
         match op {
             MipsOpcode::NOP => {}
             MipsOpcode::LD => {
