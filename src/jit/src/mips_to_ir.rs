@@ -1799,7 +1799,17 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("DMULT")
             }
             MipsOpcode::DMULTU => {
-                todo!("DMULTU")
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let result =
+                    block.multiply(DataType::U128, DataType::U64, MultiplyType::Split, rs, rt);
+
+                let lo = result.at(0);
+                let hi = result.at(1);
+
+                guest_regs.set_lo(lo);
+                guest_regs.set_hi(hi);
             }
             MipsOpcode::DDIV => {
                 todo!("DDIV")
@@ -1929,7 +1939,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("DSRL32")
             }
             MipsOpcode::DSRA32 => {
-                todo!("DSRA32")
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.right_shift(DataType::U64, input, const_u16(instr.sa() as u16 + 32));
+                guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBWI => {
                 println!("TLBWI: TODO, NOP for now");
