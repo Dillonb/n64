@@ -1853,9 +1853,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::NOR => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
-                let not_rs = block.not(DataType::U64, rs);
                 let rt = guest_regs.get_gpr(&mut block, instr.rt());
-                let result = block.or(DataType::U64, not_rs.val(), rt);
+                let or_result = block.or(DataType::U64, rs, rt);
+                let result = block.not(DataType::U64, or_result.val());
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::SLT => {
