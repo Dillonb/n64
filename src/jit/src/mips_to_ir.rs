@@ -236,9 +236,13 @@ impl GuestRegisterManager {
         return self.get_fgr(block, fs, FgrLoadState::Low32);
     }
 
+    fn get_fgr_64bit_fr(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
+        let r = if !is_fr_set() { r & !1 } else { r };
+        return self.get_fgr(block, r, FgrLoadState::Full64);
+    }
+
     fn get_fgr_64bit_fs(&mut self, block: &mut IRBlockHandle, fs: u8) -> InputSlot {
-        let fs = if !is_fr_set() { fs & !1 } else { fs };
-        return self.get_fgr(block, fs, FgrLoadState::Full64);
+        return self.get_fgr_64bit_fr(block, fs);
     }
 
     fn get_fgr_32bit_ft(&mut self, block: &mut IRBlockHandle, ft: u8) -> InputSlot {
@@ -866,7 +870,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     bus_access_BUS_STORE,
                 );
 
-                let value = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                let value = guest_regs.get_fgr_64bit_fr(&mut block, instr.ft());
                 // Convert from u64 to u64 to ensure we're in a GPR
                 let value_converted = block.convert_from(DataType::U64, DataType::U64, value);
                 block.call_function(
@@ -904,7 +908,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     bus_access_BUS_STORE,
                 );
 
-                let value = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                let value = guest_regs.get_fgr_32bit_fr(&mut block, instr.ft());
                 // Convert from u32 to u32 to ensure we're in a GPR
                 let value_converted = block.convert_from(DataType::U32, DataType::U32, value);
                 block.call_function(
