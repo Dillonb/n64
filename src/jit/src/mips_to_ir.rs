@@ -2075,7 +2075,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
-                    todo!("FPU_SUB_D")
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
+                    let result = block.subtract(DataType::F64, fs, ft);
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 _ => todo!("Fire unimplemented operation here"),
             },
@@ -2238,7 +2241,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     guest_regs.set_fcr31_compare(&mut block, result.val());
                 }
                 Some(DataType::F64) => {
-                    todo!("FPU_C_LE_D")
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
+                    let result = block.compare(DataType::F64, fs, CompareType::LessThanOrEqual, ft);
+                    guest_regs.set_fcr31_compare(&mut block, result.val());
                 }
                 _ => panic!(
                     "Unsupported datatype for FPU_C_LE: {:?}",
