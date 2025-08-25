@@ -2063,7 +2063,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
-                    todo!("FPU_ADD_D")
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
+                    let result = block.add(DataType::F64, fs, ft);
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 _ => todo!("Fire unimplemented operation here"),
             },
@@ -2160,7 +2163,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
-                    todo!("FPU_TRUNC_W_D")
+                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                    println!("TODO: round towards zero (specify rounding mode in IR instruction)");
+                    let result = block.convert_from(DataType::F64, DataType::S32, fs);
+                    guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 _ => panic!(
                     "Unsupported datatype for FPU_TRUNC_W: {:?}",
