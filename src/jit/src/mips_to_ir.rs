@@ -1815,7 +1815,32 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("DDIV")
             }
             MipsOpcode::DDIVU => {
-                todo!("DDIVU")
+                let dividend = guest_regs.get_gpr(&mut block, instr.rs());
+                let divisor = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let is_divide_by_zero =
+                    block.compare(DataType::U64, divisor, CompareType::Equal, const_u32(0));
+
+                let mut normal = func.new_block(vec![]);
+                let mut divide_by_zero = func.new_block(vec![]);
+                block.branch(
+                    is_divide_by_zero.val(),
+                    divide_by_zero.call(vec![]),
+                    normal.call(vec![]),
+                );
+
+                let end = func.new_block(vec![DataType::S64, DataType::S64]);
+
+                divide_by_zero.jump(end.call(vec![const_s64(-1), dividend]));
+
+                let result = normal.divide(DataType::U64, dividend, divisor);
+                let quotient = result.at(0);
+                let remainder = result.at(1);
+                normal.jump(end.call(vec![quotient, remainder]));
+                guest_regs.set_lo(end.input(0));
+                guest_regs.set_hi(end.input(1));
+
+                block = end;
             }
             MipsOpcode::ADD => {
                 // Identical to ADD, but does not throw overflow exceptions (which are not
