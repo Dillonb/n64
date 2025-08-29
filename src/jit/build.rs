@@ -4,6 +4,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("../cpu/r4300i.h")
         .header("../cpu/dynarec/dynarec.h")
+        .header("../cpu/tlb_instructions.h")
         .header("../cpu/dynarec/dynarec_memory_management.h")
         .header("../system/scheduler_utils.h")
         .header("../mem/n64bus.h")
