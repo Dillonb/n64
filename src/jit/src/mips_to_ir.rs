@@ -1957,7 +1957,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::DSLL32 => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
                 let result =
-                    block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16 + 32));
+                    block.left_shift(DataType::U64, input, const_u16(instr.sa() as u16 + 32));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::DSRL32 => {
