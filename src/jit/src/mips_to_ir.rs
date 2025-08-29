@@ -1262,7 +1262,12 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     todo!("MFC0 R4300I_CP0_REG_31")
                 }
                 R4300I_CP0_REG_INDEX => {
-                    todo!("MFC0 R4300I_CP0_REG_INDEX")
+                    let result =
+                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, cp0.index));
+                    let mask = const_u32(0x8000003F);
+                    let masked_result = block.and(DataType::U32, result.val(), mask);
+                    let sign_extended = block.convert_from(DataType::S32, DataType::S64, masked_result.val());
+                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 R4300I_CP0_REG_RANDOM => {
                     todo!("MFC0 R4300I_CP0_REG_INDEX")
