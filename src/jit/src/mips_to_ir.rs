@@ -1073,7 +1073,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let masked_physical = block.and(DataType::U32, physical, const_u32(7)).val();
                 let shift = block.left_shift(DataType::U32, masked_physical, const_u32(3));
                 //u64 mask = (u64) 0xFFFFFFFFFFFFFFFF << shift;
-                let mask = block.left_shift(DataType::U64, const_u64(0xFFFFFFFFFFFFFFFF), shift.val());
+                let mask =
+                    block.left_shift(DataType::U64, const_u64(0xFFFFFFFFFFFFFFFF), shift.val());
 
                 //u64 data = n64_read_physical_dword(physical & ~7);
                 let load_addr = block.and(DataType::U32, physical, const_u32(!7));
@@ -1106,7 +1107,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let masked_physical = block.and(DataType::U32, xored_physical, const_u32(7)).val();
                 let shift = block.left_shift(DataType::U32, masked_physical, const_u32(3));
                 //u64 mask = (u64) 0xFFFFFFFFFFFFFFFF >> shift;
-                let mask = block.right_shift(DataType::U64, const_u64(0xFFFFFFFFFFFFFFFF), shift.val());
+                let mask =
+                    block.right_shift(DataType::U64, const_u64(0xFFFFFFFFFFFFFFFF), shift.val());
 
                 //u64 data = n64_read_physical_dword(physical & ~7);
                 let load_addr = block.and(DataType::U32, physical, const_u32(!7));
@@ -1266,7 +1268,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                         block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, cp0.index));
                     let mask = const_u32(0x8000003F);
                     let masked_result = block.and(DataType::U32, result.val(), mask);
-                    let sign_extended = block.convert_from(DataType::S32, DataType::S64, masked_result.val());
+                    let sign_extended =
+                        block.convert_from(DataType::S32, DataType::S64, masked_result.val());
                     guest_regs.set_gpr(instr.rt(), sign_extended.val());
                 }
                 R4300I_CP0_REG_RANDOM => {
@@ -1970,7 +1973,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             }
             MipsOpcode::DSRA32 => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
-                let result = block.right_shift(DataType::U64, input, const_u16(instr.sa() as u16 + 32));
+                let result =
+                    block.right_shift(DataType::U64, input, const_u16(instr.sa() as u16 + 32));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBWI => {
