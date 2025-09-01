@@ -22,6 +22,15 @@ void update_sysconfig() {
     //n64dynarec.sysconfig.fr = N64CP0.status.fr;
 }
 
+int interpreter_fallback_until_no_branch() {
+    int taken = 0;
+    do {
+        r4300i_step();
+        taken++;
+    } while(N64CPU.branch); // Loop until not in a delay slot
+    return taken;
+}
+
 int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_block_sysconfig_t current_sysconfig) {
     u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
 

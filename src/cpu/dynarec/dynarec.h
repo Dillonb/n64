@@ -93,6 +93,8 @@ INLINE void invalidate_dynarec_page(u32 physical_address) {
     }
 }
 
+// Helper function called by JIT
+int interpreter_fallback_until_no_branch();
 int n64_dynarec_step();
 void n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);

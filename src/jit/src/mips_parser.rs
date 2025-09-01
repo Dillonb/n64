@@ -178,6 +178,23 @@ pub enum MipsOpcode {
     FPU_BC1TL,
 }
 
+impl MipsOpcode {
+    pub fn is_branch(&self) -> bool {
+        match self {
+            MipsOpcode::BRANCH(_) => true,
+            MipsOpcode::J => true,
+            MipsOpcode::JR => true,
+            MipsOpcode::JAL => true,
+            MipsOpcode::JALR => true,
+            MipsOpcode::FPU_BC1F => true,
+            MipsOpcode::FPU_BC1T => true,
+            MipsOpcode::FPU_BC1FL => true,
+            MipsOpcode::FPU_BC1TL => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(ConvRaw, Debug)]
 enum MipsCopRsField {
     MF = 0b00000,

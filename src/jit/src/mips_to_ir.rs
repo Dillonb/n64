@@ -7,6 +7,7 @@ use dgbir::ir::{
 
 use crate::{
     bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, cp0_status_updated, do_tlbp, do_tlbwi,
+    interpreter_fallback_until_no_branch,
     mips_parser::{
         BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
     },
@@ -119,7 +120,9 @@ impl GuestRegisterManager {
                 block.write_ptr(DataType::F32, self.cpu_address, offset, value);
             }
             FgrLoadState::High32 => {
-                let offset = offset_of!(r4300i_t, f) + (r * std::mem::size_of::<u64>()) + std::mem::size_of::<u32>();
+                let offset = offset_of!(r4300i_t, f)
+                    + (r * std::mem::size_of::<u64>())
+                    + std::mem::size_of::<u32>();
                 block.write_ptr(DataType::F32, self.cpu_address, offset, value);
             }
             FgrLoadState::Full64 => {
@@ -171,7 +174,9 @@ impl GuestRegisterManager {
                         DataType::F32,
                         self.cpu_address,
                         // ENDIANNESS: this will point at the high 32 bits of the 64 bit FGR
-                        offset_of!(r4300i_t, f) + (r as usize * std::mem::size_of::<u64>()) + std::mem::size_of::<u32>(),
+                        offset_of!(r4300i_t, f)
+                            + (r as usize * std::mem::size_of::<u64>())
+                            + std::mem::size_of::<u32>(),
                     )
                     .val(),
                 FgrLoadState::Full64 => block
@@ -515,7 +520,12 @@ fn do_branch(
     }
 }
 
-fn do_fpu_compare(instr : &MipsInstructionBitfield, block: &mut IRBlockHandle, guest_regs: &mut GuestRegisterManager, ctp: CompareType) {
+fn do_fpu_compare(
+    instr: &MipsInstructionBitfield,
+    block: &mut IRBlockHandle,
+    guest_regs: &mut GuestRegisterManager,
+    ctp: CompareType,
+) {
     match instr.fmt_datatype() {
         Some(DataType::F32) => {
             let fs = guest_regs.get_fgr_32bit_fs(block, instr.fs());
@@ -529,7 +539,10 @@ fn do_fpu_compare(instr : &MipsInstructionBitfield, block: &mut IRBlockHandle, g
             let result = block.compare(DataType::F64, fs, ctp, ft);
             guest_regs.set_fcr31_compare(block, result.val());
         }
-        _ => panic!( "Unsupported datatype for FPU compare: {:?}", instr.fmt_datatype()),
+        _ => panic!(
+            "Unsupported datatype for FPU compare: {:?}",
+            instr.fmt_datatype()
+        ),
     }
 }
 
@@ -546,6 +559,20 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     let mut pc_set = false;
 
     let mut last_vaddr = 0;
+
+    // If the block ends with a branch, fallback to the interpreter.
+    if let Some(last) = parsed.last() {
+        if last.op.is_branch() {
+            let cycles = block.call_function(
+                const_ptr(interpreter_fallback_until_no_branch as usize),
+                Some(DataType::S32),
+                vec![],
+            );
+
+            block.ret(Some(cycles.val()));
+            return func;
+        }
+    }
 
     for (
         index,
@@ -1879,10 +1906,10 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let is_divide_by_zero =
                     block.compare(DataType::S64, divisor, CompareType::Equal, const_s64(0));
 
-                extern fn unimplemented_divide_by_zero() {
+                extern "C" fn unimplemented_divide_by_zero() {
                     panic!("Unimplemented: Divide by zero exception handling for DDIV");
                 }
-                extern fn unimplemented_intmin_by_neg1() {
+                extern "C" fn unimplemented_intmin_by_neg1() {
                     panic!("Unimplemented: INT64_MIN / -1 exception handling for DDIV");
                 }
 
@@ -1924,7 +1951,11 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                         CompareType::Equal,
                         const_s64(-1),
                     );
-                    let both_conditions = check_intmin_by_neg1.and(DataType::Bool, is_divisor_neg1.val(), is_dividend_intmin.val());
+                    let both_conditions = check_intmin_by_neg1.and(
+                        DataType::Bool,
+                        is_divisor_neg1.val(),
+                        is_dividend_intmin.val(),
+                    );
                     check_intmin_by_neg1.branch(
                         both_conditions.val(),
                         intmin_by_neg1.call(vec![]),
@@ -2100,19 +2131,11 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBWI => {
-                let index = block.load_ptr(
-                    DataType::U32,
-                    cpu_address,
-                    offset_of!(r4300i_t, cp0.index),
-                );
+                let index =
+                    block.load_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.index));
                 let masked_index = block.and(DataType::U32, index.val(), const_u32(0x8000003F));
 
-                block.call_function(
-                    const_ptr(do_tlbwi as usize),
-                    None,
-                    vec![masked_index.val()],
-                );
-
+                block.call_function(const_ptr(do_tlbwi as usize), None, vec![masked_index.val()]);
             }
             MipsOpcode::TLBP => {
                 block.call_function(const_ptr(do_tlbp as usize), None, vec![]);
@@ -2385,8 +2408,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                         let result = block.negate(DataType::F32, fs);
                         guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
-
-                    },
+                    }
                     Some(DataType::F64) => {
                         let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                         let result = block.negate(DataType::F64, fs);
@@ -2435,14 +2457,19 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_C_LT => {
                 checkcp1(&mut block, &mut guest_regs, false);
                 do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::LessThan);
-            },
+            }
             MipsOpcode::FPU_C_NGE => {
                 todo!("FPU_C_NGE")
             }
             MipsOpcode::FPU_C_LE => {
                 checkcp1(&mut block, &mut guest_regs, false);
-                do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::LessThanOrEqual);
-            },
+                do_fpu_compare(
+                    &instr,
+                    &mut block,
+                    &mut guest_regs,
+                    CompareType::LessThanOrEqual,
+                );
+            }
             MipsOpcode::FPU_C_NGT => {
                 todo!("FPU_C_NGT")
             }
