@@ -1838,7 +1838,97 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_hi(hi);
             }
             MipsOpcode::DDIV => {
-                todo!("DDIV")
+                // TODO: some unimplemented cases in here:
+                // s64 dividend = (s64)get_register(instruction.r.rs);
+                // s64 divisor  = (s64)get_register(instruction.r.rt);
+                // if (unlikely(divisor == 0)) {
+                //     logwarn("Divide by zero");
+                //     N64CPU.mult_hi = dividend;
+                //     if (dividend >= 0) {
+                //         N64CPU.mult_lo = (s64)-1;
+                //     } else {
+                //         N64CPU.mult_lo = (s64)1;
+                //     }
+                // } else if (unlikely(divisor == -1 && dividend == INT64_MIN)) {
+                //     N64CPU.mult_lo = dividend;
+                //     N64CPU.mult_hi = 0;
+                // } else {
+                //     s64 quotient  = (s64)(dividend / divisor);
+                //     s64 remainder = (s64)(dividend % divisor);
+
+                //     N64CPU.mult_lo = quotient;
+                //     N64CPU.mult_hi = remainder;
+                // }
+                let dividend = guest_regs.get_gpr(&mut block, instr.rs());
+                let divisor = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let is_divide_by_zero =
+                    block.compare(DataType::S64, divisor, CompareType::Equal, const_s64(0));
+
+                extern fn unimplemented_divide_by_zero() {
+                    panic!("Unimplemented: Divide by zero exception handling for DDIV");
+                }
+                extern fn unimplemented_intmin_by_neg1() {
+                    panic!("Unimplemented: INT64_MIN / -1 exception handling for DDIV");
+                }
+
+                let mut check_intmin_by_neg1 = func.new_block(vec![]);
+                let mut divide_by_zero = func.new_block(vec![]);
+                block.branch(
+                    is_divide_by_zero.val(),
+                    divide_by_zero.call(vec![]),
+                    check_intmin_by_neg1.call(vec![]),
+                );
+
+                divide_by_zero.call_function(
+                    const_ptr(unimplemented_divide_by_zero as usize),
+                    None,
+                    vec![],
+                );
+                divide_by_zero.ret(None);
+
+                let mut intmin_by_neg1 = func.new_block(vec![]);
+                intmin_by_neg1.call_function(
+                    const_ptr(unimplemented_intmin_by_neg1 as usize),
+                    None,
+                    vec![],
+                );
+                intmin_by_neg1.ret(None);
+
+                let mut normal = func.new_block(vec![]);
+                {
+                    // Check if operation is INT64_MIN / -1
+                    let is_dividend_intmin = check_intmin_by_neg1.compare(
+                        DataType::S64,
+                        dividend,
+                        CompareType::Equal,
+                        const_s64(i64::MIN),
+                    );
+                    let is_divisor_neg1 = check_intmin_by_neg1.compare(
+                        DataType::S64,
+                        divisor,
+                        CompareType::Equal,
+                        const_s64(-1),
+                    );
+                    let both_conditions = check_intmin_by_neg1.and(DataType::Bool, is_divisor_neg1.val(), is_dividend_intmin.val());
+                    check_intmin_by_neg1.branch(
+                        both_conditions.val(),
+                        intmin_by_neg1.call(vec![]),
+                        normal.call(vec![]),
+                    );
+                }
+
+                let end = func.new_block(vec![DataType::S64, DataType::S64]);
+
+                let result = normal.divide(DataType::S64, dividend, divisor);
+                let quotient = result.at(0);
+                let remainder = result.at(1);
+                normal.jump(end.call(vec![quotient, remainder]));
+
+                guest_regs.set_lo(end.input(0));
+                guest_regs.set_hi(end.input(1));
+
+                block = end;
             }
             MipsOpcode::DDIVU => {
                 let dividend = guest_regs.get_gpr(&mut block, instr.rs());
