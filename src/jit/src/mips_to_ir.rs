@@ -6,7 +6,7 @@ use dgbir::ir::{
 };
 
 use crate::{
-    bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, cp0_status_updated, do_tlbp,
+    bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, cp0_status_updated, do_tlbp, do_tlbwi,
     mips_parser::{
         BranchCondition, BranchInfo, MipsInstructionBitfield, MipsOpcode, ParsedMipsInstruction,
     },
@@ -2090,7 +2090,19 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBWI => {
-                println!("TLBWI: TODO, NOP for now");
+                let index = block.load_ptr(
+                    DataType::U32,
+                    cpu_address,
+                    offset_of!(r4300i_t, cp0.index),
+                );
+                let masked_index = block.and(DataType::U32, index.val(), const_u32(0x8000003F));
+
+                block.call_function(
+                    const_ptr(do_tlbwi as usize),
+                    None,
+                    vec![masked_index.val()],
+                );
+
             }
             MipsOpcode::TLBP => {
                 block.call_function(const_ptr(do_tlbp as usize), None, vec![]);
