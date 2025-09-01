@@ -841,7 +841,11 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::DADDIU => {
-                todo!("DADDIU")
+                // Identical to DADDI, but does not throw overflow exceptions (which are not
+                // implemented yet anyway)
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let result = block.add(DataType::S64, rs, const_s16(instr.s_imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
             }
             MipsOpcode::LB => {
                 let paddr = get_paddr_for_loadstore(
