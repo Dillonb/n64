@@ -2178,7 +2178,20 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 _ => todo!("Fire unimplemented operation here"),
             },
             MipsOpcode::FPU_SQRT => {
-                todo!("FPU_SQRT")
+                checkcp1(&mut block, &mut guest_regs, false);
+                match instr.fmt_datatype() {
+                    Some(DataType::F32) => {
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let result = block.square_root(DataType::F32, fs);
+                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                    }
+                    Some(DataType::F64) => {
+                        let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                        let result = block.square_root(DataType::F64, fs);
+                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                    }
+                    _ => todo!("Fire unimplemented operation here"),
+                }
             }
             MipsOpcode::FPU_ABS => {
                 todo!("FPU_ABS")
