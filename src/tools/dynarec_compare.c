@@ -69,6 +69,10 @@ void cleanup_resources() {
     if (cleanup_shmem(cpu_shmem_id) == -1) {
         perror("remove cpu_shmem_id");
     }
+
+    if (cleanup_shmem(sys_shmem_id) == -1) {
+        perror("remove sys_shmem_id");
+    }
 }
 
 struct num_cycles_msg {
