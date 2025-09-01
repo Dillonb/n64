@@ -505,6 +505,24 @@ fn do_branch(
     }
 }
 
+fn do_fpu_compare(instr : &MipsInstructionBitfield, block: &mut IRBlockHandle, guest_regs: &mut GuestRegisterManager, ctp: CompareType) {
+    match instr.fmt_datatype() {
+        Some(DataType::F32) => {
+            let fs = guest_regs.get_fgr_32bit_fs(block, instr.fs());
+            let ft = guest_regs.get_fgr_32bit_ft(block, instr.ft());
+            let result = block.compare(DataType::F32, fs, ctp, ft);
+            guest_regs.set_fcr31_compare(block, result.val());
+        }
+        Some(DataType::F64) => {
+            let fs = guest_regs.get_fgr_64bit_fs(block, instr.fs());
+            let ft = guest_regs.get_fgr_64bit_ft(block, instr.ft());
+            let result = block.compare(DataType::F64, fs, ctp, ft);
+            guest_regs.set_fcr31_compare(block, result.val());
+        }
+        _ => panic!( "Unsupported datatype for FPU compare: {:?}", instr.fmt_datatype()),
+    }
+}
+
 pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
     let context = IRContext::new();
     let func = IRFunction::new(context);
@@ -2073,7 +2091,9 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 checkcp1(&mut block, &mut guest_regs, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F32) => {
-                        todo!("cvt_d_s")
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let result = block.convert_from(DataType::F32, DataType::F64, fs);
+                        guest_regs.set_fgr_64bit(instr.fd(), result.val());
                     }
                     Some(DataType::S32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
@@ -2243,7 +2263,21 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("FPU_FLOOR_W")
             }
             MipsOpcode::FPU_NEG => {
-                todo!("FPU_NEG")
+                checkcp1(&mut block, &mut guest_regs, false);
+                match instr.fmt_datatype() {
+                    Some(DataType::F32) => {
+                        let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
+                        let result = block.negate(DataType::F32, fs);
+                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+
+                    },
+                    Some(DataType::F64) => {
+                        let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
+                        let result = block.negate(DataType::F64, fs);
+                        guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
+                    }
+                    _ => todo!("Fire unimplemented operation here"),
+                }
             }
             MipsOpcode::FPU_C_F => {
                 todo!("FPU_C_F")
@@ -2252,7 +2286,8 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 todo!("FPU_C_UN")
             }
             MipsOpcode::FPU_C_EQ => {
-                todo!("FPU_C_EQ")
+                checkcp1(&mut block, &mut guest_regs, false);
+                do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::Equal);
             }
             MipsOpcode::FPU_C_UEQ => {
                 todo!("FPU_C_UEQ")
@@ -2281,44 +2316,16 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_C_NGL => {
                 todo!("FPU_C_NGL")
             }
-            MipsOpcode::FPU_C_LT => match instr.fmt_datatype() {
-                Some(DataType::F32) => {
-                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
-                    let result = block.compare(DataType::F32, fs, CompareType::LessThan, ft);
-                    guest_regs.set_fcr31_compare(&mut block, result.val());
-                }
-                Some(DataType::F64) => {
-                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
-                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
-                    let result = block.compare(DataType::F64, fs, CompareType::LessThan, ft);
-                    guest_regs.set_fcr31_compare(&mut block, result.val());
-                }
-                _ => panic!(
-                    "Unsupported datatype for FPU_C_LT: {:?}",
-                    instr.fmt_datatype()
-                ),
+            MipsOpcode::FPU_C_LT => {
+                checkcp1(&mut block, &mut guest_regs, false);
+                do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::LessThan);
             },
             MipsOpcode::FPU_C_NGE => {
                 todo!("FPU_C_NGE")
             }
-            MipsOpcode::FPU_C_LE => match instr.fmt_datatype() {
-                Some(DataType::F32) => {
-                    let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                    let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
-                    let result = block.compare(DataType::F32, fs, CompareType::LessThanOrEqual, ft);
-                    guest_regs.set_fcr31_compare(&mut block, result.val());
-                }
-                Some(DataType::F64) => {
-                    let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
-                    let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
-                    let result = block.compare(DataType::F64, fs, CompareType::LessThanOrEqual, ft);
-                    guest_regs.set_fcr31_compare(&mut block, result.val());
-                }
-                _ => panic!(
-                    "Unsupported datatype for FPU_C_LE: {:?}",
-                    instr.fmt_datatype()
-                ),
+            MipsOpcode::FPU_C_LE => {
+                checkcp1(&mut block, &mut guest_regs, false);
+                do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::LessThanOrEqual);
             },
             MipsOpcode::FPU_C_NGT => {
                 todo!("FPU_C_NGT")
@@ -2342,7 +2349,21 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
             }
             MipsOpcode::FPU_BC1T => {
-                todo!("FPU_BC1T")
+                checkcp1(&mut block, &mut guest_regs, false);
+                let take_branch = guest_regs.get_fcr31_compare(&mut block);
+                do_branch(
+                    false,
+                    false,
+                    &mut guest_regs,
+                    vaddr,
+                    &func,
+                    take_branch,
+                    instr,
+                    cpu_address,
+                    &mut pc_set,
+                    &mut block,
+                    cycles,
+                );
             }
             MipsOpcode::FPU_BC1FL => {
                 checkcp1(&mut block, &mut guest_regs, false);
