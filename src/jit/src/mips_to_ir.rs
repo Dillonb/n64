@@ -2096,7 +2096,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::DSRA32 => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
                 let result =
-                    block.right_shift(DataType::U64, input, const_u16(instr.sa() as u16 + 32));
+                    block.right_shift(DataType::S64, input, const_u16(instr.sa() as u16 + 32));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBWI => {
