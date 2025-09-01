@@ -2232,7 +2232,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     }
                     Some(DataType::F64) => {
                         let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
-                        let result = block.convert_from(DataType::F32, DataType::S32, fs);
+                        let result = block.convert_from(DataType::F64, DataType::S32, fs);
                         guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                     }
                     _ => todo!("Fire unimplemented operation here"),
