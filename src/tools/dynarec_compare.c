@@ -27,6 +27,8 @@
 #include <frontend/tas_movie.h>
 #include <cpu/dynarec/v2/ir_context.h>
 
+#define CHECK_RDRAM
+
 r4300i_t* n64cpu_interpreter_ptr;
 n64_system_t* n64sys_interpreter_ptr;
 
@@ -130,7 +132,9 @@ bool compare() {
     good &= n64cpu_interpreter_ptr->pc == N64CPU.pc;
     good &= memcmp(n64cpu_interpreter_ptr->gpr, n64cpu_ptr->gpr, sizeof(u64) * 32) == 0;
     good &= memcmp(n64cpu_interpreter_ptr->f, n64cpu_ptr->f, sizeof(fgr_t) * 32) == 0;
+#ifdef CHECK_RDRAM
     good &= memcmp(n64sys_interpreter_ptr->mem.rdram, n64sys.mem.rdram, N64_RDRAM_SIZE) == 0;
+#endif
 
     good &= n64cpu_interpreter_ptr->mult_lo == n64cpu_ptr->mult_lo;
     good &= n64cpu_interpreter_ptr->mult_hi == n64cpu_ptr->mult_hi;
@@ -230,11 +234,13 @@ void print_state() {
     printf("\n");
     print_colorcoded_u64("cp1 fcr31", n64cpu_interpreter_ptr->fcr31.raw, N64CPU.fcr31.raw);
 
+#ifdef CHECK_RDRAM
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
         if (n64sys_interpreter_ptr->mem.rdram[i] != n64sys.mem.rdram[i]) {
             printf("%08X: %02X %02X\n", i, n64sys_interpreter_ptr->mem.rdram[i], n64sys.mem.rdram[i]);
         }
     }
+#endif
 }
 
 void run_compare_parent() {
