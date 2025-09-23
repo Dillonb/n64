@@ -1898,7 +1898,7 @@ void host_emit_float_neg_reg_reg(dasm_State** Dst, ir_register_allocation_t dst_
     reset_temp_fgr(Dst);
 }
 
-int interpreter_fallback_until_no_branch() {
+int interpreter_fallback_until_no_branch_v2() {
     int taken = 0;
     do {
         r4300i_step();
@@ -1910,7 +1910,7 @@ int interpreter_fallback_until_no_branch() {
 void host_emit_interpreter_fallback_until_no_branch(dasm_State** Dst, int extra_cycles) {
     ir_context.block_ended = true;
 
-    | mov64 Rq(TMPREG1), (uintptr_t)&interpreter_fallback_until_no_branch
+    | mov64 Rq(TMPREG1), (uintptr_t)&interpreter_fallback_until_no_branch_v2
     | call Rq(TMPREG1)
     | add Rd(TMPREG1), extra_cycles
     | block_epilogue
