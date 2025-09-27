@@ -3,6 +3,10 @@ name = "jit"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+ir_comments = ["dgbir/ir_comments"]
+
 [lib]
 crate-type = ["staticlib"]
 
