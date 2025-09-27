@@ -1,5 +1,6 @@
 use dgbir::ir::DataType;
 use itertools::izip;
+use log::info;
 use proc_bitfield::ConvRaw;
 
 use crate::{FP_FMT_DOUBLE, FP_FMT_LONG, FP_FMT_SINGLE, FP_FMT_WORD};
@@ -743,7 +744,7 @@ pub fn parse(
     .collect::<Vec<_>>();
 
     let code_len = code.len();
-    println!("Compiling {code_len} instructions at virtual address 0x{virtual_address:016X} and physical address 0x{physical_address:08X}");
+    info!("Compiling {code_len} instructions at virtual address 0x{virtual_address:016X} and physical address 0x{physical_address:08X}");
 
     return parsed;
 }

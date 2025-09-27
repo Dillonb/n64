@@ -4,6 +4,7 @@ use dgbir::ir::{
     const_ptr, const_s16, const_s32, const_s64, const_u16, const_u32, const_u64, CompareType,
     DataType, IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType,
 };
+use log::warn;
 
 use crate::{
     bus_access, bus_access_BUS_LOAD, bus_access_BUS_STORE, cp0_status_updated, do_tlbp, do_tlbwi,
@@ -452,7 +453,7 @@ fn checkcp1(
     _guest_regs: &mut GuestRegisterManager,
     _preserve_cause: bool,
 ) {
-    println!("TODO: check if CP1 is enabled in the JIT")
+    warn!("TODO: check if CP1 is enabled in the JIT")
 }
 
 fn do_branch(
@@ -480,7 +481,7 @@ fn do_branch(
         .wrapping_add_signed((instr.s_imm() as i64) << 2);
     let not_taken_pc = vaddr.wrapping_add(8);
 
-    println!(
+    warn!(
         "Jumping to {:016X} if taken, continuing to {:016X} if not taken",
         taken_pc, not_taken_pc
     );
@@ -776,7 +777,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
             }
             MipsOpcode::CACHE => {
-                println!("TODO: Cache in the JIT (NOP for now)")
+                warn!("TODO: Cache in the JIT (NOP for now)")
             }
             MipsOpcode::SB => {
                 let paddr = get_paddr_for_loadstore(
@@ -1617,7 +1618,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let fs = instr.rd();
                 let value = match fs {
                     0 => {
-                        println!("Reading FCR0 - probably returning an invalid value!");
+                        warn!("Reading FCR0 - probably returning an invalid value!");
                         block
                             .load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, fcr0.raw))
                             .val()
@@ -1652,13 +1653,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
                 match fs {
                     0 => {
-                        println!("CTC1 FCR0: Writing to read-only register FCR0!");
+                        warn!("CTC1 FCR0: Writing to read-only register FCR0!");
                     }
                     31 => {
                         let mask = const_u32(0x183ffff);
                         let masked = block.and(DataType::U32, value, mask);
                         guest_regs.set_fcr31(masked.val());
-                        println!("TODO: check_fpu_exception();");
+                        warn!("TODO: check_fpu_exception();");
                     }
                     _ => {
                         todo!("This instruction is only defined when fs == 0 or fs == 31! (Throw an exception?)");
@@ -2205,7 +2206,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 end.call_function(const_ptr(cp0_status_updated as usize), None, vec![]);
 
                 block = end;
-                println!("TODO: set llbit to false");
+                warn!("TODO: set llbit to false");
             }
             MipsOpcode::FPU_CVT_S => {
                 checkcp1(&mut block, &mut guest_regs, false);
@@ -2380,13 +2381,13 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
             MipsOpcode::FPU_TRUNC_W => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
-                    println!("TODO: round towards zero (specify rounding mode in IR instruction)");
+                    warn!("TODO: round towards zero (specify rounding mode in IR instruction)");
                     let result = block.convert_from(DataType::F32, DataType::S32, fs);
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
-                    println!("TODO: round towards zero (specify rounding mode in IR instruction)");
+                    warn!("TODO: round towards zero (specify rounding mode in IR instruction)");
                     let result = block.convert_from(DataType::F64, DataType::S32, fs);
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }

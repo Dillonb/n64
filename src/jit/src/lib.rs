@@ -6,6 +6,7 @@
 use std::mem;
 
 use dgbir::{compiler::compile_vec, disassembler::disassemble_vec_function, util::flush_icache};
+use log::{debug, info};
 use mips_to_ir::to_ir;
 
 mod mips_parser;
@@ -26,10 +27,10 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);
     let mut func = to_ir(parsed, cpu);
     let baseaddr = dynarec_bumpalloc_get_next_allocation_ptr() as usize;
-    println!("{}", func);
+    debug!("{}", func);
     let compiled = compile_vec(&mut func, baseaddr);
     let code = &compiled.code;
-    println!("{}", func);
+    info!("{}", func);
 
     let alloc = dynarec_bumpalloc(code.len());
     std::ptr::copy_nonoverlapping(code.as_ptr(), alloc as *mut u8, code.len());
@@ -41,5 +42,5 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     block.host_size = code.len();
     block.guest_size = num_instructions * 4;
 
-    println!("{}", disassemble_vec_function(&compiled));
+    info!("{}", disassemble_vec_function(&compiled));
 }
