@@ -31,6 +31,7 @@
         pkgs.pkg-config
         pkgs.vulkan-loader
         pkgs.cargo
+        pkgs.cargo-outdated
         pkgs.rustc
         pkgs.rust-cbindgen
 
