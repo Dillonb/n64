@@ -11,11 +11,11 @@ ir_comments = ["dgbir/ir_comments"]
 crate-type = ["staticlib"]
 
 [dependencies]
-proc-bitfield = "0.5.0"
-itertools = "0.13.0"
+proc-bitfield = "0.5.2"
+itertools = "0.14.0"
 dgbir = { path = "./dgbir" }
 log = "0.4.28"
 env_logger = "0.11.8"
 
 [build-dependencies]
-bindgen = "0.71.1"
+bindgen = "0.72.1"
