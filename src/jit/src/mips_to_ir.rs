@@ -1,5 +1,6 @@
 use std::mem::offset_of;
 
+use derive_builder::Builder;
 use dgbir::ir::{
     const_ptr, const_s16, const_s32, const_s64, const_u16, const_u32, const_u64, CompareType,
     DataType, IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType,
@@ -26,6 +27,37 @@ use crate::{
     R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO,
     R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
 };
+
+#[derive(Builder)]
+pub struct MipsToIrContext {
+    read_physical_byte: usize,
+    read_physical_half: usize,
+    read_physical_word: usize,
+    read_physical_dword: usize,
+    write_physical_byte: usize,
+    write_physical_half: usize,
+    write_physical_word: usize,
+    write_physical_dword: usize,
+}
+
+impl Default for MipsToIrContext {
+    fn default() -> Self {
+        MipsToIrContext {
+            read_physical_byte: n64_read_physical_byte as usize,
+            read_physical_half: n64_read_physical_half as usize,
+            read_physical_word: n64_read_physical_word as usize,
+            read_physical_dword: n64_read_physical_dword as usize,
+            write_physical_byte: n64_write_physical_byte as usize,
+            write_physical_half: n64_write_physical_half as usize,
+            write_physical_word: n64_write_physical_word as usize,
+            write_physical_dword: n64_write_physical_dword as usize,
+        }
+    }
+}
+
+pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
+    return to_ir_ctx(MipsToIrContext::default(), parsed, cpu);
+}
 
 fn is_fr_set() -> bool {
     return unsafe { (*n64cpu_ptr).cp0.status.__bindgen_anon_1.fr() } != 0;
@@ -547,7 +579,11 @@ fn do_fpu_compare(
     }
 }
 
-pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
+pub fn to_ir_ctx(
+    ctx: MipsToIrContext,
+    parsed: Vec<ParsedMipsInstruction>,
+    cpu: &r4300i_t,
+) -> IRFunction {
     let context = IRContext::new();
     let func = IRFunction::new(context);
     let mut block = func.new_block(vec![DataType::Ptr]);
@@ -600,7 +636,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     bus_access_BUS_LOAD,
                 );
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_dword as usize),
+                    const_ptr(ctx.read_physical_dword),
                     Some(DataType::S64),
                     vec![paddr],
                 );
@@ -646,7 +682,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
 
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_byte as usize),
+                    const_ptr(ctx.read_physical_byte),
                     Some(DataType::U8),
                     vec![paddr],
                 );
@@ -664,7 +700,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
 
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_half as usize),
+                    const_ptr(ctx.read_physical_half),
                     Some(DataType::U16),
                     vec![paddr],
                 );
@@ -682,7 +718,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
 
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_half as usize),
+                    const_ptr(ctx.read_physical_half),
                     Some(DataType::S16),
                     vec![paddr],
                 );
@@ -701,7 +737,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     bus_access_BUS_LOAD,
                 );
                 let temp_value = block.call_function(
-                    const_ptr(n64_read_physical_word as usize),
+                    const_ptr(ctx.read_physical_word),
                     Some(DataType::S32),
                     vec![paddr],
                 );
@@ -721,7 +757,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
 
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_word as usize),
+                    const_ptr(ctx.read_physical_word),
                     Some(DataType::U32),
                     vec![paddr],
                 );
@@ -791,7 +827,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
                 block.call_function(
-                    const_ptr(n64_write_physical_byte as usize),
+                    const_ptr(ctx.write_physical_byte),
                     None,
                     vec![paddr, to_write],
                 );
@@ -807,7 +843,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
                 block.call_function(
-                    const_ptr(n64_write_physical_half as usize),
+                    const_ptr(ctx.write_physical_half),
                     None,
                     vec![paddr, to_write],
                 );
@@ -823,7 +859,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
                 block.call_function(
-                    const_ptr(n64_write_physical_dword as usize),
+                    const_ptr(ctx.write_physical_dword),
                     None,
                     vec![paddr, to_write],
                 );
@@ -839,7 +875,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
                 block.call_function(
-                    const_ptr(n64_write_physical_word as usize),
+                    const_ptr(ctx.write_physical_word),
                     None,
                     vec![paddr, to_write],
                 );
@@ -897,7 +933,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 );
 
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_byte as usize),
+                    const_ptr(ctx.read_physical_byte),
                     Some(DataType::S8),
                     vec![paddr],
                 );
@@ -917,7 +953,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     bus_access_BUS_LOAD,
                 );
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_dword as usize),
+                    const_ptr(ctx.read_physical_dword),
                     Some(DataType::U64),
                     vec![paddr],
                 );
@@ -939,7 +975,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 // Convert from u64 to u64 to ensure we're in a GPR
                 let value_converted = block.convert_from(DataType::U64, DataType::U64, value);
                 block.call_function(
-                    const_ptr(n64_write_physical_dword as usize),
+                    const_ptr(ctx.write_physical_dword),
                     None,
                     vec![paddr, value_converted.val()],
                 );
@@ -955,7 +991,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                     bus_access_BUS_LOAD,
                 );
                 let value = block.call_function(
-                    const_ptr(n64_read_physical_word as usize),
+                    const_ptr(ctx.read_physical_word),
                     Some(DataType::S32),
                     vec![paddr],
                 );
@@ -977,7 +1013,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 // Convert from u32 to u32 to ensure we're in a GPR
                 let value_converted = block.convert_from(DataType::U32, DataType::U32, value);
                 block.call_function(
-                    const_ptr(n64_write_physical_word as usize),
+                    const_ptr(ctx.write_physical_word),
                     None,
                     vec![paddr, value_converted.val()],
                 );
@@ -1000,7 +1036,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let load_addr = block.and(DataType::U32, paddr, const_u32(!3));
                 let data = block.call_function(
-                    const_ptr(n64_read_physical_word as usize),
+                    const_ptr(ctx.read_physical_word),
                     Some(DataType::U32),
                     vec![load_addr.val()],
                 );
@@ -1035,7 +1071,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let load_addr = block.and(DataType::U32, paddr, const_u32(!3));
                 let data = block.call_function(
-                    const_ptr(n64_read_physical_word as usize),
+                    const_ptr(ctx.read_physical_word),
                     Some(DataType::U32),
                     vec![load_addr.val()],
                 );
@@ -1067,7 +1103,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let data_addr = block.and(DataType::U32, physical, const_u32(!3));
                 let data = block.call_function(
-                    const_ptr(n64_read_physical_word as usize),
+                    const_ptr(ctx.read_physical_word),
                     Some(DataType::U32),
                     vec![data_addr.val()],
                 );
@@ -1080,7 +1116,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let shifted_reg = block.right_shift(DataType::U32, oldreg, shift.val());
                 let result = block.or(DataType::U32, masked_data.val(), shifted_reg.val());
                 block.call_function(
-                    const_ptr(n64_write_physical_word as usize),
+                    const_ptr(ctx.write_physical_word),
                     None,
                     vec![data_addr.val(), result.val()],
                 );
@@ -1104,7 +1140,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let data_addr = block.and(DataType::U32, physical, const_u32(!3));
                 let data = block.call_function(
-                    const_ptr(n64_read_physical_word as usize),
+                    const_ptr(ctx.read_physical_word),
                     Some(DataType::U32),
                     vec![data_addr.val()],
                 );
@@ -1116,7 +1152,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 let shifted_reg = block.left_shift(DataType::U32, oldreg, shift.val());
                 let result = block.or(DataType::U32, masked_data.val(), shifted_reg.val());
                 block.call_function(
-                    const_ptr(n64_write_physical_word as usize),
+                    const_ptr(ctx.write_physical_word),
                     None,
                     vec![data_addr.val(), result.val()],
                 );
@@ -1140,7 +1176,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 //u64 data = n64_read_physical_dword(physical & ~7);
                 let load_addr = block.and(DataType::U32, physical, const_u32(!7));
                 let data = block.call_function(
-                    const_ptr(n64_read_physical_dword as usize),
+                    const_ptr(ctx.read_physical_dword),
                     Some(DataType::U64),
                     vec![load_addr.val()],
                 );
@@ -1174,7 +1210,7 @@ pub fn to_ir(parsed: Vec<ParsedMipsInstruction>, cpu: &r4300i_t) -> IRFunction {
                 //u64 data = n64_read_physical_dword(physical & ~7);
                 let load_addr = block.and(DataType::U32, physical, const_u32(!7));
                 let data = block.call_function(
-                    const_ptr(n64_read_physical_dword as usize),
+                    const_ptr(ctx.read_physical_dword),
                     Some(DataType::U64),
                     vec![load_addr.val()],
                 );
