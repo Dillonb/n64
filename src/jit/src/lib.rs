@@ -7,9 +7,9 @@
 
 use std::mem;
 
-use dgbir::{compiler::compile_vec, disassembler::disassemble_vec_function, util::flush_icache};
+use dgbir::{compiler::{compile, compile_vec}, disassembler::disassemble_vec_function, util::flush_icache};
 use log::{debug, info};
-use mips_to_ir::to_ir;
+use mips_to_ir::{to_ir, to_ir_ctx, MipsToIrContext};
 
 mod mips_parser;
 mod mips_to_ir;
@@ -45,4 +45,22 @@ pub unsafe extern "C" fn rs_jit_compile_new_block(
     block.guest_size = num_instructions * 4;
 
     info!("{}", disassemble_vec_function(&compiled));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_jit_compile_and_run_block_for_test(
+    instructions: *mut u32,
+    num_instructions: usize,
+    virtual_address: u64,
+    physical_address: u32,
+    cpu: &r4300i_t,
+    context: MipsToIrContext
+) -> i32 {
+    let safe_code = std::slice::from_raw_parts(instructions, num_instructions);
+    let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);
+    let mut func = to_ir_ctx(context, parsed, cpu);
+    debug!("{}", func);
+    let compiled = compile(&mut func);
+    let f: unsafe extern "C" fn(*mut r4300i) -> i32 = unsafe { mem::transmute(compiled.ptr_entrypoint()) };
+    return f(cpu as *const r4300i as *mut r4300i);
 }

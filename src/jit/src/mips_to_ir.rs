@@ -29,6 +29,7 @@ use crate::{
 };
 
 #[derive(Builder)]
+#[repr(C)]
 pub struct MipsToIrContext {
     read_physical_byte: usize,
     read_physical_half: usize,

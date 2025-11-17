@@ -107,3 +107,6 @@ configure_file(testcases/cpu/multu.testcase multu.testcase COPYONLY)
 configure_file(testcases/cpu/slt.testcase slt.testcase COPYONLY)
 configure_file(testcases/cpu/xor.testcase xor.testcase COPYONLY)
 endif()
+
+add_executable(test_dynarec test_dynarec.cpp unit.h)
+TARGET_LINK_LIBRARIES(test_dynarec disassemble r4300i common core jit)
