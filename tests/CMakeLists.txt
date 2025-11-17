@@ -2,6 +2,8 @@ enable_testing()
 
 INCLUDE_DIRECTORIES(SYSTEM "../src/contrib/include" "../src/common" "../src")
 
+add_subdirectory(dynarec)
+
 if (NOT WIN32)
 add_executable(test_cpu test_cpu.c unit.h)
 target_link_libraries(test_cpu r4300i common core)
@@ -107,6 +109,3 @@ configure_file(testcases/cpu/multu.testcase multu.testcase COPYONLY)
 configure_file(testcases/cpu/slt.testcase slt.testcase COPYONLY)
 configure_file(testcases/cpu/xor.testcase xor.testcase COPYONLY)
 endif()
-
-add_executable(test_dynarec test_dynarec.cpp unit.h)
-TARGET_LINK_LIBRARIES(test_dynarec disassemble r4300i common core jit)
