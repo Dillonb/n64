@@ -27,7 +27,8 @@
 #include <frontend/tas_movie.h>
 #include <cpu/dynarec/v2/ir_context.h>
 
-#define CHECK_RDRAM
+// #define CHECK_RDRAM
+// #define CHECK_PREV_STATE
 
 r4300i_t* n64cpu_interpreter_ptr;
 n64_system_t* n64sys_interpreter_ptr;
@@ -126,6 +127,48 @@ int create_and_configure_mq(key_t key) {
     return mq_id;
 }
 
+
+#ifdef CHECK_PREV_STATE
+r4300i_t prev_state;
+void save_prev_state() {
+    prev_state.pc = N64CPU.pc;
+    memcpy(prev_state.gpr, n64cpu_ptr->gpr, sizeof(u64) * 32);
+    memcpy(prev_state.f, n64cpu_ptr->f, sizeof(fgr_t) * 32);
+
+    prev_state.mult_lo = n64cpu_ptr->mult_lo;
+    prev_state.mult_hi = n64cpu_ptr->mult_hi;
+
+    prev_state.cp0.index = n64cpu_ptr->cp0.index;
+    prev_state.cp0.random = n64cpu_ptr->cp0.random;
+    prev_state.cp0.entry_lo0.raw = n64cpu_ptr->cp0.entry_lo0.raw;
+    prev_state.cp0.entry_lo1.raw = n64cpu_ptr->cp0.entry_lo1.raw;
+    prev_state.cp0.context.raw = n64cpu_ptr->cp0.context.raw;
+    prev_state.cp0.page_mask.raw = n64cpu_ptr->cp0.page_mask.raw;
+    prev_state.cp0.wired = n64cpu_ptr->cp0.wired;
+    prev_state.cp0.bad_vaddr = n64cpu_ptr->cp0.bad_vaddr;
+    prev_state.cp0.count = n64cpu_ptr->cp0.count;
+    prev_state.cp0.entry_hi.raw = n64cpu_ptr->cp0.entry_hi.raw;
+    prev_state.cp0.compare = n64cpu_ptr->cp0.compare;
+    prev_state.cp0.status.raw = n64cpu_ptr->cp0.status.raw;
+    prev_state.cp0.cause.raw = n64cpu_ptr->cp0.cause.raw;
+    prev_state.cp0.EPC = n64cpu_ptr->cp0.EPC;
+    prev_state.cp0.PRId = n64cpu_ptr->cp0.PRId;
+    prev_state.cp0.config = n64cpu_ptr->cp0.config;
+    prev_state.cp0.lladdr = n64cpu_ptr->cp0.lladdr;
+    prev_state.cp0.watch_lo.raw = n64cpu_ptr->cp0.watch_lo.raw;
+    prev_state.cp0.watch_hi = n64cpu_ptr->cp0.watch_hi;
+    prev_state.cp0.x_context.raw = n64cpu_ptr->cp0.x_context.raw;
+    prev_state.cp0.parity_error = n64cpu_ptr->cp0.parity_error;
+    prev_state.cp0.cache_error = n64cpu_ptr->cp0.cache_error;
+    prev_state.cp0.tag_lo.raw = n64cpu_ptr->cp0.tag_lo.raw;
+    prev_state.cp0.tag_hi = n64cpu_ptr->cp0.tag_hi;
+    prev_state.cp0.error_epc = n64cpu_ptr->cp0.error_epc;
+
+    prev_state.llbit = n64cpu_ptr->llbit;
+
+    prev_state.fcr31.raw = n64cpu_ptr->fcr31.raw;
+}
+#endif
 
 bool compare() {
     bool good = true;
@@ -241,12 +284,24 @@ void print_state() {
         }
     }
 #endif
+
+
+#ifdef CHECK_PREV_STATE
+    printf("==== Previous State ====\n");
+    printf("PC: %016" PRIX64 "\n", prev_state.pc);
+    for (int i = 0; i < 32; i++) {
+        printf("%d %016" PRIX64 "\n", i, prev_state.gpr[i]);
+    }
+#endif
 }
 
 void run_compare_parent() {
     u64 start_pc = 0;
     int steps = 0;
     do {
+        #ifdef CHECK_PREV_STATE
+        save_prev_state();
+        #endif
         start_pc = N64CPU.pc;
         // Step jit
         steps = n64_system_step(true, -1);
@@ -431,7 +486,8 @@ int main(int argc, char** argv) {
     pif_rom_execute();
 
 
-    u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
+    // u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
+    u64 start_comparing_at = 0xFFFFFFFF80320F9C;
 
     while (N64CPU.pc != start_comparing_at) {
         n64_system_step(false, 1);
@@ -442,6 +498,9 @@ int main(int argc, char** argv) {
     if (is_child) {
         run_compare_child();
     } else {
+#ifdef LOG_MEMORY_ACCESSES // in n64bus.h
+        log_memory_accesses = true;
+#endif
         N64CPU.prev_branch = false;
         N64CPU.branch = false;
         run_compare_parent();
