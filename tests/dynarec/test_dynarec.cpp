@@ -1,6 +1,5 @@
 #include <cpu/dynarec/dynarec.h>
 #include <cpu/r4300i.h>
-#include <iostream>
 #include <mem/n64bus.h>
 #include <memory>
 #include <optional>
