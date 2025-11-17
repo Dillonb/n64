@@ -372,7 +372,7 @@ u32 read_unused(u32 address) {
     return 0;
 }
 
-void n64_write_physical_dword(u32 address, u64 value) {
+void n64_write_physical_dword_impl(u32 address, u64 value) {
     if (address & 0b111) {
         logfatal("Tried to write to unaligned DWORD");
     }
@@ -448,7 +448,7 @@ void n64_write_physical_dword(u32 address, u64 value) {
     }
 }
 
-u64 n64_read_physical_dword(u32 address) {
+u64 n64_read_physical_dword_impl(u32 address) {
     if (address & 0b111) {
         logfatal("Tried to load from unaligned DWORD");
     }
@@ -503,7 +503,7 @@ u64 n64_read_physical_dword(u32 address) {
 }
 
 
-void n64_write_physical_word(u32 address, u32 value) {
+void n64_write_physical_word_impl(u32 address, u32 value) {
     if (address & 0b11) {
         logfatal("Tried to write to unaligned WORD");
     }
@@ -579,7 +579,7 @@ void n64_write_physical_word(u32 address, u32 value) {
     }
 }
 
-u32 n64_read_physical_word(u32 address) {
+u32 n64_read_physical_word_impl(u32 address) {
     if (address & 0b11) {
         logfatal("Tried to load from unaligned WORD");
     }
@@ -658,7 +658,7 @@ INLINE u32 bus_edge_case_half_pif_spmem(u32 address, u32 value) {
     return value << (16 * !(address & 2));
 }
 
-void n64_write_physical_half(u32 address, u32 value) {
+void n64_write_physical_half_impl(u32 address, u32 value) {
     if (address & 0b1) {
         logfatal("Tried to write to unaligned HALF");
     }
@@ -737,7 +737,7 @@ void n64_write_physical_half(u32 address, u32 value) {
     }
 }
 
-u16 n64_read_physical_half(u32 address) {
+u16 n64_read_physical_half_impl(u32 address) {
     if (address & 0b1) {
         logfatal("Tried to load from unaligned HALF");
     }
@@ -791,7 +791,7 @@ u16 n64_read_physical_half(u32 address) {
     }
 }
 
-void n64_write_physical_byte(u32 address, u32 value) {
+void n64_write_physical_byte_impl(u32 address, u32 value) {
     logdebug("Writing 0x%02X to [0x%08X]", value & 0xFF, address);
 #ifdef N64_DYNAREC_ENABLED
     invalidate_dynarec_page(BYTE_ADDRESS(address));
@@ -856,7 +856,7 @@ void n64_write_physical_byte(u32 address, u32 value) {
     }
 }
 
-u8 n64_read_physical_byte(u32 address) {
+u8 n64_read_physical_byte_impl(u32 address) {
     switch (address) {
         case REGION_RDRAM:
             return n64sys.mem.rdram[BYTE_ADDRESS(address)];
@@ -918,6 +918,56 @@ u8 n64_read_physical_byte(u32 address) {
             logfatal("Reading byte from unknown address: 0x%08X", address);
     }
 }
+
+#ifdef LOG_MEMORY_ACCESSES
+bool log_memory_accesses = false;
+u8 n64_read_physical_byte(u32 address) {
+    u8 value = n64_read_physical_byte_impl(address);
+    if (log_memory_accesses) logalways("Read byte 0x%02X from [0x%08X]", value, address);
+    return value;
+
+}
+void n64_write_physical_byte(u32 address, u32 value) {
+    if (log_memory_accesses) logalways("Writing byte 0x%02X to [0x%08X]", value, address);
+    n64_write_physical_byte_impl(address, value);
+}
+u16 n64_read_physical_half(u32 address) {
+    u16 value = n64_read_physical_half_impl(address);
+    if (log_memory_accesses) logalways("Read half 0x%04X from [0x%08X]", value, address);
+    return value;
+}
+void n64_write_physical_half(u32 address, u32 value) {
+    if (log_memory_accesses) logalways("Writing half 0x%04X to [0x%08X]", value, address);
+    n64_write_physical_half_impl(address, value);
+}
+u32 n64_read_physical_word(u32 address) {
+    u32 value = n64_read_physical_word_impl(address);
+    if (log_memory_accesses) logalways("Read word 0x%08X from [0x%08X]", value, address);
+    return value;
+}
+void n64_write_physical_word(u32 address, u32 value) {
+    if (log_memory_accesses) logalways("Writing word 0x%08X to [0x%08X]", value, address);
+    n64_write_physical_word_impl(address, value);
+}
+u64 n64_read_physical_dword(u32 address) {
+    u64 value = n64_read_physical_dword_impl(address);
+    if (log_memory_accesses) logalways("Read dword 0x%016" PRIX64 " from [0x%08X]", value, address);
+    return value;
+}
+void n64_write_physical_dword(u32 address, u64 value) {
+    if (log_memory_accesses) logalways("Writing dword 0x%016" PRIX64 " to [0x%08X]", value, address);
+    n64_write_physical_dword_impl(address, value);
+}
+#else
+#define n64_read_physical_byte n64_read_physical_byte_impl
+#define n64_write_physical_byte n64_write_physical_byte_impl
+#define n64_read_physical_half n64_read_physical_half_impl
+#define n64_write_physical_half n64_write_physical_half_impl
+#define n64_read_physical_word n64_read_physical_word_impl
+#define n64_write_physical_word n64_write_physical_word_impl
+#define n64_read_physical_dword n64_read_physical_dword_impl
+#define n64_write_physical_dword n64_write_physical_dword_impl
+#endif
 
 bool debugger_read_physical_byte(u32 address, u8* result) {
     switch (address) {
