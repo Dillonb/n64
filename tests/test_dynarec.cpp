@@ -159,7 +159,8 @@ public:
                to_write.first, address);
     }
     if (to_write.second != value) {
-      logfatal("Expected to write dword value 0x%016" PRIX64 " but got 0x%016" PRIX64,
+      logfatal("Expected to write dword value 0x%016" PRIX64
+               " but got 0x%016" PRIX64,
                to_write.second, value);
     }
   }
@@ -234,7 +235,7 @@ private:
 std::unique_ptr<TestCase> current_testcase;
 
 u8 mock_read_physical_byte(u32 address) {
-    return current_testcase->read_byte(address);
+  return current_testcase->read_byte(address);
 }
 u16 mock_read_physical_half(u32 address) {
   return current_testcase->read_half(address);
@@ -243,19 +244,19 @@ u32 mock_read_physical_word(u32 address) {
   return current_testcase->read_word(address);
 }
 u64 mock_read_physical_dword(u32 address) {
-    return current_testcase->read_dword(address);
+  return current_testcase->read_dword(address);
 }
 void mock_write_physical_byte(u32 address, u32 value) {
-    return current_testcase->write_byte(address, value);
+  return current_testcase->write_byte(address, value);
 }
 void mock_write_physical_half(u32 address, u32 value) {
-    return current_testcase->write_half(address, value);
+  return current_testcase->write_half(address, value);
 }
 void mock_write_physical_word(u32 address, u32 value) {
-    return current_testcase->write_word(address, value);
+  return current_testcase->write_word(address, value);
 }
 void mock_write_physical_dword(u32 address, u64 value) {
-    return current_testcase->write_dword(address, value);
+  return current_testcase->write_dword(address, value);
 }
 
 int main(int argc, char **argv) {
@@ -315,7 +316,40 @@ int main(int argc, char **argv) {
                                       0x0000000000000000,
                                       0xFFFFFFFF80320618});
 
-    current_testcase->set_expected_pc(0xFFFFFFFF80320FC4);
+  current_testcase->set_expected_gprs({0,
+                                       0x000000000000001A,
+                                       0xFFFFFFFF80360000,
+                                       0xFFFFFFFF801EE0A0,
+                                       0x0000000000000000,
+                                       0x00000000000000FF,
+                                       0x00000000000000FF,
+                                       0xFFFFFFFF80222618,
+                                       0x0000000000000000,
+                                       0xFFFFFFFF80330000,
+                                       0xFFFFFFFF80333B94,
+                                       0xFFFFFFFF80333BA4,
+                                       0x0000000000000003,
+                                       0x0000000000000001,
+                                       0x0000000000000000,
+                                       0xFFFFFFFF80222618,
+                                       0x0000000000000000,
+                                       0x0000000000000000,
+                                       0x0000000000000000,
+                                       0x0000000000000000,
+                                       0x0000000000000000,
+                                       0x0000000000000000,
+                                       0x0000000000000000,
+                                       0x0000000000000000,
+                                       0x0000000076557364,
+                                       0xFFFFFFFF80360000,
+                                       0xFFFFFFFFA430000C,
+                                       0x0000000000000AAA,
+                                       0x0000000000000000,
+                                       0xFFFFFFFF80206CC0,
+                                       0x0000000000000000,
+                                       0xFFFFFFFF80320618});
+
+  current_testcase->set_expected_pc(0xFFFFFFFF80320FC4);
 
   MipsToIrContext context = {
       .read_physical_byte = (uintptr_t)&mock_read_physical_byte,
