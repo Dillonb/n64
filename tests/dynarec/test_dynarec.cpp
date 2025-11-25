@@ -287,7 +287,9 @@ int main(int argc, char **argv) {
 
   auto testcases = toml::parse_file("testcases.toml");
 
+  int testcase_num = 0;
   for (auto&& testcase : *testcases["testcases"].as_array()) {
+    printf("Running test %d...\n", ++testcase_num);
     auto table = *testcase.as_table();
 
     u64 initial_pc = std::strtoull(table["initial_pc"].as_string()->get().c_str(), nullptr, 16);
@@ -378,5 +380,6 @@ int main(int argc, char **argv) {
         n64cpu_ptr, context);
 
     current_testcase->validate();
+    printf("\tOK!\n");
   }
 }
