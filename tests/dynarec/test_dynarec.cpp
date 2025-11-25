@@ -178,42 +178,55 @@ public:
   }
 
   void validate() {
-    // TODO: make this nice like dynarec_compare is
+    bool bad = false;
     if (bytes_read_index != bytes_read.size()) {
-      logfatal("Not all expected byte reads were performed!");
+      logalways("Not all expected byte reads were performed!");
+      bad = true;
     }
     if (halves_read_index != halves_read.size()) {
-      logfatal("Not all expected half reads were performed!");
+      logalways("Not all expected half reads were performed!");
+      bad = true;
     }
     if (words_read_index != words_read.size()) {
-      logfatal("Not all expected word reads were performed!");
+      logalways("Not all expected word reads were performed!");
+      bad = true;
     }
     if (dwords_read_index != dwords_read.size()) {
-      logfatal("Not all expected dword reads were performed!");
+      logalways("Not all expected dword reads were performed!");
+      bad = true;
     }
     if (bytes_written_index != bytes_written.size()) {
-      logfatal("Not all expected byte writes were performed!");
+      logalways("Not all expected byte writes were performed!");
+      bad = true;
     }
     if (halves_written_index != halves_written.size()) {
-      logfatal("Not all expected half writes were performed!");
+      logalways("Not all expected half writes were performed!");
+      bad = true;
     }
     if (words_written_index != words_written.size()) {
-      logfatal("Not all expected word writes were performed!");
+      logalways("Not all expected word writes were performed!");
+      bad = true;
     }
     if (dwords_written_index != dwords_written.size()) {
-      logfatal("Not all expected dword writes were performed!");
+      logalways("Not all expected dword writes were performed!");
+      bad = true;
     }
     if (expected_gprs.size() > 0) {
       for (size_t i = 0; i < expected_gprs.size(); i++) {
         if (N64CPU.gpr[i] != expected_gprs[i]) {
-          logfatal("GPR %zu: expected 0x%016" PRIX64 " but got 0x%016" PRIX64, i, expected_gprs[i], N64CPU.gpr[i]);
+          logalways("GPR %zu: expected 0x%016" PRIX64 " but got 0x%016" PRIX64, i, expected_gprs[i], N64CPU.gpr[i]);
+          bad = true;
         }
       }
     }
     if (expected_pc.has_value()) {
       if (N64CPU.pc != expected_pc.value()) {
-        logfatal("PC: expected 0x%016" PRIX64 " but got 0x%016" PRIX64, expected_pc.value(), N64CPU.pc);
+        logalways("PC: expected 0x%016" PRIX64 " but got 0x%016" PRIX64, expected_pc.value(), N64CPU.pc);
+        bad = true;
       }
+    }
+    if (bad) {
+      logfatal("Test case failed!");
     }
   }
 
