@@ -182,6 +182,16 @@ public:
     print_multi_guest((uintptr_t)get_virtual_pc(), (u8*)get_instructions(), get_instruction_count() * 4);
   }
 
+  static void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
+    printf("%16s 0x%016" PRIX64 " 0x", name, expected);
+    for (int offset = 56; offset >= 0; offset -= 8) {
+      u64 good_byte = (expected >> offset) & 0xFF;
+      u64 bad_byte = (actual >> offset) & 0xFF;
+      printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte, good_byte == bad_byte ? "" : COLOR_END);
+    }
+    printf("%s" COLOR_END "\n", expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
+  }
+
   void validate() {
     bool bad = false;
     if (bytes_read_index != bytes_read.size()) {
@@ -216,21 +226,51 @@ public:
       logalways("Not all expected dword writes were performed!");
       bad = true;
     }
+
+    if (expected_pc.has_value()) {
+      print_colorcoded_u64("PC", expected_pc.value(), N64CPU.pc);
+      if (N64CPU.pc != expected_pc.value()) {
+        bad = true;
+      }
+    }
     if (expected_gprs.size() > 0) {
       for (size_t i = 0; i < expected_gprs.size(); i++) {
+        print_colorcoded_u64(register_names[i], expected_gprs[i], N64CPU.gpr[i]);
         if (N64CPU.gpr[i] != expected_gprs[i]) {
-          logalways("GPR %zu: expected 0x%016" PRIX64 " but got 0x%016" PRIX64, i, expected_gprs[i], N64CPU.gpr[i]);
           bad = true;
         }
       }
     }
-    if (expected_pc.has_value()) {
-      if (N64CPU.pc != expected_pc.value()) {
-        logalways("PC: expected 0x%016" PRIX64 " but got 0x%016" PRIX64, expected_pc.value(), N64CPU.pc);
-        bad = true;
-      }
+    printf("\n");
+
+    for (size_t i = 0; i < 32; i++) {
+      printf("%16s %016" PRIX64 "\n", cp1_register_names[i], N64CPU.f[i].raw);
     }
+
+    printf("\n");
+    printf("%16s %08X\n", "CP1 FCR31", N64CPU.fcr31.raw);
+
     if (bad) {
+      printf("=================  CP1 FCR31  ================\n");
+      // printf("Rounding Mode: %u\n", N64CPU.fcr31.rounding_mode);
+      // printf("Flag Inexact Operation: %u\n", N64CPU.fcr31.flag_inexact_operation);
+      // printf("Flag Underflow: %u\n", N64CPU.fcr31.flag_underflow);
+      // printf("Flag Overflow: %u\n", N64CPU.fcr31.flag_overflow);
+      // printf("Flag Division By Zero: %u\n", N64CPU.fcr31.flag_division_by_zero);
+      // printf("Flag Invalid Operation: %u\n", N64CPU.fcr31.flag_invalid_operation);
+      // printf("Enable Inexact Operation: %u\n", N64CPU.fcr31.enable_inexact_operation);
+      // printf("Enable Underflow: %u\n", N64CPU.fcr31.enable_underflow);
+      // printf("Enable Overflow: %u\n", N64CPU.fcr31.enable_overflow);
+      // printf("Enable Division By Zero: %u\n", N64CPU.fcr31.enable_division_by_zero);
+      // printf("Enable Invalid Operation: %u\n", N64CPU.fcr31.enable_invalid_operation);
+      // printf("Cause Inexact Operation: %u\n", N64CPU.fcr31.cause_inexact_operation);
+      // printf("Cause Underflow: %u\n", N64CPU.fcr31.cause_underflow);
+      // printf("Cause Overflow: %u\n", N64CPU.fcr31.cause_overflow);
+      // printf("Cause Division By Zero: %u\n", N64CPU.fcr31.cause_division_by_zero);
+      // printf("Cause Invalid Operation: %u\n", N64CPU.fcr31.cause_invalid_operation);
+      // printf("Cause Unimplemented Operation: %u\n", N64CPU.fcr31.cause_unimplemented_operation);
+      printf("Compare: %u\n", N64CPU.fcr31.compare);
+      // printf("Flush Subnormals: %u\n", N64CPU.fcr31.flush_subnormals);
       printf("================= Disassembly ================\n");
       dump_disassembly();
       printf("==============================================\n");
