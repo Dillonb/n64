@@ -1,3 +1,4 @@
+#include <cpu/disassemble.h>
 #include <cpu/dynarec/dynarec.h>
 #include <cpu/r4300i.h>
 #include <mem/n64bus.h>
@@ -177,6 +178,10 @@ public:
     }
   }
 
+  void dump_disassembly() {
+    print_multi_guest((uintptr_t)get_virtual_pc(), (u8*)get_instructions(), get_instruction_count() * 4);
+  }
+
   void validate() {
     bool bad = false;
     if (bytes_read_index != bytes_read.size()) {
@@ -226,6 +231,9 @@ public:
       }
     }
     if (bad) {
+      printf("================= Disassembly ================\n");
+      dump_disassembly();
+      printf("==============================================\n");
       logfatal("Test case failed!");
     }
   }
