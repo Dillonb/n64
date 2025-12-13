@@ -14,7 +14,7 @@
 
 class TestCase {
 public:
-  TestCase(u64 virtual_pc, const std::vector<u32>& instructions)
+  TestCase(u64 virtual_pc, const std::vector<u32> &instructions)
       : virtual_pc(virtual_pc), mips_instructions(instructions) {}
 
   u64 get_virtual_pc() const { return virtual_pc; }
@@ -28,35 +28,35 @@ public:
 
   size_t get_instruction_count() const { return mips_instructions.size(); }
 
-  void set_bytes_read(const std::vector<std::pair<u32, u8>>& bytes) {
+  void set_bytes_read(const std::vector<std::pair<u32, u8>> &bytes) {
     bytes_read = bytes;
   }
 
-  void set_halves_read(const std::vector<std::pair<u32, u16>>& halves) {
+  void set_halves_read(const std::vector<std::pair<u32, u16>> &halves) {
     halves_read = halves;
   }
 
-  void set_words_read(const std::vector<std::pair<u32, u32>>& words) {
+  void set_words_read(const std::vector<std::pair<u32, u32>> &words) {
     words_read = words;
   }
 
-  void set_dwords_read(const std::vector<std::pair<u32, u64>>& dwords) {
+  void set_dwords_read(const std::vector<std::pair<u32, u64>> &dwords) {
     dwords_read = dwords;
   }
 
-  void set_bytes_written(const std::vector<std::pair<u32, u32>>& bytes) {
+  void set_bytes_written(const std::vector<std::pair<u32, u32>> &bytes) {
     bytes_written = bytes;
   }
 
-  void set_halves_written(const std::vector<std::pair<u32, u32>>& halves) {
+  void set_halves_written(const std::vector<std::pair<u32, u32>> &halves) {
     halves_written = halves;
   }
 
-  void set_words_written(const std::vector<std::pair<u32, u32>>& words) {
+  void set_words_written(const std::vector<std::pair<u32, u32>> &words) {
     words_written = words;
   }
 
-  void set_dwords_written(const std::vector<std::pair<u32, u64>>& dwords) {
+  void set_dwords_written(const std::vector<std::pair<u32, u64>> &dwords) {
     dwords_written = dwords;
   }
 
@@ -101,7 +101,8 @@ public:
 
     auto to_read = halves_read[halves_read_index++];
     if (to_read.first != address) {
-      logfatal("Expected to read half from address 0x%08X but got 0x%08X", to_read.first, address);
+      logfatal("Expected to read half from address 0x%08X but got 0x%08X",
+               to_read.first, address);
     }
     return to_read.second;
   }
@@ -112,7 +113,8 @@ public:
 
     auto to_read = words_read[words_read_index++];
     if (to_read.first != address) {
-      logfatal("Expected to read word from address 0x%08X but got 0x%08X", to_read.first, address);
+      logfatal("Expected to read word from address 0x%08X but got 0x%08X",
+               to_read.first, address);
     }
     return to_read.second;
   }
@@ -123,7 +125,8 @@ public:
 
     auto to_read = dwords_read[dwords_read_index++];
     if (to_read.first != address) {
-      logfatal("Expected to read dword from address 0x%08X but got 0x%08X", to_read.first, address);
+      logfatal("Expected to read dword from address 0x%08X but got 0x%08X",
+               to_read.first, address);
     }
     return to_read.second;
   }
@@ -135,10 +138,12 @@ public:
 
     auto to_write = bytes_written[bytes_written_index++];
     if (to_write.first != address) {
-      logfatal("Expected to write byte to address 0x%08X but got 0x%08X", to_write.first, address);
+      logfatal("Expected to write byte to address 0x%08X but got 0x%08X",
+               to_write.first, address);
     }
     if (to_write.second != value) {
-      logfatal("Expected to write byte value 0x%02X but got 0x%02X", to_write.second, value);
+      logfatal("Expected to write byte value 0x%02X but got 0x%02X",
+               to_write.second, value);
     }
   }
   void write_half(u32 address, u32 value) {
@@ -147,10 +152,12 @@ public:
     }
     auto to_write = halves_written[halves_written_index++];
     if (to_write.first != address) {
-      logfatal("Expected to write half to address 0x%08X but got 0x%08X", to_write.first, address);
+      logfatal("Expected to write half to address 0x%08X but got 0x%08X",
+               to_write.first, address);
     }
     if (to_write.second != value) {
-      logfatal("Expected to write half value 0x%04X but got 0x%04X", to_write.second, value);
+      logfatal("Expected to write half value 0x%04X but got 0x%04X",
+               to_write.second, value);
     }
   }
   void write_word(u32 address, u32 value) {
@@ -159,10 +166,12 @@ public:
     }
     auto to_write = words_written[words_written_index++];
     if (to_write.first != address) {
-      logfatal("Expected to write word to address 0x%08X but got 0x%08X", to_write.first, address);
+      logfatal("Expected to write word to address 0x%08X but got 0x%08X",
+               to_write.first, address);
     }
     if (to_write.second != value) {
-      logfatal("Expected to write word value 0x%08X but got 0x%08X", to_write.second, value);
+      logfatal("Expected to write word value 0x%08X but got 0x%08X",
+               to_write.second, value);
     }
   }
   void write_dword(u32 address, u64 value) {
@@ -171,28 +180,34 @@ public:
     }
     auto to_write = dwords_written[dwords_written_index++];
     if (to_write.first != address) {
-      logfatal("Expected to write dword to address 0x%08X but got 0x%08X", to_write.first, address);
+      logfatal("Expected to write dword to address 0x%08X but got 0x%08X",
+               to_write.first, address);
     }
     if (to_write.second != value) {
-      logfatal("Expected to write dword value 0x%016" PRIX64 " but got 0x%016" PRIX64, to_write.second, value);
+      logfatal("Expected to write dword value 0x%016" PRIX64
+               " but got 0x%016" PRIX64,
+               to_write.second, value);
     }
   }
 
   void dump_disassembly() {
-    print_multi_guest((uintptr_t)get_virtual_pc(), (u8*)get_instructions(), get_instruction_count() * 4);
+    print_multi_guest((uintptr_t)get_virtual_pc(), (u8 *)get_instructions(),
+                      get_instruction_count() * 4);
   }
 
-  static void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
+  static void print_colorcoded_u64(const char *name, u64 expected, u64 actual) {
     printf("%16s 0x%016" PRIX64 " 0x", name, expected);
     for (int offset = 56; offset >= 0; offset -= 8) {
       u64 good_byte = (expected >> offset) & 0xFF;
       u64 bad_byte = (actual >> offset) & 0xFF;
-      printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte, good_byte == bad_byte ? "" : COLOR_END);
+      printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte,
+             good_byte == bad_byte ? "" : COLOR_END);
     }
-    printf("%s" COLOR_END "\n", expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
+    printf("%s" COLOR_END "\n",
+           expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
   }
 
-  void validate() {
+  void validate(r4300i_t *cpu, const MipsToIrContext &context) {
     bool bad = false;
     if (bytes_read_index != bytes_read.size()) {
       logalways("Not all expected byte reads were performed!");
@@ -235,7 +250,8 @@ public:
     }
     if (expected_gprs.size() > 0) {
       for (size_t i = 0; i < expected_gprs.size(); i++) {
-        print_colorcoded_u64(register_names[i], expected_gprs[i], N64CPU.gpr[i]);
+        print_colorcoded_u64(register_names[i], expected_gprs[i],
+                             N64CPU.gpr[i]);
         if (N64CPU.gpr[i] != expected_gprs[i]) {
           bad = true;
         }
@@ -270,9 +286,17 @@ public:
       // printf("Cause Invalid Operation: %u\n", N64CPU.fcr31.cause_invalid_operation);
       // printf("Cause Unimplemented Operation: %u\n", N64CPU.fcr31.cause_unimplemented_operation);
       printf("Compare: %u\n", N64CPU.fcr31.compare);
-      // printf("Flush Subnormals: %u\n", N64CPU.fcr31.flush_subnormals);
-      printf("================= Disassembly ================\n");
+      //printf("Flush Subnormals: %u\n", N64CPU.fcr31.flush_subnormals);
+      printf("============== Guest Disassembly =============\n");
       dump_disassembly();
+      printf("=================== JIT IR ===================\n");
+      rs_jit_dump_ir(get_instructions(), get_instruction_count(),
+                     get_virtual_pc(), get_physical_pc(), cpu,
+                     context);
+      printf("=============== Host Disassembly =============\n");
+      rs_jit_dump_host_disasm(get_instructions(), get_instruction_count(),
+                              get_virtual_pc(), get_physical_pc(), cpu,
+                              context);
       printf("==============================================\n");
       logfatal("Test case failed!");
     }
@@ -350,31 +374,35 @@ int main(int argc, char **argv) {
   auto testcases = toml::parse_file("testcases.toml");
 
   int testcase_num = 0;
-  for (auto&& testcase : *testcases["testcases"].as_array()) {
+  for (auto &&testcase : *testcases["testcases"].as_array()) {
     printf("Running test %d...\n", ++testcase_num);
     auto table = *testcase.as_table();
 
-    u64 initial_pc = std::strtoull(table["initial_pc"].as_string()->get().c_str(), nullptr, 16);
-    u64 expected_pc = std::strtoull(table["expected_pc"].as_string()->get().c_str(), nullptr, 16);
+    u64 initial_pc = std::strtoull(
+        table["initial_pc"].as_string()->get().c_str(), nullptr, 16);
+    u64 expected_pc = std::strtoull(
+        table["expected_pc"].as_string()->get().c_str(), nullptr, 16);
 
     std::vector<u32> instructions;
-    for (auto&& instr : *table["code"].as_array()) {
+    for (auto &&instr : *table["code"].as_array()) {
       instructions.push_back(static_cast<u32>(instr.as_integer()->get()));
     }
 
     std::vector<u64> initial_gprs;
-    for (auto&& gpr : *table["initial_gprs"].as_array()) {
-      initial_gprs.push_back(std::strtoull(gpr.as_string()->get().c_str(), nullptr, 16));
+    for (auto &&gpr : *table["initial_gprs"].as_array()) {
+      initial_gprs.push_back(
+          std::strtoull(gpr.as_string()->get().c_str(), nullptr, 16));
     }
 
     std::vector<u64> expected_gprs;
-    for (auto&& gpr : *table["expected_gprs"].as_array()) {
-      expected_gprs.push_back(std::strtoull(gpr.as_string()->get().c_str(), nullptr, 16));
+    for (auto &&gpr : *table["expected_gprs"].as_array()) {
+      expected_gprs.push_back(
+          std::strtoull(gpr.as_string()->get().c_str(), nullptr, 16));
     }
 
     std::vector<std::pair<u32, u8>> bytes_read;
     if (table.contains("bytes_read")) {
-      for (auto&& entry : *table["bytes_read"].as_array()) {
+      for (auto &&entry : *table["bytes_read"].as_array()) {
         auto pair = *entry.as_table();
         u32 address = pair["address"].as_integer()->get();
         u8 value = pair["value"].as_integer()->get();
@@ -384,7 +412,7 @@ int main(int argc, char **argv) {
 
     std::vector<std::pair<u32, u16>> halves_read;
     if (table.contains("halves_read")) {
-      for (auto&& entry : *table["halves_read"].as_array()) {
+      for (auto &&entry : *table["halves_read"].as_array()) {
         auto pair = *entry.as_table();
         u32 address = pair["address"].as_integer()->get();
         u16 value = pair["value"].as_integer()->get();
@@ -394,7 +422,7 @@ int main(int argc, char **argv) {
 
     std::vector<std::pair<u32, u32>> words_read;
     if (table.contains("words_read")) {
-      for (auto&& entry : *table["words_read"].as_array()) {
+      for (auto &&entry : *table["words_read"].as_array()) {
         auto pair = *entry.as_table();
         u32 address = pair["address"].as_integer()->get();
         u32 value = pair["value"].as_integer()->get();
@@ -404,15 +432,17 @@ int main(int argc, char **argv) {
 
     std::vector<std::pair<u32, u64>> dwords_read;
     if (table.contains("dwords_read")) {
-      for (auto&& entry : *table["dwords_read"].as_array()) {
+      for (auto &&entry : *table["dwords_read"].as_array()) {
         auto pair = *entry.as_table();
         u32 address = pair["address"].as_integer()->get();
-        u64 value = std::strtoull(pair["value"].as_string()->get().c_str(), nullptr, 16);
+        u64 value = std::strtoull(pair["value"].as_string()->get().c_str(),
+                                  nullptr, 16);
         dwords_read.push_back({address, value});
       }
     }
 
-    current_testcase = std::unique_ptr<TestCase>(new TestCase(initial_pc, instructions));
+    current_testcase =
+        std::unique_ptr<TestCase>(new TestCase(initial_pc, instructions));
     current_testcase->set_expected_pc(expected_pc);
     if (!initial_gprs.empty()) {
       current_testcase->set_initial_gprs(initial_gprs);
@@ -441,7 +471,7 @@ int main(int argc, char **argv) {
         current_testcase->get_virtual_pc(), current_testcase->get_physical_pc(),
         n64cpu_ptr, context);
 
-    current_testcase->validate();
+    current_testcase->validate(n64cpu_ptr, context);
     printf("\tOK!\n");
   }
 }
