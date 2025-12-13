@@ -5,7 +5,7 @@
 #![allow(non_snake_case)]
 #![allow(unnecessary_transmutes)]
 
-use std::mem;
+use std::{env::current_exe, mem};
 
 use dgbir::{compiler::{compile, compile_vec}, disassembler::disassemble_vec_function, util::flush_icache};
 use log::{debug, info};
@@ -63,4 +63,13 @@ pub unsafe extern "C" fn rs_jit_compile_and_run_block_for_test(
     let compiled = compile(&mut func);
     let f: unsafe extern "C" fn(*mut r4300i) -> i32 = unsafe { mem::transmute(compiled.ptr_entrypoint()) };
     return f(cpu as *const r4300i as *mut r4300i);
+}
+
+// TODO: this doesn't belong in the JIT lib.rs, but it's a convenient place for now
+#[no_mangle]
+pub unsafe extern "C" fn cd_to_current_exe() {
+    let path = current_exe().expect("Failed to get current exe path");
+    let dir = path.parent().expect("Failed to get parent directory");
+    std::env::set_current_dir(dir).expect("Failed to change current directory");
+    println!("Changed working directory to {:?}", dir);
 }

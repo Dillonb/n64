@@ -284,6 +284,7 @@ void mock_write_physical_dword(u32 address, u64 value) {
 }
 
 int main(int argc, char **argv) {
+  cd_to_current_exe();
   // Needed to setup all static global pointers that code assumes exist
   init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, true);
 
