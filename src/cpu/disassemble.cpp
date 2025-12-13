@@ -183,5 +183,9 @@ void print_multi_host(uintptr_t address, u8 *code, size_t code_size) {
     printf("%s\n", disassemble_multi(DisassemblyArch::HOST, address, code, code_size).c_str());
 }
 void print_multi_guest(uintptr_t address, u8 *code, size_t code_size) {
+    // Stop addresses showing up as negative
+    if ((address >> 32) == 0xFFFFFFFF) {
+        address &= 0xFFFFFFFF;
+    }
     printf("%s\n", disassemble_multi(DisassemblyArch::GUEST, address, code, code_size).c_str());
 }
