@@ -61,15 +61,14 @@ public:
   }
 
   void set_initial_gprs(const std::vector<u64> &gprs) {
-    std::vector<u64> gprs_vec = gprs;
-    if (gprs_vec.size() != 32) {
+    if (gprs.size() != 32) {
       logfatal("Initial GPRs list must have exactly 32 entries.");
     }
-    if (gprs_vec[0] != 0) {
+    if (gprs[0] != 0) {
       logfatal("GPR 0 must be initialized to 0.");
     }
     for (size_t i = 0; i < 32; i++) {
-      N64CPU.gpr[i] = gprs_vec[i];
+      N64CPU.gpr[i] = gprs[i];
     }
   }
 
@@ -79,6 +78,23 @@ public:
       logfatal("Expected GPRs list must have exactly 32 entries.");
     }
   }
+
+  void set_initial_fgrs(const std::vector<u64> &fgrs) {
+    if (fgrs.size() != 32) {
+      logfatal("Initial FGRs list must have exactly 32 entries.");
+    }
+    for (size_t i = 0; i < 32; i++) {
+      N64CPU.f[i].raw = fgrs[i];
+    }
+  }
+
+  void set_expected_fgrs(const std::vector<u64> &fgrs) {
+    expected_fgrs = fgrs;
+    if (expected_fgrs.size() != 32) {
+      logfatal("Expected FGRs list must have exactly 32 entries.");
+    }
+  }
+
   void set_expected_pc(u64 pc) { expected_pc = pc; }
 
   u8 read_byte(u32 address) {
@@ -257,6 +273,18 @@ public:
         }
       }
     }
+
+    printf("\n");
+
+    if (expected_fgrs.size() > 0) {
+      for (size_t i = 0; i < expected_gprs.size(); i++) {
+        print_colorcoded_u64(cp1_register_names[i], expected_fgrs[i],
+                             N64CPU.f[i].raw);
+        if (N64CPU.f[i].raw != expected_fgrs[i]) {
+          bad = true;
+        }
+      }
+    }
     printf("\n");
 
     for (size_t i = 0; i < 32; i++) {
@@ -308,6 +336,7 @@ private:
   std::vector<u32> mips_instructions;
 
   std::vector<u64> expected_gprs;
+  std::vector<u64> expected_fgrs;
   std::optional<u64> expected_pc;
 
   std::vector<std::pair<u32, u8>> bytes_read;
@@ -400,6 +429,22 @@ int main(int argc, char **argv) {
           std::strtoull(gpr.as_string()->get().c_str(), nullptr, 16));
     }
 
+    std::vector<u64> initial_fgrs;
+    if (table.contains("initial_fgrs")) {
+      for (auto &&fgr : *table["initial_fgrs"].as_array()) {
+        initial_fgrs.push_back(
+            std::strtoull(fgr.as_string()->get().c_str(), nullptr, 16));
+      }
+    }
+
+    std::vector<u64> expected_fgrs;
+    if (table.contains("expected_fgrs")) {
+      for (auto &&fgr : *table["expected_fgrs"].as_array()) {
+        expected_fgrs.push_back(
+            std::strtoull(fgr.as_string()->get().c_str(), nullptr, 16));
+      }
+    }
+
     std::vector<std::pair<u32, u8>> bytes_read;
     if (table.contains("bytes_read")) {
       for (auto &&entry : *table["bytes_read"].as_array()) {
@@ -450,6 +495,14 @@ int main(int argc, char **argv) {
 
     if (!expected_gprs.empty()) {
       current_testcase->set_expected_gprs(expected_gprs);
+    }
+
+    if (!initial_fgrs.empty()) {
+      current_testcase->set_initial_fgrs(initial_fgrs);
+    }
+
+    if (!expected_fgrs.empty()) {
+      current_testcase->set_expected_fgrs(expected_fgrs);
     }
 
     if (!bytes_read.empty()) {
