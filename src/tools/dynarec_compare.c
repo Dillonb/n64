@@ -349,10 +349,10 @@ void print_state() {
         printf("\n[[testcases.words_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
     }
     while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_DWORD, BUS_LOAD)) {
-        printf("\n[[testcases.dwords_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+        printf("\n[[testcases.dwords_read]]\naddress=0x%08X\nvalue=\"0x%" PRIX64 "\"\n\n", memory_access.paddr, memory_access.value);
     }
     while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_DWORD, BUS_STORE)) {
-        printf("\n[[testcases.dwords_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+        printf("\n[[testcases.dwords_written]]\naddress=0x%08X\nvalue=\"0x%" PRIX64 "\"\n\n", memory_access.paddr, memory_access.value);
     }
     #else
     printf("# To enable memory access logging, uncomment #define LOG_MEMORY_ACCESSES in n64bus.h\n");
