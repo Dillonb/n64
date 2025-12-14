@@ -547,6 +547,8 @@ fn do_branch(
     taken_block.jump(block.call(vec![]));
     if likely {
         // Likely branches, return, don't execute the delay slot.
+        // Add one here so that the branch itself is included in the cycle count.
+        // This +1 does NOT mean the cycle for the instruction in the delay slot.
         not_taken_block.ret(Some(const_s32(cycles + 1)));
     } else {
         // Normal branches, continue and execute the delay slot.

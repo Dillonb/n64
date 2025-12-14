@@ -184,7 +184,7 @@ value = 0x00
 
 [[testcases]]
 initial_pc = "0xFFFFFFFF80325334"
-expected_pc = "0xFFFFFFFF80325358"
+expected_pc = "0xFFFFFFFF80325354"
 
 code = [
     0x44802000, # mtc1 $zero, $f4

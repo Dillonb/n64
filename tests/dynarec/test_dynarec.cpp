@@ -258,6 +258,8 @@ public:
       bad = true;
     }
 
+
+    printf("            expected                actual\n");
     if (expected_pc.has_value()) {
       print_colorcoded_u64("PC", expected_pc.value(), N64CPU.pc);
       if (N64CPU.pc != expected_pc.value()) {
