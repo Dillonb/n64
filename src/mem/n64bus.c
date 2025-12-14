@@ -3,6 +3,7 @@
 #include <interface/vi.h>
 #include <interface/ai.h>
 #include <cpu/rsp_interface.h>
+#include <mem/memory_logger.h>
 #include <rdp/rdp.h>
 #ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
@@ -373,30 +374,29 @@ u32 read_unused(u32 address) {
 }
 
 #ifdef LOG_MEMORY_ACCESSES
-bool log_memory_accesses = false;
 void log_byte_write(u32 address, u32 value) {
-    logalways("Writing byte 0x%02X to [0x%08X]", value, address);
+    log_memory_write(address, MEMORY_ACCESS_SIZE_BYTE, value);
 }
 void log_half_write(u32 address, u32 value) {
-    logalways("Writing half 0x%04X to [0x%08X]", value, address);
+    log_memory_write(address, MEMORY_ACCESS_SIZE_HALF, value);
 }
 void log_word_write(u32 address, u32 value) {
-    logalways("Writing word 0x%08X to [0x%08X]", value, address);
+    log_memory_write(address, MEMORY_ACCESS_SIZE_WORD, value);
 }
 void log_dword_write(u32 address, u64 value) {
-    logalways("Writing dword 0x%016" PRIX64 " to [0x%08X]", value, address);
+    log_memory_write(address, MEMORY_ACCESS_SIZE_DWORD, value);
 }
 void log_byte_read(u32 address, u8 value) {
-    logalways("Read byte 0x%02X from [0x%08X]", value, address);
+    log_memory_read(address, MEMORY_ACCESS_SIZE_BYTE, value);
 }
 void log_half_read(u32 address, u16 value) {
-    logalways("Read half 0x%04X from [0x%08X]", value, address);
+    log_memory_read(address, MEMORY_ACCESS_SIZE_HALF, value);
 }
 void log_word_read(u32 address, u32 value) {
-    logalways("Read word 0x%08X from [0x%08X]", value, address);
+    log_memory_read(address, MEMORY_ACCESS_SIZE_WORD, value);
 }
 void log_dword_read(u32 address, u64 value) {
-    logalways("Read dword 0x%016" PRIX64 " from [0x%08X]", value, address);
+    log_memory_read(address, MEMORY_ACCESS_SIZE_DWORD, value);
 }
 #else
 #define log_byte_write(address, value) do {} while(0)

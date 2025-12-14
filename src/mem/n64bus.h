@@ -7,10 +7,6 @@
 
 // #define LOG_MEMORY_ACCESSES
 
-#ifdef LOG_MEMORY_ACCESSES
-extern bool log_memory_accesses;
-#endif
-
 INLINE bool is_tlb(u64 vaddr) {
     switch (vaddr) {
         case VREGION_XKUSEG:

@@ -53,6 +53,7 @@ add_library(core
         mem/n64rom.c mem/n64rom.h
         mem/n64mem.c mem/n64mem.h
         mem/n64bus.c mem/n64bus.h
+        mem/memory_logger.cpp mem/memory_logger.h
         mem/pif.c mem/pif.h
         mem/backup.c mem/backup.h
 

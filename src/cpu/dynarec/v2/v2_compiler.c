@@ -3,6 +3,7 @@
 #include "jit_rs.h"
 #include <dynarec/dynarec.h>
 #include <log.h>
+#include <mem/memory_logger.h>
 #include <mem/n64bus.h>
 #include <disassemble.h>
 #include <dynarec/dynarec_memory_management.h>
@@ -130,6 +131,10 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
             break;
         }
     }
+    #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
+    // Don't pollute the memory access logs with code accesses
+    clear_memory_logger();
+    #endif
 
 #ifdef N64_LOG_COMPILATIONS
     printf("Ending block after %d instructions\n", temp_code_len);

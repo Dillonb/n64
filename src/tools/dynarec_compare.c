@@ -7,6 +7,7 @@
  * sudo sysctl -w kern.sysv.shmmax=67108864
  * sudo sysctl -w kern.sysv.shmall=16384
  */
+#include <mem/memory_logger.h>
 #include <stdio.h>
 #include <log.h>
 #include <system/n64system.h>
@@ -28,7 +29,7 @@
 #include <cpu/dynarec/v2/ir_context.h>
 
 // #define CHECK_RDRAM
-// #define CHECK_PREV_STATE
+#define CHECK_PREV_STATE
 
 r4300i_t* n64cpu_interpreter_ptr;
 n64_system_t* n64sys_interpreter_ptr;
@@ -287,11 +288,77 @@ void print_state() {
 
 
 #ifdef CHECK_PREV_STATE
-    printf("==== Previous State ====\n");
-    printf("PC: %016" PRIX64 "\n", prev_state.pc);
-    for (int i = 0; i < 32; i++) {
-        printf("%d %016" PRIX64 "\n", i, prev_state.gpr[i]);
+    printf("\n\n\n");
+    printf("[[testcases]]\n");
+    printf("initial_pc = \"0x%016" PRIX64 "\"\n", prev_state.pc);
+    printf("expected_pc = \"0x%016" PRIX64 "\"\n", n64cpu_interpreter_ptr->pc);
+    printf("\n");
+
+    printf("code = [\n");
+    char codebuf[100];
+    for (int i = 0; i < temp_code_len; i++) {
+        u32 instruction = temp_code[i].raw;
+        u64 v_pc = prev_state.pc + (i << 2);
+        disassemble(v_pc & 0xFFFFFFFF, instruction, codebuf, 100);
+        printf("    0x%08X, # %s\n", instruction, codebuf);
     }
+    printf("]\n\n");
+
+    printf("initial_gprs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\",\n", prev_state.gpr[i]);
+    }
+    printf("]\n\n");
+
+    printf("initial_fgrs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\",\n", prev_state.f[i].raw);
+    }
+    printf("]\n");
+
+    printf("expected_gprs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\",\n", n64cpu_interpreter_ptr->gpr[i]);
+    }
+    printf("]\n\n");
+
+    printf("expected_fgrs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\",\n", n64cpu_interpreter_ptr->f[i].raw);
+    }
+    printf("]\n");
+
+    #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
+    memory_access_t memory_access;
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_BYTE, BUS_LOAD)) {
+        printf("\n[[testcases.bytes_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_BYTE, BUS_STORE)) {
+        printf("\n[[testcases.bytes_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_HALF, BUS_LOAD)) {
+        printf("\n[[testcases.halves_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_HALF, BUS_STORE)) {
+        printf("\n[[testcases.halves_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_WORD, BUS_LOAD)) {
+        printf("\n[[testcases.words_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_WORD, BUS_STORE)) {
+        printf("\n[[testcases.words_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_DWORD, BUS_LOAD)) {
+        printf("\n[[testcases.dwords_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_DWORD, BUS_STORE)) {
+        printf("\n[[testcases.dwords_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    #else
+    printf("# To enable memory access logging, uncomment #define LOG_MEMORY_ACCESSES in n64bus.h\n");
+    #endif
+
+
 #endif
 }
 
@@ -301,6 +368,9 @@ void run_compare_parent() {
     do {
         #ifdef CHECK_PREV_STATE
         save_prev_state();
+        #endif
+        #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
+        clear_memory_logger();
         #endif
         start_pc = N64CPU.pc;
         // Step jit
@@ -487,7 +557,7 @@ int main(int argc, char** argv) {
 
 
     // u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
-    u64 start_comparing_at = 0xFFFFFFFF80320F9C;
+    u64 start_comparing_at = 0xFFFFFFFF80325334;
 
     while (N64CPU.pc != start_comparing_at) {
         n64_system_step(false, 1);
@@ -499,7 +569,7 @@ int main(int argc, char** argv) {
         run_compare_child();
     } else {
 #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
-        log_memory_accesses = true;
+        init_memory_logger();
 #endif
         N64CPU.prev_branch = false;
         N64CPU.branch = false;
