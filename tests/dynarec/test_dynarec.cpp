@@ -287,11 +287,6 @@ public:
         }
       }
     }
-    printf("\n");
-
-    for (size_t i = 0; i < 32; i++) {
-      printf("%16s %016" PRIX64 "\n", cp1_register_names[i], N64CPU.f[i].raw);
-    }
 
     printf("\n");
     printf("%16s %08X\n", "CP1 FCR31", N64CPU.fcr31.raw);
