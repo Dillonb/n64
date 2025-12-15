@@ -95,6 +95,8 @@ public:
     }
   }
 
+  void set_initial_fcr31(u32 fcr31) { N64CPU.fcr31.raw = fcr31; }
+
   void set_expected_pc(u64 pc) { expected_pc = pc; }
 
   u8 read_byte(u32 address) {
@@ -440,6 +442,11 @@ int main(int argc, char **argv) {
         expected_fgrs.push_back(
             std::strtoull(fgr.as_string()->get().c_str(), nullptr, 16));
       }
+    }
+
+    if (table.contains("initial_fcr31")) {
+      u32 initial_fcr31 = static_cast<u32>(table["initial_fcr31"].as_integer()->get());
+      N64CPU.fcr31.raw = initial_fcr31;
     }
 
     std::vector<std::pair<u32, u8>> bytes_read;

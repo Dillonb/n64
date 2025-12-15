@@ -326,7 +326,9 @@ void print_state() {
     for (int i = 0; i < 32; i++) {
         printf("    \"0x%016" PRIX64 "\",\n", n64cpu_interpreter_ptr->f[i].raw);
     }
-    printf("]\n");
+    printf("]\n\n");
+
+    printf("initial_fcr31 = 0x%08X\n\n", prev_state.fcr31.raw);
 
     #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
     memory_access_t memory_access;
