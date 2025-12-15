@@ -490,6 +490,44 @@ int main(int argc, char **argv) {
       }
     }
 
+    std::vector<std::pair<u32, u32>> bytes_written;
+    if (table.contains("bytes_written")) {
+      for (auto &&entry : *table["bytes_written"].as_array()) {
+        auto pair = *entry.as_table();
+        u32 address = pair["address"].as_integer()->get();
+        u32 value = pair["value"].as_integer()->get();
+        bytes_written.push_back({address, value});
+      }
+    }
+    std::vector<std::pair<u32, u32>> halves_written;
+    if (table.contains("halves_written")) {
+      for (auto &&entry : *table["halves_written"].as_array()) {
+        auto pair = *entry.as_table();
+        u32 address = pair["address"].as_integer()->get();
+        u32 value = pair["value"].as_integer()->get();
+        halves_written.push_back({address, value});
+      }
+    }
+    std::vector<std::pair<u32, u32>> words_written;
+    if (table.contains("words_written")) {
+      for (auto &&entry : *table["words_written"].as_array()) {
+        auto pair = *entry.as_table();
+        u32 address = pair["address"].as_integer()->get();
+        u32 value = pair["value"].as_integer()->get();
+        words_written.push_back({address, value});
+      }
+    }
+    std::vector<std::pair<u32, u64>> dwords_written;
+    if (table.contains("dwords_written")) {
+      for (auto &&entry : *table["dwords_written"].as_array()) {
+        auto pair = *entry.as_table();
+        u32 address = pair["address"].as_integer()->get();
+        u64 value = std::strtoull(pair["value"].as_string()->get().c_str(),
+                                  nullptr, 16);
+        dwords_written.push_back({address, value});
+      }
+    }
+
     current_testcase =
         std::unique_ptr<TestCase>(new TestCase(initial_pc, instructions));
     current_testcase->set_expected_pc(expected_pc);
@@ -520,6 +558,18 @@ int main(int argc, char **argv) {
     }
     if (!dwords_read.empty()) {
       current_testcase->set_dwords_read(dwords_read);
+    }
+    if (!bytes_written.empty()) {
+      current_testcase->set_bytes_written(bytes_written);
+    }
+    if (!halves_written.empty()) {
+      current_testcase->set_halves_written(halves_written);
+    }
+    if (!words_written.empty()) {
+      current_testcase->set_words_written(words_written);
+    }
+    if (!dwords_written.empty()) {
+      current_testcase->set_dwords_written(dwords_written);
     }
 
     rs_jit_compile_and_run_block_for_test(
