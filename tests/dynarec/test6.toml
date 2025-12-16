@@ -1,0 +1,263 @@
+[[testcases]]
+initial_pc = "0xFFFFFFFF80378F84"
+expected_pc = "0xFFFFFFFF80323A50"
+
+code = [
+    0x27BDFFB0, # addiu $sp, $sp, -0x50
+    0xAFBF001C, # sw $ra, 0x1c($sp)
+    0xAFA40050, # sw $a0, 0x50($sp)
+    0xAFA50054, # sw $a1, 0x54($sp)
+    0xAFA60058, # sw $a2, 0x58($sp)
+    0xAFA7005C, # sw $a3, 0x5c($sp)
+    0xF7B40010, # sdc1 $f20, 0x10($sp)
+    0x8FAE0058, # lw $t6, 0x58($sp)
+    0x8FAF0054, # lw $t7, 0x54($sp)
+    0xC5C40000, # lwc1 $f4, ($t6)
+    0xC5E60000, # lwc1 $f6, ($t7)
+    0x46062201, # sub.s $f8, $f4, $f6
+    0xE7A80048, # swc1 $f8, 0x48($sp)
+    0x8FB80058, # lw $t8, 0x58($sp)
+    0x8FB90054, # lw $t9, 0x54($sp)
+    0xC70A0008, # lwc1 $f10, 8($t8)
+    0xC7300008, # lwc1 $f16, 8($t9)
+    0x46105481, # sub.s $f18, $f10, $f16
+    0xE7B20044, # swc1 $f18, 0x44($sp)
+    0xC7A40048, # lwc1 $f4, 0x48($sp)
+    0xC7A80044, # lwc1 $f8, 0x44($sp)
+    0x46042182, # mul.s $f6, $f4, $f4
+    0x00000000, # nop
+    0x46084282, # mul.s $f10, $f8, $f8
+    0x0C0C8E94, # jal 0x80323a50
+    0x460A3300, # add.s $f12, $f6, $f10
+]
+
+initial_gprs = [
+    "0x0000000000000000",
+    "0x000000001FFFFFFF",
+    "0xFFFFFFFF80220BC8",
+    "0xFFFFFFFF80220C88",
+    "0xFFFFFFFF80206C10",
+    "0xFFFFFFFF800910CC",
+    "0xFFFFFFFF800910D8",
+    "0x0000000000000000",
+    "0x0000000000220C08",
+    "0xFFFFFFFF80214708",
+    "0xFFFFFFFF80206B8C",
+    "0xFFFFFFFF80214708",
+    "0xFFFFFFFF80214710",
+    "0x0000000001010040",
+    "0xFFFFFFFF80214708",
+    "0xFFFFFFFF80220C08",
+    "0x0000000000000114",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0xFFFFFFFF800910B0",
+    "0x0000000000000001",
+    "0xFFFFFFFFA430000C",
+    "0x0000000000000AAA",
+    "0x0000000000000000",
+    "0xFFFFFFFF80206BE8",
+    "0x0000000000000000",
+    "0xFFFFFFFF8027C020",
+]
+
+initial_fgrs = [
+    "0x40D0200047800000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x401FC07F3F800000",
+    "0x0000000000000000",
+    "0x0000000047800000",
+    "0x0000000000000000",
+    "0x0000000047800000",
+    "0x0000000000000000",
+    "0x0000000000010000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x00000000FEFDFBF8",
+    "0x0000000000000000",
+    "0x000000003F800000",
+    "0x0000000000000000",
+    "0x00000000C3810204",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+]
+expected_gprs = [
+    "0x0000000000000000",
+    "0x000000001FFFFFFF",
+    "0xFFFFFFFF80220BC8",
+    "0xFFFFFFFF80220C88",
+    "0xFFFFFFFF80206C10",
+    "0xFFFFFFFF800910CC",
+    "0xFFFFFFFF800910D8",
+    "0x0000000000000000",
+    "0x0000000000220C08",
+    "0xFFFFFFFF80214708",
+    "0xFFFFFFFF80206B8C",
+    "0xFFFFFFFF80214708",
+    "0xFFFFFFFF80214710",
+    "0x0000000001010040",
+    "0xFFFFFFFF800910D8",
+    "0xFFFFFFFF800910CC",
+    "0x0000000000000114",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0xFFFFFFFF800910D8",
+    "0xFFFFFFFF800910CC",
+    "0xFFFFFFFFA430000C",
+    "0x0000000000000AAA",
+    "0x0000000000000000",
+    "0xFFFFFFFF80206B98",
+    "0x0000000000000000",
+    "0xFFFFFFFF80378FEC",
+]
+
+expected_fgrs = [
+    "0x40D0200047800000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x401FC07F00000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x00000000C5480000",
+    "0x0000000000000000",
+    "0x000000004B1C4000",
+    "0x0000000000000000",
+    "0x000000004B1C4000",
+    "0x0000000000000000",
+    "0x00000000FEFDFBF8",
+    "0x0000000000000000",
+    "0x0000000045480000",
+    "0x0000000000000000",
+    "0x00000000C5480000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+]
+
+initial_fcr31 = 0x01000800
+
+
+[[testcases.words_read]]
+address=0x00206BF0
+value=0x800910D8
+
+
+[[testcases.words_read]]
+address=0x00206BEC
+value=0x800910CC
+
+
+[[testcases.words_read]]
+address=0x000910D8
+value=0x0
+
+
+[[testcases.words_read]]
+address=0x000910CC
+value=0x0
+
+
+[[testcases.words_read]]
+address=0x00206BF0
+value=0x800910D8
+
+
+[[testcases.words_read]]
+address=0x00206BEC
+value=0x800910CC
+
+
+[[testcases.words_read]]
+address=0x000910E0
+value=0x0
+
+
+[[testcases.words_read]]
+address=0x000910D4
+value=0x45480000
+
+
+[[testcases.words_read]]
+address=0x00206BE0
+value=0x0
+
+
+[[testcases.words_read]]
+address=0x00206BDC
+value=0xC5480000
+
+
+[[testcases.words_written]]
+address=0x00206BB4
+value=0x8027C020
+
+
+[[testcases.words_written]]
+address=0x00206BE8
+value=0x80206C10
+
+
+[[testcases.words_written]]
+address=0x00206BEC
+value=0x800910CC
+
+
+[[testcases.words_written]]
+address=0x00206BF0
+value=0x800910D8
+
+
+[[testcases.words_written]]
+address=0x00206BF4
+value=0x0
+
+
+[[testcases.words_written]]
+address=0x00206BE0
+value=0x0
+
+
+[[testcases.words_written]]
+address=0x00206BDC
+value=0xC5480000
+
+
+[[testcases.dwords_written]]
+address=0x00206BA8
+value="0x0"
