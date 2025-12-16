@@ -604,7 +604,7 @@ int main(int argc, char **argv) {
     cd_to_current_exe();
     for (const auto& file : std::filesystem::directory_iterator(".")) {
       if (file.path().extension() == ".toml") {
-        run_tests_in_file(file.path().c_str());
+        run_tests_in_file(file.path().string().c_str());
       }
     }
   } else if (argc == 2) {
