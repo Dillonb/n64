@@ -184,6 +184,7 @@ impl GuestRegisterManager {
                 | (FgrLoadState::High32, FgrLoadState::Full64)
                 | (FgrLoadState::Full64, FgrLoadState::High32) => {
                     self.flush_fgr(block, r as usize, load_state, value);
+                    self.fgrs[r as usize] = None; // Also clear
                 }
 
                 // FGR is loaded with the full 64, but we only need the low 32, this is fine, no
