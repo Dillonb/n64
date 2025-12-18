@@ -650,7 +650,6 @@ u32 n64_read_physical_word(u32 address) {
             break;
         case REGION_DP_COMMAND_REGS:
             result = read_word_dpcreg(address);
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address);
             break;
         case REGION_DP_SPAN_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", address);
