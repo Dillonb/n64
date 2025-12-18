@@ -83,6 +83,8 @@ expected_gprs = [
   "0xFFFFFFFF80320618"
   ]
 
+initial_cp0_status = 0x2000FF03
+
 [[testcases.words_read]]
 address = 0x00222638
 value = 0x00000000

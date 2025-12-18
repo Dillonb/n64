@@ -15,17 +15,18 @@ use crate::{
     },
     n64_read_physical_byte, n64_read_physical_dword, n64_read_physical_half,
     n64_read_physical_word, n64_write_physical_byte, n64_write_physical_dword,
-    n64_write_physical_half, n64_write_physical_word, n64cpu_ptr, r4300i_t,
-    reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK,
-    CP0_STATUS_WRITE_MASK, FCR31_COMPARE_MASK, FCR31_COMPARE_SHIFT, R4300I_CP0_REG_21,
-    R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25, R4300I_CP0_REG_31,
-    R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER, R4300I_CP0_REG_CAUSE,
-    R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT, R4300I_CP0_REG_COUNT,
-    R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1, R4300I_CP0_REG_EPC,
-    R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR, R4300I_CP0_REG_PAGEMASK,
-    R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM, R4300I_CP0_REG_STATUS,
-    R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI, R4300I_CP0_REG_WATCHLO,
-    R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_ERL_MASK, STATUS_EXL_MASK,
+    n64_write_physical_half, n64_write_physical_word, n64cpu_ptr, r4300i_handle_exception,
+    r4300i_t, reschedule_compare_interrupt, CP0_ENTRY_HI_WRITE_MASK, CP0_PAGEMASK_WRITE_MASK,
+    CP0_STATUS_WRITE_MASK, EXCEPTION_COPROCESSOR_UNUSABLE, FCR31_COMPARE_MASK, FCR31_COMPARE_SHIFT,
+    R4300I_CP0_REG_21, R4300I_CP0_REG_22, R4300I_CP0_REG_23, R4300I_CP0_REG_24, R4300I_CP0_REG_25,
+    R4300I_CP0_REG_31, R4300I_CP0_REG_7, R4300I_CP0_REG_BADVADDR, R4300I_CP0_REG_CACHEER,
+    R4300I_CP0_REG_CAUSE, R4300I_CP0_REG_COMPARE, R4300I_CP0_REG_CONFIG, R4300I_CP0_REG_CONTEXT,
+    R4300I_CP0_REG_COUNT, R4300I_CP0_REG_ENTRYHI, R4300I_CP0_REG_ENTRYLO0, R4300I_CP0_REG_ENTRYLO1,
+    R4300I_CP0_REG_EPC, R4300I_CP0_REG_ERR_EPC, R4300I_CP0_REG_INDEX, R4300I_CP0_REG_LLADDR,
+    R4300I_CP0_REG_PAGEMASK, R4300I_CP0_REG_PARITYER, R4300I_CP0_REG_PRID, R4300I_CP0_REG_RANDOM,
+    R4300I_CP0_REG_STATUS, R4300I_CP0_REG_TAGHI, R4300I_CP0_REG_TAGLO, R4300I_CP0_REG_WATCHHI,
+    R4300I_CP0_REG_WATCHLO, R4300I_CP0_REG_WIRED, R4300I_CP0_REG_XCONTEXT, STATUS_CU1_MASK,
+    STATUS_ERL_MASK, STATUS_EXL_MASK,
 };
 
 #[derive(Builder)]
@@ -164,8 +165,6 @@ impl GuestRegisterManager {
                 block.write_ptr(DataType::F64, self.cpu_address, offset, value);
             }
         }
-
-        self.fgrs[r as usize] = None;
     }
 
     fn get_fgr(&mut self, block: &mut IRBlockHandle, r: u8, tp: FgrLoadState) -> InputSlot {
@@ -352,13 +351,28 @@ impl GuestRegisterManager {
         self.set_fcr31(result.val());
     }
 
-    fn flush_all(&mut self, block: &mut IRBlockHandle) {
+    fn get_cp0_reg(&self, block: &mut IRBlockHandle, reg: u32) -> dgbir::ir::InstructionOutput {
+        match reg {
+            R4300I_CP0_REG_STATUS => {
+                return block.load_ptr(
+                    DataType::S32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.status.raw),
+                );
+            }
+            _ => todo!("Unimplemented: Get CP0 reg {}", reg),
+        }
+    }
+
+    /// Flush all modified registers back to the CPU state.
+    /// If `clear` is true, clear the cached registers after flushing.
+    fn flush_all(&mut self, block: &mut IRBlockHandle, clear: bool) {
         self.gprs
             .iter_mut()
             .enumerate()
             .filter(|(i, reg)| *i != 0 && reg.is_some())
             .for_each(|(i, reg)| {
-                if let Some(value) = reg.take() {
+                if let Some(value) = if clear { reg.take() } else { *reg } {
                     let offset = offset_of!(r4300i_t, gpr) + (i * std::mem::size_of::<u64>());
                     block.write_ptr(DataType::U64, self.cpu_address, offset, value);
                 }
@@ -373,12 +387,12 @@ impl GuestRegisterManager {
             .collect::<Vec<_>>();
 
         to_flush.into_iter().for_each(|r| {
-            if let Some((load_state, value)) = self.fgrs[r].take() {
+            if let Some((load_state, value)) = if clear { self.fgrs[r].take() } else { self.fgrs[r] } {
                 self.flush_fgr(block, r, load_state, value);
             }
         });
 
-        if let Some(value) = self.lo.take() {
+        if let Some(value) = if clear { self.lo.take() } else { self.lo } {
             block.write_ptr(
                 DataType::U64,
                 self.cpu_address,
@@ -387,7 +401,7 @@ impl GuestRegisterManager {
             );
         }
 
-        if let Some(value) = self.hi.take() {
+        if let Some(value) = if clear { self.hi.take() } else { self.hi } {
             block.write_ptr(
                 DataType::U64,
                 self.cpu_address,
@@ -396,7 +410,7 @@ impl GuestRegisterManager {
             );
         }
 
-        if let Some(value) = self.fcr31.take() {
+        if let Some(value) = if clear { self.fcr31.take() } else { self.fcr31 } {
             block.write_ptr(
                 DataType::U32,
                 self.cpu_address,
@@ -482,11 +496,51 @@ fn set_link_reg(guest_regs: &mut GuestRegisterManager, vaddr: u64, mips_reg: u8)
 }
 
 fn checkcp1(
-    _block: &mut IRBlockHandle,
-    _guest_regs: &mut GuestRegisterManager,
+    func: &IRFunction,
+    block: &mut IRBlockHandle,
+    vaddr: u64,
+    cycles: i32,
+    guest_regs: &mut GuestRegisterManager,
+    cp1_checked: &mut bool,
     _preserve_cause: bool,
 ) {
-    warn!("TODO: check if CP1 is enabled in the JIT")
+    if *cp1_checked {
+        return;
+    }
+
+    *cp1_checked = true;
+
+    let cp0_status = guest_regs.get_cp0_reg(block, R4300I_CP0_REG_STATUS);
+    let masked = block.and(DataType::U32, cp0_status.val(), const_u32(STATUS_CU1_MASK));
+    let is_disabled = block.compare(
+        DataType::U32,
+        masked.val(),
+        CompareType::Equal,
+        const_u32(0),
+    );
+
+    // TODO: extract all this to a separate generic function for any conditional exception
+    let mut cp1_disabled_block = func.new_block(vec![]);
+    // Flush, but don't clear, as the register values still matter for other execution paths.
+    guest_regs.flush_all(&mut cp1_disabled_block, false);
+    cp1_disabled_block.call_function(
+        const_ptr(r4300i_handle_exception as usize),
+        None,
+        vec![
+            const_u64(vaddr),
+            const_u32(EXCEPTION_COPROCESSOR_UNUSABLE),
+            const_u32(1),
+        ]
+    );
+    cp1_disabled_block.ret(Some(const_s32(cycles + 1)));
+
+    let cp1_enabled_block = func.new_block(vec![]);
+    block.branch(
+        is_disabled.val(),
+        cp1_disabled_block.call(vec![]),
+        cp1_enabled_block.call(vec![]),
+    );
+    *block = cp1_enabled_block;
 }
 
 fn do_branch(
@@ -533,7 +587,7 @@ fn do_branch(
         // Regs needed by the delay slot instruction will be reloaded
         // TODO: it'd be best to somehow not flush registers needed by the delay slot
         // instruction
-        guest_regs.flush_all(block);
+        guest_regs.flush_all(block, true);
     }
 
     block.branch(
@@ -597,6 +651,7 @@ pub fn to_ir_ctx(
 
     let mut cycles = 0;
     let mut pc_set = false;
+    let mut cp1_checked = false;
 
     let mut last_vaddr = 0;
 
@@ -946,7 +1001,7 @@ pub fn to_ir_ctx(
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
             MipsOpcode::LDC1 => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let paddr = get_paddr_for_loadstore(
                     cpu,
                     &mut guest_regs,
@@ -964,7 +1019,7 @@ pub fn to_ir_ctx(
                 guest_regs.set_fgr_64bit(instr.ft(), value.val());
             }
             MipsOpcode::SDC1 => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let paddr = get_paddr_for_loadstore(
                     cpu,
                     &mut guest_regs,
@@ -984,7 +1039,7 @@ pub fn to_ir_ctx(
                 );
             }
             MipsOpcode::LWC1 => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let paddr = get_paddr_for_loadstore(
                     cpu,
                     &mut guest_regs,
@@ -1002,7 +1057,7 @@ pub fn to_ir_ctx(
                 guest_regs.set_fgr_32bit_fr(instr.ft(), value.val(), &mut block);
             }
             MipsOpcode::SWC1 => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let paddr = get_paddr_for_loadstore(
                     cpu,
                     &mut guest_regs,
@@ -1249,6 +1304,7 @@ pub fn to_ir_ctx(
                 todo!("RDHWR")
             }
             MipsOpcode::MFC0 => match instr.rd() as u32 {
+                // TODO: move all this stuff to guest_regs.get_cp0_reg
                 R4300I_CP0_REG_ENTRYHI => {
                     let result = block.load_ptr(
                         DataType::S32,
@@ -1402,6 +1458,7 @@ pub fn to_ir_ctx(
                 todo!("DCFC0")
             }
             MipsOpcode::MTC0 => {
+                // TODO: move all this stuff to guest_regs.set_cp0_reg
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
 
                 match instr.rd() as u32 {
@@ -1644,7 +1701,7 @@ pub fn to_ir_ctx(
                 todo!("DCTC0")
             }
             MipsOpcode::MFC1 => {
-                checkcp1(&mut block, &mut guest_regs, true);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                 let value = guest_regs.get_fgr_32bit_fr(&mut block, instr.fs());
                 let sign_extended = block.convert_from(DataType::S32, DataType::S64, value);
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
@@ -1653,7 +1710,7 @@ pub fn to_ir_ctx(
                 todo!("DMFC1")
             }
             MipsOpcode::CFC1 => {
-                checkcp1(&mut block, &mut guest_regs, true);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
 
                 let fs = instr.rd();
                 let value = match fs {
@@ -1680,7 +1737,7 @@ pub fn to_ir_ctx(
                 todo!("DCFC1")
             }
             MipsOpcode::MTC1 => {
-                checkcp1(&mut block, &mut guest_regs, true);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
                 guest_regs.set_fgr_32bit_fr(instr.rd(), value, &mut block);
             }
@@ -1688,7 +1745,7 @@ pub fn to_ir_ctx(
                 todo!("DMTC1")
             }
             MipsOpcode::CTC1 => {
-                checkcp1(&mut block, &mut guest_regs, true);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                 let fs = instr.rd();
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
                 match fs {
@@ -2249,7 +2306,7 @@ pub fn to_ir_ctx(
                 warn!("TODO: set llbit to false");
             }
             MipsOpcode::FPU_CVT_S => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F64) => {
                         let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
@@ -2268,7 +2325,7 @@ pub fn to_ir_ctx(
                 }
             }
             MipsOpcode::FPU_CVT_D => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
@@ -2287,7 +2344,7 @@ pub fn to_ir_ctx(
                 }
             }
             MipsOpcode::FPU_CVT_W => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
@@ -2378,7 +2435,7 @@ pub fn to_ir_ctx(
                 _ => todo!("Fire unimplemented operation here"),
             },
             MipsOpcode::FPU_SQRT => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
@@ -2394,7 +2451,7 @@ pub fn to_ir_ctx(
                 }
             }
             MipsOpcode::FPU_ABS => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
@@ -2456,7 +2513,7 @@ pub fn to_ir_ctx(
                 todo!("FPU_FLOOR_W")
             }
             MipsOpcode::FPU_NEG => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F32) => {
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
@@ -2478,7 +2535,7 @@ pub fn to_ir_ctx(
                 todo!("FPU_C_UN")
             }
             MipsOpcode::FPU_C_EQ => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::Equal);
             }
             MipsOpcode::FPU_C_UEQ => {
@@ -2509,14 +2566,14 @@ pub fn to_ir_ctx(
                 todo!("FPU_C_NGL")
             }
             MipsOpcode::FPU_C_LT => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::LessThan);
             }
             MipsOpcode::FPU_C_NGE => {
                 todo!("FPU_C_NGE")
             }
             MipsOpcode::FPU_C_LE => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 do_fpu_compare(
                     &instr,
                     &mut block,
@@ -2528,7 +2585,7 @@ pub fn to_ir_ctx(
                 todo!("FPU_C_NGT")
             }
             MipsOpcode::FPU_BC1F => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let dont_take_branch = guest_regs.get_fcr31_compare(&mut block);
                 let take_branch = block.not(DataType::Bool, dont_take_branch).val();
                 do_branch(
@@ -2546,7 +2603,7 @@ pub fn to_ir_ctx(
                 );
             }
             MipsOpcode::FPU_BC1T => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let take_branch = guest_regs.get_fcr31_compare(&mut block);
                 do_branch(
                     false,
@@ -2563,7 +2620,7 @@ pub fn to_ir_ctx(
                 );
             }
             MipsOpcode::FPU_BC1FL => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let dont_take_branch = guest_regs.get_fcr31_compare(&mut block);
                 let take_branch = block.not(DataType::Bool, dont_take_branch).val();
                 do_branch(
@@ -2581,7 +2638,7 @@ pub fn to_ir_ctx(
                 );
             }
             MipsOpcode::FPU_BC1TL => {
-                checkcp1(&mut block, &mut guest_regs, false);
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 let take_branch = guest_regs.get_fcr31_compare(&mut block);
                 do_branch(
                     false,
@@ -2611,7 +2668,7 @@ pub fn to_ir_ctx(
         );
     }
 
-    guest_regs.flush_all(&mut block);
+    guest_regs.flush_all(&mut block, true);
     block.ret(Some(const_s32(cycles)));
 
     return func;
