@@ -276,9 +276,9 @@ void on_vi_halfline_complete(u64 time) {
             n64sys.vi.field++;
             if (n64sys.video_type != UNKNOWN_VIDEO_TYPE) {
                 persist_backup();
-                reset_all_metrics();
                 ai_step(n64sys.vi.missing_cycles);
                 rdp_update_screen();
+                reset_all_metrics();
             }
         }
 
