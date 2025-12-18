@@ -1708,6 +1708,7 @@ pub fn to_ir_ctx(
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }
             MipsOpcode::DMFC1 => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                 todo!("DMFC1")
             }
             MipsOpcode::CFC1 => {
@@ -1735,6 +1736,7 @@ pub fn to_ir_ctx(
                 );
             }
             MipsOpcode::DCFC1 => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                 todo!("DCFC1")
             }
             MipsOpcode::MTC1 => {
@@ -1743,6 +1745,7 @@ pub fn to_ir_ctx(
                 guest_regs.set_fgr_32bit_fr(instr.rd(), value, &mut block);
             }
             MipsOpcode::DMTC1 => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                 todo!("DMTC1")
             }
             MipsOpcode::CTC1 => {
@@ -1765,6 +1768,7 @@ pub fn to_ir_ctx(
                 }
             }
             MipsOpcode::DCTC1 => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                 todo!("DCTC1")
             }
             MipsOpcode::SLL => {
@@ -2361,16 +2365,19 @@ pub fn to_ir_ctx(
                 }
             }
             MipsOpcode::FPU_CVT_L => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("CVT_L")
             }
             MipsOpcode::FPU_ADD => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
                     let result = block.add(DataType::F32, fs, ft);
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
                     let result = block.add(DataType::F64, fs, ft);
@@ -2380,12 +2387,14 @@ pub fn to_ir_ctx(
             },
             MipsOpcode::FPU_SUB => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
                     let result = block.subtract(DataType::F32, fs, ft);
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
                     let result = block.subtract(DataType::F64, fs, ft);
@@ -2395,6 +2404,7 @@ pub fn to_ir_ctx(
             },
             MipsOpcode::FPU_MULT => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
                     let result = block.multiply(
@@ -2407,6 +2417,7 @@ pub fn to_ir_ctx(
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
                     let result = block.multiply(
@@ -2422,12 +2433,14 @@ pub fn to_ir_ctx(
             },
             MipsOpcode::FPU_DIV => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_32bit_ft(&mut block, instr.ft());
                     let result = block.divide(DataType::F32, fs, ft);
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                     let ft = guest_regs.get_fgr_64bit_ft(&mut block, instr.ft());
                     let result = block.divide(DataType::F64, fs, ft);
@@ -2439,11 +2452,13 @@ pub fn to_ir_ctx(
                 checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 match instr.fmt_datatype() {
                     Some(DataType::F32) => {
+                        checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                         let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                         let result = block.square_root(DataType::F32, fs);
                         guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                     }
                     Some(DataType::F64) => {
+                        checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                         let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                         let result = block.square_root(DataType::F64, fs);
                         guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
@@ -2469,6 +2484,7 @@ pub fn to_ir_ctx(
             }
             MipsOpcode::FPU_MOV => match instr.fmt_datatype() {
                 Some(DataType::F32) | Some(DataType::F64) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, true);
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                     guest_regs.set_fgr_64bit(instr.fd(), fs);
                 }
@@ -2491,12 +2507,14 @@ pub fn to_ir_ctx(
             }
             MipsOpcode::FPU_TRUNC_W => match instr.fmt_datatype() {
                 Some(DataType::F32) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_32bit_fs(&mut block, instr.fs());
                     warn!("TODO: round towards zero (specify rounding mode in IR instruction)");
                     let result = block.convert_from(DataType::F32, DataType::S32, fs);
                     guest_regs.set_fgr(instr.fd(), result.val(), FgrLoadState::Full64);
                 }
                 Some(DataType::F64) => {
+                    checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                     let fs = guest_regs.get_fgr_64bit_fs(&mut block, instr.fs());
                     warn!("TODO: round towards zero (specify rounding mode in IR instruction)");
                     let result = block.convert_from(DataType::F64, DataType::S32, fs);
@@ -2508,9 +2526,11 @@ pub fn to_ir_ctx(
                 ),
             },
             MipsOpcode::FPU_CEIL_W => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_CEIL_W")
             }
             MipsOpcode::FPU_FLOOR_W => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_FLOOR_W")
             }
             MipsOpcode::FPU_NEG => {
@@ -2530,9 +2550,11 @@ pub fn to_ir_ctx(
                 }
             }
             MipsOpcode::FPU_C_F => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_F")
             }
             MipsOpcode::FPU_C_UN => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_UN")
             }
             MipsOpcode::FPU_C_EQ => {
@@ -2540,30 +2562,39 @@ pub fn to_ir_ctx(
                 do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::Equal);
             }
             MipsOpcode::FPU_C_UEQ => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_UEQ")
             }
             MipsOpcode::FPU_C_OLT => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_OLT")
             }
             MipsOpcode::FPU_C_ULT => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_ULT")
             }
             MipsOpcode::FPU_C_OLE => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_OLE")
             }
             MipsOpcode::FPU_C_ULE => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_ULE")
             }
             MipsOpcode::FPU_C_SF => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_SF")
             }
             MipsOpcode::FPU_C_NGLE => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_NGLE")
             }
             MipsOpcode::FPU_C_SEQ => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_SEQ")
             }
             MipsOpcode::FPU_C_NGL => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_NGL")
             }
             MipsOpcode::FPU_C_LT => {
@@ -2571,6 +2602,7 @@ pub fn to_ir_ctx(
                 do_fpu_compare(&instr, &mut block, &mut guest_regs, CompareType::LessThan);
             }
             MipsOpcode::FPU_C_NGE => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_NGE")
             }
             MipsOpcode::FPU_C_LE => {
@@ -2583,6 +2615,7 @@ pub fn to_ir_ctx(
                 );
             }
             MipsOpcode::FPU_C_NGT => {
+                checkcp1(&func, &mut block, vaddr, cycles, &mut guest_regs, &mut cp1_checked, false);
                 todo!("FPU_C_NGT")
             }
             MipsOpcode::FPU_BC1F => {
