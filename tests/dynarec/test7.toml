@@ -1,0 +1,284 @@
+[[testcases]]
+initial_pc = "0xFFFFFFFF80327E28"
+expected_pc = "0xFFFFFFFF80325978"
+
+code = [
+    0x8F5B012C, # lw $k1, 0x12c($k0)
+    0x44DBF800, # ctc1 $k1, $31
+    0xD7400130, # ldc1 $f0, 0x130($k0)
+    0xD7420138, # ldc1 $f2, 0x138($k0)
+    0xD7440140, # ldc1 $f4, 0x140($k0)
+    0xD7460148, # ldc1 $f6, 0x148($k0)
+    0xD7480150, # ldc1 $f8, 0x150($k0)
+    0xD74A0158, # ldc1 $f10, 0x158($k0)
+    0xD74C0160, # ldc1 $f12, 0x160($k0)
+    0xD74E0168, # ldc1 $f14, 0x168($k0)
+    0xD7500170, # ldc1 $f16, 0x170($k0)
+    0xD7520178, # ldc1 $f18, 0x178($k0)
+    0xD7540180, # ldc1 $f20, 0x180($k0)
+    0xD7560188, # ldc1 $f22, 0x188($k0)
+    0xD7580190, # ldc1 $f24, 0x190($k0)
+    0xD75A0198, # ldc1 $f26, 0x198($k0)
+    0xD75C01A0, # ldc1 $f28, 0x1a0($k0)
+    0xD75E01A8, # ldc1 $f30, 0x1a8($k0)
+    0x8F5B0128, # lw $k1, 0x128($k0)
+    0x001BD840, # sll $k1, $k1, 1
+    0x3C1A8034, # lui $k0, 0x8034
+    0x275A9A40, # addiu $k0, $k0, -0x65c0
+    0x037AD821, # addu $k1, $k1, $k0
+    0x977B0000, # lhu $k1, ($k1)
+    0x3C1AA430, # lui $k0, 0xa430
+    0x275A000C, # addiu $k0, $k0, 0xc
+    0xAF5B0000, # sw $k1, ($k0)
+    0x00000000, # nop
+    0x00000000, # nop
+    0x00000000, # nop
+    0x00000000, # nop
+    0x42000018, # eret
+]
+
+initial_gprs = [
+    "0x0000000000000000", # r0 or zero
+    "0xFFFFFFFF80220000", # r1 or at
+    "0xFFFFFFFF801CF400", # r2 or v0
+    "0x0000000000000A00", # r3 or v1
+    "0x0000000000007D00", # r4 or a0
+    "0xFFFFFFFF801CF400", # r5 or a1
+    "0xFFFFFFFF80226C4C", # r6 or a2
+    "0x0000000000000A00", # r7 or a3
+    "0xFFFFFFFF801CFDFE", # r8 or t0
+    "0xFFFFFFFF80226C4C", # r9 or t1
+    "0xFFFFFFFF80220DA0", # r10 or t2
+    "0x0000000000000000", # r11 or t3
+    "0x0000000000000000", # r12 or t4
+    "0x0000000000000000", # r13 or t5
+    "0x0000000002E6D354", # r14 or t6
+    "0x0000000000000000", # r15 or t7
+    "0x0000000000000A00", # r16 or s0
+    "0xFFFFFFFF80220EB8", # r17 or s1
+    "0x0000000000000000", # r18 or s2
+    "0x0000000000000000", # r19 or s3
+    "0x0000000000000000", # r20 or s4
+    "0x0000000000000000", # r21 or s5
+    "0x0000000000000000", # r22 or s6
+    "0x0000000000000000", # r23 or s7
+    "0xFFFFFFFF803332A0", # r24 or t8
+    "0x0000000000000C00", # r25 or t9
+    "0xFFFFFFFF8033AC40", # r26 or k0
+    "0x0000000000000001", # r27 or k1
+    "0x0000000000000000", # r28 or gp
+    "0xFFFFFFFF80204D00", # r29 or sp
+    "0xFFFFFFFF80204D38", # r30 or fp
+    "0xFFFFFFFF80317B74", # r31 or ra
+]
+
+initial_fgrs = [
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+]
+expected_gprs = [
+    "0x0000000000000000", # r0 or zero
+    "0xFFFFFFFF80220000", # r1 or at
+    "0xFFFFFFFF801CF400", # r2 or v0
+    "0x0000000000000A00", # r3 or v1
+    "0x0000000000007D00", # r4 or a0
+    "0xFFFFFFFF801CF400", # r5 or a1
+    "0xFFFFFFFF80226C4C", # r6 or a2
+    "0x0000000000000A00", # r7 or a3
+    "0xFFFFFFFF801CFDFE", # r8 or t0
+    "0xFFFFFFFF80226C4C", # r9 or t1
+    "0xFFFFFFFF80220DA0", # r10 or t2
+    "0x0000000000000000", # r11 or t3
+    "0x0000000000000000", # r12 or t4
+    "0x0000000000000000", # r13 or t5
+    "0x0000000002E6D354", # r14 or t6
+    "0x0000000000000000", # r15 or t7
+    "0x0000000000000A00", # r16 or s0
+    "0xFFFFFFFF80220EB8", # r17 or s1
+    "0x0000000000000000", # r18 or s2
+    "0x0000000000000000", # r19 or s3
+    "0x0000000000000000", # r20 or s4
+    "0x0000000000000000", # r21 or s5
+    "0x0000000000000000", # r22 or s6
+    "0x0000000000000000", # r23 or s7
+    "0xFFFFFFFF803332A0", # r24 or t8
+    "0x0000000000000C00", # r25 or t9
+    "0xFFFFFFFFA430000C", # r26 or k0
+    "0x0000000000000AAA", # r27 or k1
+    "0x0000000000000000", # r28 or gp
+    "0xFFFFFFFF80204D00", # r29 or sp
+    "0xFFFFFFFF80204D38", # r30 or fp
+    "0xFFFFFFFF80317B74", # r31 or ra
+]
+
+expected_fgrs = [
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+    "0x0000000000000000",
+]
+
+initial_fcr31 = 0x01000800
+
+expected_fcr31 = 0x01000800
+
+initial_cp0_status = 0x2000FF03
+initial_cp0_error_epc = "0xFFFFFFFFFFFFFFFF"
+initial_cp0_epc = "0xFFFFFFFF80325978"
+
+[[testcases.halves_read]]
+address=0x00339ABE
+value=0xAAA
+
+
+[[testcases.words_read]]
+address=0x0033AD6C
+value=0x1000800
+
+
+[[testcases.words_read]]
+address=0x0033AD68
+value=0x3F
+
+
+[[testcases.words_written]]
+address=0x0430000C
+value=0xAAA
+
+
+[[testcases.dwords_read]]
+address=0x0033AD70
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033AD78
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033AD80
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033AD88
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033AD90
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033AD98
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADA0
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADA8
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADB0
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADB8
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADC0
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADC8
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADD0
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADD8
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADE0
+value="0x0"
+
+
+[[testcases.dwords_read]]
+address=0x0033ADE8
+value="0x0"

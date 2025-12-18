@@ -98,6 +98,8 @@ public:
 
   void set_initial_fcr31(u32 fcr31) { N64CPU.fcr31.raw = fcr31; }
 
+  void set_expected_fcr31(u32 fcr31) { expected_fcr31 = fcr31; }
+
   void set_expected_pc(u64 pc) { expected_pc = pc; }
 
   u8 read_byte(u32 address) {
@@ -226,6 +228,18 @@ public:
            expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
   }
 
+  static void print_colorcoded_u32(const char *name, u32 expected, u32 actual) {
+    printf("%16s         0x%08" PRIX32 "         0x", name, expected);
+    for (int offset = 24; offset >= 0; offset -= 8) {
+      u32 good_byte = (expected >> offset) & 0xFF;
+      u32 bad_byte = (actual >> offset) & 0xFF;
+      printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte,
+             good_byte == bad_byte ? "" : COLOR_END);
+    }
+    printf("%s" COLOR_END "\n",
+           expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
+  }
+
   void validate(r4300i_t *cpu, const MipsToIrContext &context) {
     bool bad = false;
     if (bytes_read_index != bytes_read.size()) {
@@ -282,6 +296,12 @@ public:
       }
     }
 
+    if (expected_fcr31.has_value()) {
+      if (N64CPU.fcr31.raw != expected_fcr31.value()) {
+        bad = true;
+      }
+    }
+
     if (bad) {
       printf("            expected                actual\n");
       if (expected_pc.has_value()) {
@@ -303,8 +323,12 @@ public:
         }
       }
 
+      if (expected_fcr31.has_value()) {
+        print_colorcoded_u32("CP1 FCR31", expected_fcr31.value(), 
+                             N64CPU.fcr31.raw);
+      }
+
       printf("\n");
-      printf("%16s %08X\n", "CP1 FCR31", N64CPU.fcr31.raw);
       printf("=================  CP1 FCR31  ================\n");
       // printf("Rounding Mode: %u\n", N64CPU.fcr31.rounding_mode);
       // printf("Flag Inexact Operation: %u\n",
@@ -351,6 +375,8 @@ private:
   std::vector<u64> expected_gprs;
   std::vector<u64> expected_fgrs;
   std::optional<u64> expected_pc;
+
+  std::optional<u32> expected_fcr31;
 
   std::vector<std::pair<u32, u8>> bytes_read;
   size_t bytes_read_index = 0;
@@ -451,6 +477,30 @@ void run_test(const toml::table &table) {
     u32 initial_fcr31 =
         static_cast<u32>(table["initial_fcr31"].as_integer()->get());
     N64CPU.fcr31.raw = initial_fcr31;
+  }
+
+
+  std::optional<u32> expected_fcr31;
+  if (table.contains("expected_fcr31")) {
+    expected_fcr31 = static_cast<u32>(table["expected_fcr31"].as_integer()->get());
+  }
+
+  if (table.contains("initial_cp0_status")) {
+    u32 initial_cp0_status =
+        static_cast<u32>(table["initial_cp0_status"].as_integer()->get());
+    N64CP0.status.raw = initial_cp0_status;
+  }
+
+  if (table.contains("initial_cp0_error_epc")) {
+    u64 initial_cp0_error_epc = std::strtoull(
+        table["initial_cp0_error_epc"].as_string()->get().c_str(), nullptr, 16);
+    N64CP0.error_epc = initial_cp0_error_epc;
+  }
+
+  if (table.contains("initial_cp0_epc")) {
+    u64 initial_cp0_epc = std::strtoull(
+        table["initial_cp0_epc"].as_string()->get().c_str(), nullptr, 16);
+    N64CP0.EPC = initial_cp0_epc;
   }
 
   std::vector<std::pair<u32, u8>> bytes_read;
@@ -574,6 +624,10 @@ void run_test(const toml::table &table) {
   }
   if (!dwords_written.empty()) {
     current_testcase->set_dwords_written(dwords_written);
+  }
+
+  if (expected_fcr31.has_value()) {
+    current_testcase->set_expected_fcr31(expected_fcr31.value());
   }
 
   rs_jit_compile_and_run_block_for_test(

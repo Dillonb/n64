@@ -306,7 +306,7 @@ void print_state() {
 
     printf("initial_gprs = [\n");
     for (int i = 0; i < 32; i++) {
-        printf("    \"0x%016" PRIX64 "\",\n", prev_state.gpr[i]);
+        printf("    \"0x%016" PRIX64 "\", # r%d or %s\n", prev_state.gpr[i], i, register_names[i]);
     }
     printf("]\n\n");
 
@@ -318,7 +318,7 @@ void print_state() {
 
     printf("expected_gprs = [\n");
     for (int i = 0; i < 32; i++) {
-        printf("    \"0x%016" PRIX64 "\",\n", n64cpu_interpreter_ptr->gpr[i]);
+        printf("    \"0x%016" PRIX64 "\", # r%d or %s\n", n64cpu_interpreter_ptr->gpr[i], i, register_names[i]);
     }
     printf("]\n\n");
 
@@ -329,6 +329,15 @@ void print_state() {
     printf("]\n\n");
 
     printf("initial_fcr31 = 0x%08X\n\n", prev_state.fcr31.raw);
+
+    printf("expected_fcr31 = 0x%08X\n\n", n64cpu_interpreter_ptr->fcr31.raw);
+
+    printf("initial_cp0_status = 0x%08X\n", prev_state.cp0.status.raw);
+    printf("initial_cp0_error_epc = \"0x%016" PRIX64 "\"\n", prev_state.cp0.error_epc);
+    printf("initial_cp0_epc = \"0x%016" PRIX64 "\"\n", prev_state.cp0.EPC);
+
+    // set_pc_dword_r4300i(N64CPU.cp0.error_epc);
+    // set_pc_dword_r4300i(N64CPU.cp0.EPC);
 
     #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
     memory_access_t memory_access;
@@ -558,8 +567,8 @@ int main(int argc, char** argv) {
     pif_rom_execute();
 
 
-    // u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
-    u64 start_comparing_at = 0xFFFFFFFF80325334;
+    u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
+    // u64 start_comparing_at = 0xFFFFFFFF80325334;
 
     while (N64CPU.pc != start_comparing_at) {
         n64_system_step(false, 1);
