@@ -152,6 +152,8 @@ expected_fgrs = [
     "0x0000000000000000",
 ]
 
+initial_cp0_status = 0x2000FF03
+
 [[testcases.words_read]]
 address=0x00206BE8
 value=0x3EC90FDA

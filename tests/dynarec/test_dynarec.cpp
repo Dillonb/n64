@@ -645,6 +645,7 @@ void run_tests_in_file(const char* filename) {
   auto testcases = toml::parse_file(filename);
   int testcase_num = 0;
   for (auto &&testcase : *testcases["testcases"].as_array()) {
+    reset_n64system();
     printf("\tRunning test %d...\n", ++testcase_num);
     run_test(*testcase.as_table());
   }

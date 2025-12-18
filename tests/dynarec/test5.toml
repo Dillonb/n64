@@ -159,3 +159,5 @@ expected_fgrs = [
 ]
 
 initial_fcr31 = 0x01000800
+
+initial_cp0_status = 0x2000FF03
