@@ -352,8 +352,17 @@ impl GuestRegisterManager {
         self.set_fcr31(result.val());
     }
 
-    fn get_cp0_reg(&self, block: &mut IRBlockHandle, reg: u32) -> dgbir::ir::InstructionOutput {
+    /// Get a CP0 register value.
+    /// `inblock_index` is needed for: COUNT
+    fn get_cp0_reg(&self, block: &mut IRBlockHandle, reg: u32, inblock_index: Option<u32>) -> dgbir::ir::InstructionOutput {
         match reg {
+            R4300I_CP0_REG_ENTRYHI => {
+                return block.load_ptr(
+                    DataType::S32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.entry_hi.raw),
+                );
+            }
             R4300I_CP0_REG_STATUS => {
                 return block.load_ptr(
                     DataType::S32,
@@ -361,7 +370,344 @@ impl GuestRegisterManager {
                     offset_of!(r4300i_t, cp0.status.raw),
                 );
             }
+            R4300I_CP0_REG_TAGLO => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_TAGLO")
+            }
+            R4300I_CP0_REG_TAGHI => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_TAGHI")
+            }
+            R4300I_CP0_REG_CAUSE => {
+                return block.load_ptr(
+                    DataType::S32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.cause.raw),
+                );
+            }
+            R4300I_CP0_REG_COMPARE => {
+                return block.load_ptr(
+                    DataType::S32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.compare),
+                );
+            }
+            R4300I_CP0_REG_ENTRYLO0 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_ENTRYLO0")
+            }
+            R4300I_CP0_REG_ENTRYLO1 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_ENTRYLO1")
+            }
+            R4300I_CP0_REG_PAGEMASK => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_PAGEMASK")
+            }
+            R4300I_CP0_REG_EPC => {
+                return
+                block.load_ptr(DataType::S32, self.cpu_address, offset_of!(r4300i_t, cp0.EPC));
+            }
+            R4300I_CP0_REG_CONFIG => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_CONFIG")
+            }
+            R4300I_CP0_REG_WATCHLO => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_WATCHLO")
+            }
+            R4300I_CP0_REG_WATCHHI => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_WATCHHI")
+            }
+            R4300I_CP0_REG_WIRED => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_WIRED")
+            }
+            R4300I_CP0_REG_CONTEXT => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_CONTEXT")
+            }
+            R4300I_CP0_REG_BADVADDR => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_BADVADDR")
+            }
+            R4300I_CP0_REG_XCONTEXT => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_XCONTEXT")
+            }
+            R4300I_CP0_REG_LLADDR => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_LLADDR")
+            }
+            R4300I_CP0_REG_ERR_EPC => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_ERR_EPC")
+            }
+            R4300I_CP0_REG_PRID => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_PRID")
+            }
+            R4300I_CP0_REG_PARITYER => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_PARITYER")
+            }
+            R4300I_CP0_REG_CACHEER => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_CACHEER")
+            }
+            R4300I_CP0_REG_7 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_7")
+            }
+            R4300I_CP0_REG_21 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_21")
+            }
+            R4300I_CP0_REG_22 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_22")
+            }
+            R4300I_CP0_REG_23 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_23")
+            }
+            R4300I_CP0_REG_24 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_24")
+            }
+            R4300I_CP0_REG_25 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_25")
+            }
+            R4300I_CP0_REG_31 => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_31")
+            }
+            R4300I_CP0_REG_INDEX => {
+                let result = block.load_ptr(DataType::S32, self.cpu_address, offset_of!(r4300i_t, cp0.index));
+                let mask = const_u32(0x8000003F);
+                let masked_result = block.and(DataType::U32, result.val(), mask);
+                return masked_result;
+            }
+            R4300I_CP0_REG_RANDOM => {
+                todo!("get_cp0_reg: R4300I_CP0_REG_INDEX")
+            }
+            R4300I_CP0_REG_COUNT => {
+                let count = block.load_ptr(DataType::U64, self.cpu_address, offset_of!(r4300i_t, cp0.count));
+                let adjusted = block.add(DataType::U64, count.val(), const_u32(inblock_index.unwrap()));
+                let shifted = block.right_shift(DataType::U64, adjusted.val(), const_u16(1));
+                return shifted;
+            }
             _ => todo!("Unimplemented: Get CP0 reg {}", reg),
+        }
+    }
+
+    /// Set a CP0 register value.
+    /// `inblock_index` is needed for: STATUS, COMPARE, COUNT
+    fn set_cp0_reg(&self, block: &mut IRBlockHandle, reg: u32, inblock_index: Option<u32>, value: InputSlot) {
+        match reg {
+            R4300I_CP0_REG_ENTRYHI => {
+                let mask = const_u64(CP0_ENTRY_HI_WRITE_MASK as u64);
+                let masked_value = block.and(DataType::U64, value, mask);
+                block.write_ptr(
+                    DataType::U64,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.entry_hi.raw),
+                    masked_value.val(),
+                );
+            }
+            R4300I_CP0_REG_STATUS => {
+                let status_mask = const_u32(CP0_STATUS_WRITE_MASK);
+                let inverse_status_mask = block.not(DataType::U32, status_mask);
+                let old_status = block.load_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.status.raw),
+                );
+                let old_status_masked =
+                    block.and(DataType::U32, old_status.val(), inverse_status_mask.val());
+                let value_masked = block.and(DataType::U32, value, status_mask);
+                let new_status =
+                    block.or(DataType::U32, value_masked.val(), old_status_masked.val());
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.status.raw),
+                    new_status.val(),
+                );
+                block.call_function(
+                    const_ptr(cp0_status_updated as usize),
+                    None,
+                    vec![const_u32(inblock_index.unwrap())],
+                );
+            }
+            R4300I_CP0_REG_TAGLO => {
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.tag_lo),
+                    value,
+                );
+            }
+            R4300I_CP0_REG_TAGHI => {
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.tag_hi),
+                    value,
+                );
+            }
+            R4300I_CP0_REG_CAUSE => {
+                let cause_mask = const_u32(0x300);
+                let cause_masked = block.and(DataType::U32, value, cause_mask);
+
+                let inverse_cause_mask = block.not(DataType::U32, cause_mask);
+                let old_cause = block.load_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.cause.raw),
+                );
+                let old_cause_masked =
+                    block.and(DataType::U32, old_cause.val(), inverse_cause_mask.val());
+
+                let new_cause =
+                    block.or(DataType::U32, old_cause_masked.val(), cause_masked.val());
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.cause.raw),
+                    new_cause.val(),
+                );
+            }
+            R4300I_CP0_REG_COMPARE => {
+                // Lower compare interrupt
+                let old_cause = block.load_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.cause.raw),
+                );
+                let old_cause_masked =
+                    block.and(DataType::U32, old_cause.val(), const_u32(!(1 << 15)));
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.cause.raw),
+                    old_cause_masked.val(),
+                );
+
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.compare),
+                    value,
+                );
+
+                block.call_function(
+                    const_ptr(reschedule_compare_interrupt as usize),
+                    None,
+                    vec![const_u32(inblock_index.unwrap())],
+                );
+            }
+            R4300I_CP0_REG_ENTRYLO0 => {
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.entry_lo0.raw),
+                    value,
+                );
+            }
+            R4300I_CP0_REG_ENTRYLO1 => {
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.entry_lo1.raw),
+                    value,
+                );
+            }
+            R4300I_CP0_REG_PAGEMASK => {
+                let mask = const_u32(CP0_PAGEMASK_WRITE_MASK);
+                let masked = block.and(DataType::U32, value, mask);
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.page_mask.raw),
+                    masked.val(),
+                );
+            }
+            R4300I_CP0_REG_EPC => {
+                block.write_ptr(
+                    DataType::U64,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.EPC),
+                    value,
+                );
+            }
+            R4300I_CP0_REG_CONFIG => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_CONFIG")
+            }
+            R4300I_CP0_REG_WATCHLO => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_WATCHLO")
+            }
+            R4300I_CP0_REG_WATCHHI => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_WATCHHI")
+            }
+            R4300I_CP0_REG_WIRED => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_WIRED")
+            }
+            R4300I_CP0_REG_CONTEXT => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_CONTEXT")
+            }
+            R4300I_CP0_REG_BADVADDR => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_BADVADDR")
+            }
+            R4300I_CP0_REG_XCONTEXT => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_XCONTEXT")
+            }
+            R4300I_CP0_REG_LLADDR => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_LLADDR")
+            }
+            R4300I_CP0_REG_ERR_EPC => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_ERR_EPC")
+            }
+            R4300I_CP0_REG_PRID => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_PRID")
+            }
+            R4300I_CP0_REG_PARITYER => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_PARITYER")
+            }
+            R4300I_CP0_REG_CACHEER => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_CACHEER")
+            }
+            R4300I_CP0_REG_7 => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_7")
+            }
+            R4300I_CP0_REG_21 => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_21")
+            }
+            R4300I_CP0_REG_22 => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_22")
+            }
+            R4300I_CP0_REG_23 => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_23")
+            }
+            R4300I_CP0_REG_24 => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_24")
+            }
+            R4300I_CP0_REG_25 => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_25")
+            }
+            R4300I_CP0_REG_31 => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_31")
+            }
+            R4300I_CP0_REG_INDEX => {
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.index),
+                    value,
+                );
+            }
+            R4300I_CP0_REG_RANDOM => {
+                todo!("set_cp0_reg: R4300I_CP0_REG_INDEX")
+            }
+            R4300I_CP0_REG_COUNT => {
+                let value_u32 = block.convert(DataType::U32, value);
+                let value_shifted =
+                    block.left_shift(DataType::U64, value_u32.val(), const_u16(1));
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.count),
+                    value_shifted.val(),
+                );
+                let reschedule_compare_interrupt =
+                    const_ptr(reschedule_compare_interrupt as usize);
+                block.call_function(
+                    reschedule_compare_interrupt,
+                    None,
+                    vec![const_u32(inblock_index.unwrap())],
+                );
+            }
+            _ => {
+                panic!("Unknown register in set_cp0_reg: {}", reg);
+            }
         }
     }
 
@@ -511,7 +857,7 @@ fn checkcp1(
 
     *cp1_checked = true;
 
-    let cp0_status = guest_regs.get_cp0_reg(block, R4300I_CP0_REG_STATUS);
+    let cp0_status = guest_regs.get_cp0_reg(block, R4300I_CP0_REG_STATUS, None);
     let masked = block.and(DataType::U32, cp0_status.val(), const_u32(STATUS_CU1_MASK));
     let is_disabled = block.compare(
         DataType::U32,
@@ -1304,150 +1650,10 @@ pub fn to_ir_ctx(
             MipsOpcode::RDHWR => {
                 todo!("RDHWR")
             }
-            MipsOpcode::MFC0 => match instr.rd() as u32 {
-                // TODO: move all this stuff to guest_regs.get_cp0_reg
-                R4300I_CP0_REG_ENTRYHI => {
-                    let result = block.load_ptr(
-                        DataType::S32,
-                        cpu_address,
-                        offset_of!(r4300i_t, cp0.entry_hi.raw),
-                    );
-                    let sign_extended = block.convert(DataType::S64, result.val());
-                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
-                }
-                R4300I_CP0_REG_STATUS => {
-                    let result = block.load_ptr(
-                        DataType::S32,
-                        cpu_address,
-                        offset_of!(r4300i_t, cp0.status.raw),
-                    );
-                    let sign_extended = block.convert(DataType::S64, result.val());
-                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
-                }
-                R4300I_CP0_REG_TAGLO => {
-                    todo!("MFC0 R4300I_CP0_REG_TAGLO")
-                }
-                R4300I_CP0_REG_TAGHI => {
-                    todo!("MFC0 R4300I_CP0_REG_TAGHI")
-                }
-                R4300I_CP0_REG_CAUSE => {
-                    let result = block.load_ptr(
-                        DataType::S32,
-                        cpu_address,
-                        offset_of!(r4300i_t, cp0.cause.raw),
-                    );
-                    let sign_extended = block.convert(DataType::S64, result.val());
-                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
-                }
-                R4300I_CP0_REG_COMPARE => {
-                    let result = block.load_ptr(
-                        DataType::S32,
-                        cpu_address,
-                        offset_of!(r4300i_t, cp0.compare),
-                    );
-                    let sign_extended = block.convert(DataType::S64, result.val());
-                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
-                }
-                R4300I_CP0_REG_ENTRYLO0 => {
-                    todo!("MFC0 R4300I_CP0_REG_ENTRYLO0")
-                }
-                R4300I_CP0_REG_ENTRYLO1 => {
-                    todo!("MFC0 R4300I_CP0_REG_ENTRYLO1")
-                }
-                R4300I_CP0_REG_PAGEMASK => {
-                    todo!("MFC0 R4300I_CP0_REG_PAGEMASK")
-                }
-                R4300I_CP0_REG_EPC => {
-                    let result =
-                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, cp0.EPC));
-                    let sign_extended = block.convert(DataType::S64, result.val());
-                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
-                }
-                R4300I_CP0_REG_CONFIG => {
-                    todo!("MFC0 R4300I_CP0_REG_CONFIG")
-                }
-                R4300I_CP0_REG_WATCHLO => {
-                    todo!("MFC0 R4300I_CP0_REG_WATCHLO")
-                }
-                R4300I_CP0_REG_WATCHHI => {
-                    todo!("MFC0 R4300I_CP0_REG_WATCHHI")
-                }
-                R4300I_CP0_REG_WIRED => {
-                    todo!("MFC0 R4300I_CP0_REG_WIRED")
-                }
-                R4300I_CP0_REG_CONTEXT => {
-                    todo!("MFC0 R4300I_CP0_REG_CONTEXT")
-                }
-                R4300I_CP0_REG_BADVADDR => {
-                    todo!("MFC0 R4300I_CP0_REG_BADVADDR")
-                }
-                R4300I_CP0_REG_XCONTEXT => {
-                    todo!("MFC0 R4300I_CP0_REG_XCONTEXT")
-                }
-                R4300I_CP0_REG_LLADDR => {
-                    todo!("MFC0 R4300I_CP0_REG_LLADDR")
-                }
-                R4300I_CP0_REG_ERR_EPC => {
-                    todo!("MFC0 R4300I_CP0_REG_ERR_EPC")
-                }
-                R4300I_CP0_REG_PRID => {
-                    todo!("MFC0 R4300I_CP0_REG_PRID")
-                }
-                R4300I_CP0_REG_PARITYER => {
-                    todo!("MFC0 R4300I_CP0_REG_PARITYER")
-                }
-                R4300I_CP0_REG_CACHEER => {
-                    todo!("MFC0 R4300I_CP0_REG_CACHEER")
-                }
-                R4300I_CP0_REG_7 => {
-                    todo!("MFC0 R4300I_CP0_REG_7")
-                }
-                R4300I_CP0_REG_21 => {
-                    todo!("MFC0 R4300I_CP0_REG_21")
-                }
-                R4300I_CP0_REG_22 => {
-                    todo!("MFC0 R4300I_CP0_REG_22")
-                }
-                R4300I_CP0_REG_23 => {
-                    todo!("MFC0 R4300I_CP0_REG_23")
-                }
-                R4300I_CP0_REG_24 => {
-                    todo!("MFC0 R4300I_CP0_REG_24")
-                }
-                R4300I_CP0_REG_25 => {
-                    todo!("MFC0 R4300I_CP0_REG_25")
-                }
-                R4300I_CP0_REG_31 => {
-                    todo!("MFC0 R4300I_CP0_REG_31")
-                }
-                R4300I_CP0_REG_INDEX => {
-                    let result =
-                        block.load_ptr(DataType::S32, cpu_address, offset_of!(r4300i_t, cp0.index));
-                    let mask = const_u32(0x8000003F);
-                    let masked_result = block.and(DataType::U32, result.val(), mask);
-                    let sign_extended =
-                        block.convert_from(DataType::S32, DataType::S64, masked_result.val());
-                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
-                }
-                R4300I_CP0_REG_RANDOM => {
-                    todo!("MFC0 R4300I_CP0_REG_INDEX")
-                }
-                R4300I_CP0_REG_COUNT => {
-                    let count =
-                        block.load_ptr(DataType::U64, cpu_address, offset_of!(r4300i_t, cp0.count));
-
-                    let adjusted = block.add(DataType::U64, count.val(), const_u32(index as u32));
-
-                    let shifted = block.right_shift(DataType::U64, adjusted.val(), const_u16(1));
-
-                    let sign_extended =
-                        block.convert_from(DataType::S32, DataType::S64, shifted.val());
-
-                    guest_regs.set_gpr(instr.rt(), sign_extended.val());
-                }
-                _ => {
-                    panic!("Unknown register in MFC0: {}", instr.rd());
-                }
+            MipsOpcode::MFC0 => {
+                let result = guest_regs.get_cp0_reg(&mut block, instr.rd() as u32, Some(index as u32));
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, result.val());
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
             },
             MipsOpcode::DMFC0 => {
                 todo!("DMFC0")
@@ -1461,236 +1667,9 @@ pub fn to_ir_ctx(
             MipsOpcode::MTC0 => {
                 // TODO: move all this stuff to guest_regs.set_cp0_reg
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
+                let sign_extended = block.convert_from(DataType::S32, DataType::S64, value);
+                guest_regs.set_cp0_reg(&mut block, instr.rd() as u32, Some(index as u32), sign_extended.val());
 
-                match instr.rd() as u32 {
-                    R4300I_CP0_REG_ENTRYHI => {
-                        let mask = const_u64(CP0_ENTRY_HI_WRITE_MASK as u64);
-                        let sign_extended = block.convert_from(DataType::S32, DataType::S64, value);
-                        let masked_value = block.and(DataType::U64, sign_extended.val(), mask);
-                        block.write_ptr(
-                            DataType::U64,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.entry_hi.raw),
-                            masked_value.val(),
-                        );
-                    }
-                    R4300I_CP0_REG_STATUS => {
-                        let status_mask = const_u32(CP0_STATUS_WRITE_MASK);
-                        let inverse_status_mask = block.not(DataType::U32, status_mask);
-                        let old_status = block.load_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.status.raw),
-                        );
-                        let old_status_masked =
-                            block.and(DataType::U32, old_status.val(), inverse_status_mask.val());
-                        let value_masked = block.and(DataType::U32, value, status_mask);
-                        let new_status =
-                            block.or(DataType::U32, value_masked.val(), old_status_masked.val());
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.status.raw),
-                            new_status.val(),
-                        );
-                        block.call_function(
-                            const_ptr(cp0_status_updated as usize),
-                            None,
-                            vec![const_u32(index as u32)],
-                        );
-                    }
-                    R4300I_CP0_REG_TAGLO => {
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.tag_lo),
-                            value,
-                        );
-                    }
-                    R4300I_CP0_REG_TAGHI => {
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.tag_hi),
-                            value,
-                        );
-                    }
-                    R4300I_CP0_REG_CAUSE => {
-                        let cause_mask = const_u32(0x300);
-                        let cause_masked = block.and(DataType::U32, value, cause_mask);
-
-                        let inverse_cause_mask = block.not(DataType::U32, cause_mask);
-                        let old_cause = block.load_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.cause.raw),
-                        );
-                        let old_cause_masked =
-                            block.and(DataType::U32, old_cause.val(), inverse_cause_mask.val());
-
-                        let new_cause =
-                            block.or(DataType::U32, old_cause_masked.val(), cause_masked.val());
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.cause.raw),
-                            new_cause.val(),
-                        );
-                    }
-                    R4300I_CP0_REG_COMPARE => {
-                        // Lower compare interrupt
-                        let old_cause = block.load_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.cause.raw),
-                        );
-                        let old_cause_masked =
-                            block.and(DataType::U32, old_cause.val(), const_u32(!(1 << 15)));
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.cause.raw),
-                            old_cause_masked.val(),
-                        );
-
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.compare),
-                            value,
-                        );
-
-                        block.call_function(
-                            const_ptr(reschedule_compare_interrupt as usize),
-                            None,
-                            vec![const_u32(index as u32)],
-                        );
-                    }
-                    R4300I_CP0_REG_ENTRYLO0 => {
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.entry_lo0.raw),
-                            value,
-                        );
-                    }
-                    R4300I_CP0_REG_ENTRYLO1 => {
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.entry_lo1.raw),
-                            value,
-                        );
-                    }
-                    R4300I_CP0_REG_PAGEMASK => {
-                        let mask = const_u32(CP0_PAGEMASK_WRITE_MASK);
-                        let masked = block.and(DataType::U32, value, mask);
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.page_mask.raw),
-                            masked.val(),
-                        );
-                    }
-                    R4300I_CP0_REG_EPC => {
-                        let sign_extended = block.convert_from(DataType::S32, DataType::S64, value);
-                        block.write_ptr(
-                            DataType::U64,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.EPC),
-                            sign_extended.val(),
-                        );
-                    }
-                    R4300I_CP0_REG_CONFIG => {
-                        todo!("MTC0 R4300I_CP0_REG_CONFIG")
-                    }
-                    R4300I_CP0_REG_WATCHLO => {
-                        todo!("MTC0 R4300I_CP0_REG_WATCHLO")
-                    }
-                    R4300I_CP0_REG_WATCHHI => {
-                        todo!("MTC0 R4300I_CP0_REG_WATCHHI")
-                    }
-                    R4300I_CP0_REG_WIRED => {
-                        todo!("MTC0 R4300I_CP0_REG_WIRED")
-                    }
-                    R4300I_CP0_REG_CONTEXT => {
-                        todo!("MTC0 R4300I_CP0_REG_CONTEXT")
-                    }
-                    R4300I_CP0_REG_BADVADDR => {
-                        todo!("MTC0 R4300I_CP0_REG_BADVADDR")
-                    }
-                    R4300I_CP0_REG_XCONTEXT => {
-                        todo!("MTC0 R4300I_CP0_REG_XCONTEXT")
-                    }
-                    R4300I_CP0_REG_LLADDR => {
-                        todo!("MTC0 R4300I_CP0_REG_LLADDR")
-                    }
-                    R4300I_CP0_REG_ERR_EPC => {
-                        todo!("MTC0 R4300I_CP0_REG_ERR_EPC")
-                    }
-                    R4300I_CP0_REG_PRID => {
-                        todo!("MTC0 R4300I_CP0_REG_PRID")
-                    }
-                    R4300I_CP0_REG_PARITYER => {
-                        todo!("MTC0 R4300I_CP0_REG_PARITYER")
-                    }
-                    R4300I_CP0_REG_CACHEER => {
-                        todo!("MTC0 R4300I_CP0_REG_CACHEER")
-                    }
-                    R4300I_CP0_REG_7 => {
-                        todo!("MTC0 R4300I_CP0_REG_7")
-                    }
-                    R4300I_CP0_REG_21 => {
-                        todo!("MTC0 R4300I_CP0_REG_21")
-                    }
-                    R4300I_CP0_REG_22 => {
-                        todo!("MTC0 R4300I_CP0_REG_22")
-                    }
-                    R4300I_CP0_REG_23 => {
-                        todo!("MTC0 R4300I_CP0_REG_23")
-                    }
-                    R4300I_CP0_REG_24 => {
-                        todo!("MTC0 R4300I_CP0_REG_24")
-                    }
-                    R4300I_CP0_REG_25 => {
-                        todo!("MTC0 R4300I_CP0_REG_25")
-                    }
-                    R4300I_CP0_REG_31 => {
-                        todo!("MTC0 R4300I_CP0_REG_31")
-                    }
-                    R4300I_CP0_REG_INDEX => {
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.index),
-                            value,
-                        );
-                    }
-                    R4300I_CP0_REG_RANDOM => {
-                        todo!("MTC0 R4300I_CP0_REG_INDEX")
-                    }
-                    R4300I_CP0_REG_COUNT => {
-                        let value_u32 = block.convert(DataType::U32, value);
-                        let value_shifted =
-                            block.left_shift(DataType::U64, value_u32.val(), const_u16(1));
-                        block.write_ptr(
-                            DataType::U32,
-                            cpu_address,
-                            offset_of!(r4300i_t, cp0.count),
-                            value_shifted.val(),
-                        );
-                        let reschedule_compare_interrupt =
-                            const_ptr(reschedule_compare_interrupt as usize);
-                        block.call_function(
-                            reschedule_compare_interrupt,
-                            None,
-                            vec![const_u32(index as u32)],
-                        );
-                    }
-                    _ => {
-                        panic!("Unknown register in MTC0: {}", instr.rd());
-                    }
-                }
             }
             MipsOpcode::DMTC0 => {
                 todo!("DMTC0")
