@@ -7,7 +7,11 @@
 
 use std::{env::current_exe, mem};
 
-use dgbir::{compiler::{compile, compile_vec}, disassembler::{disassemble_function, disassemble_vec_function}, util::flush_icache};
+use dgbir::{
+    compiler::{compile, compile_vec},
+    disassembler::{disassemble_function, disassemble_vec_function},
+    util::flush_icache,
+};
 use log::{debug, info};
 use mips_to_ir::{to_ir, to_ir_ctx, MipsToIrContext};
 
@@ -54,14 +58,15 @@ pub unsafe extern "C" fn rs_jit_compile_and_run_block_for_test(
     virtual_address: u64,
     physical_address: u32,
     cpu: &r4300i_t,
-    context: MipsToIrContext
+    context: MipsToIrContext,
 ) -> i32 {
     let safe_code = std::slice::from_raw_parts(instructions, num_instructions);
     let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);
     let mut func = to_ir_ctx(context, parsed, cpu);
     debug!("{}", func);
     let compiled = compile(&mut func);
-    let f: unsafe extern "C" fn(*mut r4300i) -> i32 = unsafe { mem::transmute(compiled.ptr_entrypoint()) };
+    let f: unsafe extern "C" fn(*mut r4300i) -> i32 =
+        unsafe { mem::transmute(compiled.ptr_entrypoint()) };
     return f(cpu as *const r4300i as *mut r4300i);
 }
 
@@ -72,7 +77,7 @@ pub unsafe extern "C" fn rs_jit_dump_ir(
     virtual_address: u64,
     physical_address: u32,
     cpu: &r4300i_t,
-    context: MipsToIrContext
+    context: MipsToIrContext,
 ) {
     let safe_code = std::slice::from_raw_parts(instructions, num_instructions);
     let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);
@@ -86,7 +91,7 @@ pub unsafe extern "C" fn rs_jit_dump_host_disasm(
     virtual_address: u64,
     physical_address: u32,
     cpu: &r4300i_t,
-    context: MipsToIrContext
+    context: MipsToIrContext,
 ) {
     let safe_code = std::slice::from_raw_parts(instructions, num_instructions);
     let parsed = mips_parser::parse(safe_code, virtual_address, physical_address);

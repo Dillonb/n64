@@ -134,6 +134,7 @@ pub enum MipsOpcode {
     DSLL32,
     DSRL32,
     DSRA32,
+    TLBR,
     TLBWI,
     TLBP,
     ERET,
@@ -464,7 +465,7 @@ fn opcode_of_instruction(instr: &MipsInstructionBitfield) -> MipsOpcode {
     match instr.op() {
         _ if instr.raw() == 0 => MipsOpcode::NOP,
         MipsOpcodeField::CP0 if instr.is_coprocessor_funct() => match instr.cop0_funct() {
-            MipsCop0FunctField::TLBR => todo!("MipsCop0FunctField::TLBR"),
+            MipsCop0FunctField::TLBR => MipsOpcode::TLBR,
             MipsCop0FunctField::TLBWI => MipsOpcode::TLBWI,
             MipsCop0FunctField::DIV => todo!("MipsCop0FunctField::DIV"),
             MipsCop0FunctField::SQRT => todo!("MipsCop0FunctField::SQRT"),
