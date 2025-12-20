@@ -664,7 +664,12 @@ impl GuestRegisterManager {
                 );
             }
             R4300I_CP0_REG_WATCHHI => {
-                todo!("set_cp0_reg: R4300I_CP0_REG_WATCHHI")
+                block.write_ptr(
+                    DataType::U32,
+                    self.cpu_address,
+                    offset_of!(r4300i_t, cp0.watch_hi),
+                    value,
+                );
             }
             R4300I_CP0_REG_WIRED => {
                 todo!("set_cp0_reg: R4300I_CP0_REG_WIRED")
