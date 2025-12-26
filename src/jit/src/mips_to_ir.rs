@@ -1982,7 +1982,13 @@ pub fn to_ir_ctx(
                 todo!("DSLLV")
             }
             MipsOpcode::DSRLV => {
-                todo!("DSRLV")
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let shift_amount = block.and(DataType::U32, rs, const_u32(0b111111));
+
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.right_shift(DataType::U64, rt, shift_amount.val());
+
+                guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::DSRAV => {
                 todo!("DSRAV")
