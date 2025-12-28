@@ -1979,7 +1979,13 @@ pub fn to_ir_ctx(
                 guest_regs.set_lo(value);
             }
             MipsOpcode::DSLLV => {
-                todo!("DSLLV")
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let shift_amount = block.and(DataType::U32, rs, const_u32(0b111111));
+
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.left_shift(DataType::U64, rt, shift_amount.val());
+
+                guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::DSRLV => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
