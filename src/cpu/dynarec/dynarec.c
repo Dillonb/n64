@@ -103,6 +103,7 @@ INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysco
     n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
 
     if (unlikely(block_list == NULL)) {
+        mark_metric(METRIC_NEW_JIT_BLOCK_LIST_ALLOCATED);
 #ifdef N64_LOG_COMPILATIONS
         printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical_address, N64CPU.pc);
 #endif
