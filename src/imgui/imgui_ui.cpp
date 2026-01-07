@@ -63,6 +63,7 @@ RingBuffer<double> frame_times;
 RingBuffer<ImU64> block_compilations;
 RingBuffer<ImU64> block_sysconfig_misses;
 RingBuffer<ImU64> rsp_steps;
+RingBuffer<ImU64> code_invalidations;
 RingBuffer<ImU64> codecache_bytes_used;
 RingBuffer<ImU64> audiostream_bytes_available;
 RingBuffer<ImU64> si_interrupts;
@@ -160,6 +161,7 @@ void render_metrics_window() {
     block_compilations.add_point(get_metric(METRIC_BLOCK_COMPILATION));
     block_sysconfig_misses.add_point(get_metric(METRIC_BLOCK_SYSCONFIG_MISS));
     rsp_steps.add_point(get_metric(METRIC_RSP_STEPS));
+    code_invalidations.add_point(get_metric(METRIC_CODE_INVALIDATION));
     double frametime = 1000.0f / ImGui::GetIO().Framerate;
     frame_times.add_point(frametime);
 #ifdef N64_DYNAREC_ENABLED
@@ -191,6 +193,13 @@ void render_metrics_window() {
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
     if (ImPlot::BeginPlot("RSP Steps Per Frame")) {
         ImPlot::PlotLine("RSP Steps", rsp_steps.data, METRICS_HISTORY_ITEMS, 1, 0, flags, rsp_steps.offset);
+        ImPlot::EndPlot();
+    }
+
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, code_invalidations.max(), ImGuiCond_Always);
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, METRICS_HISTORY_ITEMS, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Code Invalidations Per Frame")) {
+        ImPlot::PlotLine("Code Invalidations", code_invalidations.data, METRICS_HISTORY_ITEMS, 1, 0, flags, code_invalidations.offset);
         ImPlot::EndPlot();
     }
 

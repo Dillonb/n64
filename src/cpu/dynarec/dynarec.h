@@ -8,6 +8,7 @@ extern "C" {
 #include <system/n64system.h>
 #include <dynasm/dasm_proto.h>
 #include <common/util.h>
+#include <metrics.h>
 
 // 4KiB aligned pages
 #define BLOCKCACHE_OUTER_SHIFT 12
@@ -90,6 +91,7 @@ INLINE bool is_code(u32 physical_address) {
 INLINE void invalidate_dynarec_page(u32 physical_address) {
     if (unlikely(is_code(physical_address))) {
         invalidate_dynarec_page_by_index(BLOCKCACHE_OUTER_INDEX(physical_address));
+        mark_metric(METRIC_CODE_INVALIDATION);
     }
 }
 
