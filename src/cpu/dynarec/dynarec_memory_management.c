@@ -46,9 +46,7 @@ void* dynarec_bumpalloc_get_next_allocation_ptr() {
 void* dynarec_bumpalloc_zero(size_t size) {
     u8* ptr = dynarec_bumpalloc(size);
 
-    for (int i = 0; i < size; i++) {
-        ptr[i] = 0;
-    }
+    memset(ptr, 0, size);
 
     return ptr;
 }
