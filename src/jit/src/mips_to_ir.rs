@@ -2103,7 +2103,17 @@ pub fn to_ir_ctx(
                 block = end;
             }
             MipsOpcode::DMULT => {
-                todo!("DMULT")
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+
+                let result =
+                    block.multiply(DataType::S128, DataType::S64, MultiplyType::Split, rs, rt);
+
+                let lo = result.at(0);
+                let hi = result.at(1);
+
+                guest_regs.set_lo(lo);
+                guest_regs.set_hi(hi);
             }
             MipsOpcode::DMULTU => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
@@ -2361,7 +2371,10 @@ pub fn to_ir_ctx(
                 todo!("DSRL")
             }
             MipsOpcode::DSRA => {
-                todo!("DSRA")
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                let result =
+                    block.right_shift(DataType::S64, input, const_u16(instr.sa() as u16));
+                guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::DSLL32 => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
