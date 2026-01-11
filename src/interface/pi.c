@@ -183,15 +183,6 @@ void write_word_pireg(u32 address, u32 value) {
 #endif
             }
 
-#ifdef N64_DYNAREC_ENABLED
-            u32 begin_index = BLOCKCACHE_OUTER_INDEX(dram_addr);
-            u32 end_index = BLOCKCACHE_OUTER_INDEX(dram_addr + length);
-
-            for (u32 i = begin_index; i <= end_index; i++) {
-                invalidate_dynarec_page_by_index(i);
-            }
-#endif
-
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);
             n64sys.pi.dma_busy = true;
 #ifdef INSTANT_DMA

@@ -80,18 +80,19 @@ static_assert(sizeof(bool) == 1, "sizeof(bool) == 1");
 extern n64_dynarec_t n64dynarec;
 
 INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
+    mark_metric(METRIC_CODE_INVALIDATION);
     n64dynarec.blockcache[outer_index] = NULL;
+    n64dynarec.code_mask[outer_index] = NULL;
 }
 
 INLINE bool is_code(u32 physical_address) {
-    bool* code_mask = n64dynarec.code_mask[physical_address >> BLOCKCACHE_OUTER_SHIFT];
+    bool* code_mask = n64dynarec.code_mask[BLOCKCACHE_OUTER_INDEX(physical_address)];
     return code_mask != NULL && code_mask[BLOCKCACHE_INNER_INDEX(physical_address)];
 }
 
 INLINE void invalidate_dynarec_page(u32 physical_address) {
     if (unlikely(is_code(physical_address))) {
         invalidate_dynarec_page_by_index(BLOCKCACHE_OUTER_INDEX(physical_address));
-        mark_metric(METRIC_CODE_INVALIDATION);
     }
 }
 
