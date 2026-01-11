@@ -34,6 +34,8 @@ elseif(WIN32)
     ADD_COMPILE_OPTIONS(/EHa)
 else()
     message("Building on Linux")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 endif()
 
 INCLUDE(CheckCCompilerFlag)
