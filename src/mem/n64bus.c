@@ -698,6 +698,7 @@ u32 n64_read_physical_word(u32 address) {
         case REGION_CART_1_3:
             logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_3", address);
             result = 0;
+            break;
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
         default:
