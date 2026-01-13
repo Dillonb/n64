@@ -326,7 +326,7 @@ public:
       }
 
       if (expected_fcr31.has_value()) {
-        print_colorcoded_u32("CP1 FCR31", expected_fcr31.value(), 
+        print_colorcoded_u32("CP1 FCR31", expected_fcr31.value(),
                              N64CPU.fcr31.raw);
       }
 
@@ -481,10 +481,10 @@ void run_test(const toml::table &table) {
     N64CPU.fcr31.raw = initial_fcr31;
   }
 
-
   std::optional<u32> expected_fcr31;
   if (table.contains("expected_fcr31")) {
-    expected_fcr31 = static_cast<u32>(table["expected_fcr31"].as_integer()->get());
+    expected_fcr31 =
+        static_cast<u32>(table["expected_fcr31"].as_integer()->get());
   }
 
   if (table.contains("initial_cp0_status")) {
@@ -642,7 +642,7 @@ void run_test(const toml::table &table) {
   printf("\t\tOK!\n");
 }
 
-void run_tests_in_file(const char* filename) {
+void run_tests_in_file(const char *filename) {
   printf("Running test file %s...\n", filename);
   auto testcases = toml::parse_file(filename);
   int testcase_num = 0;
@@ -653,13 +653,13 @@ void run_tests_in_file(const char* filename) {
   }
 }
 
-void run_tests_in_directory(const char* path) {
-    printf("Running tests in directory %s...\n", path);
-    for (const auto& file : std::filesystem::directory_iterator(path)) {
-      if (file.path().extension() == ".toml") {
-        run_tests_in_file(file.path().string().c_str());
-      }
+void run_tests_in_directory(const char *path) {
+  printf("Running tests in directory %s...\n", path);
+  for (const auto &file : std::filesystem::directory_iterator(path)) {
+    if (file.path().extension() == ".toml") {
+      run_tests_in_file(file.path().string().c_str());
     }
+  }
 }
 
 int main(int argc, char **argv) {
