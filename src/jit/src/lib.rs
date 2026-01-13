@@ -5,7 +5,7 @@
 #![allow(non_snake_case)]
 #![allow(unnecessary_transmutes)]
 
-use std::{env::current_exe, mem};
+use std::mem;
 
 use dgbir::{
     compiler::{compile, compile_vec},
@@ -99,13 +99,4 @@ pub unsafe extern "C" fn rs_jit_dump_host_disasm(
     let compiled = compile(&mut func);
     let disasm = disassemble_function(&compiled);
     println!("{}", disasm);
-}
-
-// TODO: this doesn't belong in the JIT lib.rs, but it's a convenient place for now
-#[no_mangle]
-pub unsafe extern "C" fn cd_to_current_exe() {
-    let path = current_exe().expect("Failed to get current exe path");
-    let dir = path.parent().expect("Failed to get parent directory");
-    std::env::set_current_dir(dir).expect("Failed to change current directory");
-    println!("Changed working directory to {:?}", dir);
 }

@@ -13,6 +13,8 @@
 
 #include <vector>
 
+#include "generated/testcase_path.h"
+
 class TestCase {
 public:
   TestCase(u64 virtual_pc, const std::vector<u32> &instructions)
@@ -651,20 +653,28 @@ void run_tests_in_file(const char* filename) {
   }
 }
 
+void run_tests_in_directory(const char* path) {
+    printf("Running tests in directory %s...\n", path);
+    for (const auto& file : std::filesystem::directory_iterator(path)) {
+      if (file.path().extension() == ".toml") {
+        run_tests_in_file(file.path().string().c_str());
+      }
+    }
+}
+
 int main(int argc, char **argv) {
   // Needed to setup all static global pointers that code assumes exist
   init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, true);
 
   if (argc == 1) {
-    cd_to_current_exe();
-    for (const auto& file : std::filesystem::directory_iterator(".")) {
-      if (file.path().extension() == ".toml") {
-        run_tests_in_file(file.path().string().c_str());
-      }
-    }
+    run_tests_in_directory(TESTCASE_PATH);
   } else if (argc == 2) {
-    run_tests_in_file(argv[1]);
+    if (std::filesystem::is_directory(argv[1])) {
+      run_tests_in_directory(argv[1]);
+    } else {
+      run_tests_in_file(argv[1]);
+    }
   } else {
-    printf("Usage: %s [testfile.toml]\n", argv[0]);
+    printf("Usage: %s [testfile.toml | test_toml_directory]\n", argv[0]);
   }
 }
