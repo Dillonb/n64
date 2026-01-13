@@ -5,3 +5,5 @@ foreach(casefile ${cases})
     get_filename_component(casefile_name ${casefile} NAME)
     configure_file(${casefile} ${casefile_name} COPYONLY)
 endforeach()
+
+add_test(NAME test_dynarec COMMAND test_dynarec)
