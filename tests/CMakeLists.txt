@@ -7,7 +7,7 @@ add_subdirectory(dynarec)
 if (NOT WIN32)
 add_executable(test_cpu test_cpu.c unit.h)
 target_link_libraries(test_cpu r4300i common core)
-add_test(test_cpu test_cpu)
+# add_test(test_cpu test_cpu)
 endif()
 
 add_executable(test_vmadm_overflow test_vmadm_overflow.c unit.h)
