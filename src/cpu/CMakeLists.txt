@@ -52,6 +52,9 @@ if (N64_DYNAREC_V1_ENABLED OR N64_DYNAREC_ENABLED)
     target_sources(r4300i PRIVATE
         ${DYNAREC_COMMON_SOURCES}
     )
+    target_sources(rsp PRIVATE
+        dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h
+    )
 endif()
 
 if (N64_DYNAREC_V1_ENABLED OR (N64_DYNAREC_ENABLED AND N64_DYNAREC_ARCH STREQUAL "x86_64"))
@@ -71,13 +74,9 @@ if (N64_DYNAREC_V1_ENABLED OR (N64_DYNAREC_ENABLED AND N64_DYNAREC_ARCH STREQUAL
                 MAIN_DEPENDENCY dynarec/v1/v1_emitter.dasc
                 DEPENDS minilua)
 
-        target_sources(r4300i PRIVATE 
+        target_sources(r4300i PRIVATE
             dynarec/v1/v1_compiler.c dynarec/v1/v1_compiler.h
             v1_emitter.c dynarec/v1/v1_emitter.h
-        )
-
-        target_sources(rsp PRIVATE
-            dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h
         )
     endif()
 
@@ -99,7 +98,7 @@ if (N64_DYNAREC_ENABLED)
             dynarec/v2/v2_compiler_x64.c
         )
     else()
-        target_sources(r4300i PRIVATE 
+        target_sources(r4300i PRIVATE
             dynarec/v2/blank_target_platform.c
         )
     endif()

@@ -2,7 +2,7 @@
 #include <log.h>
 #include <string.h>
 
-#ifdef N64_MACOS
+#ifdef __APPLE__
 #include <pthread.h>
 #endif
 
@@ -48,7 +48,7 @@ void mprotect_rwx(u8* cache, size_t size, const char* cache_name) {
     if (!VirtualProtect(cache, size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         mprotect_error(cache_name);
     }
-#elif defined(N64_MACOS)
+#elif defined(__APPLE__)
     // no-op
 #else
     if (mprotect(cache, size, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {

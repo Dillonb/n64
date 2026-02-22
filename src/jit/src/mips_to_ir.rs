@@ -2372,8 +2372,7 @@ pub fn to_ir_ctx(
             }
             MipsOpcode::DSRA => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
-                let result =
-                    block.right_shift(DataType::S64, input, const_u16(instr.sa() as u16));
+                let result = block.right_shift(DataType::S64, input, const_u16(instr.sa() as u16));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::DSLL32 => {

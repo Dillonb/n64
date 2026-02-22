@@ -8,7 +8,7 @@
 #include "dynarec_memory_management.h"
 #include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
-#ifdef N64_MACOS
+#ifdef __APPLE__
 #include <pthread.h>
 #endif
 
@@ -34,7 +34,7 @@ int interpreter_fallback_until_no_branch() {
 int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_block_sysconfig_t current_sysconfig) {
     u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
 
-#ifdef N64_MACOS
+#ifdef __APPLE__
     // Allow writing to the code cache
     pthread_jit_write_protect_np(false);
 #endif
@@ -54,7 +54,7 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
 
     mark_metric(METRIC_BLOCK_COMPILATION);
     v3_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
-#ifdef N64_MACOS
+#ifdef __APPLE__
     // Disallow writing to the code cache to allow exec
     pthread_jit_write_protect_np(true);
 #endif
@@ -72,7 +72,7 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         // make sure it matches the sysconfig and virtual address. If not, keep looking.
         if (block_iter->sysconfig.raw == current_sysconfig.raw && block_iter->virtual_address == virtual_address) {
             if (block_iter != blocks) {
-#ifdef N64_MACOS
+#ifdef __APPLE__
                 pthread_jit_write_protect_np(false);
 #endif
                 n64_dynarec_block_t temp = *blocks;
@@ -86,7 +86,7 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         }
         // Add a block to the end of the list
         if (block_iter->next == NULL) {
-#ifdef N64_MACOS
+#ifdef __APPLE__
             pthread_jit_write_protect_np(false);
 #endif
             block_iter->next = dynarec_bumpalloc_zero(sizeof(n64_dynarec_block_t));
@@ -108,7 +108,7 @@ INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysco
         printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical_address, N64CPU.pc);
 #endif
         // Allow writing to the code cache
-#ifdef N64_MACOS
+#ifdef __APPLE__
         pthread_jit_write_protect_np(false);
 #endif
         block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
@@ -179,7 +179,7 @@ int n64_dynarec_step() {
         #ifdef DO_REPEATED_EXEC_DETECTION
         do_repeated_exec_detection(physical, block);
         #endif
-        #ifdef N64_MACOS
+        #ifdef __APPLE__
         // logfatal("Running block at 0x%08X with run function %p", physical, block->run);
         // Disallow writing to the code cache to allow exec
         pthread_jit_write_protect_np(true);

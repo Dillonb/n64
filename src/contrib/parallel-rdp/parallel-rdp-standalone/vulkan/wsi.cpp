@@ -720,7 +720,7 @@ bool WSI::begin_frame()
 #ifdef VULKAN_DEBUG
 			LOGI("AcquireNextImageKHR is suboptimal, will recreate.\n");
 #endif
-#ifndef N64_MACOS // Hack - this seems to always be true on MoltenVK
+#ifndef __APPLE__ // Hack - this seems to always be true on MoltenVK
 			swapchain_is_suboptimal = true;
 			LOGW("Swapchain suboptimal.\n");
 #endif
@@ -904,7 +904,7 @@ bool WSI::end_frame()
 #ifdef VULKAN_DEBUG
 			LOGI("QueuePresent is suboptimal, will recreate.\n");
 #endif
-#ifndef N64_MACOS // Hack - this seems to always be true on MoltenVK
+#ifndef __APPLE__ // Hack - this seems to always be true on MoltenVK
 			swapchain_is_suboptimal = true;
 #endif
 		}

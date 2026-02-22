@@ -17,6 +17,7 @@ use mips_to_ir::{to_ir, to_ir_ctx, MipsToIrContext};
 
 mod mips_parser;
 mod mips_to_ir;
+mod rsp_jit;
 
 include!(concat!(env!("OUT_DIR"), "/c_bindings_generated.rs"));
 
@@ -99,4 +100,15 @@ pub unsafe extern "C" fn rs_jit_dump_host_disasm(
     let compiled = compile(&mut func);
     let disasm = disassemble_function(&compiled);
     println!("{}", disasm);
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum InstructionCategory {
+    Normal,
+    Cache,
+    Store,
+    Branch,
+    BranchLikely,
+    TlbWrite,
+    BlockEnder,
 }

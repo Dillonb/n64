@@ -13,7 +13,7 @@
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
 
-#elif defined(N64_MACOS)
+#elif defined(__APPLE__)
 
 // Mac OS X / Darwin features
 #include <libkern/OSByteOrder.h>

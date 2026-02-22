@@ -1,8 +1,11 @@
 #include <log.h>
+#include <mips_instruction_decode.h>
 #include <perf_map_file.h>
 #include <rsp.h>
 #include "rsp_dynarec.h"
+#include "jit_rs.h"
 #include "v1/v1_emitter.h"
+#include "v2/v2_compiler.h"
 #include "dynarec_memory_management.h"
 
 #ifdef N64_HAVE_SSE
@@ -35,11 +38,16 @@ void* rsp_link_and_encode(dasm_State** Dst, size_t* code_size_result) {
     return buf;
 }
 
+mips_instruction_t rsp_temp_code[TEMP_CODE_SIZE];
+dynarec_instruction_category_t rsp_temp_code_category[TEMP_CODE_SIZE];
+int rsp_temp_code_len = 0;
+
 #define NEXT(address) ((address + 4) & 0xFFF)
-
 void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_overlay_t* current_overlay) {
-    dasm_State** Dst = v1_block_header();
+    rs_jit_compile_new_rsp_block(block, address, current_overlay);
+}
 
+void compile_new_rsp_block_old(rsp_dynarec_block_t* block, u16 address, rsp_code_overlay_t* current_overlay) {
     int block_length = 0;
     int block_extra_cycles = 0;
     bool should_continue_block = true;
@@ -47,27 +55,22 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_ove
     int instructions_left_in_block = -1;
     bool branch_in_block = false;
 
+    rsp_temp_code_len = 0;
+
     dynarec_instruction_category_t prev_instr_category = NORMAL;
 
     do {
-        static mips_instruction_t instr;
+        mips_instruction_t instr;
         instr.raw = word_from_byte_array(N64RSP.sp_imem, address);
         current_overlay->code[address >> 2] = instr.raw;
         current_overlay->code_mask[address >> 2] = 0xFFFFFFFF;
+        temp_code[temp_code_len++] = instr;
 
         u16 next_address = NEXT(address);
 
         instructions_left_in_block--;
 
-        dynarec_ir_t* ir = rsp_instruction_ir(instr, address);
-        if (is_branch(ir->category)) {
-            flush_rsp_pc(Dst, next_address >> 2);
-            flush_rsp_next_pc(Dst, NEXT(next_address) >> 2);
-        }
-
-        //advance_rsp_pc(Dst);
-
-        ir->compiler(Dst, instr, address, NULL, 0, &extra_cycles);
+        dynarec_ir_t* ir = NULL; //rsp_instruction_ir(instr, address);
         block_length++;
         block_extra_cycles += extra_cycles;
 
@@ -76,7 +79,6 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_ove
                 should_continue_block = instructions_left_in_block != 0;
                 break;
             case BRANCH:
-                advance_rsp_pc(Dst);
                 branch_in_block = true;
                 if (prev_instr_category == BRANCH) {
                     // Check if the previous branch was taken.
@@ -110,17 +112,14 @@ void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_ove
         prev_instr_category = ir->category;
     } while(should_continue_block);
 
-    if (!branch_in_block) {
-        flush_rsp_pc(Dst, address >> 2);
-        flush_rsp_next_pc(Dst, NEXT(address) >> 2);
-    }
+    // if (!branch_in_block) {
+    //     flush_rsp_pc(Dst, address >> 2);
+    //     flush_rsp_next_pc(Dst, NEXT(address) >> 2);
+    // }
 
-    end_rsp_block(Dst, block_length + block_extra_cycles);
     size_t code_size;
-    void* compiled = rsp_link_and_encode(Dst, &code_size);
-    v1_dasm_free();
 
-    block->run = compiled;
+    // block->run = compiled;
 
     char block_name[500];
     snprintf(block_name, 500, "rsp_jit_block_%04X", address);

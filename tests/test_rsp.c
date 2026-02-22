@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#ifdef N64_MACOS
+#ifdef __APPLE__
 #include <limits.h>
 #else
 #include <linux/limits.h>

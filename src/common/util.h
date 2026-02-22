@@ -75,7 +75,7 @@ INLINE u32 npow2(u32 x) {
 }
 
 INLINE bool file_exists(const char* path) {
-#if !defined(N64_WIN) && !defined(N64_MACOS)
+#if !defined(N64_WIN) && !defined(__APPLE__)
     return access(path, F_OK) == 0;
 #else
     FILE* f = fopen(path, "r");

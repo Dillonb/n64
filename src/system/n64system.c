@@ -32,7 +32,7 @@
 #include <interface/pi.h>
 #include <mem/pif.h>
 #include <timing.h>
-#ifdef N64_MACOS
+#ifdef __APPLE__
 #include <pthread.h>
 #endif
 
@@ -41,7 +41,7 @@ static bool should_quit = false;
 
 n64_system_t* n64sys_ptr;
 
-#ifndef N64_MACOS
+#ifndef __APPLE__
 static u8 codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
 static u8 rsp_codecache[RSP_CODECACHE_SIZE] __attribute__((aligned(4096)));
 #else
@@ -67,7 +67,7 @@ void n64_load_rom(const char* rom_path) {
 }
 
 void mprotect_codecache() {
-    #ifdef N64_MACOS
+    #ifdef __APPLE__
     codecache = (u8*)mmap(NULL, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,-1, 0);
     rsp_codecache = (u8*)mmap(NULL, RSP_CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,-1, 0);
     #else
@@ -107,8 +107,6 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
     mprotect_codecache();
 #ifdef N64_DYNAREC_ENABLED
     n64_dynarec_init(codecache, CODECACHE_SIZE);
-#endif
-#ifdef N64_DYNAREC_V1_ENABLED
     N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
 #endif
 
@@ -356,7 +354,7 @@ int n64_system_step(bool dynarec, int steps) {
             // 2 RSP steps per 3 CPU steps
             N64RSP.steps += (cpu_steps / 3) * 2;
             cpu_steps %= 3;
-#ifdef N64_DYNAREC_V1_ENABLED
+#ifdef N64_DYNAREC_ENABLED
             rsp_dynarec_run();
 #else
             rsp_run();
@@ -401,7 +399,7 @@ void jit_system_loop() {
             N64RSP.steps += (cpu_steps / 3) * 2;
             cpu_steps %= 3;
 
-#ifdef N64_DYNAREC_V1_ENABLED
+#ifdef N64_DYNAREC_ENABLED
             rsp_dynarec_run();
 #else
             rsp_run();
