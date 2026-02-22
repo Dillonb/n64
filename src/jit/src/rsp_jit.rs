@@ -1,6 +1,4 @@
-use dgbir::disassembler::{disassemble_mips, disassemble_mips_instruction};
-
-use crate::{mips_parser::parse_rsp, *};
+use crate::{rsp_mips_parser::parse_rsp, *};
 
 fn rsp_instruction_category(instr: mips_instruction_t) -> InstructionCategory {
     if unsafe { instr.raw } == 0 {
