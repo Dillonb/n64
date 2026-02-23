@@ -124,7 +124,7 @@ void compile_new_rsp_block_old(rsp_dynarec_block_t* block, u16 address, rsp_code
     char block_name[500];
     snprintf(block_name, 500, "rsp_jit_block_%04X", address);
 
-    n64_perf_map_file_write((uintptr_t)compiled, code_size, block_name);
+    // n64_perf_map_file_write((uintptr_t)compiled, code_size, block_name);
 }
 
 int rsp_missing_block_handler() {
