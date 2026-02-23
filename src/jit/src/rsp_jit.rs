@@ -1,4 +1,4 @@
-use crate::{rsp_mips_parser::parse_rsp, *};
+use crate::{rsp_mips_parser::parse_rsp, rsp_mips_to_ir::rsp_to_ir, *};
 
 fn rsp_instruction_category(instr: mips_instruction_t) -> InstructionCategory {
     if unsafe { instr.raw } == 0 {
@@ -27,12 +27,10 @@ fn rsp_instruction_category(instr: mips_instruction_t) -> InstructionCategory {
     }
 }
 
-fn rsp_read_instruction(address: u16) -> mips_instruction_t {
-    let bytes = unsafe {
-        n64rsp.sp_imem[address as usize..address as usize + 4]
-            .try_into()
-            .unwrap()
-    };
+fn rsp_read_instruction(rsp: &rsp_t, address: u16) -> mips_instruction_t {
+    let bytes = rsp.sp_imem[address as usize..address as usize + 4]
+        .try_into()
+        .unwrap();
     let raw = u32::from_le_bytes(bytes);
     mips_instruction_t { raw }
 }
@@ -46,6 +44,7 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
     block: *mut rsp_dynarec_block_t,
     start_address: u16,
     current_overlay: *mut rsp_code_overlay_t,
+    rsp: &rsp_t,
 ) {
     let mut should_continue_block;
     let mut address = start_address;
@@ -56,7 +55,7 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
     let mut code = Vec::new();
 
     loop {
-        let instr = rsp_read_instruction(address);
+        let instr = rsp_read_instruction(rsp, address);
         let category = rsp_instruction_category(instr);
 
         let instr_raw = unsafe { instr.raw };
@@ -93,6 +92,7 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
     }
 
     let parsed = parse_rsp(&code, address);
+    let func = rsp_to_ir(parsed, rsp);
 
     if !branch_in_block {
         todo!("Add code to flush PC")

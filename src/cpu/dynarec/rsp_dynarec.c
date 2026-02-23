@@ -44,7 +44,7 @@ int rsp_temp_code_len = 0;
 
 #define NEXT(address) ((address + 4) & 0xFFF)
 void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_overlay_t* current_overlay) {
-    rs_jit_compile_new_rsp_block(block, address, current_overlay);
+    rs_jit_compile_new_rsp_block(block, address, current_overlay, &N64RSP);
 }
 
 void compile_new_rsp_block_old(rsp_dynarec_block_t* block, u16 address, rsp_code_overlay_t* current_overlay) {

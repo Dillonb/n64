@@ -19,6 +19,7 @@ mod mips_parser;
 mod mips_to_ir;
 mod rsp_jit;
 mod rsp_mips_parser;
+mod rsp_mips_to_ir;
 
 include!(concat!(env!("OUT_DIR"), "/c_bindings_generated.rs"));
 
