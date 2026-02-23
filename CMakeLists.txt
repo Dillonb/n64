@@ -111,10 +111,8 @@ add_link_options("$<$<COMPILE_LANGUAGE:CXX>:${DEFAULT_C_LINK_OPTIONS}>")
 configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/version.h.in ${CMAKE_CURRENT_LIST_DIR}/src/generated/version.h)
 
 set(N64_DYNAREC_ENABLED true)
-set(N64_DYNAREC_V1_ENABLED false) # For the RSP, for now. Only works on x64.
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
     set(N64_DYNAREC_ARCH "x86_64")
-    set(N64_DYNAREC_V1_ENABLED true)
 endif()
 
 if (N64_DYNAREC_ENABLED)
@@ -122,13 +120,6 @@ if (N64_DYNAREC_ENABLED)
     add_compile_definitions(N64_DYNAREC_ENABLED)
 else()
     message("Dynarec not enabled.")
-endif()
-
-if (N64_DYNAREC_V1_ENABLED)
-    message("Dynarec V1 enabled!")
-    add_compile_definitions(N64_DYNAREC_V1_ENABLED)
-else()
-    message("Dynarec V1 not enabled.")
 endif()
 
 add_subdirectory(src)

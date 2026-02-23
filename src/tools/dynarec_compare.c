@@ -26,7 +26,6 @@
 #include <settings.h>
 #include <cflags.h>
 #include <frontend/tas_movie.h>
-#include <cpu/dynarec/v2/ir_context.h>
 
 // #define CHECK_RDRAM
 #define CHECK_PREV_STATE

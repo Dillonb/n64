@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #include <system/n64system.h>
-#include <dynasm/dasm_proto.h>
 #include <common/util.h>
 #include <metrics.h>
 

@@ -656,17 +656,6 @@ typedef struct r4300i {
 
     // Did an exception just happen?
     bool exception;
-
-    // Consts for the JIT
-    alignas(16) u32 s_mask[4];
-    alignas(16) u64 d_mask[2];
-    alignas(16) u32 s_neg[4];
-    alignas(16) u64 d_neg[2];
-    alignas(16) u32 s_abs[4];
-    alignas(16) u64 d_abs[2];
-
-    s64 int64_min;
-
 } r4300i_t;
 
 extern r4300i_t* n64cpu_ptr;

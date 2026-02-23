@@ -4,9 +4,6 @@
 #include <rsp.h>
 #include "rsp_dynarec.h"
 #include "jit_rs.h"
-#include "v1/v1_emitter.h"
-#include "v2/v2_compiler.h"
-#include "dynarec_memory_management.h"
 
 #ifdef N64_HAVE_SSE
 #ifdef N64_USE_NEON
@@ -16,31 +13,6 @@
 #include <smmintrin.h>
 #endif
 #endif
-
-size_t rsp_link(dasm_State** d) {
-    size_t code_size;
-    dasm_link(d, &code_size);
-    return code_size;
-}
-
-void* rsp_link_and_encode(dasm_State** Dst, size_t* code_size_result) {
-    size_t code_size = rsp_link(Dst);
-#ifdef N64_LOG_COMPILATIONS
-    printf("Generated %ld bytes of RSP code\n", code_size);
-#endif
-    void* buf = rsp_dynarec_bumpalloc(code_size);
-    dasm_encode(Dst, buf);
-
-    if (code_size_result) {
-        *code_size_result = code_size;
-    }
-
-    return buf;
-}
-
-mips_instruction_t rsp_temp_code[TEMP_CODE_SIZE];
-dynarec_instruction_category_t rsp_temp_code_category[TEMP_CODE_SIZE];
-int rsp_temp_code_len = 0;
 
 #define NEXT(address) ((address + 4) & 0xFFF)
 void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_overlay_t* current_overlay) {

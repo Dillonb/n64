@@ -3,10 +3,8 @@
 #include "jit_rs.h"
 
 #include <mem/n64bus.h>
-#include <dynasm/dasm_proto.h>
 #include <metrics.h>
 #include "dynarec_memory_management.h"
-#include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
 #ifdef __APPLE__
 #include <pthread.h>
@@ -220,9 +218,6 @@ void n64_dynarec_init(u8* codecache, size_t codecache_size) {
 
     n64dynarec.codecache = codecache;
 
-#ifdef N64_DYNAREC_V1_ENABLED
-    v1_compiler_init();
-#endif
     v2_compiler_init();
 }
 

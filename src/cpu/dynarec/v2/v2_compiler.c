@@ -9,17 +9,11 @@
 #include <dynarec/dynarec_memory_management.h>
 #include <r4300i.h>
 #include <r4300i_register_access.h>
-#include "v2_compiler_platformspecific.h"
 #include <system/mprotect_utils.h>
 #include <mips_instructions.h>
 #include <system/scheduler.h>
 
 #include "instruction_category.h"
-#include "ir_emitter.h"
-#include "ir_context.h"
-#include "ir_optimizer.h"
-#include "target_platform.h"
-#include "register_allocator.h"
 
 //#define N64_LOG_COMPILATIONS
 
@@ -149,7 +143,7 @@ void fill_temp_code(u64 virtual_address, u32 physical_address, bool* code_mask) 
 
 /**
  * @brief Resolves a virtual address in a way that's useful for the JIT.
- * 
+ *
  * @param virtual virtual address to resolve
  * @param except_pc pc of the mips instruction doing the resolve
  * @param bus_access is the resolve for a load or a store?
@@ -214,95 +208,20 @@ void v3_compile_new_block(
     rs_jit_compile_new_block(block, (uint32_t*)temp_code, temp_code_len, virtual_address, physical_address, n64cpu_ptr);
 }
 
-void v2_compile_new_block(
-        n64_dynarec_block_t* block,
-        bool* code_mask,
-        u64 virtual_address,
-        u32 physical_address) {
-
-    fill_temp_code(virtual_address, physical_address, code_mask);
-
-    if (detect_idle_loop(virtual_address)) {
-        block->run = idle_loop_replacement;
-        block->guest_size = 0;
-        block->host_size = 0;
-        return;
-    }
-
-    ir_context_reset();
-    ir_context.block_start_virtual = virtual_address;
-    ir_context.block_start_physical = physical_address;
-#ifdef N64_LOG_COMPILATIONS
-    printf("Translating to IR:\n");
-#endif
-
-    // If the block ends with a branch, don't include it in the block, and instead fall back to the interpreter.
-    // The block should only ever end up on a branch if it's cut off by a page boundary.
-    bool block_ends_with_branch = LAST_INSTR_IS_BRANCH;
-
-    // Trim all branches off the end of the block (they will be replaced by the interpreter fallback)
-    while (LAST_INSTR_IS_BRANCH) {
-        temp_code_len--;
-    }
-
-    for (int i = 0; i < temp_code_len; i++) {
-        u64 instr_virtual_address = virtual_address + (i << 2);
-        u32 instr_physical_address = physical_address + (i << 2);
-        emit_instruction_ir(temp_code[i], i, instr_virtual_address, instr_physical_address);
-    }
-
-    if (!ir_context.block_end_pc_ir_emitted && temp_code_len > 0) {
-        ir_instruction_t* end_pc = ir_emit_set_constant_64(virtual_address + (temp_code_len << 2), NO_GUEST_REG);
-        ir_emit_set_block_exit_pc(end_pc);
-    }
-
-    ir_optimize_flush_guest_regs();
-
-    if (block_ends_with_branch) {
-        ir_emit_interpreter_fallback_until_no_delay_slot();
-    }
-#ifdef N64_LOG_COMPILATIONS
-    print_ir_block();
-    printf("Optimizing:\n");
-#endif
-    ir_optimize_constant_propagation();
-    ir_optimize_eliminate_dead_code();
-    ir_optimize_shrink_constants();
-    ir_allocate_registers();
-#ifdef N64_LOG_COMPILATIONS
-    print_ir_block();
-    printf("Emitting to host code:\n");
-#endif
-    v2_emit_block(block, physical_address);
-    if (block->run == NULL) {
-        logfatal("Failed to emit block");
-    }
-#ifdef N64_DEBUG_MODE
-    if (should_break(physical_address)) {
-        print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
-        if (physical_address < N64_RDRAM_SIZE) {
-            print_multi_guest((uintptr_t)physical_address, &n64sys.mem.rdram[physical_address], block->guest_size);
-        }
-    }
-#endif
-#ifdef N64_LOG_COMPILATIONS
-    print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
-#endif
-}
 
 void v2_compiler_init() {
-    N64CPU.s_mask[0] = 0xFFFFFFFF;
-    N64CPU.d_mask[0] = 0xFFFFFFFFFFFFFFFF;
+    // N64CPU.s_mask[0] = 0xFFFFFFFF;
+    // N64CPU.d_mask[0] = 0xFFFFFFFFFFFFFFFF;
 
-    N64CPU.s_neg[0] = (u32)1 << 31;
-    N64CPU.d_neg[0] = (u64)1 << 63;
+    // N64CPU.s_neg[0] = (u32)1 << 31;
+    // N64CPU.d_neg[0] = (u64)1 << 63;
 
-    N64CPU.s_abs[0] = (u32) ~N64CPU.s_neg[0];
-    N64CPU.d_abs[0] = (u64) ~N64CPU.d_neg[0];
+    // N64CPU.s_abs[0] = (u32) ~N64CPU.s_neg[0];
+    // N64CPU.d_abs[0] = (u64) ~N64CPU.d_neg[0];
 
-    N64CPU.int64_min = INT64_MIN;
+    // N64CPU.int64_min = INT64_MIN;
 
-    v2_compiler_init_platformspecific();
+    // v2_compiler_init_platformspecific();
 }
 
 void v2_set_idle_loop_detection_enabled(bool enabled) {
