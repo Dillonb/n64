@@ -61,6 +61,10 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
         let instr_raw = unsafe { instr.raw };
 
         code.push(instr_raw);
+        unsafe {
+            (*current_overlay).code[(address as usize) >> 2] = instr_raw;
+            (*current_overlay).code_mask[(address as usize) >> 2] = 0xFFFFFFFF;
+        }
 
         instructions_left_in_block -= 1;
 
@@ -91,12 +95,21 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
         }
     }
 
-    let parsed = parse_rsp(&code, address);
-    let func = rsp_to_ir(parsed, rsp);
-
     if !branch_in_block {
         todo!("Add code to flush PC")
     }
 
-    todo!("RSP jit")
+    let parsed = parse_rsp(&code, address);
+    let mut func = rsp_to_ir(parsed, rsp);
+    let compiled = compile_vec(&mut func, start_address as usize);
+
+    let code = compiled.code;
+
+    unsafe {
+        let alloc = rsp_dynarec_bumpalloc(code.len());
+        std::ptr::copy_nonoverlapping(code.as_ptr(), alloc as *mut u8, code.len());
+        let f: unsafe extern "C" fn(*mut rsp) -> i32 = mem::transmute(alloc);
+
+        (*block).run = Some(f);
+    }
 }
