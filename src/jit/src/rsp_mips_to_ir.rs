@@ -92,7 +92,13 @@ pub fn rsp_to_ir_ctx(
     let mut cycles = 0;
     let mut pc_set = false;
 
-    for ParsedRspInstruction { addr, instr, op } in parsed {
+    if let Some(last) = parsed.last() {
+        if last.op.is_branch() {
+            todo!("RSP block ends with a branch. I don't think this can ever happen on the RSP, but it could be handled similarly to how the main CPU does.")
+        }
+    }
+
+    for ParsedRspInstruction { addr: _, instr, op } in parsed {
         match op {
             RspOpcode::BRANCH(_) => todo!("RSP branch"),
             RspOpcode::NOP => todo!("RSP NOP"),

@@ -107,10 +107,10 @@ pub unsafe extern "C" fn rs_jit_dump_host_disasm(
 #[derive(Debug, PartialEq, Eq)]
 enum InstructionCategory {
     Normal,
-    Cache,
-    Store,
+    // Cache,
+    // Store,
     Branch,
-    BranchLikely,
-    TlbWrite,
+    // BranchLikely,
+    // TlbWrite,
     BlockEnder,
 }
