@@ -1,4 +1,9 @@
-use dgbir::ir::{DataType, IRContext, IRFunction};
+use std::mem::offset_of;
+
+use dgbir::ir::{
+    const_s16, const_s32, const_u16, const_u32, DataType, IRBlockHandle, IRContext, IRFunction,
+    InputSlot,
+};
 
 use crate::{
     rsp_mips_parser::{ParsedRspInstruction, RspOpcode},
@@ -13,22 +18,90 @@ impl RspMipsToIrContext {
     }
 }
 
+struct GuestRegisterManager {
+    rsp_address: InputSlot,
+    gprs: [Option<InputSlot>; 32],
+}
+
+impl GuestRegisterManager {
+    fn new(rsp_address: InputSlot) -> Self {
+        let mut v = Self {
+            rsp_address,
+            gprs: [None; 32],
+        };
+        v.gprs[0] = Some(const_u32(0));
+        v
+    }
+
+    pub fn set_gpr(&mut self, r: u8, value: InputSlot) {
+        if r != 0 {
+            self.gprs[r as usize] = Some(value);
+        }
+    }
+
+    fn get_gpr(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
+        *self.gprs[r as usize].get_or_insert_with(|| {
+            let offset = offset_of!(rsp_t, gpr) + (r as usize * std::mem::size_of::<u32>());
+            block
+                .load_ptr(DataType::U32, self.rsp_address, offset)
+                .val()
+        })
+    }
+
+    fn flush_all(&mut self, block: &mut IRBlockHandle, clear: bool) {
+        self.gprs
+            .iter_mut()
+            .enumerate()
+            .filter(|(i, reg)| *i != 0 && reg.is_some())
+            .for_each(|(i, reg)| {
+                if let Some(value) = if clear { reg.take() } else { *reg } {
+                    let offset = offset_of!(rsp_t, gpr) + (i * std::mem::size_of::<u32>());
+                    block.write_ptr(DataType::U32, self.rsp_address, offset, value);
+                }
+            });
+    }
+}
+
+fn set_pc(
+    pc_set_flag: &mut bool,
+    block: &mut IRBlockHandle,
+    rsp_address: InputSlot,
+    value: InputSlot,
+) {
+    *pc_set_flag = true;
+    let offset = offset_of!(rsp_t, pc);
+    let next_pc_offset = offset_of!(rsp_t, next_pc);
+
+    block.write_ptr(DataType::U16, rsp_address, offset, value);
+    let next_pc = block.add(DataType::U16, value, const_u32(4));
+    block.write_ptr(DataType::U16, rsp_address, next_pc_offset, next_pc.val());
+}
+
 pub fn rsp_to_ir_ctx(
-    ctx: RspMipsToIrContext,
+    _ctx: RspMipsToIrContext,
     parsed: Vec<ParsedRspInstruction>,
-    rsp: &rsp_t,
+    _rsp: &rsp_t,
 ) -> IRFunction {
     let context = IRContext::new();
     let func = IRFunction::new(context);
     let mut block = func.new_block(vec![DataType::Ptr]);
     let rsp_address = block.input(0);
 
+    let mut guest_regs = GuestRegisterManager::new(rsp_address);
+
+    let mut cycles = 0;
+    let mut pc_set = false;
+
     for ParsedRspInstruction { addr, instr, op } in parsed {
         match op {
             RspOpcode::BRANCH(_) => todo!("RSP branch"),
             RspOpcode::NOP => todo!("RSP NOP"),
             RspOpcode::LUI => todo!("RSP LUI"),
-            RspOpcode::ADDI => todo!("RSP ADDI"),
+            RspOpcode::ADDI => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let result = block.add(DataType::S32, rs, const_s16(instr.s_imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
+            }
             RspOpcode::ANDI => todo!("RSP ANDI"),
             RspOpcode::LBU => todo!("RSP LBU"),
             RspOpcode::LHU => todo!("RSP LHU"),
@@ -41,8 +114,19 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::SB => todo!("RSP SB"),
             RspOpcode::SH => todo!("RSP SH"),
             RspOpcode::SW => todo!("RSP SW"),
-            RspOpcode::ORI => todo!("RSP ORI"),
-            RspOpcode::J => todo!("RSP J"),
+            RspOpcode::ORI => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let result = block.or(DataType::U32, rs, const_u16(instr.imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
+            }
+            RspOpcode::J => {
+                set_pc(
+                    &mut pc_set,
+                    &mut block,
+                    rsp_address,
+                    const_u16(instr.j_target() as u16),
+                );
+            }
             RspOpcode::JAL => todo!("RSP JAL"),
             RspOpcode::SLTI => todo!("RSP SLTI"),
             RspOpcode::SLTIU => todo!("RSP SLTIU"),
@@ -143,7 +227,15 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::SUV => todo!("RSP SUV"),
             RspOpcode::SWV => todo!("RSP SWV"),
         }
+        cycles += 1;
     }
+
+    if !pc_set {
+        todo!("No branch in block, set PC based on length")
+    }
+
+    guest_regs.flush_all(&mut block, true);
+    block.ret(Some(const_s32(cycles)));
 
     func
 }
