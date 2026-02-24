@@ -266,5 +266,11 @@ INLINE void conditional_cache_write_dword(bool cached, u64 vaddr, u32 paddr, u64
 #endif
 
 
+u32 n64_rsp_read_word_noinline(u32 address);
+void n64_rsp_write_word_noinline(u32 address, u32 value);
+u16 n64_rsp_read_half_noinline(u32 address);
+void n64_rsp_write_half_noinline(u32 address, u16 value);
+u8 n64_rsp_read_byte_noinline(u32 address);
+void n64_rsp_write_byte_noinline(u32 address, u8 value);
 
 #endif //N64_N64BUS_H

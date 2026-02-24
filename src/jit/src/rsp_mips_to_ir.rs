@@ -1,20 +1,36 @@
 use std::mem::offset_of;
 
 use dgbir::ir::{
-    const_s16, const_s32, const_u16, const_u32, DataType, IRBlockHandle, IRContext, IRFunction,
-    InputSlot,
+    const_ptr, const_s16, const_s32, const_u16, const_u32, DataType, IRBlockHandle, IRContext,
+    IRFunction, InputSlot,
 };
 
 use crate::{
+    n64_rsp_read_byte_noinline, n64_rsp_read_half_noinline, n64_rsp_read_word_noinline,
+    n64_rsp_write_byte_noinline, n64_rsp_write_half_noinline, n64_rsp_write_word_noinline,
     rsp_mips_parser::{ParsedRspInstruction, RspOpcode},
     rsp_t,
 };
 
-pub struct RspMipsToIrContext {}
+pub struct RspMipsToIrContext {
+    read_byte: usize,
+    read_half: usize,
+    read_word: usize,
+    write_byte: usize,
+    write_half: usize,
+    write_word: usize,
+}
 
 impl RspMipsToIrContext {
     pub fn default() -> Self {
-        Self {}
+        Self {
+            read_byte: n64_rsp_read_byte_noinline as usize,
+            read_half: n64_rsp_read_half_noinline as usize,
+            read_word: n64_rsp_read_word_noinline as usize,
+            write_byte: n64_rsp_write_byte_noinline as usize,
+            write_half: n64_rsp_write_half_noinline as usize,
+            write_word: n64_rsp_write_word_noinline as usize,
+        }
     }
 }
 
@@ -78,7 +94,7 @@ fn set_pc(
 }
 
 pub fn rsp_to_ir_ctx(
-    _ctx: RspMipsToIrContext,
+    ctx: RspMipsToIrContext,
     parsed: Vec<ParsedRspInstruction>,
     _rsp: &rsp_t,
 ) -> IRFunction {
@@ -108,11 +124,26 @@ pub fn rsp_to_ir_ctx(
                 let result = block.add(DataType::S32, rs, const_s16(instr.s_imm()));
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
-            RspOpcode::ANDI => todo!("RSP ANDI"),
+            RspOpcode::ANDI => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let result = block.and(DataType::U32, rs, const_u16(instr.imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
+            }
             RspOpcode::LBU => todo!("RSP LBU"),
             RspOpcode::LHU => todo!("RSP LHU"),
             RspOpcode::LH => todo!("RSP LH"),
-            RspOpcode::LW => todo!("RSP LW"),
+            RspOpcode::LW => {
+                let base = guest_regs.get_gpr(&mut block, instr.rs());
+                let addr = block.add(DataType::U64, base, const_s16(instr.s_imm()));
+
+                let v = block.call_function(
+                    const_ptr(ctx.read_word),
+                    Some(DataType::S32),
+                    vec![addr.val()],
+                );
+
+                guest_regs.set_gpr(instr.rt(), v.val());
+            }
             RspOpcode::SB => todo!("RSP SB"),
             RspOpcode::SH => todo!("RSP SH"),
             RspOpcode::SW => todo!("RSP SW"),

@@ -4,6 +4,7 @@
 #include <interface/ai.h>
 #include <cpu/rsp_interface.h>
 #include <mem/memory_logger.h>
+#include <n64_rsp_bus.h>
 #include <rdp/rdp.h>
 #ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
@@ -1036,3 +1037,10 @@ bool debugger_read_physical_byte(u32 address, u8* result) {
             return false;
     }
 }
+
+u32 n64_rsp_read_word_noinline(u32 address) { return n64_rsp_read_word(address); }
+void n64_rsp_write_word_noinline(u32 address, u32 value) { n64_rsp_write_word(address, value); }
+u16 n64_rsp_read_half_noinline(u32 address) { return n64_rsp_read_half(address); }
+void n64_rsp_write_half_noinline(u32 address, u16 value) { n64_rsp_write_half(address, value); }
+u8 n64_rsp_read_byte_noinline(u32 address) { return n64_rsp_read_byte(address); }
+void n64_rsp_write_byte_noinline(u32 address, u8 value) { n64_rsp_write_byte(address, value); }
