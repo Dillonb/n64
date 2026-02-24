@@ -181,9 +181,6 @@ pub fn rsp_to_ir_ctx(
         println!("{}", disassemble_mips_instruction(*instr, addr as u64));
         match op {
             RspOpcode::BRANCH(RspBranchInfo { cond, link }) => {
-                if link {
-                    set_link_reg(&mut guest_regs, addr, 31);
-                }
                 let rs_reg = instr.rs();
                 let mut rt_reg = instr.rt();
 

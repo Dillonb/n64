@@ -1215,10 +1215,6 @@ pub fn to_ir_ctx(
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
             MipsOpcode::BRANCH(BranchInfo { cond, likely, link }) => {
-                if link {
-                    set_link_reg(&mut guest_regs, vaddr, 31);
-                }
-
                 let rs_reg = instr.rs();
                 let mut rt_reg = instr.rt();
 
