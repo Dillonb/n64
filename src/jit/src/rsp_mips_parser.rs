@@ -2,7 +2,8 @@ use itertools::izip;
 use log::info;
 
 use crate::mips_parser::{
-    BranchCondition, MipsFunctField, MipsInstructionBitfield, MipsOpcodeField,
+    BranchCondition, MipsCopRsField, MipsFunctField, MipsInstructionBitfield, MipsOpcodeField,
+    MipsRegimmRtField, RspCop2VecField, RspLwc2, RspSwc2,
 };
 
 // Same as BranchInfo, but without likely
@@ -25,10 +26,6 @@ pub enum RspOpcode {
     LHU,
     LH,
     LW,
-    BEQ,
-    BGTZ,
-    BLEZ,
-    BNE,
     SB,
     SH,
     SW,
@@ -115,12 +112,6 @@ pub enum RspOpcode {
     SLTU,
     BREAK,
 
-    // RSP regimm
-    BLTZ,
-    BGEZ,
-    BGEZAL,
-    BLTZAL,
-
     // RSP LWC2
     LBV,
     LDV,
@@ -180,10 +171,22 @@ fn opcode_of_rsp_instruction(instr: &MipsInstructionBitfield) -> RspOpcode {
         MipsOpcodeField::LH => RspOpcode::LH,
         MipsOpcodeField::LW => RspOpcode::LW,
         MipsOpcodeField::LWU => RspOpcode::LW,
-        MipsOpcodeField::BEQ => RspOpcode::BEQ,
-        MipsOpcodeField::BGTZ => RspOpcode::BGTZ,
-        MipsOpcodeField::BLEZ => RspOpcode::BLEZ,
-        MipsOpcodeField::BNE => RspOpcode::BNE,
+        MipsOpcodeField::BEQ => RspOpcode::BRANCH(RspBranchInfo {
+            cond: BranchCondition::EQ,
+            link: false,
+        }),
+        MipsOpcodeField::BGTZ => RspOpcode::BRANCH(RspBranchInfo {
+            cond: BranchCondition::GTZ,
+            link: false,
+        }),
+        MipsOpcodeField::BLEZ => RspOpcode::BRANCH(RspBranchInfo {
+            cond: BranchCondition::LEZ,
+            link: false,
+        }),
+        MipsOpcodeField::BNE => RspOpcode::BRANCH(RspBranchInfo {
+            cond: BranchCondition::NE,
+            link: false,
+        }),
         MipsOpcodeField::SB => RspOpcode::SB,
         MipsOpcodeField::SH => RspOpcode::SH,
         MipsOpcodeField::SW => RspOpcode::SW,
@@ -195,11 +198,98 @@ fn opcode_of_rsp_instruction(instr: &MipsInstructionBitfield) -> RspOpcode {
         MipsOpcodeField::XORI => RspOpcode::XORI,
         MipsOpcodeField::LB => RspOpcode::LB,
 
-        MipsOpcodeField::CP0 => todo!("RSP CP0"),
-        MipsOpcodeField::CP1 => todo!("RSP CP1"),
-        MipsOpcodeField::CP2 => todo!("RSP CP2"),
+        MipsOpcodeField::CP0 => {
+            if instr.is_coprocessor_funct() {
+                panic!("Invalid RSP CP0 instruction")
+            } else {
+                match instr.cop_op() {
+                    MipsCopRsField::MT => RspOpcode::MTC0,
+                    MipsCopRsField::MF => RspOpcode::MFC0,
+                    _ => panic!("Invalid RSP CP0 instruction"),
+                }
+            }
+        }
+        MipsOpcodeField::CP1 => panic!("RSP CP1"), // Invalid
+        MipsOpcodeField::CP2 => {
+            if instr.is_cp2_vec() {
+                match instr.rsp_cop2_vec() {
+                    RspCop2VecField::VABS => RspOpcode::VEC_VABS,
+                    RspCop2VecField::VADD => RspOpcode::VEC_VADD,
+                    RspCop2VecField::VADDC => RspOpcode::VEC_VADDC,
+                    RspCop2VecField::VAND => RspOpcode::VEC_VAND,
+                    RspCop2VecField::VCH => RspOpcode::VEC_VCH,
+                    RspCop2VecField::VCL => RspOpcode::VEC_VCL,
+                    RspCop2VecField::VCR => RspOpcode::VEC_VCR,
+                    RspCop2VecField::VEQ => RspOpcode::VEC_VEQ,
+                    RspCop2VecField::VGE => RspOpcode::VEC_VGE,
+                    RspCop2VecField::VLT => RspOpcode::VEC_VLT,
+                    RspCop2VecField::VMACF => RspOpcode::VEC_VMACF,
+                    RspCop2VecField::VMACQ => RspOpcode::VEC_VMACQ,
+                    RspCop2VecField::VMACU => RspOpcode::VEC_VMACU,
+                    RspCop2VecField::VMADH => RspOpcode::VEC_VMADH,
+                    RspCop2VecField::VMADL => RspOpcode::VEC_VMADL,
+                    RspCop2VecField::VMADM => RspOpcode::VEC_VMADM,
+                    RspCop2VecField::VMADN => RspOpcode::VEC_VMADN,
+                    RspCop2VecField::VMOV => RspOpcode::VEC_VMOV,
+                    RspCop2VecField::VMRG => RspOpcode::VEC_VMRG,
+                    RspCop2VecField::VMUDH => RspOpcode::VEC_VMUDH,
+                    RspCop2VecField::VMUDL => RspOpcode::VEC_VMUDL,
+                    RspCop2VecField::VMUDM => RspOpcode::VEC_VMUDM,
+                    RspCop2VecField::VMUDN => RspOpcode::VEC_VMUDN,
+                    RspCop2VecField::VMULF => RspOpcode::VEC_VMULF,
+                    RspCop2VecField::VMULQ => RspOpcode::VEC_VMULQ,
+                    RspCop2VecField::VMULU => RspOpcode::VEC_VMULU,
+                    RspCop2VecField::VNAND => RspOpcode::VEC_VNAND,
+                    RspCop2VecField::VNE => RspOpcode::VEC_VNE,
+                    RspCop2VecField::VNOP => RspOpcode::VEC_VNOP,
+                    RspCop2VecField::VNOR => RspOpcode::VEC_VNOR,
+                    RspCop2VecField::VNXOR => RspOpcode::VEC_VNXOR,
+                    RspCop2VecField::VOR => RspOpcode::VEC_VOR,
+                    RspCop2VecField::VRCP => RspOpcode::VEC_VRCP,
+                    RspCop2VecField::VRCPH => RspOpcode::VEC_VRCPH_VRSQH,
+                    RspCop2VecField::VRCPL => RspOpcode::VEC_VRCPL,
+                    RspCop2VecField::VRNDN => RspOpcode::VEC_VRNDN,
+                    RspCop2VecField::VRNDP => RspOpcode::VEC_VRNDP,
+                    RspCop2VecField::VRSQ => RspOpcode::VEC_VRSQ,
+                    RspCop2VecField::VRSQH => RspOpcode::VEC_VRCPH_VRSQH,
+                    RspCop2VecField::VRSQL => RspOpcode::VEC_VRSQL,
+                    RspCop2VecField::VSAR => RspOpcode::VEC_VSAR,
+                    RspCop2VecField::VSUB => RspOpcode::VEC_VSUB,
+                    RspCop2VecField::VSUBC => RspOpcode::VEC_VSUBC,
+                    RspCop2VecField::VXOR => RspOpcode::VEC_VXOR,
+                    RspCop2VecField::VSUT
+                    | RspCop2VecField::VADDB
+                    | RspCop2VecField::VSUBB
+                    | RspCop2VecField::VACCB
+                    | RspCop2VecField::VSUCB
+                    | RspCop2VecField::VSAD
+                    | RspCop2VecField::VSAC
+                    | RspCop2VecField::VSUM
+                    | RspCop2VecField::X1E
+                    | RspCop2VecField::X1F
+                    | RspCop2VecField::X2E
+                    | RspCop2VecField::X2F
+                    | RspCop2VecField::VEXTT
+                    | RspCop2VecField::VEXTQ
+                    | RspCop2VecField::VEXTN
+                    | RspCop2VecField::X3B
+                    | RspCop2VecField::VINST
+                    | RspCop2VecField::VINSQ
+                    | RspCop2VecField::VINSN => RspOpcode::VEC_VZERO,
+                    RspCop2VecField::VNULL => RspOpcode::VEC_VNOP,
+                }
+            } else {
+                match instr.cop_op() {
+                    MipsCopRsField::MF => RspOpcode::MFC2,
+                    MipsCopRsField::CF => RspOpcode::CFC2,
+                    MipsCopRsField::MT => RspOpcode::MTC2,
+                    MipsCopRsField::CT => RspOpcode::CTC2,
+                    _ => todo!(),
+                }
+            }
+        }
+
         MipsOpcodeField::SPCL => match instr.funct() {
-            // case FUNCT_SLL:    return rsp_spc_sll;
             MipsFunctField::SLL => RspOpcode::SLL,
             MipsFunctField::SRL => RspOpcode::SRL,
             MipsFunctField::SRA => RspOpcode::SRA,
@@ -221,9 +311,53 @@ fn opcode_of_rsp_instruction(instr: &MipsInstructionBitfield) -> RspOpcode {
             MipsFunctField::BREAK => RspOpcode::BREAK,
             _ => panic!("Unsupported RSP funct field: {:?}", instr.funct()),
         },
-        MipsOpcodeField::REGIMM => todo!("RSP REGIMM"),
-        MipsOpcodeField::LWC2 => todo!("RSP LWC2"),
-        MipsOpcodeField::SWC2 => todo!("RSP SWC2"),
+        MipsOpcodeField::REGIMM => match instr.rt_op() {
+            MipsRegimmRtField::BLTZ => RspOpcode::BRANCH(RspBranchInfo {
+                cond: BranchCondition::LTZ,
+                link: false,
+            }),
+            MipsRegimmRtField::BLTZAL => RspOpcode::BRANCH(RspBranchInfo {
+                cond: BranchCondition::LTZ,
+                link: true,
+            }),
+            MipsRegimmRtField::BGEZ => RspOpcode::BRANCH(RspBranchInfo {
+                cond: BranchCondition::GEZ,
+                link: false,
+            }),
+            MipsRegimmRtField::BGEZAL => RspOpcode::BRANCH(RspBranchInfo {
+                cond: BranchCondition::GEZ,
+                link: true,
+            }),
+            _ => panic!("Unsupported RSP regimm field: {:?}", instr.rt_op()),
+        },
+        MipsOpcodeField::LWC2 => match instr.rsp_lwc2() {
+            RspLwc2::LBV => RspOpcode::LBV,
+            RspLwc2::LDV => RspOpcode::LDV,
+            RspLwc2::LFV => RspOpcode::LFV,
+            RspLwc2::LHV => RspOpcode::LHV,
+            RspLwc2::LLV => RspOpcode::LLV,
+            RspLwc2::LPV => RspOpcode::LPV,
+            RspLwc2::LQV => RspOpcode::LQV,
+            RspLwc2::LRV => RspOpcode::LRV,
+            RspLwc2::LSV => RspOpcode::LSV,
+            RspLwc2::LTV => RspOpcode::LTV,
+            RspLwc2::LUV => RspOpcode::LUV,
+            RspLwc2::LWV => RspOpcode::NOP, // Only exists for SWC2: SWV
+        },
+        MipsOpcodeField::SWC2 => match instr.rsp_swc2() {
+            RspSwc2::SBV => RspOpcode::SBV,
+            RspSwc2::SDV => RspOpcode::SDV,
+            RspSwc2::SFV => RspOpcode::SFV,
+            RspSwc2::SHV => RspOpcode::SHV,
+            RspSwc2::SLV => RspOpcode::SLV,
+            RspSwc2::SPV => RspOpcode::SPV,
+            RspSwc2::SQV => RspOpcode::SQV,
+            RspSwc2::SRV => RspOpcode::SRV,
+            RspSwc2::SSV => RspOpcode::SSV,
+            RspSwc2::STV => RspOpcode::STV,
+            RspSwc2::SUV => RspOpcode::SUV,
+            RspSwc2::SWV => RspOpcode::SWV,
+        },
 
         _ => panic!("Unsupported RSP opcode field: {:?}", instr.op()),
     }

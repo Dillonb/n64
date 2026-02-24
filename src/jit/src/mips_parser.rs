@@ -198,7 +198,7 @@ impl MipsOpcode {
 }
 
 #[derive(ConvRaw, Debug)]
-enum MipsCopRsField {
+pub enum MipsCopRsField {
     MF = 0b00000,
     DMF = 0b00001,
     CF = 0b00010,
@@ -211,7 +211,7 @@ enum MipsCopRsField {
 }
 
 #[derive(ConvRaw, Debug)]
-enum MipsRegimmRtField {
+pub enum MipsRegimmRtField {
     BLTZ = 0b00000,
     BLTZL = 0b00010,
     BGEZ = 0b00001,
@@ -410,6 +410,108 @@ enum MipsCopBcField {
     COP_BC_BCTL = 0b00011,
 }
 
+#[derive(ConvRaw, Debug)]
+pub enum RspCop2VecField {
+    VABS = 0b010011,
+    VADD = 0b010000,
+    VADDC = 0b010100,
+    VAND = 0b101000,
+    VCH = 0b100101,
+    VCL = 0b100100,
+    VCR = 0b100110,
+    VEQ = 0b100001,
+    VGE = 0b100011,
+    VLT = 0b100000,
+    VMACF = 0b001000,
+    VMACQ = 0b001011,
+    VMACU = 0b001001,
+    VMADH = 0b001111,
+    VMADL = 0b001100,
+    VMADM = 0b001101,
+    VMADN = 0b001110,
+    VMOV = 0b110011,
+    VMRG = 0b100111,
+    VMUDH = 0b000111,
+    VMUDL = 0b000100,
+    VMUDM = 0b000101,
+    VMUDN = 0b000110,
+    VMULF = 0b000000,
+    VMULQ = 0b000011,
+    VMULU = 0b000001,
+    VNAND = 0b101001,
+    VNE = 0b100010,
+    VNOP = 0b110111,
+    VNOR = 0b101011,
+    VNXOR = 0b101101,
+    VOR = 0b101010,
+    VRCP = 0b110000,
+    VRCPH = 0b110010,
+    VRCPL = 0b110001,
+    VRNDN = 0b001010,
+    VRNDP = 0b000010,
+    VRSQ = 0b110100,
+    VRSQH = 0b110110,
+    VRSQL = 0b110101,
+    VSAR = 0b011101,
+    VSUB = 0b010001,
+    VSUBC = 0b010101,
+    VXOR = 0b101100,
+
+    // Undocumented
+    VSUT = 0b010010,
+    VADDB = 0b010110,
+    VSUBB = 0b010111,
+    VACCB = 0b011000,
+    VSUCB = 0b011001,
+    VSAD = 0b011010,
+    VSAC = 0b011011,
+    VSUM = 0b011100,
+    X1E = 0b011110,
+    X1F = 0b011111,
+    X2E = 0b101110,
+    X2F = 0b101111,
+    VEXTT = 0b111000,
+    VEXTQ = 0b111001,
+    VEXTN = 0b111010,
+    X3B = 0b111011,
+    VINST = 0b111100,
+    VINSQ = 0b111101,
+    VINSN = 0b111110,
+    VNULL = 0b111111,
+}
+
+#[derive(ConvRaw, Debug)]
+pub enum RspLwc2 {
+    LBV = 0b00000,
+    LDV = 0b00011,
+    LFV = 0b01001,
+    LHV = 0b01000,
+    LLV = 0b00010,
+    LPV = 0b00110,
+    LQV = 0b00100,
+    LRV = 0b00101,
+    LSV = 0b00001,
+    LTV = 0b01011,
+    LUV = 0b00111,
+    LWV = 0b01010,
+}
+
+#[derive(ConvRaw, Debug)]
+pub enum RspSwc2 {
+    SBV = 0b00000,
+    SDV = 0b00011,
+    SFV = 0b01001,
+    SHV = 0b01000,
+    SLV = 0b00010,
+    SPV = 0b00110,
+    SQV = 0b00100,
+    SRV = 0b00101,
+    SSV = 0b00001,
+    STV = 0b01011,
+    SUV = 0b00111,
+    SWV = 0b01010,
+}
+
 proc_bitfield::bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq)]
     pub struct MipsInstructionBitfield(pub u32): Debug, FromStorage, IntoStorage, DerefStorage {
@@ -418,6 +520,7 @@ proc_bitfield::bitfield! {
         pub funct: u8 [unwrap MipsFunctField] @ 0..=5,
         pub cop0_funct: u8 [unwrap MipsCop0FunctField] @ 0..=5,
         pub cop1_funct: u8 [unwrap MipsCop1FunctField] @ 0..=5,
+        pub rsp_cop2_vec: u8 [unwrap RspCop2VecField] @ 0..=5,
         pub funct_bits: u8 @ 0..=5,
 
         pub imm:   u16 @ 0..=15,
@@ -428,6 +531,8 @@ proc_bitfield::bitfield! {
 
         pub rd: u8 @ 11 ..=15,
         pub fs: u8 @ 11 ..=15,
+        pub rsp_lwc2: u8 [unwrap RspLwc2] @ 11 ..=15,
+        pub rsp_swc2: u8 [unwrap RspSwc2] @ 11 ..=15,
 
         pub rt: u8 @ 16 ..=20,
         pub rt_op: u8 [unwrap MipsRegimmRtField] @ 16 ..=20,
@@ -444,6 +549,7 @@ proc_bitfield::bitfield! {
         pub j_target: u32 @ 0..=25,
 
         pub is_coprocessor_funct: bool @ 25,
+        pub is_cp2_vec: bool @ 25,
     }
 }
 

@@ -84,7 +84,6 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
             InstructionCategory::BlockEnder => {
                 should_continue_block = false;
             }
-            _ => panic!("Invalid instruction category for RSP: {:?}", category),
         }
 
         address = next_rsp_address(address);
