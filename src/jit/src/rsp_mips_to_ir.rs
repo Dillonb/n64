@@ -1,14 +1,19 @@
 use std::mem::offset_of;
 
-use dgbir::ir::{
-    const_ptr, const_s16, const_s32, const_u16, const_u32, DataType, IRBlockHandle, IRContext,
-    IRFunction, InputSlot,
+use dgbir::{
+    disassembler::disassemble_mips_instruction,
+    ir::{
+        const_ptr, const_s16, const_s32, const_u16, const_u32, CompareType, DataType,
+        IRBlockHandle, IRContext, IRFunction, InputSlot,
+    },
 };
+use log::warn;
 
 use crate::{
+    mips_parser::{BranchCondition, MipsInstructionBitfield},
     n64_rsp_read_byte_noinline, n64_rsp_read_half_noinline, n64_rsp_read_word_noinline,
     n64_rsp_write_byte_noinline, n64_rsp_write_half_noinline, n64_rsp_write_word_noinline,
-    rsp_mips_parser::{ParsedRspInstruction, RspOpcode},
+    rsp_mips_parser::{ParsedRspInstruction, RspBranchInfo, RspOpcode},
     rsp_t,
 };
 
@@ -88,9 +93,66 @@ fn set_pc(
     let offset = offset_of!(rsp_t, pc);
     let next_pc_offset = offset_of!(rsp_t, next_pc);
 
+    let value = block.right_shift(DataType::U16, value, const_u16(2)).val();
+
     block.write_ptr(DataType::U16, rsp_address, offset, value);
-    let next_pc = block.add(DataType::U16, value, const_u32(4));
+    let next_pc = block.add(DataType::U16, value, const_u32(1));
     block.write_ptr(DataType::U16, rsp_address, next_pc_offset, next_pc.val());
+}
+
+fn set_link_reg(guest_regs: &mut GuestRegisterManager, addr: u16, mips_reg: u8) {
+    // Skip the delay slot on return
+    let addr = addr.wrapping_add(8);
+    guest_regs.set_gpr(mips_reg, const_u16(addr));
+}
+
+fn do_branch(
+    link: bool,
+    guest_regs: &mut GuestRegisterManager,
+    addr: u16,
+    func: &IRFunction,
+    take_branch: InputSlot,
+    instr: MipsInstructionBitfield,
+    cpu_address: InputSlot,
+    pc_set: &mut bool,
+    block: &mut IRBlockHandle,
+) {
+    if link {
+        set_link_reg(guest_regs, addr, 31);
+    }
+
+    let mut taken_block = func.new_block(vec![]);
+    let mut not_taken_block = func.new_block(vec![]);
+
+    let taken_pc = addr
+        .wrapping_add(4)
+        .wrapping_add_signed((instr.s_imm()) << 2);
+    let not_taken_pc = addr.wrapping_add(8);
+
+    warn!(
+        "Jumping to {:03X} if taken, continuing to {:03X} if not taken",
+        taken_pc, not_taken_pc
+    );
+
+    set_pc(pc_set, &mut taken_block, cpu_address, const_u16(taken_pc));
+    set_pc(
+        pc_set,
+        &mut not_taken_block,
+        cpu_address,
+        const_u16(not_taken_pc),
+    );
+
+    block.branch(
+        take_branch,
+        taken_block.call(vec![]),
+        not_taken_block.call(vec![]),
+    );
+
+    *block = func.new_block(vec![]);
+
+    taken_block.jump(block.call(vec![]));
+    // Continue and execute the delay slot.
+    not_taken_block.jump(block.call(vec![]));
 }
 
 pub fn rsp_to_ir_ctx(
@@ -114,10 +176,57 @@ pub fn rsp_to_ir_ctx(
         }
     }
 
-    for ParsedRspInstruction { addr: _, instr, op } in parsed {
+    println!("--------------");
+    for ParsedRspInstruction { addr, instr, op } in parsed {
+        println!("{}", disassemble_mips_instruction(*instr, addr as u64));
         match op {
-            RspOpcode::BRANCH(_) => todo!("RSP branch"),
-            RspOpcode::NOP => todo!("RSP NOP"),
+            RspOpcode::BRANCH(RspBranchInfo { cond, link }) => {
+                if link {
+                    set_link_reg(&mut guest_regs, addr, 31);
+                }
+                let rs_reg = instr.rs();
+                let mut rt_reg = instr.rt();
+
+                let (signed, compare_type) = match cond {
+                    BranchCondition::EQ => (false, CompareType::Equal),
+                    BranchCondition::NE => (false, CompareType::NotEqual),
+                    BranchCondition::GTZ => {
+                        rt_reg = 0;
+                        (true, CompareType::GreaterThan)
+                    }
+                    BranchCondition::LTZ => {
+                        rt_reg = 0;
+                        (true, CompareType::LessThan)
+                    }
+                    BranchCondition::LEZ => {
+                        rt_reg = 0;
+                        (true, CompareType::LessThanOrEqual)
+                    }
+                    BranchCondition::GEZ => {
+                        rt_reg = 0;
+                        (true, CompareType::GreaterThanOrEqual)
+                    }
+                };
+
+                let rs = guest_regs.get_gpr(&mut block, rs_reg);
+                let rt = guest_regs.get_gpr(&mut block, rt_reg);
+
+                let tp = if signed { DataType::S32 } else { DataType::U32 };
+                let take_branch = block.compare(tp, rs, compare_type, rt);
+
+                do_branch(
+                    link,
+                    &mut guest_regs,
+                    addr,
+                    &func,
+                    take_branch.val(),
+                    instr,
+                    rsp_address,
+                    &mut pc_set,
+                    &mut block,
+                );
+            }
+            RspOpcode::NOP => {}
             RspOpcode::LUI => todo!("RSP LUI"),
             RspOpcode::ADDI => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
@@ -134,7 +243,7 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::LH => todo!("RSP LH"),
             RspOpcode::LW => {
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
-                let addr = block.add(DataType::U64, base, const_s16(instr.s_imm()));
+                let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
 
                 let v = block.call_function(
                     const_ptr(ctx.read_word),
@@ -157,7 +266,7 @@ pub fn rsp_to_ir_ctx(
                     &mut pc_set,
                     &mut block,
                     rsp_address,
-                    const_u16(instr.j_target() as u16),
+                    const_u16((instr.j_target() as u16) << 2),
                 );
             }
             RspOpcode::JAL => todo!("RSP JAL"),

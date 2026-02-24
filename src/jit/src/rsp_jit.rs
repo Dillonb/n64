@@ -98,7 +98,7 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
         todo!("Add code to flush PC")
     }
 
-    let parsed = parse_rsp(&code, address);
+    let parsed = parse_rsp(&code, start_address);
     let mut func = rsp_to_ir(parsed, rsp);
     let compiled = compile_vec(&mut func, start_address as usize);
 
