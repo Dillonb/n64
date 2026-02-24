@@ -1,3 +1,4 @@
+#include <dynarec/dynarec_memory_management.h>
 #include <log.h>
 #include <mips_instruction_decode.h>
 #include <perf_map_file.h>
@@ -14,16 +15,22 @@
 #endif
 #endif
 
+#ifdef __APPLE__
+#include <pthread.h>
+#endif
+
 #define NEXT(address) ((address + 4) & 0xFFF)
 void compile_new_rsp_block(rsp_dynarec_block_t* block, u16 address, rsp_code_overlay_t* current_overlay) {
     rs_jit_compile_new_rsp_block(block, address, current_overlay, &N64RSP);
 }
 
 int rsp_missing_block_handler() {
+    CODECACHE_ALLOW_WRITES();
     u32 pc = N64RSP.pc & 0x3FF;
     rsp_code_overlay_t* current_overlay = &N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay];
     rsp_dynarec_block_t* block = &current_overlay->blockcache[pc];
     compile_new_rsp_block(block, (N64RSP.pc << 2) & 0xFFF, current_overlay);
+    CODECACHE_ALLOW_EXEC();
     return block->run(&N64RSP);
 }
 
@@ -115,5 +122,6 @@ int rsp_dynarec_step() {
         N64RSPDYNAREC->dirty = false;
     }
 
+    CODECACHE_ALLOW_EXEC();
     return N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay].blockcache[N64RSP.pc & 0x3FF].run(&N64RSP);
 }

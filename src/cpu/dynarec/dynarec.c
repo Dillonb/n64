@@ -6,9 +6,6 @@
 #include <metrics.h>
 #include "dynarec_memory_management.h"
 #include "v2/v2_compiler.h"
-#ifdef __APPLE__
-#include <pthread.h>
-#endif
 
 // Uncomment to try to find idle loops
 //#define DO_REPEATED_EXEC_DETECTION
@@ -32,10 +29,7 @@ int interpreter_fallback_until_no_branch() {
 int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_block_sysconfig_t current_sysconfig) {
     u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
 
-#ifdef __APPLE__
-    // Allow writing to the code cache
-    pthread_jit_write_protect_np(false);
-#endif
+    CODECACHE_ALLOW_WRITES();
 
     block->run = NULL;
     block->host_size = 0;
@@ -52,10 +46,7 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
 
     mark_metric(METRIC_BLOCK_COMPILATION);
     v3_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
-#ifdef __APPLE__
-    // Disallow writing to the code cache to allow exec
-    pthread_jit_write_protect_np(true);
-#endif
+    CODECACHE_ALLOW_EXEC();
 
     if (block->run == NULL) {
        logfatal("Failed to compile block!");
@@ -70,9 +61,7 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         // make sure it matches the sysconfig and virtual address. If not, keep looking.
         if (block_iter->sysconfig.raw == current_sysconfig.raw && block_iter->virtual_address == virtual_address) {
             if (block_iter != blocks) {
-#ifdef __APPLE__
-                pthread_jit_write_protect_np(false);
-#endif
+                CODECACHE_ALLOW_WRITES();
                 n64_dynarec_block_t temp = *blocks;
                 copy_dynarec_block(blocks, block_iter);
                 copy_dynarec_block(block_iter, &temp);
@@ -84,9 +73,7 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         }
         // Add a block to the end of the list
         if (block_iter->next == NULL) {
-#ifdef __APPLE__
-            pthread_jit_write_protect_np(false);
-#endif
+            CODECACHE_ALLOW_WRITES();
             block_iter->next = dynarec_bumpalloc_zero(sizeof(n64_dynarec_block_t));
             return block_iter->next;
         }
@@ -105,10 +92,7 @@ INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysco
 #ifdef N64_LOG_COMPILATIONS
         printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical_address, N64CPU.pc);
 #endif
-        // Allow writing to the code cache
-#ifdef __APPLE__
-        pthread_jit_write_protect_np(false);
-#endif
+        CODECACHE_ALLOW_WRITES();
         block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
             block_list[i].run = NULL;
@@ -177,12 +161,7 @@ int n64_dynarec_step() {
         #ifdef DO_REPEATED_EXEC_DETECTION
         do_repeated_exec_detection(physical, block);
         #endif
-        #ifdef __APPLE__
-        // logfatal("Running block at 0x%08X with run function %p", physical, block->run);
-        // Disallow writing to the code cache to allow exec
-        pthread_jit_write_protect_np(true);
-        #endif
-        // taken = n64dynarec.run_block((u64)block->run);
+        CODECACHE_ALLOW_EXEC();
         taken = block->run(&N64CPU);
     } else {
         taken = missing_block_handler(physical, block, n64dynarec.sysconfig);
