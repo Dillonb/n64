@@ -110,7 +110,7 @@ INLINE rspinstr_handler_t rsp_cp2_decode(u32 pc, mips_instruction_t instr) {
             case FUNCT_RSP_VEC_VINST: return rsp_vec_vzero; // undocumented
             case FUNCT_RSP_VEC_VINSQ: return rsp_vec_vzero; // undocumented
             case FUNCT_RSP_VEC_VINSN: return rsp_vec_vzero; // undocumented
-            case FUNCT_RSP_VEC_VNULL: return rsp_nop; // undocumented
+            case FUNCT_RSP_VEC_VNULL: return rsp_vec_vnop; // undocumented
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
