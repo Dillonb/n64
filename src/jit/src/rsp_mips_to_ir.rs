@@ -18,23 +18,23 @@ use crate::{
 };
 
 pub struct RspMipsToIrContext {
-    read_byte_: usize,
-    read_half_: usize,
+    _read_byte: usize,
+    _read_half: usize,
     read_word: usize,
-    write_byte_: usize,
-    write_half_: usize,
-    write_word_: usize,
+    _write_byte: usize,
+    _write_half: usize,
+    _write_word: usize,
 }
 
 impl RspMipsToIrContext {
     pub fn default() -> Self {
         Self {
-            read_byte_: n64_rsp_read_byte_noinline as usize,
-            read_half_: n64_rsp_read_half_noinline as usize,
+            _read_byte: n64_rsp_read_byte_noinline as usize,
+            _read_half: n64_rsp_read_half_noinline as usize,
             read_word: n64_rsp_read_word_noinline as usize,
-            write_byte_: n64_rsp_write_byte_noinline as usize,
-            write_half_: n64_rsp_write_half_noinline as usize,
-            write_word_: n64_rsp_write_word_noinline as usize,
+            _write_byte: n64_rsp_write_byte_noinline as usize,
+            _write_half: n64_rsp_write_half_noinline as usize,
+            _write_word: n64_rsp_write_word_noinline as usize,
         }
     }
 }
