@@ -272,7 +272,15 @@ pub fn rsp_to_ir_ctx(
                     const_u16((instr.j_target() as u16) << 2),
                 );
             }
-            RspOpcode::JAL => todo!("RSP JAL"),
+            RspOpcode::JAL => {
+                set_link_reg(&mut guest_regs, addr, 31);
+                set_pc(
+                    &mut pc_set,
+                    &mut block,
+                    rsp_address,
+                    const_u16((instr.j_target() as u16) << 2),
+                );
+            }
             RspOpcode::SLTI => todo!("RSP SLTI"),
             RspOpcode::SLTIU => todo!("RSP SLTIU"),
             RspOpcode::XORI => todo!("RSP XORI"),
@@ -347,9 +355,21 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::SRAV => todo!("RSP SRAV"),
             RspOpcode::SLLV => todo!("RSP SLLV"),
             RspOpcode::SRLV => todo!("RSP SRLV"),
-            RspOpcode::JR => todo!("RSP JR"),
-            RspOpcode::JALR => todo!("RSP JALR"),
-            RspOpcode::ADD => todo!("RSP ADD"),
+            RspOpcode::JR => {
+                let target = guest_regs.get_gpr(&mut block, instr.rs());
+                set_pc(&mut pc_set, &mut block, rsp_address, target);
+            }
+            RspOpcode::JALR => {
+                let target = guest_regs.get_gpr(&mut block, instr.rs());
+                set_pc(&mut pc_set, &mut block, rsp_address, target);
+                set_link_reg(&mut guest_regs, addr, instr.rd());
+            }
+            RspOpcode::ADD => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.add(DataType::S32, rs, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             RspOpcode::AND => todo!("RSP AND"),
             RspOpcode::SUB => todo!("RSP SUB"),
             RspOpcode::OR => todo!("RSP OR"),
