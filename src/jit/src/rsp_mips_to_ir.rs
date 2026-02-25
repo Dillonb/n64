@@ -10,11 +10,12 @@ use dgbir::{
 use log::warn;
 
 use crate::{
+    get_rsp_cp0_register,
     mips_parser::{BranchCondition, MipsInstructionBitfield},
     n64_rsp_read_byte_noinline, n64_rsp_read_half_noinline, n64_rsp_read_word_noinline,
     n64_rsp_write_byte_noinline, n64_rsp_write_half_noinline, n64_rsp_write_word_noinline,
     rsp_mips_parser::{ParsedRspInstruction, RspBranchInfo, RspOpcode},
-    rsp_t,
+    rsp_t, set_rsp_cp0_register,
 };
 
 pub struct RspMipsToIrContext {
@@ -24,6 +25,8 @@ pub struct RspMipsToIrContext {
     _write_byte: usize,
     _write_half: usize,
     _write_word: usize,
+    get_rsp_cp0_register: usize,
+    set_rsp_cp0_register: usize,
 }
 
 impl RspMipsToIrContext {
@@ -35,6 +38,9 @@ impl RspMipsToIrContext {
             _write_byte: n64_rsp_write_byte_noinline as usize,
             _write_half: n64_rsp_write_half_noinline as usize,
             _write_word: n64_rsp_write_word_noinline as usize,
+
+            get_rsp_cp0_register: get_rsp_cp0_register as usize,
+            set_rsp_cp0_register: set_rsp_cp0_register as usize,
         }
     }
 }
@@ -271,8 +277,22 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::SLTIU => todo!("RSP SLTIU"),
             RspOpcode::XORI => todo!("RSP XORI"),
             RspOpcode::LB => todo!("RSP LB"),
-            RspOpcode::MTC0 => todo!("RSP MTC0"),
-            RspOpcode::MFC0 => todo!("RSP MFC0"),
+            RspOpcode::MTC0 => {
+                let value = guest_regs.get_gpr(&mut block, instr.rt());
+                block.call_function(
+                    const_ptr(ctx.set_rsp_cp0_register),
+                    None,
+                    vec![const_u16(instr.rd() as u16), value],
+                );
+            }
+            RspOpcode::MFC0 => {
+                let value = block.call_function(
+                    const_ptr(ctx.get_rsp_cp0_register),
+                    Some(DataType::U32),
+                    vec![const_u16(instr.rd() as u16)],
+                );
+                guest_regs.set_gpr(instr.rt(), value.val());
+            }
             RspOpcode::VEC_VABS => todo!("RSP VEC_VABS"),
             RspOpcode::VEC_VADD => todo!("RSP VEC_VADD"),
             RspOpcode::VEC_VADDC => todo!("RSP VEC_VADDC"),
