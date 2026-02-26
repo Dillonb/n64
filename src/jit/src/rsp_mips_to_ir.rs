@@ -19,11 +19,11 @@ use crate::{
 };
 
 pub struct RspMipsToIrContext {
-    _read_byte: usize,
+    read_byte: usize,
     read_half: usize,
     read_word: usize,
-    _write_byte: usize,
-    _write_half: usize,
+    write_byte: usize,
+    write_half: usize,
     write_word: usize,
     get_rsp_cp0_register: usize,
     set_rsp_cp0_register: usize,
@@ -32,11 +32,11 @@ pub struct RspMipsToIrContext {
 impl RspMipsToIrContext {
     pub fn default() -> Self {
         Self {
-            _read_byte: n64_rsp_read_byte_noinline as usize,
+            read_byte: n64_rsp_read_byte_noinline as usize,
             read_half: n64_rsp_read_half_noinline as usize,
             read_word: n64_rsp_read_word_noinline as usize,
-            _write_byte: n64_rsp_write_byte_noinline as usize,
-            _write_half: n64_rsp_write_half_noinline as usize,
+            write_byte: n64_rsp_write_byte_noinline as usize,
+            write_half: n64_rsp_write_half_noinline as usize,
             write_word: n64_rsp_write_word_noinline as usize,
 
             get_rsp_cp0_register: get_rsp_cp0_register as usize,
@@ -241,8 +241,30 @@ pub fn rsp_to_ir_ctx(
                 let result = block.and(DataType::U32, rs, const_u16(instr.imm()));
                 guest_regs.set_gpr(instr.rt(), result.val());
             }
-            RspOpcode::LBU => todo!("RSP LBU"),
-            RspOpcode::LHU => todo!("RSP LHU"),
+            RspOpcode::LBU => {
+                let base = guest_regs.get_gpr(&mut block, instr.rs());
+                let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
+
+                let value = block.call_function(
+                    const_ptr(ctx.read_byte),
+                    Some(DataType::U8),
+                    vec![addr.val()],
+                );
+
+                guest_regs.set_gpr(instr.rt(), value.val());
+            }
+            RspOpcode::LHU => {
+                let base = guest_regs.get_gpr(&mut block, instr.rs());
+                let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
+
+                let value = block.call_function(
+                    const_ptr(ctx.read_half),
+                    Some(DataType::U16),
+                    vec![addr.val()],
+                );
+
+                guest_regs.set_gpr(instr.rt(), value.val());
+            }
             RspOpcode::LH => {
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
@@ -269,8 +291,20 @@ pub fn rsp_to_ir_ctx(
 
                 guest_regs.set_gpr(instr.rt(), v.val());
             }
-            RspOpcode::SB => todo!("RSP SB"),
-            RspOpcode::SH => todo!("RSP SH"),
+            RspOpcode::SB => {
+                let base = guest_regs.get_gpr(&mut block, instr.rs());
+                let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
+                let value = guest_regs.get_gpr(&mut block, instr.rt());
+
+                block.call_function(const_ptr(ctx.write_byte), None, vec![addr.val(), value]);
+            }
+            RspOpcode::SH => {
+                let base = guest_regs.get_gpr(&mut block, instr.rs());
+                let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
+                let value = guest_regs.get_gpr(&mut block, instr.rt());
+
+                block.call_function(const_ptr(ctx.write_half), None, vec![addr.val(), value]);
+            }
             RspOpcode::SW => {
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
@@ -303,7 +337,20 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::SLTI => todo!("RSP SLTI"),
             RspOpcode::SLTIU => todo!("RSP SLTIU"),
             RspOpcode::XORI => todo!("RSP XORI"),
-            RspOpcode::LB => todo!("RSP LB"),
+            RspOpcode::LB => {
+                let base = guest_regs.get_gpr(&mut block, instr.rs());
+                let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
+
+                let value = block.call_function(
+                    const_ptr(ctx.read_byte),
+                    Some(DataType::S8),
+                    vec![addr.val()],
+                );
+
+                let sign_extended = block.convert(DataType::S32, value.val());
+
+                guest_regs.set_gpr(instr.rt(), sign_extended.val());
+            }
             RspOpcode::MTC0 => {
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
                 block.call_function(
@@ -368,7 +415,11 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::CTC2 => todo!("RSP CTC2"),
             RspOpcode::MFC2 => todo!("RSP MFC2"),
             RspOpcode::MTC2 => todo!("RSP MTC2"),
-            RspOpcode::SLL => todo!("RSP SLL"),
+            RspOpcode::SLL => {
+                let input = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16));
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             RspOpcode::SRL => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.right_shift(DataType::U32, input, const_u16(instr.sa() as u16));
