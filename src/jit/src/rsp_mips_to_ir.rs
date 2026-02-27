@@ -75,6 +75,10 @@ impl GuestRegisterManager {
         })
     }
 
+    fn get_vu_reg(&mut self, _block: &mut IRBlockHandle, _r: u8) -> InputSlot {
+        todo!("Get VU reg");
+    }
+
     fn flush_all(&mut self, block: &mut IRBlockHandle, clear: bool) {
         self.gprs
             .iter_mut()
@@ -159,6 +163,36 @@ fn do_branch(
     taken_block.jump(block.call(vec![]));
     // Continue and execute the delay slot.
     not_taken_block.jump(block.call(vec![]));
+}
+
+const SHIFT_AMOUNT_LBV_SBV: i32 = 0;
+const SHIFT_AMOUNT_LSV_SSV: i32 = 1;
+const SHIFT_AMOUNT_LLV_SLV: i32 = 2;
+const SHIFT_AMOUNT_LDV_SDV: i32 = 3;
+const SHIFT_AMOUNT_LQV_SQV: i32 = 4;
+const SHIFT_AMOUNT_LRV_SRV: i32 = 4;
+const SHIFT_AMOUNT_LPV_SPV: i32 = 3;
+const SHIFT_AMOUNT_LUV_SUV: i32 = 3;
+const SHIFT_AMOUNT_LHV_SHV: i32 = 4;
+const SHIFT_AMOUNT_LFV_SFV: i32 = 4;
+const SHIFT_AMOUNT_LTV_STV: i32 = 4;
+const SHIFT_AMOUNT_SWV: i32 = 4;
+
+fn sign_extend_7bit_offset(offset: u8, shift_amount: i32) -> i32 {
+    let soffset = ((offset << 1) & 0x80) | offset;
+    let ofs = soffset as i32;
+    let uofs = ofs as u32;
+    (uofs << shift_amount) as i32
+}
+
+fn get_lswc2_address(
+    instr: MipsInstructionBitfield,
+    block: &mut IRBlockHandle,
+    guest_regs: &mut GuestRegisterManager,
+) -> InputSlot {
+    let base = guest_regs.get_vu_reg(block, instr.lswc2_base());
+    let offset = sign_extend_7bit_offset(instr.lswc2_offset(), SHIFT_AMOUNT_LUV_SUV);
+    block.add(DataType::S32, base, const_s32(offset)).val()
 }
 
 pub fn rsp_to_ir_ctx(
@@ -453,7 +487,14 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::SLTU => todo!("RSP SLTU"),
             RspOpcode::BREAK => todo!("RSP BREAK"),
             RspOpcode::LBV => todo!("RSP LBV"),
-            RspOpcode::LDV => todo!("RSP LDV"),
+            RspOpcode::LDV => {
+                if instr.lswc2_e() != 0 {
+                    panic!("LDV with nonzero element");
+                }
+
+                let address = get_lswc2_address(instr, &mut block, &mut guest_regs);
+                todo!("RSP LDV");
+            }
             RspOpcode::LFV => todo!("RSP LFV"),
             RspOpcode::LHV => todo!("RSP LHV"),
             RspOpcode::LLV => todo!("RSP LLV"),

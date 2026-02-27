@@ -550,6 +550,30 @@ proc_bitfield::bitfield! {
 
         pub is_coprocessor_funct: bool @ 25,
         pub is_cp2_vec: bool @ 25,
+
+        // RSP CP2 vector instructions:
+
+        // Used for LWC2/SWC2 loads and stores - LxV, SxV
+        pub lswc2_offset: u8 @ 0 ..= 6,
+        pub lswc2_e: u8 @ 7 ..= 10,
+        pub lswc2_vt: u8 @ 16 ..= 20,
+        pub lswc2_base: u8 @ 21 ..= 25,
+
+        // Used only for MFC2 and MTC2
+        // pub cp2_regmove_e: u8 @ 7 ..= 10,
+        // pub cp2_regmove_rd: u8 @ 11 ..= 15,
+        // pub cp2_regmove_rt: u8 @ 16 ..= 20,
+        // pub cp2_regmove_funct: u8 @ 21 ..= 25,
+        // pub cp2_regmove_op: u8 @ 26 ..= 31,
+
+        // Used for all other vector instructions
+        // pub cp2_vec_funct: u8 @ 0 ..= 5,
+        // pub cp2_vec_vd: u8 @ 6 ..= 10,
+        // pub cp2_vec_vs: u8 @ 11 ..= 15,
+        // pub cp2_vec_vt: u8 @ 16 ..= 20,
+        // pub cp2_vec_e: u8 @ 21 ..= 24,
+        // pub cp2_vec_is_vec: bool @ 25,
+        // pub cp2_vec_op: u8 @ 26 ..= 31,
     }
 }
 
