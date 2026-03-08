@@ -93,7 +93,7 @@ target_link_libraries(${N64_TARGET} common core imgui-ui)
 
 if (MACOSX)
     # Link MoltenVK directly on macOS
-    find_library(MOLTENVK_LIB NAMES MoltenVK REQUIRED)
+    find_library(MOLTENVK_LIB NAMES libMoltenVK.dylib REQUIRED)
     get_filename_component(MOLTENVK_LIB_DIR "${MOLTENVK_LIB}" DIRECTORY)
     message("Found MoltenVK library: ${MOLTENVK_LIB}")
     message("Library directory for rpath: ${MOLTENVK_LIB_DIR}")
