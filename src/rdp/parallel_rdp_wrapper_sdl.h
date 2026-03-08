@@ -1,6 +1,7 @@
 #ifndef N64_PARALLEL_RDP_WRAPPER_SDL_H
 #define N64_PARALLEL_RDP_WRAPPER_SDL_H
 
+#include <string.h>
 #include <wsi.hpp>
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
@@ -27,6 +28,13 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
             auto vec = std::vector<const char*>();
 
             for (unsigned int i = 0; i < num_extensions; i++) {
+#ifdef __APPLE__
+                // Hack: don't request this extension from the vulkan loader when on Mac.
+                // MoltenVK doesn't support it, and we don't need it anyway since we're already explicitly loading MoltenVK.
+                if (strcmp(extensions[i], "VK_KHR_portability_enumeration") == 0) {
+                    continue;
+                }
+#endif
                 vec.push_back(extensions[i]);
             }
 
