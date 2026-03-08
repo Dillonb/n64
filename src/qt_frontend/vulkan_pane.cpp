@@ -1,6 +1,9 @@
 #include <qt_frontend/vulkan_pane.h>
 #include <QGuiApplication>
 #include <log.h>
+#ifdef __APPLE__
+#include <dlfcn.h>
+#endif
 
 #include <QWindow>
 
@@ -36,9 +39,19 @@ VulkanPane::VulkanPane() {
         windowHandle()->setSurfaceType(QWindow::VulkanSurface);
     }
 
+#ifdef __APPLE__
+    PFN_vkGetInstanceProcAddr pfn = (PFN_vkGetInstanceProcAddr)dlsym(RTLD_DEFAULT, "vkGetInstanceProcAddr");
+    if (!pfn) {
+        logfatal("Failed to resolve vkGetInstanceProcAddr from linked MoltenVK: %s", dlerror());
+    }
+    if (!Vulkan::Context::init_loader(pfn)) {
+        logfatal("Could not initialize Vulkan ICD");
+    }
+#else
     if (!Vulkan::Context::init_loader(nullptr)) {
         logfatal("Could not initialize Vulkan ICD");
     }
+#endif
 
 
     qtVkInstanceFactory = std::make_unique<QtInstanceFactory>();

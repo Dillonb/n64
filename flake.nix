@@ -44,9 +44,11 @@
         pkgs.capstone
         pkgs.dbus
         pkgs.bzip2
-      ] ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+      ] ++ pkgs.lib.optionals (pkgs.stdenv.isLinux) [
         pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
         pkgs.qt6.wrapQtAppsHook
+      ] ++ pkgs.lib.optionals (pkgs.stdenv.isDarwin) [
+        pkgs.moltenvk
       ];
       stdenv =
         if pkgs.stdenv.isLinux then pkgs.stdenv
@@ -98,7 +100,7 @@
               wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
               wrapProgram $out/bin/n64-qt --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
             '' else if pkgs.stdenv.isDarwin then ''
-              wrapProgram $out/bin/n64 --set DYLD_FALLBACK_LIBRARY_PATH ${pkgs.darwin.moltenvk}/lib
+              echo "Darwin postinstall, no action needed"
             '' else throw "Unsupported platform";
 
         };
@@ -122,7 +124,6 @@
           '' else if stdenv.isDarwin then ''
             # clangd needs to come from clang-tools. Because Darwin uses clang stdenv, this is the only way to ensure we use the right clangd.
             export PATH="${llvmPackages.clang-tools}/bin:$PATH";
-            export DYLD_FALLBACK_LIBRARY_PATH="${pkgs.darwin.moltenvk}/lib";
           '' else throw "Unsupported platform");
         };
     }

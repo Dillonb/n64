@@ -91,4 +91,17 @@ target_link_libraries(imgui-ui imgui nfd)
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core imgui-ui)
 
+if (MACOSX)
+    # Link MoltenVK directly on macOS
+    find_library(MOLTENVK_LIB NAMES MoltenVK REQUIRED)
+    get_filename_component(MOLTENVK_LIB_DIR "${MOLTENVK_LIB}" DIRECTORY)
+    message("Found MoltenVK library: ${MOLTENVK_LIB}")
+    message("Library directory for rpath: ${MOLTENVK_LIB_DIR}")
+
+    target_link_libraries(${N64_TARGET} "${MOLTENVK_LIB}")
+    set_target_properties(${N64_TARGET} PROPERTIES
+            BUILD_RPATH "${MOLTENVK_LIB_DIR}"
+            INSTALL_RPATH "${MOLTENVK_LIB_DIR}")
+endif()
+
 install(TARGETS ${N64_TARGET} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

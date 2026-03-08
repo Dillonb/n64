@@ -8,6 +8,10 @@
 #include <SDL.h>
 #include <SDL_vulkan.h>
 
+#ifdef __APPLE__
+#include <dlfcn.h>
+#endif
+
 #include <volk.h>
 #include <rdp/parallel_rdp_wrapper.h>
 #include <settings.h>
@@ -46,9 +50,18 @@ void video_init_vulkan() {
     if (!window) {
         logfatal("Failed to initialize SDL window: %s", SDL_GetError());
     }
+#ifdef __APPLE__
+    // On Mac, ensure we load the MoltenVK that was linked at build time, because Volk is terrible at this.
+    PFN_vkGetInstanceProcAddr pfn = (PFN_vkGetInstanceProcAddr)dlsym(RTLD_DEFAULT, "vkGetInstanceProcAddr");
+    if (!pfn) {
+        logfatal("Failed to resolve vkGetInstanceProcAddr from linked MoltenVK: %s", dlerror());
+    }
+    volkInitializeCustom(pfn);
+#else
     if (volkInitialize() != VK_SUCCESS) {
         logfatal("Failed to load Volk");
     }
+#endif
 
 }
 
