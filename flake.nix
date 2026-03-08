@@ -14,7 +14,7 @@
       rev = with self; if sourceInfo?dirtyRev then sourceInfo.dirtyRev else sourceInfo.rev;
       pkgs = import nixpkgs { inherit system; };
 
-      llvmPackages = pkgs.llvmPackages_19;
+      llvmPackages = pkgs.llvmPackages_21;
 
       devShellTools = [
         llvmPackages.clang-tools
