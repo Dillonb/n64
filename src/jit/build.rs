@@ -16,6 +16,7 @@ fn main() {
         .clang_arg("-I..")
         .clang_arg("-I../common")
         .clang_arg("-I../contrib/include")
+        .clang_arg("-DN64_HAVE_SSE")
         // These functions all use u128, which is not FFI-safe
         .blocklist_function("qecvt")
         .blocklist_function("qecvt_r")
