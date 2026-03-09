@@ -68,6 +68,7 @@
           pkgs.dbus
           pkgs.bzip2
           nfd
+          pkgs.libsamplerate
         ]
         ++ pkgs.lib.optionals (pkgs.stdenv.isLinux) [
           pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
