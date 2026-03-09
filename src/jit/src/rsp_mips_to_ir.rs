@@ -48,6 +48,7 @@ impl RspMipsToIrContext {
 struct GuestRegisterManager {
     rsp_address: InputSlot,
     gprs: [Option<InputSlot>; 32],
+    vu_regs: [Option<InputSlot>; 32],
 }
 
 impl GuestRegisterManager {
@@ -55,6 +56,7 @@ impl GuestRegisterManager {
         let mut v = Self {
             rsp_address,
             gprs: [None; 32],
+            vu_regs: [None; 32],
         };
         v.gprs[0] = Some(const_u32(0));
         v
@@ -75,8 +77,13 @@ impl GuestRegisterManager {
         })
     }
 
-    fn get_vu_reg(&mut self, _block: &mut IRBlockHandle, _r: u8) -> InputSlot {
-        todo!("Get VU reg");
+    fn get_vu_reg(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
+        *self.vu_regs[r as usize].get_or_insert_with(|| {
+            let offset = offset_of!(rsp_t, vu_regs) + (r as usize * std::mem::size_of::<u128>());
+            block
+                .load_ptr(DataType::U128, self.rsp_address, offset)
+                .val()
+        })
     }
 
     fn flush_all(&mut self, block: &mut IRBlockHandle, clear: bool) {
@@ -88,6 +95,16 @@ impl GuestRegisterManager {
                 if let Some(value) = if clear { reg.take() } else { *reg } {
                     let offset = offset_of!(rsp_t, gpr) + (i * std::mem::size_of::<u32>());
                     block.write_ptr(DataType::U32, self.rsp_address, offset, value);
+                }
+            });
+        self.vu_regs
+            .iter_mut()
+            .filter(|reg| reg.is_some())
+            .enumerate()
+            .for_each(|(i, reg)| {
+                if let Some(value) = if clear { reg.take() } else { *reg } {
+                    let offset = offset_of!(rsp_t, vu_regs) + (i * std::mem::size_of::<u128>());
+                    block.write_ptr(DataType::U128, self.rsp_address, offset, value);
                 }
             });
     }
