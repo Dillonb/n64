@@ -8,72 +8,83 @@
     n64-tools.url = "github:Dillonb/n64-tools.nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, n64-tools }: flake-utils.lib.eachDefaultSystem (system:
-    let
-      shortRev = with self; if sourceInfo?dirtyShortRev then sourceInfo.dirtyShortRev else sourceInfo.shortRev;
-      rev = with self; if sourceInfo?dirtyRev then sourceInfo.dirtyRev else sourceInfo.rev;
-      pkgs = import nixpkgs { inherit system; };
-
-      llvmPackages = pkgs.llvmPackages_21;
-
-      devShellTools = [
-        llvmPackages.clang-tools
-        pkgs.git
-        pkgs.rust-analyzer
-        pkgs.rustfmt
-      ];
-
-      tools = [
-        pkgs.gcc
-        pkgs.cmake
-        pkgs.ninja
-        pkgs.shaderc
-        pkgs.pkg-config
-        pkgs.vulkan-loader
-        pkgs.cargo
-        pkgs.cargo-outdated
-        pkgs.rustc
-        pkgs.rust-cbindgen
-
-        n64-tools.packages.${system}.bass
-        n64-tools.packages.${system}.chksum64
-      ];
-
-      libs = [
-        pkgs.SDL2
-        pkgs.capstone
-        pkgs.dbus
-        pkgs.bzip2
-      ] ++ pkgs.lib.optionals (pkgs.stdenv.isLinux) [
-        pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
-        pkgs.qt6.wrapQtAppsHook
-      ] ++ pkgs.lib.optionals (pkgs.stdenv.isDarwin) [
-        pkgs.moltenvk
-      ];
-      stdenv =
-        if pkgs.stdenv.isLinux then pkgs.stdenv
-        else if pkgs.stdenv.isDarwin then llvmPackages.stdenv
-        else throw "Unsupported platform";
-
-      cargoDeps = pkgs.rustPlatform.importCargoLock {
-        lockFile = ./src/jit/Cargo.lock;
-      };
-
-      clang_path = "${llvmPackages.libclang.lib}/lib/clang/${pkgs.lib.versions.major (pkgs.lib.getVersion llvmPackages.clang)}";
-
-      # Path to clang headers
-      bindgen_extra_args_common = "-isystem ${clang_path}/include";
-      # Linux also needs glibc headers
-      bindgen_extra_args_linux = if pkgs.stdenv.isLinux then " -isystem ${pkgs.glibc.dev}/include" else "";
-
-      build_env = {
-        LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
-        BINDGEN_EXTRA_CLANG_ARGS = bindgen_extra_args_common + bindgen_extra_args_linux;
-      };
-    in
+  outputs =
     {
-      packages.default = stdenv.mkDerivation
-        {
+      self,
+      nixpkgs,
+      flake-utils,
+      n64-tools,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        shortRev =
+          with self;
+          if sourceInfo ? dirtyShortRev then sourceInfo.dirtyShortRev else sourceInfo.shortRev;
+        rev = with self; if sourceInfo ? dirtyRev then sourceInfo.dirtyRev else sourceInfo.rev;
+        pkgs = import nixpkgs { inherit system; };
+
+        llvmPackages = pkgs.llvmPackages_21;
+
+        devShellTools = [
+          llvmPackages.clang-tools
+          pkgs.git
+          pkgs.rust-analyzer
+          pkgs.rustfmt
+        ];
+
+        tools = [
+          pkgs.gcc
+          pkgs.cmake
+          pkgs.ninja
+          pkgs.shaderc
+          pkgs.pkg-config
+          pkgs.vulkan-loader
+          pkgs.cargo
+          pkgs.cargo-outdated
+          pkgs.rustc
+          pkgs.rust-cbindgen
+
+          n64-tools.packages.${system}.bass
+          n64-tools.packages.${system}.chksum64
+        ];
+
+        libs = [
+          pkgs.SDL2
+          pkgs.capstone
+          pkgs.dbus
+          pkgs.bzip2
+        ]
+        ++ pkgs.lib.optionals (pkgs.stdenv.isLinux) [
+          pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
+          pkgs.qt6.wrapQtAppsHook
+        ]
+        ++ pkgs.lib.optionals (pkgs.stdenv.isDarwin) [ pkgs.moltenvk ];
+        stdenv =
+          if pkgs.stdenv.isLinux then
+            pkgs.stdenv
+          else if pkgs.stdenv.isDarwin then
+            llvmPackages.stdenv
+          else
+            throw "Unsupported platform";
+
+        cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./src/jit/Cargo.lock; };
+
+        clang_path = "${llvmPackages.libclang.lib}/lib/clang/${pkgs.lib.versions.major (pkgs.lib.getVersion llvmPackages.clang)}";
+
+        # Path to clang headers
+        bindgen_extra_args_common = "-isystem ${clang_path}/include";
+        # Linux also needs glibc headers
+        bindgen_extra_args_linux =
+          if pkgs.stdenv.isLinux then " -isystem ${pkgs.glibc.dev}/include" else "";
+
+        build_env = {
+          LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
+          BINDGEN_EXTRA_CLANG_ARGS = bindgen_extra_args_common + bindgen_extra_args_linux;
+        };
+      in
+      {
+        packages.default = stdenv.mkDerivation {
           env = build_env;
           cargoDeps = cargoDeps;
           cargoRoot = "src/jit";
@@ -88,7 +99,10 @@
               ./tests
             ];
           };
-          nativeBuildInputs = tools ++ [ pkgs.makeWrapper pkgs.rustPlatform.cargoSetupHook ];
+          nativeBuildInputs = tools ++ [
+            pkgs.makeWrapper
+            pkgs.rustPlatform.cargoSetupHook
+          ];
           buildInputs = libs;
           cmakeFlags = [
             (pkgs.lib.cmakeFeature "N64_GIT_COMMIT_HASH" rev) # Flakes do not have access to the .git dir, so we'll set this manually
@@ -96,36 +110,47 @@
           ];
           passthru.exePath = "/bin/n64";
           postInstall =
-            if pkgs.stdenv.isLinux then ''
-              wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
-              wrapProgram $out/bin/n64-qt --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
-            '' else if pkgs.stdenv.isDarwin then ''
-              echo "Darwin postinstall, no action needed"
-            '' else throw "Unsupported platform";
+            if pkgs.stdenv.isLinux then
+              ''
+                wrapProgram $out/bin/n64 --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
+                wrapProgram $out/bin/n64-qt --set LD_LIBRARY_PATH ${pkgs.vulkan-loader}/lib
+              ''
+            else if pkgs.stdenv.isDarwin then
+              ''
+                echo "Darwin postinstall, no action needed"
+              ''
+            else
+              throw "Unsupported platform";
 
         };
 
-      apps.default = {
-        type = "app";
-        program = "${self.packages.${system}.default}/bin/n64";
-      };
+        apps.default = {
+          type = "app";
+          program = "${self.packages.${system}.default}/bin/n64";
+        };
 
-      apps.qt = {
-        type = "app";
-        program = "${self.packages.${system}.default}/bin/n64-qt";
-      };
+        apps.qt = {
+          type = "app";
+          program = "${self.packages.${system}.default}/bin/n64-qt";
+        };
 
-      devShells.default = pkgs.mkShell.override { stdenv = stdenv; }
-        {
+        devShells.default = pkgs.mkShell.override { stdenv = stdenv; } {
           env = build_env;
           buildInputs = devShellTools ++ tools ++ libs;
-          shellHook = (if stdenv.isLinux then ''
-            export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
-          '' else if stdenv.isDarwin then ''
-            # clangd needs to come from clang-tools. Because Darwin uses clang stdenv, this is the only way to ensure we use the right clangd.
-            export PATH="${llvmPackages.clang-tools}/bin:$PATH";
-          '' else throw "Unsupported platform");
+          shellHook = (
+            if stdenv.isLinux then
+              ''
+                export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib";
+              ''
+            else if stdenv.isDarwin then
+              ''
+                # clangd needs to come from clang-tools. Because Darwin uses clang stdenv, this is the only way to ensure we use the right clangd.
+                export PATH="${llvmPackages.clang-tools}/bin:$PATH";
+              ''
+            else
+              throw "Unsupported platform"
+          );
         };
-    }
-  );
+      }
+    );
 }
