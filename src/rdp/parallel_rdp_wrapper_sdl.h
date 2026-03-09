@@ -50,11 +50,15 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
         }
 
         uint32_t get_surface_width() override {
-            return N64_SCREEN_X * SCREEN_SCALE;
+            int w, h;
+            SDL_Vulkan_GetDrawableSize(window, &w, &h);
+            return (w > 0) ? (uint32_t)w : N64_SCREEN_X * SCREEN_SCALE;
         }
 
         uint32_t get_surface_height() override {
-            return N64_SCREEN_Y * SCREEN_SCALE;
+            int w, h;
+            SDL_Vulkan_GetDrawableSize(window, &w, &h);
+            return (h > 0) ? (uint32_t)h : N64_SCREEN_Y * SCREEN_SCALE;
         }
 
         bool alive(Vulkan::WSI &wsi) override {
@@ -77,7 +81,7 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
 class SDLParallelRdpWindowInfo : public ParallelRdpWindowInfo {
         CoordinatePair get_window_size() {
             int sdlWinWidth, sdlWinHeight;
-            SDL_GetWindowSize(window, &sdlWinWidth, &sdlWinHeight);
+            SDL_Vulkan_GetDrawableSize(window, &sdlWinWidth, &sdlWinHeight);
             return CoordinatePair{ sdlWinWidth, sdlWinHeight };
         }
 };
