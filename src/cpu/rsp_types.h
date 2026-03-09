@@ -17,9 +17,7 @@ typedef union vu_reg {
     u8 bytes[16];
     s16 signed_elements[8];
     u16 elements[8];
-#ifdef N64_HAVE_SSE
     s128 single;
-#endif
     // Only used for loading
     u32 words[4];
 } vu_reg_t;
@@ -176,9 +174,7 @@ typedef struct rsp {
     #ifdef N64_DYNAREC_ENABLED
         rsp_dynarec_t *dynarec;
     #endif
-    #ifdef N64_HAVE_SSE
-        s128 zero;
-    #endif
+    s128 zero;
 } rsp_t;
 
 #endif //N64_RSP_TYPES_H

@@ -22,8 +22,11 @@ add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
 add_subdirectory(contrib/corrosion)
 add_subdirectory(jit) # depends on corrosion
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(samplerate REQUIRED IMPORTED_TARGET samplerate)
+find_package(SampleRate CONFIG QUIET)
+if (NOT SampleRate_FOUND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(samplerate REQUIRED IMPORTED_TARGET samplerate)
+endif()
 
 find_package(nfd REQUIRED)
 add_subdirectory(contrib/inih)
@@ -68,7 +71,11 @@ add_library(core
         frontend/game_db.c frontend/game_db.h
         frontend/http_api.cpp frontend/http_api.h)
 
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 PkgConfig::samplerate)
+if (SampleRate_FOUND)
+    target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 SampleRate::samplerate)
+else()
+    target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 PkgConfig::samplerate)
+endif()
 
 add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)

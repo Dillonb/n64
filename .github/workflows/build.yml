@@ -6,7 +6,7 @@ jobs:
   build-windows:
     runs-on: windows-2025
     env:
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
       - name: Checkout
@@ -27,6 +27,8 @@ jobs:
         run: |
           vcpkg install shaderc:x64-windows
           vcpkg install sdl2[vulkan]:x64-windows
+          vcpkg install libsamplerate:x64-windows
+          vcpkg install nativefiledialog-extended:x64-windows
 
       - name: Build N64
         run: |
@@ -62,7 +64,14 @@ jobs:
       - name: Setup dependencies
         run: |
           sudo apt-get update -y -qq
-          sudo apt-get install glslc libsdl2-dev libdbus-1-dev libbz2-dev ninja-build
+          sudo apt-get install glslc libsdl2-dev libdbus-1-dev libbz2-dev libsamplerate0-dev ninja-build
+
+      - name: Build nativefiledialog-extended
+        run: |
+          git clone --depth 1 --branch v1.3.0 https://github.com/btzy/nativefiledialog-extended.git
+          cmake -S nativefiledialog-extended -B nativefiledialog-extended/build -DCMAKE_BUILD_TYPE=Release -DNFD_PORTAL=ON -DNFD_BUILD_TESTS=OFF
+          cmake --build nativefiledialog-extended/build
+          sudo cmake --install nativefiledialog-extended/build
 
       - name: Setup chksum64 and bass
         run: |

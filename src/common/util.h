@@ -25,6 +25,8 @@ typedef int64_t s64;
 
 #ifdef N64_HAVE_SSE
 typedef __m128i s128;
+#else
+typedef long long s128 __attribute__((__vector_size__(16), __aligned__(16)));
 #endif
 
 #define se_32_64(val) ((s64)((s32)(val)))
