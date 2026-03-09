@@ -67,6 +67,14 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
 
         void poll_input() override {
             n64_poll_input();
+
+            // Unfortunately, there isn't really a better place to put this
+            int w, h;
+            SDL_Vulkan_GetDrawableSize(window, &w, &h);
+            if (w > 0 && h > 0 &&
+                ((unsigned)w != current_swapchain_width || (unsigned)h != current_swapchain_height)) {
+                resize = true;
+            }
         }
 
         void poll_input_async(Granite::InputTrackerHandler *handler) override {
