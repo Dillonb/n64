@@ -27,8 +27,7 @@ block(SCOPE_FOR VARIABLES POLICIES)
         add_subdirectory(contrib/libsamplerate)
 endblock()
 
-SET(NFD_PORTAL ON CACHE BOOL "Use dbus for native file dialog instead of gtk")
-add_subdirectory(contrib/nativefiledialog-extended)
+find_package(nfd REQUIRED)
 add_subdirectory(contrib/inih)
 add_subdirectory(tools)
 
@@ -83,10 +82,9 @@ target_include_directories(imgui-ui PUBLIC
         contrib/parallel-rdp/parallel-rdp-standalone/volk
         contrib/parallel-rdp/parallel-rdp-standalone/vulkan
         contrib/parallel-rdp/parallel-rdp-standalone/util
-        contrib/nativefiledialog-extended/src/include
         )
 
-target_link_libraries(imgui-ui imgui nfd)
+target_link_libraries(imgui-ui imgui nfd::nfd)
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core imgui-ui)

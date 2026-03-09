@@ -26,6 +26,19 @@
 
         llvmPackages = pkgs.llvmPackages_21;
 
+        nfd =
+          if pkgs.stdenv.isLinux then
+            pkgs.nativefiledialog-extended.overrideAttrs {
+              buildInputs = [ pkgs.dbus ];
+              cmakeFlags = [
+                (pkgs.lib.cmakeBool "BUILD_SHARED_LIBS" true)
+                (pkgs.lib.cmakeBool "NFD_PORTAL" true)
+                (pkgs.lib.cmakeBool "NFD_INSTALL" true)
+              ];
+            }
+          else
+            pkgs.nativefiledialog-extended;
+
         devShellTools = [
           llvmPackages.clang-tools
           pkgs.git
@@ -54,6 +67,7 @@
           pkgs.capstone
           pkgs.dbus
           pkgs.bzip2
+          nfd
         ]
         ++ pkgs.lib.optionals (pkgs.stdenv.isLinux) [
           pkgs.qt6.qtbase # TODO: Qt should work on Darwin too
