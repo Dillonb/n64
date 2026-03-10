@@ -37,6 +37,7 @@ void* dynarec_bumpalloc(size_t size) {
     return ptr;
 }
 
+// TODO: this should take a size so that we can flush here if necessary, to guarantee the pointer is correct.
 void* dynarec_bumpalloc_get_next_allocation_ptr() {
     return &n64dynarec.codecache[n64dynarec.codecache_used];
 }
@@ -63,4 +64,9 @@ void* rsp_dynarec_bumpalloc(size_t size) {
 #endif
 
     return ptr;
+}
+
+// TODO: this should take a size so that we can flush here if necessary, to guarantee the pointer is correct.
+void* rsp_dynarec_bumpalloc_get_next_allocation_ptr() {
+    return &N64RSPDYNAREC->codecache[N64RSPDYNAREC->codecache_used];
 }

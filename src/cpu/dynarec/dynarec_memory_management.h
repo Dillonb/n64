@@ -10,6 +10,7 @@
 void* dynarec_bumpalloc(size_t size);
 void* dynarec_bumpalloc_get_next_allocation_ptr();
 void* dynarec_bumpalloc_zero(size_t size);
+void* rsp_dynarec_bumpalloc_get_next_allocation_ptr();
 void* rsp_dynarec_bumpalloc(size_t size);
 
 #ifdef __APPLE__

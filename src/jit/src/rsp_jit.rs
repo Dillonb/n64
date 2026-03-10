@@ -100,13 +100,16 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
 
     let parsed = parse_rsp(&code, start_address);
     let mut func = rsp_to_ir(parsed, rsp);
-    let compiled = compile_vec(&mut func, start_address as usize);
+
+    let baseaddr = unsafe { rsp_dynarec_bumpalloc_get_next_allocation_ptr() as usize };
+    let compiled = compile_vec(&mut func, baseaddr);
 
     let code = compiled.code;
 
     unsafe {
         let alloc = rsp_dynarec_bumpalloc(code.len());
         std::ptr::copy_nonoverlapping(code.as_ptr(), alloc as *mut u8, code.len());
+        flush_icache(std::slice::from_raw_parts(alloc as *const u8, code.len()));
         let f: unsafe extern "C" fn(*mut rsp) -> i32 = mem::transmute(alloc);
 
         (*block).run = Some(f);
