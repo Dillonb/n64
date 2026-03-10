@@ -447,7 +447,7 @@ void n64_settings_init() {
     n64_settings_load_defaults();
     char config_file_path[PATH_MAX];
 
-    char* pref_path = SDL_GetPrefPath("dgb", "dgb-n64");
+    char* pref_path = SDL_GetPrefPath(NULL, "dgb-n64");
     if (!pref_path) {
         logfatal("Unable to get application data directory: %s", SDL_GetError());
     }
