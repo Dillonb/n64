@@ -13,15 +13,8 @@ n64_settings_t n64_settings;
 
 #ifdef N64_WIN
 #define strtok_r strtok_s
-#include <direct.h>
-const char PATH_DELIMITER = '\\';
-#define GETCWD _getcwd
 #else
-#include <unistd.h>
 #include <SDL_keyboard.h>
-
-#define GETCWD getcwd
-const char PATH_DELIMITER = '/';
 #endif
 
 void n64_settings_load_defaults() {
@@ -452,15 +445,18 @@ int n64_settings_load(const char* path) {
 
 void n64_settings_init() {
     n64_settings_load_defaults();
-    char cwd[PATH_MAX];
     char config_file_path[PATH_MAX];
-    if (!GETCWD(cwd, PATH_MAX)) {
-        logfatal("Unable to get current working directory.");
+
+    char* pref_path = SDL_GetPrefPath("dgb", "dgb-n64");
+    if (!pref_path) {
+        logfatal("Unable to get application data directory: %s", SDL_GetError());
     }
-    int result = snprintf(config_file_path, PATH_MAX, "%s%c" CONFIG_FILENAME, cwd, PATH_DELIMITER);
+    int result = snprintf(config_file_path, PATH_MAX, "%s" CONFIG_FILENAME, pref_path);
+    SDL_free(pref_path);
     if (result < 0) {
         logfatal("Unable to build path to config file.");
     }
+    logalways("Config file is located at %s", config_file_path);
     if (file_exists(config_file_path)) {
         int err = n64_settings_load(config_file_path);
         if (err != 0) {
