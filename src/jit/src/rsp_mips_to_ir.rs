@@ -32,15 +32,15 @@ pub struct RspMipsToIrContext {
 impl RspMipsToIrContext {
     pub fn default() -> Self {
         Self {
-            read_byte: n64_rsp_read_byte_noinline as usize,
-            read_half: n64_rsp_read_half_noinline as usize,
-            read_word: n64_rsp_read_word_noinline as usize,
-            write_byte: n64_rsp_write_byte_noinline as usize,
-            write_half: n64_rsp_write_half_noinline as usize,
-            write_word: n64_rsp_write_word_noinline as usize,
+            read_byte: n64_rsp_read_byte_noinline as *const() as usize,
+            read_half: n64_rsp_read_half_noinline as *const() as usize,
+            read_word: n64_rsp_read_word_noinline as *const() as usize,
+            write_byte: n64_rsp_write_byte_noinline as *const() as usize,
+            write_half: n64_rsp_write_half_noinline as *const() as usize,
+            write_word: n64_rsp_write_word_noinline as *const() as usize,
 
-            get_rsp_cp0_register: get_rsp_cp0_register as usize,
-            set_rsp_cp0_register: set_rsp_cp0_register as usize,
+            get_rsp_cp0_register: get_rsp_cp0_register as *const() as usize,
+            set_rsp_cp0_register: set_rsp_cp0_register as *const() as usize,
         }
     }
 }

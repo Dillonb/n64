@@ -45,14 +45,14 @@ pub struct MipsToIrContext {
 impl Default for MipsToIrContext {
     fn default() -> Self {
         MipsToIrContext {
-            read_physical_byte: n64_read_physical_byte as usize,
-            read_physical_half: n64_read_physical_half as usize,
-            read_physical_word: n64_read_physical_word as usize,
-            read_physical_dword: n64_read_physical_dword as usize,
-            write_physical_byte: n64_write_physical_byte as usize,
-            write_physical_half: n64_write_physical_half as usize,
-            write_physical_word: n64_write_physical_word as usize,
-            write_physical_dword: n64_write_physical_dword as usize,
+            read_physical_byte: n64_read_physical_byte as *const() as usize,
+            read_physical_half: n64_read_physical_half as *const() as usize,
+            read_physical_word: n64_read_physical_word as *const() as usize,
+            read_physical_dword: n64_read_physical_dword as *const() as usize,
+            write_physical_byte: n64_write_physical_byte as *const() as usize,
+            write_physical_half: n64_write_physical_half as *const() as usize,
+            write_physical_word: n64_write_physical_word as *const() as usize,
+            write_physical_dword: n64_write_physical_dword as *const() as usize,
         }
     }
 }
