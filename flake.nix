@@ -40,6 +40,7 @@
             pkgs.nativefiledialog-extended;
 
         devShellTools = [
+          pkgs.bashInteractive
           llvmPackages.clang-tools
           pkgs.git
           pkgs.rust-analyzer
