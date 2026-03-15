@@ -547,7 +547,7 @@ impl GuestRegisterManager {
                     new_status.val(),
                 );
                 block.call_function(
-                    const_ptr(cp0_status_updated as usize),
+                    const_ptr(cp0_status_updated as *const () as usize),
                     None,
                     vec![const_u32(inblock_index.unwrap())],
                 );
@@ -613,7 +613,7 @@ impl GuestRegisterManager {
                 );
 
                 block.call_function(
-                    const_ptr(reschedule_compare_interrupt as usize),
+                    const_ptr(reschedule_compare_interrupt as *const () as usize),
                     None,
                     vec![const_u32(inblock_index.unwrap())],
                 );
@@ -739,7 +739,7 @@ impl GuestRegisterManager {
                     offset_of!(r4300i_t, cp0.count),
                     value_shifted.val(),
                 );
-                let reschedule_compare_interrupt = const_ptr(reschedule_compare_interrupt as usize);
+                let reschedule_compare_interrupt = const_ptr(reschedule_compare_interrupt as *const () as usize);
                 block.call_function(
                     reschedule_compare_interrupt,
                     None,
@@ -849,7 +849,7 @@ fn get_paddr_for_loadstore(
 
     let mut on_fail_block = func.new_block(vec![]);
     on_fail_block.call_function(
-        const_ptr(on_fail as usize),
+        const_ptr(on_fail as *const () as usize),
         None,
         vec![virtual_address.val()],
     );
@@ -916,7 +916,7 @@ fn checkcp1(
     // Flush, but don't clear, as the register values still matter for other execution paths.
     guest_regs.flush_all(&mut cp1_disabled_block, false);
     cp1_disabled_block.call_function(
-        const_ptr(r4300i_handle_exception as usize),
+        const_ptr(r4300i_handle_exception as *const () as usize),
         None,
         vec![
             const_u64(vaddr),
@@ -1051,7 +1051,7 @@ pub fn to_ir_ctx(
     if let Some(last) = parsed.last() {
         if last.op.is_branch() {
             let cycles = block.call_function(
-                const_ptr(interpreter_fallback_until_no_branch as usize),
+                const_ptr(interpreter_fallback_until_no_branch as *const () as usize),
                 Some(DataType::S32),
                 vec![],
             );
@@ -2168,7 +2168,7 @@ pub fn to_ir_ctx(
                 );
 
                 divide_by_zero.call_function(
-                    const_ptr(unimplemented_divide_by_zero as usize),
+                    const_ptr(unimplemented_divide_by_zero as *const () as usize),
                     None,
                     vec![],
                 );
@@ -2176,7 +2176,7 @@ pub fn to_ir_ctx(
 
                 let mut intmin_by_neg1 = func.new_block(vec![]);
                 intmin_by_neg1.call_function(
-                    const_ptr(unimplemented_intmin_by_neg1 as usize),
+                    const_ptr(unimplemented_intmin_by_neg1 as *const () as usize),
                     None,
                     vec![],
                 );
@@ -2387,17 +2387,17 @@ pub fn to_ir_ctx(
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBR => {
-                block.call_function(const_ptr(do_tlbr as usize), None, vec![]);
+                block.call_function(const_ptr(do_tlbr as *const () as usize), None, vec![]);
             }
             MipsOpcode::TLBWI => {
                 let index =
                     block.load_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.index));
                 let masked_index = block.and(DataType::U32, index.val(), const_u32(0x8000003F));
 
-                block.call_function(const_ptr(do_tlbwi as usize), None, vec![masked_index.val()]);
+                block.call_function(const_ptr(do_tlbwi as *const () as usize), None, vec![masked_index.val()]);
             }
             MipsOpcode::TLBP => {
-                block.call_function(const_ptr(do_tlbp as usize), None, vec![]);
+                block.call_function(const_ptr(do_tlbp as *const () as usize), None, vec![]);
             }
             MipsOpcode::ERET => {
                 let status = block.load_ptr(
@@ -2461,7 +2461,7 @@ pub fn to_ir_ctx(
                 let mut end = func.new_block(vec![]);
                 block_erl.jump(end.call(vec![]));
                 block_no_erl.jump(end.call(vec![]));
-                end.call_function(const_ptr(cp0_status_updated as usize), None, vec![]);
+                end.call_function(const_ptr(cp0_status_updated as *const () as usize), None, vec![]);
 
                 block = end;
                 warn!("TODO: set llbit to false");
