@@ -5,8 +5,11 @@ on: push
 jobs:
   build-windows:
     runs-on: windows-2025
+    permissions:
+      contents: read
+      packages: write
     env:
-      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+      VCPKG_ROOT: C:\vcpkg
 
     steps:
       - name: Checkout
@@ -16,19 +19,24 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Configure NuGet for vcpkg caching
+        shell: bash
+        env:
+          FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        run: |
+          nuget sources add \
+            -Source "$FEED_URL" \
+            -StorePasswordInClearText \
+            -Name GitHubPackages \
+            -UserName "${{ github.repository_owner }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          nuget setapikey "${{ secrets.GITHUB_TOKEN }}" \
+            -Source "$FEED_URL"
 
       - name: Setup dependencies
-        run: |
-          vcpkg install shaderc:x64-windows
-          vcpkg install sdl2[vulkan]:x64-windows
-          vcpkg install libsamplerate:x64-windows
-          vcpkg install nativefiledialog-extended:x64-windows
+        env:
+          VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
+        run: vcpkg install shaderc:x64-windows sdl2[vulkan]:x64-windows libsamplerate:x64-windows nativefiledialog-extended:x64-windows
 
       - name: Build N64
         run: |
