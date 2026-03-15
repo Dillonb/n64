@@ -9,6 +9,9 @@ add_library(r4300i
         tlb_instructions.c tlb_instructions.h
         rsp_interface.c rsp_interface.h
         mips_instruction_decode.h
+        dynarec/dynarec.c dynarec/dynarec.h
+        dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h
+        dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
 )
 
 
@@ -20,22 +23,14 @@ add_library(rsp
         rsp.c rsp.h
         rsp_instructions.c rsp_instructions.h
         rsp_vector_instructions.c rsp_vector_instructions.h
-        mips_instruction_decode.h)
+        mips_instruction_decode.h
+        dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h)
 
 TARGET_LINK_LIBRARIES(rsp    disassemble common jit)
 TARGET_LINK_LIBRARIES(r4300i disassemble common jit)
 if (NOT WIN32)
     TARGET_LINK_LIBRARIES(r4300i m)
 endif()
-
-target_sources(r4300i PRIVATE
-    dynarec/dynarec.c dynarec/dynarec.h
-    dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h
-    dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
-)
-target_sources(rsp PRIVATE
-    dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h
-)
 
 find_package(Capstone)
 
