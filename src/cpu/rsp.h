@@ -8,9 +8,7 @@
 #include <system/n64system.h>
 #include <rdp/rdp.h>
 #include <mem/n64bus.h>
-#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
-#endif
 #include <mem/mem_util.h>
 
 #include "rsp_types.h"
@@ -132,11 +130,9 @@ INLINE void quick_invalidate_rsp_icache(u32 address) {
 
     N64RSP.icache[index].handler = cache_rsp_instruction;
     N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
-#ifdef N64_DYNAREC_ENABLED
     if (N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay].code_mask[index]) {
         N64RSPDYNAREC->dirty = true;
     }
-#endif
 }
 
 INLINE void invalidate_rsp_icache(u32 address) {
@@ -232,11 +228,9 @@ INLINE void rsp_dma_write() {
 
         // Invalidate all pages touched by the DMA
         // This is probably unnecessary, since why would someone be copying code from the RSP to the CPU and then executing it?
-#ifdef N64_DYNAREC_ENABLED
         for (int j = 0; j < length; j += BLOCKCACHE_PAGE_SIZE) {
             invalidate_dynarec_page(dram_address + j);
         }
-#endif
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
 
@@ -350,9 +344,7 @@ INLINE void rsp_set_vce(u16 vce) {
 
 void rsp_step();
 void rsp_run();
-#ifdef N64_DYNAREC_ENABLED
 void rsp_dynarec_run();
-#endif
 vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e);
 
 #endif //N64_RSP_H

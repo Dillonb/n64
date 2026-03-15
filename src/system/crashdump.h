@@ -1,9 +1,7 @@
 #ifndef N64_CRASHDUMP_H
 #define N64_CRASHDUMP_H
 
-#ifdef N64_DYNAREC_ENABLED
 #include <dynarec/dynarec.h>
-#endif
 #include <system/n64system.h>
 #include <system/scheduler.h>
 #include <generated/version.h>
@@ -32,7 +30,6 @@ typedef struct n64_crashdump {
     uintptr_t scheduler_base;
     scheduler_t scheduler;
 
-#ifdef N64_DYNAREC_ENABLED
     size_t dynarec_size;
     uintptr_t dynarec_base;
     n64_dynarec_t dynarec;
@@ -48,7 +45,6 @@ typedef struct n64_crashdump {
     size_t rsp_codecache_size;
     uintptr_t rsp_codecache_base;
     u8 rsp_codecache[RSP_CODECACHE_SIZE];
-#endif
 } n64_crashdump_t;
 
 

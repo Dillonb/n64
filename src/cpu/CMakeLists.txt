@@ -28,16 +28,14 @@ if (NOT WIN32)
     TARGET_LINK_LIBRARIES(r4300i m)
 endif()
 
-if (N64_DYNAREC_ENABLED)
-    target_sources(r4300i PRIVATE
-        dynarec/dynarec.c dynarec/dynarec.h
-        dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h
-        dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
-    )
-    target_sources(rsp PRIVATE
-        dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h
-    )
-endif()
+target_sources(r4300i PRIVATE
+    dynarec/dynarec.c dynarec/dynarec.h
+    dynarec/dynarec_memory_management.c dynarec/dynarec_memory_management.h
+    dynarec/v2/v2_compiler.c dynarec/v2/v2_compiler.h
+)
+target_sources(rsp PRIVATE
+    dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h
+)
 
 find_package(Capstone)
 

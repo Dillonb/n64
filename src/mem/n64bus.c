@@ -6,9 +6,7 @@
 #include <mem/memory_logger.h>
 #include <n64_rsp_bus.h>
 #include <rdp/rdp.h>
-#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
-#endif
 #include <rsp.h>
 #include <interface/si.h>
 #include <interface/pi.h>
@@ -415,9 +413,7 @@ void n64_write_physical_dword(u32 address, u64 value) {
         logfatal("Tried to write to unaligned DWORD");
     }
     log_dword_write(address, value);
-#ifdef N64_DYNAREC_ENABLED
     invalidate_dynarec_page(address);
-#endif
     switch (address) {
         case REGION_RDRAM:
             dword_to_byte_array((u8*) &n64sys.mem.rdram, DWORD_ADDRESS(address) - SREGION_RDRAM, value);
@@ -553,9 +549,7 @@ void n64_write_physical_word(u32 address, u32 value) {
         logfatal("Tried to write to unaligned WORD");
     }
     log_word_write(address, value);
-#ifdef N64_DYNAREC_ENABLED
     invalidate_dynarec_page(WORD_ADDRESS(address));
-#endif
     switch (address) {
         case REGION_RDRAM:
             word_to_byte_array((u8*) &n64sys.mem.rdram, WORD_ADDRESS(address) - SREGION_RDRAM, value);
@@ -725,9 +719,7 @@ void n64_write_physical_half(u32 address, u32 value) {
         logfatal("Tried to write to unaligned HALF");
     }
     log_half_write(address, value);
-#ifdef N64_DYNAREC_ENABLED
     invalidate_dynarec_page(HALF_ADDRESS(address));
-#endif
     switch (address) {
         case REGION_RDRAM:
             half_to_byte_array((u8*) &n64sys.mem.rdram, HALF_ADDRESS(address) - SREGION_RDRAM, value);
@@ -863,9 +855,7 @@ u16 n64_read_physical_half(u32 address) {
 
 void n64_write_physical_byte(u32 address, u32 value) {
     log_byte_write(address, value);
-#ifdef N64_DYNAREC_ENABLED
     invalidate_dynarec_page(BYTE_ADDRESS(address));
-#endif
     switch (address) {
         case REGION_RDRAM:
             n64sys.mem.rdram[BYTE_ADDRESS(address)] = value;

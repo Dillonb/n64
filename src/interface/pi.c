@@ -4,9 +4,7 @@
 #include <mem/mem_util.h>
 #include <system/scheduler.h>
 #include <mem/backup.h>
-#ifdef N64_DYNAREC_ENABLED
 #include <dynarec/dynarec.h>
-#endif
 #include <timing.h>
 #include "pi.h"
 
@@ -178,9 +176,7 @@ void write_word_pireg(u32 address, u32 value) {
                 u8 b = pi_dma_read_byte(cart_addr + i);
                 logtrace("CART to DRAM: Copying 0x%02X from 0x%08X to 0x%08X", b, cart_addr + i, dram_addr + i);
                 RDRAM_BYTE(dram_addr + i) = b;
-#ifdef N64_DYNAREC_ENABLED
                 invalidate_dynarec_page(BYTE_ADDRESS(dram_addr + i));
-#endif
             }
 
             int complete_in = timing_pi_access(pi_get_domain(cart_addr), length);

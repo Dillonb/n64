@@ -26,12 +26,8 @@ int main(int argc, char** argv) {
     bool help = false;
     cflags_add_bool(flags, 'h', "help", &help, "Display this help message");
 
-#ifdef N64_DYNAREC_ENABLED
     bool interpreter = false;
     cflags_add_bool(flags, 'i', "interpreter", &interpreter, "Force the use of the interpreter");
-#else
-    bool interpreter = true;
-#endif
 
     bool debug = false;
 #ifdef N64_DEBUG_MODE

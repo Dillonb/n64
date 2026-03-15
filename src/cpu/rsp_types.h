@@ -4,9 +4,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <util.h>
-#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/rsp_dynarec.h>
-#endif
 #include "mips_instruction_decode.h"
 
 #define SP_DMEM_SIZE 0x1000
@@ -107,9 +105,7 @@ typedef union dram_addr {
 
 ASSERTWORD(dram_addr_t);
 
-#ifdef N64_DYNAREC_ENABLED
 typedef struct rsp_dynarec rsp_dynarec_t;
-#endif
 
 typedef struct rsp {
     u32 gpr[32];
@@ -171,9 +167,7 @@ typedef struct rsp {
 
     bool semaphore_held;
 
-    #ifdef N64_DYNAREC_ENABLED
-        rsp_dynarec_t *dynarec;
-    #endif
+    rsp_dynarec_t *dynarec;
     s128 zero;
 } rsp_t;
 
