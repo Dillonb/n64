@@ -1,6 +1,8 @@
 use std::{env, path::PathBuf};
 
 fn main() {
+    #[cfg(target_os = "windows")]
+    println!("cargo:rustc-link-arg=/FORCE:UNRESOLVED");
     let bindings = bindgen::Builder::default()
         .header("../cpu/r4300i.h")
         .header("../cpu/rsp.h")
