@@ -8,7 +8,7 @@ default = []
 ir_comments = ["dgbir/ir_comments"]
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "rlib"] # staticlib = for emulator, rlib = so integration tests still work
 
 [dependencies]
 proc-bitfield = "0.5.2"
