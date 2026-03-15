@@ -38,6 +38,14 @@ jobs:
           cmake --build . --config Release
         shell: cmd
 
+      - name: Run Rust JIT tests
+        env:
+          DUMP_STRUCT_LAYOUT_BIN: ${{ github.workspace }}\build\Release\dump_struct_layout.exe
+        run: |
+          cd src\jit
+          cargo test
+        shell: cmd
+
       - name: Collect files
         run: |
           mkdir upload
@@ -100,6 +108,13 @@ jobs:
       #   run: |
       #     cd build
       #     ninja test
+
+      - name: Run Rust JIT tests
+        env:
+          DUMP_STRUCT_LAYOUT_BIN: ${{ github.workspace }}/build/dump_struct_layout
+        run: |
+          cd src/jit
+          cargo test
 
       - name: Collect files
         run: |

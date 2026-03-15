@@ -124,6 +124,15 @@
             (pkgs.lib.cmakeFeature "N64_GIT_COMMIT_HASH" rev) # Flakes do not have access to the .git dir, so we'll set this manually
             (pkgs.lib.cmakeFeature "CMAKE_BUILD_TYPE" "Release")
           ];
+          doCheck = true;
+          checkPhase = ''
+            runHook preCheck
+            buildDir=$PWD
+            cd ../src/jit
+            DUMP_STRUCT_LAYOUT_BIN=$buildDir/dump_struct_layout cargo test
+            cd $buildDir
+            runHook postCheck
+          '';
           passthru.exePath = "/bin/n64";
           postInstall =
             if pkgs.stdenv.isLinux then
