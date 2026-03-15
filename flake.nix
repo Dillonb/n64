@@ -127,10 +127,9 @@
           doCheck = true;
           checkPhase = ''
             runHook preCheck
-            buildDir=$PWD
-            cd ../src/jit
-            DUMP_STRUCT_LAYOUT_BIN=$buildDir/dump_struct_layout cargo test
-            cd $buildDir
+            pushd $cmakeDir/src/jit
+            DUMP_STRUCT_LAYOUT_BIN=$OLDPWD/dump_struct_layout cargo test
+            popd
             runHook postCheck
           '';
           passthru.exePath = "/bin/n64";
