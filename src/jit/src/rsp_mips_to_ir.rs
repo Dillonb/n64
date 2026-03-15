@@ -3,8 +3,7 @@ use std::mem::offset_of;
 use dgbir::{
     disassembler::disassemble_mips_instruction,
     ir::{
-        const_ptr, const_s16, const_s32, const_u16, const_u32, CompareType, DataType,
-        IRBlockHandle, IRContext, IRFunction, InputSlot,
+        CompareType, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot, const_ptr, const_s16, const_s32, const_u16, const_u32, const_u64
     },
 };
 use log::warn;
@@ -75,6 +74,10 @@ impl GuestRegisterManager {
                 .load_ptr(DataType::U32, self.rsp_address, offset)
                 .val()
         })
+    }
+
+    fn set_vu_reg(&mut self, r: u8, value: InputSlot) {
+        self.vu_regs[r as usize] = Some(value);
     }
 
     fn get_vu_reg(&mut self, block: &mut IRBlockHandle, r: u8) -> InputSlot {
@@ -206,10 +209,26 @@ fn get_lswc2_address(
     instr: MipsInstructionBitfield,
     block: &mut IRBlockHandle,
     guest_regs: &mut GuestRegisterManager,
+    shift_amount: i32,
 ) -> InputSlot {
-    let base = guest_regs.get_vu_reg(block, instr.lswc2_base());
-    let offset = sign_extend_7bit_offset(instr.lswc2_offset(), SHIFT_AMOUNT_LUV_SUV);
+    let base = guest_regs.get_gpr(block, instr.lswc2_base());
+    let offset = sign_extend_7bit_offset(instr.lswc2_offset(), shift_amount);
     block.add(DataType::S32, base, const_s32(offset)).val()
+}
+
+fn rsp_load_u64(block: &mut IRBlockHandle, ctx: &RspMipsToIrContext, address: InputSlot) -> InputSlot {
+    let v_high = block.call_function(
+        const_ptr(ctx.read_word),
+        Some(DataType::U32),
+        vec![address],
+    );
+    let v_high = block.left_shift(DataType::U64, v_high.val(), const_u16(32));
+    let v_low = block.call_function(
+        const_ptr(ctx.read_word),
+        Some(DataType::U32),
+        vec![block.add(DataType::U32, address, const_u16(4)).val()],
+    );
+    block.or(DataType::U64, v_high.val(), v_low.val()).val()
 }
 
 pub fn rsp_to_ir_ctx(
@@ -505,12 +524,24 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::BREAK => todo!("RSP BREAK"),
             RspOpcode::LBV => todo!("RSP LBV"),
             RspOpcode::LDV => {
-                if instr.lswc2_e() != 0 {
-                    panic!("LDV with nonzero element");
-                }
+                let address = get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LDV_SDV);
+                let shift = 8 - instr.lswc2_e();
 
-                let address = get_lswc2_address(instr, &mut block, &mut guest_regs);
-                todo!("RSP LDV");
+                let mask = block.left_shift(
+                    DataType::U128,
+                    const_u64(0xFFFFFFFFFFFFFFFF),
+                    const_u16(shift as u16 * 8),
+                );
+                let inv_mask = block.not(DataType::U128, mask.val());
+
+                let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
+                let masked = block.and(DataType::U128, reg, inv_mask.val());
+
+                let value = rsp_load_u64(&mut block, &ctx, address);
+
+                let placed = block.left_shift(DataType::U128, value, const_u16(shift as u16 * 8));
+                let result = block.or(DataType::U128, masked.val(), placed.val());
+                guest_regs.set_vu_reg(instr.lswc2_vt(), result.val());
             }
             RspOpcode::LFV => todo!("RSP LFV"),
             RspOpcode::LHV => todo!("RSP LHV"),
