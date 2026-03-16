@@ -6,6 +6,9 @@
 #define FIELD(type, field) \
     printf("%s.%s %zu %zu\n", #type, #field, offsetof(type, field), sizeof(((type*)0)->field))
 
+#define SIZEOF(type) \
+    printf("sizeof:%s %zu\n", #type, sizeof(type))
+
 int main(void) {
     FIELD(rsp_t, gpr);
     FIELD(rsp_t, prev_pc);
@@ -61,6 +64,9 @@ int main(void) {
     FIELD(r4300i_t, prev_branch);
     FIELD(r4300i_t, branch_likely_taken);
     FIELD(r4300i_t, exception);
+
+    SIZEOF(rsp_t);
+    SIZEOF(r4300i_t);
 
     return 0;
 }
