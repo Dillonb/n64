@@ -22,11 +22,13 @@ private:
     QWindow* pane;
 };
 
-N64EmulatorThread::N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform, const char* rom_path, bool debug, bool interpreter)
+N64EmulatorThread::N64EmulatorThread(Vulkan::InstanceFactory* instanceFactory, QtWSIPlatform* wsiPlatform, const char* rom_path, bool debug, bool interpreter, const char* pif_rom_path)
         : wsiPlatform(wsiPlatform), instanceFactory(instanceFactory) {
     init_n64system(rom_path, true, debug, QT_VULKAN_VIDEO_TYPE, interpreter);
 
-    if (file_exists(PIF_ROM_PATH)) {
+    if (pif_rom_path) {
+        load_pif_rom(pif_rom_path);
+    } else if (file_exists(PIF_ROM_PATH)) {
         logalways("Found PIF ROM at %s, loading", PIF_ROM_PATH);
         load_pif_rom(PIF_ROM_PATH);
     }

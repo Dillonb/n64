@@ -20,7 +20,7 @@ class MainWindow : public QMainWindow
 Q_OBJECT
 
 public:
-    explicit MainWindow(const char* rom_path = nullptr, bool debug = false, bool interpreter = false, QWidget *parent = nullptr);
+    explicit MainWindow(const char* rom_path = nullptr, bool debug = false, bool interpreter = false, const char* pif_rom_path = nullptr, QWidget *parent = nullptr);
     virtual ~MainWindow() {};
 
     void showEvent(QShowEvent* event) override;

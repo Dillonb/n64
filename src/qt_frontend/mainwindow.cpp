@@ -4,7 +4,7 @@
 #include "ui_mainwindow.h"
 #include "qt_wsi_platform.h"
 
-MainWindow::MainWindow(const char* rom_path, bool debug, bool interpreter, QWidget *parent)
+MainWindow::MainWindow(const char* rom_path, bool debug, bool interpreter, const char* pif_rom_path, QWidget *parent)
         : QMainWindow(parent) {
     ui = new Ui::MainWindow();
     ui->setupUi(this);
@@ -13,7 +13,7 @@ MainWindow::MainWindow(const char* rom_path, bool debug, bool interpreter, QWidg
     setCentralWidget(vkPane);
     vkPane->hide();
 
-    emulatorThread = std::make_unique<N64EmulatorThread>(vkPane->qtVkInstanceFactory.get(), vkPane->platform.get(), rom_path, debug, interpreter);
+    emulatorThread = std::make_unique<N64EmulatorThread>(vkPane->qtVkInstanceFactory.get(), vkPane->platform.get(), rom_path, debug, interpreter, pif_rom_path);
 }
 
 void MainWindow::showEvent(QShowEvent *event) {
