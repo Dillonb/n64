@@ -40,6 +40,11 @@ static SDL_Keycode qtKeyToSdlKeycode(int qtKey) {
 }
 
 static void pushSdlKeyEvent(int qtKey, bool pressed) {
+    // Don't forward Escape to SDL. Quit is handled by Qt, not the CLI's ESC handler.
+    if (qtKey == Qt::Key_Escape) {
+        return;
+    }
+
     SDL_Keycode sdlKey = qtKeyToSdlKeycode(qtKey);
     if (sdlKey == SDLK_UNKNOWN) {
         return;
