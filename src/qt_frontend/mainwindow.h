@@ -24,6 +24,8 @@ public:
     virtual ~MainWindow() {};
 
     void showEvent(QShowEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
     std::unique_ptr<N64EmulatorThread> emulatorThread;
 
 public slots:
