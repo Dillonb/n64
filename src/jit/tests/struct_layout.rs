@@ -3,9 +3,8 @@ use std::mem::offset_of;
 use std::path::PathBuf;
 use std::process::Command;
 
-use jit::rsp_t;
+use jit::{r4300i_t, rsp_t};
 
-/// Run dump_struct_layout and parse every `name offset size` line into a map.
 fn parse_c_layout() -> HashMap<String, (usize, usize)> {
     let bin = std::env::var("DUMP_STRUCT_LAYOUT_BIN")
         .map(PathBuf::from)
@@ -37,7 +36,8 @@ macro_rules! check_field {
         let key = concat!(stringify!($type), ".", stringify!($field));
         let &(c_off, c_sz) = $c.get(key).unwrap_or_else(|| panic!("{key} not in C layout"));
         let r_off = offset_of!($type, $field);
-        let r_sz = std::mem::size_of_val(&unsafe { std::mem::zeroed::<$type>().$field });
+        const fn field_size<T, F>(_proj: fn(*const T) -> *const F) -> usize { std::mem::size_of::<F>() }
+        let r_sz = field_size(|p: *const $type| unsafe { &raw const (*p).$field });
         assert_eq!(r_off, c_off, "{key} offset: rust={r_off} c={c_off}");
         assert_eq!(r_sz, c_sz, "{key} size: rust={r_sz} c={c_sz}");
     }};
@@ -69,4 +69,29 @@ fn rsp_t_layout_matches_c() {
     check_field!(c, rsp_t, semaphore_held);
     check_field!(c, rsp_t, dynarec);
     check_field!(c, rsp_t, zero);
+}
+
+#[test]
+fn r4300i_t_layout_matches_c() {
+    let c = parse_c_layout();
+
+    check_field!(c, r4300i_t, gpr);
+    check_field!(c, r4300i_t, f);
+    check_field!(c, r4300i_t, pc);
+    check_field!(c, r4300i_t, next_pc);
+    check_field!(c, r4300i_t, prev_pc);
+    check_field!(c, r4300i_t, mult_hi);
+    check_field!(c, r4300i_t, mult_lo);
+    check_field!(c, r4300i_t, llbit);
+    check_field!(c, r4300i_t, fcr0);
+    check_field!(c, r4300i_t, fcr31);
+    check_field!(c, r4300i_t, cp0);
+    check_field!(c, r4300i_t, cp2_latch);
+    check_field!(c, r4300i_t, icache);
+    check_field!(c, r4300i_t, dcache);
+    check_field!(c, r4300i_t, interrupts);
+    check_field!(c, r4300i_t, branch);
+    check_field!(c, r4300i_t, prev_branch);
+    check_field!(c, r4300i_t, branch_likely_taken);
+    check_field!(c, r4300i_t, exception);
 }
