@@ -9,6 +9,8 @@
 
 #include "vulkan_pane.h"
 
+class QMenu;
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
     class MainWindow;
@@ -32,9 +34,20 @@ public slots:
     void resetTriggered();
     void openFileTriggered();
 
+private slots:
+    void openRecentFile();
+    void clearRecentFiles();
+
 private:
+    void loadRomFile(const QString& filename);
+    void addRecentFile(const QString& filename);
+    void updateRecentFilesMenu();
+
+    static constexpr int MaxRecentFiles = 10;
+
     Ui::MainWindow *ui;
     VulkanPane* vkPane;
+    QMenu* recentFilesMenu;
 };
 
 

@@ -1,9 +1,25 @@
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QKeyEvent>
+#include <QMenu>
+#include <QSettings>
 #include <fstream>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "qt_wsi_platform.h"
+
+#include <SDL.h>
+
+static QString qtSettingsPath() {
+    char* pref_path = SDL_GetPrefPath(NULL, "dgb-n64");
+    QString path = QString(pref_path) + "dgb-n64-qt.ini";
+    SDL_free(pref_path);
+    return path;
+}
+
+static QSettings qtSettings() {
+    return QSettings(qtSettingsPath(), QSettings::IniFormat);
+}
 
 #include <SDL_events.h>
 #include <SDL_keyboard.h>
@@ -63,6 +79,10 @@ MainWindow::MainWindow(const char* rom_path, bool debug, bool interpreter, const
     ui = new Ui::MainWindow();
     ui->setupUi(this);
 
+    recentFilesMenu = new QMenu(tr("Open Recent"), this);
+    ui->menuFile->insertMenu(nullptr, recentFilesMenu);
+    updateRecentFilesMenu();
+
     vkPane = new VulkanPane();
     setCentralWidget(vkPane);
     vkPane->hide();
@@ -93,8 +113,59 @@ void MainWindow::resetTriggered() {
 void MainWindow::openFileTriggered() {
     auto filename = QFileDialog::getOpenFileName(this, "Load ROM", QString(), "N64 ROM files (*.z64 *.n64 *.v64)");
     if (!filename.isEmpty()) {
-        vkPane->show();
-        emulatorThread->loadRom(filename.toStdString());
-        emulatorThread->start();
+        loadRomFile(filename);
     }
+}
+
+void MainWindow::loadRomFile(const QString& filename) {
+    addRecentFile(filename);
+    vkPane->show();
+    emulatorThread->loadRom(filename.toStdString());
+    emulatorThread->start();
+}
+
+void MainWindow::addRecentFile(const QString& filename) {
+    QSettings settings = qtSettings();
+    QStringList files = settings.value("recentFiles").toStringList();
+    files.removeAll(filename);
+    files.prepend(filename);
+    while (files.size() > MaxRecentFiles) {
+        files.removeLast();
+    }
+    settings.setValue("recentFiles", files);
+    updateRecentFilesMenu();
+}
+
+void MainWindow::updateRecentFilesMenu() {
+    recentFilesMenu->clear();
+    QSettings settings = qtSettings();
+    QStringList files = settings.value("recentFiles").toStringList();
+
+    for (const QString& file : files) {
+        QFileInfo fi(file);
+        QAction* action = recentFilesMenu->addAction(fi.fileName());
+        action->setData(file);
+        action->setToolTip(file);
+        connect(action, &QAction::triggered, this, &MainWindow::openRecentFile);
+    }
+
+    recentFilesMenu->setEnabled(!files.isEmpty());
+    if (!files.isEmpty()) {
+        recentFilesMenu->addSeparator();
+        QAction* clearAction = recentFilesMenu->addAction(tr("Clear Recent"));
+        connect(clearAction, &QAction::triggered, this, &MainWindow::clearRecentFiles);
+    }
+}
+
+void MainWindow::openRecentFile() {
+    QAction* action = qobject_cast<QAction*>(sender());
+    if (action) {
+        loadRomFile(action->data().toString());
+    }
+}
+
+void MainWindow::clearRecentFiles() {
+    QSettings settings = qtSettings();
+    settings.remove("recentFiles");
+    updateRecentFilesMenu();
 }
