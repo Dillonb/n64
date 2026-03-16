@@ -3,7 +3,7 @@ use std::mem::offset_of;
 use std::path::PathBuf;
 use std::process::Command;
 
-use jit::{r4300i_t, rsp_t};
+use jit::{cp0_t, fcr0_t, fcr31_t, r4300i_t, rsp_t};
 
 struct CField {
     offset: usize,
@@ -87,4 +87,27 @@ fn r4300i_t_layout_matches_c() {
         fcr31, cp0, cp2_latch, icache, dcache, interrupts, branch,
         prev_branch, branch_likely_taken, exception,
     });
+}
+
+#[test]
+fn cp0_t_layout_matches_c() {
+    let c = parse_c_layout();
+    check_layout!(c, cp0_t {
+        index, random, entry_lo0, entry_lo1, context, page_mask, wired,
+        bad_vaddr, count, entry_hi, compare, status, cause, EPC, PRId,
+        config, lladdr, watch_lo, watch_hi, x_context, parity_error,
+        cache_error, tag_lo, tag_hi, error_epc, open_bus,
+    });
+}
+
+#[test]
+fn fcr0_t_layout_matches_c() {
+    let c = parse_c_layout();
+    check_layout!(c, fcr0_t { raw });
+}
+
+#[test]
+fn fcr31_t_layout_matches_c() {
+    let c = parse_c_layout();
+    check_layout!(c, fcr31_t { raw });
 }

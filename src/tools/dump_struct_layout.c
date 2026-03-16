@@ -68,5 +68,39 @@ int main(void) {
     SIZEOF(rsp_t);
     SIZEOF(r4300i_t);
 
+    FIELD(cp0_t, index);
+    FIELD(cp0_t, random);
+    FIELD(cp0_t, entry_lo0);
+    FIELD(cp0_t, entry_lo1);
+    FIELD(cp0_t, context);
+    FIELD(cp0_t, page_mask);
+    FIELD(cp0_t, wired);
+    FIELD(cp0_t, bad_vaddr);
+    FIELD(cp0_t, count);
+    FIELD(cp0_t, entry_hi);
+    FIELD(cp0_t, compare);
+    FIELD(cp0_t, status);
+    FIELD(cp0_t, cause);
+    FIELD(cp0_t, EPC);
+    FIELD(cp0_t, PRId);
+    FIELD(cp0_t, config);
+    FIELD(cp0_t, lladdr);
+    FIELD(cp0_t, watch_lo);
+    FIELD(cp0_t, watch_hi);
+    FIELD(cp0_t, x_context);
+    FIELD(cp0_t, parity_error);
+    FIELD(cp0_t, cache_error);
+    FIELD(cp0_t, tag_lo);
+    FIELD(cp0_t, tag_hi);
+    FIELD(cp0_t, error_epc);
+    FIELD(cp0_t, open_bus);
+    SIZEOF(cp0_t);
+
+    FIELD(fcr0_t, raw);
+    SIZEOF(fcr0_t);
+
+    FIELD(fcr31_t, raw);
+    SIZEOF(fcr31_t);
+
     return 0;
 }
