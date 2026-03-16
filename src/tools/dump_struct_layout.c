@@ -4,7 +4,7 @@
 #include <cpu/rsp_types.h>
 
 #define FIELD(type, field) \
-    printf("%s.%s %zu %zu\n", #type, #field, offsetof(type, field), sizeof(((type*)0)->field))
+    printf("%s.%s %zu %zu\n", #type, #field, offsetof(type, field), sizeof(((type*)0)->field)) /* NOLINT(bugprone-sizeof-expression) */
 
 #define SIZEOF(type) \
     printf("sizeof:%s %zu\n", #type, sizeof(type))
