@@ -254,6 +254,10 @@ int write_key_bindings(FILE* f, SDL_KeyCode bindings[2]) {
 
 int n64_settings_write(const char* path) {
     FILE* f = fopen(path, "w");
+    if (!f) {
+        logalways("WARNING: failed to open settings file for writing!");
+        return 1;
+    }
     CONFIG_LINE("; WARNING: this file will be overwritten automatically.");
     CONFIG_LINE("; Settings can be modified manually, but only when the emulator is closed.");
     CONFIG_LINE("; All formatting changes will be lost when the emulator rewrites this file.");

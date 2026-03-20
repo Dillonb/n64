@@ -104,7 +104,7 @@ bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, bool* cached, u32* paddr
             *dirty = entry->entry_lo1.dirty;
         }
         pfn = entry->entry_lo1.pfn;
-        *cached = entry->entry_lo0.c != 2;
+        *cached = entry->entry_lo1.c != 2;
     }
 
     if (paddr != NULL) {
@@ -864,7 +864,7 @@ void n64_write_physical_byte(u32 address, u32 value) {
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value & 0xFF, address);
         case REGION_SP_MEM:
             value = value << (8 * (3 - (address & 3)));
-            address = (address & 0xFFF) & ~3;
+            address = address & ~3;
             if (address & 0x1000) {
                 word_to_byte_array(N64RSP.sp_imem, address & 0xFFF, value);
                 invalidate_rsp_icache(address);

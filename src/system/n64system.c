@@ -492,7 +492,7 @@ void interrupt_lower(n64_interrupt_t interrupt) {
             break;
         case INTERRUPT_AI:
             n64sys.mi.intr.ai = false;
-            loginfo("Lowering DP interrupt");
+            loginfo("Lowering AI interrupt");
             break;
         case INTERRUPT_SP:
             n64sys.mi.intr.sp = false;

@@ -219,10 +219,10 @@ INLINE void rsp_dma_write() {
         u8* rdram = n64sys.mem.rdram + dram_address;
         for (int j = 0; j < length; j++) {
             u16 addr = (mem_address + j) & 0xFFF;
-            rdram[j] = mem[mem_addr.imem ? addr : BYTE_ADDRESS(addr)];
             if ((dram_address + j) >= N64_RDRAM_SIZE) {
                 logfatal("Out of range RSP DMA write (ignored?)");
             }
+            rdram[j] = mem[mem_addr.imem ? addr : BYTE_ADDRESS(addr)];
         }
 
 
