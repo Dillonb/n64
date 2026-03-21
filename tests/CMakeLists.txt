@@ -14,6 +14,10 @@ add_executable(test_vmadm_overflow test_vmadm_overflow.c unit.h)
 target_link_libraries(test_vmadm_overflow rsp common core)
 add_test(test_vmadm_overflow test_vmadm_overflow)
 
+add_executable(test_scheduler test_scheduler.c)
+target_link_libraries(test_scheduler common core)
+add_test(test_scheduler test_scheduler)
+
 find_program(BASS_FOUND bass)
 find_program(CHKSUM64_FOUND chksum64)
 

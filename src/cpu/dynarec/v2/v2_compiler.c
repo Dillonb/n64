@@ -187,8 +187,8 @@ bool detect_idle_loop(u64 virtual_address) {
 }
 
 int idle_loop_replacement() {
-    // +1 just in case we're executing this with 0 cycles until the next event
-    u64 ticks_to_skip = scheduler_ticks_until_next_event() + 1;
+    u64 ticks_to_skip = scheduler_ticks_until_next_event();
+    if (ticks_to_skip == 0) { ticks_to_skip = 1; }
     return ticks_to_skip;
 }
 
