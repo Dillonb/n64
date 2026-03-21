@@ -11,6 +11,3 @@ endif()
 
 add_executable(dump_struct_layout dump_struct_layout.c)
 target_link_libraries(dump_struct_layout common)
-
-#add_executable(rsp_fuzzer rsp_fuzzer.c)
-#target_link_libraries(rsp_fuzzer ftd2xx rsp common core)
