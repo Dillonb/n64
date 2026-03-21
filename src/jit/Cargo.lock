@@ -405,6 +405,7 @@ name = "jit"
 version = "0.1.0"
 dependencies = [
  "bindgen",
+ "capstone",
  "derive_builder",
  "dgbir",
  "env_logger",

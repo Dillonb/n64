@@ -45,14 +45,14 @@ pub struct MipsToIrContext {
 impl Default for MipsToIrContext {
     fn default() -> Self {
         MipsToIrContext {
-            read_physical_byte: n64_read_physical_byte as *const() as usize,
-            read_physical_half: n64_read_physical_half as *const() as usize,
-            read_physical_word: n64_read_physical_word as *const() as usize,
-            read_physical_dword: n64_read_physical_dword as *const() as usize,
-            write_physical_byte: n64_write_physical_byte as *const() as usize,
-            write_physical_half: n64_write_physical_half as *const() as usize,
-            write_physical_word: n64_write_physical_word as *const() as usize,
-            write_physical_dword: n64_write_physical_dword as *const() as usize,
+            read_physical_byte: n64_read_physical_byte as *const () as usize,
+            read_physical_half: n64_read_physical_half as *const () as usize,
+            read_physical_word: n64_read_physical_word as *const () as usize,
+            read_physical_dword: n64_read_physical_dword as *const () as usize,
+            write_physical_byte: n64_write_physical_byte as *const () as usize,
+            write_physical_half: n64_write_physical_half as *const () as usize,
+            write_physical_word: n64_write_physical_word as *const () as usize,
+            write_physical_dword: n64_write_physical_dword as *const () as usize,
         }
     }
 }
@@ -739,7 +739,8 @@ impl GuestRegisterManager {
                     offset_of!(r4300i_t, cp0.count),
                     value_shifted.val(),
                 );
-                let reschedule_compare_interrupt = const_ptr(reschedule_compare_interrupt as *const () as usize);
+                let reschedule_compare_interrupt =
+                    const_ptr(reschedule_compare_interrupt as *const () as usize);
                 block.call_function(
                     reschedule_compare_interrupt,
                     None,
@@ -2394,7 +2395,11 @@ pub fn to_ir_ctx(
                     block.load_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.index));
                 let masked_index = block.and(DataType::U32, index.val(), const_u32(0x8000003F));
 
-                block.call_function(const_ptr(do_tlbwi as *const () as usize), None, vec![masked_index.val()]);
+                block.call_function(
+                    const_ptr(do_tlbwi as *const () as usize),
+                    None,
+                    vec![masked_index.val()],
+                );
             }
             MipsOpcode::TLBP => {
                 block.call_function(const_ptr(do_tlbp as *const () as usize), None, vec![]);
@@ -2461,7 +2466,11 @@ pub fn to_ir_ctx(
                 let mut end = func.new_block(vec![]);
                 block_erl.jump(end.call(vec![]));
                 block_no_erl.jump(end.call(vec![]));
-                end.call_function(const_ptr(cp0_status_updated as *const () as usize), None, vec![]);
+                end.call_function(
+                    const_ptr(cp0_status_updated as *const () as usize),
+                    None,
+                    vec![],
+                );
 
                 block = end;
                 warn!("TODO: set llbit to false");

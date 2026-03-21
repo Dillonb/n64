@@ -25,7 +25,9 @@ fn parse_c_layout() -> CLayout {
                 .unwrap()
                 .join("build/dump_struct_layout")
         });
-    let out = Command::new(&bin).output().expect("failed to run dump_struct_layout");
+    let out = Command::new(&bin)
+        .output()
+        .expect("failed to run dump_struct_layout");
     assert!(out.status.success());
 
     let text = String::from_utf8(out.stdout).unwrap();
@@ -47,7 +49,9 @@ fn parse_c_layout() -> CLayout {
 
 macro_rules! size_of_field {
     ($type:ident, $field:ident) => {{
-        fn size<T, F>(_: fn(*const T) -> *const F) -> usize { std::mem::size_of::<F>() }
+        fn size<T, F>(_: fn(*const T) -> *const F) -> usize {
+            std::mem::size_of::<F>()
+        }
         size(|p: *const $type| unsafe { &raw const (*p).$field })
     }};
 }
@@ -72,32 +76,98 @@ macro_rules! check_layout {
 #[test]
 fn rsp_t_layout_matches_c() {
     let c = parse_c_layout();
-    check_layout!(c, rsp_t {
-        gpr, prev_pc, pc, next_pc, sp_dmem, sp_imem, steps, status, io,
-        icache, vu_regs, vcc, vco, vce, acc, sync, divin, divin_loaded,
-        divout, semaphore_held, dynarec, zero,
-    });
+    check_layout!(
+        c,
+        rsp_t {
+            gpr,
+            prev_pc,
+            pc,
+            next_pc,
+            sp_dmem,
+            sp_imem,
+            steps,
+            status,
+            io,
+            icache,
+            vu_regs,
+            vcc,
+            vco,
+            vce,
+            acc,
+            sync,
+            divin,
+            divin_loaded,
+            divout,
+            semaphore_held,
+            dynarec,
+            zero,
+        }
+    );
 }
 
 #[test]
 fn r4300i_t_layout_matches_c() {
     let c = parse_c_layout();
-    check_layout!(c, r4300i_t {
-        gpr, f, pc, next_pc, prev_pc, mult_hi, mult_lo, llbit, fcr0,
-        fcr31, cp0, cp2_latch, icache, dcache, interrupts, branch,
-        prev_branch, branch_likely_taken, exception,
-    });
+    check_layout!(
+        c,
+        r4300i_t {
+            gpr,
+            f,
+            pc,
+            next_pc,
+            prev_pc,
+            mult_hi,
+            mult_lo,
+            llbit,
+            fcr0,
+            fcr31,
+            cp0,
+            cp2_latch,
+            icache,
+            dcache,
+            interrupts,
+            branch,
+            prev_branch,
+            branch_likely_taken,
+            exception,
+        }
+    );
 }
 
 #[test]
 fn cp0_t_layout_matches_c() {
     let c = parse_c_layout();
-    check_layout!(c, cp0_t {
-        index, random, entry_lo0, entry_lo1, context, page_mask, wired,
-        bad_vaddr, count, entry_hi, compare, status, cause, EPC, PRId,
-        config, lladdr, watch_lo, watch_hi, x_context, parity_error,
-        cache_error, tag_lo, tag_hi, error_epc, open_bus,
-    });
+    check_layout!(
+        c,
+        cp0_t {
+            index,
+            random,
+            entry_lo0,
+            entry_lo1,
+            context,
+            page_mask,
+            wired,
+            bad_vaddr,
+            count,
+            entry_hi,
+            compare,
+            status,
+            cause,
+            EPC,
+            PRId,
+            config,
+            lladdr,
+            watch_lo,
+            watch_hi,
+            x_context,
+            parity_error,
+            cache_error,
+            tag_lo,
+            tag_hi,
+            error_epc,
+            open_bus,
+        }
+    );
 }
 
 #[test]

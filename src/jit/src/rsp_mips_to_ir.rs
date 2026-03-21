@@ -1,14 +1,13 @@
 use std::mem::offset_of;
 
-use dgbir::{
-    disassembler::disassemble_mips_instruction,
-    ir::{
-        CompareType, DataType, IRBlockHandle, IRContext, IRFunction, InputSlot, const_ptr, const_s16, const_s32, const_u16, const_u32, const_u64
-    },
+use dgbir::ir::{
+    const_ptr, const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType,
+    IRBlockHandle, IRContext, IRFunction, InputSlot,
 };
 use log::warn;
 
 use crate::{
+    disassembler::disassemble_rsp_instruction,
     get_rsp_cp0_register,
     mips_parser::{BranchCondition, MipsInstructionBitfield},
     n64_rsp_read_byte_noinline, n64_rsp_read_half_noinline, n64_rsp_read_word_noinline,
@@ -31,15 +30,15 @@ pub struct RspMipsToIrContext {
 impl RspMipsToIrContext {
     pub fn default() -> Self {
         Self {
-            read_byte: n64_rsp_read_byte_noinline as *const() as usize,
-            read_half: n64_rsp_read_half_noinline as *const() as usize,
-            read_word: n64_rsp_read_word_noinline as *const() as usize,
-            write_byte: n64_rsp_write_byte_noinline as *const() as usize,
-            write_half: n64_rsp_write_half_noinline as *const() as usize,
-            write_word: n64_rsp_write_word_noinline as *const() as usize,
+            read_byte: n64_rsp_read_byte_noinline as *const () as usize,
+            read_half: n64_rsp_read_half_noinline as *const () as usize,
+            read_word: n64_rsp_read_word_noinline as *const () as usize,
+            write_byte: n64_rsp_write_byte_noinline as *const () as usize,
+            write_half: n64_rsp_write_half_noinline as *const () as usize,
+            write_word: n64_rsp_write_word_noinline as *const () as usize,
 
-            get_rsp_cp0_register: get_rsp_cp0_register as *const() as usize,
-            set_rsp_cp0_register: set_rsp_cp0_register as *const() as usize,
+            get_rsp_cp0_register: get_rsp_cp0_register as *const () as usize,
+            set_rsp_cp0_register: set_rsp_cp0_register as *const () as usize,
         }
     }
 }
@@ -185,18 +184,18 @@ fn do_branch(
     not_taken_block.jump(block.call(vec![]));
 }
 
-const SHIFT_AMOUNT_LBV_SBV: i32 = 0;
-const SHIFT_AMOUNT_LSV_SSV: i32 = 1;
-const SHIFT_AMOUNT_LLV_SLV: i32 = 2;
+// const SHIFT_AMOUNT_LBV_SBV: i32 = 0;
+// const SHIFT_AMOUNT_LSV_SSV: i32 = 1;
+// const SHIFT_AMOUNT_LLV_SLV: i32 = 2;
 const SHIFT_AMOUNT_LDV_SDV: i32 = 3;
-const SHIFT_AMOUNT_LQV_SQV: i32 = 4;
-const SHIFT_AMOUNT_LRV_SRV: i32 = 4;
-const SHIFT_AMOUNT_LPV_SPV: i32 = 3;
-const SHIFT_AMOUNT_LUV_SUV: i32 = 3;
-const SHIFT_AMOUNT_LHV_SHV: i32 = 4;
-const SHIFT_AMOUNT_LFV_SFV: i32 = 4;
-const SHIFT_AMOUNT_LTV_STV: i32 = 4;
-const SHIFT_AMOUNT_SWV: i32 = 4;
+// const SHIFT_AMOUNT_LQV_SQV: i32 = 4;
+// const SHIFT_AMOUNT_LRV_SRV: i32 = 4;
+// const SHIFT_AMOUNT_LPV_SPV: i32 = 3;
+// const SHIFT_AMOUNT_LUV_SUV: i32 = 3;
+// const SHIFT_AMOUNT_LHV_SHV: i32 = 4;
+// const SHIFT_AMOUNT_LFV_SFV: i32 = 4;
+// const SHIFT_AMOUNT_LTV_STV: i32 = 4;
+// const SHIFT_AMOUNT_SWV: i32 = 4;
 
 fn sign_extend_7bit_offset(offset: u8, shift_amount: i32) -> i32 {
     let soffset = ((offset << 1) & 0x80) | offset;
@@ -216,12 +215,12 @@ fn get_lswc2_address(
     block.add(DataType::S32, base, const_s32(offset)).val()
 }
 
-fn rsp_load_u64(block: &mut IRBlockHandle, ctx: &RspMipsToIrContext, address: InputSlot) -> InputSlot {
-    let v_high = block.call_function(
-        const_ptr(ctx.read_word),
-        Some(DataType::U32),
-        vec![address],
-    );
+fn rsp_load_u64(
+    block: &mut IRBlockHandle,
+    ctx: &RspMipsToIrContext,
+    address: InputSlot,
+) -> InputSlot {
+    let v_high = block.call_function(const_ptr(ctx.read_word), Some(DataType::U32), vec![address]);
     let v_high = block.left_shift(DataType::U64, v_high.val(), const_u16(32));
     let v_low = block.call_function(
         const_ptr(ctx.read_word),
@@ -254,7 +253,7 @@ pub fn rsp_to_ir_ctx(
 
     println!("--------------");
     for ParsedRspInstruction { addr, instr, op } in parsed {
-        println!("{}", disassemble_mips_instruction(*instr, addr as u64));
+        println!("{}", disassemble_rsp_instruction(*instr, addr));
         match op {
             RspOpcode::BRANCH(RspBranchInfo { cond, link }) => {
                 let rs_reg = instr.rs();
@@ -524,7 +523,8 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::BREAK => todo!("RSP BREAK"),
             RspOpcode::LBV => todo!("RSP LBV"),
             RspOpcode::LDV => {
-                let address = get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LDV_SDV);
+                let address =
+                    get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LDV_SDV);
                 let shift = 8 - instr.lswc2_e();
 
                 let mask = block.left_shift(

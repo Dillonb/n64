@@ -15,6 +15,7 @@ use dgbir::{
 use log::{debug, info};
 use mips_to_ir::{to_ir, to_ir_ctx, MipsToIrContext};
 
+mod disassembler;
 mod mips_parser;
 mod mips_to_ir;
 mod rsp_jit;

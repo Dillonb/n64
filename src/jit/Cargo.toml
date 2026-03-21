@@ -11,6 +11,7 @@ ir_comments = ["dgbir/ir_comments"]
 crate-type = ["staticlib", "rlib"] # staticlib = for emulator, rlib = so integration tests still work
 
 [dependencies]
+capstone = "0.13.0"
 proc-bitfield = "0.5.2"
 itertools = "0.14.0"
 dgbir = { path = "./dgbir" }
