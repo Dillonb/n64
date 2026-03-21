@@ -112,10 +112,7 @@ fn disassemble_rsp_cp2(instr: MipsInstructionBitfield) -> String {
         let funct = instr.rsp_cop2_vec();
         let mnemonic = format!("{funct:?}").to_lowercase();
 
-        format!(
-            "{mnemonic}\t$v{vd}, $v{vs}, $v{vt}{}",
-            vec_elem_str(e)
-        )
+        format!("{mnemonic}\t$v{vd}, $v{vs}, $v{vt}{}", vec_elem_str(e))
     } else {
         let rt = instr.cp2_regmove_rt();
         let rd = instr.cp2_regmove_rd();
