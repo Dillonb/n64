@@ -220,13 +220,12 @@ fn rsp_load_u64(
     ctx: &RspMipsToIrContext,
     address: InputSlot,
 ) -> InputSlot {
-    let v_high = block.call_function(const_ptr(ctx.read_word), Some(DataType::U32), vec![address]);
+    let high_address = vec![address];
+    let low_address = vec![block.add(DataType::U32, address, const_u16(4)).val()];
+
+    let v_high = block.call_function(const_ptr(ctx.read_word), Some(DataType::U32), high_address);
     let v_high = block.left_shift(DataType::U64, v_high.val(), const_u16(32));
-    let v_low = block.call_function(
-        const_ptr(ctx.read_word),
-        Some(DataType::U32),
-        vec![block.add(DataType::U32, address, const_u16(4)).val()],
-    );
+    let v_low = block.call_function(const_ptr(ctx.read_word), Some(DataType::U32), low_address);
     block.or(DataType::U64, v_high.val(), v_low.val()).val()
 }
 
