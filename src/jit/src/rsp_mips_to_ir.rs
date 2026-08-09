@@ -552,7 +552,33 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::LTV => todo!("RSP LTV"),
             RspOpcode::LUV => todo!("RSP LUV"),
             RspOpcode::SBV => todo!("RSP SBV"),
-            RspOpcode::SDV => todo!("RSP SDV"),
+            RspOpcode::SDV => {
+                let address =
+                    get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LDV_SDV);
+                let e = instr.lswc2_e();
+                let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
+
+                // Extract 8 bytes from the VU register starting at element,
+                // wrapping around with & 0xF, into a u64 value.
+                let shift = 8i32 - e as i32;
+                let value = if shift > 0 {
+                    block.right_shift(DataType::U128, reg, const_u16(shift as u16 * 8)).val()
+                } else if shift < 0 {
+                    // Wrapping case (element > 8): rotate via left-shift + right-shift + OR
+                    let left = block.left_shift(DataType::U128, reg, const_u16((-shift) as u16 * 8));
+                    let right = block.right_shift(DataType::U128, reg, const_u16((16 + shift) as u16 * 8));
+                    block.or(DataType::U128, left.val(), right.val()).val()
+                } else {
+                    // element == 8: low 64 bits are already in position
+                    reg
+                };
+
+                // Write as two 32-bit words
+                let high = block.right_shift(DataType::U64, value, const_u16(32));
+                block.call_function(const_ptr(ctx.write_word), None, vec![address, high.val()]);
+                let low_address = block.add(DataType::U32, address, const_u16(4));
+                block.call_function(const_ptr(ctx.write_word), None, vec![low_address.val(), value]);
+            }
             RspOpcode::SFV => todo!("RSP SFV"),
             RspOpcode::SHV => todo!("RSP SHV"),
             RspOpcode::SLV => todo!("RSP SLV"),
