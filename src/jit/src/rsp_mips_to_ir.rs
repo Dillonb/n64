@@ -188,7 +188,7 @@ fn do_branch(
 // const SHIFT_AMOUNT_LSV_SSV: i32 = 1;
 // const SHIFT_AMOUNT_LLV_SLV: i32 = 2;
 const SHIFT_AMOUNT_LDV_SDV: i32 = 3;
-// const SHIFT_AMOUNT_LQV_SQV: i32 = 4;
+const SHIFT_AMOUNT_LQV_SQV: i32 = 4;
 // const SHIFT_AMOUNT_LRV_SRV: i32 = 4;
 // const SHIFT_AMOUNT_LPV_SPV: i32 = 3;
 // const SHIFT_AMOUNT_LUV_SUV: i32 = 3;
@@ -546,7 +546,42 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::LHV => todo!("RSP LHV"),
             RspOpcode::LLV => todo!("RSP LLV"),
             RspOpcode::LPV => todo!("RSP LPV"),
-            RspOpcode::LQV => todo!("RSP LQV"),
+            RspOpcode::LQV => {
+                let address =
+                    get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LQV_SQV);
+                let e = instr.lswc2_e();
+
+                // The access runs from the address to the end of the 16 byte block containing it,
+                // so load that whole block and discard what falls outside.
+                let aligned = block.and(DataType::U32, address, const_u32(0xFFFFFFF0));
+                let aligned_high = aligned.val();
+                let aligned_low = block.add(DataType::U32, aligned_high, const_u16(8));
+                let high = rsp_load_u64(&mut block, &ctx, aligned_high);
+                let high = block.left_shift(DataType::U128, high, const_u16(64));
+                let low = rsp_load_u64(&mut block, &ctx, aligned_low.val());
+                let loaded = block.or(DataType::U128, high.val(), low);
+
+                // Shifting left by the misalignment drops the bytes before the address, and
+                // shifting right by the element moves the rest into place. Anything past the end
+                // of the register falls off both ends, which is exactly the clipping LQV wants.
+                let misalignment = block.and(DataType::U32, address, const_u32(15));
+                let shift = block.left_shift(DataType::U32, misalignment.val(), const_u16(3));
+                let shift = shift.val();
+                let placed = block.left_shift(DataType::U128, loaded.val(), shift);
+                let placed = block.right_shift(DataType::U128, placed.val(), const_u16(e as u16 * 8));
+
+                // The same shifts applied to an all ones value select the bytes actually written.
+                let ones = block.left_shift(DataType::U128, const_u64(u64::MAX), const_u16(64));
+                let ones = block.or(DataType::U128, ones.val(), const_u64(u64::MAX));
+                let mask = block.left_shift(DataType::U128, ones.val(), shift);
+                let mask = block.right_shift(DataType::U128, mask.val(), const_u16(e as u16 * 8));
+                let inv_mask = block.not(DataType::U128, mask.val());
+
+                let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
+                let kept = block.and(DataType::U128, reg, inv_mask.val());
+                let result = block.or(DataType::U128, kept.val(), placed.val());
+                guest_regs.set_vu_reg(instr.lswc2_vt(), result.val());
+            }
             RspOpcode::LRV => todo!("RSP LRV"),
             RspOpcode::LSV => todo!("RSP LSV"),
             RspOpcode::LTV => todo!("RSP LTV"),
