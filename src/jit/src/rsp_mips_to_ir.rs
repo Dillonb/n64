@@ -101,8 +101,8 @@ impl GuestRegisterManager {
             });
         self.vu_regs
             .iter_mut()
-            .filter(|reg| reg.is_some())
             .enumerate()
+            .filter(|(_, reg)| reg.is_some())
             .for_each(|(i, reg)| {
                 if let Some(value) = if clear { reg.take() } else { *reg } {
                     let offset = offset_of!(rsp_t, vu_regs) + (i * std::mem::size_of::<u128>());
