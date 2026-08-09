@@ -482,7 +482,32 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::CFC2 => todo!("RSP CFC2"),
             RspOpcode::CTC2 => todo!("RSP CTC2"),
             RspOpcode::MFC2 => todo!("RSP MFC2"),
-            RspOpcode::MTC2 => todo!("RSP MTC2"),
+            RspOpcode::MTC2 => {
+                let e = instr.cp2_regmove_e();
+                let value = guest_regs.get_gpr(&mut block, instr.cp2_regmove_rt());
+                let value = block.and(DataType::U32, value, const_u32(0xFFFF));
+
+                // The high byte of rt lands on element e and the low byte on e + 1, so the pair
+                // sits at 8 * (14 - e). At e == 15 that goes negative, which drops the low byte.
+                let (placed, mask) = if e < 15 {
+                    let shift = const_u16((14 - e) as u16 * 8);
+                    (
+                        block.left_shift(DataType::U128, value.val(), shift),
+                        block.left_shift(DataType::U128, const_u32(0xFFFF), shift),
+                    )
+                } else {
+                    (
+                        block.right_shift(DataType::U128, value.val(), const_u16(8)),
+                        block.right_shift(DataType::U128, const_u32(0xFFFF), const_u16(8)),
+                    )
+                };
+
+                let inv_mask = block.not(DataType::U128, mask.val());
+                let reg = guest_regs.get_vu_reg(&mut block, instr.cp2_regmove_rd());
+                let kept = block.and(DataType::U128, reg, inv_mask.val());
+                let result = block.or(DataType::U128, kept.val(), placed.val());
+                guest_regs.set_vu_reg(instr.cp2_regmove_rd(), result.val());
+            }
             RspOpcode::SLL => {
                 let input = guest_regs.get_gpr(&mut block, instr.rt());
                 let result = block.left_shift(DataType::U32, input, const_u16(instr.sa() as u16));
