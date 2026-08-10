@@ -290,8 +290,10 @@ pub fn rsp_to_ir_ctx(
     }
 
     println!("--------------");
+    let mut last_addr = 0;
     for ParsedRspInstruction { addr, instr, op } in parsed {
         println!("{}", disassemble_rsp_instruction(*instr, addr));
+        last_addr = addr;
         match op {
             RspOpcode::BRANCH(RspBranchInfo { cond, link }) => {
                 let rs_reg = instr.rs();
@@ -695,7 +697,9 @@ pub fn rsp_to_ir_ctx(
     }
 
     if !pc_set {
-        todo!("No branch in block, set PC based on length")
+        // IMEM is 4KB and wraps.
+        let next_addr = last_addr.wrapping_add(4) & 0xFFF;
+        set_pc(&mut pc_set, &mut block, rsp_address, const_u16(next_addr));
     }
 
     guest_regs.flush_all(&mut block, true);

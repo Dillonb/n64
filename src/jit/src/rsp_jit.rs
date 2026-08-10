@@ -49,7 +49,6 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
     let mut should_continue_block;
     let mut address = start_address;
     let mut instructions_left_in_block = -1;
-    let mut branch_in_block = false;
     let mut prev_instr_category = InstructionCategory::Normal;
 
     let mut code = Vec::new();
@@ -73,7 +72,6 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
                 should_continue_block = instructions_left_in_block != 0;
             }
             InstructionCategory::Branch => {
-                branch_in_block = true;
                 if prev_instr_category == InstructionCategory::Branch {
                     // Branch in a delay slot: end the block, rsp_to_ir will interpret it.
                     should_continue_block = false;
@@ -93,10 +91,6 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
         if !should_continue_block {
             break;
         }
-    }
-
-    if !branch_in_block {
-        todo!("Add code to flush PC")
     }
 
     let parsed = parse_rsp(&code, start_address);
