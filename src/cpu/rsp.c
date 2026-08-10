@@ -4,6 +4,7 @@
 #include "rsp_instructions.h"
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
+#include "dynarec/rsp_dynarec_compare.h"
 
 rsp_t n64rsp;
 
@@ -454,9 +455,10 @@ void rsp_run() {
 
 void rsp_dynarec_run() {
     int run_for = 0;
+    bool compare = rsp_compare_enabled();
     // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
     while (N64RSP.steps > 0) {
-        int taken = rsp_dynarec_step();
+        int taken = compare ? rsp_dynarec_step_compare() : rsp_dynarec_step();
         N64RSP.steps -= taken;
         run_for += taken;
     }

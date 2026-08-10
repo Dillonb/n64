@@ -24,7 +24,8 @@ add_library(rsp
         rsp_instructions.c rsp_instructions.h
         rsp_vector_instructions.c rsp_vector_instructions.h
         mips_instruction_decode.h
-        dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h)
+        dynarec/rsp_dynarec.c dynarec/rsp_dynarec.h
+        dynarec/rsp_dynarec_compare.c dynarec/rsp_dynarec_compare.h)
 
 TARGET_LINK_LIBRARIES(rsp    disassemble common jit)
 TARGET_LINK_LIBRARIES(r4300i disassemble common jit)
