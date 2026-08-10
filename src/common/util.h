@@ -31,7 +31,6 @@ typedef long long s128 __attribute__((__vector_size__(16), __aligned__(16)));
 
 #define se_32_64(val) ((s64)((s32)(val)))
 
-#define popcount(x) __builtin_popcountll(x)
 #define FAKELITTLE_HALF(h) ((((h) >> 8u) & 0xFFu) | (((h) << 8u) & 0xFF00u))
 #define FAKELITTLE_WORD(w) (FAKELITTLE_HALF((w) >> 16u) | (FAKELITTLE_HALF((w) & 0xFFFFu)) << 16u)
 
