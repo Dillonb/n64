@@ -4,6 +4,7 @@
 #include <metrics.h>
 #include <samplerate.h>
 #include <fifo.h>
+#include <settings.h>
 #include <rdp/parallel_rdp_wrapper.h>
 
 static_assert(sizeof(float) == 4, "float must be 32 bits");
@@ -43,6 +44,20 @@ struct fifo* host_sample_buffer;
 
 SRC_STATE* resampler;
 
+// Read by the audio thread, written by the UI thread
+float n64_get_volume() {
+    return n64_settings.volume;
+}
+
+void n64_set_volume(float volume) {
+    if (volume < 0.0f) {
+        volume = 0.0f;
+    } else if (volume > 1.0f) {
+        volume = 1.0f;
+    }
+    n64_settings.volume = volume;
+}
+
 void audio_callback(void* userdata, Uint8* stream, int length) {
     int avail = fifo_read_available(host_sample_buffer);
     set_metric(METRIC_AUDIOSTREAM_AVAILABLE, avail);
@@ -52,6 +67,15 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
 
     if (avail < length) {
         memset(stream + avail, 0, length - avail);
+    }
+
+    float volume = n64_settings.volume;
+    if (volume != 1.0f) {
+        float* samples = (float*)stream;
+        int num_samples = to_read / HOST_SAMPLE_SIZE;
+        for (int i = 0; i < num_samples; i++) {
+            samples[i] *= volume;
+        }
     }
 }
 

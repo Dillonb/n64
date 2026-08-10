@@ -17,6 +17,7 @@
 #include <cpu/dynarec/dynarec.h>
 #include <frontend/audio.h>
 #include <frontend/render.h>
+#include <settings.h>
 #include <disassemble.h>
 
 static bool show_metrics_window = false;
@@ -116,6 +117,19 @@ void render_menubar() {
                     n64_load_rom(n64sys.rom_path);
                     pif_rom_execute();
                 }
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Audio")) {
+            float volume = n64_get_volume() * 100.0f;
+            ImGui::SetNextItemWidth(150.0f);
+            if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f%%")) {
+                n64_set_volume(volume / 100.0f);
+            }
+            // Only write the settings file once, when the user lets go of the slider
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                n64_settings_save();
             }
             ImGui::EndMenu();
         }

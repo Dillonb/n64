@@ -9,6 +9,8 @@
 
 n64_settings_t n64_settings;
 
+static char config_file_path[PATH_MAX] = { 0 };
+
 #define CONFIG_FILENAME "dgb-n64.ini"
 
 #ifdef N64_WIN
@@ -202,6 +204,7 @@ void n64_settings_load_defaults() {
     n64_settings.controller[3].gamepad_enabled = false;
 
     n64_settings.scaling = 0;
+    n64_settings.volume = 1.0f;
     n64_settings.http_api_port = 0; // disabled
     strcpy(n64_settings.http_api_host, "127.0.0.1");
 }
@@ -271,6 +274,10 @@ int n64_settings_write(const char* path) {
     CONFIG_LINE("[graphics]");
     CONFIG_LINE("; Graphics upscaling. Valid values: 0, 2, 4, 8.");
     CONFIG_LINE("upscaling=%d", n64_settings.scaling);
+
+    CONFIG_LINE("[audio]");
+    CONFIG_LINE("; Volume. Valid values: 0.0 - 1.0.");
+    CONFIG_LINE("volume=%f", n64_settings.volume);
 
     CONFIG_LINE("; Joybus devices/Controller ports. Configure what type of device is plugged in.");
     CONFIG_LINE("; Valid values: 'NONE', 'CONTROLLER', 'DANCEPAD', 'VRU', 'MOUSE', 'KEYBOARD', 'DENSHA'");
@@ -434,6 +441,13 @@ int handler(void* user, const char* section, const char* name, const char* value
         if (n64_settings.scaling != 0 && n64_settings.scaling != 2 && n64_settings.scaling != 4 && n64_settings.scaling != 8) {
             n64_settings.scaling = 0;
         }
+    } else if (MATCH("audio", "volume")) {
+        n64_settings.volume = atof(value);
+        if (n64_settings.volume < 0.0f) {
+            n64_settings.volume = 0.0f;
+        } else if (n64_settings.volume > 1.0f) {
+            n64_settings.volume = 1.0f;
+        }
     } else if (MATCH("http", "port")) {
         n64_settings.http_api_port = atoi(value);
     } else if (MATCH("http", "host")) {
@@ -449,7 +463,6 @@ int n64_settings_load(const char* path) {
 
 void n64_settings_init() {
     n64_settings_load_defaults();
-    char config_file_path[PATH_MAX];
 
     char* pref_path = SDL_GetPrefPath(NULL, "dgb-n64");
     if (!pref_path) {
@@ -468,5 +481,13 @@ void n64_settings_init() {
         }
     }
     // Rewrite settings file always
+    n64_settings_write(config_file_path);
+}
+
+void n64_settings_save() {
+    if (config_file_path[0] == '\0') {
+        logwarn("Not saving settings: settings were never initialized!");
+        return;
+    }
     n64_settings_write(config_file_path);
 }
