@@ -204,9 +204,9 @@ const SHIFT_AMOUNT_LQV_SQV: i32 = 4;
 // const SHIFT_AMOUNT_SWV: i32 = 4;
 
 fn sign_extend_7bit_offset(offset: u8, shift_amount: i32) -> i32 {
-    let soffset = ((offset << 1) & 0x80) | offset;
-    let ofs = soffset as i32;
-    let uofs = ofs as u32;
+    // Bit 6 is the sign bit, so copy it into bit 7 and sign extend from there.
+    let soffset = (((offset << 1) & 0x80) | offset) as i8;
+    let uofs = soffset as i32 as u32;
     (uofs << shift_amount) as i32
 }
 
@@ -590,21 +590,30 @@ pub fn rsp_to_ir_ctx(
             RspOpcode::LDV => {
                 let address =
                     get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LDV_SDV);
-                let shift = 8 - instr.lswc2_e();
-
-                let mask = block.left_shift(
-                    DataType::U128,
-                    const_u64(0xFFFFFFFFFFFFFFFF),
-                    const_u16(shift as u16 * 8),
-                );
-                let inv_mask = block.not(DataType::U128, mask.val());
-
-                let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
-                let masked = block.and(DataType::U128, reg, inv_mask.val());
+                let e = instr.lswc2_e();
 
                 let value = rsp_load_u64(&mut block, &ctx, address);
+                let ones = const_u64(0xFFFFFFFFFFFFFFFF);
 
-                let placed = block.left_shift(DataType::U128, value, const_u16(shift as u16 * 8));
+                // Past element 8 the bytes shift the other way, and the ones that run off the end
+                // are dropped rather than wrapping.
+                let (placed, mask) = if e <= 8 {
+                    let shift = const_u16((8 - e) as u16 * 8);
+                    (
+                        block.left_shift(DataType::U128, value, shift),
+                        block.left_shift(DataType::U128, ones, shift),
+                    )
+                } else {
+                    let shift = const_u16((e - 8) as u16 * 8);
+                    (
+                        block.right_shift(DataType::U128, value, shift),
+                        block.right_shift(DataType::U128, ones, shift),
+                    )
+                };
+
+                let inv_mask = block.not(DataType::U128, mask.val());
+                let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
+                let masked = block.and(DataType::U128, reg, inv_mask.val());
                 let result = block.or(DataType::U128, masked.val(), placed.val());
                 guest_regs.set_vu_reg(instr.lswc2_vt(), result.val());
             }
