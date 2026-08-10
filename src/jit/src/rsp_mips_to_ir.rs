@@ -339,7 +339,9 @@ pub fn rsp_to_ir_ctx(
                 );
             }
             RspOpcode::NOP => {}
-            // RspOpcode::LUI => todo!("RSP LUI"),
+            RspOpcode::LUI => {
+                guest_regs.set_gpr(instr.rt(), const_u32((instr.imm() as u32) << 16));
+            }
             RspOpcode::ADDI => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let result = block.add(DataType::S32, rs, const_s16(instr.s_imm()));
@@ -445,7 +447,11 @@ pub fn rsp_to_ir_ctx(
             }
             // RspOpcode::SLTI => todo!("RSP SLTI"),
             // RspOpcode::SLTIU => todo!("RSP SLTIU"),
-            // RspOpcode::XORI => todo!("RSP XORI"),
+            RspOpcode::XORI => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let result = block.xor(DataType::U32, rs, const_u16(instr.imm()));
+                guest_regs.set_gpr(instr.rt(), result.val());
+            }
             RspOpcode::LB => {
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
@@ -559,10 +565,24 @@ pub fn rsp_to_ir_ctx(
                 let result = block.right_shift(DataType::U32, input, const_u16(instr.sa() as u16));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            // RspOpcode::SRA => todo!("RSP SRA"),
+            RspOpcode::SRA => {
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.right_shift(DataType::S32, rt, const_u16(instr.sa() as u16));
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             // RspOpcode::SRAV => todo!("RSP SRAV"),
-            // RspOpcode::SLLV => todo!("RSP SLLV"),
-            // RspOpcode::SRLV => todo!("RSP SRLV"),
+            RspOpcode::SLLV => {
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let result = block.left_shift(DataType::U32, rt, rs);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
+            RspOpcode::SRLV => {
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let result = block.right_shift(DataType::U32, rt, rs);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             RspOpcode::JR => {
                 let target = guest_regs.get_gpr(&mut block, instr.rs());
                 set_pc(&mut pc_set, &mut block, rsp_address, target);
@@ -578,12 +598,37 @@ pub fn rsp_to_ir_ctx(
                 let result = block.add(DataType::S32, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            // RspOpcode::AND => todo!("RSP AND"),
-            // RspOpcode::SUB => todo!("RSP SUB"),
-            // RspOpcode::OR => todo!("RSP OR"),
-            // RspOpcode::XOR => todo!("RSP XOR"),
+            RspOpcode::AND => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.and(DataType::U32, rs, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
+            RspOpcode::SUB => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.subtract(DataType::S32, rs, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
+            RspOpcode::OR => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.or(DataType::U32, rs, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
+            RspOpcode::XOR => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.xor(DataType::U32, rs, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             // RspOpcode::NOR => todo!("RSP NOR"),
-            // RspOpcode::SLT => todo!("RSP SLT"),
+            RspOpcode::SLT => {
+                let rs = guest_regs.get_gpr(&mut block, instr.rs());
+                let rt = guest_regs.get_gpr(&mut block, instr.rt());
+                let result = block.compare(DataType::S32, rs, CompareType::LessThan, rt);
+                guest_regs.set_gpr(instr.rd(), result.val());
+            }
             // RspOpcode::SLTU => todo!("RSP SLTU"),
             // RspOpcode::BREAK => todo!("RSP BREAK"),
             // RspOpcode::LBV => todo!("RSP LBV"),
@@ -643,7 +688,8 @@ pub fn rsp_to_ir_ctx(
                 let shift = block.left_shift(DataType::U32, misalignment.val(), const_u16(3));
                 let shift = shift.val();
                 let placed = block.left_shift(DataType::U128, loaded.val(), shift);
-                let placed = block.right_shift(DataType::U128, placed.val(), const_u16(e as u16 * 8));
+                let placed =
+                    block.right_shift(DataType::U128, placed.val(), const_u16(e as u16 * 8));
 
                 // The same shifts applied to an all ones value select the bytes actually written.
                 let ones = block.left_shift(DataType::U128, const_u64(u64::MAX), const_u16(64));
@@ -672,11 +718,15 @@ pub fn rsp_to_ir_ctx(
                 // wrapping around with & 0xF, into a u64 value.
                 let shift = 8i32 - e as i32;
                 let value = if shift > 0 {
-                    block.right_shift(DataType::U128, reg, const_u16(shift as u16 * 8)).val()
+                    block
+                        .right_shift(DataType::U128, reg, const_u16(shift as u16 * 8))
+                        .val()
                 } else if shift < 0 {
                     // Wrapping case (element > 8): rotate via left-shift + right-shift + OR
-                    let left = block.left_shift(DataType::U128, reg, const_u16((-shift) as u16 * 8));
-                    let right = block.right_shift(DataType::U128, reg, const_u16((16 + shift) as u16 * 8));
+                    let left =
+                        block.left_shift(DataType::U128, reg, const_u16((-shift) as u16 * 8));
+                    let right =
+                        block.right_shift(DataType::U128, reg, const_u16((16 + shift) as u16 * 8));
                     block.or(DataType::U128, left.val(), right.val()).val()
                 } else {
                     // element == 8: low 64 bits are already in position
@@ -687,7 +737,11 @@ pub fn rsp_to_ir_ctx(
                 let high = block.right_shift(DataType::U64, value, const_u16(32));
                 block.call_function(const_ptr(ctx.write_word), None, vec![address, high.val()]);
                 let low_address = block.add(DataType::U32, address, const_u16(4));
-                block.call_function(const_ptr(ctx.write_word), None, vec![low_address.val(), value]);
+                block.call_function(
+                    const_ptr(ctx.write_word),
+                    None,
+                    vec![low_address.val(), value],
+                );
             }
             // RspOpcode::SFV => todo!("RSP SFV"),
             // RspOpcode::SHV => todo!("RSP SHV"),
