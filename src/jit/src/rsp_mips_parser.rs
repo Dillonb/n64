@@ -200,12 +200,16 @@ fn opcode_of_rsp_instruction(instr: &MipsInstructionBitfield) -> RspOpcode {
 
         MipsOpcodeField::CP0 => {
             if instr.is_coprocessor_funct() {
-                panic!("Invalid RSP CP0 instruction")
+                panic!("Invalid RSP CP0 instruction 0x{:08X}", instr.raw())
             } else {
                 match instr.cop_op() {
                     MipsCopRsField::MT => RspOpcode::MTC0,
                     MipsCopRsField::MF => RspOpcode::MFC0,
-                    _ => panic!("Invalid RSP CP0 instruction"),
+                    rs => panic!(
+                        "Invalid RSP CP0 instruction 0x{:08X} with rs {:?}",
+                        instr.raw(),
+                        rs
+                    ),
                 }
             }
         }
