@@ -345,6 +345,7 @@ INLINE void rsp_set_vce(u16 vce) {
 void rsp_step();
 void rsp_run();
 void rsp_dynarec_run();
+void rsp_interpret_instruction(u32 raw);
 int rsp_interpreter_fallback_until_no_branch();
 vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e);
 

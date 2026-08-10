@@ -12,7 +12,7 @@ use crate::{
     mips_parser::{BranchCondition, MipsInstructionBitfield},
     n64_rsp_read_byte_noinline, n64_rsp_read_half_noinline, n64_rsp_read_word_noinline,
     n64_rsp_write_byte_noinline, n64_rsp_write_half_noinline, n64_rsp_write_word_noinline,
-    rsp_interpreter_fallback_until_no_branch,
+    rsp_interpret_instruction, rsp_interpreter_fallback_until_no_branch,
     rsp_mips_parser::{ParsedRspInstruction, RspBranchInfo, RspOpcode},
     rsp_t, set_rsp_cp0_register,
 };
@@ -26,6 +26,7 @@ pub struct RspMipsToIrContext {
     write_word: usize,
     get_rsp_cp0_register: usize,
     set_rsp_cp0_register: usize,
+    interpret_instruction: usize,
     interpreter_fallback_until_no_branch: usize,
 }
 
@@ -41,6 +42,7 @@ impl RspMipsToIrContext {
 
             get_rsp_cp0_register: get_rsp_cp0_register as *const () as usize,
             set_rsp_cp0_register: set_rsp_cp0_register as *const () as usize,
+            interpret_instruction: rsp_interpret_instruction as *const () as usize,
             interpreter_fallback_until_no_branch: rsp_interpreter_fallback_until_no_branch
                 as *const () as usize,
         }
@@ -233,6 +235,31 @@ fn rsp_load_u64(
     block.or(DataType::U64, v_high.val(), v_low.val()).val()
 }
 
+/// Runs one instruction through the C interpreter instead of compiling it. Cached registers are
+/// flushed and dropped since the interpreter works on the same state the block was passed.
+fn interpret_instruction(
+    block: &mut IRBlockHandle,
+    guest_regs: &mut GuestRegisterManager,
+    ctx: &RspMipsToIrContext,
+    op: &RspOpcode,
+    instr: MipsInstructionBitfield,
+) {
+    // An interpreted branch would fight the PC handling here.
+    assert!(
+        !op.is_branch(),
+        "Cannot interpret branch instruction {:?}",
+        op
+    );
+    println!("Falling back to the interpreter for {:?}", op);
+
+    guest_regs.flush_all(block, true);
+    block.call_function(
+        const_ptr(ctx.interpret_instruction),
+        None,
+        vec![const_u32(instr.raw())],
+    );
+}
+
 pub fn rsp_to_ir_ctx(
     ctx: RspMipsToIrContext,
     parsed: Vec<ParsedRspInstruction>,
@@ -310,7 +337,7 @@ pub fn rsp_to_ir_ctx(
                 );
             }
             RspOpcode::NOP => {}
-            RspOpcode::LUI => todo!("RSP LUI"),
+            // RspOpcode::LUI => todo!("RSP LUI"),
             RspOpcode::ADDI => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
                 let result = block.add(DataType::S32, rs, const_s16(instr.s_imm()));
@@ -414,9 +441,9 @@ pub fn rsp_to_ir_ctx(
                     const_u16((instr.j_target() as u16) << 2),
                 );
             }
-            RspOpcode::SLTI => todo!("RSP SLTI"),
-            RspOpcode::SLTIU => todo!("RSP SLTIU"),
-            RspOpcode::XORI => todo!("RSP XORI"),
+            // RspOpcode::SLTI => todo!("RSP SLTI"),
+            // RspOpcode::SLTIU => todo!("RSP SLTIU"),
+            // RspOpcode::XORI => todo!("RSP XORI"),
             RspOpcode::LB => {
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
@@ -447,53 +474,53 @@ pub fn rsp_to_ir_ctx(
                 );
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
-            RspOpcode::VEC_VABS => todo!("RSP VEC_VABS"),
-            RspOpcode::VEC_VADD => todo!("RSP VEC_VADD"),
-            RspOpcode::VEC_VADDC => todo!("RSP VEC_VADDC"),
-            RspOpcode::VEC_VAND => todo!("RSP VEC_VAND"),
-            RspOpcode::VEC_VCH => todo!("RSP VEC_VCH"),
-            RspOpcode::VEC_VCL => todo!("RSP VEC_VCL"),
-            RspOpcode::VEC_VCR => todo!("RSP VEC_VCR"),
-            RspOpcode::VEC_VEQ => todo!("RSP VEC_VEQ"),
-            RspOpcode::VEC_VGE => todo!("RSP VEC_VGE"),
-            RspOpcode::VEC_VLT => todo!("RSP VEC_VLT"),
-            RspOpcode::VEC_VMACF => todo!("RSP VEC_VMACF"),
-            RspOpcode::VEC_VMACQ => todo!("RSP VEC_VMACQ"),
-            RspOpcode::VEC_VMACU => todo!("RSP VEC_VMACU"),
-            RspOpcode::VEC_VMADH => todo!("RSP VEC_VMADH"),
-            RspOpcode::VEC_VMADL => todo!("RSP VEC_VMADL"),
-            RspOpcode::VEC_VMADM => todo!("RSP VEC_VMADM"),
-            RspOpcode::VEC_VMADN => todo!("RSP VEC_VMADN"),
-            RspOpcode::VEC_VMOV => todo!("RSP VEC_VMOV"),
-            RspOpcode::VEC_VMRG => todo!("RSP VEC_VMRG"),
-            RspOpcode::VEC_VMUDH => todo!("RSP VEC_VMUDH"),
-            RspOpcode::VEC_VMUDL => todo!("RSP VEC_VMUDL"),
-            RspOpcode::VEC_VMUDM => todo!("RSP VEC_VMUDM"),
-            RspOpcode::VEC_VMUDN => todo!("RSP VEC_VMUDN"),
-            RspOpcode::VEC_VMULF => todo!("RSP VEC_VMULF"),
-            RspOpcode::VEC_VMULQ => todo!("RSP VEC_VMULQ"),
-            RspOpcode::VEC_VMULU => todo!("RSP VEC_VMULU"),
-            RspOpcode::VEC_VNAND => todo!("RSP VEC_VNAND"),
-            RspOpcode::VEC_VNE => todo!("RSP VEC_VNE"),
-            RspOpcode::VEC_VNOP => todo!("RSP VEC_VNOP"),
-            RspOpcode::VEC_VNOR => todo!("RSP VEC_VNOR"),
-            RspOpcode::VEC_VNXOR => todo!("RSP VEC_VNXOR"),
-            RspOpcode::VEC_VOR => todo!("RSP VEC_VOR"),
-            RspOpcode::VEC_VRCP => todo!("RSP VEC_VRCP"),
-            RspOpcode::VEC_VRCPH_VRSQH => todo!("RSP VEC_VRCPH_VRSQH"),
-            RspOpcode::VEC_VRCPL => todo!("RSP VEC_VRCPL"),
-            RspOpcode::VEC_VRNDN => todo!("RSP VEC_VRNDN"),
-            RspOpcode::VEC_VRNDP => todo!("RSP VEC_VRNDP"),
-            RspOpcode::VEC_VRSQ => todo!("RSP VEC_VRSQ"),
-            RspOpcode::VEC_VRSQL => todo!("RSP VEC_VRSQL"),
-            RspOpcode::VEC_VSAR => todo!("RSP VEC_VSAR"),
-            RspOpcode::VEC_VSUB => todo!("RSP VEC_VSUB"),
-            RspOpcode::VEC_VSUBC => todo!("RSP VEC_VSUBC"),
-            RspOpcode::VEC_VXOR => todo!("RSP VEC_VXOR"),
-            RspOpcode::VEC_VZERO => todo!("RSP VEC_VZERO"),
-            RspOpcode::CFC2 => todo!("RSP CFC2"),
-            RspOpcode::CTC2 => todo!("RSP CTC2"),
-            RspOpcode::MFC2 => todo!("RSP MFC2"),
+            // RspOpcode::VEC_VABS => todo!("RSP VEC_VABS"),
+            // RspOpcode::VEC_VADD => todo!("RSP VEC_VADD"),
+            // RspOpcode::VEC_VADDC => todo!("RSP VEC_VADDC"),
+            // RspOpcode::VEC_VAND => todo!("RSP VEC_VAND"),
+            // RspOpcode::VEC_VCH => todo!("RSP VEC_VCH"),
+            // RspOpcode::VEC_VCL => todo!("RSP VEC_VCL"),
+            // RspOpcode::VEC_VCR => todo!("RSP VEC_VCR"),
+            // RspOpcode::VEC_VEQ => todo!("RSP VEC_VEQ"),
+            // RspOpcode::VEC_VGE => todo!("RSP VEC_VGE"),
+            // RspOpcode::VEC_VLT => todo!("RSP VEC_VLT"),
+            // RspOpcode::VEC_VMACF => todo!("RSP VEC_VMACF"),
+            // RspOpcode::VEC_VMACQ => todo!("RSP VEC_VMACQ"),
+            // RspOpcode::VEC_VMACU => todo!("RSP VEC_VMACU"),
+            // RspOpcode::VEC_VMADH => todo!("RSP VEC_VMADH"),
+            // RspOpcode::VEC_VMADL => todo!("RSP VEC_VMADL"),
+            // RspOpcode::VEC_VMADM => todo!("RSP VEC_VMADM"),
+            // RspOpcode::VEC_VMADN => todo!("RSP VEC_VMADN"),
+            // RspOpcode::VEC_VMOV => todo!("RSP VEC_VMOV"),
+            // RspOpcode::VEC_VMRG => todo!("RSP VEC_VMRG"),
+            // RspOpcode::VEC_VMUDH => todo!("RSP VEC_VMUDH"),
+            // RspOpcode::VEC_VMUDL => todo!("RSP VEC_VMUDL"),
+            // RspOpcode::VEC_VMUDM => todo!("RSP VEC_VMUDM"),
+            // RspOpcode::VEC_VMUDN => todo!("RSP VEC_VMUDN"),
+            // RspOpcode::VEC_VMULF => todo!("RSP VEC_VMULF"),
+            // RspOpcode::VEC_VMULQ => todo!("RSP VEC_VMULQ"),
+            // RspOpcode::VEC_VMULU => todo!("RSP VEC_VMULU"),
+            // RspOpcode::VEC_VNAND => todo!("RSP VEC_VNAND"),
+            // RspOpcode::VEC_VNE => todo!("RSP VEC_VNE"),
+            // RspOpcode::VEC_VNOP => todo!("RSP VEC_VNOP"),
+            // RspOpcode::VEC_VNOR => todo!("RSP VEC_VNOR"),
+            // RspOpcode::VEC_VNXOR => todo!("RSP VEC_VNXOR"),
+            // RspOpcode::VEC_VOR => todo!("RSP VEC_VOR"),
+            // RspOpcode::VEC_VRCP => todo!("RSP VEC_VRCP"),
+            // RspOpcode::VEC_VRCPH_VRSQH => todo!("RSP VEC_VRCPH_VRSQH"),
+            // RspOpcode::VEC_VRCPL => todo!("RSP VEC_VRCPL"),
+            // RspOpcode::VEC_VRNDN => todo!("RSP VEC_VRNDN"),
+            // RspOpcode::VEC_VRNDP => todo!("RSP VEC_VRNDP"),
+            // RspOpcode::VEC_VRSQ => todo!("RSP VEC_VRSQ"),
+            // RspOpcode::VEC_VRSQL => todo!("RSP VEC_VRSQL"),
+            // RspOpcode::VEC_VSAR => todo!("RSP VEC_VSAR"),
+            // RspOpcode::VEC_VSUB => todo!("RSP VEC_VSUB"),
+            // RspOpcode::VEC_VSUBC => todo!("RSP VEC_VSUBC"),
+            // RspOpcode::VEC_VXOR => todo!("RSP VEC_VXOR"),
+            // RspOpcode::VEC_VZERO => todo!("RSP VEC_VZERO"),
+            // RspOpcode::CFC2 => todo!("RSP CFC2"),
+            // RspOpcode::CTC2 => todo!("RSP CTC2"),
+            // RspOpcode::MFC2 => todo!("RSP MFC2"),
             RspOpcode::MTC2 => {
                 let e = instr.cp2_regmove_e();
                 let value = guest_regs.get_gpr(&mut block, instr.cp2_regmove_rt());
@@ -530,10 +557,10 @@ pub fn rsp_to_ir_ctx(
                 let result = block.right_shift(DataType::U32, input, const_u16(instr.sa() as u16));
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            RspOpcode::SRA => todo!("RSP SRA"),
-            RspOpcode::SRAV => todo!("RSP SRAV"),
-            RspOpcode::SLLV => todo!("RSP SLLV"),
-            RspOpcode::SRLV => todo!("RSP SRLV"),
+            // RspOpcode::SRA => todo!("RSP SRA"),
+            // RspOpcode::SRAV => todo!("RSP SRAV"),
+            // RspOpcode::SLLV => todo!("RSP SLLV"),
+            // RspOpcode::SRLV => todo!("RSP SRLV"),
             RspOpcode::JR => {
                 let target = guest_regs.get_gpr(&mut block, instr.rs());
                 set_pc(&mut pc_set, &mut block, rsp_address, target);
@@ -549,15 +576,15 @@ pub fn rsp_to_ir_ctx(
                 let result = block.add(DataType::S32, rs, rt);
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
-            RspOpcode::AND => todo!("RSP AND"),
-            RspOpcode::SUB => todo!("RSP SUB"),
-            RspOpcode::OR => todo!("RSP OR"),
-            RspOpcode::XOR => todo!("RSP XOR"),
-            RspOpcode::NOR => todo!("RSP NOR"),
-            RspOpcode::SLT => todo!("RSP SLT"),
-            RspOpcode::SLTU => todo!("RSP SLTU"),
-            RspOpcode::BREAK => todo!("RSP BREAK"),
-            RspOpcode::LBV => todo!("RSP LBV"),
+            // RspOpcode::AND => todo!("RSP AND"),
+            // RspOpcode::SUB => todo!("RSP SUB"),
+            // RspOpcode::OR => todo!("RSP OR"),
+            // RspOpcode::XOR => todo!("RSP XOR"),
+            // RspOpcode::NOR => todo!("RSP NOR"),
+            // RspOpcode::SLT => todo!("RSP SLT"),
+            // RspOpcode::SLTU => todo!("RSP SLTU"),
+            // RspOpcode::BREAK => todo!("RSP BREAK"),
+            // RspOpcode::LBV => todo!("RSP LBV"),
             RspOpcode::LDV => {
                 let address =
                     get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LDV_SDV);
@@ -579,10 +606,10 @@ pub fn rsp_to_ir_ctx(
                 let result = block.or(DataType::U128, masked.val(), placed.val());
                 guest_regs.set_vu_reg(instr.lswc2_vt(), result.val());
             }
-            RspOpcode::LFV => todo!("RSP LFV"),
-            RspOpcode::LHV => todo!("RSP LHV"),
-            RspOpcode::LLV => todo!("RSP LLV"),
-            RspOpcode::LPV => todo!("RSP LPV"),
+            // RspOpcode::LFV => todo!("RSP LFV"),
+            // RspOpcode::LHV => todo!("RSP LHV"),
+            // RspOpcode::LLV => todo!("RSP LLV"),
+            // RspOpcode::LPV => todo!("RSP LPV"),
             RspOpcode::LQV => {
                 let address =
                     get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LQV_SQV);
@@ -619,11 +646,11 @@ pub fn rsp_to_ir_ctx(
                 let result = block.or(DataType::U128, kept.val(), placed.val());
                 guest_regs.set_vu_reg(instr.lswc2_vt(), result.val());
             }
-            RspOpcode::LRV => todo!("RSP LRV"),
-            RspOpcode::LSV => todo!("RSP LSV"),
-            RspOpcode::LTV => todo!("RSP LTV"),
-            RspOpcode::LUV => todo!("RSP LUV"),
-            RspOpcode::SBV => todo!("RSP SBV"),
+            // RspOpcode::LRV => todo!("RSP LRV"),
+            // RspOpcode::LSV => todo!("RSP LSV"),
+            // RspOpcode::LTV => todo!("RSP LTV"),
+            // RspOpcode::LUV => todo!("RSP LUV"),
+            // RspOpcode::SBV => todo!("RSP SBV"),
             RspOpcode::SDV => {
                 let address =
                     get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LDV_SDV);
@@ -651,16 +678,18 @@ pub fn rsp_to_ir_ctx(
                 let low_address = block.add(DataType::U32, address, const_u16(4));
                 block.call_function(const_ptr(ctx.write_word), None, vec![low_address.val(), value]);
             }
-            RspOpcode::SFV => todo!("RSP SFV"),
-            RspOpcode::SHV => todo!("RSP SHV"),
-            RspOpcode::SLV => todo!("RSP SLV"),
-            RspOpcode::SPV => todo!("RSP SPV"),
-            RspOpcode::SQV => todo!("RSP SQV"),
-            RspOpcode::SRV => todo!("RSP SRV"),
-            RspOpcode::SSV => todo!("RSP SSV"),
-            RspOpcode::STV => todo!("RSP STV"),
-            RspOpcode::SUV => todo!("RSP SUV"),
-            RspOpcode::SWV => todo!("RSP SWV"),
+            // RspOpcode::SFV => todo!("RSP SFV"),
+            // RspOpcode::SHV => todo!("RSP SHV"),
+            // RspOpcode::SLV => todo!("RSP SLV"),
+            // RspOpcode::SPV => todo!("RSP SPV"),
+            // RspOpcode::SQV => todo!("RSP SQV"),
+            // RspOpcode::SRV => todo!("RSP SRV"),
+            // RspOpcode::SSV => todo!("RSP SSV"),
+            // RspOpcode::STV => todo!("RSP STV"),
+            // RspOpcode::SUV => todo!("RSP SUV"),
+            // RspOpcode::SWV => todo!("RSP SWV"),
+            // Anything not compiled above runs through the interpreter.
+            op => interpret_instruction(&mut block, &mut guest_regs, &ctx, &op, instr),
         }
         cycles += 1;
     }
