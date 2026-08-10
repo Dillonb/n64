@@ -75,11 +75,12 @@ pub extern "C" fn rs_jit_compile_new_rsp_block(
             InstructionCategory::Branch => {
                 branch_in_block = true;
                 if prev_instr_category == InstructionCategory::Branch {
-                    todo!("Nested branches in RSP code");
+                    // Branch in a delay slot: end the block, rsp_to_ir will interpret it.
+                    should_continue_block = false;
+                } else {
+                    should_continue_block = true;
+                    instructions_left_in_block = 1; // Emit delay slot and then we're done.
                 }
-
-                should_continue_block = true;
-                instructions_left_in_block = 1; // Emit delay slot and then we're done.
             }
             InstructionCategory::BlockEnder => {
                 should_continue_block = false;

@@ -424,6 +424,16 @@ void rsp_step() {
     _rsp_step();
 }
 
+int rsp_interpreter_fallback_until_no_branch() {
+    int taken = 0;
+    do {
+        _rsp_step();
+        taken++;
+        // The RSP has no branch flag, so a pending branch is next_pc not pointing at the next instruction.
+    } while (!N64RSP.status.halt && (N64RSP.next_pc & 0x3FF) != ((N64RSP.pc + 1) & 0x3FF));
+    return taken;
+}
+
 void rsp_run() {
     int run_for = 0;
     // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG

@@ -12,6 +12,7 @@ use crate::{
     mips_parser::{BranchCondition, MipsInstructionBitfield},
     n64_rsp_read_byte_noinline, n64_rsp_read_half_noinline, n64_rsp_read_word_noinline,
     n64_rsp_write_byte_noinline, n64_rsp_write_half_noinline, n64_rsp_write_word_noinline,
+    rsp_interpreter_fallback_until_no_branch,
     rsp_mips_parser::{ParsedRspInstruction, RspBranchInfo, RspOpcode},
     rsp_t, set_rsp_cp0_register,
 };
@@ -25,6 +26,7 @@ pub struct RspMipsToIrContext {
     write_word: usize,
     get_rsp_cp0_register: usize,
     set_rsp_cp0_register: usize,
+    interpreter_fallback_until_no_branch: usize,
 }
 
 impl RspMipsToIrContext {
@@ -39,6 +41,8 @@ impl RspMipsToIrContext {
 
             get_rsp_cp0_register: get_rsp_cp0_register as *const () as usize,
             set_rsp_cp0_register: set_rsp_cp0_register as *const () as usize,
+            interpreter_fallback_until_no_branch: rsp_interpreter_fallback_until_no_branch
+                as *const () as usize,
         }
     }
 }
@@ -244,9 +248,17 @@ pub fn rsp_to_ir_ctx(
     let mut cycles = 0;
     let mut pc_set = false;
 
+    // A block ending in a branch has a branch in a delay slot, which the PC handling can't express.
     if let Some(last) = parsed.last() {
         if last.op.is_branch() {
-            todo!("RSP block ends with a branch. I don't think this can ever happen on the RSP, but it could be handled similarly to how the main CPU does.")
+            let cycles = block.call_function(
+                const_ptr(ctx.interpreter_fallback_until_no_branch),
+                Some(DataType::S32),
+                vec![],
+            );
+
+            block.ret(Some(cycles.val()));
+            return func;
         }
     }
 
