@@ -535,17 +535,17 @@ pub fn rsp_to_ir_ctx(
                 let value = block.and(DataType::U32, value, const_u32(0xFFFF));
 
                 // The high byte of rt lands on element e and the low byte on e + 1, so the pair
-                // sits at 8 * (14 - e). At e == 15 that goes negative, which drops the low byte.
+                // sits at byte 14 - e. At e == 15 that goes negative, which drops the low byte.
                 let (placed, mask) = if e < 15 {
-                    let shift = const_u16((14 - e) as u16 * 8);
+                    let shift = const_u16((14 - e) as u16);
                     (
-                        block.left_shift(DataType::U128, value.val(), shift),
-                        block.left_shift(DataType::U128, const_u32(0xFFFF), shift),
+                        block.vector_left_shift_bytes(DataType::U128, value.val(), shift),
+                        block.vector_left_shift_bytes(DataType::U128, const_u32(0xFFFF), shift),
                     )
                 } else {
                     (
-                        block.right_shift(DataType::U128, value.val(), const_u16(8)),
-                        block.right_shift(DataType::U128, const_u32(0xFFFF), const_u16(8)),
+                        block.vector_right_shift_bytes(DataType::U128, value.val(), const_u16(1)),
+                        block.vector_right_shift_bytes(DataType::U128, const_u32(0xFFFF), const_u16(1)),
                     )
                 };
 
@@ -643,16 +643,16 @@ pub fn rsp_to_ir_ctx(
                 // Past element 8 the bytes shift the other way, and the ones that run off the end
                 // are dropped rather than wrapping.
                 let (placed, mask) = if e <= 8 {
-                    let shift = const_u16((8 - e) as u16 * 8);
+                    let shift = const_u16((8 - e) as u16);
                     (
-                        block.left_shift(DataType::U128, value, shift),
-                        block.left_shift(DataType::U128, ones, shift),
+                        block.vector_left_shift_bytes(DataType::U128, value, shift),
+                        block.vector_left_shift_bytes(DataType::U128, ones, shift),
                     )
                 } else {
-                    let shift = const_u16((e - 8) as u16 * 8);
+                    let shift = const_u16((e - 8) as u16);
                     (
-                        block.right_shift(DataType::U128, value, shift),
-                        block.right_shift(DataType::U128, ones, shift),
+                        block.vector_right_shift_bytes(DataType::U128, value, shift),
+                        block.vector_right_shift_bytes(DataType::U128, ones, shift),
                     )
                 };
 
@@ -677,7 +677,7 @@ pub fn rsp_to_ir_ctx(
                 let aligned_high = aligned.val();
                 let aligned_low = block.add(DataType::U32, aligned_high, const_u16(8));
                 let high = rsp_load_u64(&mut block, &ctx, aligned_high);
-                let high = block.left_shift(DataType::U128, high, const_u16(64));
+                let high = block.vector_left_shift_bytes(DataType::U128, high, const_u16(8));
                 let low = rsp_load_u64(&mut block, &ctx, aligned_low.val());
                 let loaded = block.or(DataType::U128, high.val(), low);
 
@@ -685,17 +685,16 @@ pub fn rsp_to_ir_ctx(
                 // shifting right by the element moves the rest into place. Anything past the end
                 // of the register falls off both ends, which is exactly the clipping LQV wants.
                 let misalignment = block.and(DataType::U32, address, const_u32(15));
-                let shift = block.left_shift(DataType::U32, misalignment.val(), const_u16(3));
-                let shift = shift.val();
-                let placed = block.left_shift(DataType::U128, loaded.val(), shift);
+                let misalignment = misalignment.val();
+                let placed = block.vector_left_shift_bytes(DataType::U128, loaded.val(), misalignment);
                 let placed =
-                    block.right_shift(DataType::U128, placed.val(), const_u16(e as u16 * 8));
+                    block.vector_right_shift_bytes(DataType::U128, placed.val(), const_u16(e as u16));
 
                 // The same shifts applied to an all ones value select the bytes actually written.
-                let ones = block.left_shift(DataType::U128, const_u64(u64::MAX), const_u16(64));
+                let ones = block.vector_left_shift_bytes(DataType::U128, const_u64(u64::MAX), const_u16(8));
                 let ones = block.or(DataType::U128, ones.val(), const_u64(u64::MAX));
-                let mask = block.left_shift(DataType::U128, ones.val(), shift);
-                let mask = block.right_shift(DataType::U128, mask.val(), const_u16(e as u16 * 8));
+                let mask = block.vector_left_shift_bytes(DataType::U128, ones.val(), misalignment);
+                let mask = block.vector_right_shift_bytes(DataType::U128, mask.val(), const_u16(e as u16));
                 let inv_mask = block.not(DataType::U128, mask.val());
 
                 let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
@@ -719,14 +718,14 @@ pub fn rsp_to_ir_ctx(
                 let shift = 8i32 - e as i32;
                 let value = if shift > 0 {
                     block
-                        .right_shift(DataType::U128, reg, const_u16(shift as u16 * 8))
+                        .vector_right_shift_bytes(DataType::U128, reg, const_u16(shift as u16))
                         .val()
                 } else if shift < 0 {
                     // Wrapping case (element > 8): rotate via left-shift + right-shift + OR
                     let left =
-                        block.left_shift(DataType::U128, reg, const_u16((-shift) as u16 * 8));
+                        block.vector_left_shift_bytes(DataType::U128, reg, const_u16((-shift) as u16));
                     let right =
-                        block.right_shift(DataType::U128, reg, const_u16((16 + shift) as u16 * 8));
+                        block.vector_right_shift_bytes(DataType::U128, reg, const_u16((16 + shift) as u16));
                     block.or(DataType::U128, left.val(), right.val()).val()
                 } else {
                     // element == 8: low 64 bits are already in position
