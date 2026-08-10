@@ -64,7 +64,11 @@ bool prdp_is_framerate_unlocked() {
 
 void prdp_set_framerate_unlocked(bool unlocked) {
     if (unlocked) {
+#ifdef __APPLE__
+        wsi->set_present_mode(PresentMode::UnlockedMaybeTear);
+#else
         wsi->set_present_mode(PresentMode::UnlockedNoTearing);
+#endif
     } else {
         wsi->set_present_mode(PresentMode::SyncToVBlank);
     }
