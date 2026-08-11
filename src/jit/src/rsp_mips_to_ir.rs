@@ -2,8 +2,8 @@ use std::mem::offset_of;
 
 use dgbir::external_fn;
 use dgbir::ir::{
-    const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType, IRBlockHandle, IRContext,
-    IRFunction, InputSlot,
+    const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType, ExternalFunction,
+    IRBlockHandle, IRContext, IRFunction, InputSlot,
 };
 use log::warn;
 
@@ -32,16 +32,45 @@ pub struct RspMipsToIrContext {
 }
 
 impl RspMipsToIrContext {
-    external_fn!(fn read_byte, &[DataType::U32], Some(DataType::U8));
-    external_fn!(fn read_half, &[DataType::U32], Some(DataType::U16));
-    external_fn!(fn read_word, &[DataType::U32], Some(DataType::U32));
-    external_fn!(fn write_byte, &[DataType::U32, DataType::U8], None);
-    external_fn!(fn write_half, &[DataType::U32, DataType::U16], None);
-    external_fn!(fn write_word, &[DataType::U32, DataType::U32], None);
-    external_fn!(fn get_rsp_cp0_register, &[DataType::U8], Some(DataType::U32));
-    external_fn!(fn set_rsp_cp0_register, &[DataType::U8, DataType::U32], None);
-    external_fn!(fn interpret_instruction, &[DataType::U32], None);
-    external_fn!(fn interpreter_fallback_until_no_branch, &[], Some(DataType::S32));
+    fn read_byte(&self) -> ExternalFunction {
+        external_fn!(n64_rsp_read_byte_noinline(_)).at(self.read_byte)
+    }
+
+    fn read_half(&self) -> ExternalFunction {
+        external_fn!(n64_rsp_read_half_noinline(_)).at(self.read_half)
+    }
+
+    fn read_word(&self) -> ExternalFunction {
+        external_fn!(n64_rsp_read_word_noinline(_)).at(self.read_word)
+    }
+
+    fn write_byte(&self) -> ExternalFunction {
+        external_fn!(n64_rsp_write_byte_noinline(_, _)).at(self.write_byte)
+    }
+
+    fn write_half(&self) -> ExternalFunction {
+        external_fn!(n64_rsp_write_half_noinline(_, _)).at(self.write_half)
+    }
+
+    fn write_word(&self) -> ExternalFunction {
+        external_fn!(n64_rsp_write_word_noinline(_, _)).at(self.write_word)
+    }
+
+    fn get_rsp_cp0_register(&self) -> ExternalFunction {
+        external_fn!(get_rsp_cp0_register(_)).at(self.get_rsp_cp0_register)
+    }
+
+    fn set_rsp_cp0_register(&self) -> ExternalFunction {
+        external_fn!(set_rsp_cp0_register(_, _)).at(self.set_rsp_cp0_register)
+    }
+
+    fn interpret_instruction(&self) -> ExternalFunction {
+        external_fn!(rsp_interpret_instruction(_)).at(self.interpret_instruction)
+    }
+
+    fn interpreter_fallback_until_no_branch(&self) -> ExternalFunction {
+        external_fn!(rsp_interpreter_fallback_until_no_branch()).at(self.interpreter_fallback_until_no_branch)
+    }
 
     pub fn default() -> Self {
         Self {

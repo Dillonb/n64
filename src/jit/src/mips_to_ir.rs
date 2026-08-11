@@ -4,7 +4,7 @@ use derive_builder::Builder;
 use dgbir::external_fn;
 use dgbir::ir::{
     const_ptr, const_s16, const_s32, const_s64, const_u16, const_u32, const_u64, CompareType,
-    DataType, IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType,
+    DataType, ExternalFunction, IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType,
 };
 use log::warn;
 
@@ -44,14 +44,37 @@ pub struct MipsToIrContext {
 }
 
 impl MipsToIrContext {
-    external_fn!(fn read_physical_byte, &[DataType::U32], Some(DataType::U8));
-    external_fn!(fn read_physical_half, &[DataType::U32], Some(DataType::U16));
-    external_fn!(fn read_physical_word, &[DataType::U32], Some(DataType::U32));
-    external_fn!(fn read_physical_dword, &[DataType::U32], Some(DataType::U64));
-    external_fn!(fn write_physical_byte, &[DataType::U32, DataType::U32], None);
-    external_fn!(fn write_physical_half, &[DataType::U32, DataType::U32], None);
-    external_fn!(fn write_physical_word, &[DataType::U32, DataType::U32], None);
-    external_fn!(fn write_physical_dword, &[DataType::U32, DataType::U64], None);
+    fn read_physical_byte(&self) -> ExternalFunction {
+        external_fn!(n64_read_physical_byte(_)).at(self.read_physical_byte)
+    }
+
+    fn read_physical_half(&self) -> ExternalFunction {
+        external_fn!(n64_read_physical_half(_)).at(self.read_physical_half)
+    }
+
+    fn read_physical_word(&self) -> ExternalFunction {
+        external_fn!(n64_read_physical_word(_)).at(self.read_physical_word)
+    }
+
+    fn read_physical_dword(&self) -> ExternalFunction {
+        external_fn!(n64_read_physical_dword(_)).at(self.read_physical_dword)
+    }
+
+    fn write_physical_byte(&self) -> ExternalFunction {
+        external_fn!(n64_write_physical_byte(_, _)).at(self.write_physical_byte)
+    }
+
+    fn write_physical_half(&self) -> ExternalFunction {
+        external_fn!(n64_write_physical_half(_, _)).at(self.write_physical_half)
+    }
+
+    fn write_physical_word(&self) -> ExternalFunction {
+        external_fn!(n64_write_physical_word(_, _)).at(self.write_physical_word)
+    }
+
+    fn write_physical_dword(&self) -> ExternalFunction {
+        external_fn!(n64_write_physical_dword(_, _)).at(self.write_physical_dword)
+    }
 }
 
 impl Default for MipsToIrContext {
@@ -558,7 +581,7 @@ impl GuestRegisterManager {
                     offset_of!(r4300i_t, cp0.status.raw),
                     new_status.val(),
                 );
-                block.call_function(external_fn!(cp0_status_updated as *const () as usize, &[], None), vec![]);
+                block.call_function(external_fn!(cp0_status_updated()), vec![]);
             }
             R4300I_CP0_REG_TAGLO => {
                 block.write_ptr(
@@ -620,7 +643,7 @@ impl GuestRegisterManager {
                     value,
                 );
 
-                block.call_function(external_fn!(reschedule_compare_interrupt as *const () as usize, &[DataType::U32], None), vec![const_u32(inblock_index.unwrap())]);
+                block.call_function(external_fn!(reschedule_compare_interrupt(_)), vec![const_u32(inblock_index.unwrap())]);
             }
             R4300I_CP0_REG_ENTRYLO0 => {
                 block.write_ptr(
@@ -743,7 +766,7 @@ impl GuestRegisterManager {
                     offset_of!(r4300i_t, cp0.count),
                     value_shifted.val(),
                 );
-                let reschedule_compare_interrupt = external_fn!(reschedule_compare_interrupt as *const () as usize, &[DataType::U32], None);
+                let reschedule_compare_interrupt = external_fn!(reschedule_compare_interrupt(_));
                 block.call_function(reschedule_compare_interrupt, vec![const_u32(inblock_index.unwrap())]);
             }
             _ => {
@@ -830,9 +853,9 @@ fn get_paddr_for_loadstore(
     let physical_ptr = const_ptr(&raw const physical as usize);
     let cached_ptr = const_ptr(&raw const cached as usize);
 
-    let resolve_virtual = external_fn!(cpu.cp0.resolve_virtual_address.unwrap() as usize, &[DataType::U64, DataType::U32, DataType::Ptr, DataType::Ptr], Some(DataType::Bool));
+    let resolve_virtual = ExternalFunction::derived(cpu.cp0.resolve_virtual_address.unwrap());
 
-    fn on_fail(vaddr: u64) {
+    extern "C" fn on_fail(vaddr: u64) {
         panic!("Failed to resolve virtual address 0x{:016X}", vaddr);
     }
 
@@ -846,7 +869,7 @@ fn get_paddr_for_loadstore(
         ]);
 
     let mut on_fail_block = func.new_block(vec![]);
-    on_fail_block.call_function(external_fn!(on_fail as *const () as usize, &[DataType::U64], None), vec![virtual_address.val()]);
+    on_fail_block.call_function(external_fn!(on_fail(_)), vec![virtual_address.val()]);
     on_fail_block.ret(None);
 
     let on_success_block = func.new_block(vec![]);
@@ -909,7 +932,7 @@ fn checkcp1(
     let mut cp1_disabled_block = func.new_block(vec![]);
     // Flush, but don't clear, as the register values still matter for other execution paths.
     guest_regs.flush_all(&mut cp1_disabled_block, false);
-    cp1_disabled_block.call_function(external_fn!(r4300i_handle_exception as *const () as usize, &[DataType::U64, DataType::U32, DataType::S32], None), vec![
+    cp1_disabled_block.call_function(external_fn!(r4300i_handle_exception(_, _, _)), vec![
             const_u64(vaddr),
             const_u32(EXCEPTION_COPROCESSOR_UNUSABLE),
             const_u32(1),
@@ -1040,7 +1063,7 @@ pub fn to_ir_ctx(
     // If the block ends with a branch, fallback to the interpreter.
     if let Some(last) = parsed.last() {
         if last.op.is_branch() {
-            let cycles = block.call_function(external_fn!(interpreter_fallback_until_no_branch as *const () as usize, &[], Some(DataType::S32)), vec![]);
+            let cycles = block.call_function(external_fn!(interpreter_fallback_until_no_branch()), vec![]);
 
             block.ret(Some(cycles.val()));
             return func;
@@ -2061,11 +2084,11 @@ pub fn to_ir_ctx(
                     check_intmin_by_neg1.call(vec![]),
                 );
 
-                divide_by_zero.call_function(external_fn!(unimplemented_divide_by_zero as *const () as usize, &[], None), vec![]);
+                divide_by_zero.call_function(external_fn!(unimplemented_divide_by_zero()), vec![]);
                 divide_by_zero.ret(None);
 
                 let mut intmin_by_neg1 = func.new_block(vec![]);
-                intmin_by_neg1.call_function(external_fn!(unimplemented_intmin_by_neg1 as *const () as usize, &[], None), vec![]);
+                intmin_by_neg1.call_function(external_fn!(unimplemented_intmin_by_neg1()), vec![]);
                 intmin_by_neg1.ret(None);
 
                 let mut normal = func.new_block(vec![]);
@@ -2273,17 +2296,17 @@ pub fn to_ir_ctx(
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBR => {
-                block.call_function(external_fn!(do_tlbr as *const () as usize, &[], None), vec![]);
+                block.call_function(external_fn!(do_tlbr()), vec![]);
             }
             MipsOpcode::TLBWI => {
                 let index =
                     block.load_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.index));
                 let masked_index = block.and(DataType::U32, index.val(), const_u32(0x8000003F));
 
-                block.call_function(external_fn!(do_tlbwi as *const () as usize, &[DataType::S32], None), vec![masked_index.val()]);
+                block.call_function(external_fn!(do_tlbwi(_)), vec![masked_index.val()]);
             }
             MipsOpcode::TLBP => {
-                block.call_function(external_fn!(do_tlbp as *const () as usize, &[], None), vec![]);
+                block.call_function(external_fn!(do_tlbp()), vec![]);
             }
             MipsOpcode::ERET => {
                 let status = block.load_ptr(
@@ -2347,7 +2370,7 @@ pub fn to_ir_ctx(
                 let mut end = func.new_block(vec![]);
                 block_erl.jump(end.call(vec![]));
                 block_no_erl.jump(end.call(vec![]));
-                end.call_function(external_fn!(cp0_status_updated as *const () as usize, &[], None), vec![]);
+                end.call_function(external_fn!(cp0_status_updated()), vec![]);
 
                 block = end;
                 warn!("TODO: set llbit to false");
