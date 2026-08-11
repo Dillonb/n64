@@ -733,6 +733,7 @@ pub fn rsp_to_ir_ctx(
                 };
 
                 // Write as two 32-bit words
+                let value = block.convert_from(DataType::U128, DataType::U64, value).val();
                 let high = block.right_shift(DataType::U64, value, const_u16(32));
                 block.call_function(const_ptr(ctx.write_word), None, vec![address, high.val()]);
                 let low_address = block.add(DataType::U32, address, const_u16(4));
