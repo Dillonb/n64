@@ -581,7 +581,7 @@ impl GuestRegisterManager {
                     offset_of!(r4300i_t, cp0.status.raw),
                     new_status.val(),
                 );
-                block.call_function(external_fn!(cp0_status_updated()), vec![]);
+                block.call_function(external_fn!(cp0_status_updated()), &[]);
             }
             R4300I_CP0_REG_TAGLO => {
                 block.write_ptr(
@@ -643,7 +643,7 @@ impl GuestRegisterManager {
                     value,
                 );
 
-                block.call_function(external_fn!(reschedule_compare_interrupt(_)), vec![const_u32(inblock_index.unwrap())]);
+                block.call_function(external_fn!(reschedule_compare_interrupt(_)), &[const_u32(inblock_index.unwrap())]);
             }
             R4300I_CP0_REG_ENTRYLO0 => {
                 block.write_ptr(
@@ -767,7 +767,7 @@ impl GuestRegisterManager {
                     value_shifted.val(),
                 );
                 let reschedule_compare_interrupt = external_fn!(reschedule_compare_interrupt(_));
-                block.call_function(reschedule_compare_interrupt, vec![const_u32(inblock_index.unwrap())]);
+                block.call_function(reschedule_compare_interrupt, &[const_u32(inblock_index.unwrap())]);
             }
             _ => {
                 panic!("Unknown register in set_cp0_reg: {}", reg);
@@ -861,7 +861,7 @@ fn get_paddr_for_loadstore(
 
     let success = block.call_function(
         resolve_virtual,
-        vec![
+        &[
             virtual_address.val(),
             const_u32(bus_access as u32), // on Windows, this is an i32, need to convert.
             cached_ptr,
@@ -869,7 +869,7 @@ fn get_paddr_for_loadstore(
         ]);
 
     let mut on_fail_block = func.new_block(vec![]);
-    on_fail_block.call_function(external_fn!(on_fail(_)), vec![virtual_address.val()]);
+    on_fail_block.call_function(external_fn!(on_fail(_)), &[virtual_address.val()]);
     on_fail_block.ret(None);
 
     let on_success_block = func.new_block(vec![]);
@@ -932,7 +932,7 @@ fn checkcp1(
     let mut cp1_disabled_block = func.new_block(vec![]);
     // Flush, but don't clear, as the register values still matter for other execution paths.
     guest_regs.flush_all(&mut cp1_disabled_block, false);
-    cp1_disabled_block.call_function(external_fn!(r4300i_handle_exception(_, _, _)), vec![
+    cp1_disabled_block.call_function(external_fn!(r4300i_handle_exception(_, _, _)), &[
             const_u64(vaddr),
             const_u32(EXCEPTION_COPROCESSOR_UNUSABLE),
             const_u32(1),
@@ -1063,7 +1063,7 @@ pub fn to_ir_ctx(
     // If the block ends with a branch, fallback to the interpreter.
     if let Some(last) = parsed.last() {
         if last.op.is_branch() {
-            let cycles = block.call_function(external_fn!(interpreter_fallback_until_no_branch()), vec![]);
+            let cycles = block.call_function(external_fn!(interpreter_fallback_until_no_branch()), &[]);
 
             block.ret(Some(cycles.val()));
             return func;
@@ -1094,7 +1094,7 @@ pub fn to_ir_ctx(
                     instr,
                     bus_access_BUS_LOAD,
                 );
-                let value = block.call_function(ctx.read_physical_dword(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_dword(), &[paddr]);
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
@@ -1136,7 +1136,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_LOAD,
                 );
 
-                let value = block.call_function(ctx.read_physical_byte(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_byte(), &[paddr]);
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
@@ -1150,7 +1150,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_LOAD,
                 );
 
-                let value = block.call_function(ctx.read_physical_half(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_half(), &[paddr]);
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
@@ -1164,7 +1164,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_LOAD,
                 );
 
-                let value = block.call_function(ctx.read_physical_half(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_half(), &[paddr]);
 
                 let sign_extended = block.convert_from(DataType::S16, DataType::S64, value.val());
 
@@ -1179,7 +1179,7 @@ pub fn to_ir_ctx(
                     instr,
                     bus_access_BUS_LOAD,
                 );
-                let temp_value = block.call_function(ctx.read_physical_word(), vec![paddr]);
+                let temp_value = block.call_function(ctx.read_physical_word(), &[paddr]);
 
                 let sign_extended = block.convert_from(DataType::S32, DataType::S64, temp_value.val());
 
@@ -1195,7 +1195,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_LOAD,
                 );
 
-                let value = block.call_function(ctx.read_physical_word(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_word(), &[paddr]);
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
@@ -1257,7 +1257,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_STORE,
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
-                block.call_function(ctx.write_physical_byte(), vec![paddr, to_write]);
+                block.call_function(ctx.write_physical_byte(), &[paddr, to_write]);
             }
             MipsOpcode::SH => {
                 let paddr = get_paddr_for_loadstore(
@@ -1269,7 +1269,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_STORE,
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
-                block.call_function(ctx.write_physical_half(), vec![paddr, to_write]);
+                block.call_function(ctx.write_physical_half(), &[paddr, to_write]);
             }
             MipsOpcode::SD => {
                 let paddr = get_paddr_for_loadstore(
@@ -1281,7 +1281,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_STORE,
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
-                block.call_function(ctx.write_physical_dword(), vec![paddr, to_write]);
+                block.call_function(ctx.write_physical_dword(), &[paddr, to_write]);
             }
             MipsOpcode::SW => {
                 let paddr = get_paddr_for_loadstore(
@@ -1293,7 +1293,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_STORE,
                 );
                 let to_write = guest_regs.get_gpr(&mut block, instr.rt());
-                block.call_function(ctx.write_physical_word(), vec![paddr, to_write]);
+                block.call_function(ctx.write_physical_word(), &[paddr, to_write]);
             }
             MipsOpcode::ORI => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
@@ -1347,7 +1347,7 @@ pub fn to_ir_ctx(
                     bus_access_BUS_LOAD,
                 );
 
-                let value = block.call_function(ctx.read_physical_byte(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_byte(), &[paddr]);
 
                 let sign_extended = block.convert_from(DataType::S8, DataType::S64, value.val());
 
@@ -1371,7 +1371,7 @@ pub fn to_ir_ctx(
                     instr,
                     bus_access_BUS_LOAD,
                 );
-                let value = block.call_function(ctx.read_physical_dword(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_dword(), &[paddr]);
 
                 guest_regs.set_fgr_64bit(instr.ft(), value.val());
             }
@@ -1397,7 +1397,7 @@ pub fn to_ir_ctx(
                 let value = guest_regs.get_fgr_64bit_fr(&mut block, instr.ft());
                 // Convert from u64 to u64 to ensure we're in a GPR
                 let value_converted = block.convert_from(DataType::U64, DataType::U64, value);
-                block.call_function(ctx.write_physical_dword(), vec![paddr, value_converted.val()]);
+                block.call_function(ctx.write_physical_dword(), &[paddr, value_converted.val()]);
             }
             MipsOpcode::LWC1 => {
                 checkcp1(
@@ -1417,7 +1417,7 @@ pub fn to_ir_ctx(
                     instr,
                     bus_access_BUS_LOAD,
                 );
-                let value = block.call_function(ctx.read_physical_word(), vec![paddr]);
+                let value = block.call_function(ctx.read_physical_word(), &[paddr]);
 
                 guest_regs.set_fgr_32bit_fr(instr.ft(), value.val(), &mut block);
             }
@@ -1443,7 +1443,7 @@ pub fn to_ir_ctx(
                 let value = guest_regs.get_fgr_32bit_fr(&mut block, instr.ft());
                 // Convert from u32 to u32 to ensure we're in a GPR
                 let value_converted = block.convert_from(DataType::U32, DataType::U32, value);
-                block.call_function(ctx.write_physical_word(), vec![paddr, value_converted.val()]);
+                block.call_function(ctx.write_physical_word(), &[paddr, value_converted.val()]);
             }
             MipsOpcode::LWL => {
                 let paddr = get_paddr_for_loadstore(
@@ -1462,7 +1462,7 @@ pub fn to_ir_ctx(
 
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let load_addr = block.and(DataType::U32, paddr, const_u32(!3));
-                let data = block.call_function(ctx.read_physical_word(), vec![load_addr.val()]);
+                let data = block.call_function(ctx.read_physical_word(), &[load_addr.val()]);
 
                 //s32 result = (get_register(instruction.i.rt) & ~mask) | data << shift;
                 //set_register(instruction.i.rt, (s64)result);
@@ -1493,7 +1493,7 @@ pub fn to_ir_ctx(
                 let mask = block.right_shift(DataType::U32, const_u32(0xFFFFFFFF), shift.val());
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let load_addr = block.and(DataType::U32, paddr, const_u32(!3));
-                let data = block.call_function(ctx.read_physical_word(), vec![load_addr.val()]);
+                let data = block.call_function(ctx.read_physical_word(), &[load_addr.val()]);
                 //s32 result = (get_register(instruction.i.rt) & ~mask) | data >> shift;
                 //set_register(instruction.i.rt, (s64)result);
                 let reg = guest_regs.get_gpr(&mut block, instr.rt());
@@ -1521,7 +1521,7 @@ pub fn to_ir_ctx(
 
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let data_addr = block.and(DataType::U32, physical, const_u32(!3));
-                let data = block.call_function(ctx.read_physical_word(), vec![data_addr.val()]);
+                let data = block.call_function(ctx.read_physical_word(), &[data_addr.val()]);
 
                 //u32 oldreg = get_register(instruction.i.rt);
                 let oldreg = guest_regs.get_gpr(&mut block, instr.rt());
@@ -1530,7 +1530,7 @@ pub fn to_ir_ctx(
                 let masked_data = block.and(DataType::U32, data.val(), inverse_mask.val());
                 let shifted_reg = block.right_shift(DataType::U32, oldreg, shift.val());
                 let result = block.or(DataType::U32, masked_data.val(), shifted_reg.val());
-                block.call_function(ctx.write_physical_word(), vec![data_addr.val(), result.val()]);
+                block.call_function(ctx.write_physical_word(), &[data_addr.val(), result.val()]);
             }
             MipsOpcode::SWR => {
                 //ir_instruction_t* physical = ir_get_memory_access_address(index, instruction, BUS_STORE);
@@ -1550,7 +1550,7 @@ pub fn to_ir_ctx(
                 let mask = block.left_shift(DataType::U32, const_u32(0xFFFFFFFF), shift.val());
                 //u32 data = n64_read_physical_word(physical & ~3);
                 let data_addr = block.and(DataType::U32, physical, const_u32(!3));
-                let data = block.call_function(ctx.read_physical_word(), vec![data_addr.val()]);
+                let data = block.call_function(ctx.read_physical_word(), &[data_addr.val()]);
                 //u32 oldreg = get_register(instruction.i.rt);
                 let oldreg = guest_regs.get_gpr(&mut block, instr.rt());
                 //n64_write_physical_word(physical & ~3, (data & ~mask) | oldreg << shift);
@@ -1558,7 +1558,7 @@ pub fn to_ir_ctx(
                 let masked_data = block.and(DataType::U32, data.val(), inverse_mask.val());
                 let shifted_reg = block.left_shift(DataType::U32, oldreg, shift.val());
                 let result = block.or(DataType::U32, masked_data.val(), shifted_reg.val());
-                block.call_function(ctx.write_physical_word(), vec![data_addr.val(), result.val()]);
+                block.call_function(ctx.write_physical_word(), &[data_addr.val(), result.val()]);
             }
             MipsOpcode::LDL => {
                 let physical = get_paddr_for_loadstore(
@@ -1578,7 +1578,7 @@ pub fn to_ir_ctx(
 
                 //u64 data = n64_read_physical_dword(physical & ~7);
                 let load_addr = block.and(DataType::U32, physical, const_u32(!7));
-                let data = block.call_function(ctx.read_physical_dword(), vec![load_addr.val()]);
+                let data = block.call_function(ctx.read_physical_dword(), &[load_addr.val()]);
 
                 //u64 result = (get_register(instruction.i.rt) & ~mask) | (data << shift);
                 //set_register(instruction.i.rt, result);
@@ -1608,7 +1608,7 @@ pub fn to_ir_ctx(
 
                 //u64 data = n64_read_physical_dword(physical & ~7);
                 let load_addr = block.and(DataType::U32, physical, const_u32(!7));
-                let data = block.call_function(ctx.read_physical_dword(), vec![load_addr.val()]);
+                let data = block.call_function(ctx.read_physical_dword(), &[load_addr.val()]);
 
                 //u64 result = (get_register(instruction.i.rt) & ~mask) | (data >> shift);
                 //set_register(instruction.i.rt, result);
@@ -2084,11 +2084,11 @@ pub fn to_ir_ctx(
                     check_intmin_by_neg1.call(vec![]),
                 );
 
-                divide_by_zero.call_function(external_fn!(unimplemented_divide_by_zero()), vec![]);
+                divide_by_zero.call_function(external_fn!(unimplemented_divide_by_zero()), &[]);
                 divide_by_zero.ret(None);
 
                 let mut intmin_by_neg1 = func.new_block(vec![]);
-                intmin_by_neg1.call_function(external_fn!(unimplemented_intmin_by_neg1()), vec![]);
+                intmin_by_neg1.call_function(external_fn!(unimplemented_intmin_by_neg1()), &[]);
                 intmin_by_neg1.ret(None);
 
                 let mut normal = func.new_block(vec![]);
@@ -2296,17 +2296,17 @@ pub fn to_ir_ctx(
                 guest_regs.set_gpr(instr.rd(), result.val());
             }
             MipsOpcode::TLBR => {
-                block.call_function(external_fn!(do_tlbr()), vec![]);
+                block.call_function(external_fn!(do_tlbr()), &[]);
             }
             MipsOpcode::TLBWI => {
                 let index =
                     block.load_ptr(DataType::U32, cpu_address, offset_of!(r4300i_t, cp0.index));
                 let masked_index = block.and(DataType::U32, index.val(), const_u32(0x8000003F));
 
-                block.call_function(external_fn!(do_tlbwi(_)), vec![masked_index.val()]);
+                block.call_function(external_fn!(do_tlbwi(_)), &[masked_index.val()]);
             }
             MipsOpcode::TLBP => {
-                block.call_function(external_fn!(do_tlbp()), vec![]);
+                block.call_function(external_fn!(do_tlbp()), &[]);
             }
             MipsOpcode::ERET => {
                 let status = block.load_ptr(
@@ -2370,7 +2370,7 @@ pub fn to_ir_ctx(
                 let mut end = func.new_block(vec![]);
                 block_erl.jump(end.call(vec![]));
                 block_no_erl.jump(end.call(vec![]));
-                end.call_function(external_fn!(cp0_status_updated()), vec![]);
+                end.call_function(external_fn!(cp0_status_updated()), &[]);
 
                 block = end;
                 warn!("TODO: set llbit to false");

@@ -267,12 +267,11 @@ fn rsp_load_u64(
     ctx: &RspMipsToIrContext,
     address: InputSlot,
 ) -> InputSlot {
-    let high_address = vec![address];
-    let low_address = vec![block.add(DataType::U32, address, const_u16(4)).val()];
+    let low_address = block.add(DataType::U32, address, const_u16(4)).val();
 
-    let v_high = block.call_function(ctx.read_word(), high_address);
+    let v_high = block.call_function(ctx.read_word(), &[address]);
     let v_high = block.left_shift(DataType::U64, v_high.val(), const_u16(32));
-    let v_low = block.call_function(ctx.read_word(), low_address);
+    let v_low = block.call_function(ctx.read_word(), &[low_address]);
     block.or(DataType::U64, v_high.val(), v_low.val()).val()
 }
 
@@ -294,7 +293,7 @@ fn interpret_instruction(
     println!("Falling back to the interpreter for {:?}", op);
 
     guest_regs.flush_all(block, true);
-    block.call_function(ctx.interpret_instruction(), vec![const_u32(instr.raw())]);
+    block.call_function(ctx.interpret_instruction(), &[const_u32(instr.raw())]);
 }
 
 pub fn rsp_to_ir_ctx(
@@ -315,7 +314,7 @@ pub fn rsp_to_ir_ctx(
     // A block ending in a branch has a branch in a delay slot, which the PC handling can't express.
     if let Some(last) = parsed.last() {
         if last.op.is_branch() {
-            let cycles = block.call_function(ctx.interpreter_fallback_until_no_branch(), vec![]);
+            let cycles = block.call_function(ctx.interpreter_fallback_until_no_branch(), &[]);
 
             block.ret(Some(cycles.val()));
             return func;
@@ -389,7 +388,7 @@ pub fn rsp_to_ir_ctx(
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
 
-                let value = block.call_function(ctx.read_byte(), vec![addr.val()]);
+                let value = block.call_function(ctx.read_byte(), &[addr.val()]);
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
@@ -397,7 +396,7 @@ pub fn rsp_to_ir_ctx(
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
 
-                let value = block.call_function(ctx.read_half(), vec![addr.val()]);
+                let value = block.call_function(ctx.read_half(), &[addr.val()]);
 
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
@@ -405,7 +404,7 @@ pub fn rsp_to_ir_ctx(
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
 
-                let value = block.call_function(ctx.read_half(), vec![addr.val()]);
+                let value = block.call_function(ctx.read_half(), &[addr.val()]);
 
                 let sign_extended = block.convert_from(DataType::S16, DataType::S32, value.val());
 
@@ -415,7 +414,7 @@ pub fn rsp_to_ir_ctx(
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
 
-                let v = block.call_function(ctx.read_word(), vec![addr.val()]);
+                let v = block.call_function(ctx.read_word(), &[addr.val()]);
 
                 guest_regs.set_gpr(instr.rt(), v.val());
             }
@@ -424,21 +423,21 @@ pub fn rsp_to_ir_ctx(
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
 
-                block.call_function(ctx.write_byte(), vec![addr.val(), value]);
+                block.call_function(ctx.write_byte(), &[addr.val(), value]);
             }
             RspOpcode::SH => {
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
 
-                block.call_function(ctx.write_half(), vec![addr.val(), value]);
+                block.call_function(ctx.write_half(), &[addr.val(), value]);
             }
             RspOpcode::SW => {
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
 
-                block.call_function(ctx.write_word(), vec![addr.val(), value]);
+                block.call_function(ctx.write_word(), &[addr.val(), value]);
             }
             RspOpcode::ORI => {
                 let rs = guest_regs.get_gpr(&mut block, instr.rs());
@@ -473,7 +472,7 @@ pub fn rsp_to_ir_ctx(
                 let base = guest_regs.get_gpr(&mut block, instr.rs());
                 let addr = block.add(DataType::U32, base, const_s16(instr.s_imm()));
 
-                let value = block.call_function(ctx.read_byte(), vec![addr.val()]);
+                let value = block.call_function(ctx.read_byte(), &[addr.val()]);
 
                 let sign_extended = block.convert_from(DataType::S8, DataType::S32, value.val());
 
@@ -481,10 +480,10 @@ pub fn rsp_to_ir_ctx(
             }
             RspOpcode::MTC0 => {
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
-                block.call_function(ctx.set_rsp_cp0_register(), vec![const_u16(instr.rd() as u16), value]);
+                block.call_function(ctx.set_rsp_cp0_register(), &[const_u16(instr.rd() as u16), value]);
             }
             RspOpcode::MFC0 => {
-                let value = block.call_function(ctx.get_rsp_cp0_register(), vec![const_u16(instr.rd() as u16)]);
+                let value = block.call_function(ctx.get_rsp_cp0_register(), &[const_u16(instr.rd() as u16)]);
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
             // RspOpcode::VEC_VABS => todo!("RSP VEC_VABS"),
@@ -740,9 +739,9 @@ pub fn rsp_to_ir_ctx(
                 // Write as two 32-bit words
                 let value = block.convert_from(DataType::U128, DataType::U64, value).val();
                 let high = block.right_shift(DataType::U64, value, const_u16(32));
-                block.call_function(ctx.write_word(), vec![address, high.val()]);
+                block.call_function(ctx.write_word(), &[address, high.val()]);
                 let low_address = block.add(DataType::U32, address, const_u16(4));
-                block.call_function(ctx.write_word(), vec![low_address.val(), value]);
+                block.call_function(ctx.write_word(), &[low_address.val(), value]);
             }
             // RspOpcode::SFV => todo!("RSP SFV"),
             // RspOpcode::SHV => todo!("RSP SHV"),
