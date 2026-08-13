@@ -10,7 +10,7 @@ cargo_metadata = "0.17"
 serde = { version = " 1.0.186", features = ["derive"] }
 
 [dependencies.clap]
-version = "2.34"
+version = "4.0"
 default-features = false
 # Make sure this crate still compiles while it is checked out
 # in a sub-directory of a repository that has a Cargo.toml.
