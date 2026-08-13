@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 #include <system/n64system.h>
-#include <dynasm/dasm_proto.h>
 #include <common/util.h>
+#include <metrics.h>
 
 // 4KiB aligned pages
 #define BLOCKCACHE_OUTER_SHIFT 12
@@ -74,14 +74,18 @@ typedef struct n64_dynarec {
     bool* code_mask[BLOCKCACHE_OUTER_SIZE];
 } n64_dynarec_t;
 
+static_assert(sizeof(bool) == 1, "sizeof(bool) == 1");
+
 extern n64_dynarec_t n64dynarec;
 
 INLINE void invalidate_dynarec_page_by_index(u32 outer_index) {
+    mark_metric(METRIC_CODE_INVALIDATION);
     n64dynarec.blockcache[outer_index] = NULL;
+    n64dynarec.code_mask[outer_index] = NULL;
 }
 
 INLINE bool is_code(u32 physical_address) {
-    bool* code_mask = n64dynarec.code_mask[physical_address >> BLOCKCACHE_OUTER_SHIFT];
+    bool* code_mask = n64dynarec.code_mask[BLOCKCACHE_OUTER_INDEX(physical_address)];
     return code_mask != NULL && code_mask[BLOCKCACHE_INNER_INDEX(physical_address)];
 }
 
@@ -91,6 +95,8 @@ INLINE void invalidate_dynarec_page(u32 physical_address) {
     }
 }
 
+// Helper function called by JIT
+int interpreter_fallback_until_no_branch();
 int n64_dynarec_step();
 void n64_dynarec_init(u8* codecache, size_t codecache_size);
 void invalidate_dynarec_page(u32 physical_address);

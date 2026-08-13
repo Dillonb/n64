@@ -11,10 +11,8 @@
 #include <interface/vi.h>
 #include <interface/ai.h>
 #include <cpu/rsp.h>
-#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
 #include <dynarec/rsp_dynarec.h>
-#endif
 #include <util.h>
 #ifndef N64_WIN
 #include <sys/mman.h>
@@ -32,15 +30,23 @@
 #include <interface/pi.h>
 #include <mem/pif.h>
 #include <timing.h>
+#ifdef __APPLE__
+#include <pthread.h>
+#endif
 
 static bool should_quit = false;
 
 
-n64_system_t n64sys;
+n64_system_t* n64sys_ptr;
 
+#ifndef __APPLE__
 static u8 codecache[CODECACHE_SIZE] __attribute__((aligned(4096)));
-
 static u8 rsp_codecache[RSP_CODECACHE_SIZE] __attribute__((aligned(4096)));
+#else
+static u8* codecache = NULL;
+static u8* rsp_codecache = NULL;
+#endif
+
 
 bool n64_should_quit() {
     return should_quit;
@@ -59,8 +65,13 @@ void n64_load_rom(const char* rom_path) {
 }
 
 void mprotect_codecache() {
+    #ifdef __APPLE__
+    codecache = (u8*)mmap(NULL, CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,-1, 0);
+    rsp_codecache = (u8*)mmap(NULL, RSP_CODECACHE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,-1, 0);
+    #else
     mprotect_rwx((u8*)&codecache, CODECACHE_SIZE, "codecache");
     mprotect_rwx((u8*)&rsp_codecache, RSP_CODECACHE_SIZE, "codecache");
+    #endif
 }
 
 #ifdef LOG_CPU_STATE
@@ -68,6 +79,12 @@ FILE* log_file = NULL;
 #endif
 
 void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debug, n64_video_type_t video_type, bool use_interpreter) {
+    if (n64sys_ptr) {
+        logwarn("n64sys already initialized");
+    } else {
+        n64sys_ptr = malloc(sizeof(n64_system_t));
+    }
+
     if (n64cpu_ptr) {
         logwarn("n64cpu already initialized");
     } else {
@@ -86,12 +103,8 @@ void init_n64system(const char* rom_path, bool enable_frontend, bool enable_debu
     n64sys.video_type = video_type;
 
     mprotect_codecache();
-#ifdef N64_DYNAREC_ENABLED
     n64_dynarec_init(codecache, CODECACHE_SIZE);
-#endif
-#ifdef N64_DYNAREC_V1_ENABLED
     N64RSP.dynarec = rsp_dynarec_init(rsp_codecache, RSP_CODECACHE_SIZE);
-#endif
 
     if (enable_frontend) {
         render_init(video_type);
@@ -163,22 +176,18 @@ void reset_n64system() {
     n64sys.vi.num_fields = 1;
     n64sys.vi.cycles_per_halfline = 1000;
 
-#ifdef N64_DYNAREC_ENABLED
     invalidate_dynarec_all_pages();
-#endif
 
     scheduler_reset();
     scheduler_enqueue_relative((u64)n64sys.vi.cycles_per_halfline, SCHEDULER_VI_HALFLINE);
 }
 
-#ifdef N64_DYNAREC_ENABLED
 INLINE int jit_system_step() {
     int taken = n64_dynarec_step();
     N64CP0.count += taken;
     N64CP0.count &= 0x1FFFFFFFF;
     return taken;
 }
-#endif
 
 INLINE int interpreter_system_step_matchjit(const int cycles) {
     for (int i = 0; i < cycles; i++) {
@@ -257,9 +266,9 @@ void on_vi_halfline_complete(u64 time) {
             n64sys.vi.field++;
             if (n64sys.video_type != UNKNOWN_VIDEO_TYPE) {
                 persist_backup();
-                reset_all_metrics();
                 ai_step(n64sys.vi.missing_cycles);
                 rdp_update_screen();
+                reset_all_metrics();
             }
         }
 
@@ -316,11 +325,7 @@ int n64_system_step(bool dynarec, int steps) {
 
     int taken;
     if (dynarec) {
-#ifdef N64_DYNAREC_ENABLED
         taken = jit_system_step();
-#else
-        logfatal("Dynarec is not enabled!");
-#endif
     } else {
         taken = interpreter_system_step_matchjit(steps);
     }
@@ -337,11 +342,7 @@ int n64_system_step(bool dynarec, int steps) {
             // 2 RSP steps per 3 CPU steps
             N64RSP.steps += (cpu_steps / 3) * 2;
             cpu_steps %= 3;
-#ifdef N64_DYNAREC_V1_ENABLED
             rsp_dynarec_run();
-#else
-            rsp_run();
-#endif
         } else {
             N64RSP.steps = 0;
             cpu_steps = 0;
@@ -362,7 +363,6 @@ void n64_queue_reset() {
     scheduler_enqueue_relative(0, SCHEDULER_RESET_SYSTEM);
 }
 
-#ifdef N64_DYNAREC_ENABLED
 void jit_system_loop() {
     while (!should_quit) {
         static int cpu_steps = 0;
@@ -382,11 +382,7 @@ void jit_system_loop() {
             N64RSP.steps += (cpu_steps / 3) * 2;
             cpu_steps %= 3;
 
-#ifdef N64_DYNAREC_V1_ENABLED
             rsp_dynarec_run();
-#else
-            rsp_run();
-#endif
         } else {
             N64RSP.steps = 0;
             cpu_steps = 0;
@@ -394,7 +390,6 @@ void jit_system_loop() {
     }
     force_persist_backup();
 }
-#endif
 
 void interpreter_system_loop() {
     while (!should_quit) {
@@ -408,15 +403,11 @@ void interpreter_system_loop() {
 }
 
 void n64_system_loop() {
-#ifdef N64_DYNAREC_ENABLED
     if (n64sys.use_interpreter) {
-#endif
         interpreter_system_loop();
-#ifdef N64_DYNAREC_ENABLED
     } else {
         jit_system_loop();
     }
-#endif
 }
 
 void n64_system_cleanup() {
@@ -501,7 +492,7 @@ void interrupt_lower(n64_interrupt_t interrupt) {
             break;
         case INTERRUPT_AI:
             n64sys.mi.intr.ai = false;
-            loginfo("Lowering DP interrupt");
+            loginfo("Lowering AI interrupt");
             break;
         case INTERRUPT_SP:
             n64sys.mi.intr.sp = false;

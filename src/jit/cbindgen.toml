@@ -1,0 +1,3 @@
+language = "C"
+cpp_compat = true
+include_guard = "N64_JIT_RS_H"

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define SHOULD_LOG_PASSED_TESTS false
-#include "unit.h"
+#include "cpu_unit.h"
 
 #define imm11_entry(_input, _immediate, _output) {.input = _input, .immediate = _immediate, .output = _output}
 #define r21_entry(_r1, _r2, _output) {.r1 = _r1, .r2 = _r2, .output = _output}

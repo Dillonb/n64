@@ -4,7 +4,7 @@
 #ifndef N64_WIN
 #include <dlfcn.h>
 #endif
-#ifdef N64_MACOS
+#ifdef __APPLE__
 #include <limits.h>
 #else
 

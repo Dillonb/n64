@@ -1,8 +1,10 @@
 *build*
+!build.rs
 .idea
 .cache
 .vscode
 *.json
+!renovate.json
 .direnv
 *.ini
 result

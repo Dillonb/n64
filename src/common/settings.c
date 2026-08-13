@@ -9,19 +9,14 @@
 
 n64_settings_t n64_settings;
 
+static char config_file_path[PATH_MAX] = { 0 };
+
 #define CONFIG_FILENAME "dgb-n64.ini"
 
 #ifdef N64_WIN
 #define strtok_r strtok_s
-#include <direct.h>
-const char PATH_DELIMITER = '\\';
-#define GETCWD _getcwd
 #else
-#include <unistd.h>
 #include <SDL_keyboard.h>
-
-#define GETCWD getcwd
-const char PATH_DELIMITER = '/';
 #endif
 
 void n64_settings_load_defaults() {
@@ -209,6 +204,7 @@ void n64_settings_load_defaults() {
     n64_settings.controller[3].gamepad_enabled = false;
 
     n64_settings.scaling = 0;
+    n64_settings.volume = 1.0f;
     n64_settings.http_api_port = 0; // disabled
     strcpy(n64_settings.http_api_host, "127.0.0.1");
 }
@@ -261,6 +257,10 @@ int write_key_bindings(FILE* f, SDL_KeyCode bindings[2]) {
 
 int n64_settings_write(const char* path) {
     FILE* f = fopen(path, "w");
+    if (!f) {
+        logalways("WARNING: failed to open settings file for writing!");
+        return 1;
+    }
     CONFIG_LINE("; WARNING: this file will be overwritten automatically.");
     CONFIG_LINE("; Settings can be modified manually, but only when the emulator is closed.");
     CONFIG_LINE("; All formatting changes will be lost when the emulator rewrites this file.");
@@ -274,6 +274,10 @@ int n64_settings_write(const char* path) {
     CONFIG_LINE("[graphics]");
     CONFIG_LINE("; Graphics upscaling. Valid values: 0, 2, 4, 8.");
     CONFIG_LINE("upscaling=%d", n64_settings.scaling);
+
+    CONFIG_LINE("[audio]");
+    CONFIG_LINE("; Volume. Valid values: 0.0 - 1.0.");
+    CONFIG_LINE("volume=%f", n64_settings.volume);
 
     CONFIG_LINE("; Joybus devices/Controller ports. Configure what type of device is plugged in.");
     CONFIG_LINE("; Valid values: 'NONE', 'CONTROLLER', 'DANCEPAD', 'VRU', 'MOUSE', 'KEYBOARD', 'DENSHA'");
@@ -437,6 +441,13 @@ int handler(void* user, const char* section, const char* name, const char* value
         if (n64_settings.scaling != 0 && n64_settings.scaling != 2 && n64_settings.scaling != 4 && n64_settings.scaling != 8) {
             n64_settings.scaling = 0;
         }
+    } else if (MATCH("audio", "volume")) {
+        n64_settings.volume = atof(value);
+        if (n64_settings.volume < 0.0f) {
+            n64_settings.volume = 0.0f;
+        } else if (n64_settings.volume > 1.0f) {
+            n64_settings.volume = 1.0f;
+        }
     } else if (MATCH("http", "port")) {
         n64_settings.http_api_port = atoi(value);
     } else if (MATCH("http", "host")) {
@@ -452,15 +463,17 @@ int n64_settings_load(const char* path) {
 
 void n64_settings_init() {
     n64_settings_load_defaults();
-    char cwd[PATH_MAX];
-    char config_file_path[PATH_MAX];
-    if (!GETCWD(cwd, PATH_MAX)) {
-        logfatal("Unable to get current working directory.");
+
+    char* pref_path = SDL_GetPrefPath(NULL, "dgb-n64");
+    if (!pref_path) {
+        logfatal("Unable to get application data directory: %s", SDL_GetError());
     }
-    int result = snprintf(config_file_path, PATH_MAX, "%s%c" CONFIG_FILENAME, cwd, PATH_DELIMITER);
+    int result = snprintf(config_file_path, PATH_MAX, "%s" CONFIG_FILENAME, pref_path);
+    SDL_free(pref_path);
     if (result < 0) {
         logfatal("Unable to build path to config file.");
     }
+    logalways("Config file is located at %s", config_file_path);
     if (file_exists(config_file_path)) {
         int err = n64_settings_load(config_file_path);
         if (err != 0) {
@@ -468,5 +481,13 @@ void n64_settings_init() {
         }
     }
     // Rewrite settings file always
+    n64_settings_write(config_file_path);
+}
+
+void n64_settings_save() {
+    if (config_file_path[0] == '\0') {
+        logwarn("Not saving settings: settings were never initialized!");
+        return;
+    }
     n64_settings_write(config_file_path);
 }

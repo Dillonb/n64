@@ -15,7 +15,7 @@
 bool disassembler_initialized = false;
 #ifdef HAVE_CAPSTONE
 csh handle_mips64;
-csh handle_x86_64;
+csh handle_host;
 cs_insn* insn;
 #endif
 
@@ -28,7 +28,11 @@ void disassembler_initialize() {
     if (cs_open(CS_ARCH_MIPS, CS_MODE_MIPS64, &handle_mips64) != CS_ERR_OK) {
         logfatal("Failed to initialize capstone");
     }
-    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle_x86_64) != CS_ERR_OK) {
+#ifdef N64_ARM64
+    if (cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle_host) != CS_ERR_OK) {
+#else
+    if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle_host) != CS_ERR_OK) {
+#endif
         logfatal("Failed to initialize capstone ");
     }
 #endif
@@ -140,7 +144,7 @@ std::string disassemble_multi(DisassemblyArch arch, uintptr_t address, u8 *code,
     csh handle;
     switch (arch) {
         case DisassemblyArch::HOST:
-            handle = handle_x86_64;
+            handle = handle_host;
             break;
         case DisassemblyArch::GUEST:
             handle = handle_mips64;
@@ -179,5 +183,9 @@ void print_multi_host(uintptr_t address, u8 *code, size_t code_size) {
     printf("%s\n", disassemble_multi(DisassemblyArch::HOST, address, code, code_size).c_str());
 }
 void print_multi_guest(uintptr_t address, u8 *code, size_t code_size) {
+    // Stop addresses showing up as negative
+    if ((address >> 32) == 0xFFFFFFFF) {
+        address &= 0xFFFFFFFF;
+    }
     printf("%s\n", disassemble_multi(DisassemblyArch::GUEST, address, code, code_size).c_str());
 }

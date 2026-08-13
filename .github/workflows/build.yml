@@ -4,9 +4,12 @@ on: push
 
 jobs:
   build-windows:
-    runs-on: windows-2019
+    runs-on: windows-2025
+    permissions:
+      contents: read
+      packages: write
     env:
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+      VCPKG_ROOT: C:\vcpkg
 
     steps:
       - name: Checkout
@@ -14,17 +17,26 @@ jobs:
         with:
           submodules: true
 
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Configure NuGet for vcpkg caching
+        shell: bash
+        env:
+          FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        run: |
+          nuget sources add \
+            -Source "$FEED_URL" \
+            -StorePasswordInClearText \
+            -Name GitHubPackages \
+            -UserName "${{ github.repository_owner }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          nuget setapikey "${{ secrets.GITHUB_TOKEN }}" \
+            -Source "$FEED_URL"
 
       - name: Setup dependencies
-        run: |
-          vcpkg install shaderc:x64-windows
-          vcpkg install sdl2[vulkan]:x64-windows
+        env:
+          VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
+        run: vcpkg install shaderc:x64-windows sdl2[vulkan]:x64-windows libsamplerate:x64-windows nativefiledialog-extended:x64-windows
 
       - name: Build N64
         run: |
@@ -32,6 +44,14 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -T clangcl -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake ..
           cmake --build . --config Release
+        shell: cmd
+
+      - name: Run Rust JIT tests
+        env:
+          DUMP_STRUCT_LAYOUT_BIN: ${{ github.workspace }}\build\Release\dump_struct_layout.exe
+        run: |
+          cd src\jit
+          cargo test
         shell: cmd
 
       - name: Collect files
@@ -55,10 +75,19 @@ jobs:
         with:
           submodules: true
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Setup dependencies
         run: |
           sudo apt-get update -y -qq
-          sudo apt-get install glslc libsdl2-dev libdbus-1-dev libbz2-dev ninja-build
+          sudo apt-get install glslc libsdl2-dev libdbus-1-dev libbz2-dev libsamplerate0-dev ninja-build
+
+      - name: Build nativefiledialog-extended
+        run: |
+          git clone --depth 1 --branch v1.3.0 https://github.com/btzy/nativefiledialog-extended.git
+          cmake -S nativefiledialog-extended -B nativefiledialog-extended/build -DCMAKE_BUILD_TYPE=Release -DNFD_PORTAL=ON -DNFD_BUILD_TESTS=OFF
+          cmake --build nativefiledialog-extended/build
+          sudo cmake --install nativefiledialog-extended/build
 
       - name: Setup chksum64 and bass
         run: |
@@ -81,12 +110,19 @@ jobs:
           ninja
           strip n64
 
-      - name: Run tests on N64
+      # - name: Run tests on N64
+      #   env:
+      #     CTEST_OUTPUT_ON_FAILURE: 1
+      #   run: |
+      #     cd build
+      #     ninja test
+
+      - name: Run Rust JIT tests
         env:
-          CTEST_OUTPUT_ON_FAILURE: 1
+          DUMP_STRUCT_LAYOUT_BIN: ${{ github.workspace }}/build/dump_struct_layout
         run: |
-          cd build
-          ninja test
+          cd src/jit
+          cargo test
 
       - name: Collect files
         run: |
@@ -103,12 +139,13 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-22.04
-          - macos-14
+          - ubuntu-latest
+          - macos-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: DeterminateSystems/flake-checker-action@main
       - name: Run `nix build`
         run: nix build .

@@ -104,7 +104,6 @@ Very early stage. [parallel-rdp by Themaister](https://github.com/Themaister/par
 - [Peter Lemon](https://github.com/peterlemon/) for his tests, and permission to use his ASM code and font as a template for my own tests
 
 # Libraries Used
-- [DynASM](https://luajit.org/dynasm.html) as the emitter for the dynamic recompiler
 - [SDL2](https://www.libsdl.org/) for graphics, audio, and input
 - [Capstone](http://www.capstone-engine.org/) as a MIPS disassembler for debugging
 - [parallel-rdp](https://github.com/Themaister/parallel-rdp) as the RDP until I write my own

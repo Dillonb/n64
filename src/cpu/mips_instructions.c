@@ -83,6 +83,11 @@ MIPS_INSTR(mips_bnel) {
     conditional_branch_likely(instruction.i.immediate, rs != rt);
 }
 
+#ifdef INSTANT_DMA
+MIPS_INSTR(mips_cache) {
+    // NOP
+}
+#else
 #define ICACHE_OP(op) (((op) << 2) | 0)
 #define DCACHE_OP(op) (((op) << 2) | 1)
 MIPS_INSTR(mips_cache) {
@@ -167,6 +172,7 @@ MIPS_INSTR(mips_cache) {
     }
     return;
 }
+#endif
 
 MIPS_INSTR(mips_j) {
     u64 target = instruction.j.target;

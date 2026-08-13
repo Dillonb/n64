@@ -4,8 +4,92 @@
 #include "rsp_instructions.h"
 #include "rsp_vector_instructions.h"
 #include "disassemble.h"
+#include "dynarec/rsp_dynarec_compare.h"
 
 rsp_t n64rsp;
+
+u32 get_rsp_cp0_register(u8 r) {
+    switch (r) {
+        case RSP_CP0_DMA_CACHE:
+            return N64RSP.io.mem_addr.raw;
+        case RSP_CP0_DMA_DRAM:
+            return N64RSP.io.dram_addr.raw;
+        case RSP_CP0_DMA_READ_LENGTH:
+        case RSP_CP0_DMA_WRITE_LENGTH:
+            return N64RSP.io.dma.raw;
+        case RSP_CP0_SP_STATUS: return N64RSP.status.raw;
+        case RSP_CP0_DMA_FULL:  return N64RSP.status.dma_full;
+        case RSP_CP0_DMA_BUSY:  return N64RSP.status.dma_busy;
+        case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore();
+        case RSP_CP0_CMD_START:
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r);
+        case RSP_CP0_CMD_END:     return n64sys.dpc.end;
+        case RSP_CP0_CMD_CURRENT: return n64sys.dpc.current;
+        case RSP_CP0_CMD_STATUS:  return n64sys.dpc.status.raw;
+        case RSP_CP0_CMD_CLOCK:
+            logwarn("Read from RDP clock: returning 0.");
+            return 0;
+        case RSP_CP0_CMD_BUSY:
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
+        case RSP_CP0_CMD_PIPE_BUSY:
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r);
+        case RSP_CP0_CMD_TMEM_BUSY:
+            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r);
+        default:
+            logfatal("Unsupported RSP CP0 $c%d read", r);
+    }
+}
+
+void set_rsp_cp0_register(u8 r, u32 value) {
+    switch (r) {
+        case RSP_CP0_DMA_CACHE: N64RSP.io.shadow_mem_addr.raw = value; break;
+        case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dram_addr.raw = value; break;
+        case RSP_CP0_DMA_READ_LENGTH:
+            N64RSP.io.dma.raw = value;
+            rsp_dma_read();
+            break;
+        case RSP_CP0_DMA_WRITE_LENGTH:
+            N64RSP.io.dma.raw = value;
+            rsp_dma_write();
+            break;
+        case RSP_CP0_SP_STATUS:
+            rsp_status_reg_write(value);
+            break;
+        case RSP_CP0_DMA_FULL:
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r);
+        case RSP_CP0_DMA_BUSY:
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r);
+        case RSP_CP0_DMA_RESERVED: {
+            if (value == 0) {
+                rsp_release_semaphore();
+            } else {
+                logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value);
+            }
+            break;
+        }
+        case RSP_CP0_CMD_START:
+            rdp_start_reg_write(value);
+            break;
+        case RSP_CP0_CMD_END:
+            rdp_end_reg_write(value);
+            break;
+        case RSP_CP0_CMD_CURRENT:
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r);
+        case RSP_CP0_CMD_STATUS:
+            rdp_status_reg_write(value);
+            break;
+        case RSP_CP0_CMD_CLOCK:
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);
+        case RSP_CP0_CMD_BUSY:
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
+        case RSP_CP0_CMD_PIPE_BUSY:
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r);
+        case RSP_CP0_CMD_TMEM_BUSY:
+            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r);
+        default:
+            logfatal("Unsupported RSP CP0 $c%d written to", r);
+    }
+}
 
 bool rsp_acquire_semaphore() {
     if (N64RSP.semaphore_held) {
@@ -110,7 +194,7 @@ INLINE rspinstr_handler_t rsp_cp2_decode(u32 pc, mips_instruction_t instr) {
             case FUNCT_RSP_VEC_VINST: return rsp_vec_vzero; // undocumented
             case FUNCT_RSP_VEC_VINSQ: return rsp_vec_vzero; // undocumented
             case FUNCT_RSP_VEC_VINSN: return rsp_vec_vzero; // undocumented
-            case FUNCT_RSP_VEC_VNULL: return rsp_nop; // undocumented
+            case FUNCT_RSP_VEC_VNULL: return rsp_vec_vnop; // undocumented
             default: {
                 char buf[50];
                 disassemble(pc, instr.raw, buf, 50);
@@ -292,6 +376,13 @@ void cache_rsp_instruction(mips_instruction_t instr) {
     cache->handler(instr);
 }
 
+// Runs a single instruction through the interpreter, for ones the dynarec can't compile yet.
+void rsp_interpret_instruction(u32 raw) {
+    mips_instruction_t instr;
+    instr.raw = raw;
+    rsp_instruction_decode(N64RSP.prev_pc << 2, instr)(instr);
+}
+
 INLINE void _rsp_step() {
     u16 pc = N64RSP.pc & 0x3FF;
     rsp_icache_entry_t* cache = &N64RSP.icache[pc];
@@ -341,6 +432,16 @@ void rsp_step() {
     _rsp_step();
 }
 
+int rsp_interpreter_fallback_until_no_branch() {
+    int taken = 0;
+    do {
+        _rsp_step();
+        taken++;
+        // The RSP has no branch flag, so a pending branch is next_pc not pointing at the next instruction.
+    } while (!N64RSP.status.halt && (N64RSP.next_pc & 0x3FF) != ((N64RSP.pc + 1) & 0x3FF));
+    return taken;
+}
+
 void rsp_run() {
     int run_for = 0;
     // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
@@ -352,15 +453,14 @@ void rsp_run() {
     mark_metric_multiple(METRIC_RSP_STEPS, run_for);
 }
 
-#ifdef N64_DYNAREC_V1_ENABLED
 void rsp_dynarec_run() {
     int run_for = 0;
+    bool compare = rsp_compare_enabled();
     // This is set to 0 by the break instruction, and when halted by a write to SP_STATUS_REG
     while (N64RSP.steps > 0) {
-        int taken = rsp_dynarec_step();
+        int taken = compare ? rsp_dynarec_step_compare() : rsp_dynarec_step();
         N64RSP.steps -= taken;
         run_for += taken;
     }
     mark_metric_multiple(METRIC_RSP_STEPS, run_for);
 }
-#endif

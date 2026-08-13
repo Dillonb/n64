@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#ifdef N64_MACOS
+#ifdef __APPLE__
 #include <limits.h>
 #else
 #include <linux/limits.h>
@@ -8,6 +8,7 @@
 #include <bzlib.h>
 #include <system/n64system.h>
 #include <cpu/rsp.h>
+#include <cpu/dynarec/rsp_dynarec.h>
 #include <mem/mem_util.h>
 #include <cpu/n64_rsp_bus.h>
 
@@ -41,7 +42,7 @@ void load_rsp_dmem(u32* input, int input_size) {
     }
 }
 
-bool run_test(u32* input, int input_size, u32* output, int output_size) {
+bool run_test(u32* input, int input_size, u32* output, int output_size, bool use_dynarec) {
     load_rsp_dmem(input, input_size / 4);
 
     N64RSP.status.halt = false;
@@ -54,8 +55,12 @@ bool run_test(u32* input, int input_size, u32* output, int output_size) {
             logfatal("Test ran too long and was killed! Possible infinite loop?");
         }
 
-        cycles++;
-        rsp_step();
+        if (use_dynarec) {
+            cycles += rsp_dynarec_step();
+        } else {
+            cycles++;
+            rsp_step();
+        }
     }
 
     bool failed = false;
@@ -113,6 +118,15 @@ void load_test(const char* rsp_path) {
 }
 
 int main(int argc, char** argv) {
+    // Runs the same tests through the dynarec instead of the interpreter, so anything the JIT
+    // compiles is checked against the same golden data.
+    bool use_dynarec = false;
+    if (argc > 1 && strcmp(argv[1], "--dynarec") == 0) {
+        use_dynarec = true;
+        argv++;
+        argc--;
+    }
+
     if (argc < 5) {
         logfatal("Not enough arguments");
     }
@@ -155,12 +169,12 @@ int main(int argc, char** argv) {
         u8 output[output_size];
         checked_fread(output, 1, output_size, output_data_handle);
 
-        bool subtest_failed = run_test((u32 *) input, input_size, (u32 *) output, output_size);
+        bool subtest_failed = run_test((u32 *) input, input_size, (u32 *) output, output_size, use_dynarec);
 
         if (subtest_failed) {
-            printf("[%s %s] FAILED\n", test_name, subtest_name);
+            printf("[%s %s%s] FAILED\n", test_name, subtest_name, use_dynarec ? " dynarec" : "");
         } else {
-            printf("[%s %s] PASSED\n", test_name, subtest_name);
+            printf("[%s %s%s] PASSED\n", test_name, subtest_name, use_dynarec ? " dynarec" : "");
         }
 
         failed |= subtest_failed;

@@ -26,12 +26,8 @@ int main(int argc, char** argv) {
     bool help = false;
     cflags_add_bool(flags, 'h', "help", &help, "Display this help message");
 
-#ifdef N64_DYNAREC_ENABLED
     bool interpreter = false;
     cflags_add_bool(flags, 'i', "interpreter", &interpreter, "Force the use of the interpreter");
-#else
-    bool interpreter = true;
-#endif
 
     bool debug = false;
 #ifdef N64_DEBUG_MODE
@@ -98,13 +94,8 @@ int main(int argc, char** argv) {
             load_tas_movie(tas_movie_path);
         }
     }
-    if (pif_rom_path) {
-        load_pif_rom(pif_rom_path);
-    } else if (file_exists(PIF_ROM_PATH)) {
-        logalways("Found PIF ROM at %s, loading", PIF_ROM_PATH);
-        load_pif_rom(PIF_ROM_PATH);
-    }
-
+    cflags_free(flags);
+    MainWindow mw(rom_path, debug, interpreter, pif_rom_path);
 #ifdef N64_DEBUG_MODE
     if (debug) {
         if (n64_settings.http_api_port == 0) {
@@ -114,9 +105,6 @@ int main(int argc, char** argv) {
         n64sys.debugger_state.broken = true;
     }
 #endif
-
-    cflags_free(flags);
-    MainWindow mw(rom_path, debug, interpreter);
     mw.show();
     return app.exec();
 }

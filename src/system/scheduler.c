@@ -30,7 +30,7 @@ void scheduler_reset() {
 bool scheduler_tick(u64 ticks, scheduler_event_t* event) {
     n64scheduler.scheduler_ticks += ticks;
 
-    bool event_occurred = (n64scheduler.scheduler_list != NULL) && n64scheduler.scheduler_list->event.time < n64scheduler.scheduler_ticks;
+    bool event_occurred = (n64scheduler.scheduler_list != NULL) && n64scheduler.scheduler_list->event.time <= n64scheduler.scheduler_ticks;
 
     if (event_occurred) {
         *event = n64scheduler.scheduler_list->event;

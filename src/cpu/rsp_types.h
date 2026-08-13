@@ -4,9 +4,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <util.h>
-#ifdef N64_DYNAREC_V1_ENABLED
 #include <cpu/dynarec/rsp_dynarec.h>
-#endif
 #include "mips_instruction_decode.h"
 
 #define SP_DMEM_SIZE 0x1000
@@ -17,9 +15,7 @@ typedef union vu_reg {
     u8 bytes[16];
     s16 signed_elements[8];
     u16 elements[8];
-#ifdef N64_HAVE_SSE
     s128 single;
-#endif
     // Only used for loading
     u32 words[4];
 } vu_reg_t;
@@ -72,8 +68,8 @@ typedef union rsp_types {
         unsigned signal_7:1;
         unsigned:17;
 #endif
-    };
-} PACKED rsp_status_t;
+    } PACKED;
+} rsp_status_t;
 
 ASSERTWORD(rsp_status_t);
 
@@ -109,25 +105,18 @@ typedef union dram_addr {
 
 ASSERTWORD(dram_addr_t);
 
-#ifdef N64_DYNAREC_V1_ENABLED
 typedef struct rsp_dynarec rsp_dynarec_t;
-#endif
 
 typedef struct rsp {
-#ifdef N64_DYNAREC_V1_ENABLED
-    rsp_dynarec_t *dynarec;
-#endif
-
     u32 gpr[32];
     u16 prev_pc;
     u16 pc;
     u16 next_pc;
 
-    int steps;
+    u8 sp_dmem[SP_DMEM_SIZE];
+    u8 sp_imem[SP_IMEM_SIZE];
 
-#ifdef N64_HAVE_SSE
-    s128 zero;
-#endif
+    int steps;
 
     rsp_status_t status;
 
@@ -178,8 +167,8 @@ typedef struct rsp {
 
     bool semaphore_held;
 
-    u8 sp_dmem[SP_DMEM_SIZE];
-    u8 sp_imem[SP_IMEM_SIZE];
+    rsp_dynarec_t *dynarec;
+    s128 zero;
 } rsp_t;
 
 #endif //N64_RSP_TYPES_H

@@ -12,7 +12,6 @@ void flush_code_cache() {
     }
 }
 
-#ifdef N64_DYNAREC_V1_ENABLED
 void flush_rsp_code_cache() {
     logalways("Flushing RSP code cache!");
     // Just set the pointer back to the beginning, no need to clear the actual data.
@@ -21,7 +20,6 @@ void flush_rsp_code_cache() {
     // However, the block cache needs to be fully invalidated.
     reset_rsp_dynarec_code_overlays(N64RSPDYNAREC);
 }
-#endif
 
 void* dynarec_bumpalloc(size_t size) {
     if (n64dynarec.codecache_used + size >= n64dynarec.codecache_size) {
@@ -39,17 +37,19 @@ void* dynarec_bumpalloc(size_t size) {
     return ptr;
 }
 
+// TODO: this should take a size so that we can flush here if necessary, to guarantee the pointer is correct.
+void* dynarec_bumpalloc_get_next_allocation_ptr() {
+    return &n64dynarec.codecache[n64dynarec.codecache_used];
+}
+
 void* dynarec_bumpalloc_zero(size_t size) {
     u8* ptr = dynarec_bumpalloc(size);
 
-    for (int i = 0; i < size; i++) {
-        ptr[i] = 0;
-    }
+    memset(ptr, 0, size);
 
     return ptr;
 }
 
-#ifdef N64_DYNAREC_V1_ENABLED
 void* rsp_dynarec_bumpalloc(size_t size) {
     if (N64RSPDYNAREC->codecache_used + size >= N64RSPDYNAREC->codecache_size) {
         flush_rsp_code_cache();
@@ -65,4 +65,8 @@ void* rsp_dynarec_bumpalloc(size_t size) {
 
     return ptr;
 }
-#endif
+
+// TODO: this should take a size so that we can flush here if necessary, to guarantee the pointer is correct.
+void* rsp_dynarec_bumpalloc_get_next_allocation_ptr() {
+    return &N64RSPDYNAREC->codecache[N64RSPDYNAREC->codecache_used];
+}

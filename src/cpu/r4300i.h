@@ -638,13 +638,13 @@ typedef struct r4300i {
     fcr0_t  fcr0;
     fcr31_t fcr31;
 
+    // Needs to come before the cache so that the JIT can use it
+    cp0_t cp0;
+    u64 cp2_latch;
+
     // caches
     icache_line_t icache[512]; // 16KiB
     dcache_line_t dcache[512]; // 8KiB
-
-
-    cp0_t cp0;
-    u64 cp2_latch;
 
     // Cached value of `cp0.cause.interrupt_pending & cp0.status.im`
     u8 interrupts;
@@ -656,17 +656,6 @@ typedef struct r4300i {
 
     // Did an exception just happen?
     bool exception;
-
-    // Consts for the JIT
-    alignas(16) u32 s_mask[4];
-    alignas(16) u64 d_mask[2];
-    alignas(16) u32 s_neg[4];
-    alignas(16) u64 d_neg[2];
-    alignas(16) u32 s_abs[4];
-    alignas(16) u64 d_abs[2];
-
-    s64 int64_min;
-
 } r4300i_t;
 
 extern r4300i_t* n64cpu_ptr;

@@ -9,7 +9,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance issues",
     "path": "clay_fighter_63_1_3.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Blast Corps (Rev  1)",
@@ -21,7 +22,8 @@
     "compatibility": "MAJOR_ISSUES",
     "notes": "Flickering graphics, timing is way off. Game seems playable otherwise.",
     "path": "blastcorps.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Bust a Move '99",
@@ -33,7 +35,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bust_a_move_99.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Chameleon Twist 2",
@@ -45,7 +48,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "chameleon_twist_2.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Donkey Kong 64",
@@ -57,7 +61,8 @@
     "compatibility": "BROKEN",
     "notes": "",
     "path": "dk64.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Duke Nukem 64",
@@ -69,7 +74,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "duke_nukem_64.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Extreme G",
@@ -81,7 +87,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance issues",
     "path": "extreme_g.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Extreme G 2",
@@ -93,7 +100,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB issues",
     "path": "extreme_g_2.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "F1 Pole Position",
@@ -105,7 +113,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Does not detect controller pak",
     "path": "f1_pole_position.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Gex 64: Enter the Gecko",
@@ -117,7 +126,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance issues",
     "path": "gex_64_enter_the_gecko.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "International Superstar Soccer '98",
@@ -129,7 +139,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance issues",
     "path": "international_superstar_soccer_98.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Madden Football 64",
@@ -141,7 +152,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance issues",
     "path": "madden_football_64.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Mortal Kombat Mythologies: Sub-Zero",
@@ -153,7 +165,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "mortal_kombat_sub_zero.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Multi-Racing Championship",
@@ -165,7 +178,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mystical Ninja: Starring Goemon",
@@ -177,7 +191,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "mystical_ninja_goemon.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "NBA Pro '98",
@@ -189,7 +204,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Re-Volt",
@@ -201,7 +217,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Automobili Lamborghini",
@@ -213,7 +230,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Can't repair controller pak, works when I copy one repaired by another game.",
     "path": "automobili_lamborghini.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Bottom of the 9th",
@@ -225,7 +243,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Is the title screen supposed to be blue?",
     "path": "bottom_of_the_9th.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Carmageddon 64",
@@ -237,7 +256,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Audio sounded really rough.",
     "path": "carmageddon_64.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Fighting Force 64",
@@ -249,7 +269,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Major performance issues. Heavy use of self-modifying code.",
     "path": "fighting_force_64.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Jeopardy!",
@@ -261,7 +282,8 @@
     "compatibility": "MAJOR_ISSUES",
     "notes": "Input doesn't work on the title screen",
     "path": "jeopardy.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Jet Force Gemini",
@@ -273,7 +295,8 @@
     "compatibility": "BROKEN",
     "notes": "Crash after intro movie. Timing/cache related?",
     "path": "jetforcegemini.n64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Madden NFL 2000",
@@ -285,7 +308,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Madden NFL 2001",
@@ -297,7 +321,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NHL '99",
@@ -309,7 +334,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Olympic Hockey Nagano '98",
@@ -321,7 +347,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rainbow Six",
@@ -333,7 +360,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance problems",
     "path": "rainbowsix.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Rugrats: Treasure Hunt [Rugrats: Scavenger Hunt]",
@@ -345,7 +373,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "rugrats_scavenger.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Snowboard Kids",
@@ -357,7 +386,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "snowboard_kids.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "WCW Nitro",
@@ -369,7 +399,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WCW vs. NWO: World Tour (Rev 1)",
@@ -381,7 +412,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Wheel of Fortune",
@@ -393,7 +425,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "A Bug's Life",
@@ -405,7 +438,8 @@
     "compatibility": "BROKEN",
     "notes": "Stuck in a loop writing to invalid memory",
     "path": "bugslife.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Battletanx",
@@ -417,7 +451,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB error, looks like a null pointer dereference",
     "path": "battletanx.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Cruisi'n Exotica",
@@ -429,7 +464,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "cruisn_exotica.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Cruis'n USA (Rev 2)",
@@ -441,7 +477,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance issues",
     "path": "cruisn_usa.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "FIFA Soccer 64",
@@ -453,7 +490,8 @@
     "compatibility": "BROKEN",
     "notes": "Null pointer dereference",
     "path": "fifa_soccer_64.z64",
-    "date_tested": "2021-05-29"
+    "date_tested": "2021-05-29",
+    "commit_tested": ""
   },
   {
     "name": "Gauntlet Legends",
@@ -465,7 +503,8 @@
     "compatibility": "BROKEN",
     "notes": "Enables FPU overflow exception",
     "path": "gauntlet_legends.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "GT 64: Championship Edition",
@@ -477,7 +516,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "gt64_championship.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Hydro Thunder",
@@ -489,7 +529,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "hydro_thunder.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Indiana Jones and the Infernal Machine",
@@ -501,7 +542,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB issues, probably other issues too",
     "path": "indiana_jones.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "NBA Showtime: NBA on NBC",
@@ -513,7 +555,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Nightmare Creatures",
@@ -525,7 +568,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rat Attack!",
@@ -537,7 +581,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "ratattack.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Star Wars: Episode I: Battle for Naboo",
@@ -549,7 +594,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB issues",
     "path": "sw_ep1_battle_for_naboo.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Toy Story 2: Buzz Lightyear to the Rescue (Rev 1)",
@@ -561,7 +607,8 @@
     "compatibility": "BROKEN",
     "notes": "Stuck in a loop writing to invalid memory",
     "path": "toy_story_2.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Battletanx: Global Assault",
@@ -573,7 +620,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB error, looks like a null pointer dereference",
     "path": "battletanx_ga.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Body Harvest",
@@ -585,7 +633,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "body_harvest.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Asteroids Hyper 64",
@@ -597,7 +646,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "asteroids.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "California Speed",
@@ -609,7 +659,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "california_speed.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Doom 64 (Rev 1)",
@@ -621,7 +672,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "doom.n64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "G.A.S.P!! Fighter's NEXTream [Deadly Arts]",
@@ -633,7 +685,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "gasp.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Hey You, Pikachu",
@@ -645,7 +698,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB error, looks like a null pointer dereference",
     "path": "hey_you_pikachu.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Rugrats in Paris: The Movie",
@@ -657,7 +711,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rush 2: Extreme Racing USA",
@@ -669,7 +724,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "rush_2.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "San Francisco Rush: Extreme Racing",
@@ -681,7 +737,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "sf_rush_extreme_racing.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Zelda: Majora's Mask",
@@ -693,7 +750,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "majora.v64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "1080° Snowboarding",
@@ -705,7 +763,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Aero Fighters Assault",
@@ -717,7 +776,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "aerofighter.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "AeroGauge",
@@ -729,7 +789,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "aerogauge.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Aidyn Chronicles: The First Mage",
@@ -741,7 +802,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "aidyn.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "All Star Tennis '99",
@@ -753,7 +815,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "All-Star Baseball 2000",
@@ -765,7 +828,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "All-Star Baseball 2001",
@@ -777,7 +841,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "All-Star Baseball '99",
@@ -789,7 +854,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Armorines: Project S.W.A.R.M.",
@@ -801,7 +867,8 @@
     "compatibility": "BROKEN",
     "notes": "Performance issues due to executing code out of the TLB, large loop of TLB exceptions causes a freeze",
     "path": "armorines.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Army Men: Air Combat",
@@ -813,7 +880,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "army_men_air_combat.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Army Men: Sarge's Heroes",
@@ -825,7 +893,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "army_men_sarges_heroes.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Army Men: Sarge's Heroes 2",
@@ -837,7 +906,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "army_men_sarges_heroes_2.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Banjo Kazooie (Rev 1)",
@@ -849,7 +919,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Banjo Tooie",
@@ -861,7 +932,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Bass Hunter 64",
@@ -873,7 +945,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Bass Masters 2000",
@@ -885,7 +958,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bassmasters.z64",
-    "date_tested": "2021-05-22"
+    "date_tested": "2021-05-22",
+    "commit_tested": ""
   },
   {
     "name": "Batman Beyond: Return of the Joker",
@@ -897,7 +971,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Battlezone: Rise of the Black Dogs",
@@ -909,7 +984,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Beetle Adventure Racing",
@@ -921,7 +997,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Major performance issues. Heavy use of self-modifying code.",
     "path": "beetle_adventure_racing.v64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Big Mountain 2000",
@@ -933,7 +1010,8 @@
     "compatibility": "MAJOR_ISSUES",
     "notes": "Hang when you back out of the menus after retiring from a race",
     "path": "bigmountain2000.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Bio F.R.E.A.K.S.",
@@ -945,7 +1023,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "biofreaks.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Blues Brothers 2000",
@@ -957,7 +1036,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Unable to repair controller pak, works when another game's mempak is copied",
     "path": "bluesbrothers.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Bomberman 64",
@@ -969,7 +1049,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bomberman64.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Bomberman 64: The Second Attack",
@@ -981,7 +1062,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bomberman_second_attack.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Bomberman Hero",
@@ -993,7 +1075,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bomberman_hero.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Brunswick Circuit Pro Bowling",
@@ -1005,7 +1088,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Jittery video. Interlaced mode?",
     "path": "brunswick_bowling.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Buck Bumble",
@@ -1017,7 +1101,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "buckbumble.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Bust-A-Move 2: Arcade Edition",
@@ -1029,7 +1114,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "bust_a_move_2.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Castlevania 64 (Rev2)",
@@ -1041,7 +1127,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "castlevania.v64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Castlevania: Legacy of Darkness",
@@ -1053,7 +1140,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "castlevania_lod.v64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Chameleon Twist (Rev 1)",
@@ -1065,7 +1153,8 @@
     "compatibility": "BROKEN",
     "notes": "Stuck at a warning screen thinking my rumble pak is broken.",
     "path": "chameleon_twist.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Charlie Blast's Territory",
@@ -1077,7 +1166,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "charlie_blast.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Chopper Attack",
@@ -1089,7 +1179,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "chopper_attack.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "ClayFighter 63 1/3 Sculptor's Cut",
@@ -1101,7 +1192,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "clay_fighter_sculptors_cut.z64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Command and Conquer",
@@ -1113,7 +1205,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Performance issues",
     "path": "command_and_conquer.n64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Conker's Bad Fur Day",
@@ -1125,7 +1218,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB problems, RSP IMEM loaded with junk",
     "path": "conker.n64",
-    "date_tested": "2021-05-23"
+    "date_tested": "2021-05-23",
+    "commit_tested": ""
   },
   {
     "name": "Cruis'n World",
@@ -1137,7 +1231,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "cruisn_world.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "CyberTiger",
@@ -1149,7 +1244,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "Minor slowdowns",
     "path": "cybertiger.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Daikatana",
@@ -1161,7 +1257,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Dark Rift",
@@ -1173,7 +1270,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "niikii",
     "path": "darkrift.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Destruction Derby 64",
@@ -1185,7 +1283,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "destruction_derby.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Diddy Kong Racing (Rev 1)",
@@ -1197,7 +1296,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "diddykongracing.v64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Disney's Tarzan",
@@ -1209,7 +1309,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "tarzan.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Donald Duck: Goin' Quackers",
@@ -1221,7 +1322,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Dr. Mario 64",
@@ -1233,7 +1335,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "drmario.v64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Dual Heroes",
@@ -1245,7 +1348,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "dualheroes.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Duck Dodgers Starring Daffy Duck",
@@ -1257,7 +1361,8 @@
     "compatibility": "MAJOR_ISSUES",
     "notes": "Data stored near code causes recompiler issues, major slowdowns",
     "path": "duckdodgers.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Duke Nukem: Zero Hour",
@@ -1269,7 +1374,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Earthworm Jim 3D",
@@ -1281,7 +1387,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "earthworm_jim.v64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "ECW Hardcore Revolution",
@@ -1293,7 +1400,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Elmo's Letter Adventure",
@@ -1305,7 +1413,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Elmo's Number Journey",
@@ -1317,7 +1426,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Excitebike 64 (Rev 1)",
@@ -1329,7 +1439,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "excitebike.v64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "F-1 World Grand Prix",
@@ -1341,7 +1452,8 @@
     "compatibility": "MAJOR_ISSUES",
     "notes": "Data stored near code causes recompiler issues, major performance problems.",
     "path": "f1worldgp.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "FIFA '99",
@@ -1353,7 +1465,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "fifa99.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "FIFA: Road to World Cup",
@@ -1365,7 +1478,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Fighters Destiny",
@@ -1377,7 +1491,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "fighters_destiny.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Fighter Destiny 2",
@@ -1389,7 +1504,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "fighters_destiny_2.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Flying Dragon",
@@ -1401,7 +1517,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "flying_dragon.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Forsaken 64",
@@ -1413,7 +1530,8 @@
     "compatibility": "BROKEN",
     "notes": "hang when repairing controller pak, hang when going ingame",
     "path": "forsaken_64.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Fox Sports College Hoops '99",
@@ -1425,7 +1543,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Intro movie plays way too fast",
     "path": "fox_college_hoops.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "F-Zero X",
@@ -1437,7 +1556,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "fzero.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Gex 3: Deep Cover Gecko",
@@ -1449,7 +1569,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "gex3.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Glover",
@@ -1461,7 +1582,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "glover.v64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Golden Nugget 64",
@@ -1473,7 +1595,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "golden_nugget.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Goldeneye",
@@ -1485,7 +1608,8 @@
     "compatibility": "BROKEN",
     "notes": "TLB issues",
     "path": "goldeneye.v64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Harvest Moon 64",
@@ -1497,7 +1621,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "harvestmoon.v64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Hercules: The Legendary Journeys",
@@ -1509,7 +1634,8 @@
     "compatibility": "MINOR_ISSUES",
     "notes": "Unable to repair controller pak, crackly audio",
     "path": "hercules.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "HeXen",
@@ -1521,7 +1647,8 @@
     "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "hexen.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Holy Magic Century [Quest 64]",
@@ -1533,7 +1660,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "quest.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Hot Wheels Turbo Racing",
@@ -1545,7 +1673,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "hotwheels.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Hybrid Heaven",
@@ -1557,7 +1686,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "hybrid_heaven.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Iggy's Reckin' Balls",
@@ -1569,7 +1699,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "iggys_reckin_balls.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Indy Racing 2000",
@@ -1581,7 +1712,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "indy_racing_2000.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "International Superstar Soccer 2000 (Rev 1)",
@@ -1593,7 +1725,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "international_superstar_soccer_2000.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "International Superstar Soccer 64",
@@ -1605,7 +1738,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "international_superstar_soccer_64.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "International Track & Field 2000",
@@ -1617,7 +1751,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "international_track_and_field_2000.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Jeremy McGrath Supercross 2000",
@@ -1629,7 +1764,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "jeremy_mcgrath_supercross_2000.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Ken Griffey, Jr.'s Slugfest",
@@ -1641,7 +1777,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "ken_griffy_jrs_slugfest.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Killer Instinct Gold (Rev 2)",
@@ -1653,7 +1790,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "killer_instinct_gold.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Kirby 64: The Crystal Shards",
@@ -1665,7 +1803,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "kirby64.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Knife Edge: Nose Gunner",
@@ -1677,7 +1816,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "knife_edge_nose_gunner.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Knockout Kings 2000",
@@ -1689,7 +1829,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "knockout_kings.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Kobe Bryant in NBA Courtside",
@@ -1701,7 +1842,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "kobe_bryant.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Lego Racers",
@@ -1713,7 +1855,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "legoracers.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Lode Runner 3D",
@@ -1725,7 +1868,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "loderunner3d.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mace: The Dark Age",
@@ -1737,7 +1881,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mace_dark_age.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Madden NFL 2002",
@@ -1749,7 +1894,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Madden NFL '99 (Rev 1)",
@@ -1761,7 +1907,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Magical Tetris Challenge",
@@ -1773,7 +1920,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Major League Baseball Featuring Ken Griffey, Jr.",
@@ -1785,7 +1933,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mario Golf",
@@ -1797,7 +1946,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mariogolf.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mario Kart 64",
@@ -1809,7 +1959,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mk64.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mario Party",
@@ -1821,7 +1972,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mario_party_1.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mario Party 2",
@@ -1833,7 +1985,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mario_party_2.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mario Party 3",
@@ -1845,7 +1998,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mario_party_3.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mario Tennis",
@@ -1857,7 +2011,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mariotennis.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Megaman 64",
@@ -1869,7 +2024,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "megaman.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Michael Owen's WLS 2000 [Mia Hamm Soccer 64]",
@@ -1881,7 +2037,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mickey's Speedway USA",
@@ -1893,7 +2050,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Micro Machines 64 Turbo",
@@ -1905,7 +2063,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "micro_machines.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Midway's Greatest Arcade Hits: Volume 1",
@@ -1917,7 +2076,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mike Piazza's Strike Zone",
@@ -1929,7 +2089,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Milo's Astro Lanes",
@@ -1941,7 +2102,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mischief Makers (Rev 1)",
@@ -1953,7 +2115,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mischief_makers.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mission Impossible",
@@ -1965,7 +2128,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mission_impossible.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Monaco Grand Prix",
@@ -1977,7 +2141,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Monopoly",
@@ -1989,7 +2154,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "monopoly.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Monster Truck Madness 64",
@@ -2001,7 +2167,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "monster_truck_madness.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mortal Kombat 4",
@@ -2013,7 +2180,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mortal_kombat_4.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mortal Kombat Trilogy (Rev 2)",
@@ -2025,7 +2193,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mortal_kombat_trilogy.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Ms. Pac-Man Maze Madness",
@@ -2037,7 +2206,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "ms_pac_man.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Mystical Ninja 2: Starring Goemon [Goemon's Great Adventure]",
@@ -2049,7 +2219,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "mystical_ninja_2_goemon.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Nagano Winter Olympics '98",
@@ -2061,7 +2232,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Namco Museum 64",
@@ -2070,10 +2242,11 @@
     "developer": "Mass Media",
     "publisher": "Namco",
     "genre": "Arcade",
-    "compatibility": "UNTESTED",
+    "compatibility": "FULLY_PLAYABLE",
     "notes": "",
     "path": "namcomuseum.z64",
-    "date_tested": ""
+    "date_tested": "2026-03-08 12:36:22",
+    "commit_tested": "deda3fb"
   },
   {
     "name": "NASCAR 2000",
@@ -2085,7 +2258,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NASCAR 99",
@@ -2097,7 +2271,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Courtside 2: Featuring Kobe Bryant",
@@ -2109,7 +2284,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Hangtime",
@@ -2121,7 +2297,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Jam 2000",
@@ -2133,7 +2310,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Jam '99",
@@ -2145,7 +2323,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Live 2000",
@@ -2157,7 +2336,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Live '99",
@@ -2169,7 +2349,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Pro 2000",
@@ -2181,7 +2362,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NBA Pro '99",
@@ -2193,7 +2375,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Blitz",
@@ -2205,7 +2388,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Blitz 2000 (Rev 1)",
@@ -2217,7 +2401,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Blitz 2001",
@@ -2229,7 +2414,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Blitz Special Edition",
@@ -2241,7 +2427,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Quarterback Club 2000",
@@ -2253,7 +2440,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Quarterback Club 2001",
@@ -2265,7 +2453,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Quarterback Club '98",
@@ -2277,7 +2466,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NFL Quarterback Club '99",
@@ -2289,7 +2479,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NHL Blades of Steel '99",
@@ -2301,7 +2492,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NHL Breakaway '98",
@@ -2313,7 +2505,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "NHL Breakaway '99",
@@ -2325,7 +2518,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Nuclear Strike 64",
@@ -2337,7 +2531,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "nuclear_strike.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Off Road Challenge",
@@ -2349,7 +2544,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "offroad_challenge.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Ogre Battle 64: Person of Lordly Caliber (Rev 1)",
@@ -2361,7 +2557,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "ogre_battle_64.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Operation: Winback",
@@ -2373,7 +2570,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Paper Mario",
@@ -2385,7 +2583,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "papermario.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Paperboy 64",
@@ -2397,7 +2596,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "paperboy.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Penny Racers",
@@ -2409,7 +2609,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Perfect Dark (Rev 1)",
@@ -2421,7 +2622,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "perfectdark.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "PGA European Tour Golf",
@@ -2433,7 +2635,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Pilotwings 64",
@@ -2445,7 +2648,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "pilotwings.n64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Pokémon Puzzle League",
@@ -2457,7 +2661,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "pokemon_puzzle.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Pokemon Snap",
@@ -2469,7 +2674,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "pokemonsnap.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Pokemon Stadium (Rev 2)",
@@ -2481,7 +2687,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "pokemonstadium2.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Pokemon Stadium 2",
@@ -2493,7 +2700,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "pokemonstadium2.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Polaris SnoCross",
@@ -2505,7 +2713,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Power Rangers Lightspeed Rescue",
@@ -2517,7 +2726,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "power_rangers_lightspeed.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Quake 64",
@@ -2529,7 +2739,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Quake II 64",
@@ -2541,7 +2752,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "quake_ii.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rally Challenge 2000",
@@ -2553,7 +2765,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rampage 2: Universal Tour",
@@ -2565,7 +2778,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "rampage_2.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rampage: World Tour",
@@ -2577,7 +2791,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "rampage_world_tour.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rayman 2: The Great Escape",
@@ -2589,7 +2804,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "rayman_2.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Razor Freestyle Scooter",
@@ -2601,7 +2817,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Ready 2 Rumble Boxing",
@@ -2613,7 +2830,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "ready_2_rumble_1.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Ready 2 Rumble Boxing: Round 2",
@@ -2625,7 +2843,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "ready_2_rumble_2.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Resident Evil 2 (Rev 1)",
@@ -2637,7 +2856,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "re2.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Ridge Racer 64",
@@ -2649,7 +2869,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "rr64.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Road Rash 64",
@@ -2661,7 +2882,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "road_rash.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Roadsters",
@@ -2673,7 +2895,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "roadsters.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Robotron 64",
@@ -2685,7 +2908,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "robotron.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Rocket: Robot on Wheels",
@@ -2697,7 +2921,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "rocket_robot_on_wheels.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "S.C.A.R.S.",
@@ -2709,7 +2934,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "scars.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "San Francisco Rush 2049",
@@ -2721,7 +2947,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "sf_rush_2049.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Scooby Doo! Classic Creep Capers",
@@ -2733,7 +2960,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Shadowgate 64: Trials of the Four Towers",
@@ -2745,7 +2973,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "shadowgate.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Shadowman",
@@ -2757,7 +2986,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "shadowman.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Snowboard Kids 2",
@@ -2769,7 +2999,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "snowboard_kids_2.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "South Park",
@@ -2781,7 +3012,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "south_park.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "South Park Rally",
@@ -2793,7 +3025,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "south_park_rally.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "South Park: Chef's Luv Shack",
@@ -2805,7 +3038,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "south_park_chefs_luv_shack.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Space Invaders",
@@ -2817,7 +3051,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "space_invaders.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Space Station Silicon Valley (Rev  1)",
@@ -2829,7 +3064,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "spacestation_sv.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Spider-Man",
@@ -2841,7 +3077,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "spiderman.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Star Fox 64 (Rev 1)",
@@ -2853,7 +3090,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "starfox.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Star Soldier: Vanishing Earth",
@@ -2865,7 +3103,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Star Wars Episode I: Racer",
@@ -2877,7 +3116,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "ep1racer.n64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Star Wars: Rogue Squadron",
@@ -2889,7 +3129,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "rogue_squadron.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Star Wars: Shadows of the Empire (Rev 2)",
@@ -2901,7 +3142,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "star_wars_shadows_of_the_empire.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Starcraft 64",
@@ -2913,7 +3155,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "starcraft.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Starshot: Space Circus Fever",
@@ -2925,7 +3168,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "starshot_space_circus.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Stunt Racer 64",
@@ -2937,7 +3181,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "stunt_racer.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Super Bowling",
@@ -2949,7 +3194,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "super_bowling.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Super Mario 64",
@@ -2961,7 +3207,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "sm64.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Super Smash Bros",
@@ -2973,7 +3220,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "ssb.n64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Supercross 2000",
@@ -2985,7 +3233,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "supercross_2000.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Superman 64 [Superman: The New Superman Adventures]",
@@ -2997,7 +3246,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "superman.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Tetrisphere",
@@ -3009,7 +3259,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "tetrisphere.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "The New Tetris",
@@ -3021,7 +3272,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "new_tetris.n64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "The Powerpuff Girls: Chemical X-traction",
@@ -3033,7 +3285,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "The World Is Not Enough",
@@ -3045,7 +3298,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "twine.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Tigger's Honey Hunt",
@@ -3057,7 +3311,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Tom & Jerry in Fists of Furry",
@@ -3069,7 +3324,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "tom_and_jerry.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Tonic Trouble (Rev 1)",
@@ -3081,7 +3337,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Tony Hawk's Pro Skater 2",
@@ -3093,7 +3350,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "tony_hawk_2.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Tony Hawk's Pro Skater 3",
@@ -3105,7 +3363,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "tony_hawk_3.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Tony Hawk's Pro Skater",
@@ -3117,7 +3376,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "tony_hawk_1.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Top Gear Hyper Bike",
@@ -3129,7 +3389,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "top_gear_hyper_bike.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Top Gear Overdrive",
@@ -3141,7 +3402,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "top_gear_overdrive.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Top Gear Rally",
@@ -3153,7 +3415,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Top Gear Rally 2",
@@ -3165,7 +3428,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "top_gear_rally_2.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Transformers: Beast Wars Transmetals",
@@ -3177,7 +3441,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Triple Play 2000",
@@ -3189,7 +3454,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "triple_play_2000.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Turok 2: Seeds of Evil (Rev 1)",
@@ -3201,7 +3467,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "turok_2.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Turok 3: Shadow of Oblivion",
@@ -3213,7 +3480,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "turok_3.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Turok: Dinosaur Hunter (Rev 2)",
@@ -3225,7 +3493,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "turok_dinosaur_hunter.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Turok: Rage Wars (Rev 1)",
@@ -3237,7 +3506,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "turok_rage_wars.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Twisted Extreme Edge Snowboarding",
@@ -3249,7 +3519,8 @@
     "compatibility": "MAJOR_ISSUES",
     "notes": "No audio, known hardware bug",
     "path": "twisted_edge.z64",
-    "date_tested": "2021-05-30"
+    "date_tested": "2021-05-30",
+    "commit_tested": ""
   },
   {
     "name": "Vigilante 8",
@@ -3261,7 +3532,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "vigilante_8.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Vigilante 8: 2nd Offense",
@@ -3273,7 +3545,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "vigilante_8_2nd_offense.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Virtual Chess 64",
@@ -3285,7 +3558,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Virtual Pool 64",
@@ -3297,7 +3571,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "virtual_pool.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "V-Rally Edition '99",
@@ -3309,7 +3584,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "v-rally.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Waialae Country Club: True Golf Classics (Rev 1)",
@@ -3321,7 +3597,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "War Gods",
@@ -3333,7 +3610,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "war_gods.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Wave Race 64",
@@ -3345,7 +3623,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "wave_race.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Wayne Gretzky's 3D Hockey (Rev 1)",
@@ -3357,7 +3636,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "wayne_gretzky_3d_hockey.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Wayne Gretzky's 3D Hockey '98",
@@ -3369,7 +3649,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WCW Backstage Assault",
@@ -3381,7 +3662,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WCW Mayhem",
@@ -3393,7 +3675,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WCW/NWO Revenge",
@@ -3405,7 +3688,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "wcw_nwo_revenge.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Wetrix",
@@ -3417,7 +3701,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "wetrix.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Wipeout 64",
@@ -3429,7 +3714,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "wipeout.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "World Cup 98",
@@ -3441,7 +3727,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "World Driver Championship",
@@ -3453,7 +3740,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "world_driver_championship.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Worms Armageddon 64",
@@ -3465,7 +3753,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "worms_armageddon.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WWF Attitude",
@@ -3477,7 +3766,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WWF No Mercy (Rev 1)",
@@ -3489,7 +3779,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "wwf_no_mercy.v64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WWF War Zone",
@@ -3501,7 +3792,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "WWF WrestleMania 2000",
@@ -3513,7 +3805,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "wrestlemania_2000.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Xena: Warrior Princess: The Talisman of Fate",
@@ -3525,7 +3818,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "xena.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Yoshi's Story",
@@ -3537,7 +3831,8 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "yoshi.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   },
   {
     "name": "Zelda: Ocarina of Time (Rev 2)",
@@ -3549,6 +3844,7 @@
     "compatibility": "UNTESTED",
     "notes": "",
     "path": "oot.z64",
-    "date_tested": ""
+    "date_tested": "",
+    "commit_tested": ""
   }
 ]

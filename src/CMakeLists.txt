@@ -20,13 +20,15 @@ add_subdirectory(debugger)
 add_subdirectory(contrib/parallel-rdp)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/cic_nus_6105)
-block(SCOPE_FOR VARIABLES POLICIES)
-        set(BUILD_TESTING Off)
-        add_subdirectory(contrib/libsamplerate)
-endblock()
+add_subdirectory(contrib/corrosion)
+add_subdirectory(jit) # depends on corrosion
+find_package(SampleRate CONFIG QUIET)
+if (NOT SampleRate_FOUND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(samplerate REQUIRED IMPORTED_TARGET samplerate)
+endif()
 
-SET(NFD_PORTAL ON CACHE BOOL "Use dbus for native file dialog instead of gtk")
-add_subdirectory(contrib/nativefiledialog-extended)
+find_package(nfd REQUIRED)
 add_subdirectory(contrib/inih)
 add_subdirectory(tools)
 
@@ -51,6 +53,7 @@ add_library(core
         mem/n64rom.c mem/n64rom.h
         mem/n64mem.c mem/n64mem.h
         mem/n64bus.c mem/n64bus.h
+        mem/memory_logger.cpp mem/memory_logger.h
         mem/pif.c mem/pif.h
         mem/backup.c mem/backup.h
 
@@ -68,10 +71,11 @@ add_library(core
         frontend/game_db.c frontend/game_db.h
         frontend/http_api.cpp frontend/http_api.h)
 
-target_include_directories(core PUBLIC
-        contrib/libsamplerate/include)
-
-target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 samplerate)
+if (SampleRate_FOUND)
+    target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 SampleRate::samplerate)
+else()
+    target_link_libraries(core r4300i rsp rdp parallel-rdp debugger ${SDL2_LIBRARY} cic_nus_6105 PkgConfig::samplerate)
+endif()
 
 add_library(imgui-ui
         imgui/imgui_ui.cpp imgui/imgui_ui.h)
@@ -80,12 +84,24 @@ target_include_directories(imgui-ui PUBLIC
         contrib/parallel-rdp/parallel-rdp-standalone/volk
         contrib/parallel-rdp/parallel-rdp-standalone/vulkan
         contrib/parallel-rdp/parallel-rdp-standalone/util
-        contrib/nativefiledialog-extended/src/include
         )
 
-target_link_libraries(imgui-ui imgui nfd)
+target_link_libraries(imgui-ui imgui nfd::nfd)
 
 add_executable(${N64_TARGET} frontend/cli_frontend.c)
 target_link_libraries(${N64_TARGET} common core imgui-ui)
+
+if (MACOSX)
+    # Link MoltenVK directly on macOS
+    find_library(MOLTENVK_LIB NAMES libMoltenVK.dylib REQUIRED)
+    get_filename_component(MOLTENVK_LIB_DIR "${MOLTENVK_LIB}" DIRECTORY)
+    message("Found MoltenVK library: ${MOLTENVK_LIB}")
+    message("Library directory for rpath: ${MOLTENVK_LIB_DIR}")
+
+    target_link_libraries(${N64_TARGET} "${MOLTENVK_LIB}")
+    set_target_properties(${N64_TARGET} PROPERTIES
+            BUILD_RPATH "${MOLTENVK_LIB_DIR}"
+            INSTALL_RPATH "${MOLTENVK_LIB_DIR}")
+endif()
 
 install(TARGETS ${N64_TARGET} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

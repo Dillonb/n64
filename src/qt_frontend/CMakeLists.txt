@@ -17,4 +17,11 @@ set_target_properties(${N64_QT_TARGET}
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${N64_EXECUTABLE_OUTPUT_PATH}"
 )
+if (MACOSX)
+    target_link_libraries(${N64_QT_TARGET} "${MOLTENVK_LIB}")
+    set_target_properties(${N64_QT_TARGET} PROPERTIES
+            BUILD_RPATH "${MOLTENVK_LIB_DIR}"
+            INSTALL_RPATH "${MOLTENVK_LIB_DIR}")
+endif()
+
 install(TARGETS ${N64_QT_TARGET} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

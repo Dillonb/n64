@@ -30,14 +30,14 @@ def get_just_filename(path: str):
     return name
 
 
-for filename in glob.glob("./input/*.toml"):
+for filename in sorted(glob.glob("./input/*.toml")):
     test_name = get_just_filename(filename)
+
+    test_data = toml.load(filename)
 
     cmakelists.write("configure_file(%s.golden %s.golden COPYONLY)\n" % (test_name, test_name))
     cmakelists.write("configure_file(%s.rsp %s.rsp COPYONLY)\n" % (test_name, test_name))
     cmakelists.write("configure_file(%s.input %s.input COPYONLY)\n" % (test_name, test_name))
-
-    test_data = toml.load(filename)
 
     input_size = get_data_size(test_data["input_desc"])
     output_size = get_data_size(test_data["output_desc"])
@@ -54,12 +54,13 @@ for filename in glob.glob("./input/*.toml"):
 
     input_data.close()
 
-    addtest_line = "add_test(NAME test_rsp_%s COMMAND test_rsp %s %d %d" % (test_name, test_name, input_size, output_size)
+    subtests = "".join(" " + name for name in test_names)
 
-    for name in test_names:
-        addtest_line += " " + name
-    addtest_line += ")\n"
+    cmakelists.write("add_test(NAME test_rsp_%s COMMAND test_rsp %s %d %d%s)\n" % (
+        test_name, test_name, input_size, output_size, subtests))
 
-    cmakelists.write(addtest_line)
+    # The same test again, but run through the dynarec rather than the interpreter.
+    cmakelists.write("add_test(NAME test_rsp_dynarec_%s COMMAND test_rsp --dynarec %s %d %d%s)\n" % (
+        test_name, test_name, input_size, output_size, subtests))
 
 cmakelists.close()

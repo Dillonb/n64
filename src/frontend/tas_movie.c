@@ -152,6 +152,8 @@ void load_tas_movie(const char* filename) {
     }
 
     loaded_tas_movie_index = sizeof(m64_movie_header_t) - 4; // skip header
+
+    fclose(fp);
 }
 
 bool tas_movie_loaded() {

@@ -1,10 +1,10 @@
 #include "dynarec.h"
 
+#include "jit_rs.h"
+
 #include <mem/n64bus.h>
-#include <dynasm/dasm_proto.h>
 #include <metrics.h>
 #include "dynarec_memory_management.h"
-#include "v1/v1_compiler.h"
 #include "v2/v2_compiler.h"
 
 // Uncomment to try to find idle loops
@@ -17,8 +17,19 @@ void update_sysconfig() {
     //n64dynarec.sysconfig.fr = N64CP0.status.fr;
 }
 
+int interpreter_fallback_until_no_branch() {
+    int taken = 0;
+    do {
+        r4300i_step();
+        taken++;
+    } while(N64CPU.branch); // Loop until not in a delay slot
+    return taken;
+}
+
 int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_block_sysconfig_t current_sysconfig) {
     u32 outer_index = physical_address >> BLOCKCACHE_OUTER_SHIFT;
+
+    CODECACHE_ALLOW_WRITES();
 
     block->run = NULL;
     block->host_size = 0;
@@ -34,13 +45,14 @@ int missing_block_handler(u32 physical_address, n64_dynarec_block_t* block, n64_
 #endif
 
     mark_metric(METRIC_BLOCK_COMPILATION);
-    v2_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
+    v3_compile_new_block(block, code_mask, N64CPU.pc, physical_address);
+    CODECACHE_ALLOW_EXEC();
+
     if (block->run == NULL) {
-        logfatal("Failed to compile block!");
-        //v1_compile_new_block(block, code_mask, N64CPU.pc, physical);
+       logfatal("Failed to compile block!");
     }
 
-    return n64dynarec.run_block((u64)block->run);
+    return block->run(&N64CPU);
 }
 
 INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64_block_sysconfig_t current_sysconfig, u64 virtual_address) {
@@ -49,6 +61,7 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         // make sure it matches the sysconfig and virtual address. If not, keep looking.
         if (block_iter->sysconfig.raw == current_sysconfig.raw && block_iter->virtual_address == virtual_address) {
             if (block_iter != blocks) {
+                CODECACHE_ALLOW_WRITES();
                 n64_dynarec_block_t temp = *blocks;
                 copy_dynarec_block(blocks, block_iter);
                 copy_dynarec_block(block_iter, &temp);
@@ -60,6 +73,7 @@ INLINE n64_dynarec_block_t* find_matching_block(n64_dynarec_block_t* blocks, n64
         }
         // Add a block to the end of the list
         if (block_iter->next == NULL) {
+            CODECACHE_ALLOW_WRITES();
             block_iter->next = dynarec_bumpalloc_zero(sizeof(n64_dynarec_block_t));
             return block_iter->next;
         }
@@ -74,9 +88,11 @@ INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysco
     n64_dynarec_block_t* block_list = n64dynarec.blockcache[outer_index];
 
     if (unlikely(block_list == NULL)) {
+        mark_metric(METRIC_NEW_JIT_BLOCK_LIST_ALLOCATED);
 #ifdef N64_LOG_COMPILATIONS
         printf("Need a new block list for page 0x%05X (address 0x%08X virtual 0x%08X)\n", outer_index, physical_address, N64CPU.pc);
 #endif
+        CODECACHE_ALLOW_WRITES();
         block_list = dynarec_bumpalloc_zero(BLOCKCACHE_INNER_SIZE * sizeof(n64_dynarec_block_t));
         for (int i = 0; i < BLOCKCACHE_INNER_SIZE; i++) {
             block_list[i].run = NULL;
@@ -95,7 +111,7 @@ INLINE n64_dynarec_block_t* block_at_address(n64_block_sysconfig_t current_sysco
 
 #ifdef LOG_ENABLED
     static long total_blocks_run;
-    logdebug("Running block at 0x%016" PRIX64 " - block run #%ld - block FP: 0x%016" PRIX64, N64CPU.pc, ++total_blocks_run, (uintptr_t)block->run);
+    logdebug("Running block at 0x%016" PRIX64 " - block run #%ld - block FP: 0x%016" PRIX64, N64CPU.pc, ++total_blocks_run, (u64)block->run);
 #endif
     N64CPU.exception = false;
 
@@ -145,7 +161,8 @@ int n64_dynarec_step() {
         #ifdef DO_REPEATED_EXEC_DETECTION
         do_repeated_exec_detection(physical, block);
         #endif
-        taken = n64dynarec.run_block((u64)block->run);
+        CODECACHE_ALLOW_EXEC();
+        taken = block->run(&N64CPU);
     } else {
         taken = missing_block_handler(physical, block, n64dynarec.sysconfig);
     }
@@ -180,9 +197,6 @@ void n64_dynarec_init(u8* codecache, size_t codecache_size) {
 
     n64dynarec.codecache = codecache;
 
-#ifdef N64_DYNAREC_V1_ENABLED
-    v1_compiler_init();
-#endif
     v2_compiler_init();
 }
 

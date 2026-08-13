@@ -1,6 +1,7 @@
 #ifndef N64_PARALLEL_RDP_WRAPPER_SDL_H
 #define N64_PARALLEL_RDP_WRAPPER_SDL_H
 
+#include <string.h>
 #include <wsi.hpp>
 #include <SDL_video.h>
 #include <SDL_vulkan.h>
@@ -27,6 +28,13 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
             auto vec = std::vector<const char*>();
 
             for (unsigned int i = 0; i < num_extensions; i++) {
+#ifdef __APPLE__
+                // Hack: don't request this extension from the vulkan loader when on Mac.
+                // MoltenVK doesn't support it, and we don't need it anyway since we're already explicitly loading MoltenVK.
+                if (strcmp(extensions[i], "VK_KHR_portability_enumeration") == 0) {
+                    continue;
+                }
+#endif
                 vec.push_back(extensions[i]);
             }
 
@@ -42,11 +50,15 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
         }
 
         uint32_t get_surface_width() override {
-            return N64_SCREEN_X * SCREEN_SCALE;
+            int w, h;
+            SDL_Vulkan_GetDrawableSize(window, &w, &h);
+            return (w > 0) ? (uint32_t)w : N64_SCREEN_X * SCREEN_SCALE;
         }
 
         uint32_t get_surface_height() override {
-            return N64_SCREEN_Y * SCREEN_SCALE;
+            int w, h;
+            SDL_Vulkan_GetDrawableSize(window, &w, &h);
+            return (h > 0) ? (uint32_t)h : N64_SCREEN_Y * SCREEN_SCALE;
         }
 
         bool alive(Vulkan::WSI &wsi) override {
@@ -55,6 +67,14 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
 
         void poll_input() override {
             n64_poll_input();
+
+            // Unfortunately, there isn't really a better place to put this
+            int w, h;
+            SDL_Vulkan_GetDrawableSize(window, &w, &h);
+            if (w > 0 && h > 0 &&
+                ((unsigned)w != current_swapchain_width || (unsigned)h != current_swapchain_height)) {
+                resize = true;
+            }
         }
 
         void poll_input_async(Granite::InputTrackerHandler *handler) override {
@@ -69,7 +89,7 @@ class SDLWSIPlatform : public Vulkan::WSIPlatform {
 class SDLParallelRdpWindowInfo : public ParallelRdpWindowInfo {
         CoordinatePair get_window_size() {
             int sdlWinWidth, sdlWinHeight;
-            SDL_GetWindowSize(window, &sdlWinWidth, &sdlWinHeight);
+            SDL_Vulkan_GetDrawableSize(window, &sdlWinWidth, &sdlWinHeight);
             return CoordinatePair{ sdlWinWidth, sdlWinHeight };
         }
 };

@@ -1,17 +1,6 @@
 #ifndef N64_INSTRUCTION_INFO_H
 #define N64_INSTRUCTION_INFO_H
 
-/* TODO: do I need to have this info upfront or can each instruction emit exception checking ir?
-typedef struct dynarec_instruction_info {
-    dynarec_instruction_category_t category;
-    bool exception_possible;
-} dynarec_instruction_info_t;
-
-#define THROWS true
-#define NOTHROW false
-#define INFO(cat, exception) {.category = (cat), .exception_possible = (exception) }
- */
-
 INLINE dynarec_instruction_category_t cp0_instruction_category(mips_instruction_t instr) {
     if (instr.is_coprocessor_funct) {
         switch (instr.fr.funct) {

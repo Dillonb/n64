@@ -1,0 +1,680 @@
+#include <cpu/disassemble.h>
+#include <cpu/dynarec/dynarec.h>
+#include <cpu/r4300i.h>
+#include <filesystem>
+#include <mem/n64bus.h>
+#include <memory>
+#include <optional>
+#include <stdio.h>
+#include <toml.hpp>
+#include <util.h>
+
+#include "jit_rs.h"
+
+#include <vector>
+
+#include "generated/testcase_path.h"
+
+class TestCase {
+public:
+  TestCase(u64 virtual_pc, const std::vector<u32> &instructions)
+      : virtual_pc(virtual_pc), mips_instructions(instructions) {}
+
+  u64 get_virtual_pc() const { return virtual_pc; }
+
+  u32 get_physical_pc() const {
+    bool cached;
+    return resolve_virtual_address_or_die(virtual_pc, BUS_LOAD, &cached);
+  }
+
+  u32 *get_instructions() { return mips_instructions.data(); }
+
+  size_t get_instruction_count() const { return mips_instructions.size(); }
+
+  void set_bytes_read(const std::vector<std::pair<u32, u8>> &bytes) {
+    bytes_read = bytes;
+  }
+
+  void set_halves_read(const std::vector<std::pair<u32, u16>> &halves) {
+    halves_read = halves;
+  }
+
+  void set_words_read(const std::vector<std::pair<u32, u32>> &words) {
+    words_read = words;
+  }
+
+  void set_dwords_read(const std::vector<std::pair<u32, u64>> &dwords) {
+    dwords_read = dwords;
+  }
+
+  void set_bytes_written(const std::vector<std::pair<u32, u32>> &bytes) {
+    bytes_written = bytes;
+  }
+
+  void set_halves_written(const std::vector<std::pair<u32, u32>> &halves) {
+    halves_written = halves;
+  }
+
+  void set_words_written(const std::vector<std::pair<u32, u32>> &words) {
+    words_written = words;
+  }
+
+  void set_dwords_written(const std::vector<std::pair<u32, u64>> &dwords) {
+    dwords_written = dwords;
+  }
+
+  void set_initial_gprs(const std::vector<u64> &gprs) {
+    if (gprs.size() != 32) {
+      logfatal("Initial GPRs list must have exactly 32 entries.");
+    }
+    if (gprs[0] != 0) {
+      logfatal("GPR 0 must be initialized to 0.");
+    }
+    for (size_t i = 0; i < 32; i++) {
+      N64CPU.gpr[i] = gprs[i];
+    }
+  }
+
+  void set_expected_gprs(const std::vector<u64> &gprs) {
+    expected_gprs = gprs;
+    if (expected_gprs.size() != 32) {
+      logfatal("Expected GPRs list must have exactly 32 entries.");
+    }
+  }
+
+  void set_initial_fgrs(const std::vector<u64> &fgrs) {
+    if (fgrs.size() != 32) {
+      logfatal("Initial FGRs list must have exactly 32 entries.");
+    }
+    for (size_t i = 0; i < 32; i++) {
+      N64CPU.f[i].raw = fgrs[i];
+    }
+  }
+
+  void set_expected_fgrs(const std::vector<u64> &fgrs) {
+    expected_fgrs = fgrs;
+    if (expected_fgrs.size() != 32) {
+      logfatal("Expected FGRs list must have exactly 32 entries.");
+    }
+  }
+
+  void set_initial_fcr31(u32 fcr31) { N64CPU.fcr31.raw = fcr31; }
+
+  void set_expected_fcr31(u32 fcr31) { expected_fcr31 = fcr31; }
+
+  void set_expected_pc(u64 pc) { expected_pc = pc; }
+
+  u8 read_byte(u32 address) {
+    if (bytes_read_index >= bytes_read.size()) {
+      logfatal("No more bytes to read in test case!");
+    }
+
+    auto to_read = bytes_read[bytes_read_index++];
+    if (to_read.first != address) {
+      logfatal("Expected to read byte from address 0x%08X but got 0x%08X",
+               to_read.first, address);
+    }
+
+    return to_read.second;
+  }
+  u16 read_half(u32 address) {
+    if (halves_read_index >= halves_read.size()) {
+      logfatal("No more halves to read in test case!");
+    }
+
+    auto to_read = halves_read[halves_read_index++];
+    if (to_read.first != address) {
+      logfatal("Expected to read half from address 0x%08X but got 0x%08X",
+               to_read.first, address);
+    }
+    return to_read.second;
+  }
+  u32 read_word(u32 address) {
+    if (words_read_index >= words_read.size()) {
+      logfatal("No more words to read in test case!");
+    }
+
+    auto to_read = words_read[words_read_index++];
+    if (to_read.first != address) {
+      logfatal("Expected to read word from address 0x%08X but got 0x%08X",
+               to_read.first, address);
+    }
+    return to_read.second;
+  }
+  u64 read_dword(u32 address) {
+    if (dwords_read_index >= dwords_read.size()) {
+      logfatal("No more dwords to read in test case!");
+    }
+
+    auto to_read = dwords_read[dwords_read_index++];
+    if (to_read.first != address) {
+      logfatal("Expected to read dword from address 0x%08X but got 0x%08X",
+               to_read.first, address);
+    }
+    return to_read.second;
+  }
+
+  void write_byte(u32 address, u32 value) {
+    if (bytes_written_index >= bytes_written.size()) {
+      logfatal("No more bytes to write in test case!");
+    }
+
+    auto to_write = bytes_written[bytes_written_index++];
+    if (to_write.first != address) {
+      logfatal("Expected to write byte to address 0x%08X but got 0x%08X",
+               to_write.first, address);
+    }
+    if (to_write.second != value) {
+      logfatal("Expected to write byte value 0x%02X but got 0x%02X",
+               to_write.second, value);
+    }
+  }
+  void write_half(u32 address, u32 value) {
+    if (halves_written_index >= halves_written.size()) {
+      logfatal("No more halves to write in test case!");
+    }
+    auto to_write = halves_written[halves_written_index++];
+    if (to_write.first != address) {
+      logfatal("Expected to write half to address 0x%08X but got 0x%08X",
+               to_write.first, address);
+    }
+    if (to_write.second != value) {
+      logfatal("Expected to write half value 0x%04X but got 0x%04X",
+               to_write.second, value);
+    }
+  }
+  void write_word(u32 address, u32 value) {
+    if (words_written_index >= words_written.size()) {
+      logfatal("No more words to write in test case!");
+    }
+    auto to_write = words_written[words_written_index++];
+    if (to_write.first != address) {
+      logfatal("Expected to write word to address 0x%08X but got 0x%08X",
+               to_write.first, address);
+    }
+    if (to_write.second != value) {
+      logfatal("Expected to write word value 0x%08X but got 0x%08X",
+               to_write.second, value);
+    }
+  }
+  void write_dword(u32 address, u64 value) {
+    if (dwords_written_index >= dwords_written.size()) {
+      logfatal("No more dwords to write in test case!");
+    }
+    auto to_write = dwords_written[dwords_written_index++];
+    if (to_write.first != address) {
+      logfatal("Expected to write dword to address 0x%08X but got 0x%08X",
+               to_write.first, address);
+    }
+    if (to_write.second != value) {
+      logfatal("Expected to write dword value 0x%016" PRIX64
+               " but got 0x%016" PRIX64,
+               to_write.second, value);
+    }
+  }
+
+  void dump_disassembly() {
+    print_multi_guest((uintptr_t)get_virtual_pc(), (u8 *)get_instructions(),
+                      get_instruction_count() * 4);
+  }
+
+  static void print_colorcoded_u64(const char *name, u64 expected, u64 actual) {
+    printf("%16s 0x%016" PRIX64 " 0x", name, expected);
+    for (int offset = 56; offset >= 0; offset -= 8) {
+      u64 good_byte = (expected >> offset) & 0xFF;
+      u64 bad_byte = (actual >> offset) & 0xFF;
+      printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte,
+             good_byte == bad_byte ? "" : COLOR_END);
+    }
+    printf("%s" COLOR_END "\n",
+           expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
+  }
+
+  static void print_colorcoded_u32(const char *name, u32 expected, u32 actual) {
+    printf("%16s         0x%08" PRIX32 "         0x", name, expected);
+    for (int offset = 24; offset >= 0; offset -= 8) {
+      u32 good_byte = (expected >> offset) & 0xFF;
+      u32 bad_byte = (actual >> offset) & 0xFF;
+      printf("%s%02X%s", good_byte == bad_byte ? "" : COLOR_RED, (u8)bad_byte,
+             good_byte == bad_byte ? "" : COLOR_END);
+    }
+    printf("%s" COLOR_END "\n",
+           expected == actual ? COLOR_GREEN " OK!" : COLOR_RED " BAD!");
+  }
+
+  void validate(r4300i_t *cpu, const MipsToIrContext &context) {
+    bool bad = false;
+    if (bytes_read_index != bytes_read.size()) {
+      logalways("Not all expected byte reads were performed!");
+      bad = true;
+    }
+    if (halves_read_index != halves_read.size()) {
+      logalways("Not all expected half reads were performed!");
+      bad = true;
+    }
+    if (words_read_index != words_read.size()) {
+      logalways("Not all expected word reads were performed!");
+      bad = true;
+    }
+    if (dwords_read_index != dwords_read.size()) {
+      logalways("Not all expected dword reads were performed!");
+      bad = true;
+    }
+    if (bytes_written_index != bytes_written.size()) {
+      logalways("Not all expected byte writes were performed!");
+      bad = true;
+    }
+    if (halves_written_index != halves_written.size()) {
+      logalways("Not all expected half writes were performed!");
+      bad = true;
+    }
+    if (words_written_index != words_written.size()) {
+      logalways("Not all expected word writes were performed!");
+      bad = true;
+    }
+    if (dwords_written_index != dwords_written.size()) {
+      logalways("Not all expected dword writes were performed!");
+      bad = true;
+    }
+
+    if (expected_pc.has_value()) {
+      if (N64CPU.pc != expected_pc.value()) {
+        bad = true;
+      }
+    }
+    if (expected_gprs.size() > 0) {
+      for (size_t i = 0; i < expected_gprs.size(); i++) {
+        if (N64CPU.gpr[i] != expected_gprs[i]) {
+          bad = true;
+        }
+      }
+    }
+
+    if (expected_fgrs.size() > 0) {
+      for (size_t i = 0; i < expected_gprs.size(); i++) {
+        if (N64CPU.f[i].raw != expected_fgrs[i]) {
+          bad = true;
+        }
+      }
+    }
+
+    if (expected_fcr31.has_value()) {
+      if (N64CPU.fcr31.raw != expected_fcr31.value()) {
+        bad = true;
+      }
+    }
+
+    if (bad) {
+      printf("            expected                actual\n");
+      if (expected_pc.has_value()) {
+        print_colorcoded_u64("PC", expected_pc.value(), N64CPU.pc);
+      }
+      if (expected_gprs.size() > 0) {
+        for (size_t i = 0; i < expected_gprs.size(); i++) {
+          print_colorcoded_u64(register_names[i], expected_gprs[i],
+                               N64CPU.gpr[i]);
+        }
+      }
+
+      printf("\n");
+
+      if (expected_fgrs.size() > 0) {
+        for (size_t i = 0; i < expected_gprs.size(); i++) {
+          print_colorcoded_u64(cp1_register_names[i], expected_fgrs[i],
+                               N64CPU.f[i].raw);
+        }
+      }
+
+      if (expected_fcr31.has_value()) {
+        print_colorcoded_u32("CP1 FCR31", expected_fcr31.value(),
+                             N64CPU.fcr31.raw);
+      }
+
+      printf("\n");
+      printf("=================  CP1 FCR31  ================\n");
+      // printf("Rounding Mode: %u\n", N64CPU.fcr31.rounding_mode);
+      // printf("Flag Inexact Operation: %u\n",
+      // N64CPU.fcr31.flag_inexact_operation); printf("Flag Underflow: %u\n",
+      // N64CPU.fcr31.flag_underflow); printf("Flag Overflow: %u\n",
+      // N64CPU.fcr31.flag_overflow); printf("Flag Division By Zero: %u\n",
+      // N64CPU.fcr31.flag_division_by_zero); printf("Flag Invalid Operation:
+      // %u\n", N64CPU.fcr31.flag_invalid_operation); printf("Enable Inexact
+      // Operation: %u\n", N64CPU.fcr31.enable_inexact_operation);
+      // printf("Enable Underflow: %u\n", N64CPU.fcr31.enable_underflow);
+      // printf("Enable Overflow: %u\n", N64CPU.fcr31.enable_overflow);
+      // printf("Enable Division By Zero: %u\n",
+      // N64CPU.fcr31.enable_division_by_zero); printf("Enable Invalid
+      // Operation: %u\n", N64CPU.fcr31.enable_invalid_operation); printf("Cause
+      // Inexact Operation: %u\n", N64CPU.fcr31.cause_inexact_operation);
+      // printf("Cause Underflow: %u\n", N64CPU.fcr31.cause_underflow);
+      // printf("Cause Overflow: %u\n", N64CPU.fcr31.cause_overflow);
+      // printf("Cause Division By Zero: %u\n",
+      // N64CPU.fcr31.cause_division_by_zero); printf("Cause Invalid Operation:
+      // %u\n", N64CPU.fcr31.cause_invalid_operation); printf("Cause
+      // Unimplemented Operation: %u\n",
+      // N64CPU.fcr31.cause_unimplemented_operation);
+      printf("Compare: %u\n", N64CPU.fcr31.compare);
+      // printf("Flush Subnormals: %u\n", N64CPU.fcr31.flush_subnormals);
+      printf("============== Guest Disassembly =============\n");
+      dump_disassembly();
+      printf("=================== JIT IR ===================\n");
+      rs_jit_dump_ir(get_instructions(), get_instruction_count(),
+                     get_virtual_pc(), get_physical_pc(), cpu, context);
+      printf("=============== Host Disassembly =============\n");
+      rs_jit_dump_host_disasm(get_instructions(), get_instruction_count(),
+                              get_virtual_pc(), get_physical_pc(), cpu,
+                              context);
+      printf("==============================================\n");
+      logfatal("Test case failed!");
+    }
+  }
+
+private:
+  u64 virtual_pc;
+
+  std::vector<u32> mips_instructions;
+
+  std::vector<u64> expected_gprs;
+  std::vector<u64> expected_fgrs;
+  std::optional<u64> expected_pc;
+
+  std::optional<u32> expected_fcr31;
+
+  std::vector<std::pair<u32, u8>> bytes_read;
+  size_t bytes_read_index = 0;
+  std::vector<std::pair<u32, u16>> halves_read;
+  size_t halves_read_index = 0;
+  std::vector<std::pair<u32, u32>> words_read;
+  size_t words_read_index = 0;
+  std::vector<std::pair<u32, u64>> dwords_read;
+  size_t dwords_read_index = 0;
+
+  std::vector<std::pair<u32, u32>> bytes_written;
+  size_t bytes_written_index = 0;
+  std::vector<std::pair<u32, u32>> halves_written;
+  size_t halves_written_index = 0;
+  std::vector<std::pair<u32, u32>> words_written;
+  size_t words_written_index = 0;
+  std::vector<std::pair<u32, u64>> dwords_written;
+  size_t dwords_written_index = 0;
+};
+std::unique_ptr<TestCase> current_testcase;
+
+u8 mock_read_physical_byte(u32 address) {
+  return current_testcase->read_byte(address);
+}
+u16 mock_read_physical_half(u32 address) {
+  return current_testcase->read_half(address);
+}
+u32 mock_read_physical_word(u32 address) {
+  return current_testcase->read_word(address);
+}
+u64 mock_read_physical_dword(u32 address) {
+  return current_testcase->read_dword(address);
+}
+void mock_write_physical_byte(u32 address, u32 value) {
+  return current_testcase->write_byte(address, value);
+}
+void mock_write_physical_half(u32 address, u32 value) {
+  return current_testcase->write_half(address, value);
+}
+void mock_write_physical_word(u32 address, u32 value) {
+  return current_testcase->write_word(address, value);
+}
+void mock_write_physical_dword(u32 address, u64 value) {
+  return current_testcase->write_dword(address, value);
+}
+
+MipsToIrContext context = {
+    .read_physical_byte = (uintptr_t)&mock_read_physical_byte,
+    .read_physical_half = (uintptr_t)&mock_read_physical_half,
+    .read_physical_word = (uintptr_t)&mock_read_physical_word,
+    .read_physical_dword = (uintptr_t)&mock_read_physical_dword,
+    .write_physical_byte = (uintptr_t)&mock_write_physical_byte,
+    .write_physical_half = (uintptr_t)&mock_write_physical_half,
+    .write_physical_word = (uintptr_t)&mock_write_physical_word,
+    .write_physical_dword = (uintptr_t)&mock_write_physical_dword,
+};
+
+void run_test(const toml::table &table) {
+  u64 initial_pc = std::strtoull(table["initial_pc"].as_string()->get().c_str(),
+                                 nullptr, 16);
+  u64 expected_pc = std::strtoull(
+      table["expected_pc"].as_string()->get().c_str(), nullptr, 16);
+
+  std::vector<u32> instructions;
+  for (auto &&instr : *table["code"].as_array()) {
+    instructions.push_back(static_cast<u32>(instr.as_integer()->get()));
+  }
+
+  std::vector<u64> initial_gprs;
+  for (auto &&gpr : *table["initial_gprs"].as_array()) {
+    initial_gprs.push_back(
+        std::strtoull(gpr.as_string()->get().c_str(), nullptr, 16));
+  }
+
+  std::vector<u64> expected_gprs;
+  for (auto &&gpr : *table["expected_gprs"].as_array()) {
+    expected_gprs.push_back(
+        std::strtoull(gpr.as_string()->get().c_str(), nullptr, 16));
+  }
+
+  std::vector<u64> initial_fgrs;
+  if (table.contains("initial_fgrs")) {
+    for (auto &&fgr : *table["initial_fgrs"].as_array()) {
+      initial_fgrs.push_back(
+          std::strtoull(fgr.as_string()->get().c_str(), nullptr, 16));
+    }
+  }
+
+  std::vector<u64> expected_fgrs;
+  if (table.contains("expected_fgrs")) {
+    for (auto &&fgr : *table["expected_fgrs"].as_array()) {
+      expected_fgrs.push_back(
+          std::strtoull(fgr.as_string()->get().c_str(), nullptr, 16));
+    }
+  }
+
+  if (table.contains("initial_fcr31")) {
+    u32 initial_fcr31 =
+        static_cast<u32>(table["initial_fcr31"].as_integer()->get());
+    N64CPU.fcr31.raw = initial_fcr31;
+  }
+
+  std::optional<u32> expected_fcr31;
+  if (table.contains("expected_fcr31")) {
+    expected_fcr31 =
+        static_cast<u32>(table["expected_fcr31"].as_integer()->get());
+  }
+
+  if (table.contains("initial_cp0_status")) {
+    u32 initial_cp0_status =
+        static_cast<u32>(table["initial_cp0_status"].as_integer()->get());
+    N64CP0.status.raw = initial_cp0_status;
+  }
+
+  if (table.contains("initial_cp0_error_epc")) {
+    u64 initial_cp0_error_epc = std::strtoull(
+        table["initial_cp0_error_epc"].as_string()->get().c_str(), nullptr, 16);
+    N64CP0.error_epc = initial_cp0_error_epc;
+  }
+
+  if (table.contains("initial_cp0_epc")) {
+    u64 initial_cp0_epc = std::strtoull(
+        table["initial_cp0_epc"].as_string()->get().c_str(), nullptr, 16);
+    N64CP0.EPC = initial_cp0_epc;
+  }
+
+  std::vector<std::pair<u32, u8>> bytes_read;
+  if (table.contains("bytes_read")) {
+    for (auto &&entry : *table["bytes_read"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u8 value = pair["value"].as_integer()->get();
+      bytes_read.push_back({address, value});
+    }
+  }
+
+  std::vector<std::pair<u32, u16>> halves_read;
+  if (table.contains("halves_read")) {
+    for (auto &&entry : *table["halves_read"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u16 value = pair["value"].as_integer()->get();
+      halves_read.push_back({address, value});
+    }
+  }
+
+  std::vector<std::pair<u32, u32>> words_read;
+  if (table.contains("words_read")) {
+    for (auto &&entry : *table["words_read"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u32 value = pair["value"].as_integer()->get();
+      words_read.push_back({address, value});
+    }
+  }
+
+  std::vector<std::pair<u32, u64>> dwords_read;
+  if (table.contains("dwords_read")) {
+    for (auto &&entry : *table["dwords_read"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u64 value =
+          std::strtoull(pair["value"].as_string()->get().c_str(), nullptr, 16);
+      dwords_read.push_back({address, value});
+    }
+  }
+
+  std::vector<std::pair<u32, u32>> bytes_written;
+  if (table.contains("bytes_written")) {
+    for (auto &&entry : *table["bytes_written"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u32 value = pair["value"].as_integer()->get();
+      bytes_written.push_back({address, value});
+    }
+  }
+  std::vector<std::pair<u32, u32>> halves_written;
+  if (table.contains("halves_written")) {
+    for (auto &&entry : *table["halves_written"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u32 value = pair["value"].as_integer()->get();
+      halves_written.push_back({address, value});
+    }
+  }
+  std::vector<std::pair<u32, u32>> words_written;
+  if (table.contains("words_written")) {
+    for (auto &&entry : *table["words_written"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u32 value = pair["value"].as_integer()->get();
+      words_written.push_back({address, value});
+    }
+  }
+  std::vector<std::pair<u32, u64>> dwords_written;
+  if (table.contains("dwords_written")) {
+    for (auto &&entry : *table["dwords_written"].as_array()) {
+      auto pair = *entry.as_table();
+      u32 address = pair["address"].as_integer()->get();
+      u64 value =
+          std::strtoull(pair["value"].as_string()->get().c_str(), nullptr, 16);
+      dwords_written.push_back({address, value});
+    }
+  }
+
+  current_testcase =
+      std::unique_ptr<TestCase>(new TestCase(initial_pc, instructions));
+  current_testcase->set_expected_pc(expected_pc);
+  if (!initial_gprs.empty()) {
+    current_testcase->set_initial_gprs(initial_gprs);
+  }
+
+  if (!expected_gprs.empty()) {
+    current_testcase->set_expected_gprs(expected_gprs);
+  }
+
+  if (!initial_fgrs.empty()) {
+    current_testcase->set_initial_fgrs(initial_fgrs);
+  }
+
+  if (!expected_fgrs.empty()) {
+    current_testcase->set_expected_fgrs(expected_fgrs);
+  }
+
+  if (!bytes_read.empty()) {
+    current_testcase->set_bytes_read(bytes_read);
+  }
+  if (!halves_read.empty()) {
+    current_testcase->set_halves_read(halves_read);
+  }
+  if (!words_read.empty()) {
+    current_testcase->set_words_read(words_read);
+  }
+  if (!dwords_read.empty()) {
+    current_testcase->set_dwords_read(dwords_read);
+  }
+  if (!bytes_written.empty()) {
+    current_testcase->set_bytes_written(bytes_written);
+  }
+  if (!halves_written.empty()) {
+    current_testcase->set_halves_written(halves_written);
+  }
+  if (!words_written.empty()) {
+    current_testcase->set_words_written(words_written);
+  }
+  if (!dwords_written.empty()) {
+    current_testcase->set_dwords_written(dwords_written);
+  }
+
+  if (expected_fcr31.has_value()) {
+    current_testcase->set_expected_fcr31(expected_fcr31.value());
+  }
+
+  rs_jit_compile_and_run_block_for_test(
+      current_testcase->get_instructions(),
+      current_testcase->get_instruction_count(),
+      current_testcase->get_virtual_pc(), current_testcase->get_physical_pc(),
+      n64cpu_ptr, context);
+
+  current_testcase->validate(n64cpu_ptr, context);
+  printf("\t\tOK!\n");
+}
+
+void run_tests_in_file(const char *filename) {
+  printf("Running test file %s...\n", filename);
+  auto testcases = toml::parse_file(filename);
+  int testcase_num = 0;
+  for (auto &&testcase : *testcases["testcases"].as_array()) {
+    reset_n64system();
+    printf("\tRunning test %d...\n", ++testcase_num);
+    run_test(*testcase.as_table());
+  }
+}
+
+void run_tests_in_directory(const char *path) {
+  printf("Running tests in directory %s...\n", path);
+  for (const auto &file : std::filesystem::directory_iterator(path)) {
+    if (file.path().extension() == ".toml") {
+      run_tests_in_file(file.path().string().c_str());
+    }
+  }
+}
+
+int main(int argc, char **argv) {
+  // Needed to setup all static global pointers that code assumes exist
+  init_n64system(NULL, false, false, UNKNOWN_VIDEO_TYPE, true);
+
+  if (argc == 1) {
+    run_tests_in_directory(TESTCASE_PATH);
+  } else if (argc == 2) {
+    if (std::filesystem::is_directory(argv[1])) {
+      run_tests_in_directory(argv[1]);
+    } else {
+      run_tests_in_file(argv[1]);
+    }
+  } else {
+    printf("Usage: %s [testfile.toml | test_toml_directory]\n", argv[0]);
+  }
+}

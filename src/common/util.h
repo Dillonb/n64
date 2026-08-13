@@ -25,11 +25,12 @@ typedef int64_t s64;
 
 #ifdef N64_HAVE_SSE
 typedef __m128i s128;
+#else
+typedef long long s128 __attribute__((__vector_size__(16), __aligned__(16)));
 #endif
 
 #define se_32_64(val) ((s64)((s32)(val)))
 
-#define popcount(x) __builtin_popcountll(x)
 #define FAKELITTLE_HALF(h) ((((h) >> 8u) & 0xFFu) | (((h) << 8u) & 0xFF00u))
 #define FAKELITTLE_WORD(w) (FAKELITTLE_HALF((w) >> 16u) | (FAKELITTLE_HALF((w) & 0xFFFFu)) << 16u)
 
@@ -55,7 +56,7 @@ typedef __m128i s128;
 #if defined(N64_WIN)
 #define PATH_MAX 0x1000
 #else
-#if !defined(N64_MACOS)
+#ifdef linux
 #include <linux/limits.h>
 #endif
 #include <unistd.h>
@@ -75,7 +76,7 @@ INLINE u32 npow2(u32 x) {
 }
 
 INLINE bool file_exists(const char* path) {
-#if !defined(N64_WIN) && !defined(N64_MACOS)
+#if !defined(N64_WIN) && !defined(__APPLE__)
     return access(path, F_OK) == 0;
 #else
     FILE* f = fopen(path, "r");

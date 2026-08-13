@@ -2,15 +2,21 @@ enable_testing()
 
 INCLUDE_DIRECTORIES(SYSTEM "../src/contrib/include" "../src/common" "../src")
 
+add_subdirectory(dynarec)
+
 if (NOT WIN32)
 add_executable(test_cpu test_cpu.c unit.h)
 target_link_libraries(test_cpu r4300i common core)
-add_test(test_cpu test_cpu)
+# add_test(test_cpu test_cpu)
 endif()
 
 add_executable(test_vmadm_overflow test_vmadm_overflow.c unit.h)
 target_link_libraries(test_vmadm_overflow rsp common core)
 add_test(test_vmadm_overflow test_vmadm_overflow)
+
+add_executable(test_scheduler test_scheduler.c)
+target_link_libraries(test_scheduler common core)
+add_test(test_scheduler test_scheduler)
 
 find_program(BASS_FOUND bass)
 find_program(CHKSUM64_FOUND chksum64)

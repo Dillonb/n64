@@ -1,3 +1,13 @@
+/*
+ * Compare the dynarec to the interpreter using IPC
+ *
+ * On MacOS, you must set the following kernel parameters.
+ * By default, the maximum size of shared memory is 4MB.
+ *
+ * sudo sysctl -w kern.sysv.shmmax=67108864
+ * sudo sysctl -w kern.sysv.shmall=16384
+ */
+#include <mem/memory_logger.h>
 #include <stdio.h>
 #include <log.h>
 #include <system/n64system.h>
@@ -16,14 +26,19 @@
 #include <settings.h>
 #include <cflags.h>
 #include <frontend/tas_movie.h>
-#include <cpu/dynarec/v2/ir_context.h>
+
+// #define CHECK_RDRAM
+#define CHECK_PREV_STATE
 
 r4300i_t* n64cpu_interpreter_ptr;
+n64_system_t* n64sys_interpreter_ptr;
+
 int mq_jit_to_interp_id = -1;
 int mq_interp_to_jit_id = -1;
 
 int joybus_shmem_id = -1;
 int cpu_shmem_id = -1;
+int sys_shmem_id = -1;
 
 int cleanup_mq(int mq_id) {
     if (mq_id == -1) {
@@ -56,6 +71,10 @@ void cleanup_resources() {
 
     if (cleanup_shmem(cpu_shmem_id) == -1) {
         perror("remove cpu_shmem_id");
+    }
+
+    if (cleanup_shmem(sys_shmem_id) == -1) {
+        perror("remove sys_shmem_id");
     }
 }
 
@@ -109,12 +128,56 @@ int create_and_configure_mq(key_t key) {
 }
 
 
+#ifdef CHECK_PREV_STATE
+r4300i_t prev_state;
+void save_prev_state() {
+    prev_state.pc = N64CPU.pc;
+    memcpy(prev_state.gpr, n64cpu_ptr->gpr, sizeof(u64) * 32);
+    memcpy(prev_state.f, n64cpu_ptr->f, sizeof(fgr_t) * 32);
+
+    prev_state.mult_lo = n64cpu_ptr->mult_lo;
+    prev_state.mult_hi = n64cpu_ptr->mult_hi;
+
+    prev_state.cp0.index = n64cpu_ptr->cp0.index;
+    prev_state.cp0.random = n64cpu_ptr->cp0.random;
+    prev_state.cp0.entry_lo0.raw = n64cpu_ptr->cp0.entry_lo0.raw;
+    prev_state.cp0.entry_lo1.raw = n64cpu_ptr->cp0.entry_lo1.raw;
+    prev_state.cp0.context.raw = n64cpu_ptr->cp0.context.raw;
+    prev_state.cp0.page_mask.raw = n64cpu_ptr->cp0.page_mask.raw;
+    prev_state.cp0.wired = n64cpu_ptr->cp0.wired;
+    prev_state.cp0.bad_vaddr = n64cpu_ptr->cp0.bad_vaddr;
+    prev_state.cp0.count = n64cpu_ptr->cp0.count;
+    prev_state.cp0.entry_hi.raw = n64cpu_ptr->cp0.entry_hi.raw;
+    prev_state.cp0.compare = n64cpu_ptr->cp0.compare;
+    prev_state.cp0.status.raw = n64cpu_ptr->cp0.status.raw;
+    prev_state.cp0.cause.raw = n64cpu_ptr->cp0.cause.raw;
+    prev_state.cp0.EPC = n64cpu_ptr->cp0.EPC;
+    prev_state.cp0.PRId = n64cpu_ptr->cp0.PRId;
+    prev_state.cp0.config = n64cpu_ptr->cp0.config;
+    prev_state.cp0.lladdr = n64cpu_ptr->cp0.lladdr;
+    prev_state.cp0.watch_lo.raw = n64cpu_ptr->cp0.watch_lo.raw;
+    prev_state.cp0.watch_hi = n64cpu_ptr->cp0.watch_hi;
+    prev_state.cp0.x_context.raw = n64cpu_ptr->cp0.x_context.raw;
+    prev_state.cp0.parity_error = n64cpu_ptr->cp0.parity_error;
+    prev_state.cp0.cache_error = n64cpu_ptr->cp0.cache_error;
+    prev_state.cp0.tag_lo.raw = n64cpu_ptr->cp0.tag_lo.raw;
+    prev_state.cp0.tag_hi = n64cpu_ptr->cp0.tag_hi;
+    prev_state.cp0.error_epc = n64cpu_ptr->cp0.error_epc;
+
+    prev_state.llbit = n64cpu_ptr->llbit;
+
+    prev_state.fcr31.raw = n64cpu_ptr->fcr31.raw;
+}
+#endif
+
 bool compare() {
     bool good = true;
     good &= n64cpu_interpreter_ptr->pc == N64CPU.pc;
     good &= memcmp(n64cpu_interpreter_ptr->gpr, n64cpu_ptr->gpr, sizeof(u64) * 32) == 0;
     good &= memcmp(n64cpu_interpreter_ptr->f, n64cpu_ptr->f, sizeof(fgr_t) * 32) == 0;
-    //good &= memcmp(n64sys_interpreter.mem.rdram, n64sys_dynarec.mem.rdram, N64_RDRAM_SIZE) == 0;
+#ifdef CHECK_RDRAM
+    good &= memcmp(n64sys_interpreter_ptr->mem.rdram, n64sys.mem.rdram, N64_RDRAM_SIZE) == 0;
+#endif
 
     good &= n64cpu_interpreter_ptr->mult_lo == n64cpu_ptr->mult_lo;
     good &= n64cpu_interpreter_ptr->mult_hi == n64cpu_ptr->mult_hi;
@@ -163,7 +226,7 @@ void print_colorcoded_u64(const char* name, u64 expected, u64 actual) {
 }
 
 void print_state() {
-    printf("expected (interpreter)  actual (dynarec)\n");
+    printf("            expected (interpreter)  actual (dynarec)\n");
     print_colorcoded_u64("PC", n64cpu_interpreter_ptr->pc, N64CPU.pc);
     printf("\n");
     for (int i = 0; i < 32; i++) {
@@ -214,19 +277,111 @@ void print_state() {
     printf("\n");
     print_colorcoded_u64("cp1 fcr31", n64cpu_interpreter_ptr->fcr31.raw, N64CPU.fcr31.raw);
 
-    /*
+#ifdef CHECK_RDRAM
     for (int i = 0; i < N64_RDRAM_SIZE; i++) {
-        if (n64sys_interpreter.mem.rdram[i] != n64sys_dynarec.mem.rdram[i]) {
-            printf("%08X: %02X %02X\n", i, n64sys_interpreter.mem.rdram[i], n64sys_dynarec.mem.rdram[i]);
+        if (n64sys_interpreter_ptr->mem.rdram[i] != n64sys.mem.rdram[i]) {
+            printf("%08X: %02X %02X\n", i, n64sys_interpreter_ptr->mem.rdram[i], n64sys.mem.rdram[i]);
         }
     }
-    */
+#endif
+
+
+#ifdef CHECK_PREV_STATE
+    printf("\n\n\n");
+    printf("[[testcases]]\n");
+    printf("initial_pc = \"0x%016" PRIX64 "\"\n", prev_state.pc);
+    printf("expected_pc = \"0x%016" PRIX64 "\"\n", n64cpu_interpreter_ptr->pc);
+    printf("\n");
+
+    printf("code = [\n");
+    char codebuf[100];
+    for (int i = 0; i < temp_code_len; i++) {
+        u32 instruction = temp_code[i].raw;
+        u64 v_pc = prev_state.pc + (i << 2);
+        disassemble(v_pc & 0xFFFFFFFF, instruction, codebuf, 100);
+        printf("    0x%08X, # %s\n", instruction, codebuf);
+    }
+    printf("]\n\n");
+
+    printf("initial_gprs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\", # r%d or %s\n", prev_state.gpr[i], i, register_names[i]);
+    }
+    printf("]\n\n");
+
+    printf("initial_fgrs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\",\n", prev_state.f[i].raw);
+    }
+    printf("]\n");
+
+    printf("expected_gprs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\", # r%d or %s\n", n64cpu_interpreter_ptr->gpr[i], i, register_names[i]);
+    }
+    printf("]\n\n");
+
+    printf("expected_fgrs = [\n");
+    for (int i = 0; i < 32; i++) {
+        printf("    \"0x%016" PRIX64 "\",\n", n64cpu_interpreter_ptr->f[i].raw);
+    }
+    printf("]\n\n");
+
+    printf("initial_fcr31 = 0x%08X\n\n", prev_state.fcr31.raw);
+
+    printf("expected_fcr31 = 0x%08X\n\n", n64cpu_interpreter_ptr->fcr31.raw);
+
+    printf("initial_cp0_status = 0x%08X\n", prev_state.cp0.status.raw);
+    printf("initial_cp0_error_epc = \"0x%016" PRIX64 "\"\n", prev_state.cp0.error_epc);
+    printf("initial_cp0_epc = \"0x%016" PRIX64 "\"\n", prev_state.cp0.EPC);
+
+    // set_pc_dword_r4300i(N64CPU.cp0.error_epc);
+    // set_pc_dword_r4300i(N64CPU.cp0.EPC);
+
+    #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
+    memory_access_t memory_access;
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_BYTE, BUS_LOAD)) {
+        printf("\n[[testcases.bytes_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_BYTE, BUS_STORE)) {
+        printf("\n[[testcases.bytes_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_HALF, BUS_LOAD)) {
+        printf("\n[[testcases.halves_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_HALF, BUS_STORE)) {
+        printf("\n[[testcases.halves_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_WORD, BUS_LOAD)) {
+        printf("\n[[testcases.words_read]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_WORD, BUS_STORE)) {
+        printf("\n[[testcases.words_written]]\naddress=0x%08X\nvalue=0x%" PRIX64 "\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_DWORD, BUS_LOAD)) {
+        printf("\n[[testcases.dwords_read]]\naddress=0x%08X\nvalue=\"0x%" PRIX64 "\"\n\n", memory_access.paddr, memory_access.value);
+    }
+    while (pop_memory_access(&memory_access, MEMORY_ACCESS_SIZE_DWORD, BUS_STORE)) {
+        printf("\n[[testcases.dwords_written]]\naddress=0x%08X\nvalue=\"0x%" PRIX64 "\"\n\n", memory_access.paddr, memory_access.value);
+    }
+    #else
+    printf("# To enable memory access logging, uncomment #define LOG_MEMORY_ACCESSES in n64bus.h\n");
+    #endif
+
+
+#endif
 }
 
 void run_compare_parent() {
     u64 start_pc = 0;
     int steps = 0;
     do {
+        #ifdef CHECK_PREV_STATE
+        save_prev_state();
+        #endif
+        #ifdef LOG_MEMORY_ACCESSES // in n64bus.h
+        clear_memory_logger();
+        #endif
         start_pc = N64CPU.pc;
         // Step jit
         steps = n64_system_step(true, -1);
@@ -265,18 +420,21 @@ void run_compare_parent() {
         printf("TLB miss PC, guest code unavailable\n");
     }
 
-    printf("IR\n");
-    if (v2_get_last_compiled_block() == start_pc) {
-        print_ir_block();
-    } else {
-        printf("Unavailable, a new block has been compiled in the meantime.\n");
-    }
-    printf("Host code:\n");
-    if (resolved) {
-        print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
-    } else {
-        printf("TLB miss PC, host code unavailable\n");
-    }
+    // TODO: Rewrite to print the Rust JIT's IR
+    // printf("IR\n");
+    // if (v2_get_last_compiled_block() == start_pc) {
+    //     print_ir_block();
+    // } else {
+    //     printf("Unavailable, a new block has been compiled in the meantime.\n");
+    // }
+
+    // TODO: Rewrite to print the host code through the Rust JIT so we get comments
+    // printf("Host code:\n");
+    // if (resolved) {
+    //     print_multi_host((uintptr_t)block->run, (u8*)block->run, block->host_size);
+    // } else {
+    //     printf("TLB miss PC, host code unavailable\n");
+    // }
     print_state();
 }
 
@@ -297,6 +455,12 @@ void usage(cflags_t* flags) {
                        "dynarec-compare, compare the jit to the interpreter using IPC",
                        "");
 }
+
+#define KEY_CPU_SHMEM 1
+#define KEY_MQ_JIT_TO_INTERP 2
+#define KEY_MQ_INTERP_TO_JIT 3
+#define KEY_JOYBUS_SHMEM 4
+#define KEY_SYS_SHMEM 5
 
 int main(int argc, char** argv) {
     v2_set_idle_loop_detection_enabled(false);
@@ -323,19 +487,50 @@ int main(int argc, char** argv) {
     }
     const char* rom_path = flags->argv[0];
 
-    key_t cpu_shmem_key = ftok(argv[0], 1);
-    key_t joybus_shmem_key = ftok(argv[0], 4);
+    key_t cpu_shmem_key = ftok(argv[0], KEY_CPU_SHMEM);
+    key_t joybus_shmem_key = ftok(argv[0], KEY_JOYBUS_SHMEM);
+    key_t sys_shmem_key = ftok(argv[0], KEY_SYS_SHMEM);
 
-    key_t mq_jit_to_interp_key = ftok(argv[0], 2);
+    key_t mq_jit_to_interp_key = ftok(argv[0], KEY_MQ_JIT_TO_INTERP);
     mq_jit_to_interp_id = create_and_configure_mq(mq_jit_to_interp_key);
-    key_t mq_interp_to_jit_key = ftok(argv[0], 3);
+    key_t mq_interp_to_jit_key = ftok(argv[0], KEY_MQ_INTERP_TO_JIT);
     mq_interp_to_jit_id = create_and_configure_mq(mq_interp_to_jit_key);
 
     cpu_shmem_id = shmget(cpu_shmem_key, sizeof(r4300i_t), IPC_CREAT | 0777);
+    if (cpu_shmem_id == -1) {
+        perror("shmget cpu_shmem_id");
+#ifdef __APPLE__
+        printf("Did you set the sysctl parameters for shared memory? (see comment in dynarec_compare.c)\n");
+#endif
+        exit(1);
+    }
     n64cpu_interpreter_ptr = shmat(cpu_shmem_id, NULL, 0);
+    if (n64cpu_interpreter_ptr == (void*)-1) {
+        perror("shmat cpu_shmem_id");
+        exit(1);
+    }
+
+    sys_shmem_id = shmget(sys_shmem_key, sizeof(n64_system_t), IPC_CREAT | 0777);
+    if (sys_shmem_id == -1) {
+        perror("shmget sys_shmem_id");
+        exit(1);
+    }
+    n64sys_interpreter_ptr = shmat(sys_shmem_id, NULL, 0);
+    if (n64sys_interpreter_ptr == (void*)-1) {
+        perror("shmat sys_shmem_id");
+        exit(1);
+    }
 
     joybus_shmem_id = shmget(joybus_shmem_key, sizeof(n64_joybus_device_t) * 6, IPC_CREAT | 0777);
+    if (joybus_shmem_id == -1) {
+        perror("shmget joybus_shmem_id");
+        exit(1);
+    }
     n64_joybus_device_t* joybus_override = shmat(joybus_shmem_id, NULL, 0);
+    if (joybus_override == (void*)-1) {
+        perror("shmat joybus_shmem_id");
+        exit(1);
+    }
     memset(joybus_override, 0, sizeof(n64_joybus_device_t) * 6);
     override_joybus_devices_ptr(joybus_override);
 
@@ -345,6 +540,7 @@ int main(int argc, char** argv) {
 
     if (is_child) {
         n64cpu_ptr = n64cpu_interpreter_ptr;
+        n64sys_ptr = n64sys_interpreter_ptr;
     } else {
         int res = atexit(cleanup_resources);
         if (res) {
@@ -371,6 +567,7 @@ int main(int argc, char** argv) {
 
 
     u64 start_comparing_at = (s32)n64sys.mem.rom.header.program_counter;
+    // u64 start_comparing_at = 0xFFFFFFFF80325334;
 
     while (N64CPU.pc != start_comparing_at) {
         n64_system_step(false, 1);
@@ -381,6 +578,9 @@ int main(int argc, char** argv) {
     if (is_child) {
         run_compare_child();
     } else {
+#ifdef LOG_MEMORY_ACCESSES // in n64bus.h
+        init_memory_logger();
+#endif
         N64CPU.prev_branch = false;
         N64CPU.branch = false;
         run_compare_parent();

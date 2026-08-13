@@ -54,8 +54,8 @@ typedef union color_32bpp {
         uint8_t b;
         uint8_t g;
         uint8_t r;
-    };
-} __attribute__((__packed__)) color_32bpp_t;
+    } PACKED;
+} color_32bpp_t;
 
 typedef union color_16bpp {
     uint16_t raw;
@@ -64,8 +64,8 @@ typedef union color_16bpp {
         uint16_t b:5;
         uint16_t g:5;
         uint16_t r:5;
-    };
-} __attribute__((__packed__)) color_16bpp_t;
+    } PACKED;
+} color_16bpp_t;
 
 typedef struct softrdp_state {
     uint8_t* rdram;

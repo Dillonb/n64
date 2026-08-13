@@ -8,9 +8,7 @@
 #include <system/n64system.h>
 #include <rdp/rdp.h>
 #include <mem/n64bus.h>
-#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
-#endif
 #include <mem/mem_util.h>
 
 #include "rsp_types.h"
@@ -132,11 +130,9 @@ INLINE void quick_invalidate_rsp_icache(u32 address) {
 
     N64RSP.icache[index].handler = cache_rsp_instruction;
     N64RSP.icache[index].instruction.raw = word_from_byte_array(N64RSP.sp_imem, address);
-#ifdef N64_DYNAREC_V1_ENABLED
     if (N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay].code_mask[index]) {
         N64RSPDYNAREC->dirty = true;
     }
-#endif
 }
 
 INLINE void invalidate_rsp_icache(u32 address) {
@@ -223,20 +219,18 @@ INLINE void rsp_dma_write() {
         u8* rdram = n64sys.mem.rdram + dram_address;
         for (int j = 0; j < length; j++) {
             u16 addr = (mem_address + j) & 0xFFF;
-            rdram[j] = mem[mem_addr.imem ? addr : BYTE_ADDRESS(addr)];
             if ((dram_address + j) >= N64_RDRAM_SIZE) {
                 logfatal("Out of range RSP DMA write (ignored?)");
             }
+            rdram[j] = mem[mem_addr.imem ? addr : BYTE_ADDRESS(addr)];
         }
 
 
         // Invalidate all pages touched by the DMA
         // This is probably unnecessary, since why would someone be copying code from the RSP to the CPU and then executing it?
-#ifdef N64_DYNAREC_ENABLED
         for (int j = 0; j < length; j += BLOCKCACHE_PAGE_SIZE) {
             invalidate_dynarec_page(dram_address + j);
         }
-#endif
 
         int skip = i == N64RSP.io.dma.count ? 0 : N64RSP.io.dma.skip;
 
@@ -267,88 +261,8 @@ INLINE u32 get_rsp_register(u8 r) {
 bool rsp_acquire_semaphore();
 void rsp_release_semaphore();
 
-INLINE u32 get_rsp_cp0_register(u8 r) {
-    switch (r) {
-        case RSP_CP0_DMA_CACHE:
-            return N64RSP.io.mem_addr.raw;
-        case RSP_CP0_DMA_DRAM:
-            return N64RSP.io.dram_addr.raw;
-        case RSP_CP0_DMA_READ_LENGTH:
-        case RSP_CP0_DMA_WRITE_LENGTH:
-            return N64RSP.io.dma.raw;
-        case RSP_CP0_SP_STATUS: return N64RSP.status.raw;
-        case RSP_CP0_DMA_FULL:  return N64RSP.status.dma_full;
-        case RSP_CP0_DMA_BUSY:  return N64RSP.status.dma_busy;
-        case RSP_CP0_DMA_RESERVED: return rsp_acquire_semaphore();
-        case RSP_CP0_CMD_START:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_START", r);
-        case RSP_CP0_CMD_END:     return n64sys.dpc.end;
-        case RSP_CP0_CMD_CURRENT: return n64sys.dpc.current;
-        case RSP_CP0_CMD_STATUS:  return n64sys.dpc.status.raw;
-        case RSP_CP0_CMD_CLOCK:
-            logwarn("Read from RDP clock: returning 0.");
-            return 0;
-        case RSP_CP0_CMD_BUSY:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
-        case RSP_CP0_CMD_PIPE_BUSY:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r);
-        case RSP_CP0_CMD_TMEM_BUSY:
-            logfatal("Read from unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r);
-        default:
-            logfatal("Unsupported RSP CP0 $c%d read", r);
-    }
-}
-
-INLINE void set_rsp_cp0_register(u8 r, u32 value) {
-    switch (r) {
-        case RSP_CP0_DMA_CACHE: N64RSP.io.shadow_mem_addr.raw = value; break;
-        case RSP_CP0_DMA_DRAM:  N64RSP.io.shadow_dram_addr.raw = value; break;
-        case RSP_CP0_DMA_READ_LENGTH:
-            N64RSP.io.dma.raw = value;
-            rsp_dma_read();
-            break;
-        case RSP_CP0_DMA_WRITE_LENGTH:
-            N64RSP.io.dma.raw = value;
-            rsp_dma_write();
-            break;
-        case RSP_CP0_SP_STATUS:
-            rsp_status_reg_write(value);
-            break;
-        case RSP_CP0_DMA_FULL:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_FULL", r);
-        case RSP_CP0_DMA_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_DMA_BUSY", r);
-        case RSP_CP0_DMA_RESERVED: {
-            if (value == 0) {
-                rsp_release_semaphore();
-            } else {
-                logfatal("Wrote non-zero value 0x%08X to $c7 RSP_CP0_DMA_RESERVED", value);
-            }
-            break;
-        }
-        case RSP_CP0_CMD_START:
-            rdp_start_reg_write(value);
-            break;
-        case RSP_CP0_CMD_END:
-            rdp_end_reg_write(value);
-            break;
-        case RSP_CP0_CMD_CURRENT:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CURRENT", r);
-        case RSP_CP0_CMD_STATUS:
-            rdp_status_reg_write(value);
-            break;
-        case RSP_CP0_CMD_CLOCK:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_CLOCK", r);
-        case RSP_CP0_CMD_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_BUSY", r);
-        case RSP_CP0_CMD_PIPE_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_PIPE_BUSY", r);
-        case RSP_CP0_CMD_TMEM_BUSY:
-            logfatal("Write to unknown RSP CP0 register $c%d: RSP_CP0_CMD_TMEM_BUSY", r);
-        default:
-            logfatal("Unsupported RSP CP0 $c%d written to", r);
-    }
-}
+u32 get_rsp_cp0_register(u8 r);
+void set_rsp_cp0_register(u8 r, u32 value);
 
 INLINE s64 get_rsp_accumulator(int e) {
     s64 val = (s64)N64RSP.acc.h.elements[e] << 32;
@@ -430,9 +344,9 @@ INLINE void rsp_set_vce(u16 vce) {
 
 void rsp_step();
 void rsp_run();
-#ifdef N64_DYNAREC_V1_ENABLED
 void rsp_dynarec_run();
-#endif
+void rsp_interpret_instruction(u32 raw);
+int rsp_interpreter_fallback_until_no_branch();
 vu_reg_t ext_get_vte(vu_reg_t* vt, u8 e);
 
 #endif //N64_RSP_H

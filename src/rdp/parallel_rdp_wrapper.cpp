@@ -64,7 +64,11 @@ bool prdp_is_framerate_unlocked() {
 
 void prdp_set_framerate_unlocked(bool unlocked) {
     if (unlocked) {
+#ifdef __APPLE__
+        wsi->set_present_mode(PresentMode::UnlockedMaybeTear);
+#else
         wsi->set_present_mode(PresentMode::UnlockedNoTearing);
+#endif
     } else {
         wsi->set_present_mode(PresentMode::SyncToVBlank);
     }
@@ -207,12 +211,19 @@ void draw_fullscreen_textured_quad(Util::IntrusivePtr<Image> image, Util::Intrus
 
     auto windowSize = windowInfo->get_window_size();
 
-    float zoom = std::min(
-            (float)windowSize.x / wsi->get_platform().get_surface_width(),
-            (float)windowSize.y / wsi->get_platform().get_surface_height());
+    float gameAspect = (float)N64_SCREEN_X / (float)N64_SCREEN_Y;
+    float windowAspect = (float)windowSize.x / (float)windowSize.y;
 
-    float width = (wsi->get_platform().get_surface_width() / (float)windowSize.x) * zoom;
-    float height = (wsi->get_platform().get_surface_height() / (float)windowSize.y) * zoom;
+    float width, height;
+    if (windowAspect > gameAspect) {
+        // Window is wider than 4:3 — pillarbox (black bars on left/right)
+        height = 1.0f;
+        width = gameAspect / windowAspect;
+    } else {
+        // Window is taller than 4:3 — letterbox (black bars on top/bottom)
+        width = 1.0f;
+        height = windowAspect / gameAspect;
+    }
 
     float uniform_data[] = {
             // Size

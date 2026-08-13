@@ -3,10 +3,10 @@
 #include <interface/vi.h>
 #include <interface/ai.h>
 #include <cpu/rsp_interface.h>
+#include <mem/memory_logger.h>
+#include <n64_rsp_bus.h>
 #include <rdp/rdp.h>
-#ifdef N64_DYNAREC_ENABLED
 #include <cpu/dynarec/dynarec.h>
-#endif
 #include <rsp.h>
 #include <interface/si.h>
 #include <interface/pi.h>
@@ -104,7 +104,7 @@ bool tlb_probe_slow(u64 vaddr, bus_access_t bus_access, bool* cached, u32* paddr
             *dirty = entry->entry_lo1.dirty;
         }
         pfn = entry->entry_lo1.pfn;
-        *cached = entry->entry_lo0.c != 2;
+        *cached = entry->entry_lo1.c != 2;
     }
 
     if (paddr != NULL) {
@@ -372,14 +372,48 @@ u32 read_unused(u32 address) {
     return 0;
 }
 
+#ifdef LOG_MEMORY_ACCESSES
+void log_byte_write(u32 address, u32 value) {
+    log_memory_write(address, MEMORY_ACCESS_SIZE_BYTE, value);
+}
+void log_half_write(u32 address, u32 value) {
+    log_memory_write(address, MEMORY_ACCESS_SIZE_HALF, value);
+}
+void log_word_write(u32 address, u32 value) {
+    log_memory_write(address, MEMORY_ACCESS_SIZE_WORD, value);
+}
+void log_dword_write(u32 address, u64 value) {
+    log_memory_write(address, MEMORY_ACCESS_SIZE_DWORD, value);
+}
+void log_byte_read(u32 address, u8 value) {
+    log_memory_read(address, MEMORY_ACCESS_SIZE_BYTE, value);
+}
+void log_half_read(u32 address, u16 value) {
+    log_memory_read(address, MEMORY_ACCESS_SIZE_HALF, value);
+}
+void log_word_read(u32 address, u32 value) {
+    log_memory_read(address, MEMORY_ACCESS_SIZE_WORD, value);
+}
+void log_dword_read(u32 address, u64 value) {
+    log_memory_read(address, MEMORY_ACCESS_SIZE_DWORD, value);
+}
+#else
+#define log_byte_write(address, value) do {} while(0)
+#define log_half_write(address, value) do {} while(0)
+#define log_word_write(address, value) do {} while(0)
+#define log_dword_write(address, value) do {} while(0)
+#define log_byte_read(address, value) do {} while(0)
+#define log_half_read(address, value) do {} while(0)
+#define log_word_read(address, value) do {} while(0)
+#define log_dword_read(address, value) do {} while(0)
+#endif
+
 void n64_write_physical_dword(u32 address, u64 value) {
     if (address & 0b111) {
         logfatal("Tried to write to unaligned DWORD");
     }
-    logdebug("Writing 0x%016" PRIX64 " to [0x%08X]", value, address);
-#ifdef N64_DYNAREC_ENABLED
+    log_dword_write(address, value);
     invalidate_dynarec_page(address);
-#endif
     switch (address) {
         case REGION_RDRAM:
             dword_to_byte_array((u8*) &n64sys.mem.rdram, DWORD_ADDRESS(address) - SREGION_RDRAM, value);
@@ -452,19 +486,23 @@ u64 n64_read_physical_dword(u32 address) {
     if (address & 0b111) {
         logfatal("Tried to load from unaligned DWORD");
     }
+    u64 result;
     switch (address) {
         case REGION_RDRAM:
-            return dword_from_byte_array((u8*) &n64sys.mem.rdram, DWORD_ADDRESS(address) - SREGION_RDRAM);
+            result = dword_from_byte_array((u8*) &n64sys.mem.rdram, DWORD_ADDRESS(address) - SREGION_RDRAM);
+            break;
         case REGION_RDRAM_UNUSED:
-            return read_unused(DWORD_ADDRESS(address));
+            result = read_unused(DWORD_ADDRESS(address));
+            break;
         case REGION_RDRAM_REGS:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address);
         case REGION_SP_MEM:
             if (address & 0x1000) {
-                return dword_from_byte_array((u8*) &N64RSP.sp_imem, DWORD_ADDRESS(address & 0xFFF));
+                result = dword_from_byte_array((u8*) &N64RSP.sp_imem, DWORD_ADDRESS(address & 0xFFF));
             } else {
-                return be64toh(dword_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
+                result = be64toh(dword_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
             }
+            break;
         case REGION_SP_REGS:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_SP_REGS", address);
         case REGION_DP_COMMAND_REGS:
@@ -486,7 +524,8 @@ u64 n64_read_physical_dword(u32 address) {
         case REGION_UNUSED:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART:
-            return read_dword_pibus(address);
+            result = read_dword_pibus(address);
+            break;
         case REGION_PIF_BOOT:
             logfatal("Reading dword from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
         case REGION_PIF_RAM:
@@ -500,6 +539,8 @@ u64 n64_read_physical_dword(u32 address) {
         default:
             logfatal("Reading dword from unknown address: 0x%08X", address);
     }
+    log_dword_read(address, result);
+    return result;
 }
 
 
@@ -507,10 +548,8 @@ void n64_write_physical_word(u32 address, u32 value) {
     if (address & 0b11) {
         logfatal("Tried to write to unaligned WORD");
     }
-    logdebug("Writing 0x%08X to [0x%08X]", value, address);
-#ifdef N64_DYNAREC_ENABLED
+    log_word_write(address, value);
     invalidate_dynarec_page(WORD_ADDRESS(address));
-#endif
     switch (address) {
         case REGION_RDRAM:
             word_to_byte_array((u8*) &n64sys.mem.rdram, WORD_ADDRESS(address) - SREGION_RDRAM, value);
@@ -583,43 +622,55 @@ u32 n64_read_physical_word(u32 address) {
     if (address & 0b11) {
         logfatal("Tried to load from unaligned WORD");
     }
+    u32 result;
     switch (address) {
         case REGION_RDRAM:
-            return word_from_byte_array((u8*) &n64sys.mem.rdram, WORD_ADDRESS(address) - SREGION_RDRAM);
+            result = word_from_byte_array((u8*) &n64sys.mem.rdram, WORD_ADDRESS(address) - SREGION_RDRAM);
+            break;
         case REGION_RDRAM_UNUSED:
-            return read_unused(address);
+            result = read_unused(address);
+            break;
         case REGION_RDRAM_REGS:
-            return read_word_rdramreg(address);
+            result = read_word_rdramreg(address);
+            break;
         case REGION_SP_MEM:
             if (address & 0x1000) {
-                return word_from_byte_array((u8*) &N64RSP.sp_imem, WORD_ADDRESS(address & 0xFFF));
+                result = word_from_byte_array((u8*) &N64RSP.sp_imem, WORD_ADDRESS(address & 0xFFF));
             } else {
-                return be32toh(word_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
+                result = be32toh(word_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
             }
+            break;
         case REGION_SP_REGS:
-            return read_word_spreg(address);
+            result = read_word_spreg(address);
+            break;
         case REGION_DP_COMMAND_REGS:
-            return read_word_dpcreg(address);
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_COMMAND_REGS", address);
+            result = read_word_dpcreg(address);
+            break;
         case REGION_DP_SPAN_REGS:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_DP_SPAN_REGS", address);
         case REGION_MI_REGS:
-            return read_word_mireg(address);
+            result = read_word_mireg(address);
+            break;
         case REGION_VI_REGS:
-            return read_word_vireg(address);
+            result = read_word_vireg(address);
+            break;
         case REGION_AI_REGS:
-            return read_word_aireg(address);
+            result = read_word_aireg(address);
+            break;
         case REGION_PI_REGS:
-            return read_word_pireg(address);
+            result = read_word_pireg(address);
+            break;
         case REGION_RI_REGS:
-            return read_word_rireg(address);
-            logfatal("Reading word from address 0x%08X in unsupported region: REGION_RI_REGS", address);
+            result = read_word_rireg(address);
+            break;
         case REGION_SI_REGS:
-            return read_word_sireg(address);
+            result = read_word_sireg(address);
+            break;
         case REGION_UNUSED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART:
-            return read_word_pibus(address);
+            result = read_word_pibus(address);
+            break;
         case REGION_PIF_BOOT: {
             if (n64sys.mem.rom.pif_rom == NULL) {
                 logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
@@ -628,23 +679,28 @@ u32 n64_read_physical_word(u32 address) {
                 if (index > n64sys.mem.rom.size - 3) { // -3 because we're reading an entire word
                     logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
                 } else {
-                    return be32toh(word_from_byte_array(n64sys.mem.rom.pif_rom, index));
+                    result = be32toh(word_from_byte_array(n64sys.mem.rom.pif_rom, index));
                 }
             }
         }
+            break;
         case REGION_PIF_RAM: {
-            return be32toh(word_from_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM));
+            result = be32toh(word_from_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM));
+            break;
         }
         case REGION_RESERVED:
             logfatal("Reading word from address 0x%08X in unsupported region: REGION_RESERVED", address);
         case REGION_CART_1_3:
             logwarn("Reading word from address 0x%08X in unsupported region: REGION_CART_1_3", address);
-            return 0;
+            result = 0;
+            break;
         case REGION_SYSAD_DEVICE:
             logfatal("This is a virtual address!");
         default:
             logfatal("Reading word from unknown address: 0x%08X", address);
     }
+    log_word_read(address, result);
+    return result;
 }
 
 // Handle the bus edge for 16 bit writes to PIF and SPMEM
@@ -662,10 +718,8 @@ void n64_write_physical_half(u32 address, u32 value) {
     if (address & 0b1) {
         logfatal("Tried to write to unaligned HALF");
     }
-    logdebug("Writing 0x%04X to [0x%08X]", value & 0xFFFF, address);
-#ifdef N64_DYNAREC_ENABLED
+    log_half_write(address, value);
     invalidate_dynarec_page(HALF_ADDRESS(address));
-#endif
     switch (address) {
         case REGION_RDRAM:
             half_to_byte_array((u8*) &n64sys.mem.rdram, HALF_ADDRESS(address) - SREGION_RDRAM, value);
@@ -741,19 +795,23 @@ u16 n64_read_physical_half(u32 address) {
     if (address & 0b1) {
         logfatal("Tried to load from unaligned HALF");
     }
+    u16 result;
     switch (address) {
         case REGION_RDRAM:
-            return half_from_byte_array((u8*) &n64sys.mem.rdram, HALF_ADDRESS(address) - SREGION_RDRAM);
+            result = half_from_byte_array((u8*) &n64sys.mem.rdram, HALF_ADDRESS(address) - SREGION_RDRAM);
+            break;
         case REGION_RDRAM_UNUSED:
-            return read_unused(address);
+            result = read_unused(address);
+            break;
         case REGION_RDRAM_REGS:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address);
         case REGION_SP_MEM:
             if (address & 0x1000) {
-                return half_from_byte_array((u8*) &N64RSP.sp_imem, HALF_ADDRESS(address & 0xFFF));
+                result = half_from_byte_array((u8*) &N64RSP.sp_imem, HALF_ADDRESS(address & 0xFFF));
             } else {
-                return be16toh(half_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
+                result = be16toh(half_from_byte_array((u8*) &N64RSP.sp_dmem, address & 0xFFF));
             }
+            break;
         case REGION_SP_REGS:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_SP_REGS", address);
         case REGION_DP_COMMAND_REGS:
@@ -775,11 +833,13 @@ u16 n64_read_physical_half(u32 address) {
         case REGION_UNUSED:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART:
-            return read_half_pibus(address);
+            result = read_half_pibus(address);
+            break;
         case REGION_PIF_BOOT:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_PIF_BOOT", address);
         case REGION_PIF_RAM:
-            return be16toh(half_from_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM));
+            result = be16toh(half_from_byte_array(n64sys.mem.pif_ram, address - SREGION_PIF_RAM));
+            break;
         case REGION_RESERVED:
             logfatal("Reading u16 from address 0x%08X in unsupported region: REGION_RESERVED", address);
         case REGION_CART_1_3:
@@ -789,13 +849,13 @@ u16 n64_read_physical_half(u32 address) {
         default:
             logfatal("Reading u16 from unknown address: 0x%08X", address);
     }
+    log_half_read(address, result);
+    return result;
 }
 
 void n64_write_physical_byte(u32 address, u32 value) {
-    logdebug("Writing 0x%02X to [0x%08X]", value & 0xFF, address);
-#ifdef N64_DYNAREC_ENABLED
+    log_byte_write(address, value);
     invalidate_dynarec_page(BYTE_ADDRESS(address));
-#endif
     switch (address) {
         case REGION_RDRAM:
             n64sys.mem.rdram[BYTE_ADDRESS(address)] = value;
@@ -804,7 +864,7 @@ void n64_write_physical_byte(u32 address, u32 value) {
             logfatal("Writing byte 0x%02X to address 0x%08X in unsupported region: REGION_RDRAM_REGS", value & 0xFF, address);
         case REGION_SP_MEM:
             value = value << (8 * (3 - (address & 3)));
-            address = (address & 0xFFF) & ~3;
+            address = address & ~3;
             if (address & 0x1000) {
                 word_to_byte_array(N64RSP.sp_imem, address & 0xFFF, value);
                 invalidate_rsp_icache(address);
@@ -857,17 +917,20 @@ void n64_write_physical_byte(u32 address, u32 value) {
 }
 
 u8 n64_read_physical_byte(u32 address) {
+    u8 result;
     switch (address) {
         case REGION_RDRAM:
-            return n64sys.mem.rdram[BYTE_ADDRESS(address)];
+            result = n64sys.mem.rdram[BYTE_ADDRESS(address)];
+            break;
         case REGION_RDRAM_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RDRAM_REGS", address);
         case REGION_SP_MEM:
             if (address & 0x1000) {
-                return N64RSP.sp_imem[BYTE_ADDRESS(address) - SREGION_SP_IMEM];
+                result = N64RSP.sp_imem[BYTE_ADDRESS(address) - SREGION_SP_IMEM];
             } else {
-                return N64RSP.sp_dmem[address - SREGION_SP_DMEM];
+                result = N64RSP.sp_dmem[address - SREGION_SP_DMEM];
             }
+            break;
         case REGION_SP_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_SP_REGS", address);
         case REGION_DP_COMMAND_REGS:
@@ -881,7 +944,8 @@ u8 n64_read_physical_byte(u32 address) {
         case REGION_AI_REGS: {
             u32 w = read_word_aireg(address & (~3));
             int offset = 3 - (address & 3);
-            return (w >> (offset * 8)) & 0xFF;
+            result = (w >> (offset * 8)) & 0xFF;
+            break;
         }
         case REGION_PI_REGS:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_PI_REGS", address);
@@ -892,7 +956,8 @@ u8 n64_read_physical_byte(u32 address) {
         case REGION_UNUSED:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_UNUSED", address);
         case REGION_CART:
-            return read_byte_pibus(address);
+            result = read_byte_pibus(address);
+            break;
         case REGION_PIF_BOOT: {
             if (n64sys.mem.rom.pif_rom == NULL) {
                 logfatal("Tried to read from PIF ROM, but PIF ROM not loaded!\n");
@@ -901,22 +966,27 @@ u8 n64_read_physical_byte(u32 address) {
                 if (index > n64sys.mem.rom.size) {
                     logfatal("Address 0x%08X accessed an index %d/0x%X outside the bounds of the PIF ROM!", address, index, index);
                 } else {
-                    return n64sys.mem.rom.pif_rom[index];
+                    result = n64sys.mem.rom.pif_rom[index];
+                    break;
                 }
             }
         }
         case REGION_PIF_RAM:
-            return n64sys.mem.pif_ram[address - SREGION_PIF_RAM];
+            result = n64sys.mem.pif_ram[address - SREGION_PIF_RAM];
+            break;
         case REGION_RESERVED:
             logfatal("Reading byte from address 0x%08X in unsupported region: REGION_RESERVED", address);
         case REGION_CART_1_3:
             logwarn("Reading byte from address 0x%08X in unsupported region: REGION_CART_1_3", address);
-            return 0;
+            result = 0;
+            break;
         case REGION_SYSAD_DEVICE:
             logfatal("This (0x%08X) is a virtual address!", address);
         default:
             logfatal("Reading byte from unknown address: 0x%08X", address);
     }
+    log_byte_read(address, result);
+    return result;
 }
 
 bool debugger_read_physical_byte(u32 address, u8* result) {
@@ -957,3 +1027,10 @@ bool debugger_read_physical_byte(u32 address, u8* result) {
             return false;
     }
 }
+
+u32 n64_rsp_read_word_noinline(u32 address) { return n64_rsp_read_word(address); }
+void n64_rsp_write_word_noinline(u32 address, u32 value) { n64_rsp_write_word(address, value); }
+u16 n64_rsp_read_half_noinline(u32 address) { return n64_rsp_read_half(address); }
+void n64_rsp_write_half_noinline(u32 address, u16 value) { n64_rsp_write_half(address, value); }
+u8 n64_rsp_read_byte_noinline(u32 address) { return n64_rsp_read_byte(address); }
+void n64_rsp_write_byte_noinline(u32 address, u8 value) { n64_rsp_write_byte(address, value); }
