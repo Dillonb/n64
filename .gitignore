@@ -4,6 +4,7 @@
 .cache
 .vscode
 *.json
+!renovate.json
 .direnv
 *.ini
 result
