@@ -3,6 +3,8 @@
   "extends": ["config:recommended"],
   "timezone": "America/Los_Angeles",
   "ignorePaths": ["src/contrib/**"],
+  "cloneSubmodules": true,
+  "cloneSubmodulesFilter": ["src/jit/dgbir"],
   "minimumReleaseAge": "3 days",
   "prHourlyLimit": 0,
   "nix": {
