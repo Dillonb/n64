@@ -643,7 +643,10 @@ impl GuestRegisterManager {
                     value,
                 );
 
-                block.call_function(external_fn!(reschedule_compare_interrupt(_)), &[const_u32(inblock_index.unwrap())]);
+                block.call_function(
+                    external_fn!(reschedule_compare_interrupt(_)),
+                    &[const_u32(inblock_index.unwrap())],
+                );
             }
             R4300I_CP0_REG_ENTRYLO0 => {
                 block.write_ptr(
@@ -767,7 +770,10 @@ impl GuestRegisterManager {
                     value_shifted.val(),
                 );
                 let reschedule_compare_interrupt = external_fn!(reschedule_compare_interrupt(_));
-                block.call_function(reschedule_compare_interrupt, &[const_u32(inblock_index.unwrap())]);
+                block.call_function(
+                    reschedule_compare_interrupt,
+                    &[const_u32(inblock_index.unwrap())],
+                );
             }
             _ => {
                 panic!("Unknown register in set_cp0_reg: {}", reg);
@@ -866,7 +872,8 @@ fn get_paddr_for_loadstore(
             const_u32(bus_access as u32), // on Windows, this is an i32, need to convert.
             cached_ptr,
             physical_ptr,
-        ]);
+        ],
+    );
 
     let mut on_fail_block = func.new_block(vec![]);
     on_fail_block.call_function(external_fn!(on_fail(_)), &[virtual_address.val()]);
@@ -932,11 +939,14 @@ fn checkcp1(
     let mut cp1_disabled_block = func.new_block(vec![]);
     // Flush, but don't clear, as the register values still matter for other execution paths.
     guest_regs.flush_all(&mut cp1_disabled_block, false);
-    cp1_disabled_block.call_function(external_fn!(r4300i_handle_exception(_, _, _)), &[
+    cp1_disabled_block.call_function(
+        external_fn!(r4300i_handle_exception(_, _, _)),
+        &[
             const_u64(vaddr),
             const_u32(EXCEPTION_COPROCESSOR_UNUSABLE),
             const_u32(1),
-        ]);
+        ],
+    );
     cp1_disabled_block.ret(Some(const_s32(cycles + 1)));
 
     let cp1_enabled_block = func.new_block(vec![]);
@@ -1063,7 +1073,8 @@ pub fn to_ir_ctx(
     // If the block ends with a branch, fallback to the interpreter.
     if let Some(last) = parsed.last() {
         if last.op.is_branch() {
-            let cycles = block.call_function(external_fn!(interpreter_fallback_until_no_branch()), &[]);
+            let cycles =
+                block.call_function(external_fn!(interpreter_fallback_until_no_branch()), &[]);
 
             block.ret(Some(cycles.val()));
             return func;
@@ -1181,7 +1192,8 @@ pub fn to_ir_ctx(
                 );
                 let temp_value = block.call_function(ctx.read_physical_word(), &[paddr]);
 
-                let sign_extended = block.convert_from(DataType::S32, DataType::S64, temp_value.val());
+                let sign_extended =
+                    block.convert_from(DataType::S32, DataType::S64, temp_value.val());
 
                 guest_regs.set_gpr(instr.rt(), sign_extended.val());
             }

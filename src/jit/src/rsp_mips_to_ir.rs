@@ -64,7 +64,8 @@ impl RspMipsToIrContext {
     }
 
     fn interpreter_fallback_until_no_branch(&self) -> ExternalFunction {
-        external_fn!(rsp_interpreter_fallback_until_no_branch()).at(self.interpreter_fallback_until_no_branch)
+        external_fn!(rsp_interpreter_fallback_until_no_branch())
+            .at(self.interpreter_fallback_until_no_branch)
     }
 
     pub fn default() -> Self {
@@ -355,7 +356,9 @@ fn get_vte(block: &mut IRBlockHandle, vt: InputSlot, e: u8) -> InputSlot {
     if e <= 1 {
         return vt;
     }
-    block.vector_swizzle(DataType::VU16, vt, PATTERNS[e as usize]).val()
+    block
+        .vector_swizzle(DataType::VU16, vt, PATTERNS[e as usize])
+        .val()
 }
 
 fn rsp_load_u64(
@@ -580,10 +583,14 @@ pub fn rsp_to_ir_ctx(
             }
             RspOpcode::MTC0 => {
                 let value = guest_regs.get_gpr(&mut block, instr.rt());
-                block.call_function(ctx.set_rsp_cp0_register(), &[const_u16(instr.rd() as u16), value]);
+                block.call_function(
+                    ctx.set_rsp_cp0_register(),
+                    &[const_u16(instr.rd() as u16), value],
+                );
             }
             RspOpcode::MFC0 => {
-                let value = block.call_function(ctx.get_rsp_cp0_register(), &[const_u16(instr.rd() as u16)]);
+                let value = block
+                    .call_function(ctx.get_rsp_cp0_register(), &[const_u16(instr.rd() as u16)]);
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
             // RspOpcode::VEC_VABS => todo!("RSP VEC_VABS"),
@@ -599,7 +606,59 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::VEC_VMACF => todo!("RSP VEC_VMACF"),
             // RspOpcode::VEC_VMACQ => todo!("RSP VEC_VMACQ"),
             // RspOpcode::VEC_VMACU => todo!("RSP VEC_VMACU"),
-            // RspOpcode::VEC_VMADH => todo!("RSP VEC_VMADH"),
+            RspOpcode::VEC_VMADH => {
+                let vs = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vs());
+                let vt = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vt());
+                let vte = get_vte(&mut block, vt, instr.cp2_vec_e());
+
+                let lo = block.multiply(
+                    DataType::VS16,
+                    DataType::VS16,
+                    MultiplyType::Combined,
+                    vs,
+                    vte,
+                );
+                let hi =
+                    block.multiply(DataType::VS16, DataType::VS16, MultiplyType::High, vs, vte);
+
+                let acc_mid = guest_regs.get_acc_mid(&mut block);
+                let saturated = block.saturating_add(DataType::VU16, acc_mid, lo.val());
+                let new_mid = block.add(DataType::VU16, acc_mid, lo.val());
+                let carry = block.compare(
+                    DataType::VU16,
+                    new_mid.val(),
+                    CompareType::NotEqual,
+                    saturated.val(),
+                );
+
+                // The mask is all ones where a carry happened, so subtracting it adds one.
+                let hi = block.subtract(DataType::VU16, hi.val(), carry.val());
+                let acc_high = guest_regs.get_acc_high(&mut block);
+                let new_high = block.add(DataType::VU16, acc_high, hi.val());
+
+                guest_regs.set_acc_mid(new_mid.val());
+                guest_regs.set_acc_high(new_high.val());
+
+                let products_low = block.vector_interleave(
+                    DataType::VS32,
+                    VectorHalf::Low,
+                    new_mid.val(),
+                    new_high.val(),
+                );
+                let products_high = block.vector_interleave(
+                    DataType::VS32,
+                    VectorHalf::High,
+                    new_mid.val(),
+                    new_high.val(),
+                );
+                let result = block.vector_pack(
+                    DataType::VS16,
+                    PackType::Saturating,
+                    products_low.val(),
+                    products_high.val(),
+                );
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
             // RspOpcode::VEC_VMADL => todo!("RSP VEC_VMADL"),
             // RspOpcode::VEC_VMADM => todo!("RSP VEC_VMADM"),
             // RspOpcode::VEC_VMADN => todo!("RSP VEC_VMADN"),
@@ -611,8 +670,15 @@ pub fn rsp_to_ir_ctx(
                 let vte = get_vte(&mut block, vt, instr.cp2_vec_e());
 
                 // The product is 32 bits, held in acc.m and acc.h with acc.l zeroed.
-                let lo = block.multiply(DataType::VS16, DataType::VS16, MultiplyType::Combined, vs, vte);
-                let hi = block.multiply(DataType::VS16, DataType::VS16, MultiplyType::High, vs, vte);
+                let lo = block.multiply(
+                    DataType::VS16,
+                    DataType::VS16,
+                    MultiplyType::Combined,
+                    vs,
+                    vte,
+                );
+                let hi =
+                    block.multiply(DataType::VS16, DataType::VS16, MultiplyType::High, vs, vte);
                 guest_regs.set_acc_low(const_u64(0));
                 guest_regs.set_acc_mid(lo.val());
                 guest_regs.set_acc_high(hi.val());
@@ -673,7 +739,11 @@ pub fn rsp_to_ir_ctx(
                 } else {
                     (
                         block.vector_right_shift_bytes(DataType::U128, value.val(), const_u16(1)),
-                        block.vector_right_shift_bytes(DataType::U128, const_u32(0xFFFF), const_u16(1)),
+                        block.vector_right_shift_bytes(
+                            DataType::U128,
+                            const_u32(0xFFFF),
+                            const_u16(1),
+                        ),
                     )
                 };
 
@@ -814,15 +884,24 @@ pub fn rsp_to_ir_ctx(
                 // of the register falls off both ends, which is exactly the clipping LQV wants.
                 let misalignment = block.and(DataType::U32, address, const_u32(15));
                 let misalignment = misalignment.val();
-                let placed = block.vector_left_shift_bytes(DataType::U128, loaded.val(), misalignment);
                 let placed =
-                    block.vector_right_shift_bytes(DataType::U128, placed.val(), const_u16(e as u16));
+                    block.vector_left_shift_bytes(DataType::U128, loaded.val(), misalignment);
+                let placed = block.vector_right_shift_bytes(
+                    DataType::U128,
+                    placed.val(),
+                    const_u16(e as u16),
+                );
 
                 // The same shifts applied to an all ones value select the bytes actually written.
-                let ones = block.vector_left_shift_bytes(DataType::U128, const_u64(u64::MAX), const_u16(8));
+                let ones = block.vector_left_shift_bytes(
+                    DataType::U128,
+                    const_u64(u64::MAX),
+                    const_u16(8),
+                );
                 let ones = block.or(DataType::U128, ones.val(), const_u64(u64::MAX));
                 let mask = block.vector_left_shift_bytes(DataType::U128, ones.val(), misalignment);
-                let mask = block.vector_right_shift_bytes(DataType::U128, mask.val(), const_u16(e as u16));
+                let mask =
+                    block.vector_right_shift_bytes(DataType::U128, mask.val(), const_u16(e as u16));
                 let inv_mask = block.not(DataType::U128, mask.val());
 
                 let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
@@ -850,10 +929,16 @@ pub fn rsp_to_ir_ctx(
                         .val()
                 } else if shift < 0 {
                     // Wrapping case (element > 8): rotate via left-shift + right-shift + OR
-                    let left =
-                        block.vector_left_shift_bytes(DataType::U128, reg, const_u16((-shift) as u16));
-                    let right =
-                        block.vector_right_shift_bytes(DataType::U128, reg, const_u16((16 + shift) as u16));
+                    let left = block.vector_left_shift_bytes(
+                        DataType::U128,
+                        reg,
+                        const_u16((-shift) as u16),
+                    );
+                    let right = block.vector_right_shift_bytes(
+                        DataType::U128,
+                        reg,
+                        const_u16((16 + shift) as u16),
+                    );
                     block.or(DataType::U128, left.val(), right.val()).val()
                 } else {
                     // element == 8: low 64 bits are already in position
@@ -861,7 +946,9 @@ pub fn rsp_to_ir_ctx(
                 };
 
                 // Write as two 32-bit words
-                let value = block.convert_from(DataType::U128, DataType::U64, value).val();
+                let value = block
+                    .convert_from(DataType::U128, DataType::U64, value)
+                    .val();
                 let high = block.right_shift(DataType::U64, value, const_u16(32));
                 block.call_function(ctx.write_word(), &[address, high.val()]);
                 let low_address = block.add(DataType::U32, address, const_u16(4));
