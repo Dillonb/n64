@@ -3,7 +3,7 @@ use std::mem::offset_of;
 use dgbir::external_fn;
 use dgbir::ir::{
     const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType, ExternalFunction,
-    IRBlockHandle, IRContext, IRFunction, InputSlot,
+    IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType, PackType, VectorHalf,
 };
 use log::warn;
 
@@ -90,10 +90,15 @@ impl RspMipsToIrContext {
     }
 }
 
+const ACC_HIGH: usize = 0;
+const ACC_MID: usize = 1;
+const ACC_LOW: usize = 2;
+
 struct GuestRegisterManager {
     rsp_address: InputSlot,
     gprs: [Option<InputSlot>; 32],
     vu_regs: [Option<InputSlot>; 32],
+    acc: [Option<InputSlot>; 3],
 }
 
 impl GuestRegisterManager {
@@ -102,6 +107,7 @@ impl GuestRegisterManager {
             rsp_address,
             gprs: [None; 32],
             vu_regs: [None; 32],
+            acc: [None; 3],
         };
         v.gprs[0] = Some(const_u32(0));
         v
@@ -135,6 +141,49 @@ impl GuestRegisterManager {
         })
     }
 
+    fn acc_offset(index: usize) -> usize {
+        offset_of!(rsp_t, acc) + index * std::mem::size_of::<u128>()
+    }
+
+    fn set_acc(&mut self, index: usize, value: InputSlot) {
+        self.acc[index] = Some(value);
+    }
+
+    fn get_acc(&mut self, block: &mut IRBlockHandle, index: usize) -> InputSlot {
+        *self.acc[index].get_or_insert_with(|| {
+            block
+                .load_ptr(DataType::VU16, self.rsp_address, Self::acc_offset(index))
+                .val()
+        })
+    }
+
+    fn set_acc_high(&mut self, value: InputSlot) {
+        self.set_acc(ACC_HIGH, value);
+    }
+
+    fn set_acc_mid(&mut self, value: InputSlot) {
+        self.set_acc(ACC_MID, value);
+    }
+
+    fn set_acc_low(&mut self, value: InputSlot) {
+        self.set_acc(ACC_LOW, value);
+    }
+
+    #[allow(dead_code)]
+    fn get_acc_high(&mut self, block: &mut IRBlockHandle) -> InputSlot {
+        self.get_acc(block, ACC_HIGH)
+    }
+
+    #[allow(dead_code)]
+    fn get_acc_mid(&mut self, block: &mut IRBlockHandle) -> InputSlot {
+        self.get_acc(block, ACC_MID)
+    }
+
+    #[allow(dead_code)]
+    fn get_acc_low(&mut self, block: &mut IRBlockHandle) -> InputSlot {
+        self.get_acc(block, ACC_LOW)
+    }
+
     fn flush_all(&mut self, block: &mut IRBlockHandle, clear: bool) {
         self.gprs
             .iter_mut()
@@ -154,6 +203,15 @@ impl GuestRegisterManager {
                 if let Some(value) = if clear { reg.take() } else { *reg } {
                     let offset = offset_of!(rsp_t, vu_regs) + (i * std::mem::size_of::<u128>());
                     block.write_ptr(DataType::U128, self.rsp_address, offset, value);
+                }
+            });
+        self.acc
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, slot)| slot.is_some())
+            .for_each(|(i, slot)| {
+                if let Some(value) = if clear { slot.take() } else { *slot } {
+                    block.write_ptr(DataType::VU16, self.rsp_address, Self::acc_offset(i), value);
                 }
             });
     }
@@ -260,6 +318,39 @@ fn get_lswc2_address(
     let base = guest_regs.get_gpr(block, instr.lswc2_base());
     let offset = sign_extend_7bit_offset(instr.lswc2_offset(), shift_amount);
     block.add(DataType::S32, base, const_s32(offset)).val()
+}
+
+/// The element selection applied to vt by the CP2 vector instructions. Architectural element i
+/// lives in lane 7 - i, so the patterns below are the usual element tables mirrored.
+fn get_vte(block: &mut IRBlockHandle, vt: InputSlot, e: u8) -> InputSlot {
+    const ELEMENTS: [[u8; 8]; 16] = [
+        [0, 1, 2, 3, 4, 5, 6, 7],
+        [0, 1, 2, 3, 4, 5, 6, 7],
+        [0, 0, 2, 2, 4, 4, 6, 6],
+        [1, 1, 3, 3, 5, 5, 7, 7],
+        [0, 0, 0, 0, 4, 4, 4, 4],
+        [1, 1, 1, 1, 5, 5, 5, 5],
+        [2, 2, 2, 2, 6, 6, 6, 6],
+        [3, 3, 3, 3, 7, 7, 7, 7],
+        [0; 8],
+        [1; 8],
+        [2; 8],
+        [3; 8],
+        [4; 8],
+        [5; 8],
+        [6; 8],
+        [7; 8],
+    ];
+
+    if e <= 1 {
+        return vt;
+    }
+    let elements = ELEMENTS[e as usize];
+    let pattern = (0..8).fold(0u64, |acc, lane| {
+        let src = 7 - elements[7 - lane];
+        acc | ((src as u64) << (4 * lane))
+    });
+    block.vector_swizzle(DataType::VU16, vt, pattern).val()
 }
 
 fn rsp_load_u64(
@@ -505,7 +596,31 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::VEC_VMADN => todo!("RSP VEC_VMADN"),
             // RspOpcode::VEC_VMOV => todo!("RSP VEC_VMOV"),
             // RspOpcode::VEC_VMRG => todo!("RSP VEC_VMRG"),
-            // RspOpcode::VEC_VMUDH => todo!("RSP VEC_VMUDH"),
+            RspOpcode::VEC_VMUDH => {
+                let vs = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vs());
+                let vt = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vt());
+                let vte = get_vte(&mut block, vt, instr.cp2_vec_e());
+
+                // The product is 32 bits, held in acc.m and acc.h with acc.l zeroed.
+                let lo = block.multiply(DataType::VS16, DataType::VS16, MultiplyType::Combined, vs, vte);
+                let hi = block.multiply(DataType::VS16, DataType::VS16, MultiplyType::High, vs, vte);
+                guest_regs.set_acc_low(const_u64(0));
+                guest_regs.set_acc_mid(lo.val());
+                guest_regs.set_acc_high(hi.val());
+
+                // vd is the product itself, clamped, which is the accumulator before the shift.
+                let products_low =
+                    block.vector_interleave(DataType::VS32, VectorHalf::Low, lo.val(), hi.val());
+                let products_high =
+                    block.vector_interleave(DataType::VS32, VectorHalf::High, lo.val(), hi.val());
+                let result = block.vector_pack(
+                    DataType::VS16,
+                    PackType::Saturating,
+                    products_low.val(),
+                    products_high.val(),
+                );
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
             // RspOpcode::VEC_VMUDL => todo!("RSP VEC_VMUDL"),
             // RspOpcode::VEC_VMUDM => todo!("RSP VEC_VMUDM"),
             // RspOpcode::VEC_VMUDN => todo!("RSP VEC_VMUDN"),
