@@ -235,9 +235,10 @@ INLINE void rsp_dma_write() {
             }
 
             u32 word;
+            // It's safe to copy an entire word at a time because of the the DMA length and start address alignment
             memcpy(&word, &mem[addr], sizeof(word));
             if (!mem_addr.imem) {
-                word = rsp_dma_swizzle(word);
+                word = RSP_DMA_SWIZZLE(word);
             }
             memcpy(&rdram[j], &word, sizeof(word));
         }
