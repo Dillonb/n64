@@ -139,6 +139,12 @@ INLINE void invalidate_rsp_icache(u32 address) {
     quick_invalidate_rsp_icache(address & 0xFFC);
 }
 
+#ifdef N64_BIG_ENDIAN
+#define RSP_DMA_SWIZZLE(word) word
+#else
+#define RSP_DMA_SWIZZLE(word) bswap_32(word)
+#endif
+
 INLINE void rsp_dma_read() {
     u32 length = N64RSP.io.dma.length + 1;
 
@@ -160,17 +166,22 @@ INLINE void rsp_dma_read() {
         u8* mem = (mem_addr_reg.imem ? N64RSP.sp_imem : N64RSP.sp_dmem);
         char imem_dmem = mem_addr_reg.imem ? 'i' : 'd';
         loginfo("RSP DMA READ! rdram[0x%08X] to %cmem[0x%03X] length %d / 0x%X", dram_address, imem_dmem, mem_address, length, length);
-        for (int j = 0; j < length; j++) {
+        for (int j = 0; j < length; j += 4) {
             u16 addr = (mem_address + j) & 0xFFF;
-            u16 index = mem_addr_reg.imem ? addr : BYTE_ADDRESS(addr);
+            u32 src = dram_address + j;
 
-            if ((dram_address + j) < N64_RDRAM_SIZE) {
-                mem[index] = n64sys.mem.rdram[dram_address + j];
+            u32 word = 0;
+            if (src < N64_RDRAM_SIZE) {
+                memcpy(&word, &n64sys.mem.rdram[src], sizeof(word));
             } else {
-                logwarn("Out of range rsp dma read! [%08X] Setting %cmem[%03X] to 0\n", dram_address + j, imem_dmem, addr);
-                mem[index] = 0;
+                logwarn("Out of range rsp dma read! [%08X] Setting %cmem[%03X] to 0\n", src, imem_dmem, addr);
             }
 
+            // It's safe to copy an entire word at a time because of the the DMA length and start address alignment
+            if (!mem_addr_reg.imem) {
+                word = RSP_DMA_SWIZZLE(word);
+            }
+            memcpy(&mem[addr], &word, sizeof(word));
         }
 
         if (mem_addr_reg.imem) {
@@ -217,12 +228,18 @@ INLINE void rsp_dma_write() {
     for (int i = 0; i < N64RSP.io.dma.count + 1; i++) {
         u8* mem = (mem_addr.imem ? N64RSP.sp_imem : N64RSP.sp_dmem);
         u8* rdram = n64sys.mem.rdram + dram_address;
-        for (int j = 0; j < length; j++) {
+        for (int j = 0; j < length; j += 4) {
             u16 addr = (mem_address + j) & 0xFFF;
             if ((dram_address + j) >= N64_RDRAM_SIZE) {
                 logfatal("Out of range RSP DMA write (ignored?)");
             }
-            rdram[j] = mem[mem_addr.imem ? addr : BYTE_ADDRESS(addr)];
+
+            u32 word;
+            memcpy(&word, &mem[addr], sizeof(word));
+            if (!mem_addr.imem) {
+                word = rsp_dma_swizzle(word);
+            }
+            memcpy(&rdram[j], &word, sizeof(word));
         }
 
 
