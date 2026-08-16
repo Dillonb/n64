@@ -5,7 +5,7 @@ use dgbir::ir::{
     const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType, ExternalFunction,
     IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType, PackType, VectorHalf,
 };
-use log::warn;
+use log::{trace, warn};
 
 use crate::{
     disassembler::disassemble_rsp_instruction,
@@ -385,7 +385,7 @@ fn interpret_instruction(
         "Cannot interpret branch instruction {:?}",
         op
     );
-    println!("Falling back to the interpreter for {:?}", op);
+    trace!("Falling back to the interpreter for {:?}", op);
 
     let handler = unsafe { rsp_resolve_interpreter_handler(addr as u32, instr.raw()) }
         .expect("rsp_resolve_interpreter_handler failed unexpectedly");
@@ -422,10 +422,9 @@ pub fn rsp_to_ir_ctx(
         }
     }
 
-    println!("--------------");
     let mut last_addr = 0;
     for ParsedRspInstruction { addr, instr, op } in parsed {
-        println!("{}", disassemble_rsp_instruction(*instr, addr));
+        trace!("{}", disassemble_rsp_instruction(*instr, addr));
         last_addr = addr;
         match op {
             RspOpcode::BRANCH(RspBranchInfo { cond, link }) => {
