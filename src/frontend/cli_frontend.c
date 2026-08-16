@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <imgui/imgui_ui.h>
 #include <settings.h>
+#include <frontend/render.h>
 #include "frontend.h"
 
 void usage(cflags_t* flags) {
@@ -67,6 +68,12 @@ int main(int argc, char** argv) {
     bool record_tas_movie = false;
     cflags_add_bool(flags, 'r', "record", &record_tas_movie, "Record movie instead of playing. -m must also be specified when this option is used!");
 
+    bool exit_on_movie_end = false;
+    cflags_add_bool(flags, '\0', "exit-on-movie-end", &exit_on_movie_end, "Quit once the movie loaded with -m runs out of inputs");
+
+    bool unlock_framerate = false;
+    cflags_add_bool(flags, '\0', "unlock-framerate", &unlock_framerate, "Start with the framerate unlocked, running as fast as possible");
+
     const char* pif_rom_path = NULL;
     cflags_add_string(flags, 'p', "pif", &pif_rom_path, "Load PIF ROM");
 
@@ -121,11 +128,15 @@ int main(int argc, char** argv) {
         load_imgui_ui();
         register_imgui_event_handler(imgui_handle_event);
     }
+    if (unlock_framerate) {
+        set_framerate_unlocked(true);
+    }
     if (tas_movie_path != NULL) {
         if (record_tas_movie) {
             start_tas_recording(tas_movie_path);
         } else {
             load_tas_movie(tas_movie_path);
+            tas_movie_set_exit_on_end(exit_on_movie_end);
         }
     }
     if (pif_rom_path) {

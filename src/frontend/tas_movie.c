@@ -101,6 +101,11 @@ uint32_t loaded_tas_movie_index = 0;
 
 static u32 num_inputs_recorded = 0;
 static FILE* recording_tas_movie = NULL;
+static bool exit_on_movie_end = false;
+
+void tas_movie_set_exit_on_end(bool enabled) {
+    exit_on_movie_end = enabled;
+}
 
 void load_tas_movie(const char* filename) {
     FILE *fp = fopen(filename, "rb");
@@ -163,6 +168,10 @@ bool tas_movie_loaded() {
 n64_controller_t tas_next_inputs() {
     if (loaded_tas_movie_index + sizeof(tas_movie_controller_data_t) > loaded_tas_movie_size) {
         loaded_tas_movie = NULL;
+        if (exit_on_movie_end) {
+            logalways("TAS movie complete, exiting.");
+            n64_request_quit();
+        }
         n64_controller_t empty_controller;
         memset(&empty_controller, 0, sizeof(n64_controller_t));
         return empty_controller;
