@@ -383,6 +383,12 @@ void rsp_interpret_instruction(u32 raw) {
     rsp_instruction_decode(N64RSP.prev_pc << 2, instr)(instr);
 }
 
+rspinstr_handler_t rsp_resolve_interpreter_handler(u32 pc, u32 raw) {
+    mips_instruction_t instr;
+    instr.raw = raw;
+    return rsp_instruction_decode(pc, instr);
+}
+
 INLINE void _rsp_step() {
     u16 pc = N64RSP.pc & 0x3FF;
     rsp_icache_entry_t* cache = &N64RSP.icache[pc];

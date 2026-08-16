@@ -15,7 +15,7 @@ use crate::{
     n64_rsp_write_byte_noinline, n64_rsp_write_half_noinline, n64_rsp_write_word_noinline,
     rsp_interpret_instruction, rsp_interpreter_fallback_until_no_branch,
     rsp_mips_parser::{ParsedRspInstruction, RspBranchInfo, RspOpcode},
-    rsp_t, set_rsp_cp0_register,
+    rsp_resolve_interpreter_handler, rsp_t, set_rsp_cp0_register,
 };
 
 pub struct RspMipsToIrContext {
@@ -27,7 +27,6 @@ pub struct RspMipsToIrContext {
     write_word: usize,
     get_rsp_cp0_register: usize,
     set_rsp_cp0_register: usize,
-    interpret_instruction: usize,
     interpreter_fallback_until_no_branch: usize,
 }
 
@@ -64,10 +63,6 @@ impl RspMipsToIrContext {
         external_fn!(set_rsp_cp0_register(_, _)).at(self.set_rsp_cp0_register)
     }
 
-    fn interpret_instruction(&self) -> ExternalFunction {
-        external_fn!(rsp_interpret_instruction(_)).at(self.interpret_instruction)
-    }
-
     fn interpreter_fallback_until_no_branch(&self) -> ExternalFunction {
         external_fn!(rsp_interpreter_fallback_until_no_branch()).at(self.interpreter_fallback_until_no_branch)
     }
@@ -83,7 +78,6 @@ impl RspMipsToIrContext {
 
             get_rsp_cp0_register: get_rsp_cp0_register as *const () as usize,
             set_rsp_cp0_register: set_rsp_cp0_register as *const () as usize,
-            interpret_instruction: rsp_interpret_instruction as *const () as usize,
             interpreter_fallback_until_no_branch: rsp_interpreter_fallback_until_no_branch
                 as *const () as usize,
         }
@@ -377,13 +371,12 @@ fn rsp_load_u64(
     block.or(DataType::U64, v_high.val(), v_low.val()).val()
 }
 
-/// Runs one instruction through the C interpreter instead of compiling it. Cached registers are
-/// flushed and dropped since the interpreter works on the same state the block was passed.
+/// Interprets one RSP instruction.
 fn interpret_instruction(
     block: &mut IRBlockHandle,
     guest_regs: &mut GuestRegisterManager,
-    ctx: &RspMipsToIrContext,
     op: &RspOpcode,
+    addr: u16,
     instr: MipsInstructionBitfield,
 ) {
     // An interpreted branch would fight the PC handling here.
@@ -394,8 +387,14 @@ fn interpret_instruction(
     );
     println!("Falling back to the interpreter for {:?}", op);
 
+    let handler = unsafe { rsp_resolve_interpreter_handler(addr as u32, instr.raw()) }
+        .expect("rsp_resolve_interpreter_handler failed unexpectedly");
+
     guest_regs.flush_all(block, true);
-    block.call_function(ctx.interpret_instruction(), &[const_u32(instr.raw())]);
+    block.call_function(
+        external_fn!(rsp_interpret_instruction(_)).at(handler as *const () as usize),
+        &[const_u32(instr.raw())],
+    );
 }
 
 pub fn rsp_to_ir_ctx(
@@ -880,7 +879,7 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::SUV => todo!("RSP SUV"),
             // RspOpcode::SWV => todo!("RSP SWV"),
             // Anything not compiled above runs through the interpreter.
-            op => interpret_instruction(&mut block, &mut guest_regs, &ctx, &op, instr),
+            op => interpret_instruction(&mut block, &mut guest_regs, &op, addr, instr),
         }
         cycles += 1;
     }
