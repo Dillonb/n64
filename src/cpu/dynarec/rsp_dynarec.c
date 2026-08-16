@@ -30,6 +30,7 @@ int rsp_missing_block_handler() {
     rsp_code_overlay_t* current_overlay = &N64RSPDYNAREC->code_overlays[N64RSPDYNAREC->selected_code_overlay];
     rsp_dynarec_block_t* block = &current_overlay->blockcache[pc];
     compile_new_rsp_block(block, (N64RSP.pc << 2) & 0xFFF, current_overlay);
+    current_overlay->has_code = true;
     CODECACHE_ALLOW_EXEC();
     return block->run(&N64RSP);
 }
@@ -40,6 +41,7 @@ void reset_rsp_dynarec_code_overlay(rsp_code_overlay_t* overlay) {
         overlay->code[i] = 0;
         overlay->code_mask[i] = 0;
     }
+    overlay->has_code = false;
 }
 
 void reset_rsp_dynarec_code_overlays(rsp_dynarec_t* dynarec) {
@@ -63,6 +65,11 @@ rsp_dynarec_t* rsp_dynarec_init(u8* codecache, size_t codecache_size) {
 
 bool code_overlay_matches(int index) {
     rsp_code_overlay_t* overlay = &N64RSPDYNAREC->code_overlays[index];
+
+    // An empty overlay's mask is all zeroes, which compares equal to any IMEM contents.
+    if (!overlay->has_code) {
+        return false;
+    }
 
 #ifdef N64_HAVE_SSE
 
@@ -100,24 +107,32 @@ int rsp_dynarec_step() {
         // if no, allocate a new one.
         // if we're out of blocks, choose a random one to overwrite and use.
         bool found_match = false;
+        int empty_overlay = -1;
         for (int i = 0; i < N64RSPDYNAREC->code_overlays_allocated && !found_match; i++) {
             if (code_overlay_matches(i)) {
                 found_match = true;
                 N64RSPDYNAREC->selected_code_overlay = i;
+            } else if (empty_overlay < 0 && !N64RSPDYNAREC->code_overlays[i].has_code) {
+                empty_overlay = i;
             }
         }
 
         if (!found_match) {
-            int new_code_overlay = N64RSPDYNAREC->code_overlays_allocated;
-            if (new_code_overlay >= RSP_NUM_CODE_OVERLAYS) {
-                new_code_overlay = rand() % RSP_NUM_CODE_OVERLAYS;
-                logwarn("RSP: Out of code overlays! Selecting %d randomly", new_code_overlay);
+            if (empty_overlay >= 0) {
+                // Nothing compiled into it yet, so it's already usable as-is.
+                N64RSPDYNAREC->selected_code_overlay = empty_overlay;
             } else {
-                N64RSPDYNAREC->code_overlays_allocated++;
-                logwarn("RSP: Allocated a new code overlay. Allocated %d so far.", N64RSPDYNAREC->code_overlays_allocated);
+                int new_code_overlay = N64RSPDYNAREC->code_overlays_allocated;
+                if (new_code_overlay >= RSP_NUM_CODE_OVERLAYS) {
+                    new_code_overlay = rand() % RSP_NUM_CODE_OVERLAYS;
+                    logalways("RSP: Out of code overlays! Selecting %d randomly", new_code_overlay);
+                } else {
+                    N64RSPDYNAREC->code_overlays_allocated++;
+                    logalways("RSP: Allocated a new code overlay. Allocated %d so far.", N64RSPDYNAREC->code_overlays_allocated);
+                }
+                reset_rsp_dynarec_code_overlay(&N64RSPDYNAREC->code_overlays[new_code_overlay]);
+                N64RSPDYNAREC->selected_code_overlay = new_code_overlay;
             }
-            reset_rsp_dynarec_code_overlay(&N64RSPDYNAREC->code_overlays[new_code_overlay]);
-            N64RSPDYNAREC->selected_code_overlay = new_code_overlay;
         }
         N64RSPDYNAREC->dirty = false;
     }

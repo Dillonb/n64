@@ -23,6 +23,9 @@ typedef struct rsp_code_overlay {
     u32 code[RSP_BLOCKCACHE_SIZE];
     // Mapping of index -> executable block
     rsp_dynarec_block_t blockcache[RSP_BLOCKCACHE_SIZE];
+    // Has anything been compiled into this overlay? An empty overlay has an all-zero code_mask,
+    // which would otherwise compare equal to any IMEM contents.
+    bool has_code;
 } rsp_code_overlay_t;
 
 typedef struct rsp_dynarec {
