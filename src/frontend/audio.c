@@ -103,7 +103,7 @@ void audio_init() {
     SDL_PauseAudioDevice(audio_dev, false);
 
     int src_error = 0;
-    resampler = src_new(SRC_SINC_BEST_QUALITY, AUDIO_CHANNELS, &src_error);
+    resampler = src_new(SRC_SINC_MEDIUM_QUALITY, AUDIO_CHANNELS, &src_error);
     if (resampler == NULL) {
         logfatal("Failed to initialize libsamplerate! Error: %d", src_error);
     }
