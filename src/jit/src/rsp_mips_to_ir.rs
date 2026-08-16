@@ -342,15 +342,26 @@ fn get_vte(block: &mut IRBlockHandle, vt: InputSlot, e: u8) -> InputSlot {
         [7; 8],
     ];
 
+    const PATTERNS: [u64; 16] = {
+        let mut patterns = [0u64; 16];
+        let mut e = 0;
+        while e < 16 {
+            let elements = ELEMENTS[e];
+            let mut lane = 0;
+            while lane < 8 {
+                let src = 7 - elements[7 - lane];
+                patterns[e] |= (src as u64) << (4 * lane);
+                lane += 1;
+            }
+            e += 1;
+        }
+        patterns
+    };
+
     if e <= 1 {
         return vt;
     }
-    let elements = ELEMENTS[e as usize];
-    let pattern = (0..8).fold(0u64, |acc, lane| {
-        let src = 7 - elements[7 - lane];
-        acc | ((src as u64) << (4 * lane))
-    });
-    block.vector_swizzle(DataType::VU16, vt, pattern).val()
+    block.vector_swizzle(DataType::VU16, vt, PATTERNS[e as usize]).val()
 }
 
 fn rsp_load_u64(
