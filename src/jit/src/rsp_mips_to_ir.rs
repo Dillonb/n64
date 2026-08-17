@@ -643,7 +643,25 @@ pub fn rsp_to_ir_ctx(
                     .call_function(ctx.get_rsp_cp0_register(), &[const_u16(instr.rd() as u16)]);
                 guest_regs.set_gpr(instr.rt(), value.val());
             }
-            // RspOpcode::VEC_VABS => todo!("RSP VEC_VABS"),
+            RspOpcode::VEC_VABS => {
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+
+                let is_zero = block.compare(DataType::VU16, vs, CompareType::Equal, const_u128(0));
+                let is_negative = block.right_shift(DataType::VS16, vs, const_u64(15));
+
+                let keep = block.not(DataType::VU16, is_zero.val());
+                let kept = block.and(DataType::VU16, keep.val(), vte);
+                let flipped = block.xor(DataType::VU16, kept.val(), is_negative.val());
+                let acc_low = block.subtract(DataType::VU16, flipped.val(), is_negative.val());
+
+                // vd is the same value saturated, so negating 0x8000 gives 0x7FFF rather than
+                // wrapping.
+                let result =
+                    block.saturating_subtract(DataType::VS16, flipped.val(), is_negative.val());
+
+                guest_regs.set_acc_low(acc_low.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
             // RspOpcode::VEC_VADD => todo!("RSP VEC_VADD"),
             // RspOpcode::VEC_VADDC => todo!("RSP VEC_VADDC"),
             RspOpcode::VEC_VAND => {
