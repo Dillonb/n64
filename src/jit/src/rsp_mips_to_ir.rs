@@ -362,6 +362,17 @@ fn get_vte(block: &mut IRBlockHandle, vt: InputSlot, e: u8) -> InputSlot {
         .val()
 }
 
+/// `vs` and the element selected `vt`, which almost every CP2 vector instruction starts with.
+fn vs_and_vte(
+    block: &mut IRBlockHandle,
+    guest_regs: &mut GuestRegisterManager,
+    instr: MipsInstructionBitfield,
+) -> (InputSlot, InputSlot) {
+    let vs = guest_regs.get_vu_reg(block, instr.cp2_vec_vs());
+    let vt = guest_regs.get_vu_reg(block, instr.cp2_vec_vt());
+    (vs, get_vte(block, vt, instr.cp2_vec_e()))
+}
+
 /// Splits `2 * vs * vte` into the three accumulator halves. The product is 32 bits, so doubling
 /// it needs 33, and the top half is the sign.
 fn doubled_product(
@@ -635,7 +646,12 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::VEC_VABS => todo!("RSP VEC_VABS"),
             // RspOpcode::VEC_VADD => todo!("RSP VEC_VADD"),
             // RspOpcode::VEC_VADDC => todo!("RSP VEC_VADDC"),
-            // RspOpcode::VEC_VAND => todo!("RSP VEC_VAND"),
+            RspOpcode::VEC_VAND => {
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+                let result = block.and(DataType::VU16, vs, vte);
+                guest_regs.set_acc_low(result.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
             // RspOpcode::VEC_VCH => todo!("RSP VEC_VCH"),
             // RspOpcode::VEC_VCL => todo!("RSP VEC_VCL"),
             // RspOpcode::VEC_VCR => todo!("RSP VEC_VCR"),
@@ -804,12 +820,35 @@ pub fn rsp_to_ir_ctx(
             }
             // RspOpcode::VEC_VMULQ => todo!("RSP VEC_VMULQ"),
             // RspOpcode::VEC_VMULU => todo!("RSP VEC_VMULU"),
-            // RspOpcode::VEC_VNAND => todo!("RSP VEC_VNAND"),
+            RspOpcode::VEC_VNAND => {
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+                let anded = block.and(DataType::VU16, vs, vte);
+                let result = block.not(DataType::VU16, anded.val());
+                guest_regs.set_acc_low(result.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
             // RspOpcode::VEC_VNE => todo!("RSP VEC_VNE"),
             RspOpcode::VEC_VNOP => {}
-            // RspOpcode::VEC_VNOR => todo!("RSP VEC_VNOR"),
-            // RspOpcode::VEC_VNXOR => todo!("RSP VEC_VNXOR"),
-            // RspOpcode::VEC_VOR => todo!("RSP VEC_VOR"),
+            RspOpcode::VEC_VNOR => {
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+                let ored = block.or(DataType::VU16, vs, vte);
+                let result = block.not(DataType::VU16, ored.val());
+                guest_regs.set_acc_low(result.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
+            RspOpcode::VEC_VNXOR => {
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+                let xored = block.xor(DataType::VU16, vs, vte);
+                let result = block.not(DataType::VU16, xored.val());
+                guest_regs.set_acc_low(result.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
+            RspOpcode::VEC_VOR => {
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+                let result = block.or(DataType::VU16, vs, vte);
+                guest_regs.set_acc_low(result.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
             // RspOpcode::VEC_VRCP => todo!("RSP VEC_VRCP"),
             // RspOpcode::VEC_VRCPH_VRSQH => todo!("RSP VEC_VRCPH_VRSQH"),
             // RspOpcode::VEC_VRCPL => todo!("RSP VEC_VRCPL"),
@@ -829,8 +868,19 @@ pub fn rsp_to_ir_ctx(
             }
             // RspOpcode::VEC_VSUB => todo!("RSP VEC_VSUB"),
             // RspOpcode::VEC_VSUBC => todo!("RSP VEC_VSUBC"),
-            // RspOpcode::VEC_VXOR => todo!("RSP VEC_VXOR"),
-            // RspOpcode::VEC_VZERO => todo!("RSP VEC_VZERO"),
+            RspOpcode::VEC_VXOR => {
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+                let result = block.xor(DataType::VU16, vs, vte);
+                guest_regs.set_acc_low(result.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+            }
+            RspOpcode::VEC_VZERO => {
+                // vd is zeroed, but the sum still lands in acc.l.
+                let (vs, vte) = vs_and_vte(&mut block, &mut guest_regs, instr);
+                let sum = block.add(DataType::VU16, vs, vte);
+                guest_regs.set_acc_low(sum.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), const_u128(0));
+            }
             // RspOpcode::CFC2 => todo!("RSP CFC2"),
             // RspOpcode::CTC2 => todo!("RSP CTC2"),
             // RspOpcode::MFC2 => todo!("RSP MFC2"),
