@@ -42,11 +42,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1725332431,
-        "narHash": "sha256-O1t8k83fiwePgHJuiTd4wzp8ECqpdoUallg03GDMMsE=",
+        "lastModified": 1786947827,
+        "narHash": "sha256-fBMYOcoo9PzkiVaPo97aR3FmG1oKVZhorw+pK7eu2FY=",
         "owner": "Dillonb",
         "repo": "n64-tools.nix",
-        "rev": "9cf81c373fba9aaca7158736b9ad673a10a705ca",
+        "rev": "787941a0746a274f1fe0e5492414a82d4a11fe60",
         "type": "github"
       },
       "original": {
@@ -73,11 +73,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1786106723,
-        "narHash": "sha256-zDSUbpoeo/9ZmD2+wXnzxoo1+uhL8vxc0b8yuYMKYq0=",
+        "lastModified": 1786862985,
+        "narHash": "sha256-FBJRXmbGXiSUDvYEbfLYRkckayyZ6SK1UEqhCrIZ2Cs=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "f13ff45afd1bb73e640eaa08a7066dbed07e3238",
+        "rev": "e5bdc4a41d4c072fe1e3787eaa0320a384741d44",
         "type": "github"
       },
       "original": {
