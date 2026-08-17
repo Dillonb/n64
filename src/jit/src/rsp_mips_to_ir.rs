@@ -424,6 +424,34 @@ fn rsp_load_u64(
     block.or(DataType::U64, v_high.val(), v_low.val()).val()
 }
 
+fn rsp_store_u64(
+    block: &mut IRBlockHandle,
+    ctx: &RspMipsToIrContext,
+    address: InputSlot,
+    value: InputSlot,
+) {
+    let high = block.right_shift(DataType::U64, value, const_u16(32));
+    block.call_function(ctx.write_word(), &[address, high.val()]);
+    let low_address = block.add(DataType::U32, address, const_u16(4));
+    block.call_function(ctx.write_word(), &[low_address.val(), value]);
+}
+
+/// The first 8 bytes come from the top half, matching the layout [`rsp_load_u64`] builds.
+fn rsp_store_u128(
+    block: &mut IRBlockHandle,
+    ctx: &RspMipsToIrContext,
+    address: InputSlot,
+    value: InputSlot,
+) {
+    let high = block.vector_right_shift_bytes(DataType::U128, value, const_u16(8));
+    let high = block.convert_from(DataType::U128, DataType::U64, high.val());
+    rsp_store_u64(block, ctx, address, high.val());
+
+    let low = block.convert_from(DataType::U128, DataType::U64, value);
+    let low_address = block.add(DataType::U32, address, const_u16(8));
+    rsp_store_u64(block, ctx, low_address.val(), low.val());
+}
+
 /// Interprets one RSP instruction.
 fn interpret_instruction(
     block: &mut IRBlockHandle,
@@ -1137,7 +1165,50 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::SHV => todo!("RSP SHV"),
             // RspOpcode::SLV => todo!("RSP SLV"),
             // RspOpcode::SPV => todo!("RSP SPV"),
-            // RspOpcode::SQV => todo!("RSP SQV"),
+            RspOpcode::SQV => {
+                let address =
+                    get_lswc2_address(instr, &mut block, &mut guest_regs, SHIFT_AMOUNT_LQV_SQV);
+                let e = instr.lswc2_e();
+                let reg = guest_regs.get_vu_reg(&mut block, instr.lswc2_vt());
+
+                // The element wraps here, where LQV clips, so this is a rotate.
+                let rotated = if e == 0 {
+                    reg
+                } else {
+                    let left =
+                        block.vector_left_shift_bytes(DataType::U128, reg, const_u16(e as u16));
+                    let right = block.vector_right_shift_bytes(
+                        DataType::U128,
+                        reg,
+                        const_u16(16 - e as u16),
+                    );
+                    block.or(DataType::U128, left.val(), right.val()).val()
+                };
+
+                // The write runs from the address to the end of the 16 byte block containing it.
+                // Merging into that whole block avoids writing a runtime number of bytes.
+                let aligned = block
+                    .and(DataType::U32, address, const_u32(0xFFFFFFF0))
+                    .val();
+                let misalignment = block.and(DataType::U32, address, const_u32(15)).val();
+                let placed = block.vector_right_shift_bytes(DataType::U128, rotated, misalignment);
+                let mask = block.vector_right_shift_bytes(
+                    DataType::U128,
+                    const_u128(u128::MAX),
+                    misalignment,
+                );
+                let inv_mask = block.not(DataType::U128, mask.val());
+
+                let aligned_low = block.add(DataType::U32, aligned, const_u16(8)).val();
+                let high = rsp_load_u64(&mut block, &ctx, aligned);
+                let high = block.vector_left_shift_bytes(DataType::U128, high, const_u16(8));
+                let low = rsp_load_u64(&mut block, &ctx, aligned_low);
+                let old = block.or(DataType::U128, high.val(), low);
+
+                let kept = block.and(DataType::U128, old.val(), inv_mask.val());
+                let result = block.or(DataType::U128, kept.val(), placed.val());
+                rsp_store_u128(&mut block, &ctx, aligned, result.val());
+            }
             // RspOpcode::SRV => todo!("RSP SRV"),
             // RspOpcode::SSV => todo!("RSP SSV"),
             // RspOpcode::STV => todo!("RSP STV"),
