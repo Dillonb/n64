@@ -2,8 +2,9 @@ use std::mem::offset_of;
 
 use dgbir::external_fn;
 use dgbir::ir::{
-    const_s16, const_s32, const_u16, const_u32, const_u64, CompareType, DataType, ExternalFunction,
-    IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType, PackType, VectorHalf,
+    const_s16, const_s32, const_u128, const_u16, const_u32, const_u64, CompareType, DataType,
+    ExternalFunction, IRBlockHandle, IRContext, IRFunction, InputSlot, MultiplyType, PackType,
+    VectorHalf,
 };
 use log::{trace, warn};
 
@@ -361,6 +362,44 @@ fn get_vte(block: &mut IRBlockHandle, vt: InputSlot, e: u8) -> InputSlot {
         .val()
 }
 
+/// Splits `2 * vs * vte` into the three accumulator halves. The product is 32 bits, so doubling
+/// it needs 33, and the top half is the sign.
+fn doubled_product(
+    block: &mut IRBlockHandle,
+    vs: InputSlot,
+    vte: InputSlot,
+) -> (InputSlot, InputSlot, InputSlot) {
+    let lo = block.multiply(
+        DataType::VS16,
+        DataType::VS16,
+        MultiplyType::Combined,
+        vs,
+        vte,
+    );
+    let hi = block.multiply(DataType::VS16, DataType::VS16, MultiplyType::High, vs, vte);
+
+    let low = block.left_shift(DataType::VU16, lo.val(), const_u64(1));
+    // The bit shifted out of the low half is the one shifted into the high half.
+    let carried = block.right_shift(DataType::VU16, lo.val(), const_u64(15));
+    let shifted = block.left_shift(DataType::VU16, hi.val(), const_u64(1));
+    let mid = block.or(DataType::VU16, shifted.val(), carried.val());
+    let high = block.right_shift(DataType::VS16, hi.val(), const_u64(15));
+    (low.val(), mid.val(), high.val())
+}
+
+/// `clamp_signed(acc >> 16)`, which is acc.h and acc.m read as one signed 32 bit value.
+fn clamp_acc_to_vd(
+    block: &mut IRBlockHandle,
+    acc_mid: InputSlot,
+    acc_high: InputSlot,
+) -> InputSlot {
+    let low = block.vector_interleave(DataType::VS32, VectorHalf::Low, acc_mid, acc_high);
+    let high = block.vector_interleave(DataType::VS32, VectorHalf::High, acc_mid, acc_high);
+    block
+        .vector_pack(DataType::VS16, PackType::Saturating, low.val(), high.val())
+        .val()
+}
+
 fn rsp_load_u64(
     block: &mut IRBlockHandle,
     ctx: &RspMipsToIrContext,
@@ -603,7 +642,56 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::VEC_VEQ => todo!("RSP VEC_VEQ"),
             // RspOpcode::VEC_VGE => todo!("RSP VEC_VGE"),
             // RspOpcode::VEC_VLT => todo!("RSP VEC_VLT"),
-            // RspOpcode::VEC_VMACF => todo!("RSP VEC_VMACF"),
+            RspOpcode::VEC_VMACF => {
+                let vs = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vs());
+                let vt = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vt());
+                let vte = get_vte(&mut block, vt, instr.cp2_vec_e());
+
+                let (delta_low, delta_mid, delta_high) = doubled_product(&mut block, vs, vte);
+
+                let acc_low = guest_regs.get_acc_low(&mut block);
+                let saturated = block.saturating_add(DataType::VU16, acc_low, delta_low);
+                let new_low = block.add(DataType::VU16, acc_low, delta_low);
+                let carry_low = block.compare(
+                    DataType::VU16,
+                    new_low.val(),
+                    CompareType::NotEqual,
+                    saturated.val(),
+                );
+
+                // acc.m takes the middle of the delta plus the carry, and either of those two
+                // additions can carry into acc.h on its own.
+                let acc_mid = guest_regs.get_acc_mid(&mut block);
+                let saturated = block.saturating_add(DataType::VU16, acc_mid, delta_mid);
+                let summed = block.add(DataType::VU16, acc_mid, delta_mid);
+                let carry_sum = block.compare(
+                    DataType::VU16,
+                    summed.val(),
+                    CompareType::NotEqual,
+                    saturated.val(),
+                );
+                let new_mid = block.subtract(DataType::VU16, summed.val(), carry_low.val());
+                // Adding one only wraps a lane that was already all ones, leaving it zero.
+                let wrapped = block.compare(
+                    DataType::VU16,
+                    new_mid.val(),
+                    CompareType::Equal,
+                    const_u128(0),
+                );
+                let carry_inc = block.and(DataType::VU16, carry_low.val(), wrapped.val());
+                let carry_mid = block.or(DataType::VU16, carry_sum.val(), carry_inc.val());
+
+                let acc_high = guest_regs.get_acc_high(&mut block);
+                let new_high = block.add(DataType::VU16, acc_high, delta_high);
+                let new_high = block.subtract(DataType::VU16, new_high.val(), carry_mid.val());
+
+                guest_regs.set_acc_low(new_low.val());
+                guest_regs.set_acc_mid(new_mid.val());
+                guest_regs.set_acc_high(new_high.val());
+
+                let result = clamp_acc_to_vd(&mut block, new_mid.val(), new_high.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result);
+            }
             // RspOpcode::VEC_VMACQ => todo!("RSP VEC_VMACQ"),
             // RspOpcode::VEC_VMACU => todo!("RSP VEC_VMACU"),
             RspOpcode::VEC_VMADH => {
@@ -639,25 +727,8 @@ pub fn rsp_to_ir_ctx(
                 guest_regs.set_acc_mid(new_mid.val());
                 guest_regs.set_acc_high(new_high.val());
 
-                let products_low = block.vector_interleave(
-                    DataType::VS32,
-                    VectorHalf::Low,
-                    new_mid.val(),
-                    new_high.val(),
-                );
-                let products_high = block.vector_interleave(
-                    DataType::VS32,
-                    VectorHalf::High,
-                    new_mid.val(),
-                    new_high.val(),
-                );
-                let result = block.vector_pack(
-                    DataType::VS16,
-                    PackType::Saturating,
-                    products_low.val(),
-                    products_high.val(),
-                );
-                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+                let result = clamp_acc_to_vd(&mut block, new_mid.val(), new_high.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result);
             }
             // RspOpcode::VEC_VMADL => todo!("RSP VEC_VMADL"),
             // RspOpcode::VEC_VMADM => todo!("RSP VEC_VMADM"),
@@ -684,22 +755,53 @@ pub fn rsp_to_ir_ctx(
                 guest_regs.set_acc_high(hi.val());
 
                 // vd is the product itself, clamped, which is the accumulator before the shift.
-                let products_low =
-                    block.vector_interleave(DataType::VS32, VectorHalf::Low, lo.val(), hi.val());
-                let products_high =
-                    block.vector_interleave(DataType::VS32, VectorHalf::High, lo.val(), hi.val());
-                let result = block.vector_pack(
-                    DataType::VS16,
-                    PackType::Saturating,
-                    products_low.val(),
-                    products_high.val(),
-                );
-                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result.val());
+                let result = clamp_acc_to_vd(&mut block, lo.val(), hi.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result);
             }
             // RspOpcode::VEC_VMUDL => todo!("RSP VEC_VMUDL"),
             // RspOpcode::VEC_VMUDM => todo!("RSP VEC_VMUDM"),
             // RspOpcode::VEC_VMUDN => todo!("RSP VEC_VMUDN"),
-            // RspOpcode::VEC_VMULF => todo!("RSP VEC_VMULF"),
+            RspOpcode::VEC_VMULF => {
+                let vs = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vs());
+                let vt = guest_regs.get_vu_reg(&mut block, instr.cp2_vec_vt());
+                let vte = get_vte(&mut block, vt, instr.cp2_vec_e());
+
+                let lo = block.multiply(
+                    DataType::VS16,
+                    DataType::VS16,
+                    MultiplyType::Combined,
+                    vs,
+                    vte,
+                );
+                let hi =
+                    block.multiply(DataType::VS16, DataType::VS16, MultiplyType::High, vs, vte);
+
+                // 2 * prod + 0x8000 is 2 * (prod + 0x4000), which is one carry chain instead of
+                // two. The inner add cannot overflow 32 bits because the product fits in 31.
+                let round = const_u128(0x4000_4000_4000_4000_4000_4000_4000_4000);
+                let saturated = block.saturating_add(DataType::VU16, lo.val(), round);
+                let rounded_low = block.add(DataType::VU16, lo.val(), round);
+                let carry = block.compare(
+                    DataType::VU16,
+                    rounded_low.val(),
+                    CompareType::NotEqual,
+                    saturated.val(),
+                );
+                let rounded_high = block.subtract(DataType::VU16, hi.val(), carry.val());
+
+                let acc_low = block.left_shift(DataType::VU16, rounded_low.val(), const_u64(1));
+                let carried = block.right_shift(DataType::VU16, rounded_low.val(), const_u64(15));
+                let shifted = block.left_shift(DataType::VU16, rounded_high.val(), const_u64(1));
+                let acc_mid = block.or(DataType::VU16, shifted.val(), carried.val());
+                let acc_high = block.right_shift(DataType::VS16, rounded_high.val(), const_u64(15));
+
+                guest_regs.set_acc_low(acc_low.val());
+                guest_regs.set_acc_mid(acc_mid.val());
+                guest_regs.set_acc_high(acc_high.val());
+
+                let result = clamp_acc_to_vd(&mut block, acc_mid.val(), acc_high.val());
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), result);
+            }
             // RspOpcode::VEC_VMULQ => todo!("RSP VEC_VMULQ"),
             // RspOpcode::VEC_VMULU => todo!("RSP VEC_VMULU"),
             // RspOpcode::VEC_VNAND => todo!("RSP VEC_VNAND"),
