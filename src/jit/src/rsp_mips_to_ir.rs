@@ -806,7 +806,7 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::VEC_VMULU => todo!("RSP VEC_VMULU"),
             // RspOpcode::VEC_VNAND => todo!("RSP VEC_VNAND"),
             // RspOpcode::VEC_VNE => todo!("RSP VEC_VNE"),
-            // RspOpcode::VEC_VNOP => todo!("RSP VEC_VNOP"),
+            RspOpcode::VEC_VNOP => {}
             // RspOpcode::VEC_VNOR => todo!("RSP VEC_VNOR"),
             // RspOpcode::VEC_VNXOR => todo!("RSP VEC_VNXOR"),
             // RspOpcode::VEC_VOR => todo!("RSP VEC_VOR"),
@@ -817,7 +817,16 @@ pub fn rsp_to_ir_ctx(
             // RspOpcode::VEC_VRNDP => todo!("RSP VEC_VRNDP"),
             // RspOpcode::VEC_VRSQ => todo!("RSP VEC_VRSQ"),
             // RspOpcode::VEC_VRSQL => todo!("RSP VEC_VRSQL"),
-            // RspOpcode::VEC_VSAR => todo!("RSP VEC_VSAR"),
+            RspOpcode::VEC_VSAR => {
+                // e selects an accumulator half here rather than an element of vt.
+                let value = match instr.cp2_vec_e() {
+                    0x8 => guest_regs.get_acc_high(&mut block),
+                    0x9 => guest_regs.get_acc_mid(&mut block),
+                    0xA => guest_regs.get_acc_low(&mut block),
+                    _ => const_u128(0),
+                };
+                guest_regs.set_vu_reg(instr.cp2_vec_vd(), value);
+            }
             // RspOpcode::VEC_VSUB => todo!("RSP VEC_VSUB"),
             // RspOpcode::VEC_VSUBC => todo!("RSP VEC_VSUBC"),
             // RspOpcode::VEC_VXOR => todo!("RSP VEC_VXOR"),
