@@ -135,6 +135,52 @@ jobs:
           name: n64-linux
           path: upload
 
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup dependencies
+        run: brew install sdl2 shaderc libsamplerate molten-vk ninja
+
+      - name: Build nativefiledialog-extended
+        run: |
+          git clone --depth 1 --branch v1.3.0 https://github.com/btzy/nativefiledialog-extended.git
+          cmake -S nativefiledialog-extended -B nativefiledialog-extended/build -DCMAKE_BUILD_TYPE=Release -DNFD_BUILD_TESTS=OFF
+          cmake --build nativefiledialog-extended/build
+          sudo cmake --install nativefiledialog-extended/build
+
+      - name: Build N64
+        run: |
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_PREFIX_PATH="$(brew --prefix)" -DSDL2_PATH="$(brew --prefix)" ..
+          ninja
+
+      - name: Run Rust JIT tests
+        env:
+          DUMP_STRUCT_LAYOUT_BIN: ${{ github.workspace }}/build/dump_struct_layout
+        run: |
+          cd src/jit
+          cargo test
+
+      - name: Collect files
+        run: |
+          mkdir upload
+          mv build/n64 upload
+
+      - name: Upload files
+        uses: actions/upload-artifact@v7
+        with:
+          name: n64-macos
+          path: upload
+
   build-nix:
     strategy:
       matrix:
