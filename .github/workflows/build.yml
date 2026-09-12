@@ -191,7 +191,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@v22
-      - uses: DeterminateSystems/magic-nix-cache-action@v14
+      - uses: DeterminateSystems/magic-nix-cache-action@v15
       - uses: DeterminateSystems/flake-checker-action@v13
       - name: Run `nix build`
         run: nix build .
